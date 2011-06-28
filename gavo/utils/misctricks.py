@@ -50,13 +50,20 @@ class Undefined(object):
 
 
 class QuotedName(object):
-	"""A string-like thing basically representing SQL quoted identifiers.
+	"""A string-like thing basically representing SQL delimited identifiers.
 
 	This has some features that make handling these relatively painless
 	in ADQL code.
 
 	The most horrible feature is that these hash and compare as their embedded
 	names, except to other QuotedNamess.
+
+	SQL-92, in 5.2, roughly says:
+
+	delimited identifiers compare literally with each other,
+	delimited identifiers compare with regular identifiers after the
+	latter are all turned to upper case.  But since postgres turns everything
+	to lower case, we do so here, too.
 
 	>>> n1, n2, n3 = QuotedName("foo"), QuotedName('foo"l'), QuotedName("foo")
 	>>> n1==n2,n1==n3,hash(n1)==hash("foo")
@@ -73,8 +80,10 @@ class QuotedName(object):
 	def __eq__(self, other):
 		if isinstance(other, QuotedName):
 			return self.name==other.name
+		elif isinstance(other, basestring):
+			return self.name==other.lower()
 		else:
-			return self.name==other
+			return False
 
 	def __ne__(self, other):
 		return not self==other

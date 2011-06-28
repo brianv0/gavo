@@ -194,18 +194,6 @@ class TableDefTest(testhelpers.VerboseTest):
 		self.assertEqual(len(fields), 1)
 		self.assertEqual(fields[0].type, "real")
 
-	def testQuotedIdentifier(self):
-		t = base.parseFromString(rscdef.TableDef, '<table id="t">'
-			'<column name="quoted/id number" type="integer"/>'
-			'<column name="quoted/table" type="text"/>'
-			'<column name="quoted/Harmless"/>'
-			'</table>')
-		self.failUnless(isinstance(t.getColumnByName("id number").name,
-			utils.QuotedName))
-		self.assertEqual(t.getColumnByName("id number").type, "integer")
-		self.assertRaises(base.NotFoundError, t.getColumnByName, "harmless")
-		self.assertEqual(t.getColumnByName("Harmless").type, "real")
-
 	def testPrimary(self):
 		t = base.parseFromString(rscdef.TableDef, '<table id="test" primary="a">'
 			'<column name="a"/><column name="b"/></table>')
@@ -246,6 +234,38 @@ class TableDefTest(testhelpers.VerboseTest):
 		self.assertEqual(fk.source, ["b"])
 		self.assertEqual(fk.source, fk.dest)
 		self.assertEqual(fk.table, "zz")
+
+
+class _QuotedNamesTable(testhelpers.TestResource):
+	def make(self, ignored):
+		return base.parseFromString(rscdef.TableDef, '<table id="t">'
+			'<column name="quoted/id number" type="integer"/>'
+			'<column name="quoted/table" type="text"/>'
+			'<column name="quoted/Harmless"/>'
+			'</table>')
+
+
+class QuotedColumnNameTest(testhelpers.VerboseTest):
+	resources = [("td", _QuotedNamesTable())]
+
+	def testParsedAsQuoted(self):
+		self.failUnless(isinstance(self.td.getColumnByName("id number").name,
+			utils.QuotedName))
+	
+	def testPlainNameResolution(self):
+		self.assertEqual(self.td.getColumnByName("id number").type, "integer")
+	
+	def testQuotedNameResolution(self):
+		self.assertEqual(self.td.getColumnByName(
+			utils.QuotedName("id number")).type, "integer")
+	
+	def testQuotedNameSensitive(self):
+		self.assertRaises(base.NotFoundError, self.td.getColumnByName, 
+			utils.QuotedName("harmless"))
+
+	def testQuotedNameResolvesAgain(self):
+		self.assertEqual(self.td.getColumnByName(
+			utils.QuotedName("Harmless")).type, "real")
 
 
 class _ResTestTable(testhelpers.TestResource):

@@ -103,7 +103,7 @@ class MetaTableHandler(object):
 		WARNING: This will produce columns according to the information in
 		the database.  This does, e.g., not include STC information.
 
-		Consider using the base.caches.getTableDefForTable method for 
+		Consider using the getTableDefForTable method for 
 		RD-correct columns.
 		"""
 		try:

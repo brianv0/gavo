@@ -64,7 +64,7 @@
 			<condDesc original="//scs#protoInput"/>
 			<condDesc buildFrom="mag"/>
 			<condDesc>
-				<inputKey original="rv" type="vexpr-float"
+				<inputKey original="rV" type="vexpr-float"
 					>-100 .. 100<property name="cssClass">rvkey</property>
 				</inputKey>
 			</condDesc>
@@ -77,14 +77,14 @@
 	<service id="grouptest">
 		<dbCore queriedTable="data/test#adql">
 			<condDesc>
-				<inputKey original="rv"/>
+				<inputKey original="rV"/>
 			</condDesc>
 			<inputTable>
-				<group name="magic" paramRefs="mag,rv"
+				<group name="magic" paramRefs="mag,rV"
 					description="Some magic parameters we took out of thin air.">
 					<property name="cssClass">localstuff</property>
 				</group>
-				<inputKey original="rv">
+				<inputKey original="rV">
 					<values default="-4"/>
 				</inputKey>
 				<inputKey original="mag"/>
@@ -97,7 +97,7 @@
 	<service id="impgrouptest">
 		<dbCore queriedTable="data/test#adql">
 			<condDesc>
-				<inputKey original="rv"/>
+				<inputKey original="rV"/>
 				<inputKey original="mag"/>
 				<group name="phys" description="Ah, you know.  The group with
 					 the magic and the thin air">

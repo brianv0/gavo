@@ -1,5 +1,10 @@
 """
 Generation of VODataService 1.1 tablesets from resources, plus 1.0 hacks.
+
+Fudge note: sprinkled in below are lots of lower()s for column names and the
+like.  These were added for the convenience of TAP clients that may
+want to use these names quoted.  Quoted identifiers match regular identifiers
+only if case-normalized (i.e., all-lower in DaCHS).
 """
 
 from gavo import base
@@ -15,7 +20,7 @@ def getSchemaForRD(rd):
 	No tables are added.  You need to pick and choose them yourself.
 	"""
 	return VS1.schema[
-		VS1.name[rd.schema],
+		VS1.name[rd.schema.lower()],
 		VS1.title[rd.getMeta("title")],
 		VS1.description[rd.getMeta("description")],
 	]
@@ -27,8 +32,8 @@ def getForeignKeyForForeignKey(fk):
 	return VS1.foreignKey[
 		VS1.targetTable[fk.parent.expand(fk.table)], [
 			VS1.fkColumn[
-				VS1.fromColumn[fromColName],
-				VS1.targetColumn[toColName]]
+				VS1.fromColumn[fromColName.lower()],
+				VS1.targetColumn[toColName.lower()]]
 			for fromColName,toColName in zip(fk.source, fk.dest)]]
 
 
@@ -47,7 +52,7 @@ def getTableColumnFromColumn(column, typeElement):
 	elif not column.required:
 		flags.append("nullable")
 	return VS1.column[
-		VS1.name[column.name],
+		VS1.name[column.name.lower()],
 		VS1.description[column.description],
 		VS1.unit[column.unit],
 		VS1.ucd[column.ucd],
@@ -59,7 +64,7 @@ def getTableForTableDef(tableDef):
 	"""returns a VS1.table instance for a rscdef.TableDef.
 	"""
 	return VS1.table[
-		VS1.name[tableDef.getQName()],
+		VS1.name[tableDef.getQName().lower()],
 		VS1.title[tableDef.getMeta("title", propagate=False)],
 		VS1.description[tableDef.getMeta("description", propagate=True)], [
 			getTableColumnFromColumn(col, VS1.voTableDataType)

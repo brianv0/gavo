@@ -47,7 +47,7 @@ class _ADQLTestTable(testhelpers.TestResource):
 		self.rd = testhelpers.getTestRD()
 		ds = rsc.makeData(self.rd.getById("ADQLTest"),
 				forceSource=[
-				{"alpha": 22, "delta": 23, "mag": -27, "rv": 0},],
+				{"alpha": 22, "delta": 23, "mag": -27, "rV": 0},],
 				connection=deps["adqlQuerier"].connection).commitAll()
 		return ds
 	
@@ -457,9 +457,9 @@ class TreeParseTest(testhelpers.VerboseTest):
 	def testQuotedSchemaName(self):
 		t = adql.parseToTree('select * from "Murks Schema"."Murks Tabelle"')
 		self.assertEqual(t.fromClause.tablesReferenced[0].tableName.name,
-			"Murks Tabelle")
+			utils.QuotedName("Murks Tabelle"))
 		self.assertEqual(t.fromClause.tablesReferenced[0].tableName.schema,
-			"Murks Schema")
+			utils.QuotedName("Murks Schema"))
 
 
 class ParseErrorTest(testhelpers.VerboseTest):
@@ -531,8 +531,10 @@ quotedFields = [
 		unit="bg"),
 	MS(rscdef.Column, name=utils.QuotedName('inch"ing'), ucd="imperial.mess",
 		unit="fin"),
-	MS(rscdef.Column, name=utils.QuotedName('plain'), ucd="boring.stuff",
-		unit="pc"),]
+	MS(rscdef.Column, name=utils.QuotedName('plAin'), ucd="boring.stuff",
+		unit="pc"),
+	MS(rscdef.Column, name=utils.QuotedName('alllower'), ucd="simple.case",
+		unit="km"),]
 crazyFields = [
 	MS(rscdef.Column, name="ct", type="integer"),
 	MS(rscdef.Column, name="wot", type="bigint", 
@@ -666,6 +668,11 @@ class SelectClauseTest(ColumnTest):
 		cols = self._getColSeq("select 1+0.1 as x from spatial")
 		self._assertColumns(cols, [
 			("double precision", "", "", True),])
+
+	def testSimpleColumn(self):
+		cols = self._getColSeq("select mass from misc")
+		self._assertColumns(cols, [
+			("real", "kg", "phys.mass", False),])
 
 	def testBadRefRaises(self):
 		self.assertRaises(adql.ColumnNotFound, self._getColSeq, 
@@ -843,15 +850,40 @@ class ColResTest(ColumnTest):
 			"select gnurks from spatial")
 
 
-class QuotedColResTest(ColumnTest):
+class DelimitedColResTest(ColumnTest):
 	"""tests for column resolution with delimited identifiers.
 	"""
+	def testCaseSensitive(self):
+		self.assertRaises(adql.ColumnNotFound, self._getColSeq,
+			'select "Inch""ing" from quoted')
+
+	def testMixedCase(self):
+		cols = self._getColSeq('select "plAin" from quoted')
+		self.assertEqual(cols[0][0], utils.QuotedName("plAin"))
+
+	def testNoFoldToRegular(self):
+		self.assertRaises(adql.ColumnNotFound, self._getColSeq,
+			'select plain from quoted')
+
+	def testDelimitedMatchesRegular(self):
+		cols = self._getColSeq('select "mass" from misc')
+		self.assertEqual(cols[0][0], "mass")
+
+	def testConstantSelectWithAs(self):
+		cols = self._getColSeq('select 1+0.1 as "x" from spatial')
+		self.assertEqual(cols[0][0], "x")
+
+	def testRegularMatchesDelmitied(self):
+		cols = self._getColSeq('select alllower from quoted')
+		self.assertEqual(cols[0][0], "alllower")
+
 	def testSimpleStar(self):
 		cols = self._getColSeq("select * from quoted")
 		self._assertColumns(cols, [
 			("real", 'bg', "mess", False),
 			("real", 'fin', "imperial.mess", False),
-			("real", 'pc', "boring.stuff", False),])
+			("real", 'pc', "boring.stuff", False),
+			("real", 'km', "simple.case", False),])
 	
 	def testSimpleJoin(self):
 		cols = self._getColSeq('select "inch""ing", "mass" from misc join'
@@ -861,20 +893,17 @@ class QuotedColResTest(ColumnTest):
 			("real", 'kg', 'phys.mass', False)])
 
 	def testPlainAndSubselect(self):
-		cols = self._getColSeq('select "inch""ing", plain from ('
-			'select TOP 5 * from quoted where plain<"inch""ing") as q')
+		cols = self._getColSeq('select "inch""ing", alllower from ('
+			'select TOP 5 * from quoted where alllower<"inch""ing") as q')
 		self._assertColumns(cols, [
 			("real", 'fin', "imperial.mess", False),
-			("real", 'pc', "boring.stuff", False),])
+			("real", 'km', "simple.case", False),])
 	
 	def testQuotedExpressions(self):
-		cols = self._getColSeq('select 4*plain*"inch""ing" from quoted')
+		cols = self._getColSeq('select 4*alllower*"inch""ing" from quoted')
 		self._assertColumns(cols, [
-			("real", 'pc*fin', None, True)])
+			("real", 'km*fin', None, True)])
 
-	def testCaseSensitive(self):
-		self.assertRaises(adql.ColumnNotFound, self._getColSeq,
-			'select "Inch""ing" from quoted')
 
 
 class JoinColResTest(ColumnTest):
@@ -1509,6 +1538,11 @@ class QueryTest(testhelpers.VerboseTest):
 		self.assertEqual(list(res)[0]["rv"], 0)
 		self.assertEqual(res.tableDef.getColumnByName("p").xtype,
 			"adql:POINT")
+
+	def testQuotedIdentifier(self):
+		res = self.runQuery(
+			'select "rv", rV from %s'%self.tableName)
+		self.assertEqual(res.rows, [{"rv": 0., "rv_": 0.}])
 
 
 class SimpleSTCSTest(testhelpers.VerboseTest):

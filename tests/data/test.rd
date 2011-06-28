@@ -93,7 +93,7 @@
 
 	<table id="adql" adql="True" onDisk="True">
 		<stc>
-			Position ICRS GEOCENTER "alpha" "delta" Redshift VELOCITY "rv"
+			Position ICRS GEOCENTER "alpha" "delta" Redshift VELOCITY "rV"
 		</stc>
 		<column name="alpha" unit="deg" ucd="pos.eq.ra;meta.main"
 			description="A sample RA" tablehead="Raw RA" verbLevel="1"/>
@@ -101,13 +101,13 @@
 			description="A sample Dec" verbLevel="1"/>
 		<column name="mag" unit="mag" ucd="phot.mag"
 			description="A sample magnitude" verbLevel="15"/>
-		<column name="rv" unit="km/s" ucd="phys.veloc;pos.heliocentric"
+		<column name="rV" unit="km/s" ucd="phys.veloc;pos.heliocentric"
 			description="A sample radial velocity"
 			type="double precision" verbLevel="25"/>
 	</table>
 
 	<data id="ADQLTest">
-		<rowmaker id="AT_adql" idmaps="alpha,delta,mag,rv"/>
+		<rowmaker id="AT_adql" idmaps="alpha,delta,mag,rV"/>
 		<dictlistGrammar/>
 		<make table="adql" rowmaker="AT_adql"/>
 	</data>

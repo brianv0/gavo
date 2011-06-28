@@ -98,7 +98,7 @@ class FormTest(trialhelpers.RenderTest):
 	
 	def testMultigroupMessages(self):
 		return self.assertGETHasStrings("/data/cores/impgrouptest/form", {
-				"rv": "invalid", 
+				"rV": "invalid", 
 				"mag": "bogus", 
 				formal.FORMS_KEY: "genForm",
 			}, [
@@ -120,7 +120,7 @@ class FormTest(trialhelpers.RenderTest):
 
 	def testInputKeyFilled(self):
 		return self.assertGETHasStrings("/data/cores/grouptest/form", 
-			{"rv": "9.25"}, [
+			{"rV": "9.25"}, [
 				'value="9.25"'
 			])
 

@@ -179,8 +179,8 @@ def getFieldInfoGetter(accessProfile=None, tdsForUploads=[]):
 				raise base.ui.logOldExc(adql.TableNotFound(tableName.qName))
 		else:
 			td = mth.getTableDefForTable(adql.flatten(tableName))
-		return [(f.name, makeFieldInfo(f)) 
-			for f in td]
+		res = [(f.name, makeFieldInfo(f)) for f in td]
+		return res
 	return getFieldInfos
 
 

@@ -222,8 +222,8 @@
 								indexed = 1
 							type, size = sqltypeToADQL(col.type)
 							yield {
-								"table_name": table.getQName(),
-								"column_name": col.name,
+								"table_name": table.getQName().lower(),
+								"column_name": col.name.lower(),
 								"description": col.description,
 								"unit": col.unit,
 								"ucd": col.ucd,

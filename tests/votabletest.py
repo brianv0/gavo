@@ -547,7 +547,7 @@ class GroupWriteTest(testhelpers.VerboseTest):
 def _getTableWithSimpleSTC():
 	td = testhelpers.getTestRD().getById("adql").change(onDisk=False)
 	return rsc.TableForDef(td, rows=[
-		{'alpha': 10, 'delta': -10, 'mag': -1, 'rv': -4}])
+		{'alpha': 10, 'delta': -10, 'mag': -1, 'rV': -4}])
 
 
 class STCEmbedTest(testhelpers.VerboseTest):

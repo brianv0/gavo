@@ -226,7 +226,7 @@ class TAP_SchemaTest(testhelpers.VerboseTest):
 		self.rd = testhelpers.getTestRD()
 		self.rd.getById("adqltable").foreignKeys.append(
 			base.parseFromString(tabledef.ForeignKey, 
-				'<foreignKey table="test.adql" source="foo" dest="rv"/>'))
+				'<foreignKey table="test.adql" source="foo" dest="rV"/>'))
 
 	def tearDown(self):
 		tap.unpublishFromTAP(self.rd, self.conn)
@@ -253,7 +253,7 @@ class TAP_SchemaTest(testhelpers.VerboseTest):
 			(q.query("select from_column, target_column"
 				" from TAP_SCHEMA.key_columns where sourcerd"
 				" = %(rdid)s", {"rdid": self.rd.sourceId})))
-		self.assertEqual(fkcols, set([(u'foo', u'rv')]))
+		self.assertEqual(fkcols, set([(u'foo', u'rV')]))
 
 	def _checkUnpublished(self):
 		q = base.SimpleQuerier(connection=self.conn)

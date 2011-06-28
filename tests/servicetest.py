@@ -214,13 +214,13 @@ class InputFieldSelectionTest(testhelpers.VerboseTest):
 		self.assertEqual(
 			[(k.name, k.type) for k in self.service.getInputKeysFor("form")],
 			[("hscs_pos", "text"), ("hscs_sr", "real"), ("mag", "vexpr-float"),
-				('rv', 'vexpr-float')])
+				('rV', 'vexpr-float')])
 
 	def testSCS(self):
 		self.assertEqual(
 			[(k.name, k.type) for k in self.service.getInputKeysFor("scs.xml")],
 			[('RA', 'double precision'), ('DEC', 'double precision'), 
-				('SR', 'real'), ("mag", "real"), (u'rv', u'vexpr-float')])
+				('SR', 'real'), ("mag", "real"), (u'rV', u'vexpr-float')])
 
 
 class InputTableGenTest(testhelpers.VerboseTest):
@@ -231,7 +231,7 @@ class InputTableGenTest(testhelpers.VerboseTest):
 		it = service._makeInputTableFor("form", {
 				"hscs_pos": "Aldebaran", "hscs_sr": "0.25"})
 		self.assertEqual(it.getParamDict(), {
-			u'rv': u'-100 .. 100', u'hscs_sr': 0.25, u'mag': None, 
+			u'rV': u'-100 .. 100', u'hscs_sr': 0.25, u'mag': None, 
 			u'hscs_pos': u'Aldebaran'})
 
 	def testInvalidLiteral(self):
@@ -286,7 +286,7 @@ class GroupingTest(testhelpers.VerboseTest):
 		self.failUnless('<div class="multiinputs" id="multigroup-phys">' 
 			in rendered)
 		self.failUnless('<label for="multigroup-phys">Wonz' in rendered)
-		renderedInput = re.search('<input[^>]*name="rv"[^>]*>', rendered).group(0)
+		renderedInput = re.search('<input[^>]*name="rV"[^>]*>', rendered).group(0)
 		self.failUnless('class="inmulti"' in renderedInput)
 
 

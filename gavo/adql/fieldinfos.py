@@ -96,7 +96,6 @@ class FieldInfos(object):
 		return fi
 
 
-
 class TableFieldInfos(FieldInfos):
 	"""FieldInfos coming from something that's basically a table in the DB.
 
