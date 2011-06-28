@@ -694,7 +694,10 @@ class FieldRef(base.Structure):
 		return self.table.getColumnByName(self.column)
 
 	def getQName(self):
-		return "%s.%s"%(self.table.getQName(), self.column)
+		name = "%s.%s"%(self.table.getQName(), self.column)
+		if "\\" in name:
+			name = self.expand(name)
+		return name
 
 
 class SimpleView(base.Structure, base.MetaMixin):
