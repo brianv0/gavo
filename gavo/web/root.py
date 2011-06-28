@@ -287,7 +287,13 @@ class ArchiveService(rend.Page):
 					" scope")
 			segments = segments[self.rootLen:]
 		
-		curPath = "/".join(segments).strip("/")
+		curPath = "/".join(segments)
+		# allow // to stand for __system__ like in RDs
+		if curPath.startswith ("/"):
+			segments = ("__system__",)+segments[1:]
+			curPath = "/".join(segments).strip("/")
+
+		curPath = curPath.strip("/")
 		if curPath=="":
 			segments = ("__system__", "services", "root", "fixed")
 		if curPath in self.redirects:

@@ -63,4 +63,10 @@
 	<service id="limited" core="timeoutcore" limitTo="notYou">
 		<meta name="title">Only notYou may see this.</meta>
 	</service>
+
+	<service id="dyntemplate" allowed="fixed">
+		<meta name="title">Dynamic Template Test</meta>
+		<nullCore/>
+		<template key="fixed">//tpltest.html</template>
+	</service>
 </resource>

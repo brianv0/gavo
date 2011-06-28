@@ -322,9 +322,13 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		if not self.allowed:
 			self.allowed.add("form")
 
-		# undefined cores are only allowed with custom pages.
-		if self.core is base.Undefined and self.customPage:
-			self.core = core.getCore("nullCore")(self.rd).finishElement(None)
+		if self.core is base.Undefined:
+			# undefined cores are only allowed with custom pages
+			if self.customPage:
+				self.core = core.getCore("nullCore")(self.rd).finishElement(None)
+			else:
+				raise base.StructureError("Services must have cores (add <nullCore/>"
+					" if you really do not want a core, e.g., with fixed renderers).")
 
 		# empty output tables are filled from the core
 		if self.outputTable is base.NotGiven:

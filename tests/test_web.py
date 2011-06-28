@@ -173,3 +173,26 @@ class StreamingTest(trialhelpers.RenderTest):
 		return trialhelpers.runQuery(self.renderer, "GET", "/test/stream",
 			{"chunksize": "10", "size": "3500"}, requestClass=ClosingRequest
 		).addCallback(assertResult)
+
+
+class TemplatingTest(trialhelpers.RenderTest):
+	renderer = root.ArchiveService()
+
+	def testContentDelivered(self):
+		return self.assertGETHasStrings("//tests/dyntemplate/fixed", 
+			{"foo": "content delivered test"},
+			["here:content delivered test", 'href="/static/css/gavo_dc.css'])
+	
+	def testNoParOk(self):
+		return self.assertGETHasStrings("//tests/dyntemplate/fixed", {},
+			["stuff here:</p>"])
+	
+	def testEightBitClean(self):
+		return self.assertGETHasStrings("//tests/dyntemplate/fixed", 
+			{"foo": u"\u00C4".encode("utf-8")},
+			["stuff here:\xc3\x84</p>"])
+
+	def testMessEscaped(self):
+		return self.assertGETHasStrings("//tests/dyntemplate/fixed", 
+			{"foo": '<script language="nasty&"/>'},
+			['&lt;script language="nasty&amp;"/&gt;'])

@@ -70,6 +70,10 @@ class FixedPageRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 	"""A renderer that renders a single template.
 
 	The file is given in the service's fixed template.
+
+	You can fetch parameters from the URL using the parameter data function.
+
+	See the specview.html template as an example.
 	"""
 	name = "fixed"
 
@@ -81,6 +85,15 @@ class FixedPageRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 		except KeyError:
 			raise base.ui.logOldExc(
 				svcs.UnknownURI("fixed renderer needs a 'fixed' template"))
+
+	def data_parameter(self, parName):
+		"""lets you insert an URL parameter into the template.
+
+		Non-existing parameters are returned as an empty string.
+		"""
+		def getParameter(ctx, data):
+			return inevow.IRequest(ctx).args.get(parName, [""])[0]
+		return getParameter
 
 	@classmethod
 	def isCacheable(cls, segments, request):
