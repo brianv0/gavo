@@ -15,8 +15,9 @@ class OutputField(rscdef.Column):
 	specific to certain cores.
 
 	The optional formatter overrides the standard formatting code in HTML
-	(which is based on units, ucds, and displayHints).  This is a standard
-	nevow renderer, having ctx and data as arguments.
+	(which is based on units, ucds, and displayHints).  You receive
+	the item from the database as data and must return a string or
+	nevow stan.
 
 	Here's an example for generating a link to another service using this
 	facility::
@@ -26,9 +27,9 @@ class OutputField(rscdef.Column):
 	      description="More exposures near the center of this plate">
 	    <formatter><![CDATA[
 	      return T.a(href=base.makeSitePath("/lswscans/res/positions/q/form?"
-	        "POS=%s,%s&SIZE=1&INTERSECT=OVERLAPS&cutoutSize=0.5"
-		      "&__nevow_form__=genForm"%tuple(data)
-		      ))["More"] ]]>
+	        	"POS=%s,%s&SIZE=1&INTERSECT=OVERLAPS&cutoutSize=0.5"
+		      	"&__nevow_form__=genForm"%tuple(data)
+		      	))["More"] ]]>
 	    </formatter>
 	  </outputField>
 	"""

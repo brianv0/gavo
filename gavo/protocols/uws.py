@@ -2,6 +2,15 @@
 Support classes for the universal worker service.
 """
 
+# TODO: make all jobs R/O by default, and use context managers to let
+# people obtain manipulators:
+# job = UWSJob()
+# with job.getManipulator() as man:
+#   man.changeToPhase(uws.ABORTED)
+# or somesuch.
+# Scrap the horrible getWritable() hack when done.
+
+
 from __future__ import with_statement
 
 import cPickle as pickle
@@ -452,6 +461,10 @@ class UWSJob(ROUWSJob):
 	def __init__(self, jobId, jobsTable=None, timeout=10):
 		if jobsTable is None:
 			jobsTable = getJobsTable(timeout)
+		# the following is a counter for the number of times __enter__
+		# has been called.  This is to accomodate the stupid way we
+		# manage our context with nested uses of with
+		self.nestingDepth = 0
 		ROUWSJob.__init__(self, jobId, jobsTable)
 
 	@classmethod
@@ -524,12 +537,15 @@ class UWSJob(ROUWSJob):
 			self.close()
 
 	def __enter__(self):
+		self.nestingDepth += 1
 		return self # transaction has been opened by makeFromId
 	
 	def __exit__(self, type, value, tb):
 		# we want to release the jobs table no matter what, but we don't 
 		# claim to handle any exception.
-		self.close()
+		self.nestingDepth -= 1
+		if self.nestingDepth==0:
+			self.close()
 		if tb is not None: # exception came in, signal we did not handle it.
 			return False
 
@@ -540,6 +556,9 @@ class UWSJob(ROUWSJob):
 		self.jobsTable.commit()
 		self.jobsTable.close()
 		self._closed = True
+
+	def getWritable(self, timeout=10):
+		return self
 
 	def addParameter(self, name, value):
 		self.protocolParameters.addParam(self, name, value)

@@ -405,7 +405,8 @@ class TAPActions(uws.UWSActions):
 	def __init__(self):
 		uws.UWSActions.__init__(self, "TAP", [
 			(uws.PENDING, uws.QUEUED, "startJob"),
-			(uws.QUEUED, uws.ABORTED, "noOp"),
+			(uws.PENDING, uws.ABORTED, "markAborted"),
+			(uws.QUEUED, uws.ABORTED, "markAborted"),
 			(uws.EXECUTING, uws.COMPLETED, "noOp"),
 			(uws.EXECUTING, uws.ABORTED, "killJob"),
 			(uws.COMPLETED, uws.ERROR, "ignoreAndLog"),
@@ -466,6 +467,16 @@ class TAPActions(uws.UWSActions):
 			raise
 		except Exception, ex:
 			raise TAPError(None, ex)
+
+	def markAborted(self, newState, job, ignored):
+		"""simply marks job as aborted.
+
+		This is what happens if you abort a job from QUEUED or
+		PENDING.
+		"""
+		with job.getWritable() as job:
+			job.phase = uws.ABORTED
+			job.endTime = datetime.datetime.utcnow()
 
 	def ignoreAndLog(self, newState, job, exc):
 		base.ui.logErrorOccurred("Request to push COMPLETED job to ERROR: %s"%

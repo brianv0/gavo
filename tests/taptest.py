@@ -14,6 +14,7 @@ import os
 import Queue
 import time
 import threading
+import traceback
 
 from nevow import inevow
 from nevow.testutil import FakeRequest
@@ -355,6 +356,23 @@ class SimpleRunnerTest(testhelpers.VerboseTest):
 		self.assertEqual(fields[1].datatype, "char")
 		self.assertEqual(fields[1].xtype, "adql:POINT")
 		self.assertEqual(fields[2].datatype, "double")
+
+
+class TAPTransitionsTest(testhelpers.VerboseTest):
+	def testAbortPending(self):
+		jobId = None
+		try:
+			with tap.TAPJob.create(args={"QUERY": "bogus", "REQUEST": "doQuery",
+					"LANG": "ADQL"}) as job:
+				jobId = job.jobId
+				job.changeToPhase(uws.ABORTED)
+			with tap.ROTAPJob.makeFromId(jobId) as job:
+				self.assertEqual(job.phase, uws.ABORTED)
+		except:
+			traceback.print_exc()
+		finally:
+			with tap.TAPJob.makeFromId(jobId) as job:
+				job.delete()
 
 
 class TAPSchemaTest(testhelpers.VerboseTest):
