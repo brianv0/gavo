@@ -174,7 +174,7 @@ def deliverFailPreview(failure, request):
 	return ""
 
 
-class ProductRenderer(grend.ServiceBasedRenderer):
+class ProductRenderer(grend.ServiceBasedPage):
 	"""The renderer used for delivering products.
 
 	This will only work with a ProductCore since the resulting

@@ -87,7 +87,7 @@ def iterSvcRecs(service):
 		rec["referenceURL"] = base.getMetaText(service, "referenceURL")
 		try:
 			rec["browseable"] = service.isBrowseableWith(pub.render)
-		except AttributeError:  # service is not a ResourceBasedRenderer
+		except AttributeError:  # service is not a ServiceBasedPage
 			rec["browseable"] = False
 		for setName in pub.sets:
 			rec["setName"] = setName

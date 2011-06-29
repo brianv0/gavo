@@ -335,14 +335,11 @@ class CustomTemplateMixin(object):
 ############# nevow Resource derivatives used here.
 
 
-class ResourceBasedRenderer(GavoRenderMixin):
+class ResourceBasedPage(rend.Page, GavoRenderMixin):
 	"""A base for renderers based on RDs.
 
 	It is constructed with the resource descriptor and leaves it
 	in the rd attribute.
-
-	You will have to override the renderHTTP(ctx) -> whatever method, 
-	possibly locateChild(ctx, segments) -> resource, too.
 
 	The preferredMethod attribute is used for generation of registry records
 	and currently should be either GET or POST.  urlUse should be one
@@ -358,7 +355,8 @@ class ResourceBasedRenderer(GavoRenderMixin):
 	nontrivial things there).
 
 	Within DaCHS, this class is mainly used as a base for ServiceBasedRenderer,
-	since almost always only services talk to the world.
+	since almost always only services talk to the world.  However,
+	we try to fudge render and data functions such that the sidebar works.
 	"""
 	implements(inevow.IResource)
 
@@ -372,16 +370,12 @@ class ResourceBasedRenderer(GavoRenderMixin):
 	name = None
 
 	def __init__(self, ctx, rd):
+		rend.Page.__init__(self)
 		self.rd = rd
+		self.setMetaParent(rd)
 		if hasattr(self.rd, "currently_blocked"):
 			raise RDBlocked()
 		self._initGavoRender()
-
-	def renderHTTP(self, ctx):
-		return super(ResourceBasedRenderer, self).renderHTTP(ctx)
-	
-	def locateChild(self, ctx, segments):
-		return self, ()
 
 	@classmethod
 	def isBrowseable(self, service):
@@ -408,29 +402,39 @@ class ResourceBasedRenderer(GavoRenderMixin):
 		return "%s/%s"%(baseURL, cls.name)
 
 	def data_rdId(self, ctx, data):
-		return self.service.rd.sourceId
+		return self.rd.sourceId
+
+	def data_serviceURL(self, type):
+		# for RD's that's simply the rdinfo.
+		return lambda ctx, data: base.makeSitePath("/browse/%s"%self.rd.sourceId)
 
 
-class ServiceBasedRenderer(ResourceBasedRenderer):
-	"""A mixin for pages based on RD services.
+class ServiceBasedPage(ResourceBasedPage):
+	"""the base class for renderers turning service-based info into
+	character streams.
 
+	You will need to provide some way to give rend.Page nevow templates,
+	either by supplying a docFactory or (usually preferably) mixing in
+	CustomTemplateMixin -- or just override renderHTTP to make do
+	without templates.
+
+	The class overrides nevow's child and render methods to allow the
+	service to define render_X and data_X methods, too.
 	"""
+
 	# set to false for renderers intended to be allowed on all services
 	# (i.e., "meta" renderers).
 	checkedRenderer = True
 
 	def __init__(self, ctx, service):
-		ResourceBasedRenderer.__init__(self, ctx, service.rd)
+		ResourceBasedPage.__init__(self, ctx, service.rd)
 
+		self.service = service
 		if service.limitTo:
 			request = inevow.IRequest(ctx)
 			if not creds.hasCredentials(request.getUser(), request.getPassword(),
 					service.limitTo):
 				raise svcs.Authenticate(base.getConfig("web", "realm"))
-		self.service = service
-
-		# Do our input fields differ from the service's?
-		self.fieldsChanged = False 
 
 		if self.checkedRenderer and self.name not in self.service.allowed:
 			raise svcs.ForbiddenURI(
@@ -438,6 +442,10 @@ class ServiceBasedRenderer(ResourceBasedRenderer):
 				rd=self.service.rd)
 		self.setMetaParent(self.service)
 		self.macroPackage = self.service
+
+		# Set to true when we notice we need to fix the service's output fields
+		self.fieldsChanged = False 
+
 
 	def processData(self, rawData, queryMeta):
 		"""produces input data for the service in runs the service.
@@ -466,23 +474,6 @@ class ServiceBasedRenderer(ResourceBasedRenderer):
 		def get(ctx, data):
 			return self.service.getURL(renderer, absolute="False")
 		return get
-
-
-class ServiceBasedPage(ServiceBasedRenderer, rend.Page):
-	"""the base class for renderers turning service-based info into HTML.
-
-	You will need to provide some way to give rend.Page nevow templates,
-	either by supplying a docFactory or (usually preferably) mixing in
-	CustomTemplateMixin.
-
-	The class overrides nevow's child and render methods to allow the
-	service to define render_X and data_X methods, too.
-	"""
-	def __init__(self, ctx, service):
-		# I don't want super() here since the constructors have different
-		# signatures.
-		rend.Page.__init__(self)
-		ServiceBasedRenderer.__init__(self, ctx, service)
 
 	def renderer(self, ctx, name):
 		"""returns a nevow render function named name.

@@ -243,7 +243,7 @@ def reparseRequestArgs(ctx):
 				request.scalars[key] = None
 
 
-class TAPRenderer(grend.ServiceBasedRenderer):
+class TAPRenderer(grend.ServiceBasedPage):
 	"""A renderer for the synchronous version of TAP.
 
 	Basically, this just dispatches to the sync and async resources.

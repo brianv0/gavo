@@ -55,7 +55,7 @@ class SOAPProcessor(soap.SOAPPublisher):
 			status=500)
 
 
-class SOAPRenderer(grend.ServiceBasedRenderer):
+class SOAPRenderer(grend.ServiceBasedPage):
 	"""A renderer that receives and formats SOAP messages.
 
 	This is for remote procedure calls.  In particular, the renderer takes
@@ -67,9 +67,6 @@ class SOAPRenderer(grend.ServiceBasedRenderer):
 	urlUse = "full"
 # XXX TODO: With the next VODataService, make this to:
 	#urlUse = "post"
-
-	def __init__(self, ctx, service):
-		grend.ServiceBasedRenderer.__init__(self, ctx, service)
 
 	@classmethod
 	def makeAccessURL(cls, baseURL):

@@ -16,6 +16,7 @@ from zope.interface import implements
 
 from gavo import base
 from gavo import registry
+from gavo import rsc
 from gavo import svcs
 from gavo import utils
 from gavo.web import common
@@ -60,7 +61,7 @@ class MetaRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 	def render_rdInfoLink(self, ctx, data):
 		# a link to the info to data's RD (i.e., data needs an rd attribute).
 		return ctx.tag(href="/browse/"+data.rd.sourceId)[
-			RDInfoRenderer.makePageTitle(data.rd)]
+			RDInfoPage.makePageTitle(data.rd)]
 
 	def render_ifkey(self, keyName):
 		def render(ctx, data):
@@ -491,29 +492,23 @@ class ExternalRenderer(grend.ServiceBasedPage):
 		raise svcs.WebRedirect(str(pub.getMeta("accessURL")))
 
 
-class RDInfoRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
-	"""A renderer for displaying various properties about a resource descriptor.
-	
-	This renderer could really be attached to any service since
-	it does not call it, but it usually lives on //services/overview.
+class RDInfoPage(grend.CustomTemplateMixin, grend.ResourceBasedPage):
+	"""A page giving infos about an RD.
 
-	By virtue of builtin vanity, you can reach the rdinfo renderer
-	at /browse, and thus you can access /browse/foo/q to view the RD infos.
-	This is the form used by table registrations.
+	This is not a renderer but a helper for RDInfoRenderer.
 	"""
-	name = "rdinfo"
 	customTemplate = svcs.loadSystemTemplate("rdinfo.html")
 
 	def data_services(self, ctx, data):
-		return sorted(self.clientRD.services, 
+		return sorted(self.rd.services, 
 			key=lambda s: base.getMetaText(s, "title", default=s.id))
 	
 	def data_tables(self, ctx, data):
-		return sorted(self.clientRD.tables,
+		return sorted(self.rd.tables,
 			key=lambda t: t.id)
 
 	def data_clientRdId(self, ctx, data):
-		return self.clientRD.sourceId
+		return self.rd.sourceId
 
 	def _getDescriptionHTML(self, descItem):
 		"""returns stan for the "description" of a service or a table.
@@ -560,14 +555,7 @@ class RDInfoRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 			rd, "title", default="%s"%rd.sourceId)
 
 	def render_title(self, ctx, data):
-		return ctx.tag[self.makePageTitle(self.clientRD)]
-
-	def locateChild(self, ctx, segments):
-		rdId = "/".join(segments)
-		self.clientRD = base.caches.getRD(rdId)
-		self.setMetaParent(self.clientRD)
-		self.macroPackage = self.clientRD
-		return self, ()
+		return ctx.tag[self.makePageTitle(self.rd)]
 
 	defaultDocFactory =  common.doctypedStan(
 		T.html[
@@ -575,4 +563,41 @@ class RDInfoRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 				T.title["Missing Template"]],
 			T.body[
 				T.p["RD infos are only available with an rdinfo.html template"]]
+		])
+
+
+class RDInfoRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
+	"""A renderer for displaying various properties about a resource descriptor.
+	
+	This renderer could really be attached to any service since
+	it does not call it, but it usually lives on //services/overview.
+
+	By virtue of builtin vanity, you can reach the rdinfo renderer
+	at /browse, and thus you can access /browse/foo/q to view the RD infos.
+	This is the form used by table registrations.
+	"""
+	name = "rdinfo"
+	customTemplate = svcs.loadSystemTemplate("rdlist.html")
+
+	def data_publishedRDs(self, ctx, data):
+		td = base.caches.getRD("//services").getById("resources")
+		table = rsc.TableForDef(td,
+			connection=base.caches.getTableConn(None))
+		return [row["sourceRD"] for row in
+			table.iterQuery([td.getColumnByName("sourceRD")], "", 
+			distinct=True, limits=("ORDER BY sourceRD", {}))]
+
+	def locateChild(self, ctx, segments):
+		rdId = "/".join(segments)
+		if not rdId:
+			raise svcs.WebRedirect("browse")
+		clientRD = base.caches.getRD(rdId)
+		return RDInfoPage(ctx, clientRD), ()
+
+	defaultDocFactory =  common.doctypedStan(
+		T.html[
+			T.head[
+				T.title["Missing Template"]],
+			T.body[
+				T.p["The RD list is only available with an rdlist.html template"]]
 		])

@@ -10,7 +10,7 @@ class CustomRenderer(grend.ServiceBasedPage):
 	"""A renderer defined in a python module.
 	
 	To define a custom renderer write a python module and define a
-	class MainPage inheriting from gavo.web.ServiceBasedRenderer.
+	class MainPage inheriting from gavo.web.ServiceBasedPage.
 
 	This class basically is a nevow resource, i.e., you can define
 	docFactroy, locateChild, renderHTTP, and so on.

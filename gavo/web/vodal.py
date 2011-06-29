@@ -372,7 +372,7 @@ class SSAPRenderer(UnifiedDALRenderer):
 	name = "ssap.xml"
 
 
-class RegistryRenderer(grend.ServiceBasedRenderer):
+class RegistryRenderer(grend.ServiceBasedPage):
 	name = "pubreg.xml"
 	urlUse = "base"
 	resultType = "text/xml"
