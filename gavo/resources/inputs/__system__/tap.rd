@@ -52,7 +52,7 @@
 
 	<table id="schemas" onDisk="True" system="True"
 			forceUnique="True" dupePolicy="drop" primary="schema_name"
-			readRoles="defaults,untrusted">
+			readRoles="defaults,untrusted" adql="True">
 		<meta name="description">Schmemas containing tables available for ADQL
 			querying.</meta>
 	<!-- since schemata may be shared between RDs, nothing will ever
@@ -66,7 +66,7 @@
 	</table>
 	
 	<table id="tables" onDisk="True" system="True" primary="table_name"
-			readRoles="defaults,untrusted">
+			readRoles="defaults,untrusted" adql="True">
 		<meta name="description">Tables available for ADQL querying.</meta>
 		<column name="schema_name" type="text" 
 			description="Fully qualified schema name"/>
@@ -82,7 +82,8 @@
 	</table>
 
 	<table id="columns" onDisk="True" system="True"
-			primary="table_name,column_name" readRoles="defaults,untrusted">
+			primary="table_name,column_name" readRoles="defaults,untrusted"
+			adql="True">
 		<meta name="description">Columns in tables available for ADQL querying.
 		</meta>
 		<column name="table_name" type="text" 
@@ -111,7 +112,7 @@
 	</table>
 
 	<table id="keys" onDisk="True" system="True"
-			primary="key_id" readRoles="defaults,untrusted">
+			primary="key_id" readRoles="defaults,untrusted" adql="True">
 		<meta name="description">Foreign key relationships between tables 
 			available for ADQL querying.
 		</meta>
@@ -129,7 +130,7 @@
 	</table>
 
 	<table id="key_columns" onDisk="True" system="True"
-			readRoles="defaults,untrusted">
+			readRoles="defaults,untrusted" adql="True">
 		<meta name="description">Columns participating in foreign key 
 			relationships between tables available for ADQL querying.
 		</meta>
@@ -304,10 +305,12 @@
 		<make table="columns"/>
 		<make table="keys"/>
 		<make table="key_columns">
-			<!-- this script is for bootstrapping.  The tables have no
-			  adql attribute since tap_schema isn't there when the tables
-				are imported.  Thus, I need to fiddle them in when they are
-				there; this happens here" -->
+			<!-- this script is for bootstrapping.  Since TAP_SCHEMA isn't
+			finished when the tables are created, they cannot be added
+			to them.  There's special code to let tap.py ignore them
+			in that situation, and this code here adds them when TAP_SCHEMA
+			is done.
+			-->
 			<script type="postCreation" lang="python" 
 					name="Add TAP_SCHEMA to TAP_SCHEMA">
 				from gavo.protocols import tap

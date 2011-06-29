@@ -171,6 +171,14 @@ def updateServiceList(rds, metaToo=False, connection=None, onlyWarn=True):
 				connection=connection)
 			recordsWritten += data.nAffected
 			rsc.makeData(depDD, forceSource=rd, connection=connection)
+
+			if metaToo:
+				from gavo.protocols import tap
+				tap.unpublishFromTAP(rd, connection)
+				for dependentDD in rd:
+					rsc.Data.create(dependentDD, connection=connection).updateMeta()
+				tap.publishToTAP(rd, connection)
+
 		except base.MetaValidationError, ex:
 			msg = ("Aborting publication of rd '%s' since meta structure of"
 				" %s (id='%s') is invalid:\n * %s")%(
@@ -191,12 +199,6 @@ def updateServiceList(rds, metaToo=False, connection=None, onlyWarn=True):
 				raise base.ReportableError(msg)
 		msg = None
 
-		if metaToo:
-			from gavo.protocols import tap
-			tap.unpublishFromTAP(rd, connection)
-			for dependentDD in rd:
-				rsc.Data.create(dependentDD, connection=connection).updateMeta()
-			tap.publishToTAP(rd, connection)
 	connection.commit()
 	return recordsWritten
 

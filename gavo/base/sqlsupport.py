@@ -368,8 +368,9 @@ class PostgresQueryMixin(object):
 			return {}
 		res = []
 		for acs in re.match("{(.*)}", acl).group(1).split(","):
-			role, privs, granter = re.match("([^=]*)=([^/]*)/(.*)", acs).groups()
-			res.append((role, self._privTable.get(privs, "READ")))
+			if acs!='':  # empty ACLs don't match the RE, so catch them here
+				role, privs, granter = re.match("([^=]*)=([^/]*)/(.*)", acs).groups()
+				res.append((role, self._privTable.get(privs, "READ")))
 		return dict(res)
 
 
