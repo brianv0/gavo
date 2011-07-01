@@ -369,15 +369,18 @@ class MetaTest(testhelpers.VerboseTest):
 			'<INFO name="legal" value="Please reference someone else"'])
 
 
-class TabledataNullValueTest(testhelpers.VerboseTest):
+class VOTableRenderTest(testhelpers.VerboseTest):
 	def _getTable(self, colDef):
 		return rsc.TableForDef(base.parseFromString(rscdef.TableDef,
 				'<table>%s</table>'%colDef), rows=[{"x": None}])
 
-	def _assertVOTContains(self, colDef, literals, **contextArgs):
-		res = votablewrite.getAsVOTable(
+	def _getAsVOTable(self, colDef, **contextArgs):
+		return votablewrite.getAsVOTable(
 			self._getTable(colDef),
 			votablewrite.VOTableContext(tablecoding="td", **contextArgs))
+
+	def _assertVOTContains(self, colDef, literals, **contextArgs):
+		res = self._getAsVOTable(colDef, **contextArgs)
 		for lit in literals:
 			try:
 				self.failUnless(lit in res)
@@ -385,6 +388,31 @@ class TabledataNullValueTest(testhelpers.VerboseTest):
 				print res
 				raise
 
+
+class ParamNullValueTest(VOTableRenderTest):
+# See everywhere how params and nulls don't quite mix right now
+	def testNotGiven(self):
+		# This actually is something of an extension.  In VOTables,
+		# NotGiven params are missing (and not NULL)
+		self.failIf("PARAM" in 
+			self._getAsVOTable('<param name="x" type="text"/>'))
+
+	def testStringNullDefault(self):
+		self._assertVOTContains('<param name="x" type="text">__NULL__</param>',
+			['value="__NULL__"', '<VALUES null="__NULL__">'])
+
+	def testNonDefaultNull(self):
+		self._assertVOTContains('<param name="x" type="text">'
+				'<values nullLiteral="xy"/>xy</param>',
+			['value="xy"', '<VALUES null="xy">'])
+
+	def testInt(self):
+		self._assertVOTContains('<param name="x" type="text">23'
+			'<values nullLiteral="23"/></param>',
+			['value="23"', '<VALUES null="23">'])
+
+
+class TabledataNullValueTest(VOTableRenderTest):
 	def testIntNullAuto(self):
 		self._assertVOTContains('<column name="x" type="integer"/>', [
 			'<VALUES null="-2147483648">',
@@ -712,4 +740,4 @@ class HackMetaTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(TabledataNullValueTest)
+	testhelpers.main(ParamNullValueTest)

@@ -483,14 +483,17 @@ class ParamBase(Column):
 			self.name, repr(self.content_))
 
 	def onElementComplete(self):
-		if self.type=="text": # Fix this, too, when fixing null literals in total
-			self.nullLiteral = "__NULL__"
+		if not self.values:
+			self.values = base.makeStruct(Values, parent_=self)
+		if self.type=="text" and not self.values.nullLiteral:
+			self.values.nullLiteral = "__NULL__"
 		self._onElementCompleteNext(ParamBase)
 		if self.content_ is base.NotGiven:
 			if self.values and self.values.default:
 				self.set(self.values.default)
 		else:
 			self.set(self.content_)
+
 
 	@property
 	def value(self):
@@ -532,7 +535,7 @@ class ParamBase(Column):
 		if not isinstance(literal, basestring):
 			return literal
 		try:
-			if literal==self.nullLiteral:
+			if self.values and literal==self.values.nullLiteral:
 				return None
 			return base.sqltypeToPython(self.type)(literal)
 		except ValueError:
@@ -552,7 +555,7 @@ class ParamBase(Column):
 		if isinstance(value, (list, tuple)):
 			return value
 		if value is None:
-			return self.nullLiteral
+			return self.values.nullLiteral
 		else:
 			return base.pythonToLiteral(self.type)(value)
 

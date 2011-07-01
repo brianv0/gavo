@@ -226,6 +226,7 @@ class VOTable(object):
 
 
 	class PARAM(_TypedElement):
+		_mayBeEmpty = True
 		_a_value = ""  # supposed to mean "a, somewhat null"
 		               # Needs to be cared for in client code.
 		_childSequence = ["DESCRIPTION", "VALUES", "LINK"]

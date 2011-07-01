@@ -191,7 +191,7 @@ def _makeVOTParam(ctx, param):
 		defineField(el, valuemappers.VColDesc(param))
 		if param.content_ is None:
 			# That's too cheap, see bug #67
-			el.value = ""
+			el.value = param.values.nullLiteral
 		else:
 			el.value = param.content_
 		return el
