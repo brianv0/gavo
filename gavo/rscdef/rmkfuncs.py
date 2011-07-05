@@ -28,6 +28,12 @@ from gavo.utils import dmsToDeg, hmsToDeg
 from gavo.utils import pgsphere
 
 
+# degrees per mas
+DEG_MAS = 1/3600000.
+# degrees per arcsec
+DEG_ARCSEC = 1/3600.
+
+
 class IgnoreThisRow(Exception):
 	"""can be raised by user code to indicate that a row should be
 	skipped when building a table.

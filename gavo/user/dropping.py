@@ -41,7 +41,6 @@ def main():
 			" do not want to drop the entire RD.  Note that no service"
 			" publications will be undone if you give DD ids.", nargs="*")
 		return parser.parse_args()
-		return opts, args
 
 	opts = parseCmdline()
 	rdId = opts.rdid

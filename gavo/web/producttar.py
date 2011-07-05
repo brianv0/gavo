@@ -28,8 +28,8 @@ from gavo.web import streaming
 MS = base.makeStruct
 
 
-class UniqueNameGenerator:
-	"""is a factory to build unique file names from possibly ambiguous ones.
+class UniqueNameGenerator(object):
+	"""A factory to build unique names from possibly ambiguous ones.
 
 	If the lower case of a name is not known to an instance, it just returns
 	that name.  Otherwise, it disambiguates by adding characters in front
@@ -49,7 +49,7 @@ class UniqueNameGenerator:
 	def makeName(self, baseName):
 		for name in self._buildNames(baseName):
 			if name.lower() not in self.knownNames:
-				self.knownNames.add(name)
+				self.knownNames.add(name.lower())
 				return str(name)
 
 

@@ -27,6 +27,7 @@ functions = [
 	("drop", ("user.dropping", "main")),
 	("gendoc", ("user.docgen", "main")),
 	("import", ("user.importing", "main")),
+	("info", ("user.info", "main")),
 	("mkboost", ("grammars.directgrammar", "main")),
 	("publish", ("registry.publication", "main")),
 	("raise", ("user.errhandle", "bailOut")),

@@ -94,6 +94,10 @@ class ProcSetup(base.Structure):
 	available.  The procedure application's parent can be accessed
 	as parent.  All names you define in the code are available as
 	globals to the procedure body.
+
+	Caution: Macros are expanded within the code; this means you
+	need double backslashes if you want a single backslash in python
+	code.
 	"""
 	name_ = "setup"
 

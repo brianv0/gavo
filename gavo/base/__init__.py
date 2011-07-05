@@ -50,7 +50,7 @@ from gavo.base.observer import ObserverBase, listensTo
 
 from gavo.base.parsecontext import (
 	IdAttribute, OriginalAttribute, ReferenceAttribute, ParseContext,
-	ReferenceListAttribute, resolveId)
+	ReferenceListAttribute, resolveId, resolveCrossId)
 
 from gavo.base.sqlsupport import (getDBConnection, getDefaultDBConnection,
 	DBError, QueryCanceledError, IntegrityError,
@@ -62,7 +62,8 @@ from gavo.base.structure import (Structure, ParseableStructure,
 
 from gavo.base.typesystems import *
 
-from gavo.base.valuemappers import SerManager, ValueMapperFactoryRegistry
+from gavo.base.valuemappers import (SerManager, ValueMapperFactoryRegistry,
+	VOTNameMaker)
 
 from gavo.base.sqlmunge import (getSQLForField, getSQLKey, 
 	joinOperatorExpr)
