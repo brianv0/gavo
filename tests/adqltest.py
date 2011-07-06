@@ -509,6 +509,8 @@ class ParseErrorTest(testhelpers.VerboseTest):
 			'Expected coordinate system literal (ICRS, GALACTIC,...) (at char 13)'),
 		("SELECT POINT('junk', 3,4) FROM z",
 			"xpected coordinate system literal (ICRS, GALACTIC,...) (at char 13)"),
+		("SELECT * from a join b on foo",
+			"Expected comparison operator (at char 29"),
 	]
 
 
@@ -694,6 +696,11 @@ class SelectClauseTest(ColumnTest):
 			("real", "km/s", "phys.veloc", False),
 			("real", "m", "phys.distance", False),
 			("double precision", "kg", "phys.mass", True),])
+
+	def testAliasedStar(self):
+		cols = self._getColSeq("select misc.* from spatial join misc as foo"
+			" on (spatial.dist=foo.mass)")
+		self.assertEqual(len(cols), 3)
 
 	def testFancyRounding(self):
 		cols = self._getColSeq("select round(dist, 2) from spatial")

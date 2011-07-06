@@ -231,6 +231,7 @@ class ToADQLConverter(FromSQLConverter):
 		"spoint": ("adql:POINT", None),
 		"scircle": ("adql:REGION", None),
 		"spoly": ("adql:REGION", None),
+		"sbox": ("adql:REGION", None),
 		"bytea": ("adql:BLOB", None),
 	}
 

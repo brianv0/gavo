@@ -349,7 +349,7 @@ class TAPCapabilityMaker(CapabilityMaker):
 							[TR.alias[alias] for alias in aliases]]
 					for mime, aliases, description, ivoId 
 						in tap.getSupportedOutputFormats()],
-				[TR.uploadMethod(ivoId="ivo://ivoa.net/TAPRegExt#%s"%proto)
+				[TR.uploadMethod(ivoId="ivo://ivoa.org/tap/uploadmethods#%s"%proto)
 					for proto in tap.UPLOAD_METHODS],
 				TR.retentionPeriod[
 					TR.default[str(base.getConfig("async", "defaultLifetime"))]],

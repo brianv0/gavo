@@ -24,7 +24,7 @@ from gavo.base.literals import *
 from gavo.stc import parseSimpleSTCS
 from gavo.stc.times import dateTimeToJdn, dateTimeToMJD
 from gavo.utils import codetricks
-from gavo.utils import dmsToDeg, hmsToDeg
+from gavo.utils import dmsToDeg, hmsToDeg, DEG
 from gavo.utils import pgsphere
 
 

@@ -528,7 +528,7 @@ def getADQLGrammarCopy():
 		columnNameList = columnName + ZeroOrMore( "," + columnName)
 		namedColumnsJoin = (CaselessKeyword("USING") + '(' +
 			columnNameList("columnNames") + ')')
-		joinCondition = CaselessKeyword("ON") + searchCondition
+		joinCondition = CaselessKeyword("ON") - searchCondition
 		joinSpecification = joinCondition | namedColumnsJoin
 		outerJoinType = (CaselessKeyword("LEFT") 
 			| CaselessKeyword("RIGHT") 
@@ -626,7 +626,8 @@ if __name__=="__main__":
 	import pprint, sys
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
-	res = syms["statement"].parseString(
-		"select --comment \n * from bar"
+	res = syms["searchCondition"].parseString(
+		"(contains(point('icrs', mine.raj2000, mine.dej2000),exts.bbox))"
+#		"select * from mcextinct.exts as exts join tap_uploads.mytable as mine on (contains(point('icrs', mine.raj2000, mine.dej2000),exts.bbox))"
 		,parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)

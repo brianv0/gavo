@@ -159,7 +159,7 @@ def datetimeMapperFactory(colDesc):
 _registerDefaultMF(datetimeMapperFactory)
 
 
-_pgTypes = set(["spoint", "spoly", "scircle"])
+_pgTypes = set(["spoint", "spoly", "scircle", "sbox"])
 
 def _pgSphereMapperFactory(colDesc):
 	"""A factory for functions turning pgsphere types to STC-S-like stuff.
@@ -174,7 +174,8 @@ def _pgSphereMapperFactory(colDesc):
 		elif isinstance(val, basestring):  # allow preformatted stuff
 			return val
 		else:
-#	XXX TODO: add something on the system to colDesc and use it here
+#	XXX TODO: When we've scrapped colDesc and used column annotations,
+# take the system from the column's STC info
 			return val.asSTCS("ICRS")
 	colDesc["datatype"], colDesc["arraysize"] = "char", "*"
 	return mapper

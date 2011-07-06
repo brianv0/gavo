@@ -305,7 +305,7 @@ def _booleanCheckmarkFactory(colDesc):
 _registerHTMLMF(_booleanCheckmarkFactory)
 
 
-
+_registerHTMLMF(valuemappers._pgSphereMapperFactory)
 
 #  Insert new, more specific factories here
 

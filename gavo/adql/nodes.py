@@ -139,6 +139,7 @@ def _uniquify(matches, default, exArgs):
 		raise MoreThanOneChild(*exArgs)
 	return matches[0]
 
+
 def getChildOfType(nodeSeq, type, default=BOMB_OUT):
 	"""returns the unique node of type in nodeSeq.
 
@@ -397,9 +398,14 @@ class TableName(ADQLNode):
 
 	def __eq__(self, other):
 		if hasattr(other, "qName"):
-			return self.qName==other.qName
-		else:
-			return self.qName==other
+			return self.qName.lower()==other.qName.lower()
+		try:
+			return self.qName.lower()==other.lower()
+		except AttributeError:
+			# other has no lower, so it's neither a string nor a table name;
+			# thus, fall through to non-equal case
+			pass
+		return False
 
 	def __ne__(self, other):
 		return not self==other
@@ -422,6 +428,11 @@ class TableName(ADQLNode):
 
 	def flatten(self):
 		return self.qName
+
+	def lower(self):
+		"""returns self's qualified name in lower case.
+		"""
+		return self.qName.lower()
 
 
 class PlainTableRef(ColumnBearingNode):
@@ -469,6 +480,12 @@ class PlainTableRef(ColumnBearingNode):
 		else:
 			return n
 
+	def nameMatches(self, name):
+		"""returns true if this table can be referred to by name.
+		"""
+		return (self.tableName.lower()==name.lower()
+			or self.originalTable.lower()==name.lower())
+
 
 class DerivedTable(ColumnBearingNode):
 	type = "derivedTable"
@@ -507,6 +524,11 @@ class DerivedTable(ColumnBearingNode):
 		else:
 			return n
 
+	def nameMatches(self, name):
+		"""returns true if this table can be referred to by name.
+		"""
+		return self.tableName.lower()==name.lower()
+
 
 class JoinSpecification(ADQLNode):
 	"""A join specification ("ON" or "USING").
@@ -543,7 +565,6 @@ class JoinedTable(ColumnBearingNode, TransparentMixin):
 		self.joinSpecification = getChildOfClass(
 				self.children, JoinSpecification, default=None)
 
-
 	def getAllNames(self):
 		"""iterates over all fully qualified table names mentioned in this
 		(possibly joined) table reference.
@@ -551,9 +572,20 @@ class JoinedTable(ColumnBearingNode, TransparentMixin):
 		for t in self.joinedTables:
 			yield t.tableName.qName
 
+	def getTableForName(self, name):
+		for t in self.joinedTables:
+			if t.nameMatches(name):
+				return t
+		raise ColumnNotFound("No %s table found"%name)
+
 	def makeUpId(self):
 		# for suggestAName
 		return "_".join(t.makeUpId() for t in self.joinedTables)
+
+	def nameMatches(self, name):
+		"""returns true if this table can be referred to by name.
+		"""
+		return self.tableName.lower()==name.lower()
 
 
 class TransparentNode(ADQLNode, TransparentMixin):
@@ -732,17 +764,32 @@ class FromClause(ADQLNode):
 				res.append(self._makeColumnReference(table.tableName, column))
 		return res
 
-	def getFieldsForTable(self, srcTable):
-		"""returns the fields in srcTable.
-
-		srcTable is a TableName of a table referenced by self.
+	def resolveNameToTable(self, srcTableName):
+		"""returns a ColumnBearingNode below self that has a name like srcTableName
+		
+		This raises an exception when no such thing can be found.  I
+		need to work on the rules here, badly.
 		"""
 		for table in self.tablesReferenced:
-			if table==srcTable:
-				return [self._makeColumnReference(table.tableName, ci)
-					for ci in table.fieldInfos.seq]
+			if table.nameMatches(srcTableName):
+				return table
+			# try to iterate over names of joined tables, too
+			try:
+				return table.getTableForName(srcTableName)
+			except (AttributeError, ColumnNotFound):
+				# Not a joined table, or srcTableName not joind, fall through
+				pass   
 		raise ColumnNotFound("No %s table to draw columns from in this clause"%(
-			srcTable.qName))
+			srcTableName))
+		
+	def getFieldsForTable(self, srcTableName):
+		"""returns the fields in srcTable.
+
+		srcTableName is a TableName.
+		"""
+		table = self.resolveNameToTable(srcTableName)
+		return [self._makeColumnReference(table.tableName, ci)
+			for ci in table.fieldInfos.seq]
 
 
 class DerivedColumn(FieldInfoedNode):

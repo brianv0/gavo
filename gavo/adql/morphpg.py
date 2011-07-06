@@ -35,6 +35,10 @@ def _containsToQ3c(node, state):
 	# or if system transformations are required.
 	if len(args)!=2 or nodes.getType(args[0])!="point":
 		return node
+	if not hasattr(args[0], "cooSys") or not hasattr(args[1], "cooSys"):
+		# arguments do not look like geometries; leave it to someone else
+		# to blow up
+		return node
 	if tapstc.getPGSphereTrafo(args[0].cooSys, args[1].cooSys) is not None:
 		# we'll need a transform; q3c cannot do this.
 		return node

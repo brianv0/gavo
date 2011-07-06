@@ -236,9 +236,9 @@ class SBox(PgSAdapter):
 			SPoint.fromDegrees(maxRA, top))
 
 	def asSTCS(self, systemString):
-		raise NotImplementedError("PositionInterval is tricky between"
-			" ADQL, TAP and STC-S")
-
+		return "PositionInterval %s %s %s"%(systemString, 
+			"%.10f %.10f"%(self.corner1.x/DEG, self.corner1.y/DEG),
+			"%.10f %.10f"%(self.corner2.x/DEG, self.corner2.y/DEG))
 
 
 _getPgSClass = codetricks.buildClassResolver(PgSAdapter, globals().values(),
