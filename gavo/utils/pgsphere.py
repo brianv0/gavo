@@ -20,6 +20,17 @@ from gavo.utils import codetricks
 from gavo.utils import excs
 from gavo.utils.mathtricks import DEG
 
+_TRAILING_ZEROES = re.compile("0+(\s|$)")
+def removeTrailingZeroes(s):
+	"""remove zeroes in front of whitespace or the string end.
+
+	This is used for cosmetics in STC-S strings.
+
+	>>> removeTrailingZeroes("23.3420   21.2 12.00000")
+	'23.342   21.2 12.'
+	"""
+	return _TRAILING_ZEROES.sub(r"\1", s)
+
 
 class TwoSBoxes(excs.ExecutiveAction):
 	"""is raised when an SBox is constructed from center and size such that
@@ -63,10 +74,13 @@ class PgSAdapter(object):
 class SPoint(PgSAdapter):
 	"""A point on a sphere from pgSphere.
 
-	The first constructor accepts a pair of (alpha, delta), angles are in rad.
-
 	You can optionally pass a "unit" argument.  This is simply multiplied
 	to each coordinate.
+
+	>>> SPoint(1, 1).asSTCS("ICRS")
+	'Position ICRS 57.2957795131 57.2957795131'
+	>>> SPoint.fromDegrees(1, -1).asSTCS("ICRS")
+	'Position ICRS 1. -1.'
 	"""
 	pgType = "spoint"
 	checkedAttributes = ["x", "y"]
@@ -92,7 +106,8 @@ class SPoint(PgSAdapter):
 		return cls(x*DEG, y*DEG)
 
 	def asSTCS(self, systemString):
-		return "Position %s %.10f %.10f"%(systemString, self.x/DEG, self.y/DEG)
+		return removeTrailingZeroes(
+			"Position %s %.10f %.10f"%(systemString, self.x/DEG, self.y/DEG))
 
 	def asPgSphere(self):
 		return "spoint '(%.10f,%.10f)'"%(self.x, self.y)
@@ -124,9 +139,9 @@ class SCircle(PgSAdapter):
 			return cls(SPoint._castFromPgSphere(pt, cursor), radius)
 
 	def asSTCS(self, systemString):
-		return "Circle %s %.10f %.10f %.10f"%(systemString, 
+		return removeTrailingZeroes("Circle %s %.10f %.10f %.10f"%(systemString, 
 			self.center.x/DEG, self.center.y/DEG,
-			self.radius/DEG)
+			self.radius/DEG))
 
 	def asPgSphere(self):
 		return "scircle '< (%.10f, %.10f), %.10f >'"%(
@@ -156,8 +171,8 @@ class SPoly(PgSAdapter):
 				for ptLit in cls.pattern.findall(value)])
 
 	def asSTCS(self, systemString):
-		return "Polygon %s %s"%(systemString, 
-			" ".join("%.10f %.10f"%(p.x/DEG, p.y/DEG) for p in self.points))
+		return removeTrailingZeroes("Polygon %s %s"%(systemString, 
+			" ".join("%.10f %.10f"%(p.x/DEG, p.y/DEG) for p in self.points)))
 
 
 	def asPgSphere(self):
@@ -236,9 +251,9 @@ class SBox(PgSAdapter):
 			SPoint.fromDegrees(maxRA, top))
 
 	def asSTCS(self, systemString):
-		return "PositionInterval %s %s %s"%(systemString, 
+		return removeTrailingZeroes("PositionInterval %s %s %s"%(systemString, 
 			"%.10f %.10f"%(self.corner1.x/DEG, self.corner1.y/DEG),
-			"%.10f %.10f"%(self.corner2.x/DEG, self.corner2.y/DEG))
+			"%.10f %.10f"%(self.corner2.x/DEG, self.corner2.y/DEG)))
 
 
 _getPgSClass = codetricks.buildClassResolver(PgSAdapter, globals().values(),
@@ -263,3 +278,12 @@ def preparePgSphere(conn):
 	except:
 		psycopg2._pgsphereLoaded = False
 		raise
+
+
+def _test():
+	import doctest, pgsphere
+	doctest.testmod(pgsphere)
+
+
+if __name__=="__main__":
+	_test()

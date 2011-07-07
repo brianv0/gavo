@@ -1541,7 +1541,7 @@ class QueryTest(testhelpers.VerboseTest):
 			"select rv, point('icrs', alpha, delta) as p, mag from %s"
 			%self.tableName)
 		self.assertEqual(list(res)[0]["p"], 
-			'Position ICRS 22.0000000000 23.0000000000')
+			'Position ICRS 22. 23.')
 		self.assertEqual(list(res)[0]["rv"], 0)
 		self.assertEqual(res.tableDef.getColumnByName("p").xtype,
 			"adql:POINT")
