@@ -401,6 +401,16 @@ class ParamTest(testhelpers.VerboseTest):
 		self.assertEqual(res.params[1].name, "bar")
 		self.assertEqual(res.params[1].value, 2.0)
 
+	def testNanIsNull(self):
+		par = base.parseFromString(rscdef.Param,
+			'<param name="foo">NaN</param>')
+		self.assertEqual(par.value, None)
+
+	def test__NULL__IsNull(self):
+		par = base.parseFromString(rscdef.Param,
+			'<param name="foo" type="text">__NULL__</param>')
+		self.assertEqual(par.value, None)
+
 
 class GroupTest(testhelpers.VerboseTest):
 	def testBasicColumn(self):
@@ -483,4 +493,4 @@ class GroupTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(ColumnTest)
+	testhelpers.main(ParamTest)

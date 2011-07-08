@@ -177,12 +177,33 @@ def _iterFields(serManager):
 		yield el
 
 
+# default null values for params for special types
+_PARAM_NULLS = {
+	"integer": "-1",
+	"bigint": "-1",
+	"smallint": "-1",
+	"real": "NaN",
+	"double precision": "NaN",
+	"char": "X",}
+
+def _defineNullInValues(votEl, nullLiteral):
+	"""sets nullLiteral as null attribute in a VALUES child of votEl.
+
+	If no VALUES child exists yet, we make one up.
+	"""
+	try:
+		valuesEl = votEl.makeChildDict()["VALUES"]
+		valuesEl[0](null=nullLiteral)
+	except KeyError:
+		votEl[V.VALUES(null=nullLiteral)]
+
+
 def _makeVOTParam(ctx, param):
 	"""returns VOTable stan for param.
 
-	If param's value is not given, None is returned; if a param's value
-	is None, we *should* come up with a good null value but currently
-	don't.
+	If param's value is NotGiven, None is returned (i.e., the param will
+	not show up in the resulting VOTable); if a param's value
+	is None, we generate some kind of null representation.
 	"""
 	if param.content_ is base.NotGiven:
 		return None
@@ -190,8 +211,14 @@ def _makeVOTParam(ctx, param):
 		el = V.PARAM()
 		defineField(el, valuemappers.VColDesc(param))
 		if param.content_ is None:
-			# That's too cheap, see bug #67
-			el.value = param.values.nullLiteral
+			# Null value generation -- tactics: If we have a nullLiteral, use it
+			# otherwise use some type-dependent default
+			if param.values.nullLiteral is None:
+				nullLiteral = _PARAM_NULLS.get(param.type, "__NULL__")
+				_defineNullInValues(el, nullLiteral)
+			else:
+				nullLiteral =param.values.nullLiteral
+			el.value = nullLiteral
 		else:
 			el.value = param.content_
 		return el

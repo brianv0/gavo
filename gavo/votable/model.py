@@ -231,7 +231,6 @@ class VOTable(object):
 		               # Needs to be cared for in client code.
 		_childSequence = ["DESCRIPTION", "VALUES", "LINK"]
 
-
 	class PARAMref(_RefElement): pass
 
 

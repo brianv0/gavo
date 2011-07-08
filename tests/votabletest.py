@@ -160,7 +160,7 @@ class VOTableTest(testhelpers.VerboseTest, testhelpers.XSDTestMixin):
 		intCol = tree.findall(".//%s"%votable.voTag("FIELD"))[0]
 		self.assertEqual(intCol.get("xtype"), "test:junk")
 
-	def testParam(self):
+	def testParamVal(self):
 		tree = self.testData[1]
 		table = tree.findall(".//%s"%votable.voTag("TABLE"))[0]
 		params = table.findall(".//%s"%votable.voTag("PARAM"))
@@ -388,28 +388,64 @@ class VOTableRenderTest(testhelpers.VerboseTest):
 				print res
 				raise
 
+	def _getAsETree(self, colDef, **contextArgs):
+		vot = self._getAsVOTable(colDef, **contextArgs)
+		return ElementTree.fromstring(vot)
+
+	def _getEls(self, tree, elementName):
+		return tree.findall(".//%s"%votable.voTag(elementName))
+
 
 class ParamNullValueTest(VOTableRenderTest):
-# See everywhere how params and nulls don't quite mix right now
+	def _getParamsFor(self, colDef):
+		tree = self._getAsETree(colDef)
+		return self._getEls(tree, "PARAM")
+
+	def _getParamFor(self, colDef):
+		pars = self._getParamsFor(colDef)
+		self.assertEqual(len(pars), 1)
+		return pars[0]
+
+	def _assertDeclaredNull(self, colDef, nullLiteral):
+		par = self._getParamFor(colDef)
+		self.assertEqual(par.get("value"), nullLiteral)
+		self.assertEqual(par[0].tag, votable.voTag("VALUES"))
+		self.assertEqual(par[0].get("null"), nullLiteral)
+
 	def testNotGiven(self):
 		# This actually is something of an extension.  In VOTables,
 		# NotGiven params are missing (and not NULL)
-		self.failIf("PARAM" in 
-			self._getAsVOTable('<param name="x" type="text"/>'))
+		self.assertEqual(self._getParamsFor(
+			'<param name="x" type="text"/>'), [])
 
 	def testStringNullDefault(self):
-		self._assertVOTContains('<param name="x" type="text">__NULL__</param>',
-			['value="__NULL__"', '<VALUES null="__NULL__">'])
+		self._assertDeclaredNull(
+			'<param name="x" type="text">__NULL__</param>',
+			"__NULL__")
 
 	def testNonDefaultNull(self):
-		self._assertVOTContains('<param name="x" type="text">'
-				'<values nullLiteral="xy"/>xy</param>',
-			['value="xy"', '<VALUES null="xy">'])
+		self._assertDeclaredNull(
+			'<param name="x" type="text"><values nullLiteral="xy"/>xy</param>',
+			"xy")
 
 	def testInt(self):
-		self._assertVOTContains('<param name="x" type="text">23'
-			'<values nullLiteral="23"/></param>',
-			['value="23"', '<VALUES null="23">'])
+		self._assertDeclaredNull(
+			'<param name="x" type="text"><values nullLiteral="23"/>23</param>',
+			'23')
+
+	def testIntDefault(self):
+		table = self._getTable('<param name="x" type="integer"/>')
+		table.setParam("x", None)
+		par = self._getEls(
+			ElementTree.fromstring(
+				votablewrite.getAsVOTable(table)), "PARAM")[0]
+		self.assertEqual(par.get("value"), '-1')
+		self.assertEqual(par[0].tag, votable.voTag("VALUES"))
+		self.assertEqual(par[0].get("null"), "-1")
+
+	def testFloatNull(self):
+		par = self._getParamFor('<param name="x">NaN</param>')
+		self.assertEqual(par.get("value"), "NaN")
 
 
 class TabledataNullValueTest(VOTableRenderTest):

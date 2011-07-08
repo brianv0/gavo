@@ -482,18 +482,25 @@ class ParamBase(Column):
 		return "<%s %s=%s>"%(self.__class__.__name__, 
 			self.name, repr(self.content_))
 
-	def onElementComplete(self):
+	def completeElement(self, ctx):
 		if not self.values:
 			self.values = base.makeStruct(Values, parent_=self)
-		if self.type=="text" and not self.values.nullLiteral:
-			self.values.nullLiteral = "__NULL__"
+
+		if self.values.nullLiteral is None:
+			if self.type=="text":
+				self.values.nullLiteral = "__NULL__"
+			if self.type=="real" or self.type=="double precision":
+				self.values.nullLiteral = "NaN"
+
+		self._completeElementNext(ParamBase, ctx)
+	
+	def onElementComplete(self):
 		self._onElementCompleteNext(ParamBase)
 		if self.content_ is base.NotGiven:
-			if self.values and self.values.default:
+			if self.values.default:
 				self.set(self.values.default)
 		else:
 			self.set(self.content_)
-
 
 	@property
 	def value(self):
@@ -520,7 +527,7 @@ class ParamBase(Column):
 			self._valueCache = base.Undefined
 			val = self._unparse(val)
 
-		if self.values and not self.values.validateOptions(self._parse(val)):
+		if not self.values.validateOptions(self._parse(val)):
 			raise base.ValidationError("%s is not a valid value for %s"%(
 				val, self.name), self.name)
 
@@ -535,7 +542,7 @@ class ParamBase(Column):
 		if not isinstance(literal, basestring):
 			return literal
 		try:
-			if self.values and literal==self.values.nullLiteral:
+			if literal==self.values.nullLiteral:
 				return None
 			return base.sqltypeToPython(self.type)(literal)
 		except ValueError:
@@ -571,7 +578,19 @@ class Param(ParamBase):
 	at least the VOTable params will be literal copies of the string
 	passed in.
 
-	You can obtain a parsed value using value.
+	You can obtain a parsed value from the value attribute.
+
+	Null value handling is tricky with params.  An empty param (like 
+	``<param name="x"/>)`` will have a NotGiven value; this means it will not
+	even be rendered in VOTables.  To set a PARAM to NULL, use null values as
+	bodies.  For strings, there's the default __NULL__, for floats, it's NaN;
+	ints have not default null literals.
+
+	You can set custom null literals using a values child, like::
+
+		<param name="x" type="integer"><values nullLiteral="-1"/>-1</params>
+	
+	The value attribute for NULL params is None.
 	"""
 	name_ = "param"
 
