@@ -540,10 +540,11 @@ class GroupWriteTest(testhelpers.VerboseTest):
 	
 	def testRefs(self):
 		tree = _getVOTTreeForTable(
-			'<table><group columnRefs="x,y" paramRefs="z"/>'
-				'<column name="x"/><column name="y"/>'
-				'<param name="z" type="integer">4</param>'
-				'</table>')
+			'<table><group><columnRef dest="x"/><columnRef dest="y"/>'
+			'<paramRef dest="z"/></group>'
+			'<column name="x"/><column name="y"/>'
+			'<param name="z" type="integer">4</param>'
+			'</table>')
 		table = tree.find("RESOURCE/TABLE")
 		g = table.find("GROUP")
 
@@ -566,7 +567,8 @@ class GroupWriteTest(testhelpers.VerboseTest):
 
 	def testRecursive(self):
 		tree = _getVOTTreeForTable(
-			'<table><group><group columnRefs="x,y"/><group paramRefs="z"/></group>'
+			"<table><group><group><columnRef dest='x'/><columnRef dest='y'/></group>"
+			'<group><paramRef dest="z"/></group></group>'
 				'<column name="x"/><column name="y"/>'
 				'<param name="z" type="integer">4</param>'
 				'</table>')
@@ -584,9 +586,9 @@ class GroupWriteTest(testhelpers.VerboseTest):
 
 	def testCopied(self):
 		td = base.parseFromString(rscdef.TableDef,
-			'<table><group><group columnRefs="x,y">'
+			'<table><group><group><columnRef dest="x"/><columnRef dest="y"/>'
 				'<param name="u" type="integer">5</param></group>'
-				'<group paramRefs="z"/></group>'
+				'<group><paramRef dest="z"/></group></group>'
 				'<column name="x"/><column name="y"/>'
 				'<param name="z" type="integer">4</param>'
 				'</table>')

@@ -285,6 +285,21 @@ def _iterNotes(serManager):
 		yield noteGroup
 
 
+def _makeRef(baseType, ref, container, serManager):
+	"""returns a new node of baseType reflecting the group.TypedRef 
+	instance ref.
+
+	container is the destination of the reference.  For columns, that's
+	the table definition, but for parameters, this must be the table
+	itself rather than its definition because it's the table's
+	params that are embedded in the VOTable.
+	"""
+	return baseType(
+		ref=serManager.getOrMakeIdFor(ref.resolve(container)),
+		utype=ref.utype,
+		ucd=ref.ucd)
+
+
 def _iterGroups(container, serManager):
 	"""yields GROUPs for the RD groups within container, taking params and
 	fields from serManager's table.
@@ -296,13 +311,12 @@ def _iterGroups(container, serManager):
 		votGroup[V.DESCRIPTION[group.description]]
 
 		for ref in group.columnRefs:
-			votGroup[V.FIELDref(ref=
-				serManager.getOrMakeIdFor(
-					serManager.table.tableDef.getColumnByName(ref)))]
+			votGroup[_makeRef(V.FIELDref, ref,
+				serManager.table.tableDef, serManager)]
 
 		for ref in group.paramRefs:
-			votGroup[V.PARAMref(ref=
-				serManager.getOrMakeIdFor(serManager.table.getParamByName(ref)))]
+			votGroup[_makeRef(V.PARAMref, ref,
+				serManager.table, serManager)]
 
 		for param in group.params:
 			votGroup[_makeVOTParam(serManager, param)]

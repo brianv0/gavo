@@ -320,7 +320,9 @@ class TableBasedCore(core.Core):
 				iks.append(ik)
 			if cd.group:
 				groups.append(cd.group.change(
-					paramRefs=[ik.name for ik in cd.inputKeys], parent_=None))
+					paramRefs=[MS(rscdef.ParameterReference, dest=ik.name)
+						for ik in cd.inputKeys], 
+					parent_=None))
 		self.inputTable = MS(inputdef.InputTable,
 			params=iks,
 			groups=groups)

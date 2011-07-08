@@ -126,13 +126,22 @@ class NestedTest(testhelpers.VerboseTest):
 		self.assertEqual(res.tables[0].indexedColumns.pop(), 
 			"test.abc")
 
-
 	def testLoopReplay(self):
 		res = base.parseFromString(rscdesc.RD, 
 			r"""<resource schema="test"><STREAM id="cols">
 					<LOOP listItems="x y">
 					<events><column name="\item"/></events></LOOP></STREAM>
 				<table id="foo"><FEED source="cols"/></table></resource>""")
+		self.assertEqual([c.name for c in res.tables[0]],
+			['x', 'y'])
+
+	def testLoopExpansion(self):
+		res = base.parseFromString(rscdesc.RD, 
+			r"""<resource schema="test"><NXSTREAM id="cols">
+					<LOOP listItems="\stuff">
+					<events><column name="\\item"/></events></LOOP></NXSTREAM>
+					<table id="foo"><FEED source="cols" stuff="x y"/></table>
+				</resource>""")
 		self.assertEqual([c.name for c in res.tables[0]],
 			['x', 'y'])
 

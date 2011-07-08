@@ -76,9 +76,14 @@ class EventProcessor(object):
 		"""
 		# Special handling for acitve tags: They may occur everywhere and
 		# thus are not not parsed by the element parsers but by us.
-		if type=="start" and activetags.isActive(name):
+		# Active tags may define ACTIVE_NOEXPAND to undo that behaviour
+		# (i.e., see active tag events themselves).
+		if (type=="start" 
+				and activetags.isActive(name)
+				and not hasattr(self.curParser, "ACTIVE_NOEXPAND")):
 			self.curParser = activetags.getActiveTag(name)(self.curParser)
 			return
+
 		if self.next is None:
 			self._feedToStructured(type, name, value)
 		else:

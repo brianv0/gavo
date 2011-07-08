@@ -8,6 +8,60 @@ from gavo.rscdef import column
 from gavo.rscdef import common
 
 
+class TypedReference(base.Structure):
+	"""A base class for references to columns and parameters.
+	"""
+	_dest = base.UnicodeAttribute("dest",
+		default=base.Undefined,
+		description="The (unqualified) reference to the destination",
+		copyable="True")
+	
+	_ucd = base.UnicodeAttribute("ucd", 
+		default=None, 
+		description="The UCD of the group", 
+		copyable=True)
+
+	_utype = base.UnicodeAttribute("utype", 
+		default=None, 
+		description="A utype for the group", 
+		copyable=True)
+
+	def resolve(self, container):
+		"""tries to resolve the reference within container.
+
+		This must be overridden by derived classes.
+		"""
+		raise NotImplementedError("Don't now how to resolve %s references."%
+			self.__class__.__name__)
+
+
+class ColumnReference(TypedReference):
+	"""A reference to a column within a table.
+
+	ColumnReferences do not support qualified references, i.e., you
+	can only give simple names.
+	"""
+	name_ = "columnRef"
+
+	def resolve(self, container):
+		return container.getColumnByName(self.dest)
+
+
+class ParameterReference(TypedReference):
+	"""A reference to a parameter within a table.
+
+	ParamReferences do not support qualified references, i.e., you
+	can only give simple names.
+
+	Also note that programmatically, you usually want to resolve
+	ParamReferences within the Table instance, not the table definition.
+	"""
+	name_ = "paramRef"
+
+	def resolve(self, container):
+		return container.getParamByName(self.dest)
+
+
 class Group(base.Structure):
 	"""A group is a collection of columns, parameters and other groups 
 	with a dash of metadata.
@@ -47,12 +101,14 @@ class Group(base.Structure):
 		description="A utype for the group", 
 		copyable=True)
 
-	_columnRefs = base.StringListAttribute("columnRefs",
-		description="Names of table columns belonging to this group",
+	_columnRefs = base.StructListAttribute("columnRefs",
+		description="References to table columns belonging to this group",
+		childFactory=ColumnReference,
 		copyable=True)
 
-	_paramRefs = base.StringListAttribute("paramRefs",
+	_paramRefs = base.StructListAttribute("paramRefs",
 		description="Names of table parameters belonging to this group",
+		childFactory=ParameterReference,
 		copyable=True)
 
 	_params = common.ColumnListAttribute("params",
@@ -72,7 +128,7 @@ class Group(base.Structure):
 
 	@property
 	def table(self):
-		"""the table this group lives in.
+		"""the table definition this group lives in.
 
 		For nested groups, this still is the ancestor table.
 		"""
@@ -82,7 +138,7 @@ class Group(base.Structure):
 			if self.__tableCache is None:
 				raise AttributeError
 		except AttributeError:
-			# find something that has columns (presumably a table) in our
+			# find something that has columns (presumably a table def) in our
 			# ancestors.  I don't want to check for a TableDef instance
 			# since I don't want to import rscdef.table here (circular import)
 			# and things with column and params would work as well.
@@ -122,9 +178,9 @@ class Group(base.Structure):
 	def iterColumns(self):
 		"""iterates over columns within this group.
 		"""
-		table = self.table
-		for name in self.columnRefs:
-			yield table.columns.getColumnByName(name)
+		table = self.table  # (self.table is a property)
+		for ref in self.columnRefs:
+			yield ref.resolve(table)
 	
 	def iterParams(self):
 		"""iterates over all params within this group.
@@ -132,9 +188,9 @@ class Group(base.Structure):
 		This includes both params refereced in the parent table and immediate
 		params.
 		"""
-		table = self.table
-		for name in self.paramRefs:
-			yield table.params.getColumnByName(name)
+		table = self.table  # (self.table is a property)
+		for ref in self.paramRefs:
+			yield ref.resolve(table)
 		for par in self.params:
 			yield par
 

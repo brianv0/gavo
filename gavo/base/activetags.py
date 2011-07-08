@@ -4,6 +4,19 @@ Active tags are used in prepare and insert computed material into RD trees.
 And, ok, we are dealing with elements here rather than tags, but I liked
 the name "active tags" much better, and there's too much talk of elements
 in this source as it is.
+
+The main tricky part with active tags is when they're nested.  In
+short, active tags are expanded even when within active tags.  So,
+if you write::
+
+	<STREAM id="foo">
+		<LOOP>
+		</LOOP>
+	</STREAM>
+
+foo contains not a loop element but whatever that spit out.  In particular,
+macros within the loop are expanded not within some FEED element but
+within the RD.
 """
 
 import csv
@@ -17,6 +30,7 @@ from gavo.base import complexattrs
 from gavo.base import macros
 from gavo.base import parsecontext
 from gavo.base import structure
+from gavo.utils import codetricks
 
 
 # the following is a sentinel for values that have been expanded
@@ -110,7 +124,7 @@ class RecordingBase(structure.Structure):
 		structure.Structure.__init__(self, *args, **kwargs)
 
 	def feedEvent(self, ctx, type, name, value):
-		# keep _EXPANDED_VALUE rather than "value"
+		# keep _EXPANDED_VALUE rather than "value", see comment above
 		if type is _EXPANDED_VALUE:
 			self.events_.append((_EXPANDED_VALUE, name, value, ctx.pos))
 			return self
@@ -151,6 +165,7 @@ class RecordingBase(structure.Structure):
 	iterEvents = getEventSource
 
 
+
 class EventStream(RecordingBase, GhostMixin, ActiveTag):
 	"""An active tag that records events as they come in.
 
@@ -166,6 +181,39 @@ class EventStream(RecordingBase, GhostMixin, ActiveTag):
 			self.parent = None
 			return res
 		return RecordingBase.end_(self, ctx, name, value)
+
+
+class RawEventStream(EventStream):
+	"""An event stream that records events, not expanding active tags.
+
+	Normal event streams expand embedded active tags in place.  This is
+	frequently what you want, but it means that you cannot, e.g., fill
+	in loop variables through stream macros.
+
+	This non-expanded streams, you can do that::
+
+		<NXSTREAM id="cols">
+			<LOOP listItems="\stuff">
+				<events>
+					<column name="\\item"/>
+				</events>
+			</LOOP>
+		</NXSTREAM>
+		<table id="foo">
+			<FEED source="cols" stuff="x y"/>
+		</table>
+	
+	Note that the normal innermost-only rule for macro expansions
+	within active tags does not apply for NXSTREAMS.  Macros expanded
+	by a replayed NXSTREAM will be re-expanded by the next active
+	tag that sees them (this is allow embedded active tags to use
+	macros; you need to double-escape macros for them, of course).
+	"""
+
+	name_ = "NXSTREAM"
+
+	# Hack to signal xmlstruct.EventProcessor not to expand active tags here
+	ACTIVE_NOEXPAND = None
 
 
 class EmbeddedStream(RecordingBase, structure.Structure):
@@ -287,7 +335,13 @@ class ReplayBase(ActiveTag, structure.Structure, macros.MacroPackage):
 		"""
 		idStack = []
 		pruneStack = []
-	
+
+		# see RawEventStream's docstring for why we do not want to suppress
+		# further expansion with NXSTREAMs
+		typeOfExpandedValues = _EXPANDED_VALUE
+		if isinstance(self.source, RawEventStream):
+			typeOfExpandedValues = "value"
+
 		for type, name, val, pos in events:
 			if (self._expandMacros
 					and type=="value" 
@@ -302,7 +356,7 @@ class ReplayBase(ActiveTag, structure.Structure, macros.MacroPackage):
 							ex.macroName,
 							getattr(self.source, "id", "<embedded>")))
 					raise
-				type = _EXPANDED_VALUE
+				type = typeOfExpandedValues
 
 			# the following mess implements the logic for EDIT.
 			if type=="start":

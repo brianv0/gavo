@@ -416,22 +416,22 @@ class GroupTest(testhelpers.VerboseTest):
 	def testBasicColumn(self):
 		t = base.parseFromString(rscdef.TableDef,
 			"<table><column name='x'/><column name='y'/><column name='z'/>"
-			"<group name='foo' columnRefs='y'/></table>")
+			"<group name='foo'><columnRef dest='y'/></group></table>")
 		g = t.groups[0]
 		self.assertEqual(g.name, "foo")
-		self.assertEqual(g.columnRefs[0], "y")
+		self.assertEqual(g.columnRefs[0].dest, "y")
 		c = list(g.iterColumns())[0]
 		self.assertEqual(c.type, "real")
 
 	def testMultiGroups(self):
 		t = base.parseFromString(rscdef.TableDef,
 			"<table><column name='x'/><column name='y'/><column name='z'/>"
-			"<group name='foo' columnRefs='y,x'/>"
-			"<group name='bar'><columnRefs>x,z</columnRefs></group>"
+			"<group name='foo'><columnRef dest='y'/><columnRef dest='x'/></group>"
+			"<group name='bar'><columnRef dest='x'/><columnRef dest='z'/></group>"
 			"</table>")
 		g = t.groups[0]
 		self.assertEqual(g.name, "foo")
-		self.assertEqual(g.columnRefs, ["y", "x"])
+		self.assertEqual(len(g.columnRefs), 2)
 		self.failUnless(t.columns[0] is list(g.iterColumns())[1])
 		g = t.groups[1]
 		self.assertEqual(g.name, "bar")
@@ -440,7 +440,7 @@ class GroupTest(testhelpers.VerboseTest):
 		t = base.parseFromString(rscdef.TableDef,
 			"<table><column name='x'/><param name='y'>0.25</param>"
 			"<column name='z'/>"
-			"<group name='foo' columnRefs='x' paramRefs='y'>"
+			"<group name='foo'><columnRef dest='x'/><paramRef dest='y'/>"
 			"<param name='u'>32</param>"
 			"</group></table>")
 		g = t.groups[0]
@@ -453,17 +453,18 @@ class GroupTest(testhelpers.VerboseTest):
 	
 	def testBadReference(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			"At (1, 104): No param or field column in found in table u",
+			"At (1, 117): No param or field column in found in table u",
 			base.parseFromString,
 			(rscdef.TableDef,
 			"<table id='u'><column name='x'/><column name='y'/><column name='z'/>"
-			"<group name='foo' columnRefs='bad'/></table>"))
+			"<group name='foo'><columnRef dest='bad'/></group></table>"))
 
 	def testNesting(self):
 		t = base.parseFromString(rscdef.TableDef,
 			"<table><column name='x'/><column name='y'/><column name='z'/>"
-			"<group name='foo' columnRefs='y'>"
-			"<group name='bar' columnRefs='x,z'/></group></table>")
+			"<group name='foo'><columnRef dest='y'/>"
+			" <group name='bar'><columnRef dest='x'/><columnRef dest='z'/></group>"
+			"</group></table>")
 		g = t.groups[0]
 		self.assertEqual(g.name, "foo")
 		self.failUnless(list(g.iterColumns())[0] is t.columns[1])
@@ -476,8 +477,8 @@ class GroupTest(testhelpers.VerboseTest):
 	def testCopying(self):
 		t = base.parseFromString(rscdef.TableDef,
 			"<table><column name='x'/><column name='y'/><column name='z'/>"
-			"<group ucd='test' name='foo' columnRefs='y'>"
-			"<param name='par'>20</param><group columnRefs='z'/>"
+			"<group ucd='test' name='foo'><columnRef dest='y'/>"
+			"<param name='par'>20</param><group><columnRef dest='z'/></group>"
 			"</group></table>")
 		t2 = t.copy(None)
 		g = t.groups[0]

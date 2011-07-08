@@ -88,6 +88,9 @@ class iterparse(object):
 	def _characters(self, data):
 		self.evBuf.append((("data", None, data), None))
 
+	def pushBack(self, type, name, payload):
+		self.evBuf.appendleft(((type, name, payload), None))
+
 	def next(self):
 		while not self.evBuf:
 			try:
@@ -204,6 +207,3 @@ class StartEndHandler(ContentHandler):
 		the attribute names.  Any prefixes on attrs remain, though.
 		"""
 		return dict((k.split(":")[-1], v) for k, v in attrs.items())
-
-
-

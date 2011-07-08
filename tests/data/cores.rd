@@ -80,9 +80,11 @@
 				<inputKey original="rV"/>
 			</condDesc>
 			<inputTable>
-				<group name="magic" paramRefs="mag,rV"
+				<group name="magic"
 					description="Some magic parameters we took out of thin air.">
 					<property name="cssClass">localstuff</property>
+					<paramRef dest="mag"/>
+					<paramRef dest="rV"/>
 				</group>
 				<inputKey original="rV">
 					<values default="-4"/>

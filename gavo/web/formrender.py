@@ -231,7 +231,7 @@ class FormMixin(formal.ResourceMixin):
 		"""returns a list of "grouped" param names from inputTable.
 
 		The idea here is that you can define "groups" in your input table.
-		Each such group can contain paramrefs.  When the input table is rendered
+		Each such group can contain paramRefs.  When the input table is rendered
 		in HTML, the grouped fields are created in a formal group.  To make this
 		happen, they may need to be resorted.  This happens in this function.
 
@@ -242,8 +242,8 @@ class FormMixin(formal.ResourceMixin):
 		"""
 		groupedKeys = {}
 		for group in inputTable.groups:
-			for name in group.paramRefs:
-				groupedKeys[name] = group
+			for ref in group.paramRefs:
+				groupedKeys[ref.dest] = group
 
 		inputKeySequence, addedNames = [], set()
 		for inputKey in inputTable.params:
@@ -262,9 +262,9 @@ class FormMixin(formal.ResourceMixin):
 				# current key is part of a group: add it and all others in the group
 				# enclosed in group/None.
 				inputKeySequence.append(newGroup)
-				for groupedName in groupedKeys[inputKey.name].paramRefs:
-					inputKeySequence.append(groupedName)
-					addedNames.add(groupedName)
+				for ref in groupedKeys[inputKey.name].paramRefs:
+					inputKeySequence.append(ref.dest)
+					addedNames.add(ref.dest)
 				inputKeySequence.append(None)
 		return inputKeySequence
 
