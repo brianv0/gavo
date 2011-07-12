@@ -306,7 +306,7 @@ class TabledataWriteTest(testhelpers.VerboseTest):
 		), (  # 5
 			[V.FIELD(datatype="char")],
 			[u'\xe4'],
-			'<TR><TD>\xc3\xa4</TD></TR>'
+			'<TR><TD>?</TD></TR>'
 		), (
 			[V.FIELD(datatype="floatComplex")],
 			[[0.5+0.25j]],
@@ -642,6 +642,24 @@ class StringArrayTest(testhelpers.VerboseTest):
 	def test2dBinaryWrite(self):
 		self.assertRaises(NotImplementedError,
 			lambda: votable.asString(self._get2DTable(V.BINARY)))
+
+
+class UnicodeCharStringsTest(testhelpers.VerboseTest):
+# Make sure we don't bomb when someone hands us unicode strings
+# for char tables.
+	def _getDataTable(self, enc):
+		return votable.asString(
+			V.VOTABLE[V.RESOURCE[votable.DelayedTable(
+				V.TABLE[V.FIELD(name="test", datatype="char", arraysize="*")], 
+				[[u"\u03b2"]], enc)]])
+
+	def testInTD(self):
+		self.failUnless("<TD>?</TD>" in 
+			self._getDataTable(V.TABLEDATA))
+
+	def testInBinary(self):
+		self.failUnless('STREAM encoding="base64">AAAAAT8'
+			in self._getDataTable(V.BINARY))
 
 
 if __name__=="__main__":

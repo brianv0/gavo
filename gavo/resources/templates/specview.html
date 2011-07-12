@@ -8,18 +8,24 @@
 	</head>
 	<body>
 	<object 
-			classid="clsid:8AD9C840-044E-11D1-B3E9-00805F499D93"
+			classid="java:spv.SpecviewApplet"
+			codebase="http://specview.stsci.edu/applet"
+    	archive="specview_app.jar"
 			codetype="application/java-vm"
     	width="800" 
     	height="600">
-    <param name= "code" value="spv.SpecviewApplet.class"/>
-    <param name= "codebase" value="http://specview.stsci.edu/applet"/>
-    <param name= "archive" value="specview_app.jar"/>
-    <param name= "type" value="application/x-java-applet;version=1.6"/>
-    <param name= "scriptable" value="false"/>
+    <param name="archive" value="specview_app.jar"/>
+    <param name="codebase" value="http://specview.stsci.edu/applet"/>
     <param name= "name">
     	<n:attr name="value" n:render="data" n:data="parameter source"/>
     </param>
+    <p style="padding-left:2em;padding-right:2em;border:2pt solid #eecccc"
+    >Specview is a Java applet.  This means you have to have a
+    java virtual machine active within your browser.  A common way
+    to get this is to install a plugin, available, e.g., from
+    <a href="http://java.sun.com">java.sun.com</a>, or by installing
+    a package like openjdk-?-jre on Debian-derived systems (where ? corresponds
+    to some version).</p>
   </object>
 
 	<p><a href="http://www.stsci.edu/resources/software_hardware/specview"

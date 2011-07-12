@@ -151,8 +151,14 @@ def _makeCharArrayEncoder(field):
 		raise NotImplementedError("Cannot do string arrays yet.  Could you"
 			" help out?")
 
-	src = []
 	nullvalue = coding.getNullvalue(field, lambda _: True)
+	src = []
+
+	if field.datatype=="char":
+		src.extend([
+			'if isinstance(val, unicode):',
+			'  val = val.encode("ascii", "replace")'])
+
 	if field.hasVarLength():
 		src.append("tokens.append(struct.pack('!i', len(val)))")
 		if nullvalue is None:

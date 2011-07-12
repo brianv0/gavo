@@ -30,7 +30,6 @@ from gavo.base import complexattrs
 from gavo.base import macros
 from gavo.base import parsecontext
 from gavo.base import structure
-from gavo.utils import codetricks
 
 
 # the following is a sentinel for values that have been expanded

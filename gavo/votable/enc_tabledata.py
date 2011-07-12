@@ -83,16 +83,24 @@ def _makeIntEncoder(field):
 
 
 def _makeCharEncoder(field):
+	src = []
+
+	if field.datatype=="char":
+		src.extend([
+			'if isinstance(val, unicode):',
+			'  val = val.encode("ascii", "replace")'])
+
 	if field.isMultiDim():
 		# 2+d char arrays are string arrays -- the serialization is insane
-		return _addNullvalueCode(field, [
+		src.extend([
 			"tokens.append(common.escapePCDATA(' '.join("
-			" s.replace(' ', '%20') for s in common.iterflattened(val))))"],
-			lambda _: True, "")
+			" s.replace(' ', '%20') for s in common.iterflattened(val))))"])
+
 	else:
-		return _addNullvalueCode(field, [
-			"tokens.append(common.escapePCDATA(val))"],
-			lambda _: True, "")
+		src.extend([
+			"tokens.append(common.escapePCDATA(val))"])
+
+	return _addNullvalueCode(field, src, lambda _: True, "")
 
 
 _encoders = {

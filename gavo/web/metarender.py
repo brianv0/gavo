@@ -207,11 +207,16 @@ class RendExplainer(object):
 	@classmethod
 	def _explain_tap(cls, service):
 		return T.invisible["the interface to this site's Table Access Protocol"
-			" service.  This protocol is best used using specialized clients"
-			" or libraries, but an XSL-enabled web browser lets you"
-			" operate ",
+			" service.  This protocol is best accessed using specialized clients"
+			" or libraries. In such clients, you can find this service by its"
+			" IVORN, ",
+			T.code(render=T.directive("meta"))["identifier"], 
+			", or access it by entering its base URL ",
+			T.code[service.getURL("tap")],
+			" directly.  Using an XSL-enabled web browser you can, in a pinch,"
+			" also operate ",
 			T.a(href=service.getURL("tap")+"/async")["the service"],
-			" as well."]
+			" without a specialized client."]
 
 	@classmethod
 	def _explain_qp(cls, service):

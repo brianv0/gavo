@@ -40,8 +40,10 @@
 			dbNames, recNames = assignments.keys(), assignments.values()
 			query = "SELECT %s FROM %s WHERE %s=%%(val)s"%(
 				", ".join(dbNames), table, column)
+			<!-- TODO: probably use the connection pool -->
 			try:
 				querier = base.SimpleQuerier()
+				querier.enableAutocommit()
 			except (base.Error, base.DbError):
 				# we probably have no db connectivity.  Don't bring down the
 				# whole program without knowing we actually need it -- raise an error
@@ -183,13 +185,17 @@
 			>'&lt;unknown&gt;'</par>
 	</setup>
 	<code>
+		<!-- TODO: probably use the connection pool -->
 		q = base.SimpleQuerier()
-		res = q.runIsolatedQuery(query, data=locals(), asDict=True)
 		try:
-			vars.update(res[0])
-		except IndexError:
-			raise base.ValidationError("Could not find a matching row",
-				errCol)
+			res = q.runIsolatedQuery(query, data=locals(), asDict=True)
+			try:
+				vars.update(res[0])
+			except IndexError:
+				raise base.ValidationError("Could not find a matching row",
+					errCol)
+		finally:
+			q.close()
 	</code>
 </procDef>
 

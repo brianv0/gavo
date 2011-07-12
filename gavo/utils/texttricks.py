@@ -88,7 +88,7 @@ def getRelativePath(fullPath, rootPath, liberalChars=True):
 	if not liberalChars and not _SAFE_FILENAME.match(res):
 		raise ValueError("File path '%s' contains characters known to"
 			" the GAVO staff to be hazardous in URLs.  Please defuse the name"
-			" before using it for published names."%res)
+			" before using it for published names (or see howDoI)."%res)
 	return res
 
 
