@@ -179,6 +179,7 @@ class _JobActions(object):
 		except KeyError:
 			raise base.ui.logOldExc(
 				svcs.UnknownURI("Invalid UWS action '%s'"%action))
+		request.setHeader("content-type", resFactory.mime)
 		return resFactory.getResource(job, request, segments)
 		
 
@@ -191,6 +192,7 @@ class JobAction(object):
 	the UWS spec.
 	"""
 	name = None
+	mime = "text/xml"
 
 	def getResource(self, job, request, segments):
 		if segments:
@@ -236,9 +238,9 @@ class ErrorResource(rend.Page):
 
 class ErrorAction(JobAction):
 	name = "error"
+	mime = "text/plain"
 
 	def doGET(self, job, request):
-		request.setHeader("content-type", "text/plain")
 		try:
 			excInfo = job.getError()
 			return ErrorResource(excInfo, httpStatus=200)
@@ -267,6 +269,7 @@ _JobActions.addAction(ParameterAction)
 
 class PhaseAction(JobAction):
 	name = "phase"
+	mime = "text/plain"
 	timeout = 10  # this is here for testing
 
 	def doPOST(self, job, request):
@@ -289,6 +292,8 @@ _JobActions.addAction(PhaseAction)
 class _SettableAction(JobAction):
 	"""Abstract base for ExecDAction and DestructionAction.
 	"""
+	mime = "text/plain"
+
 	def doPOST(self, job, request):
 		raw = request.scalars.get(self.name.upper(), None)
 		if raw is None:  # with no parameter, fall back to GET
@@ -326,6 +331,7 @@ _JobActions.addAction(DestructionAction)
 
 class QuoteAction(JobAction):
 	name = "quote"
+	mime = "text/plain"
 
 	def doGET(self, job, request):
 		request.setHeader("content-type", "text/plain")
@@ -341,6 +347,8 @@ _JobActions.addAction(QuoteAction)
 class OwnerAction(JobAction):
 	# we do not support auth yet, so this is a no-op.
 	name = "owner"
+	mime = "text/plain"
+
 	def doGET(self, job, request):
 		request.setHeader("content-type", "text/plain")
 		if job.owner is None:

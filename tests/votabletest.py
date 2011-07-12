@@ -740,7 +740,7 @@ class OverflowTest(testhelpers.VerboseTest):
 			votablewrite.VOTableContext(
 				overflowElement=votable.OverflowElement(2,
 					votable.V.GROUP(name="overflow"))))
-		self.failUnless('<GROUP name="overflow"' in res)
+		self.failUnless('</TABLE><GROUP name="overflow"' in res)
 
 
 class HackMetaTest(testhelpers.VerboseTest):

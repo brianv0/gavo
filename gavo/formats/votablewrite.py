@@ -357,6 +357,7 @@ def _makeResource(ctx, data):
 	for table in data:
 		if table.role!="parameters":
 			res[makeTable(ctx, table)]
+	res[ctx.overflowElement]
 	return res
 
 ############################# Toplevel/User-exposed code

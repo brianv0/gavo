@@ -126,5 +126,10 @@ def DelayedTable(tableDefinition, rowIterator, contentElement,
 	content.iterSerialized = iterSerialized
 
 	return tableDefinition[
-		VOTable.DATA[content],
-		overflowElement]
+		VOTable.DATA[content]]
+# In a way, we'd like to have an overflow element here, assuming that
+# the table comes from a db query.  We could have this using this:
+#		overflowElement]
+# -- but TAP wants the overflow at the resource level.  So, we
+# put it there.  It will reflect the state of affairs for the last
+# table (which is probably as good as anything else).

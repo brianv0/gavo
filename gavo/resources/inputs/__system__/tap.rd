@@ -101,11 +101,11 @@
 			description="ADQL datatype"/>
 		<column name="size" type="integer" 
 			description="Length of variable length datatypes"/>
-		<column name="principal" type="text" 
+		<column name="principal" type="integer" 
 			description="Is column principal?"/>
 		<column name="indexed" type="integer" 
 			description="Is there an index on this column?"/>
-		<column name="std" type="text" 
+		<column name="std" type="integer" 
 			description="Is this a standard column?"/>
 		<column name="sourceRD" type="text" 
 			description="Id of the originating rd"/>
@@ -165,7 +165,7 @@
 							"schema_name": rd.schema,
 							"schema_description": None,
 							"schema_utype": None,
-							"table_name": table.getQName(),
+							"table_name": table.getQName().lower(),
 							"table_description": base.getMetaText(table, "description",
 								propagate=True),
 							"table_type": tableType,

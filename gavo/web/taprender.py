@@ -202,7 +202,7 @@ class JobResource(rend.Page, UWSErrorMixin):
 	def _deliverResult(self, result, request):
 		if hasattr(result, "renderHTTP"):  # it's a finished resource
 			return result
-		request.setHeader("content-type", "text/xml")
+		# content-type is set by uwsaction._JobActions.dispatch
 		request.write(utils.xmlrender(result).encode("utf-8"))
 		return ""
 	

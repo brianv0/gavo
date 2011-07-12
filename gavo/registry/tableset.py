@@ -56,6 +56,7 @@ def getTableColumnFromColumn(column, typeElement):
 		VS1.description[column.description],
 		VS1.unit[column.unit],
 		VS1.ucd[column.ucd],
+		VS1.utype[column.utype],
 		typeElement[column.type],
 		[VS1.flag[f] for f in flags]]
 

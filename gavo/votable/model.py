@@ -231,6 +231,7 @@ class VOTable(object):
 		               # Needs to be cared for in client code.
 		_childSequence = ["DESCRIPTION", "VALUES", "LINK"]
 
+
 	class PARAMref(_RefElement): pass
 
 
@@ -240,8 +241,8 @@ class VOTable(object):
 		_a_type = None
 		_a_utype = None
 		_childSequence = ["DESCRIPTION", "DEFINITIONS", "COOSYS", "INFO", "GROUP", 
-			"PARAM", "LINK", "TABLE", "INFO_atend", "RESOURCE"]
-
+			"PARAM", "LINK", "TABLE", "INFO_atend", "RESOURCE", "stub"]
+		# (stub for delayed overflow warnings and such)
 
 	class STREAM(_VOTElement):
 		_a_actuate = None
