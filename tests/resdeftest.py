@@ -76,21 +76,32 @@ class ColumnTest(testhelpers.VerboseTest):
 		col.required = False
 		self.assertRuns(col.validateValue, (None,))
 
-	def testRaises(self):
+	def testBadTypeRejected(self):
 		self.assertRaisesWithMsg(base.LiteralParseError, 
 			"At (1, 0): 'zucki' is not a"
 			" valid value for type",
 			base.parseFromString, (rscdef.Column,
 				'<column name="foo" type="zucki"/>'))
+	
+	def testBadDisplayHintRejected(self):
 		self.assertRaisesWithMsg(base.LiteralParseError, 
 			"At (1, 0): 'xxyyz'"
 			" is not a valid value for displayHint",
 			base.parseFromString, (rscdef.Column,
 				'<column name="foo" displayHint="xxyyz"/>'))
+	
+	def testBadColumnNameRejected(self):
 		self.assertRaisesWithMsg(base.StructureError, 
 			'At (1, 0):'
 			" 'foo x' is not a valid column name" , 
 			base.parseFromString, (rscdef.Column, '<column name="foo x"/>'))
+
+	def testBadNullRejected(self):
+		self.assertRaisesWithMsg(base.LiteralParseError,
+			"At (1, 58): '.' is not a valid value for nullLiteral",
+			base.parseFromString,
+			(rscdef.Column, '<column name="x" type="smallint"><values nullLiteral='
+				'"."/></column>'))
 
 
 class ValuesTest(testhelpers.VerboseTest):

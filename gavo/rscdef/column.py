@@ -157,8 +157,9 @@ def makeOptions(*args):
 class Values(base.Structure):
 	"""Information on a column's values, in particular its domain.
 
-	This is quite like the values element in a VOTable, except that nullLiterals
-	are strings, where in VOTables nullvalues have the type of their field.
+	This is quite like the values element in a VOTable.  In particular,
+	to accomodate VOTable usage, we require nullLiteral to be a valid literal
+	for the parent's type.
 	"""
 	name_ = "values"
 
@@ -212,11 +213,22 @@ class Values(base.Structure):
 			self.min = self.makePythonVal(self.min, dataField.type)
 		if self.max:
 			self.max = self.makePythonVal(self.max, dataField.type)
+
 		if self.options:
 			dbt = dataField.type
 			for opt in self.options:
 				opt.content_ = self.makePythonVal(opt.content_, dbt)
 			self.validValues = set([o.content_ for o in self.options])
+
+		if self.nullLiteral:
+			try:
+				self.makePythonVal(self.nullLiteral, dataField.type)
+			except ValueError:
+				raise base.LiteralParseError("nullLiteral", self.nullLiteral,
+					hint="If you want to *parse* whatever you gave into a NULL,"
+					" use the parseWithNull function in a rowmaker.  The null"
+					" literal gives what value will be used for null values"
+					" when serializing to VOTables and the like.")
 
 	def validateOptions(self, value):
 		"""returns false if value isn't either in options or doesn't consist of

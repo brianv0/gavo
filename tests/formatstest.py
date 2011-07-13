@@ -280,7 +280,6 @@ class _ExplicitNullTestTable(testhelpers.TestResource):
 				<column name="anint" type="integer"><values nullLiteral="-1"/></column>
 				<column name="atext" type="text"><values nullLiteral="xxy"/></column>
 				<column name="fixtx" type="char(7)"><values nullLiteral="xxy"/></column>
-				<column name="adate" type="date"><values nullLiteral="Bull"/></column>
 			</table>
 			""")
 		return rsc.TableForDef(td,
@@ -301,7 +300,7 @@ class ExplicitNullValueTest(testhelpers.VerboseTest):
 		def assertion(data):
 			self.assertEqual(
 				re.search("<tr>(<td>.*)</tr>", data).group(0),
-					'<tr><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td></tr>')
+					'<tr><td>N/A</td><td>N/A</td><td>N/A</td></tr>')
 		self._runTestForFormat("html", assertion)
 	
 	def testTDVOTable(self):  
@@ -310,32 +309,30 @@ class ExplicitNullValueTest(testhelpers.VerboseTest):
 		def assertion(data):
 			self.failUnless('<VALUES null="-1"' in data)
 			self.failUnless('<TR><TD>-1</TD><TD>xxy</TD><TD>xxy</TD>'
-				'<TD>Bull</TD></TR>' in data)
+				'</TR>' in data)
 		self._runTestForFormat("votabletd", assertion)
 
 	def testBinVOTable(self):
 		def assertion(data):
 			self.failUnless('<VALUES null="-1"' in data)
 			self.failUnless('<VALUES null="xxy"' in data)
-			self.failUnless('<VALUES null="Bull"' in data)
 			decoded = re.search(
 				'(?s)<STREAM encoding="base64">(.*)</STREAM>',
 				data).group(1).decode("base64")
 			self.assertEqual(decoded, "".join([
 				'\xff\xff\xff\xff',
 				'\x00\x00\x00\x03xxy',
-				'xxy    ',
-				'\x00\x00\x00\x04Bull']))
+				'xxy    ',]))
 		self._runTestForFormat("votable", assertion)
 
 	def testCSV(self):
 		def assertion(data):
-			self.assertEqual(",,,", data.strip())
+			self.assertEqual(",,", data.strip())
 		self._runTestForFormat("csv", assertion)
 
 	def testTSV(self):
 		def assertion(data):
-			self.assertEqual('None\tNone\tNone\tNone', data.strip())
+			self.assertEqual('None\tNone\tNone', data.strip())
 		self._runTestForFormat("tsv", assertion)
 
 

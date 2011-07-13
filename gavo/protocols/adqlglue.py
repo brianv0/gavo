@@ -110,10 +110,10 @@ def _makeColumnFromFieldInfo(ctx, colName, fi):
 			res.type = "smallint"
 		nullLiteral = _artificialNULLs[res.type]
 		if res.values:
-			res.values = res.values.change(nullLiteral=nullLiteral)
+			res.feedObject("values", res.values.change(nullLiteral=nullLiteral))
 		else:
-			res.values = base.makeStruct(rscdef.Values, 
-				nullLiteral=nullLiteral)
+			res.feedObject("values", base.makeStruct(rscdef.Values, 
+				nullLiteral=nullLiteral))
 
 	res.verbLevel = 1
 	res.finishElement()
