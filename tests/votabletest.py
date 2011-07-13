@@ -413,10 +413,9 @@ class ParamNullValueTest(VOTableRenderTest):
 		self.assertEqual(par[0].get("null"), nullLiteral)
 
 	def testNotGiven(self):
-		# This actually is something of an extension.  In VOTables,
-		# NotGiven params are missing (and not NULL)
-		self.assertEqual(self._getParamsFor(
-			'<param name="x" type="text"/>'), [])
+		self._assertDeclaredNull(
+			'<param name="x" type="text"/>', 
+			"__NULL__")
 
 	def testStringNullDefault(self):
 		self._assertDeclaredNull(

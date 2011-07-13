@@ -201,27 +201,32 @@ def _defineNullInValues(votEl, nullLiteral):
 def _makeVOTParam(ctx, param):
 	"""returns VOTable stan for param.
 
-	If param's value is NotGiven, None is returned (i.e., the param will
-	not show up in the resulting VOTable); if a param's value
-	is None, we generate some kind of null representation.
+	If param's value is NotGiven, it will count as a null value for
+	VOTable purposes.  This is since params frequently are referred to,
+	and we don't want the ref targets to vanish.
 	"""
-	if param.content_ is base.NotGiven:
-		return None
+	# note that we're usually accessing the content, i.e., the string
+	# serialization we got.  The only exception is when we're seeing
+	# nulls or null-equivalents.
+	if param.content_ is base.NotGiven or param.value is None:
+		content = None
 	else:
-		el = V.PARAM()
-		defineField(el, valuemappers.VColDesc(param))
-		if param.content_ is None:
-			# Null value generation -- tactics: If we have a nullLiteral, use it
-			# otherwise use some type-dependent default
-			if param.values.nullLiteral is None:
-				nullLiteral = _PARAM_NULLS.get(param.type, "__NULL__")
-				_defineNullInValues(el, nullLiteral)
-			else:
-				nullLiteral =param.values.nullLiteral
-			el.value = nullLiteral
+		content = param.content_
+
+	el = V.PARAM()
+	defineField(el, valuemappers.VColDesc(param))
+	if content is None:
+		# Null value generation -- tactics: If we have a nullLiteral, use it
+		# otherwise use some type-dependent default
+		if param.values.nullLiteral is None:
+			nullLiteral = _PARAM_NULLS.get(param.type, "__NULL__")
+			_defineNullInValues(el, nullLiteral)
 		else:
-			el.value = param.content_
-		return el
+			nullLiteral =param.values.nullLiteral
+		el.value = nullLiteral
+	else:
+		el.value = content
+	return el
 
 
 def _iterTableParams(serManager):

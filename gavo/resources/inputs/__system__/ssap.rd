@@ -6,9 +6,9 @@
 	<STREAM id="base_columns"> 
 		<!-- a table containing columns required for all SSA tables.
 		
-		There is no CoordSys metadata here; it is assumed that all our
-		Tables are ICRS/TT to the required accuracy.  And you should
-		convey such information via STC anyway...
+		There is only minimal CoordSys metadata here; we assume 
+		such information is conveyed via STC groups anyway.  If that
+		should turn out to be not sufficient, we'll think again.
 		-->
 		<stc>Time TT "ssa_dateObs" Size "ssa_timeExt" 
 			Position ICRS [ssa_location] Size "ssa_aperture" "ssa_aperture"
@@ -22,7 +22,7 @@
 			<EDIT ref="column[accsize]" utype="ssa:Access.Size"/>
 		</FEED>
 		
-		<column name="ssa_dstitle" type="text"
+		<column name="ssa_dstitle" type="text" required="True"
 			utype="ssa:DataID.Title" ucd="meta.title;meta.dataset"
 			tablehead="Title" verbLevel="15"
 			description="Title or the dataset (usually, spectrum)"/>
@@ -53,7 +53,7 @@
 			tablehead="C. Version" verbLevel="25" 
 			description="Creator assigned version for this dataset (will be 
 				incremented when this particular item is changed)."/>
-		<column name="ssa_targname" type="text"
+		<column name="ssa_targname" type="text" required="True"
 			utype="ssa:Target.Name" ucd="meta.id;src"
 			tablehead="Object" verbLevel="15" 
 			description="Common name of object observed."/>
@@ -149,23 +149,29 @@
 		them would probably not make much sense since they reflect
 		what's in this RD.</doc>
 	
-		<param name="ssa_model" type="text" 
+		<param name="ssa_model" type="text" required="True"
 			utype="ssa:Dataset.DataModel"
 			description="Data model name and version">Spectrum-1.0</param>
 		<param name="ssa_dstype" type="text" 
 			utype="ssa:Dataset.DataModel"
 			description="Type of data (spectrum, time series, etc)"
 			>Spectrum</param>
-		<param name="ssa_timeSI" type="text" 
+		<param name="ssa_timeSI" type="text"
 			utype="ssa:Dataset.TimeSI"
 			description="Time unit">\timeSI</param>
-		<param name="ssa_spectralSI" type="text" 
+		<param name="ssa_spectralSI" type="text"
 			utype="ssa:Dataset.SpectralSI"
 			description="Unit of frequency or wavelength"
 			>\spectralSI</param>
-		<param name="ssa_fluxSI" type="text" utype="ssa:Dataset.FluxSI"
+		<param name="ssa_fluxSI" type="text"
+			utype="ssa:Dataset.FluxSI"
 			description="Unit of flux/magnitude">\fluxSI</param>
-		<param name="ssa_publisher" type="text"
+		<param name="ssa_csysName" type="text" required="True"
+			utype="ssa:CoordSys.SpaceFrame.Name"
+			tablehead="Sys" verbLevel="25"
+			description="System RA and Dec are given in"
+			>ICRS</param>
+		<param name="ssa_publisher" type="text" required="True"
 			utype="ssa:Curation.Publisher"
 			tablehead="Publisher" verbLevel="25" 
 			description="Publisher of the datasets included here.">\publisher</param>
@@ -197,16 +203,22 @@
 			tablehead="Ref." verbLevel="25" 
 			description="URL or bibcode of a publication describing this data."
 			>\reference</param>
-		<param name="ssa_fluxucd" type="text"
+		<param name="ssa_fluxunit" type="text" required="True"
+			utype="ssa:Char.FluxAxis.Unit"
+			tablehead="unit(flux)" verbLevel="25" 
+			description="UCD of the flux column">\fluxSI</param>
+		<param name="ssa_fluxucd" type="text" required="True"
 			utype="ssa:Char.FluxAxis.Ucd"
 			tablehead="UCD(flux)" verbLevel="25" 
-			description="UCD of the flux column (only necessary when result does
-				not come as VOTable)"/>
-		<param name="ssa_spectralucd" type="text"
+			description="UCD of the flux column">\fluxucd</param>
+		<param name="ssa_spectralunit" type="text" required="True"
+			utype="ssa:Char.SpectralAxis.Unit"
+			tablehead="unit(spectral)" verbLevel="25" 
+			description="Unit of the spectral column">\spectralSI</param>
+		<param name="ssa_spectralucd" type="text" required="True"
 			utype="ssa:Char.SpectralAxis.Ucd"
 			tablehead="UCD(spectral)" verbLevel="25" 
-			description="UCD of the spectral column (only necessary when result does
-				not come as VOTable)"/>
+			description="UCD of the spectral column">\spectralucd</param>
 		<param name="ssa_statError" 
 			utype="ssa:Char.FluxAxis.Accuracy.StatError"
 			ucd="stat.error;phot.flux.density;em"
@@ -216,7 +228,7 @@
 			utype="ssa:Char.FluxAxis.Accuracy.SysError"
 			ucd="stat.error.sys;phot.flux.density;em"
 			verbLevel="25"
-			description="Systematic error in flux">\statFluxError</param>
+			description="Systematic error in flux">\sysFluxError</param>
 		<param name="ssa_fluxcalib" type="text"
 			utype="ssa:Char.FluxAxis.Calibration"
 			verbLevel="25"
@@ -397,7 +409,12 @@
 			>__NULL__</mixinPar>
 		<mixinPar key="collection" description="ivo id of the originating
 			collection">__NULL__</mixinPar>
-
+		<mixinPar key="spectralucd" description="ucd of the spectral column, like
+			em.freq or em.energy; default is wavelength"
+			>em.wl</mixinPar>
+		<mixinPar key="fluxucd" description="ucd of the flux column, like
+			phot.count, phot.flux.density, etc.  Default is for flux over
+			wavelength.">phot.flux.density;em.wl</mixinPar>
 
 		<FEED source="//products#hackProductsData"/>
 		<events>
