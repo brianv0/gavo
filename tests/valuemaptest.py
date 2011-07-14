@@ -5,15 +5,30 @@ Tests for value mapping
 """
 
 import datetime
+import urllib
 
 from gavo import base
 from gavo import rscdef
 from gavo.base import valuemappers
 from gavo.helpers import testhelpers
+from gavo.protocols import products
 from gavo.utils import pgsphere
 
 
 class MapperTest(testhelpers.VerboseTest):
+	def assertMapsTo(self, colDef, inValue, expectedValue):
+		dataField = base.parseFromString(rscdef.Column, 
+			"<column %s</column>"%colDef)
+		cp = valuemappers.VColDesc(dataField)
+		cp["sample"] = inValue
+		res = valuemappers.defaultMFRegistry.getMapper(cp)(inValue)
+		if isinstance(expectedValue, float):
+			self.assertAlmostEqual(expectedValue, res, places=3)
+		else:
+			self.assertEqual(expectedValue, res)
+
+
+class MapperMiscTest(testhelpers.VerboseTest):
 # TODO: Rationalize, split up...
 	def testJdMap(self):
 		colDesc = {"sample": datetime.datetime(2005, 6, 4, 23, 12, 21),
@@ -40,42 +55,56 @@ class MapperTest(testhelpers.VerboseTest):
 			"Factories registred later are not tried first")
 	
 
-class StandardMapperTest(testhelpers.VerboseTest):
+class StandardMapperTest(MapperTest):
 	__metaclass__ = testhelpers.SamplesBasedAutoTest
 
 	def _runTest(self, sample):
-		structArgs, value, mapped = sample
-		dataField = base.makeStruct(rscdef.Column, **structArgs)
-		cp = valuemappers.VColDesc(dataField)
-		cp["sample"] = value
-		res = valuemappers.defaultMFRegistry.getMapper(cp)(value)
-		if isinstance(mapped, float):
-			self.assertAlmostEqual(mapped, res, places=3)
-		else:
-			self.assertEqual(mapped, res)
+		self.assertMapsTo(*sample)
 
 	samples = [
-		({"name":"d", "type":"date", "unit":"Y-M-D"},
+		('name="d" type="date" unit="Y-M-D">',
 			datetime.date(2003, 5, 4), "2003-05-04"),
-		({"name":"d", "type":"date", "unit":"yr"},
+		('name="d" type="date" unit="yr">',
 			datetime.date(2003, 5, 4), 2003.33607118),
-		({"name":"d", "type":"date", "unit":"d"},
+		('name="d" type="date" unit="d">',
 			datetime.date(2003, 5, 4), 2452763.5),
-		({"name":"d", "type":"timestamp", "unit":"d"},
+		('name="d" type="timestamp" unit="d">',
 			datetime.datetime(2003, 5, 4, 20, 23), 2452764.34931),
-		({"name":"d", "type":"date", "unit":"d", 
-				"ucd":"VOX:Image_MJDateObs"},
+		('name="d" type="date" unit="d" ucd="VOX:Image_MJDateObs">',
 			datetime.date(2003, 5, 4), 52763.0),
-		({"name":"d", "type":"date", "unit":"yr"},
+		('name="d" type="date" unit="yr">',
 			None, None),
-		({"name":"d", "type":"integer"},
+		('name="d" type="integer">',
 			None, None),
-		({"name": "b", "type": "sbox"}, pgsphere.SBox(
+		('name= "b" type= "sbox">', pgsphere.SBox(
 			pgsphere.SPoint(0.2, -0.1), pgsphere.SPoint(0.5, 0.2)),
 			"PositionInterval ICRS 11.4591559026 -5.7295779513"
 			" 28.6478897565 11.4591559026"),
 	]
 
 
+class ProductMapperTest(MapperTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		colDef, prodName, encoded = sample
+		colDef = colDef+' type="text">'
+		prodLink = "http://localhost:8080/getproduct?key="+encoded
+		self.assertMapsTo(colDef, prodName, prodLink)
+	
+	samples = [
+		('name="accref"', "gobba", "gobba"),
+		('name="uuxj" utype="ssa:Access.Reference"',
+			"gobba", "gobba"),
+		('name="uuxj" displayHint="type=product"',
+			"gobba", "gobba"),
+		('name="uuxj" ucd="VOX:Image_AccessReference"',
+			"gobba", "gobba"),
+		('name="accref"',
+			"wierdo+name/goes somewhere&is/bad",
+			"wierdo%2Bname%2Fgoes+somewhere%26is%2Fbad"),
+		]
+
+
 if __name__=="__main__":
-	testhelpers.main(StandardMapperTest)
+	testhelpers.main(ProductMapperTest)

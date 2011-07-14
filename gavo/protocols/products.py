@@ -10,6 +10,7 @@ trivial.
 
 import cgi
 import datetime
+import re
 import os
 import subprocess
 import urllib
@@ -505,18 +506,31 @@ rscdef.addProcDefObject("makeProductLink", makeProductLink)
 
 # Sigh -- the whole value mapping business needs to be cleaned up.
 def _productMapperFactory(colDesc):
-	"""A factory for columns containing product keys.
+	"""A factory for accrefs.
 
-	The result are links to the product delivery.
+	Within the DC, any column called accref, with a display hint of
+	type=product, a UCD of VOX:Image_AccessReference, or a utype
+	of Access.Reference may contain a key into the product table.
+	Here, we map those to links to the get renderer unless they look
+	like a URL to begin with.
 	"""
-	mapper = None
-	if colDesc["ucd"]=="VOX:Image_AccessReference":
-		def mapper(val):
-			if val:
-				return makeProductLink(val, withHost=True)+"&siap=true"
-	elif colDesc["displayHint"].get("type")=="product":
-		def mapper(val):
-			if val:
+	if not (
+			colDesc["name"]=="accref"
+			or colDesc["utype"]=="ssa:Access.Reference"
+			or colDesc["ucd"]=="VOX:Image_AccessReference"
+			or colDesc["displayHint"].get("type")=="product"):
+		return
+	
+	looksLikeURLPat = re.compile("[a-z]{2,5}://")
+
+	def mapper(val):
+		if val:
+			# type check to allow cut-out or scaled accrefs (which need 
+			# makeProductLink in any case)
+			if isinstance(val, basestring) and looksLikeURLPat.match(val):
+				return val
+			else:
 				return makeProductLink(val, withHost=True)
 	return mapper
+
 valuemappers._registerDefaultMF(_productMapperFactory)

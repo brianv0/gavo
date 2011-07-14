@@ -222,3 +222,8 @@ class ProductRenderer(grend.ServiceBasedPage):
 		except (TypeError, os.error):  # size doesn't matter
 			pass
 		return streaming.streamOut(resource, request)
+	
+	def locateChild(self, ctx, segments):
+		if segments:
+			inevow.IRequest(ctx).args["key"] = "/".join(segments)
+		return self, ()
