@@ -320,14 +320,21 @@ class DataDescriptor(base.Structure, base.MetaMixin):
 			t.setMetaParent(self)
 
 	# since we want to be able to create DDs dynamically , they must find their
-	# meta parent (RD) themselves.  We do this while the DD is being adopted.
+	# meta parent themselves.  We do this while the DD is being adopted;
+	# the rules here are: if the parent is a meta mixin itself, it's the
+	# meta parent, if it has an rd attribute, use that, else give up.
+	# TODO: For DDs on cores, it would be *desirable* to come up
+	# with some magic that makes the current service their meta parent.
+
 	def _getParent(self):
 		return self.__parent
 	
 	def _setParent(self, value):
 		self.__parent = value
-		if value is not None:
+		if isinstance(value, base.MetaMixin):
 			self.setMetaParent(value)
+		elif hasattr(value, "rd"):
+			self.setMetaParent(value.rd)
 	
 	parent = property(_getParent, _setParent)
 
