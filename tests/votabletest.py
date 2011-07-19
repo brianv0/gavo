@@ -709,8 +709,7 @@ class VOTReadTest(testhelpers.VerboseTest):
 				</TABLE></RESOURCE></VOTABLE>""")).next()
 		td = votableread.makeTableDefForVOTable("foo", rows.tableDefinition)
 		self.assertEqual(td.indices[0].content_.strip(),
-			r"q3c_ang2ipix(\nameForUCDs{pos.eq.ra;meta.main|POS_EQ_RA_MAIN},"
-			r" \nameForUCDs{pos.eq.dec;meta.main|POS_EQ_DEC_MAIN})")
+			r"q3c_ang2ipix(a, d)")
 	
 	def testNoIndex(self):
 		# The thing shouldn't crash or do anything stupid with silly UCDs.

@@ -18,6 +18,7 @@ from gavo.base import (getConfig, setConfig,
 	SimpleQuerier, 
 	NoMetaKey, Error, StructureError, ValidationError, LiteralParseError, 
 	ReportableError, NotFoundError, RDNotFound, 
+	parseFromString,
 	ui)
 
 from gavo.formats.votablewrite import (writeAsVOTable, getAsVOTable,
@@ -25,5 +26,7 @@ from gavo.formats.votablewrite import (writeAsVOTable, getAsVOTable,
 
 from gavo.rsc import (TableForDef, DBTable, makeData, parseValidating,
 	parseNonValidating, Data)
+
+from gavo.rscdef import TableDef
 
 from gavo.votable import VOTableError, ADQLTAPJob

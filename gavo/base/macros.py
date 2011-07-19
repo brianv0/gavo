@@ -45,7 +45,7 @@ class MacroExpander(object):
 	syntax below.
 
 	The macros themselves come from a MacroPackage object.  There are
-	a few of the around, implementing different functionality depending
+	a few of these around, implementing different functionality depending
 	on the script context (i.e., whether it belongs to an RD, a DD, or
 	a Table.
 
@@ -59,9 +59,10 @@ class MacroExpander(object):
 
 	The main entry point to the class is the expand function below,
 	taking a string possibly containing macro calls and returning
+	a string.
 
 	The construction of such a macro expander is relatively expensive,
-	so it would pay to cache them.  MacroPackage below has a getExpander
+	so it pays to cache them.  MacroPackage below has a getExpander
 	method that does the caching for you.
 	"""
 	def __init__(self, package):

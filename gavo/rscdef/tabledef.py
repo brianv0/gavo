@@ -286,7 +286,8 @@ class TableDef(base.Structure, base.ComputedMetaMixin, common.RolesMixin,
 	_viewStatement = base.UnicodeAttribute("viewStatement", 
 		default=None,
 		description="A single SQL statement to create a view.  Setting this"
-		" makes this table a view.", 
+		" makes this table a view.  The statement will typically be something"
+		" like CREATE VIEW \\\\curTable AS (SELECT \\\\colNames FROM...).", 
 		copyable=True)
 
 		# onDisk must not be copyable since queries might copy the tds and havoc
@@ -467,7 +468,7 @@ class TableDef(base.Structure, base.ComputedMetaMixin, common.RolesMixin,
 			for name, type in stcDef.iterColTypes():
 				destCol = self.getColumnByName(name)
 				if destCol.stc is not None: 
-					raise base.LiteralParseError("stc", self.stc.content_,
+					raise base.LiteralParseError("stc", stcDef.content_,
 						hint="Column %s is referenced twice from STC"%name)
 				destCol.stc = stcDef.compiled
 				destCol.stcUtype = type

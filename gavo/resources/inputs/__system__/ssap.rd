@@ -9,12 +9,14 @@
 		There is only minimal CoordSys metadata here; we assume 
 		such information is conveyed via STC groups anyway.  If that
 		should turn out to be not sufficient, we'll think again.
-		-->
 		<stc>Time TT "ssa_dateObs" Size "ssa_timeExt" 
 			Position ICRS [ssa_location] Size "ssa_aperture" "ssa_aperture"
 			SpectralInterval "ssa_specstart" "ssa_specend"
 				Spectral "ssa_specmid" Size "ssa_specext"</stc>
-
+		
+		TROUBLE: This is bad stc for us since you're not allowed to
+		reference a column twice in STC.  Check that at some point.
+		-->
 		<FEED source="//products#tablecols">
 			<EDIT ref="column[accref]" utype="ssa:Access.Reference"
 				ucd="meta.ref.url;meta.dataset"/>
@@ -110,14 +112,6 @@
 			verbLevel="15" tablehead="Band end" unit="m"
 			description="Upper value of spectral coordinate"/>
 	</STREAM>
-
-
-	<table id="instance">
-		<meta name="description">A sample of SSA fields for referencing and such.
-		</meta>
-		<FEED source="base_columns"/>
-	</table>
-
 
 	<!-- The SSA metadata is huge, and many arrangements are conceivable.  
 	To come up with some generally useful interface definitions, I'll
@@ -279,6 +273,22 @@
 		</outputField>
 	</STREAM>
 
+	<table id="instance" onDisk="False">
+		<meta name="description">A sample of SSA fields for referencing and such.
+		</meta>
+		<FEED source="base_columns"/>
+		<FEED source="hcd_fields"/>
+		<FEED source="hcd_outpars" timeSI="junk" fluxSI="junk"
+			publisher="junk" creator="junk" collection="junk"
+			instrument="junk" dataSource="junk" creationType="junk"
+			reference="junk" fluxucd="junk" spectralSI="junk"
+			spectralucd="junk" statFluxError="-9999" sysFluxError="-9999"
+			fluxCalibration="junk" statSpectError="-9999" sysSpectError="-9999"
+			spectCalibration="junk" statSpaceError="-9999"/>
+	</table>
+
+
+
 	<procDef type="apply" id="setMeta">
 		<doc>
 			Sets metadata for an SSA data set, including its products definition.
@@ -375,7 +385,7 @@
 		<mixinPar key="timeSI" description="Time unit (WCS convention)"
 			>s</mixinPar>
 		<mixinPar key="fluxSI" description="Flux unit (WCS convention)"
-			>s</mixinPar>
+			>Jy</mixinPar>
 		<mixinPar key="spectralSI" description="Unit of frequency or 
 			wavelength (WCS convention)">m</mixinPar>
 		<mixinPar key="creator" description="Creator designation"
@@ -588,4 +598,123 @@
 		</condDesc>
 	</STREAM>
 
+	<NXSTREAM id="makeSpecGroup" doc="copies over SSA fields into groups
+		required by the spectral DM; enter the names of the fields,
+		whitespace-separated, in the fieldnames parameter">
+		<group utype="\groupUtype">
+			<LOOP>
+				<codeItems>
+					srcTable = context.getById("instance")
+					for name in "\fieldnames".split():
+						utype = srcTable.getElementForName(name
+							).utype.replace("ssa:", "spec:Spectrum.")
+						yield {"dest": name, "utype": utype}
+				</codeItems>
+				<events>
+					<paramRef dest="\\dest" utype="\\utype"/>
+				</events>
+			</LOOP>
+		</group>
+	</NXSTREAM>
+
+	<mixinDef id="sdm-instance">
+		<doc><![CDATA[
+			This mixin is intended for tables that get serialized into documents
+			conforming to the Spectral Data Model, specifically to VOTables
+			(serialization to FITS would take a couple of additional hacks).
+
+			Such documents have (usually) only two columns.  This mixin *requires*
+			those to be called spectral (i.e., wavelength, frequency, energy)
+			and flux.  It attempts to obtain units and ucds as required
+			by the SDM from them.
+
+			You will want supporting code to fill these, in general; it is
+			intended to fill them from SSA records.
+
+			This mixin in action could look like this::
+
+				<table id="instance" onDisk="False">
+					<mixin ssaTable="spectra">//ssap#sdm-instance</mixin>
+					<column original="fluxes.lambda" name="spectral"/>
+					<column original="fluxes.flux"/>
+				</table>
+
+			]]></doc>
+	
+<!-- here's a mapping of SDM utypes to SSAP utypes:
+Spectrum.DataModel -> None (fixed Spectrum-1.0)
+Spectrum.Type -> Dataset.Type
+Spectrum.Length -> Dataset.Length 
+Spectrum.TimeSI -> Dataset.TimeSI
+Spectrum.SpectralSI -> Dataset.SpectralSI
+Spectrum.FluxSI -> Dataset.FluxSI
+Spectrum.CoordSys.ID -> CoordSys.ID
+Spectrum.CoordSys.SpaceFrame.Name -> CoordSys.SpaceFrame.Name
+Spectrum.CoordSys.SpaceFrame.UCD -> CoordSys.SpaceFrame.UCD
+Spectrum.CoordSys.SpaceFrame.RefPos -> CoordSys.SpaceFrame.RefPos
+Spectrum.CoordSys.SpaceFrame.Equinox -> CoordSys.SpaceFrame.Equinox
+Spectrum.CoordSys.TimeFrame.Name -> CoordSys.TimeFrame.Name
+Spectrum.CoordSys.TimeFrame.UCD -> CoordSys.TimeFrame.UCD
+Spectrum.CoordSys.TimeFrame.Zero -> CoordSys.TimeFrame.Zero
+Spectrum.CoordSys.TimeFrame.RefPos -> CoordSys.TimeFrame.RefPos
+Spectrum.CoordSys.SpectralFrame.Name -> CoordSys.SpectralFrame.Name
+Spectrum.CoordSys.SpectralFrame.UCD -> CoordSys.SpectralFrame.UCD
+Spectrum.CoordSys.SpectralFrame.RefPos -> CoordSys.SpectralFrame.RefPos
+Spectrum.CoordSys.SpectralFrame.Redshift -> CoordSys.SpectralFrame.Redshift
+Spectrum.CoordSys.RedshiftFrame.Name -> CoordSys.RedshiftFrame.Name
+Spectrum.CoordSys.RedshiftFrame.DopplerDefinition -> CoordSys.RedshiftFrame.DopplerDefinition
+Spectrum.CoordSys.RedshiftFrame.RefPos -> CoordSys.RedshiftFrame.RefPos
+
+Spectrum.Curation.Publisher -> Curation.Publisher
+Spectrum.Curation.PublisherID -> Curation.PublisherID
+Spectrum.Curation.Date -> Curation.Date
+Spectrum.Curation.Version -> Curation.Version
+Spectrum.Curation.Rights -> Curation.Rights
+Spectrum.Curation.Reference -> Curation.Reference
+
+
+-->
+
+		<mixinPar key="ssaTable" description="The SSAP (HCD) instance table
+			 to take the params from"/>
+
+		<events>
+			<FEED source="makeSpecGroup" 
+				groupUtype="spec:Target"
+				fieldnames="ssa_targname ssa_redshift ssa_targetpos"/>
+			<FEED source="makeSpecGroup" 
+				groupUtype="spec:Char"
+				fieldnames="ssa_location ssa_aperture ssa_dateObs ssa_timeExt
+					ssa_specmid ssa_specext ssa_specstart ssa_specend ssa_spectralucd
+					ssa_binSize ssa_statError ssa_sysError ssa_speccalib
+					ssa_specres"/>
+			<FEED source="makeSpecGroup" 
+				groupUtype="spec:Curation" 
+				fieldnames="ssa_reference ssa_pubDID ssa_pdate"/>
+			<FEED source="makeSpecGroup" 
+				groupUtype="spec:DataID" 
+				fieldnames="ssa_dstitle ssa_creatorDID ssa_cdate ssa_bandpass 
+					ssa_cversion ssa_creator ssa_collection ssa_instrument 
+					ssa_datasource ssa_creationtype"/>
+		</events>
+
+		<processEarly>
+			<setup>
+				<code>
+					from gavo import rscdef
+				</code>
+			</setup>
+			<code>
+				ssapInstance = base.resolveId(None, "//ssap#instance")
+				for col in ssapInstance.columns:
+					atts = col.getAttributes()
+					atts.pop("required", False)
+					substrate.feedObject("param", 
+						base.makeStruct(rscdef.Param, parent_=substrate, **atts))
+				for param in ssapInstance.params:
+					substrate.feedObject("param", 
+						param.copy(substrate))
+			</code>
+		</processEarly>
+	</mixinDef>
 </resource>

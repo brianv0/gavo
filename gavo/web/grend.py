@@ -497,4 +497,3 @@ class ServiceBasedPage(ResourceBasedPage):
 
 	def renderHTTP(self, ctx):
 		return rend.Page.renderHTTP(self, ctx)
-

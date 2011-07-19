@@ -361,6 +361,23 @@ class LoopTest(testhelpers.VerboseTest):
 		cols = list(ctx.getById("cop"))
 		self.assertEqual(",".join(c.name for c in cols), "a_copy,b_copy")
 
+	def testAdditionalMacros(self):
+		table = base.parseFromString(rscdesc.RD,
+			r"""<resource schema="data">
+			<table id="o">
+				<column name="a"/><column name="b"/>
+			</table>
+			<table id="c">
+				<LOOP listItems="a b" tabname="o">
+					<events>
+						<column original="\tabname.\item"/>
+					</events>
+				</LOOP>
+			</table></resource>""").tables[1]
+		self.assertEqual(table.id, "c")
+		self.assertEqual(table.columns[0].name, "a")
+		self.assertEqual(table.columns[1].name, "b")
+
 
 class RDBasedTest(testhelpers.VerboseTest):
 	def setUp(self):
@@ -405,7 +422,7 @@ class MixinTest(testhelpers.VerboseTest):
 
 	def testNotFilledMacro(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			"At (9, 27): Mixin parameter nd mandatory",
+			"At (9, 35): Mixin parameter nd mandatory",
 			base.parseFromString,
 			(rscdesc.RD,
 			self.baseRDLit%'<table><mixin xy="zq">bla</mixin></table>'))
@@ -419,7 +436,7 @@ class MixinTest(testhelpers.VerboseTest):
 	
 	def testUnknownMacroRaises(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			'At (9, 35): The attribute(s) a is/are not allowed on this mixin',
+			'At (9, 43): The attribute(s) a is/are not allowed on this mixin',
 			base.parseFromString,
 			(rscdesc.RD,
 			self.baseRDLit%'<table><mixin nd="u"><a>uu</a>bla</mixin></table>'))
@@ -468,7 +485,28 @@ class MixinTest(testhelpers.VerboseTest):
 				<table mixin="bla"/></resource>""")
 		self.assertEqual(res.tables[0].columns[0].name, "urks")
 
+	def testMixinParsInActiveTags(self):
+		res = base.parseFromString(rscdesc.RD,
+			r"""<resource schema="data">
+				<table id="src">
+					<column name="a"/><column name="b"/>
+				</table>
+				<mixinDef id="bla">
+					<mixinPar name="srctable"/>
+					<events>
+						<LOOP listItems="a b">
+							<events>
+								<column original="\\srctable.\item"/>
+							</events>
+						</LOOP>
+					</events>
+				</mixinDef>
+				<table id="dest"><mixin srctable="src">bla</mixin></table>
+				</resource>""")
+		self.assertEqual(res.tables[1].id, "dest")
+		self.assertEqual(res.tables[1].columns[0].name, "a")
+		self.assertEqual(res.tables[1].columns[1].name, "b")
 
-
+	
 if __name__=="__main__":
 	testhelpers.main(MixinTest)

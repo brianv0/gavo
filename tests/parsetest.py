@@ -117,14 +117,14 @@ class TestProductsImport(testhelpers.VerboseTest):
 			sqlsupport.SimpleQuerier(connection=self.conn).query(
 				"select * from dc.columnmeta where tableName='test.prodtest'")])
 		assertRowset(self, fields, [
-			(0, u'accref', u'Access key for the data'),
-			(1, u'owner', u'Owner of the data'),
-			(2, u'embargo', u'Date the data will become/became public'),
-			(3, u'mime', u'MIME type of the file served'),
-			(4, u'accsize', u'Size of the data in bytes'),
-			(5, u'object', u''),
-			(6, u'alpha', u''),
-			(7, u'delta', u'')])
+			(0, u'object', u''),
+			(1, u'alpha', u''),
+			(2, u'delta', u''),
+			(3, u'accref', u'Access key for the data'),
+			(4, u'owner', u'Owner of the data'),
+			(5, u'embargo', u'Date the data will become/became public'),
+			(6, u'mime', u'MIME type of the file served'),
+			(7, u'accsize', u'Size of the data in bytes'),])
 
 	def testNoMixinInMem(self):
 		self.assertRaisesWithMsg(base.StructureError, 

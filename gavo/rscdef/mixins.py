@@ -2,6 +2,7 @@
 Resource mixins.
 """
 
+import threading
 import warnings
 
 from gavo import base
@@ -76,6 +77,8 @@ class MixinDef(activetags.ReplayBase):
 
 	Programmatically, you can check if a certain table mixes in 
 	something by calling its mixesIn method.
+
+	Recursive application of mixins, even to seperate objects, will deadlock.
 	"""
 	name_ = "mixinDef"
 
@@ -97,7 +100,33 @@ class MixinDef(activetags.ReplayBase):
 		childFactory=MixinPar,
 		description="Parameters available for this mixin.")
 
-	def _defineMacros(self, fillers):
+	def completeElement(self, ctx):
+		# we want to double-expand macros in mixins.  Thus, reset all
+		# value/expanded events to plain values
+		for ind, ev in enumerate(self.events.events_):
+			if ev[0]==activetags._EXPANDED_VALUE:
+				self.events.events_[ind] = ("value",)+ev[1:]
+		# This lock protects against multiple uses of applyTo.  This is
+		# necessary because during replay, we have macroExpansions and
+		# macroParent reflect a concrete application's context.
+		self.applicationLock = threading.Lock()
+		self._completeElementNext(MixinDef, ctx)
+
+	def _defineMacros(self, fillers, destination):
+		"""creates attributes macroExpansions and parentMacroPackage used by
+		execMacros.
+
+		Within mixins, you can use macros filled by mixin parameters or
+		expanded by the substrate.  This information is local to a concrete
+		mixin application.  Hence, applyTo calls this method, and the
+		attributes created are invalid for any subsequent or parallel applyTo
+		calls.  Therefore, applyTo acquires the applicationLock before
+		calling this.
+		"""
+		self.parentMacroPackage = None
+		if hasattr(destination, "execMacro"):
+			self.parentMacroPackage = destination
+
 		self.macroExpansions = {}
 		for p in self.pars:
 			if p.name in fillers:
@@ -110,32 +139,33 @@ class MixinDef(activetags.ReplayBase):
 			raise base.StructureError("The attribute(s) %s is/are not allowed"
 				" on this mixin"%(",".join(fillers)))
 
+
 	def execMacro(self, macName, args):
-		if args:
-			raise base.MacroError(
-				"Invalid macro arguments to \\%s: %s"%(macName, args), macName,
-				hint="Mixin macros never take any arguments.  Did you forget"
-				" a second backslash?")
-		try:
+		if macName in self.macroExpansions:
 			return self.macroExpansions[macName]
-		except KeyError:
-			raise base.MacroError(
-				"No macro \\%s available in this mixin."%(
-					macName), macName)
+		if self.parentMacroPackage:
+			return self.parentMacroPackage.execMacro(macName, args)
+		raise base.MacroError(
+			"No macro \\%s available in this mixin or substrate."%(macName), macName)
+
 
 	def applyTo(self, destination, ctx, fillers={}):
 		"""replays the stored events on destination and arranges for processEarly
 		and processLate to be run.
 		"""
-		self._defineMacros(fillers)
-		self.replay(self.events.events_, destination, ctx)
-		if self.processEarly is not None:
-			self.processEarly.compile(destination)(destination)
-		if self.processLate is not None:
-			def procLate(rootStruct, parseContext):
-				self.processLate.compile(destination)(
-					destination, rootStruct, parseContext)
-			ctx.addExitFunc(procLate)
+		self.applicationLock.acquire()
+		try:
+			self._defineMacros(fillers, destination)
+			self.replay(self.events.events_, destination, ctx)
+			if self.processEarly is not None:
+				self.processEarly.compile(destination)(destination)
+			if self.processLate is not None:
+				def procLate(rootStruct, parseContext):
+					self.processLate.compile(destination)(
+						destination, rootStruct, parseContext)
+				ctx.addExitFunc(procLate)
+		finally:
+			self.applicationLock.release()
 
 	def applyToFinished(self, destination):
 		"""applies the mixin to an object already parsed.
@@ -221,11 +251,25 @@ class MixinAttribute(base.SetOfAtomsAttribute):
 		kwargs["copyable"] = False
 		base.SetOfAtomsAttribute.__init__(self, "mixin", **kwargs)
 
+	def _insertCompleter(self, instance, completerFunc):
+		"""arranges completerFunc to be called as part of instance's 
+		completeElement callbacks.
+		"""
+		origComplete = instance.completeElement
+		def mixinCompleter(ctx):
+			completerFunc()
+			origComplete(ctx)
+		instance.completeElement = mixinCompleter
+
 	def feed(self, ctx, instance, mixinRef, fillers={}):
-		# this is called when mixin is used a plain attribute
+		"""schedules the mixin elements to be fed when the element is
+		completed.
+		"""
 		mixin = ctx.resolveId(mixinRef, instance=instance, forceType=MixinDef)
-		mixin.applyTo(instance, ctx, fillers)
 		base.SetOfAtomsAttribute.feed(self, ctx, instance, mixinRef)
+		def applyMixin():
+			mixin.applyTo(instance, ctx, fillers)
+		self._insertCompleter(instance, applyMixin)
 
 	# no need to override feedObject: On copy and such, replay has already
 	# happened.

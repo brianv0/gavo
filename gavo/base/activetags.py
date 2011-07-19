@@ -189,7 +189,7 @@ class RawEventStream(EventStream):
 	frequently what you want, but it means that you cannot, e.g., fill
 	in loop variables through stream macros.
 
-	This non-expanded streams, you can do that::
+	With non-expanded streams, you can do that::
 
 		<NXSTREAM id="cols">
 			<LOOP listItems="\stuff">
@@ -340,7 +340,7 @@ class ReplayBase(ActiveTag, structure.Structure, macros.MacroPackage):
 		typeOfExpandedValues = _EXPANDED_VALUE
 		if isinstance(self.source, RawEventStream):
 			typeOfExpandedValues = "value"
-
+	
 		for type, name, val, pos in events:
 			if (self._expandMacros
 					and type=="value" 
@@ -435,24 +435,14 @@ class DelayedReplayBase(ReplayBase, GhostMixin):
 		return structure.Structure.end_(self, ctx, name, value)
 
 
-class ReplayedEvents(DelayedReplayBase):
-	"""An active tag that takes an event stream and replays the events,
-	possibly filling variables.
-
-	This element supports arbitrary attributes with unicode values.  These
-	values are available as macros for replayed values.
+class ReplayedEventsWithFreeAttributesBase(DelayedReplayBase):
+	"""An active tag that takes arbitrary attributes as macro definitions.
 	"""
-	name_ = "FEED"
-
 	def __init__(self, *args, **kwargs):
 		DelayedReplayBase.__init__(self, *args, **kwargs)
 		# managedAttrs in general is a class attribute.  Here, we want
 		# to add values for the macros, and these are instance-local.
 		self.managedAttrs = self.managedAttrs.copy()
-
-	def completeElement(self, ctx):
-		self._completeElementNext(ReplayedEvents, ctx)
-		self._replayer()
 
 	def getAttribute(self, name):
 		try:
@@ -463,6 +453,20 @@ class ReplayedEvents(DelayedReplayBase):
 			setattr(self, "macro_"+name.strip(), m)
 			self.managedAttrs[name] = attrdef.UnicodeAttribute(name)
 			return self.managedAttrs[name]
+
+
+class ReplayedEvents(ReplayedEventsWithFreeAttributesBase):
+	"""An active tag that takes an event stream and replays the events,
+	possibly filling variables.
+
+	This element supports arbitrary attributes with unicode values.  These
+	values are available as macros for replayed values.
+	"""
+	name_ = "FEED"
+
+	def completeElement(self, ctx):
+		self._completeElementNext(ReplayedEvents, ctx)
+		self._replayer()
 
 
 class NonExpandedReplayedEvents(ReplayedEvents):
@@ -490,7 +494,7 @@ class GeneratorAttribute(attrdef.UnicodeAttribute):
 			src, "makeRows", useGlobals={"context": ctx})
 
 
-class Loop(DelayedReplayBase):
+class Loop(ReplayedEventsWithFreeAttributesBase):
 	"""An active tag that replays a feed several times, each time with
 	different values.
 	"""
