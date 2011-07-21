@@ -86,7 +86,7 @@ class SvcResult(object):
 	input dataset accessible.
 
 	It is constructed with an InMemoryTable instance coreResult,
-	a data instance inputTable, the current querymeta, and a service
+	a table instance inputTable, the current querymeta, and a service
 	instance.
 
 	If a service is defined, SvcResult adapts coreResult to the

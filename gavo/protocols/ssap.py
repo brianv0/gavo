@@ -7,6 +7,7 @@ from cStringIO import StringIO
 
 from gavo import base
 from gavo import rsc
+from gavo import rscdef
 from gavo import svcs
 from gavo import votable
 from gavo.formats import votablewrite
@@ -18,7 +19,6 @@ RD_ID = "//ssap"
 
 def getRD():
 	return base.caches.getRD(RD_ID)
-
 
 
 class SSAPCore(svcs.DBCore):
@@ -91,3 +91,84 @@ class SSAPCore(svcs.DBCore):
 			type="info",
 			infoName="SERVICE_PROTOCOL", infoValue=self.ssapVersion))
 		return res
+
+
+_SSA_SPEC_EXCEPTIONS = {
+	"Dataset.Type": "Spectrum.Type",
+	"Dataset.Length ": "Spectrum.Length",
+	"Dataset.TimeSI": "Spectrum.TimeSI",
+	"Dataset.SpectralSI": "Spectrum.SpectralSI",
+	"Dataset.FluxSI": "Spectrum.FluxSI",
+}
+
+
+def makeSDMVOT(table, **votContextArgs):
+	"""returns SDM-compliant xmlstan for a table containing an SDM-compliant
+	spectrum.
+	"""
+	table.addMeta("_votableRootAttributes", 
+		'xmlns:spec="http://www.ivoa.net/xml/SpectrumModel/v1.01"')
+	vot = votablewrite.makeVOTable(table, **votContextArgs)
+	rsc = list(vot.iterChildrenOfType(votable.V.RESOURCE))[0]
+	rsc(utype="spec:Spectrum")
+	tab = list(rsc.iterChildrenOfType(votable.V.TABLE))[0]
+	tab(utype="spec:Spectrum")
+	return vot
+
+
+def getSpecForSSA(utype):
+	"""returns a utype from the spectrum data model for a utype of the ssa
+	data model.
+
+	For most utypes, this just removes a prefix and adds spec:Spectrum.  Heaven
+	knows why these are two different data models anyway.  There are some
+	(apparently random) differences, though.
+
+	For convenience, utype=None is allowed and returned as such.
+	"""
+	if utype is None:
+		return None
+	localName = utype.split(":")[-1]
+	specLocal = _SSA_SPEC_EXCEPTIONS.get(localName, "Spectrum."+localName)
+	return "spec:"+specLocal
+
+
+class SDMCore(svcs.Core):
+	"""A core for making (VO)Tables according to the Spectral Data Model.
+
+	Here, the input table consists of the accref of the table to be generated.
+	The data child of an SDMVOTCore prescribes how to come up with the
+	table.  The output table is the (primary) table of the data instance.
+
+	You'll want to use these with the sdm renderer; it knows some little
+	tricks we still need to add some attributes across the VOTable, and it will
+	know how to create FITS files some day.
+	"""
+	name_ = "sdmCore"
+	inputTableXML = """<inputTable id="inFields">
+			<inputKey name="accref" type="text" required="True"
+				tablehead="Accref of the data within the SSAP table."/>
+		</inputTable>"""
+	_queriedTable = base.ReferenceAttribute("queriedTable",
+		default=base.Undefined, description="A reference to the SSAP table"
+			" to search the accrefs in", copyable=True)
+	_sdmDD = base.StructAttribute("sdmDD", default=base.Undefined,
+		childFactory=rscdef.DataDescriptor,
+		description="A data instance that builds the SDM table.  You'll need"
+		" a custom or embedded grammar for those that accepts an SDM row"
+		" as input.", copyable=True)
+
+	def run(self, service, inputTable, queryMeta):
+		ssaTable = rsc.TableForDef(self.queriedTable,
+			connection=base.caches.getTableConn(None))
+		try:
+			res = list(ssaTable.iterQuery(ssaTable.tableDef, 
+				"accref=%(accref)s", 
+				{"accref": inputTable.getParam("accref")}))
+			if not res:
+				raise svcs.UnknownURI("No spectrum with accref %s known here"%
+					inputTable.getParam("accref"))
+			ssaRow = res[0]
+		finally:
+			ssaTable.close()
+		return rsc.makeData(self.sdmDD, forceSource=ssaRow)

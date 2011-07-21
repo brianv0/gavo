@@ -375,7 +375,7 @@ class FatProductKey(object):
 	* ra, dec, sra, sdec: center and extend for cutouts.
 	* scale: (integer) factor the image should be scaled down by.
 
-	Stringifying a PPK yields something quoted ready-made for URLs.
+	Stringifying a FPK yields something quoted ready-made for URLs.
 
 	We should probably move as much product handling to this class
 	as possible and not use plain strings as product keys any more --

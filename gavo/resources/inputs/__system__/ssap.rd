@@ -384,10 +384,9 @@
 		]]></doc>
 		<mixinPar key="timeSI" description="Time unit (WCS convention)"
 			>s</mixinPar>
-		<mixinPar key="fluxSI" description="Flux unit (WCS convention)"
-			>Jy</mixinPar>
+		<mixinPar key="fluxSI" description="Flux unit (WCS convention)"/>
 		<mixinPar key="spectralSI" description="Unit of frequency or 
-			wavelength (WCS convention)">m</mixinPar>
+			wavelength (WCS convention)"/>
 		<mixinPar key="creator" description="Creator designation"
 			>__NULL__</mixinPar>
 		<mixinPar key="publisher" description="Publisher IVO (by default
@@ -604,10 +603,10 @@
 		<group utype="\groupUtype">
 			<LOOP>
 				<codeItems>
+					from gavo.protocols import ssap
 					srcTable = context.getById("instance")
 					for name in "\fieldnames".split():
-						utype = srcTable.getElementForName(name
-							).utype.replace("ssa:", "spec:Spectrum.")
+						utype = ssap.getSpecForSSA(srcTable.getElementForName(name).utype)
 						yield {"dest": name, "utype": utype}
 				</codeItems>
 				<events>
@@ -623,57 +622,27 @@
 			conforming to the Spectral Data Model, specifically to VOTables
 			(serialization to FITS would take a couple of additional hacks).
 
-			Such documents have (usually) only two columns.  This mixin *requires*
-			those to be called spectral (i.e., wavelength, frequency, energy)
-			and flux.  It attempts to obtain units and ucds as required
-			by the SDM from them.
+			The input to such tables comes from ssa tables (hcd, in this case).
+			Their columns (and params) are transformed into params here.
 
-			You will want supporting code to fill these, in general; it is
-			intended to fill them from SSA records.
+			The mixin adds two columns (you could add more if, e.g., you had
+			errors depending on the spectral or flux value), spectral (wavelength
+			or the like) and flux.  Their metadata is taken from the ssa fields
+			(fluxSI -> unit of flux, fluxucd as its UCD, etc).
 
 			This mixin in action could look like this::
 
 				<table id="instance" onDisk="False">
 					<mixin ssaTable="spectra">//ssap#sdm-instance</mixin>
-					<column original="fluxes.lambda" name="spectral"/>
-					<column original="fluxes.flux"/>
 				</table>
 
 			]]></doc>
-	
-<!-- here's a mapping of SDM utypes to SSAP utypes:
-Spectrum.DataModel -> None (fixed Spectrum-1.0)
-Spectrum.Type -> Dataset.Type
-Spectrum.Length -> Dataset.Length 
-Spectrum.TimeSI -> Dataset.TimeSI
-Spectrum.SpectralSI -> Dataset.SpectralSI
-Spectrum.FluxSI -> Dataset.FluxSI
-Spectrum.CoordSys.ID -> CoordSys.ID
-Spectrum.CoordSys.SpaceFrame.Name -> CoordSys.SpaceFrame.Name
-Spectrum.CoordSys.SpaceFrame.UCD -> CoordSys.SpaceFrame.UCD
-Spectrum.CoordSys.SpaceFrame.RefPos -> CoordSys.SpaceFrame.RefPos
-Spectrum.CoordSys.SpaceFrame.Equinox -> CoordSys.SpaceFrame.Equinox
-Spectrum.CoordSys.TimeFrame.Name -> CoordSys.TimeFrame.Name
-Spectrum.CoordSys.TimeFrame.UCD -> CoordSys.TimeFrame.UCD
-Spectrum.CoordSys.TimeFrame.Zero -> CoordSys.TimeFrame.Zero
-Spectrum.CoordSys.TimeFrame.RefPos -> CoordSys.TimeFrame.RefPos
-Spectrum.CoordSys.SpectralFrame.Name -> CoordSys.SpectralFrame.Name
-Spectrum.CoordSys.SpectralFrame.UCD -> CoordSys.SpectralFrame.UCD
-Spectrum.CoordSys.SpectralFrame.RefPos -> CoordSys.SpectralFrame.RefPos
-Spectrum.CoordSys.SpectralFrame.Redshift -> CoordSys.SpectralFrame.Redshift
-Spectrum.CoordSys.RedshiftFrame.Name -> CoordSys.RedshiftFrame.Name
-Spectrum.CoordSys.RedshiftFrame.DopplerDefinition -> CoordSys.RedshiftFrame.DopplerDefinition
-Spectrum.CoordSys.RedshiftFrame.RefPos -> CoordSys.RedshiftFrame.RefPos
-
-Spectrum.Curation.Publisher -> Curation.Publisher
-Spectrum.Curation.PublisherID -> Curation.PublisherID
-Spectrum.Curation.Date -> Curation.Date
-Spectrum.Curation.Version -> Curation.Version
-Spectrum.Curation.Rights -> Curation.Rights
-Spectrum.Curation.Reference -> Curation.Reference
-
-
--->
+		
+		<!-- technically the sdm-instance defines the (silly) SDM-groups
+		using the translation of names to utypes as given by the
+		ssa instance above, whereas the actual params and columns are
+		taken from the ssaTable.  This works if the ssa table actually
+		mixes in ssap#hcd; otherwise, you're on your own. -->
 
 		<mixinPar key="ssaTable" description="The SSAP (HCD) instance table
 			 to take the params from"/>
@@ -696,25 +665,65 @@ Spectrum.Curation.Reference -> Curation.Reference
 				fieldnames="ssa_dstitle ssa_creatorDID ssa_cdate ssa_bandpass 
 					ssa_cversion ssa_creator ssa_collection ssa_instrument 
 					ssa_datasource ssa_creationtype"/>
+
+			<!-- metadata is being filled in by processEarly -->
+			<column name="spectral" type="double precision"
+				utype="spec:Data.SpectralAxis.value"
+				description="The independent variable of this spectrum (see
+					ucd to figure out whether it's a wavelength, frequency, or energy)"/>
+			<column name="flux" type="double precision"
+				utype="spec:Data.FluxAxis.value"
+				description="The dependent variable of this spectrum (see the
+					ucd for its physical meaning"/>
 		</events>
 
 		<processEarly>
 			<setup>
 				<code>
+					from gavo import base
 					from gavo import rscdef
+					from gavo.protocols import ssap
 				</code>
 			</setup>
 			<code>
-				ssapInstance = base.resolveId(None, "//ssap#instance")
+				# copy over columns and params from the instance table as
+				# params for us.
+				ssapInstance = context.resolveId(mixinPars["ssaTable"])
 				for col in ssapInstance.columns:
 					atts = col.getAttributes()
-					atts.pop("required", False)
+					atts["utype"] = ssap.getSpecForSSA(atts["utype"])
+					atts["required"] = False
 					substrate.feedObject("param", 
 						base.makeStruct(rscdef.Param, parent_=substrate, **atts))
 				for param in ssapInstance.params:
+					newUtype = ssap.getSpecForSSA(param.utype)
 					substrate.feedObject("param", 
-						param.copy(substrate))
+						param.change(utype=newUtype))
+
+				specCol = substrate.getColumnByName("spectral")
+				specCol.ucd = substrate.getParamByName("ssa_spectralucd").value
+				specCol.unit = substrate.getParamByName("ssa_spectralunit").value
+				fluxCol = substrate.getColumnByName("flux")
+				fluxCol.ucd = substrate.getParamByName("ssa_fluxucd").value
+				fluxCol.unit = substrate.getParamByName("ssa_fluxunit").value
 			</code>
 		</processEarly>
 	</mixinDef>
+
+	<procDef type="apply" id="feedSSAToSDM">
+		<doc>
+			feedSSAToSDM takes the current rowIterator's sourceToken and
+			feeds it to the params of the current target.  sourceTokens must
+			be an SSA rowdict (as provided by the sdmCore).  Futher, it takes
+			the params from the sourceTable argument and feeds them to the
+			params, too.
+
+			All this probably only makes sense in parmakers when making tables 
+			mixing in //ssap#sdm-instance in data children of sdmCores.
+		</doc>
+		<code>
+			for key, value in vars["parser_"].sourceToken.iteritems():
+				targetTable.setParam(key, value)
+		</code>
+	</procDef>
 </resource>

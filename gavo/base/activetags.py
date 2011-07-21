@@ -340,7 +340,7 @@ class ReplayBase(ActiveTag, structure.Structure, macros.MacroPackage):
 		typeOfExpandedValues = _EXPANDED_VALUE
 		if isinstance(self.source, RawEventStream):
 			typeOfExpandedValues = "value"
-	
+
 		for type, name, val, pos in events:
 			if (self._expandMacros
 					and type=="value" 

@@ -14,10 +14,16 @@ class ProcessEarly(procdef.ProcApp):
 	"""A code fragment run by the mixin machinery when the structure
 	being worked on is being finished.
 
-	Access the structure mixed in as "substrate".
+	Within processEarly, you can access:
+
+	- Access the structure the mixin is applied to as "substrate"
+	- The mixin parameters as "mixinPars"
+	- The parse context as "context"
+
+	(the context is particularly handy for context.resolveId)
 	"""
 	name_ = "processEarly"
-	formalArgs = "substrate"
+	formalArgs = "context, substrate, mixinPars"
 
 
 class ProcessLate(procdef.ProcApp):
@@ -139,14 +145,16 @@ class MixinDef(activetags.ReplayBase):
 			raise base.StructureError("The attribute(s) %s is/are not allowed"
 				" on this mixin"%(",".join(fillers)))
 
-
 	def execMacro(self, macName, args):
 		if macName in self.macroExpansions:
 			return self.macroExpansions[macName]
-		if self.parentMacroPackage:
-			return self.parentMacroPackage.execMacro(macName, args)
-		raise base.MacroError(
-			"No macro \\%s available in this mixin or substrate."%(macName), macName)
+		try:
+			if self.parentMacroPackage:
+				return self.parentMacroPackage.execMacro(macName, args)
+		except base.MacroError:
+			raise base.MacroError(
+				"No macro \\%s available in this mixin or substrate."%(macName), 
+				macName)
 
 
 	def applyTo(self, destination, ctx, fillers={}):
@@ -158,7 +166,8 @@ class MixinDef(activetags.ReplayBase):
 			self._defineMacros(fillers, destination)
 			self.replay(self.events.events_, destination, ctx)
 			if self.processEarly is not None:
-				self.processEarly.compile(destination)(destination)
+				self.processEarly.compile(destination)(ctx, destination, 
+					self.macroExpansions)
 			if self.processLate is not None:
 				def procLate(rootStruct, parseContext):
 					self.processLate.compile(destination)(

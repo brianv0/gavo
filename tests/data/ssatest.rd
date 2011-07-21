@@ -1,7 +1,12 @@
 <resource schema="test" resdir=".">
 	<table id="hcdtest" onDisk="True" primary="ssa_pubDID">
 		<meta name="description">A boring and pointless test table</meta>
-		<mixin instrument="DaCHS test suite" fluxCalibration="UNCALIBRATED"
+		<mixin 
+			instrument="DaCHS test suite" 
+			fluxCalibration="UNCALIBRATED"
+			fluxSI="u"
+			spectralSI="%"
+
 			>//ssap#hcd</mixin>
 		<column name="excellence" type="integer" description="random number"/>
 	</table>
@@ -29,6 +34,30 @@
 			</rowmaker>
 		</make>
 	</data>
+
+	<table id="spectrum">
+		<mixin ssaTable="hcdtest">//ssap#sdm-instance</mixin>
+	</table>
+
+	<service id="sdm" allowed="sdm">
+		<sdmCore queriedTable="hcdtest">
+			<data>
+				<embeddedGrammar>
+					<iterator>
+						<code>
+							for i in range(20):
+								yield {"spectral": 3000+i, "flux": 30-i}
+						</code>
+					</iterator>
+				</embeddedGrammar>
+				<make table="spectrum">
+					<parmaker>
+						<apply procDef="//ssap#feedSSAToSDM"/>
+					</parmaker>
+				</make>
+			</data>
+		</sdmCore>
+	</service>
 
 	<service id="s">
 		<ssapCore queriedTable="hcdtest" id="foocore">

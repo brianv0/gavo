@@ -507,6 +507,6 @@ class MixinTest(testhelpers.VerboseTest):
 		self.assertEqual(res.tables[1].columns[0].name, "a")
 		self.assertEqual(res.tables[1].columns[1].name, "b")
 
-	
+
 if __name__=="__main__":
 	testhelpers.main(MixinTest)

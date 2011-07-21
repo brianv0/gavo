@@ -227,3 +227,42 @@ class ProductRenderer(grend.ServiceBasedPage):
 		if segments:
 			inevow.IRequest(ctx).args["key"] = "/".join(segments)
 		return self, ()
+
+
+
+class SDMRenderer(ProductRenderer):
+	"""A renderer that makes VOTables from SDM-like tables as generated
+	by sdmCores.
+
+	Don't use this externally -- it will probably go away when we've
+	figured out how our new structured accrefs are to look like.
+	"""
+	name = "sdm"
+
+	def _deliver(self, result, ctx):
+		from gavo import votable
+		from gavo.protocols import ssap
+
+		table = result.original
+
+		request = inevow.IRequest(cxt)
+		request.setHeader("content-type", "application/x-votable")
+		request.setHeader('content-disposition', 
+			'attachment; filename=spec.vot')
+
+		votContextArgs = {}
+		# Specview doesn't know binary encoded VOTables; it doesn't
+		# give useful user agent headers, either, but let's try
+		# anyway.
+		userAgent = request.received_headers.get("user-agent", "")
+		if userAgent.startswith("Mozilla/4.0") and "Java" in userAgent:
+			votContextArgs["tablecoding"] = "td"
+
+		vot = ssap.makeSDMVOT(votContextArgs)
+
+		def writeData(f):
+			votable.write(vot)
+
+		return streaming.streamOut(writeData, request)
+
+

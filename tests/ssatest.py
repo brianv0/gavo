@@ -7,6 +7,7 @@ import re
 
 from gavo import api
 from gavo import svcs
+from gavo import votable
 from gavo.formats import votablewrite
 from gavo.helpers import testhelpers
 from gavo.protocols import ssap
@@ -28,8 +29,8 @@ class RDTest(testhelpers.VerboseTest):
 
 	def testDefaultedParam(self):
 		self.assertEqual(
-			getRD().getById("hcdtest").getParamByName("ssa_spectralSI").value, 
-			"m")
+			getRD().getById("hcdtest").getParamByName("ssa_timeSI").value, 
+			"s")
 
 	def testNullDefaultedParam(self):
 		self.assertEqual(
@@ -240,7 +241,6 @@ class _RenderedSSAResponse(testhelpers.TestResource):
 	resources = [("ssatable", _ssaTable)]
 
 	def make(self, deps):
-		service = getRD().getById("s")
 		res = getRD().getById("s").runFromDict(
 			{"REQUEST": "queryData", "TOP": "3", "MAXREC": "1"}, "ssap.xml")
 		rawVOT = votablewrite.getAsVOTable(res.original,
@@ -290,5 +290,70 @@ class SSATableTest(testhelpers.VerboseTest):
 		self.failUnless("http://localhost:8080/getproduct" in self.docAndTree[0])
 
 
+class SDMRenderTest(testhelpers.VerboseTest):
+# When moving to products creation from the SDM renderer, *port*
+# these tests rather than removing them.
+	resources = [("ssatable", _ssaTable)]
+
+	def testUnknownURI(self):
+		self.assertRaisesWithMsg(
+			svcs.UnknownURI,
+			"No spectrum with accref foobar known here",
+			getRD().getById("sdm").runFromDict,
+			({"accref": "foobar"}, "sdm"))
+
+
+class _RenderedSDMResponse(testhelpers.TestResource):
+	resources = [("ssatable", _ssaTable)]
+
+	def make(self, deps):
+		res = getRD().getById("sdm").runFromDict(
+			{"accref": "data/spec1.ssatest"}, "sdm").original.getPrimaryTable()
+		rawVOT = votable.asString(ssap.makeSDMVOT(res, tablecoding="td"))
+		return rawVOT, testhelpers.getXMLTree(rawVOT)
+
+
+class SDMTableTest(testhelpers.VerboseTest):
+# tests for core and rendering of Spectral Data Model VOTables.
+	resources = [("stringAndTree", _RenderedSDMResponse())]
+
+	def _getUniqueByXPath(self, xpath, root=None):
+		if root is None:
+			root = self.stringAndTree[1]
+		resSet = root.xpath(xpath)
+		self.assertEqual(len(resSet), 1)
+		return resSet[0]
+
+	def testParameterSet(self):
+		res = self._getUniqueByXPath("//PARAM[@name='ssa_pubDID']")
+		self.assertEqual(res.get('value'), 'ivo://test.inv/test1')
+
+# TODO test for parameter by utype
+
+	def testSpecGroupsPresent(self):
+		group = self._getUniqueByXPath("//GROUP[@utype='spec:Target']")
+		ref = self._getUniqueByXPath(
+			'//PARAMref[@utype="spec:Spectrum.Target.Name"]')
+		self.failIf(ref.get("ref") is None)
+	
+	def testReferentialIntegrity(self):
+		#open("zw.vot", "w").write(self.stringAndTree[0])
+		tree = self.stringAndTree[1]
+		knownIds = set()
+		for element in tree.xpath("//*[@ID]"):
+			knownIds.add(element.get("ID"))
+		for element in tree.xpath("//*[@ref]"):
+			self.failUnless(element.get("ref") in knownIds,
+				"%s is referred to but no element with this id present"%
+					element.get("ref"))
+
+	def testDataPresent(self):
+		tree = self.stringAndTree[1]
+		firstRow = tree.xpath("//TR")[0]
+		self.assertEqual(
+			[el.text for el in firstRow.xpath("TD")],
+			["3000.0", "30.0"])
+
+
 if __name__=="__main__":
-	testhelpers.main(CoreNullTest)
+	testhelpers.main(SDMTableTest)
