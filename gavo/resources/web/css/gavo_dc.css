@@ -588,6 +588,10 @@ table.docutils {
 	border: 2px solid #999999;
 }	
 
+table.citation {
+	border-style: none;
+}
+
 .docutils th {
 	padding-top: 0.8ex;
 	padding-bottom: 0.3ex;
@@ -597,6 +601,10 @@ table.docutils {
 table.docutils td {
 	padding: 0.5ex;
 	border: 1px solid #999999;
+}
+
+table.citation td {
+	border-style: none;
 }
 
 table.footnote {
