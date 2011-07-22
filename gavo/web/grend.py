@@ -446,10 +446,7 @@ class ServiceBasedPage(ResourceBasedPage):
 		# Set to true when we notice we need to fix the service's output fields
 		self.fieldsChanged = False 
 
-
 	def processData(self, rawData, queryMeta):
-		"""produces input data for the service in runs the service.
-		"""
 		return self.service.runWithData(self, rawData, queryMeta)
 	
 	def runService(self, rawData, queryMeta):

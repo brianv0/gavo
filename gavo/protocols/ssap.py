@@ -3,6 +3,7 @@ The SSAP core and supporting code.
 
 """
 
+import urllib
 from cStringIO import StringIO
 
 from gavo import base
@@ -164,7 +165,8 @@ class SDMCore(svcs.Core):
 		try:
 			res = list(ssaTable.iterQuery(ssaTable.tableDef, 
 				"accref=%(accref)s", 
-				{"accref": inputTable.getParam("accref")}))
+				# XXX TODO: Figure why the unquote here is required.
+				{"accref": urllib.unquote(inputTable.getParam("accref"))}))
 			if not res:
 				raise svcs.UnknownURI("No spectrum with accref %s known here"%
 					inputTable.getParam("accref"))

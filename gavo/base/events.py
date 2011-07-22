@@ -135,7 +135,10 @@ class EventDispatcher(object):
 
 		The callbacks are passed the name of the failing source.
 		"""
-		lastSource = self.sourceStack.pop()
+		if self.sourceStack:  # user-defined grammars may fail to push one
+			lastSource = self.sourceStack.pop()
+		else:
+			lastSource = "Undefined"
 		try:
 			self.curSource = self.sourceStack[-1]
 		except IndexError: # this would be an internal error...
@@ -148,8 +151,13 @@ class EventDispatcher(object):
 		The curSource attribute is updated, and its old value is propagated
 		to the callbacks.
 		"""
-		lastSource = self.sourceStack.pop()
-		self.curSource = self.sourceStack[-1]
+		try:
+			lastSource = self.sourceStack.pop()
+			self.curSource = self.sourceStack[-1]
+		except IndexError:
+			# someone didn't notified us of a finish without telling us first
+			# they started.  Don't fail because of this.
+			lastSource = None
 		return lastSource
 	
 	def notifyShipout(self, numItems):

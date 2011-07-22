@@ -151,11 +151,13 @@ class RedirectPage(ErrorPage):
 
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
-		args = urlparse.urlparse(request.uri).query
-		if args:
-			self.destURL = self.failure.value.dest+"?"+args
-		else:
-			self.destURL = self.failure.value.dest
+		# add request arguments if they are not already included in the
+		# URL we're redirecting to:
+		self.destURL = self.failure.value.dest
+		if '?' not in self.destURL:
+			args = urlparse.urlparse(request.uri).query
+			if args:
+				self.destURL = self.failure.value.dest+"?"+args
 		request.setHeader("location", str(self.destURL))
 		return ErrorPage.renderHTTP(self, ctx)
 	

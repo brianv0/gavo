@@ -230,7 +230,7 @@ class ProductRenderer(grend.ServiceBasedPage):
 
 
 
-class SDMRenderer(ProductRenderer):
+class SDMRenderer(grend.ServiceBasedPage):
 	"""A renderer that makes VOTables from SDM-like tables as generated
 	by sdmCores.
 
@@ -239,13 +239,20 @@ class SDMRenderer(ProductRenderer):
 	"""
 	name = "sdm"
 
+	def renderHTTP(self, ctx):
+		request = inevow.IRequest(ctx)
+		try:
+			data = {"accref": request.args["key"][0]}
+		except (IndexError, KeyError):
+			raise base.ui.logOldExc(svcs.UnknownURI("No product specified"))
+		return self.runServiceWithContext(data, ctx
+			).addCallback(self._deliver, ctx)
+
 	def _deliver(self, result, ctx):
 		from gavo import votable
 		from gavo.protocols import ssap
 
-		table = result.original
-
-		request = inevow.IRequest(cxt)
+		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "application/x-votable")
 		request.setHeader('content-disposition', 
 			'attachment; filename=spec.vot')
@@ -258,10 +265,10 @@ class SDMRenderer(ProductRenderer):
 		if userAgent.startswith("Mozilla/4.0") and "Java" in userAgent:
 			votContextArgs["tablecoding"] = "td"
 
-		vot = ssap.makeSDMVOT(votContextArgs)
+		vot = ssap.makeSDMVOT(result.original, **votContextArgs)
 
 		def writeData(f):
-			votable.write(vot)
+			votable.write(vot, f)
 
 		return streaming.streamOut(writeData, request)
 
