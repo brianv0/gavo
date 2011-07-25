@@ -70,12 +70,12 @@ class IdManagerTest(testhelpers.VerboseTest):
 	def testSuggestion(self):
 		testob = object()
 		givenId = self.im.makeIdFor(testob, "ob1")
-		self.assertEqual(givenId, "ob")
+		self.assertEqual(givenId, "ob1")
 		testob2 = object()
-		id2 = self.im.makeIdFor(testob2, "ob1")
-		self.assertEqual(id2, "ob0")
-		self.failUnless(testob is self.im.getForId("ob"))
-		self.failUnless(testob2 is self.im.getForId("ob0"))
+		id2 = self.im.makeIdFor(testob2, "ob1/")
+		self.assertEqual(id2, "ob10")
+		self.failUnless(testob is self.im.getForId("ob1"))
+		self.failUnless(testob2 is self.im.getForId("ob10"))
 
 
 class StanXMLTest(testhelpers.VerboseTest):

@@ -421,7 +421,7 @@ class SerManager(utils.IdManagerMixin):
 		for column in self.table.tableDef:
 			self.colDescs.append(
 				VColDesc(column, self.table.votCasts.get(column.name)))
-			colId = self.makeIdFor(column, column.key)
+			colId = self.makeIdFor(column, column.id or column.key)
 			# Do not generate an id if the field is already defined somewhere else.
 			# (if that happens, STC definitions could be in trouble, so try
 			# to avoid it, all right?)

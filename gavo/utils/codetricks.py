@@ -98,7 +98,7 @@ class IdManagerMixin(object):
 			with those from other.  You want this if two id managers must work
 			on the same document.
 	"""
-	__cleanupPat = re.compile("[^A-Za-z_]+")
+	__cleanupPat = re.compile("[^A-Za-z0-9_]+")
 # Return a proxy instead of raising a KeyError here?  We probably no not
 # really want to generate xml with forward references, but who knows?
 	def __getIdMaps(self):
