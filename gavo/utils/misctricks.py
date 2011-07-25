@@ -2,10 +2,15 @@
 Various helpers that didn't fit into any other xTricks.
 """
 
+from __future__ import with_statement
+
 import contextlib
+import os
+import re
 import struct
 import threading
 import time
+import urllib2
 
 from gavo.utils import excs
 
@@ -203,6 +208,28 @@ def iterFortranRecs(f, skip=0):
 			skip -= 1
 			continue
 		yield rec
+
+
+def getWithCache(url, cacheDir, extraHeaders={}):
+	"""returns the content of url, from a cache if possible.
+
+	Of course, you only want to use this if there's some external guarantee
+	that the resource behing url doesn't change.  No expiry mechanism is
+	present here.
+	"""
+	if not os.path.isdir(cacheDir):
+		os.makedirs(cacheDir)
+	cacheName = os.path.join(cacheDir, re.sub("[^\w]+", "", url)+".cache")
+	if os.path.exists(cacheName):
+		with open(cacheName) as f:
+			return f.read()
+	else:
+		f = urllib2.urlopen(url)
+		doc = f.read()
+		f.close()
+		with open(cacheName, "w") as f:
+			f.write(doc)
+		return doc
 
 
 ####################### Pyparsing hacks

@@ -101,7 +101,7 @@
 		<column name="ssa_specext"
 			utype="ssa:Char.SpectralAxis.Coverage.Bounds.Extent"
 			ucd="em.wl;instr.bandwidth"
-			verbLevel="15" tablehead="Band width" unit="m"
+			verbLevel="15" tablehead="Bandwidth" unit="m"
 			description="Width of the spectrum"/>
 		<column name="ssa_specstart"
 			utype="ssa:Char.SpectralAxis.Coverage.Location.Start" ucd="em.wl;stat.min"
@@ -204,7 +204,7 @@
 		<param name="ssa_fluxucd" type="text" required="True"
 			utype="ssa:Char.FluxAxis.Ucd"
 			tablehead="UCD(flux)" verbLevel="25" 
-			description="UCD of the flux column">\fluxucd</param>
+			description="UCD of the flux column">\fluxUCD</param>
 		<param name="ssa_spectralunit" type="text" required="True"
 			utype="ssa:Char.SpectralAxis.Unit"
 			tablehead="unit(spectral)" verbLevel="25" 
@@ -212,7 +212,7 @@
 		<param name="ssa_spectralucd" type="text" required="True"
 			utype="ssa:Char.SpectralAxis.Ucd"
 			tablehead="UCD(spectral)" verbLevel="25" 
-			description="UCD of the spectral column">\spectralucd</param>
+			description="UCD of the spectral column">\spectralUCD</param>
 		<param name="ssa_statError" 
 			utype="ssa:Char.FluxAxis.Accuracy.StatError"
 			ucd="stat.error;phot.flux.density;em"
@@ -242,11 +242,11 @@
 		<param name="ssa_speccalib" type="text"
 			utype="ssa:Char.SpectralAxis.Calibration" ucd="meta.code.qual"
 			verbLevel="25"
-			description="Type of wavelength calibration">\spectCalibration</param>
+			description="Type of wavelength calibration">\spectralCalibration</param>
 		<param name="ssa_specres" 
-			utype="ssa:Char.SpectralAxis.Resolution" ucd="spect.resolution;em"
+			utype="ssa:Char.SpectralAxis.Resolution" ucd="spect.resolution;em.wl"
 			verbLevel="25" unit="m"
-			description="Resolution on the spectral axis"/>
+			description="Resolution on the spectral axis">\spectralResolution</param>
 		<param name="ssa_spaceError"
 			utype="ssa:Char.SpatialAxis.Accuracy.StatError" ucd="stat.error;pos.eq"
 			verbLevel="15" unit="deg"
@@ -281,10 +281,11 @@
 		<FEED source="hcd_outpars" timeSI="junk" fluxSI="junk"
 			publisher="junk" creator="junk" collection="junk"
 			instrument="junk" dataSource="junk" creationType="junk"
-			reference="junk" fluxucd="junk" spectralSI="junk"
-			spectralucd="junk" statFluxError="-9999" sysFluxError="-9999"
-			fluxCalibration="junk" statSpectError="-9999" sysSpectError="-9999"
-			spectCalibration="junk" statSpaceError="-9999"/>
+			reference="junk" fluxUCD="junk" spectralSI="junk"
+			spectralUCD="junk" statFluxError="NaN" sysFluxError="NaN"
+			fluxCalibration="junk" statSpectError="NaN" sysSpectError="NaN"
+			spectralCalibration="junk" statSpaceError="NaN"
+			spectralResolution="NaN"/>
 	</table>
 
 
@@ -384,9 +385,10 @@
 		]]></doc>
 		<mixinPar key="timeSI" description="Time unit (WCS convention)"
 			>s</mixinPar>
-		<mixinPar key="fluxSI" description="Flux unit (WCS convention)"/>
+		<mixinPar key="fluxSI" description="Flux unit in the spectrum
+			instance (not the SSA metadata)"/>
 		<mixinPar key="spectralSI" description="Unit of frequency or 
-			wavelength (WCS convention)"/>
+			wavelength in the spectrum instance (not the SSA metadata)"/>
 		<mixinPar key="creator" description="Creator designation"
 			>__NULL__</mixinPar>
 		<mixinPar key="publisher" description="Publisher IVO (by default
@@ -411,19 +413,24 @@
 			description="Statistical error in wavelength">__NULL__</mixinPar>
 		<mixinPar key="sysSpectError" description="Systematic error in wavelength"
 			>__NULL__</mixinPar>
-		<mixinPar key="spectCalibration" description="Type of wavelength 
+		<mixinPar key="spectralCalibration" description="Type of wavelength 
 			Calibration (one of ABSOLUTE, RELATIVE, NORMALIZED, or UNCALIBRATED)"
 			>__NULL__</mixinPar>
+
 		<mixinPar key="statSpaceError" description="Statistical error in position"
 			>__NULL__</mixinPar>
 		<mixinPar key="collection" description="ivo id of the originating
 			collection">__NULL__</mixinPar>
-		<mixinPar key="spectralucd" description="ucd of the spectral column, like
+		<mixinPar key="spectralUCD" description="ucd of the spectral column, like
 			em.freq or em.energy; default is wavelength"
 			>em.wl</mixinPar>
-		<mixinPar key="fluxucd" description="ucd of the flux column, like
+		<mixinPar key="fluxUCD" description="ucd of the flux column, like
 			phot.count, phot.flux.density, etc.  Default is for flux over
 			wavelength.">phot.flux.density;em.wl</mixinPar>
+
+		<mixinPar key="spectralResolution" 
+			description="Resolution on the spectral axis; you must give this here
+			as wavelength in meters; approximate as necessary.">NaN</mixinPar>
 
 		<FEED source="//products#hackProductsData"/>
 		<events>
@@ -628,7 +635,7 @@
 			The mixin adds two columns (you could add more if, e.g., you had
 			errors depending on the spectral or flux value), spectral (wavelength
 			or the like) and flux.  Their metadata is taken from the ssa fields
-			(fluxSI -> unit of flux, fluxucd as its UCD, etc).
+			(fluxSI -> unit of flux, fluxUCD as its UCD, etc).
 
 			This mixin in action could look like this::
 
@@ -646,6 +653,13 @@
 
 		<mixinPar key="ssaTable" description="The SSAP (HCD) instance table
 			 to take the params from"/>
+		<mixinPar key="spectralDescription" description="Description
+			for the spectral column">The independent variable of this spectrum 
+			(see its ucd to figure out whether it's a wavelength, frequency, or
+			energy)</mixinPar>
+		<mixinPar key="fluxDescription" description="Description
+			for the flux column">The dependent variable of this spectrum (see the
+			ucd for its physical meaning</mixinPar>
 
 		<events>
 			<FEED source="makeSpecGroup" 
@@ -669,12 +683,10 @@
 			<!-- metadata is being filled in by processEarly -->
 			<column name="spectral" type="double precision"
 				utype="spec:Data.SpectralAxis.value"
-				description="The independent variable of this spectrum (see
-					ucd to figure out whether it's a wavelength, frequency, or energy)"/>
+				description="\spectralDescription"/>
 			<column name="flux" type="double precision"
 				utype="spec:Data.FluxAxis.value"
-				description="The dependent variable of this spectrum (see the
-					ucd for its physical meaning"/>
+				description="\fluxDescription"/>
 		</events>
 
 		<processEarly>
