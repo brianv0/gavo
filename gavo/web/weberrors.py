@@ -320,7 +320,7 @@ class InternalServerErrorPage(ErrorPage):
 		request = inevow.IRequest(ctx)
 		base.ui.notifyFailure(self.failure)
 		base.ui.notifyInfo("Arguments of failed request: %s"%
-			repr(request.args))
+			repr(request.args)[:2000])
 		if request.startedWriting:
 			# exception happened while rendering a page.
 			return self.renderInnerException(ctx)

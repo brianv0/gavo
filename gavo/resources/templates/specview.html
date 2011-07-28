@@ -7,7 +7,9 @@
 		<n:invisible n:render="commonhead"/>
 	</head>
 	<body>
+	<p>
 	<object 
+			type="application/x-java-applet"
 			classid="java:spv.SpecviewApplet"
 			codebase="http://specview.stsci.edu/applet"
     	archive="specview_app.jar"
@@ -16,9 +18,7 @@
     	height="600">
     <param name="archive" value="specview_app.jar"/>
     <param name="codebase" value="http://specview.stsci.edu/applet"/>
-    <param name= "name">
-    	<n:attr name="value" n:render="data" n:data="parameter source"/>
-    </param>
+    <param name= "name"><n:attr name="value" n:render="data" n:data="parameter source"/></param>
     <p style="padding-left:2em;padding-right:2em;border:2pt solid #eecccc"
     >Specview is a Java applet.  This means you have to have a
     java virtual machine active within your browser.  A common way
@@ -27,6 +27,7 @@
     a package like openjdk-?-jre on Debian-derived systems (where ? corresponds
     to some version).</p>
   </object>
+	</p>
 
 	<p><a href="http://www.stsci.edu/resources/software_hardware/specview"
 		>Specview</a> is a product of the Space Telescope Science 
