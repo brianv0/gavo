@@ -253,11 +253,11 @@ class SDMRenderer(grend.ServiceBasedPage):
 		from gavo.protocols import ssap
 
 		request = inevow.IRequest(ctx)
-		request.setHeader("content-type", "application/x-votable")
+		request.setHeader("content-type", "application/x-votable+xml")
 		request.setHeader('content-disposition', 
 			'attachment; filename=spec.vot')
 
-		votContextArgs = {}
+		votContextArgs, streamStuff = {}, True
 		# Specview doesn't know binary encoded VOTables; it doesn't
 		# give useful user agent headers, either, so we have to
 		# guess.  Also, specview wants SED tables rather than

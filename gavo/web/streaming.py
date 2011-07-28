@@ -2,6 +2,7 @@
 Streaming out large computed things using twisted and threads.
 """
 
+import collections
 import sys
 import time
 import threading
@@ -18,6 +19,58 @@ from zope.interface import implements
 from gavo import base
 from gavo import utils
 from gavo.formats import votablewrite
+
+
+class StreamBuffer(object):
+	"""a buffer that takes data in arbitrary chunks and returns
+	them in chops of chunkSize bytes.
+
+	There's a lock in place so you can access add and get from
+	different threads.
+
+	When everything is written, you must all doneWriting.
+	"""
+	chunkSize = 10000 # XXX TODO: Figure out a good chunk size for the
+	                  # network stack
+
+	def __init__(self):
+		self.buffer = collections.deque()
+		self.curSize = 0
+		self.lock = threading.Lock()
+		self.finished = False
+	
+	def add(self, data):
+		with self.lock:
+			self.buffer.append(data)
+			self.curSize += len(data)
+	
+	def get(self):
+		if self.curSize<self.chunkSize and not self.finished:
+			return None
+
+		with self.lock:
+			items, sz = [], 0
+			# collect items till we've got a chunk
+			while self.buffer:
+				item = self.buffer.popleft()
+				sz += len(item)
+				self.curSize -= len(item)
+				items.append(item)
+				if sz>=self.chunkSize:
+					break
+
+			# make a chunk and push back what we didn't need
+			chunk = "".join(items)
+			if not self.finished:
+				leftOver = chunk[self.chunkSize:]
+				self.buffer.appendleft(leftOver)
+				self.curSize += len(leftOver)
+				chunk = chunk[:self.chunkSize]
+
+		return chunk
+	
+	def doneWriting(self):
+		self.finished = True
 
 
 class DataStreamer(threading.Thread):
@@ -45,15 +98,13 @@ class DataStreamer(threading.Thread):
 
 	implements(IPushProducer)
 
-	chunkSize = 8192 # XXX TODO: Figure out a good chunk size for the
-	                 # network stack
-
 	def __init__(self, writeStreamTo, consumer):
 		threading.Thread.__init__(self)
 		self.writeStreamTo, self.consumer = writeStreamTo, consumer
 		self.paused, self.exceptionToRaise = False, None
 		consumer.registerProducer(self, True)
 		self.setDaemon(True) # kill transfers on server restart
+		self.buffer = StreamBuffer()
 
 	def resumeProducing(self):
 		self.paused = False
@@ -64,15 +115,36 @@ class DataStreamer(threading.Thread):
 	def stopProducing(self):
 		self.exceptionToRaise = IOError("Stop writing, please")
 
-	def realWrite(self, data):
-		if isinstance(data, unicode): # we don't support encoding here, but
-			data = str(data)            # don't break on accidental unicode.
-		while self.paused:  # let's do a busy loop; twisted can handle
-		                    # overflows, and waiting on a semaphore becomes
-												# technically messy here (why?)
-			time.sleep(0.1)
-		return reactor.callFromThread(self._writeToConsumer, data)
-	
+	def _deliverBuffer(self):
+		"""causes the accumulated data to be written if enough
+		data is there.
+
+		This must be called at least once after buffer.doneWriting()
+		as beed called.
+		"""
+		while True:
+			data = self.buffer.get()
+			if data is None: # nothing to write yet
+				return
+			while self.paused:
+				# consumer has requested a pause; let's busy-loop;
+				# doesn't cost much and is easier than semaphores.
+				time.sleep(0.1)
+			return reactor.callFromThread(self._writeToConsumer, data)
+
+	def write(self, data):
+		"""schedules data to be written to the consumer.
+		"""
+		if self.exceptionToRaise:
+			raise self.exceptionToRaise
+
+		# Allow unicode data in as long as it's actually ascii:
+		if isinstance(data, unicode):
+			data = str(data)
+
+		self.buffer.add(data)
+		self._deliverBuffer()
+
 	def _writeToConsumer(self, data):
 		# We want to catch errors occurring during writes.  This method
 		# is called from the reactor (main) thread.
@@ -88,18 +160,7 @@ class DataStreamer(threading.Thread):
 			base.ui.notifyError("Exception during streamed write.")
 			self.exceptionToRaise = ex
 	
-	def write(self, data):
-		if self.exceptionToRaise:
-			raise self.exceptionToRaise
-		if len(data)<self.chunkSize:
-			self.realWrite(data)
-		else:
-			# would be cool if we could use buffers here, but twisted won't
-			# let us.
-			for offset in range(0, len(data), self.chunkSize):
-				self.realWrite(data[offset:offset+self.chunkSize])
-
-	def cleanup(self):
+	def cleanup(self, result=None):
 		# Must be callFromThread'ed
 		self.join(0.01)
 		self.consumer.unregisterProducer()
@@ -110,6 +171,8 @@ class DataStreamer(threading.Thread):
 		try:
 			try:
 				self.writeStreamTo(self)
+				self.buffer.doneWriting()
+				self._deliverBuffer()
 			except IOError:
 				# I/O errors are most likely not our fault, and I don't want
 				# to make matters worse by pushing any dumps into a line
@@ -129,7 +192,7 @@ class DataStreamer(threading.Thread):
 		finally:
 			reactor.callFromThread(self.cleanup)
 
-	synchronized = ['resumeProducing', 'stopProducing']
+	synchronized = ['resumeProducing', 'pauseProducing', 'stopProducing']
 
 threadable.synchronize(DataStreamer)
 

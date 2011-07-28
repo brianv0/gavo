@@ -45,7 +45,8 @@ class StreamerCrashPage(rend.Page):
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "text/plain")
 		def writeNoise(f):
-			f.write("Here is some data.\n")
+			f.buffer.chunkSize = 30
+			f.write("Here is some data. (and some more, just to cause a flush)\n")
 			raise Exception
 		return streaming.streamOut(writeNoise, request)
 
