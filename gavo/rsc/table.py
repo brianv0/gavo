@@ -133,6 +133,7 @@ class BaseTable(base.MetaMixin):
 	def __init__(self, tableDef, **kwargs):
 		base.MetaMixin.__init__(self)
 		self.tableDef = tableDef
+		self.setMetaParent(self.tableDef)
 		self.validateRows = kwargs.get("validateRows", False)
 		self.votCasts = kwargs.get("votCasts", {})
 		self.role = kwargs.get("role")

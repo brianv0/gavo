@@ -292,6 +292,14 @@ renderers -- include:
   from timestamps in DaCHS's state directory.  There is also
   datetimeUpdated that you would have to keep in sync with dateUpdated
   if you were to change it.
+* creator.name -- this should be the name of the "author" of the data
+  set.  See below for multiple creators.  If you set this, you may want
+  to override creator.logo as well.
+* content.type – one of Other, Archive, Bibliography, Catalog, 
+  Journal, Library, Simulation, Survey, Transformation, Education, 
+  Outreach, EPOResource, Animation, Artwork, Background, BasicData, 
+  Historical, Photographic, Press, Organisation, Project, Registry –
+  it's optional and we doubt its usefulness.
 * facility -- no IVOA ids are supported here yet, but probably this
   should change.
 * coverage -- see the special section to be written
@@ -307,10 +315,52 @@ are usually set there:
 * contact.address
 * contact.email
 * contact.telephone
-* creator.name -- you may want to override this with actual author
-  names.
-* creator.logo -- this should probably be overridden as well if you
-  override creator.name
+
+The creator.name meta illustrates a pitfall with our metadata
+definition.  Suppose you had more than one creator.  What you'd want is
+a metadata structure like this::
+
+  +-- creator -- name (Arthur)
+  |
+  +-- creator -- name (Berta)
+
+However, if you write::
+
+  creator.name: Arthur
+  creator.name: Berta
+
+or, equivalently::
+
+  <meta name="creator.name">Arthur</meta>
+  <meta name="creator.name">Berta</meta>
+
+by the above rules, you'll get this::
+
+  +-- creator -- name (Arthur)
+         |
+         +------ name (Berta)
+
+i.e., one creator with two names.
+
+To avoid this, make a new creator node in between, i.e., write::
+
+  creator.name: Arthur
+  creator:
+  creator.name: Berta
+
+In DC resources, it's better to be explicit about the tree structure
+(though you could write it like in metastream):
+
+  <meta name="creator">
+    <meta name="name">Arthur</meta>
+  </meta>
+  <meta name="creator">
+   <meta name="name">Berta</meta>
+  </meta>
+
+However, for creator.name specifically, it's highly likely that people
+accept things like "Arthur; Berta" anyway, and so here it might be
+better to disregard the tree structure issues entirely.
 
 
 Meta Stream Format

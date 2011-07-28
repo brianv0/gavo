@@ -337,8 +337,10 @@ def makeTable(ctx, table):
 	"""
 	sm = valuemappers.SerManager(table, mfRegistry=ctx.mfRegistry,
 		idManager=ctx, acquireSamples=ctx.acquireSamples)
-	result = V.TABLE(name=table.tableDef.id)[
-		V.DESCRIPTION[base.getMetaText(table.tableDef, "description")],
+	result = V.TABLE(
+			name=table.tableDef.id,
+			utype=base.getMetaText(table, "utype"))[
+		V.DESCRIPTION[base.getMetaText(table, "description")],
 		_iterNotes(sm),
 		_iterGroups(table.tableDef, sm),
 		_iterTableParams(sm),
@@ -356,7 +358,9 @@ def makeTable(ctx, table):
 def _makeResource(ctx, data):
 	"""returns a Resource node for the rsc.Data instance data.
 	"""
-	res = V.RESOURCE(type=base.getMetaText(data, "_type"))[
+	res = V.RESOURCE(
+			type=base.getMetaText(data, "_type"),
+			utype=base.getMetaText(data, "utype"))[
 		_iterResourceMeta(ctx, data),
 		_iterParams(ctx, data)]
 	for table in data:

@@ -48,6 +48,7 @@ class _TestVOTable(testhelpers.TestResource):
 			<meta name="description">Some test data for VOTables.</meta>
 			<meta name="_legal">Hands off this fascinating data</meta>
 			<table id="foo">
+				<meta name="utype">test:testTable</meta>
 				<meta name="note" tag="1">Note 1</meta>
 				<meta name="note" tag="2">Note 2</meta>
 				<column name="anInt" type="integer"
@@ -59,6 +60,7 @@ class _TestVOTable(testhelpers.TestResource):
 				<param name="somePar" type="double precision">3.500</param>
 			</table>
 			<data id="bar">
+				<meta name="utype">test:testResource</meta>
 				<meta name="_infolink">http://vo.org/x?a=b&amp;c=d</meta>
 				<columnGrammar topIgnoredLines="1">
 					<col key="anInt">1-5</col>
@@ -167,6 +169,14 @@ class VOTableTest(testhelpers.VerboseTest, testhelpers.XSDTestMixin):
 		self.assertEqual(params[0].get("value"), "3.500")
 		self.assertEqual(params[0].get("name"), "somePar")
 		self.assertEqual(params[0].get("datatype"), "double")
+
+	def testTableUtype(self):
+		table = self.testData[1].findall(".//%s"%votable.voTag("TABLE"))[0]
+		self.assertEqual(table.get("utype"), "test:testTable")
+
+	def testResourceUtype(self):
+		votRes = self.testData[1].findall(".//%s"%votable.voTag("RESOURCE"))[0]
+		self.assertEqual(votRes.get("utype"), "test:testResource")
 
 
 class _ImportTestData(testhelpers.TestResource):

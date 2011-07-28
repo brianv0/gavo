@@ -8,7 +8,7 @@ import traceback
 from optparse import OptionParser
 
 from gavo import base
-from gavo import rscdesc     # for registration
+from gavo import rscdesc
 from gavo import rsc
 from gavo.protocols import tap
 from gavo import user
@@ -25,10 +25,7 @@ def process(opts, args):
 	main's parseOption function below.
 	"""
 	src, ddIds = args[0], set(args[1:])
-	try:
-		rd = base.caches.getRD(os.path.join(os.getcwd(), src))
-	except base.RDNotFound:
-		rd = base.caches.getRD(src, forImport=True)
+	rd = rscdesc.openRD(src)
 	connection = base.getDBConnection("admin")
 	tap.unpublishFromTAP(rd, connection)
 	tap.publishToTAP(rd, connection)

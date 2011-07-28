@@ -680,12 +680,12 @@
 					ssa_cversion ssa_creator ssa_collection ssa_instrument 
 					ssa_datasource ssa_creationtype"/>
 
-			<!-- metadata is being filled in by processEarly -->
+			<!-- units and UCDs are being filled in by processEarly -->
 			<column name="spectral" type="double precision"
-				utype="spec:Data.SpectralAxis.value"
+				utype="spec:Data.SpectralAxis.Value"
 				description="\spectralDescription"/>
 			<column name="flux" type="double precision"
-				utype="spec:Data.FluxAxis.value"
+				utype="spec:Data.FluxAxis.Value"
 				description="\fluxDescription"/>
 		</events>
 
@@ -718,6 +718,10 @@
 				fluxCol = substrate.getColumnByName("flux")
 				fluxCol.ucd = substrate.getParamByName("ssa_fluxucd").value
 				fluxCol.unit = substrate.getParamByName("ssa_fluxunit").value
+
+				# set the SDM container meta if not already present
+				if substrate.getMeta("utype", default=None) is None:
+					substrate.setMeta("utype", "spec:Spectrum")
 			</code>
 		</processEarly>
 	</mixinDef>

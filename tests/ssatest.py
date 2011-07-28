@@ -308,7 +308,7 @@ class _RenderedSDMResponse(testhelpers.TestResource):
 
 	def make(self, deps):
 		res = getRD().getById("sdm").runFromDict(
-			{"accref": "data/spec1.ssatest"}, "sdm").original.getPrimaryTable()
+			{"accref": "data/spec1.ssatest"}, "sdm").original
 		rawVOT = votable.asString(ssap.makeSDMVOT(res, tablecoding="td"))
 		return rawVOT, testhelpers.getXMLTree(rawVOT)
 
@@ -327,8 +327,6 @@ class SDMTableTest(testhelpers.VerboseTest):
 	def testParameterSet(self):
 		res = self._getUniqueByXPath("//PARAM[@name='ssa_pubDID']")
 		self.assertEqual(res.get('value'), 'ivo://test.inv/test1')
-
-# TODO test for parameter by utype
 
 	def testSpecGroupsPresent(self):
 		group = self._getUniqueByXPath("//GROUP[@utype='spec:Target']")
@@ -354,6 +352,50 @@ class SDMTableTest(testhelpers.VerboseTest):
 			[el.text for el in firstRow.xpath("TD")],
 			["3000.0", "30.0"])
 
+	def testContainerUtypes(self):
+		tree = self.stringAndTree[1]
+		votRes = tree.xpath("//RESOURCE")[0]
+		self.assertEqual(votRes.get("utype"), "spec:Spectrum")
+		table = votRes.xpath("//TABLE")[0]
+		self.assertEqual(table.get("utype"), "spec:Spectrum")
+
+# TODO test for parameter by utype
+
+
+class _RenderedSEDResponse(testhelpers.TestResource):
+	resources = [("ssatable", _ssaTable)]
+
+	def make(self, deps):
+		res = getRD().getById("sdm").runFromDict(
+			{"accref": "data/spec1.ssatest", "dm": "sed"}, "sdm").original
+		rawVOT = votable.asString(ssap.makeSDMVOT(res, tablecoding="td"))
+		return rawVOT, testhelpers.getXMLTree(rawVOT)
+
+
+class SEDTableTest(testhelpers.VerboseTest):
+# Once we have an actual implementation of the SED data model, do
+# this properly (right now, it's a horrendous hack just to
+# please specview)
+	resources = [("stringAndTree", _RenderedSEDResponse())]
+
+	def testContainerUtypes(self):
+		tree = self.stringAndTree[1]
+		votRes = tree.xpath("//RESOURCE")[0]
+		self.assertEqual(votRes.get("utype"), "sed:SED")
+		table = votRes.xpath("//TABLE")[0]
+		self.assertEqual(table.get("utype"), "sed:Segment")
+
+
+	def testSpectUtype(self):
+		spectField = self.stringAndTree[1].xpath("//FIELD[@name='spectral']")[0]
+		self.assertEqual(spectField.get("utype"), 
+			"sed:Segment.Points.SpectralCoord.Value")
+
+	def testFluxUtype(self):
+		spectField = self.stringAndTree[1].xpath("//FIELD[@name='flux']")[0]
+		self.assertEqual(spectField.get("utype"), 
+			"sed:Segment.Points.Flux.Value")
+
 
 if __name__=="__main__":
-	testhelpers.main(SDMTableTest)
+	testhelpers.main(SEDTableTest)

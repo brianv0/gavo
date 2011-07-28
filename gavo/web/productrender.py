@@ -259,11 +259,14 @@ class SDMRenderer(grend.ServiceBasedPage):
 
 		votContextArgs = {}
 		# Specview doesn't know binary encoded VOTables; it doesn't
-		# give useful user agent headers, either, but let's try
-		# anyway.
+		# give useful user agent headers, either, so we have to
+		# guess.  Also, specview wants SED tables rather than
+		# SDM, so we're forcing that if the core hasn't noticed.
 		userAgent = request.received_headers.get("user-agent", "")
 		if userAgent.startswith("Mozilla/4.0") and "Java" in userAgent:
 			votContextArgs["tablecoding"] = "td"
+			if base.getMetaText(result.original, "utype", default=None)!="sed:SED":
+				ssap.hackSDMToSED(result.original)
 
 		vot = ssap.makeSDMVOT(result.original, **votContextArgs)
 
@@ -271,5 +274,3 @@ class SDMRenderer(grend.ServiceBasedPage):
 			votable.write(vot, f)
 
 		return streaming.streamOut(writeData, request)
-
-

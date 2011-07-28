@@ -12,6 +12,7 @@ from gavo import rscdef
 from gavo import svcs
 from gavo import votable
 from gavo.formats import votablewrite
+from gavo.protocols import products
 from gavo.svcs import outputdef
 from gavo.votable import V
 
@@ -109,12 +110,7 @@ def makeSDMVOT(table, **votContextArgs):
 	"""
 	table.addMeta("_votableRootAttributes", 
 		'xmlns:spec="http://www.ivoa.net/xml/SpectrumModel/v1.01"')
-	vot = votablewrite.makeVOTable(table, **votContextArgs)
-	rsc = list(vot.iterChildrenOfType(votable.V.RESOURCE))[0]
-	rsc(utype="spec:Spectrum")
-	tab = list(rsc.iterChildrenOfType(votable.V.TABLE))[0]
-	tab(utype="spec:Spectrum")
-	return vot
+	return votablewrite.makeVOTable(table, **votContextArgs)
 
 
 def getSpecForSSA(utype):
@@ -134,6 +130,33 @@ def getSpecForSSA(utype):
 	return "spec:"+specLocal
 
 
+_SDM_TO_SED_UTYPES = {
+	"spec:Data.SpectralAxis.Value": "sed:Segment.Points.SpectralCoord.Value",
+	"spec:Data.FluxAxis.Value": "sed:Segment.Points.Flux.Value",
+}
+
+def hackSDMToSED(data):
+	"""changes some utypes to make an SDM compliant data instance look a bit
+	like one compliant to the sed data model.
+
+	This is a quick hack to accomodate specview.  When there's a usable
+	SED data model and we have actual data for it, add real support
+	for it like there's for SDM.
+	"""
+	data.setMeta("utype", "sed:SED")
+	table = data.getPrimaryTable()
+	table.setMeta("utype", "sed:Segment")
+	# copy the table definition to avoid clobbering the real attributes.
+	# All this sucks.  At some point we'll want real SED support
+	table.tableDef = table.tableDef.copy(table.tableDef.parent)
+	for col in table.tableDef:
+		if col.utype in _SDM_TO_SED_UTYPES:
+			col.utype = _SDM_TO_SED_UTYPES[col.utype]
+	for param in table.tableDef.params:
+		if param.utype in _SDM_TO_SED_UTYPES:
+			param.utype = _SDM_TO_SED_UTYPES[param.utype]
+
+
 class SDMCore(svcs.Core):
 	"""A core for making (VO)Tables according to the Spectral Data Model.
 
@@ -148,7 +171,9 @@ class SDMCore(svcs.Core):
 	name_ = "sdmCore"
 	inputTableXML = """<inputTable id="inFields">
 			<inputKey name="accref" type="text" required="True"
-				tablehead="Accref of the data within the SSAP table."/>
+				description="Accref of the data within the SSAP table."/>
+			<inputKey name="dm" type="text" description="Data model to
+				generate the table for (sdm or sed)">sdm</inputKey>
 		</inputTable>"""
 	_queriedTable = base.ReferenceAttribute("queriedTable",
 		default=base.Undefined, description="A reference to the SSAP table"
@@ -159,18 +184,31 @@ class SDMCore(svcs.Core):
 		" a custom or embedded grammar for those that accepts an SDM row"
 		" as input.", copyable=True)
 
+	def onElementComplete(self):
+		self._onElementCompleteNext(SDMCore)
+		if self.sdmDD.getMeta("utype", default=None) is None:
+			self.sdmDD.setMeta("utype", "spec:Spectrum")
+
 	def run(self, service, inputTable, queryMeta):
 		ssaTable = rsc.TableForDef(self.queriedTable,
 			connection=base.caches.getTableConn(None))
 		try:
+			# XXX TODO: Figure why the unquote here is required.
+			accref = urllib.unquote(inputTable.getParam("accref"))
 			res = list(ssaTable.iterQuery(ssaTable.tableDef, 
-				"accref=%(accref)s", 
-				# XXX TODO: Figure why the unquote here is required.
-				{"accref": urllib.unquote(inputTable.getParam("accref"))}))
+				"accref=%(accref)s", {"accref": accref}))
 			if not res:
 				raise svcs.UnknownURI("No spectrum with accref %s known here"%
 					inputTable.getParam("accref"))
 			ssaRow = res[0]
 		finally:
 			ssaTable.close()
-		return rsc.makeData(self.sdmDD, forceSource=ssaRow)
+
+		resData = rsc.makeData(self.sdmDD, forceSource=ssaRow)
+		resData.getPrimaryTable().setMeta("description",
+			"Spectrum from %s"%products.makeProductLink(accref))
+
+		if inputTable.getParam("dm")=="sed":
+			hackSDMToSED(resData)
+		return resData
+

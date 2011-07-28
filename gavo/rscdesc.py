@@ -415,3 +415,17 @@ def _makeRDCache():
 	base.caches.registerCache("getRD", rdCache, getRDCached)
 
 _makeRDCache()
+
+
+def openRD(relPath):
+	"""returns a (cached) RD for relPath.
+
+	relPath is first interpreted as a file system path, then as an RD id.
+	the first match wins.
+	"""
+	try:
+		return base.caches.getRD(os.path.join(os.getcwd(), relPath), forImport=True)
+	except base.RDNotFound:
+		return base.caches.getRD(relPath, forImport=True)
+
+
