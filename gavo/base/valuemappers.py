@@ -105,7 +105,7 @@ _registerDefaultMF(_booleanMapperFactory)
 
 
 def _floatMapperFactory(colDesc):
-	if colDesc["dbtype"]=="real" or colDesc["dbtype"].startswith("double"):
+	if colDesc["dbtype"]=="real" or colDesc["dbtype"]=="double precision":
 		def coder(val):
 			if val is None:
 				return naN

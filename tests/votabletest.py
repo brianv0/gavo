@@ -57,6 +57,8 @@ class _TestVOTable(testhelpers.TestResource):
 				<column name="aFloat"
 					description="This ain't &amp;alpha; for sure." note="1"/>
 				<column name="bla" type="text" note="2"/>
+				<column name="varArr" type="real[]"
+					description="horrible array"/>
 				<param name="somePar" type="double precision">3.500</param>
 			</table>
 			<data id="bar">
@@ -67,7 +69,16 @@ class _TestVOTable(testhelpers.TestResource):
 					<col key="aFloat">6-10</col>
 					<col key="bla">11-13</col>
 				</columnGrammar>
-				<rowmaker id="_foo" idmaps="*"/>
+				<rowmaker id="_foo" idmaps="*">
+					<apply>
+						<code>
+							if vars["anInt"]=='-33':
+								vars["varArr"] = None
+							else:
+								vars["varArr"] = [1,2]
+						</code>
+					</apply>
+				</rowmaker>
 				<make table="foo" rowmaker="_foo"/>
 			</data>
 		</resource>"""%os.path.abspath("data")
@@ -118,16 +129,24 @@ class VOTableTest(testhelpers.VerboseTest, testhelpers.XSDTestMixin):
 		"""
 		self.assertValidates(self.testData[0])
 
-	def testNullvalues(self):
+	def testFloatNullvalue(self):
 		"""tests for correct serialization of Null values.
 		"""
 		tree = self.testData[1]
 		tbldata = tree.find(".//%s"%votable.voTag("TABLEDATA"))
-		self.assertEqual(tbldata[3][1].text, 'NaN', "NaN isn't rendered as"
-			" NULL")
+		self.assertEqual(tbldata[3][1].text, 'NaN', "NULL isn't rendered as"
+			" NaN")
+	
+	def testIntNullvalue(self):
+		tree = self.testData[1]
+		tbldata = tree.find(".//%s"%votable.voTag("TABLEDATA"))
 		fields = tree.findall(".//%s"%votable.voTag("FIELD"))
 		f0Null = fields[0].find(str(votable.voTag("VALUES"))).get("null")
 		self.assertEqual(tbldata[2][0].text, f0Null)
+
+	def testArrayNullvalue(self):
+		tbldata = self.testData[1].find(".//%s"%votable.voTag("TABLEDATA"))
+		self.assertEqual(tbldata[0][3].text, None)
 
 	def testRanges(self):
 		"""tests for ranges given in VALUES.
@@ -385,9 +404,10 @@ class VOTableRenderTest(testhelpers.VerboseTest):
 				'<table>%s</table>'%colDef), rows=[{"x": None}])
 
 	def _getAsVOTable(self, colDef, **contextArgs):
+		contextArgs["tablecoding"] = contextArgs.get("tablecoding", "td")
 		return votablewrite.getAsVOTable(
 			self._getTable(colDef),
-			votablewrite.VOTableContext(tablecoding="td", **contextArgs))
+			votablewrite.VOTableContext(**contextArgs))
 
 	def _assertVOTContains(self, colDef, literals, **contextArgs):
 		res = self._getAsVOTable(colDef, **contextArgs)
@@ -506,6 +526,15 @@ class TabledataNullValueTest(VOTableRenderTest):
 				'<values nullLiteral="-9999."/></column>', [
 			'<VALUES null="-9999.">',
 			'<TR><TD>NaN</TD></TR>'])
+
+
+class BinaryNullValueTest(VOTableRenderTest):
+	def testVarArrayNull(self):
+		tree = self._getAsETree('<column name="x" type="real[]"/>',
+			tablecoding="binary")
+		self.assertEqual(
+			self._getEls(tree, "STREAM")[0].text.decode("base64"),
+			'\x00\x00\x00\x00')
 
 
 class ValuesParsedTest(testhelpers.VerboseTest):
