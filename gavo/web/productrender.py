@@ -109,7 +109,10 @@ def _makePreviewFromCutout(args, prod, request):
 	mime = prod.contentType
 
 	def makeCutout():
-		return threads.deferToThread(prod, f)
+		def feedProduct():
+			for chunk in prod.iterData():
+				f.write(chunk)
+		return threads.deferToThread(feedProduct)
 
 	def makePreview(_):
 		f.close()
@@ -141,8 +144,8 @@ def makePreviewFromProduct(prod, request):
 	except (KeyError, ValueError, IndexError):
 		pass
 
-	if prod.sourcePath:  # static file: just dump
-		args[:0] = [prod.sourcePath]
+	if isinstance(prod, products.FileProduct):  # static file: just dump
+		args[:0] = [prod.sourceSpec]
 		return PreviewCacheManager.getPreviewFor(prod.contentType, args
 			).addCallback(deliverJpeg, request
 			).addErrback(deliverFailPreview, request)
@@ -197,32 +200,12 @@ class ProductRenderer(grend.ServiceBasedPage):
 		rsc = result.original.getPrimaryTable().rows[0]['source']
 		request = inevow.IRequest(ctx)
 
-		if isinstance(rsc, products.RemoteProduct):
-			raise svcs.WebRedirect(rsc.sourcePath)
-
-		if isinstance(rsc, products.NonExistingProduct):
-			raise svcs.UnknownURI("%s is an unknown product key"%rsc.sourcePath)
-
 		if doPreview:
 			res = makePreviewFromProduct(rsc, request)
 			return res
 
-		if isinstance(rsc, products.UnauthorizedProduct):
-			raise svcs.Authenticate(rsc.sourcePath)
-		return self._deliverPlainFile(rsc, request)
+		return rsc
 
-	def _deliverPlainFile(self, resource, request):
-		request.setHeader("content-type", str(resource.contentType))
-		request.setHeader("content-disposition", 'attachment; filename="%s"'%
-			str(resource.name))
-		try:
-			request.setHeader('content-length', str(os.path.getsize(
-				resource.sourcePath)))
-			request.setLastModified(os.path.getmtime(resource.sourcePath))
-		except (TypeError, os.error):  # size doesn't matter
-			pass
-		return streaming.streamOut(resource, request)
-	
 	def locateChild(self, ctx, segments):
 		if segments:
 			inevow.IRequest(ctx).args["key"] = "/".join(segments)

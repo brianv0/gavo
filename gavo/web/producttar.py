@@ -127,13 +127,11 @@ class ProductTarMaker(object):
 		so you should only use it when data is being computed on the fly.
 		"""
 		assert not isinstance(prod, products.UnauthorizedProduct)
-		stuff = StringIO()
-		prod(stuff)
-		stuff.seek(0)
+		data = "".join(prod.iterData())
 		b = tarfile.TarInfo(name)
-		b.size = len(stuff.getvalue())
+		b.size = len(data)
 		b.mtime = time.time()
-		return b, stuff
+		return b, StringIO(stuff)
 
 	def _getHeaderVals(self, queryMeta):
 		if queryMeta.get("Overflow"):
@@ -150,15 +148,18 @@ class ProductTarMaker(object):
 			src = prodRec["source"]
 			if isinstance(src, products.NonExistingProduct):
 				continue # just skip files that somehow don't exist any more
-			if src.sourcePath:  # actual file in the file system
-				targetName = nameGen.makeName(os.path.basename(src.sourcePath))
-				if isinstance(src, products.UnauthorizedProduct):
-					outputTar.addfile(*self._getEmbargoedFile(targetName))
-				else:
-					outputTar.add(str(src.sourcePath), str(targetName))
+
+			elif isinstance(src, products.UnauthorizedProduct):
+				outputTar.addfile(*self._getEmbargoedFile(src.name))
+
+			elif isinstance(src, products.FileProduct):
+				# actual file in the file system
+				targetName = nameGen.makeName(src.name)
+				outputTar.add(str(src.sourceSpec), nameGen.makeName(src.name))
+
 			else: # anything else is read from the src
 				outputTar.addfile(*self._getTarInfoFromProduct(src,
-					nameGen.makeName(os.path.basename(src.fullFilePath))))
+					nameGen.makeName(src.name)))
 		outputTar.close()
 		return ""  # finish off request if necessary.
 

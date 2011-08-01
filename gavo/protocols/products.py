@@ -1,12 +1,23 @@
 """
-The products interface, including a core to make the product renderer almost
-trivial.
+Products, a grammar to make them, and a core turning accrefs into lists
+of products.
+
+The "user-visible" part are just accrefs, as modelled by the FatProductKey
+-- they can contain instructions for cutouts or scaling, hence the additional
+structure.
+
+Using the product table and the ProductsGrammar, such accrefs are turned
+into subclasses of ProductBase.  These have mime types and know how
+to generate their data.  They produce data using their iterData methods;
+they are intended to be streamed out by web.productrender, but they
+may implement renderHTTP themselves, in which case productrender just
+leaves everything to them; it's a bit unfortunate that we thus depend
+on nevow here, but we'd have to reimplement quite a bit of it if we don't,
+and for now it doesn't seem we'll support a different framework in the 
+forseeable future.
 """
 
-# XXX TODO: this whole __call__ business is worthless.  The products
-# need renderHTTP methods, and they should be ordinary nevow resources.
-# If that's happened, productrender will become much nicer (at the expense
-# of hardcoding nevow here).
+from __future__ import with_statement
 
 import cgi
 import datetime
@@ -15,6 +26,10 @@ import os
 import subprocess
 import urllib
 import urlparse
+
+from nevow import inevow
+from nevow import static
+from zope.interface import implements
 
 from gavo import base
 from gavo import grammars
@@ -30,45 +45,75 @@ from gavo.utils import fitstools
 MS = base.makeStruct
 
 
-class PlainProduct(object):
+class ProductBase(object):
 	"""A base class for products returned by the product core.
 
-	A product has a name (always has to be a string suitable for a
-	file name, and *without* a path), a sourcePath (may be None if
-	the content is computed on the fly), a contentType.
+	See the module docstring for the big picture.
 
-	If called, it has to spew out content to the only argument of
-	__call__, supposed to be something file-like.
+	A product is constructed with a source specfication and a mime type (both
+	come from dc.products.  These are available as sourceSpec and contentType;
+	additionally, they must come up with a name (suitable as a file name,
+	without a path).
+
+	The iterData method has to yield reasonable-sized chunks of data
+	(self.chunkSize should be a good choice).
+
+	The getSize method returns either the *exact* size of the byte stream 
+	(suitable for content-length) or None.
+
+	Products usually are used as nevow resources.  Therefore, they
+	have a renderHTTP method.  You should not in general need to override it.
+	It uses writeTo to generate the content, and getSize to figure out
+	a size if possible.
 	"""
+	implements(inevow.IResource)
+
 	chunkSize = 2**16
 
-	def __init__(self, sourcePath, contentType=None):
-		self.sourcePath, self.contentType = sourcePath, contentType
-		if self.contentType is None:
-			self._guessContentType()
-		self._makeName()
-
-	def __call__(self, outFile):
-# XXX TODO: it was probably a bad idea to use __call__ for something like write.
-# Ah well.
-		f = open(self.sourcePath)
-		utils.cat(f, outFile)
-		f.close()
+	def __init__(self, sourceSpec, contentType):
+		self.sourceSpec, self.contentType = str(sourceSpec), str(contentType)
+		self.name = "invalid product"
 
 	def __str__(self):
-		return "<Product %s (%s)>"%(self.sourcePath, self.contentType)
+		return "<%s %s (%s)>"%(self.__class__.__name__,
+			self.sourceSpec, 
+			self.contentType)
 	
 	def __repr__(self):
 		return str(self)
 	
 	def __eq__(self, other):
 		return (isinstance(other, self.__class__) 
-			and self.sourcePath==other.sourcePath
+			and self.sourceSpec==other.sourceSpec
 			and self.contentType==other.contentType)
 	
 	def __ne__(self, other):
 		return not self==other
 
+	def iterData(self):
+		raise NotImplementedError("Internal error: %s products do not"
+			" implement iterData"%self.__class__.__name__)
+
+
+class FileProduct(ProductBase):
+	"""A product corresponding to a local file.
+
+	Mime types are guessed based on a class-local dictionary; this is done
+	so we don't depend on nevow here.  If nevow is available, we use its
+	static.File mechanism to deliver the data.
+	"""
+	def __init__(self, sourceSpec, contentType=None):
+		ProductBase.__init__(self, sourceSpec, contentType)
+		self.name = os.path.basename(self.sourceSpec)
+		if contentType is None:
+			contentType = self._guessContentType()
+	
+	def writeTo(self, outFile):
+		with open(self.sourceSpec) as f:
+			utils.cat(f, outFile)
+
+	# we probably should be using nevow.static's version of this for
+	# consistency, but the interface there is too cumbersome for now.
 	magicMap = {
 		".txt": "text/plain",
 		".fits": "image/fits",
@@ -79,111 +124,136 @@ class PlainProduct(object):
 
 	def _guessContentType(self):
 		"""fills the contentType attribute with a guess for the content type
-		inferred from sourcePath's extension.
+		inferred from sourceSpec's extension.
 		"""
 		self.contentType = "application/octet-stream"
-		if self.sourcePath is None:
+		if self.sourceSpec is None:
 			return
-		_, ext = os.path.splitext(self.sourcePath.lower())
-		self.contentType = self.magicMap.get(ext, self.contentType)
+		_, ext = os.path.splitext(self.sourceSpec.lower())
+		return self.magicMap.get(ext, self.contentType)
 
-	def _makeName(self):
-		self.name = os.path.basename(self.sourcePath)
+	def iterData(self):
+		with open(self.sourceSpec) as f:
+			data = f.read(self.chunkSize)
+			if data=="":
+				return
+			yield data
+
+	def renderHTTP(self, ctx):
+		request = inevow.IRequest(ctx)
+		request.setHeader("content-disposition", 'attachment; filename="%s"'%
+			str(self.name))
+		request.setLastModified(os.path.getmtime(self.sourceSpec))
+		res = static.File(self.sourceSpec)
+		# we set the type manually to avoid having different mime types
+		# by our and nevow's estimate.  This forces us to clamp encoding
+		# to None now.  I *guess* we should do something about .gz and .bz2
+		res.type = self.contentType
+		res.encoding = None
+		return res
 
 
-class UnauthorizedProduct(PlainProduct):
-	"""A class for sentinels signifying products that are protected.
+class UnauthorizedProduct(FileProduct):
+	"""A local file that is not delivered to the current client. 
 
-	You can read the data from the product without trouble, so you need
-	to make explicit isinstance calls.   The reason for this behaviour
-	is that previews on unauthorized products should be possible.
+	iterData returns the data for the benefit of preview making.
+	However, there is a renderHTTP method, so the product renderer will
+	not use it; it will, instead, raise an Authenticate exception.
 	"""
 	def __str__(self):
-		return "<Protected product %s, access denied>"%self.sourcePath
+		return "<Protected product %s, access denied>"%self.name
 
 	def __eq__(self, other):
 		return self.__class__==other.__class__
 	
+	def renderHTTP(self, ctx):
+		raise svcs.Authenticate(self.sourceSpec)
 
-class NonExistingProduct(PlainProduct):
-	"""A class for sentiels signifying products that don't exist.
+
+class NonExistingProduct(ProductBase):
+	"""A local file that went away.
+
+	iterData here raises an IOError, renderHTTP an UnknownURI.
 
 	These should normally yield 404s.
 	"""
+	def __init__(self, sourceSpec, contentType=None):
+		ProductBase.__init__(self, sourceSpec, contentType)
+		self.name = os.path.basename(sourceSpec)
+
 	def __str__(self):
-		return "<Non-existing product %s>"%self.sourcePath
+		return "<Non-existing product %s>"%self.name
 
 	def __eq__(self, other):
 		return self.__class__==other.__class__
 
-	def __call__(self, outFile):
-		raise svcs.UnknownURI(self.sourcePath)
+	def iterData(self):
+		raise IOError("%s does not exist"%self.sourceSpec)
+
+	def renderHTTP(self, ctx):
+		raise svcs.UnknownURI(self.sourceSpec)
 
 
-class RemoteProduct(PlainProduct):
+class RemoteProduct(ProductBase):
 	"""A class for products at remote sites, given by their URL.
 	"""
+	def __init__(self, sourceSpec, contentType):
+		ProductBase.__init__(self, sourceSpec, contentType)
+		self.name = urlparse.urlparse(sourceSpec).path.split("/")[-1] or "file"
+
 	def __str__(self):
-		return "<Remote %s at %s>"%(self.contentType, self.sourcePath)
+		return "<Remote %s at %s>"%(self.contentType, self.sourceSpec)
 	
 	def __eq__(self, other):
 		return (isinstance(other, self.__class__) 
-			and self.sourcePath==other.sourcePath)
-	
-	def __call__(self, outFile):
-		# This is really handled specially by the product renderer,
-		# but just in case, let's put something in so humans can
-		# still go on if things break
-		outFile.write("This should be a redirect to a %s file at\n%s\n"%(
-			self.contentType, self.sourcePath))
-		outFile.write("If you are reading this, there's something wrong,\n"
-			"and you're welcome to complain to the site you got this from.\n")
+			and self.sourceSpec==other.sourceSpec)
+
+	def iterData(self):
+		# this may block arbitrarily long -- try and use twisted's http
+		# client instead?
+		f = urllib.urlopen(self.sourceSpec)
+		while True:
+			data = f.read(self.chunkSize)
+			if data=="":
+				break
+			yield data
+
+	def renderHTTP(self, ctx):
+		raise svcs.WebRedirect(self.sourceSpec)
 
 
-class CutoutProduct(PlainProduct):
+class CutoutProduct(ProductBase):
 	"""A class representing cutouts from FITS files.
+	
+	This currently only works for local FITS files.  Objects are
+	constructed with the path to the full source and the cutout
+	parameters, a dictionary containing the keys ra, dec, sra, and sdec.
+
+	We assume the cutouts are smallish -- they are, right now, not
+	streamed, but accumulated in memory.
 	"""
-	def __init__(self, sourcePath, cutoutPars, contentType):
-		self.fullFilePath = sourcePath
+	def __init__(self, sourceSpec, cutoutPars, contentType):
+		ProductBase.__init__(self, sourceSpec, contentType)
+		self.name = "cutout-"+os.path.basename(self.sourceSpec)
 		self.cutoutPars = cutoutPars
-		PlainProduct.__init__(self, None, contentType)
 
 	def __str__(self):
-		return "<FITS cutout of %s, (%fx%f)>"%(sourcePath,
+		return "<FITS cutout of %s, (%fx%f)>"%(self.sourceSpec,
 			self.cutoutPars[2], self.cutoutPars[3])
 
 	def __eq__(self, other):
 		return (isinstance(other, self.__class__) 
-			and self.fullFilePath==other.fullFilePath
+			and self.sourceSpec==other.sourceSpec
 			and self.contentType==other.contentType
 			and self.cutoutPars==other.cutoutPars)
 	
-	def __call__(self, outFile):
-		if self.contentType!="image/fits":
-			raise NotImplementedError("Cannot generate cutouts for anything"
-				" but FITS yet.")
-		prog = base.getBinaryName(os.path.join(base.getConfig("inputsDir"),
-			"__system", "bin", "getfits"))
-		devnull = open("/dev/null", "w")
-		pipe = subprocess.Popen([prog]+self._computeGetfitsArgs(), self.chunkSize,
-			stdout=subprocess.PIPE, close_fds=True, stderr=devnull)
-		devnull.close()
-		while True:
-			data = pipe.stdout.read(self.chunkSize)
-			if not data:
-				break
-			outFile.write(data)
-		res = pipe.wait()
-		if res:
-			raise IOError("Broken pipe, return value %d"%res)
-
 	def _computeGetfitsArgs(self):
 		"""returns a list of command line arguments for getfits to cut out
 		the field specified in sqlPars from the image specified in item.
 		"""
 		ra, dec, sra, sdec = [self.cutoutPars[key] for key in 
 			["ra", "dec", "sra", "sdec"]]
-		f = open(self.fullFilePath)
+		f = open(self.sourceSpec)
 		header = fitstools.readPrimaryHeaderQuick(f)
 		ra, dec = float(ra), float(dec),
 		sra, sdec = float(sra), float(sdec),
@@ -193,8 +263,7 @@ class CutoutProduct(PlainProduct):
 			return min(header["NAXIS1"], max(0, x))
 		def clampY(y):
 			return min(header["NAXIS2"], max(0, y))
-		print [(ra+sra/2, dec+sdec/2), (ra-sra/2, dec+sdec/2),
-			(ra+sra/2, dec-sdec/2), (ra-sra/2, dec-sdec/2),]
+
 		corners = [getPixCoo(*args) for args in (
 			(ra+sra/2, dec+sdec/2), (ra-sra/2, dec+sdec/2),
 			(ra+sra/2, dec-sdec/2), (ra-sra/2, dec-sdec/2))]
@@ -202,32 +271,91 @@ class CutoutProduct(PlainProduct):
 
 		minX, maxX = clampX(min(xVals)), clampX(max(xVals))
 		minY, maxY = clampY(min(yVals)), clampY(max(yVals))
-		return ["-s", self.fullFilePath, 
+		return ["-s", self.sourceSpec, 
 			"%d-%d"%(minX, maxX), "%d-%d"%(minY, maxY)]
 
-	def _makeName(self):
-		self.name = "cutout-"+os.path.basename(self.fullFilePath)
+	def _getProcessParameters(self):
+		"""returns a pair of program name and program args to start the
+		actual cutout.
+		"""
+		if self.contentType!="image/fits":
+			raise NotImplementedError("Cannot generate cutouts for anything"
+				" but FITS yet.")
+		prog = base.getBinaryName(os.path.join(base.getConfig("inputsDir"),
+			"__system", "bin", "getfits"))
+		return prog, self._computeGetfitsArgs()
 
+	def iterData(self):
+		prog, args = self._getProcessParameters()
+		devnull = open("/dev/null", "w")
+		pipe = subprocess.Popen([prog]+args, self.chunkSize,
+			stdout=subprocess.PIPE, close_fds=True, stderr=devnull)
+		devnull.close()
+		while True:
+			data = pipe.stdout.read(self.chunkSize)
+			if not data:
+				break
+			yield data
+		res = pipe.wait()
+		if res:
+			raise IOError("Broken pipe, return value %d"%res)
 
-class ScaledProduct(PlainProduct):
+	def renderHTTP(self, ctx):
+		prog, args = self._getProcessParameters()
+		return svcs.runWithData(prog, "", args, swallowStderr=True
+			).addCallback(self._deliver, ctx)
+	
+	def _deliver(self, result, ctx):
+		request = inevow.IRequest(ctx)
+		request.setHeader("content-type", self.contentType)
+		request.setHeader("content-disposition", 'attachment; filename="%s"'%
+			str(self.name))
+		return str(result)
+		
+
+class ScaledProduct(ProductBase):
 	"""A class representing a scaled FITS file.
+
+	pars must be a dictionary containing at least one key, scale, pointing
+	to an int with a sensible scale.
+
+	Right now, this only works for local FITS files.
 	"""
-	def __init__(self, sourcePath, pars, contentType):
-		self.fullFilePath = sourcePath
+# TODO: should we use web.streaming resp. producer/consumer here?
+# If so: the product renderer should probably check if a product
+# implements a producer interface and the act accordingly.
+	def __init__(self, sourceSpec, pars, contentType):
 		self.scale = pars["scale"]
-		PlainProduct.__init__(self, None, contentType)
+		ProductBase.__init__(self, sourceSpec, contentType)
+		self.name = "scaled-"+os.path.basename(self.sourceSpec)
 
 	def __str__(self):
-		return "<Scaled version of %s>"%(self.fullFilePath)
+		return "<Scaled version of %s>"%(self.sourceSpec)
 
-	def __call__(self, outFile):
+	def iterData(self):
 		raise NotImplementedError("Cannot scale yet")
 		if contentType!="image/fits":
 			raise NotImplementedError("Cannot generate cutouts for anything"
 				" but FITS yet.")
 
-	def _makeName(self):
-		self.name = "scaled-"+os.path.basename(self.fullFilePath)
+	def renderHTTP(self, ctx):
+		request = inevow.IRequest(ctx)
+		request.setHeader("content-type", self.contentType)
+		return self._getDeferred(request, self.iterData())
+
+	def _getDeferred(self, request, iterator):
+		d = defer.Deferred()
+		reactor.callLater(0.01, d.callback)
+		d.addCallback(self._deliver, request, iterator)
+		return d
+
+	def _deliver(self, ignored, request, iterator):
+		try:
+			data = iterator.next()
+		except StopIteration:
+			return ""
+		request.write(data)
+		return _getDeferred(request, iterator)
 
 
 class ProductIterator(grammars.RowIterator):
@@ -238,7 +366,7 @@ class ProductIterator(grammars.RowIterator):
 	the DB are turned into NonExistingProducts.
 	"""
 	def _makeProductForKey(self, fatKey, dbRow):
-		"""returns the proper PlainProduct subclass for a FatProductKey
+		"""returns the proper ProductBsse subclass for a FatProductKey
 		and its corresponding product table row.
 		"""
 		path = dbRow["accessPath"]
@@ -251,7 +379,7 @@ class ProductIterator(grammars.RowIterator):
 		elif fatKey.isScaled():
 			rsc = ScaledProduct(sourcePath, fatKey.params, dbRow["mime"])
 		else:
-			rsc = PlainProduct(sourcePath, dbRow["mime"])
+			rsc = FileProduct(sourcePath, dbRow["mime"])
 		if dbRow["embargo"] is not None and dbRow["embargo"]>self.grammar.now:
 			if dbRow["owner"] not in self.grammar.groups:
 				rsc = UnauthorizedProduct(sourcePath)
@@ -278,7 +406,7 @@ class ProductsGrammar(grammars.Grammar):
 	The FatProductRecords must have their product table rows in 
 	productsRow attributes (ProductCore.addFSSources does that).
 
-	Product objects are instances of PlainProduct or derived classes.
+	Product objects are instances of classes derived from ProductBase.
 	"""
 	rowIterator = ProductIterator
 

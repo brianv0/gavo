@@ -126,7 +126,6 @@ class FatProductTest(testhelpers.VerboseTest):
 
 
 class ProductsCoreTest(_TestWithProductsTable):
-
 	def _getProductFor(self, accref, moreFields={}):
 		inData = {"accref": products.FatProductKey.fromString(accref)}
 		inData.update(moreFields)
@@ -137,23 +136,26 @@ class ProductsCoreTest(_TestWithProductsTable):
 		return rows[0]["source"]
 
 	def _getOutput(self, prod):
-		outF = StringIO()
-		prod(outF)
-		return outF.getvalue()
+		return "".join(prod.iterData())
 
 	def testBasic(self):
 		res = self._getProductFor("data/b.imp")
-		self.failUnless(isinstance(res, products.PlainProduct))
+		self.failUnless(isinstance(res, products.FileProduct))
 		self.failUnless(self._getOutput(res).startswith(
 			"alpha: 03 34 33.45"))
 
 	def testNonExistingProduct(self):
 		res = self._getProductFor("junk/kotter")
 		self.failUnless(isinstance(res, products.NonExistingProduct))
-		self.assertRaisesWithMsg(svcs.UnknownURI,
-			"junk/kotter",
+		self.assertRaisesWithMsg(IOError,
+			"junk/kotter does not exist",
 			self._getOutput,
 			(res,))
+		self.assertRaisesWithMsg(svcs.UnknownURI,
+			"junk/kotter",
+			res.renderHTTP,
+			(None,))
+
 
 	def testProtectedProductUnauth(self):
 		res = self._getProductFor("data/a.imp")
@@ -171,7 +173,7 @@ class ProductsCoreTest(_TestWithProductsTable):
 	def testProtectedAuth(self):
 		res = self._getProductFor("data/a.imp",
 			{"user": "X_test", "password": "megapass"})
-		self.failUnless(isinstance(res, products.PlainProduct))
+		self.failUnless(isinstance(res, products.FileProduct))
 		self.failUnless(self._getOutput(res).startswith(
 			"alpha: 23 34 33.45"))
 
@@ -179,7 +181,10 @@ class ProductsCoreTest(_TestWithProductsTable):
 		with tresc.prodtestTable.prodtblRow(accessPath="http://foo.bar"):
 			res = self._getProductFor("just.testing/nowhere")
 			self.failUnless(isinstance(res, products.RemoteProduct))
-			self.failUnless("http://foo.bar" in self._getOutput(res))
+			self.assertRaisesWithMsg(svcs.WebRedirect,
+				"This is supposed to redirect to http://foo.bar",
+				res.renderHTTP,
+				(None,))
 
 	def testScaledProduct(self):
 		res = self._getProductFor("data/b.imp&scale=3")
@@ -196,8 +201,6 @@ class ProductsCoreTest(_TestWithProductsTable):
 			"Cannot generate cutouts for anything but FITS yet.",
 			self._getOutput, 
 			(res,))
-
-
 
 
 if __name__=="__main__":
