@@ -509,7 +509,7 @@
 					if "/" in val:
 						raise base.ValidationError("No ranges allowed here",
 							colName="FORMAT")
-					sel = pql.PQLPar.fromLiteral(val, "FORMAT").getValuesAsSet()
+					sel = pql.PQLPar.fromLiteral(val.lower(), "FORMAT").getValuesAsSet()
 
 					if "all" in sel:
 						return  # No constraints

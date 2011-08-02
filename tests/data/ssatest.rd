@@ -1,5 +1,5 @@
 <resource schema="test" resdir=".">
-	<table id="hcdtest" onDisk="True" primary="ssa_pubDID">
+	<table id="hcdtest" onDisk="True" primary="accref">
 		<meta name="description">A boring and pointless test table</meta>
 		<mixin 
 			instrument="DaCHS test suite" 
@@ -17,6 +17,16 @@
 			<rowfilter procDef="//products#define">
 				<bind name="table">"\schema.hcdtest"</bind>
 				<bind name="mime">@mime</bind>
+			</rowfilter>
+			<rowfilter>
+				<code>
+					yield row
+					baseAccref = row["prodtblPath"]
+					row["prodtblAccref"] = baseAccref+".vot"
+					row["prodtblPath"] = "dcc://data.ssatest/mksdm?"+baseAccref
+					row["prodtblMime"] = "application/x-votable+xml"
+					yield row
+				</code>
 			</rowfilter>
 		</keyValueGrammar>
 		<make table="hcdtest" role="primary">
@@ -39,25 +49,23 @@
 		<mixin ssaTable="hcdtest">//ssap#sdm-instance</mixin>
 	</table>
 
-	<service id="sdm" allowed="sdm">
-		<sdmCore queriedTable="hcdtest">
-			<data>
-				<embeddedGrammar>
-					<iterator>
-						<code>
-							for i in range(20):
-								yield {"spectral": 3000+i, "flux": 30-i}
-						</code>
-					</iterator>
-				</embeddedGrammar>
-				<make table="spectrum">
-					<parmaker>
-						<apply procDef="//ssap#feedSSAToSDM"/>
-					</parmaker>
-				</make>
-			</data>
-		</sdmCore>
-	</service>
+	<sdmCore id="mksdm" queriedTable="hcdtest">
+		<data>
+			<embeddedGrammar>
+				<iterator>
+					<code>
+						for i in range(20):
+							yield {"spectral": 3000+i, "flux": 30-i}
+					</code>
+				</iterator>
+			</embeddedGrammar>
+			<make table="spectrum">
+				<parmaker>
+					<apply procDef="//ssap#feedSSAToSDM"/>
+				</parmaker>
+			</make>
+		</data>
+	</sdmCore>
 
 	<service id="s">
 		<ssapCore queriedTable="hcdtest" id="foocore">

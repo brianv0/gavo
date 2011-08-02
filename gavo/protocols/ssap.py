@@ -208,7 +208,13 @@ class SDMCore(svcs.Core):
 		resData.getPrimaryTable().setMeta("description",
 			"Spectrum from %s"%products.makeProductLink(accref))
 
+		votContextArgs = {}
+		if queryMeta["tdEnc"]:
+			votContextArgs["tablecoding"] = "td"
+
 		if inputTable.getParam("dm")=="sed":
 			hackSDMToSED(resData)
-		return resData
+			votContextArgs["tablecoding"] = "td"
 
+		return ("application/x-votable+xml",
+			votable.asString(makeSDMVOT(resData, **votContextArgs)))

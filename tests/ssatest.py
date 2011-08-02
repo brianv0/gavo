@@ -6,10 +6,12 @@ import datetime
 import re
 
 from gavo import api
+from gavo import base
 from gavo import svcs
 from gavo import votable
 from gavo.formats import votablewrite
 from gavo.helpers import testhelpers
+from gavo.protocols import products
 from gavo.protocols import ssap
 from gavo.utils import DEG, ElementTree
 from gavo.web import vodal
@@ -68,15 +70,14 @@ class _WithSSATableTest(testhelpers.VerboseTest):
 
 
 class ImportTest(_WithSSATableTest):
-	def setUp(self):
-		_WithSSATableTest.setUp(self)
-		self.row1 = self.ssaTable.getRow("ivo://test.inv/test1")
 
 	def testImported(self):
-		self.assertEqual(self.row1["ssa_dstitle"], "test spectrum 1")
+		row = self.ssaTable.getRow("data/spec1.ssatest")
+		self.assertEqual(row["ssa_dstitle"], "test spectrum 1")
 	
 	def testLocation(self):
-		self.assertAlmostEqual(self.row1["ssa_location"].x, 10.1*DEG)
+		row = self.ssaTable.getRow("data/spec1.ssatest")
+		self.assertAlmostEqual(row["ssa_location"].x, 10.1*DEG)
 
 
 class CoreQueriesTest(_WithSSATableTest):
@@ -92,25 +93,25 @@ class CoreQueriesTest(_WithSSATableTest):
 			set(ids))
 
 	samples = [
-		({"POS": "10,+15", "SIZE": "0.5"},
+		({"POS": "10,+15", "SIZE": "0.5", "FORMAT": "votable"},
 			["test1"]),
-		({"POS": "10,+15", "SIZE": "2"},
+		({"POS": "10,+15", "SIZE": "2", "FORMAT": "votable"},
 			["test1", "test2"]),
-		({"BAND": "/4.5e-7,6.5e-7/"},
+		({"BAND": "/4.5e-7,6.5e-7/", "FORMAT": "votable"},
 			["test1", "test3"]),
-		({"BAND": "4.5e-7/7.5e-7"},
+		({"BAND": "4.5e-7/7.5e-7", "FORMAT": "votable"},
 			["test1", "test2", "test3"]),
-		({"BAND": "U"},
+		({"BAND": "U", "FORMAT": "votable"},
 			[]),
 #5
-		({"BAND": "V,R"},
+		({"BAND": "V,R", "FORMAT": "votable"},
 			["test2", "test3"]),
-		({"TIME": "/2020-12-20T13:00:01"},
+		({"TIME": "/2020-12-20T13:00:01", "FORMAT": "votable"},
 			["test1"]),
 		({"FORMAT": "votable"},
-			["test2"]),
+			["test1", "test2", "test3"]),
 		({"FORMAT": "compliant"},
-			["test2"]),
+			["test1", "test2", "test3"]),
 		({"FORMAT": "native"},
 			["test3"]),
 #10
@@ -118,7 +119,7 @@ class CoreQueriesTest(_WithSSATableTest):
 			[]),
 		({"FORMAT": "all"},
 			["test1", "test2", "test3"]),
-		({"FORMAT": "all"},
+		({"FORMAT": "ALL"},
 			["test1", "test2", "test3"]),
 		({"TARGETNAME": "booger star,rat hole in the yard"},
 			["test2", "test3"]),
@@ -136,7 +137,7 @@ class CoreQueriesTest(_WithSSATableTest):
 
 class CoreNullTest(_WithSSATableTest):
 # make sure empty parameters of various types are just ignored.
-	totalRecs = 3
+	totalRecs = 6
 
 	def _getNumMatches(self, inDict):
 		inDict["REQUEST"] = "queryData"
@@ -173,7 +174,7 @@ class MetaKeyTest(_WithSSATableTest):
 		aMinuteAgo = datetime.datetime.utcnow()-datetime.timedelta(seconds=60)
 		res = getRD().getById("s").runFromDict(
 			{"REQUEST": "queryData", "MTIME": "%s/"%aMinuteAgo}, "ssap.xml")
-		self.assertEqual(len(res.original.getPrimaryTable()), 3)
+		self.assertEqual(len(res.original.getPrimaryTable()), 6)
 
 	def testMTIMEExclusion(self):
 		aMinuteAgo = datetime.datetime.utcnow()-datetime.timedelta(seconds=60)
@@ -291,25 +292,33 @@ class SSATableTest(testhelpers.VerboseTest):
 
 
 class SDMRenderTest(testhelpers.VerboseTest):
-# When moving to products creation from the SDM renderer, *port*
-# these tests rather than removing them.
 	resources = [("ssatable", _ssaTable)]
 
 	def testUnknownURI(self):
+		pk = products.FatProductKey.fromString(
+			"dcc://data.ssatest/mksdm?data/ssatest/foobar")
+		pk.productsRow = {
+			"embargo": None, 
+			"accref": "data/ssatest/foobar",
+			"accessPath": "dcc://data.ssatest/mksdm?foobar",
+			"mime": "application/fits"}
+		prod = list(base.makeStruct(products.ProductsGrammar, groups=[]
+			).parse([pk]))[0]["source"]
+		self.assertEqual(prod.name, "foobar")
+		self.assertEqual(prod.core, getRD().getById("mksdm"))
 		self.assertRaisesWithMsg(
 			svcs.UnknownURI,
 			"No spectrum with accref foobar known here",
-			getRD().getById("sdm").runFromDict,
-			({"accref": "foobar"}, "sdm"))
+			list,
+			(prod.iterData(),))
 
 
 class _RenderedSDMResponse(testhelpers.TestResource):
 	resources = [("ssatable", _ssaTable)]
 
 	def make(self, deps):
-		res = getRD().getById("sdm").runFromDict(
-			{"accref": "data/spec1.ssatest"}, "sdm").original
-		rawVOT = votable.asString(ssap.makeSDMVOT(res, tablecoding="td"))
+		rawVOT = "".join(products.getProductForAccref(
+			"data/spec1.ssatest.vot").iterData(svcs.QueryMeta({"_TDENC": True})))
 		return rawVOT, testhelpers.getXMLTree(rawVOT)
 
 
@@ -366,9 +375,9 @@ class _RenderedSEDResponse(testhelpers.TestResource):
 	resources = [("ssatable", _ssaTable)]
 
 	def make(self, deps):
-		res = getRD().getById("sdm").runFromDict(
-			{"accref": "data/spec1.ssatest", "dm": "sed"}, "sdm").original
-		rawVOT = votable.asString(ssap.makeSDMVOT(res, tablecoding="td"))
+		rawVOT = "".join(products.getProductForAccref(
+			"data/spec1.ssatest.vot&dm=sed",
+			).iterData(svcs.QueryMeta({"_TDENC": True})))
 		return rawVOT, testhelpers.getXMLTree(rawVOT)
 
 
@@ -384,7 +393,6 @@ class SEDTableTest(testhelpers.VerboseTest):
 		self.assertEqual(votRes.get("utype"), "sed:SED")
 		table = votRes.xpath("//TABLE")[0]
 		self.assertEqual(table.get("utype"), "sed:Segment")
-
 
 	def testSpectUtype(self):
 		spectField = self.stringAndTree[1].xpath("//FIELD[@name='spectral']")[0]

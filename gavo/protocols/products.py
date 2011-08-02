@@ -29,6 +29,7 @@ import urlparse
 
 from nevow import inevow
 from nevow import static
+from twisted.internet import threads
 from zope.interface import implements
 
 from gavo import base
@@ -56,15 +57,11 @@ class ProductBase(object):
 	without a path).
 
 	The iterData method has to yield reasonable-sized chunks of data
-	(self.chunkSize should be a good choice).
-
-	The getSize method returns either the *exact* size of the byte stream 
-	(suitable for content-length) or None.
+	(self.chunkSize should be a good choice).  It must be synchronuous.
 
 	Products usually are used as nevow resources.  Therefore, they
-	have a renderHTTP method.  You should not in general need to override it.
-	It uses writeTo to generate the content, and getSize to figure out
-	a size if possible.
+	must have a renderHTTP method.  This must be asynchronuous, i.e., it
+	should not block for extended periods of time.
 	"""
 	implements(inevow.IResource)
 
@@ -358,6 +355,61 @@ class ScaledProduct(ProductBase):
 		return _getDeferred(request, iterator)
 
 
+class DCCProduct(ProductBase):
+	"""A class representing a product returned by a DC core.
+
+	These products are constructed with product table rows and the URL paramters.
+	The source path must have the form dcc://<rd.id>/<core id>?<accref>;
+	rd.id is the rd id with slashes replaced by dots.  This means this
+	scheme doesn't work for RDs with ids containing dots, but you shouldn't
+	to that in the first place.
+
+	(where accref is just an opaque string that does not necessarily match
+	the product's accref, but probably will in most cases).
+
+	The context grammar receives a dictionary with the param dict, plus
+	the accref.  The core must return an actual mime type and a string.
+	
+	See SDMCore for an example for how this can work.
+	"""
+	def __init__(self, tableRow, params):
+		ProductBase.__init__(self, tableRow["accessPath"], tableRow["mime"])
+		self.params = params
+		self.name = os.path.basename(tableRow["accref"])
+		self._parseSourceSpec()
+	
+	def _parseSourceSpec(self):
+		# The scheme is manually handled to shoehorn urlparse into supporting
+		# queries (and, potentially, fragments)
+		if not self.sourceSpec.startswith("dcc:"):
+			raise svcs.UnknownURI("DCC products can only be generated for dcc"
+				" URIs")
+		res = urlparse.urlparse(self.sourceSpec[4:])
+		self.core = base.caches.getRD(
+			res.netloc.replace(".", "/")).getById(res.path.lstrip("/"))
+		self.accref = res.query
+
+	def iterData(self, queryMeta=svcs.emptyQueryMeta):
+		inData = self.params.copy()
+		inData["accref"] = self.accref
+		inputTable = rsc.TableForDef(self.core.inputTable)
+		inputTable.setParams(inData, raiseOnBadKeys=False)
+		self.contentType, data = self.core.run(self, inputTable, queryMeta)
+		yield data
+	
+	def renderHTTP(self, ctx):
+		return thread.deferToThread(self.iterData, 
+			svcs.QueryMeta.fromContext(ctx)
+		).addCallback(self._deliver, ctx)
+	
+	def _deliver(self, resultIterator, ctx):
+		request = inevow.IRequest(ctx)
+		request.setHeader("content-type", self.contentType)
+		request.setHeader("content-disposition", 'attachment; filename="%s"'%
+			str(self.name))
+		return "".join(resultIterator)
+
+	
 class ProductIterator(grammars.RowIterator):
 	"""A RowIterator turning FatProductKeys to Products.
 
@@ -369,20 +421,23 @@ class ProductIterator(grammars.RowIterator):
 		"""returns the proper ProductBsse subclass for a FatProductKey
 		and its corresponding product table row.
 		"""
+		if dbRow["embargo"] is not None and dbRow["embargo"]>self.grammar.now:
+			if dbRow["owner"] not in self.grammar.groups:
+				return UnauthorizedProduct(dbRow["accref"])
+
 		path = dbRow["accessPath"]
 		if path.startswith("http://"):
 			return RemoteProduct(path, dbRow["mime"])
+		elif path.startswith("dcc://"):
+			return DCCProduct(dbRow, fatKey.params)
 
 		sourcePath = os.path.join(base.getConfig("inputsDir"), path)
 		if fatKey.isCutout():
-			rsc = CutoutProduct(sourcePath, fatKey.params, dbRow["mime"])
+			return CutoutProduct(sourcePath, fatKey.params, dbRow["mime"])
 		elif fatKey.isScaled():
-			rsc = ScaledProduct(sourcePath, fatKey.params, dbRow["mime"])
+			return ScaledProduct(sourcePath, fatKey.params, dbRow["mime"])
 		else:
-			rsc = FileProduct(sourcePath, dbRow["mime"])
-		if dbRow["embargo"] is not None and dbRow["embargo"]>self.grammar.now:
-			if dbRow["owner"] not in self.grammar.groups:
-				rsc = UnauthorizedProduct(sourcePath)
+			return FileProduct(sourcePath, dbRow["mime"])
 		return rsc
 
 	def _iterRows(self):
@@ -403,7 +458,7 @@ class ProductsGrammar(grammars.Grammar):
 	"""A grammar for "parsing" annotated FatProductKeys to Product
 	objects.
 
-	The FatProductRecords must have their product table rows in 
+	The FatProductKeys must have their product table rows in 
 	productsRow attributes (ProductCore.addFSSources does that).
 
 	Product objects are instances of classes derived from ProductBase.
@@ -515,6 +570,7 @@ class FatProductKey(object):
 	"""
 	_buildKeys = (
 		("key", str), 
+		("dm", str), 
 		("ra", float),
 		("dec", float),
 		("sra", float),
@@ -604,6 +660,19 @@ class FatProductKey(object):
 
 	def isScaled(self):
 		return self.params.get("scale", 1)!=1
+
+
+def getProductForAccref(accref, **prodParams):
+	"""returns a product for accref.
+
+	This is a convenience method for tests or similar, reproducing
+	basically much of what the product renderer does web-facing.
+	"""
+	prodParams.update({"accref": accref})
+	prodSvc = base.caches.getRD("//products").getById("p")
+	svcRes = prodSvc.runFromDict(prodParams, "get",
+		svcs.QueryMeta(prodParams))
+	return svcRes.original.getPrimaryTable().rows[0]["source"]
 
 
 @utils.document
