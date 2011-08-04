@@ -478,13 +478,6 @@ class ProductCore(svcs.DBCore):
 	You will not usually mention this core in your RDs.  It is mainly
 	used internally to serve /getproduct queries.
 
-	It does:
-
-	- the actual query, 
-	- access validation (i.e., makes sure the user has access to the product), 
-	- cutout processing (via a special construct deferring cutouts until they
-		are needed)
-
 	It is instanciated from within //products.rd and relies on
 	certain features in there.
 
@@ -493,6 +486,14 @@ class ProductCore(svcs.DBCore):
 	accref param is the normal way if you just want to retrieve a
 	single image, the table case is for building tar files and such.
 	There is one core instance in //products for each case.
+
+	The core returns a table containing rows with the single column source.
+	Each contains a subclass of ProductBase above.
+
+	All this is so complicated because special processing may take place
+	(user autorisation, cutouts, ...) but primarily because we wanted
+	the tar generation to use this core.  Looking at the mess that's caused
+	suggests that probably was the wrong decision.
 	"""
 	name_ = "productCore"
 

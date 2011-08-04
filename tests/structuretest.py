@@ -51,12 +51,14 @@ class PalCollection(structure.ParseableStructure):
 
 class Image(structure.ParseableStructure):
 	name_ = "image"
-	_pal = base.ReferenceAttribute("pal", forceType=Palette)
+	_pal = base.ReferenceAttribute("pal", forceType=Palette, copyable=True)
+	_orig = base.OriginalAttribute()
 
 class Root(structure.ParseableStructure):
 	name_ = "root"
-	_ims = base.StructListAttribute("ims", childFactory=Image)
-	_pals = base.StructListAttribute("pals", childFactory=Palette)
+	_ims = base.StructListAttribute("ims", childFactory=Image, copyable=True)
+	_pals = base.StructListAttribute("pals", childFactory=Palette, 
+		copyable=True)
 
 
 class SimpleStructureTest(unittest.TestCase):
@@ -379,5 +381,31 @@ class MultiTest(testhelpers.VerboseTest):
 		self.assertEqual(res.arg.r, 2)
 
 
+class IterEventsTest(testhelpers.VerboseTest):
+	def testNamedRef(self):
+		# see testImmediateRef for the counterpart where there's not
+		# actually a reference to be filled
+		stuff = base.parseFromString(Root, '<root>'
+			'<pal id="pal1"><color r="20"/></pal>'
+			'<image pal="pal1"/></root>')
+		self.failUnless(('value', 'pal', 'pal1') in list(stuff.iterEvents()))
+
+# See commented-out parsecontext.ReferenceAttribute.iterEvents
+#	def testImmediateRef(self):
+#		stuff = base.parseFromString(Root, '<root>'
+#			'<image><pal id="pal1"><color r="20"/></pal></image></root>')
+#		# make sure the pal element is present (rather than a bogus reference)
+#		self.failUnless(('start', 'pal', None) in 
+#			list(stuff.iterEvents()))
+	
+	def testNamedRefCopied(self):
+		stuff = base.parseFromString(Root, '<root>'
+			'<pal id="pal1"><color r="20"/></pal>'
+			'<image id="im1" pal="pal1"/><image original="im1"/></root>')
+		self.assertEqual(
+			list(stuff.iterEvents()).count(('value', 'pal', 'pal1')),
+			2)
+
+
 if __name__=="__main__":
-	testhelpers.main(MultiTest)
+	testhelpers.main(IterEventsTest)

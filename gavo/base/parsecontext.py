@@ -262,6 +262,36 @@ class ReferenceAttribute(attrdef.AtomicAttribute):
 		else:
 			return self.forceType
 
+	def unparse(self, value):
+		if value is None:  # ref attribute was empty
+			return None
+		if hasattr(value, "qualifiedId"):
+			return value.qualifiedId
+		else: # See HACK notice in feed
+			setattr(value, "unparse-approved-anonymous", True)
+			return value
+
+# Since ReferenceAttributes can now contain immediate elements,
+# just returning an id (as happens by default) may not be enough
+# for serialization -- the immediate object is nowhere else.
+#  We could fix that using something like this, at the expense
+# of unrolling all the elements.  We don't do much DC structure
+# serialization, and thus I believe it's just not worth it.
+#	def iterEvents(self, instance):
+#		# This needs a special iterEvents to actually return embedded
+#		# structures if necessary
+#		val = getattr(instance, self.name_)
+#		if val==self.default_:
+#			return
+#	
+#		if hasattr(val, "_RefAttrImmediate"):
+#			yield ("start", self.name_, None)
+#			for ev in val.iterEvents():
+#				yield ev
+#			yield ("end", self.name_, None)
+#		else:
+#			yield ("value", self.name_, self.unparse(val))
+
 	def feed(self, ctx, instance, literal):
 		if literal is None: # ref attribute empty during a copy
 			return            # do nothing, since nothing was ref'd in original
@@ -276,15 +306,6 @@ class ReferenceAttribute(attrdef.AtomicAttribute):
 			self.feedObject(instance,
 				resolveId(ctx, literal, instance, self._getForceType(instance)))
 
-	def unparse(self, value):
-		if value is None:  # ref attribute was empty
-			return None
-		if hasattr(value, "qualifiedId"):
-			return value.qualifiedId
-		else: # See HACK notice in feed
-			setattr(value, "unparse-approved-anonymous", True)
-			return value
-
 	def _makeChild(self, name, parent):
 		"""returns a new element of the appropriate type.
 
@@ -298,7 +319,11 @@ class ReferenceAttribute(attrdef.AtomicAttribute):
 				" you tried to replace a reference to an element with"
 				" the element itself.  This is only allowed if the reference"
 				" forces a type, which is not the case here.")
-		return self._getForceType(parent)(parent)
+		child = self._getForceType(parent)(parent)
+		# leave a sentinel in the child that will later let us
+		# iterEvents not the id but the struct itself.
+		child._RefAttrImmediate = True
+		return child
 
 	def create(self, structure, ctx, name):
 		# we don't know at this point whether or not the next event will be
