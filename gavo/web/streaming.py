@@ -30,8 +30,8 @@ class StreamBuffer(object):
 
 	When everything is written, you must all doneWriting.
 	"""
-	chunkSize = 10000 # XXX TODO: Figure out a good chunk size for the
-	                  # network stack
+	chunkSize = 100000 # XXX TODO: Figure out a good chunk size for the
+	                   # network stack
 
 	def __init__(self):
 		self.buffer = collections.deque()
@@ -47,6 +47,8 @@ class StreamBuffer(object):
 	def get(self):
 		if self.curSize<self.chunkSize and not self.finished:
 			return None
+		if not self.buffer:
+			return None
 
 		with self.lock:
 			items, sz = [], 0
@@ -61,11 +63,11 @@ class StreamBuffer(object):
 
 			# make a chunk and push back what we didn't need
 			chunk = "".join(items)
-			if not self.finished:
-				leftOver = chunk[self.chunkSize:]
+			leftOver = chunk[self.chunkSize:]
+			if leftOver:
 				self.buffer.appendleft(leftOver)
-				self.curSize += len(leftOver)
-				chunk = chunk[:self.chunkSize]
+			self.curSize += len(leftOver)
+			chunk = chunk[:self.chunkSize]
 
 		return chunk
 	
@@ -120,7 +122,7 @@ class DataStreamer(threading.Thread):
 		data is there.
 
 		This must be called at least once after buffer.doneWriting()
-		as beed called.
+		as been called.
 		"""
 		while True:
 			data = self.buffer.get()
@@ -130,7 +132,7 @@ class DataStreamer(threading.Thread):
 				# consumer has requested a pause; let's busy-loop;
 				# doesn't cost much and is easier than semaphores.
 				time.sleep(0.1)
-			return reactor.callFromThread(self._writeToConsumer, data)
+			reactor.callFromThread(self._writeToConsumer, data)
 
 	def write(self, data):
 		"""schedules data to be written to the consumer.
