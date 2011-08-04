@@ -29,6 +29,7 @@ functions = [
 	("import", ("user.importing", "main")),
 	("info", ("user.info", "main")),
 	("mkboost", ("grammars.directgrammar", "main")),
+	("mkrd", ("user.mkrd", "main")),
 	("publish", ("registry.publication", "main")),
 	("raise", ("user.errhandle", "bailOut")),
 	("serve", ("user.serve", "main")),

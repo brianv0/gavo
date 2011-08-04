@@ -264,26 +264,30 @@ class DataDescriptor(base.Structure, base.MetaMixin):
 	_rowmakers = base.StructListAttribute("rowmakers",
 		childFactory=rmkdef.RowmakerDef, 
 		description="Embedded build rules (usually rowmakers are defined toplevel)",
-		copyable=True)
+		copyable=True,
+		before="makes")
 
 	_tables = base.StructListAttribute("tables",
 		childFactory=tabledef.TableDef, 
 		description="Embedded table definitions (usually, tables are defined"
 			" toplevel)", 
-		copyable=True)
+		copyable=True,
+		before="makes")
 
 	_grammar = base.MultiStructAttribute("grammar", 
 		default=None,
 		childFactory=builtingrammars.getGrammar,
 		childNames=builtingrammars.GRAMMAR_REGISTRY.keys(),
 		description="Grammar used to parse this data set.", 
-		copyable=True)
+		copyable=True,
+		before="makes")
 	
 	_sources = base.StructAttribute("sources", 
 		default=None, 
 		childFactory=SourceSpec,
 		description="Specification of sources that should be fed to the grammar.",
-		copyable=True)
+		copyable=True,
+		before="grammar")
 
 	_dependents = base.ListOfAtomsAttribute("dependents",
 		itemAttD=base.UnicodeAttribute("recreateAfter"),

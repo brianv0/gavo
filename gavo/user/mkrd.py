@@ -150,16 +150,27 @@ def makeDataForFITS(rd, srcName, opts):
 
 
 def makeTableFromVOTable(rd, srcName, opts):
-	rawTable = votable.parse(srcName).next().tableDefinition
+	rawTable = votable.parse(open(srcName)).next()
 	return votableread.makeTableDefForVOTable(opts.tableName, 
-		tableDefinition, {}, onDisk=True)
+		rawTable.tableDefinition, onDisk=True)
 
 
 def makeDataForVOTable(rd, srcName, opts):
+	rowmaker = MS(rscdef.RowmakerDef, id="makerows_"+opts.tableName,
+		idmaps="*")
+
+	# The qualifiedId monkeying is necessary since otherwise the
+	# ReferenceAttribute.unparse thinks it's ok to return the objects raw.
+	# Face it: I've not really had serialization in mind when writing all
+	# this.
+	rowmaker.qualifiedId = rowmaker.id
+	rd.tables[0].qualifiedId = rd.tables[0].id
+
 	return MS(rscdef.DataDescriptor,
 		grammar=MS(rscdef.getGrammar("voTableGrammar")),
 		sources=MS(rscdef.SourceSpec, pattern=srcName),
-		makes=[MS(rscdef.Make, table=rd.tables[0])])
+		rowmaker=rowmaker,
+		makes=[MS(rscdef.Make, table=rd.tables[0], rowmaker=rowmaker)])
 
 
 tableMakers = {
@@ -205,7 +216,7 @@ def parseCommandLine():
 		elif ext==".fits":
 			opts.srcForm = "FITS"
 		else:
-			sys.stderr.write("Cannot guess format: %s"%args[0])
+			sys.stderr.write("Cannot guess format, use -f option: %s\n"%args[0])
 			parser.print_help()
 			sys.exit(1)
 	return opts, args
