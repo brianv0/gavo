@@ -91,7 +91,7 @@ class DBIndex(base.Structure):
 		DBTable object the index possibly exists on.
 		"""
 		iName = self.parent.expand(self.dbname)
-		if querier.hasIndex(parent.getQName(), iName):
+		if querier.hasIndex(self.parent.getQName(), iName):
 			querier.query("DROP INDEX %s.%s"%(self.tableDef.rd.schema, iName))
 
 	@property

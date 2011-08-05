@@ -185,11 +185,13 @@ class ProductRenderer(grend.ServiceBasedPage):
 	will not use this in user RDs.
 	"""
 	name = "get"
+	pathFromSegments = ""
 
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
 		try:
-			data = {"accref": products.FatProductKey.fromRequest(request)}
+			data = {"accref": 
+				products.RAccref.fromRequest(self.pathFromSegments, request)}
 		except base.NotFoundError:
 			raise base.ui.logOldExc(svcs.UnknownURI("No product specified"))
 		return self.runServiceWithContext(data, ctx
@@ -208,12 +210,13 @@ class ProductRenderer(grend.ServiceBasedPage):
 
 	def locateChild(self, ctx, segments):
 		if segments:
-			inevow.IRequest(ctx).args["key"] = "/".join(segments)
+			self.pathFromSegments = "/".join(segments)
 		return self, ()
 
 
-
 class SDMRenderer(grend.ServiceBasedPage):
+# THIS WAS A TEMPORARY HACK.  It's not used in new code.  Remove it
+# and the reference to it from svc.cores about 2011-09
 	"""A renderer that makes VOTables from SDM-like tables as generated
 	by sdmCores.
 
@@ -235,25 +238,11 @@ class SDMRenderer(grend.ServiceBasedPage):
 		from gavo import votable
 		from gavo.protocols import ssap
 
+		mime, payload = result.original
+
 		request = inevow.IRequest(ctx)
-		request.setHeader("content-type", "application/x-votable+xml")
+		request.setHeader("content-type", mime)
 		request.setHeader('content-disposition', 
 			'attachment; filename=spec.vot')
 
-		votContextArgs, streamStuff = {}, True
-		# Specview doesn't know binary encoded VOTables; it doesn't
-		# give useful user agent headers, either, so we have to
-		# guess.  Also, specview wants SED tables rather than
-		# SDM, so we're forcing that if the core hasn't noticed.
-		userAgent = request.received_headers.get("user-agent", "")
-		if userAgent.startswith("Mozilla/4.0") and "Java" in userAgent:
-			votContextArgs["tablecoding"] = "td"
-			if base.getMetaText(result.original, "utype", default=None)!="sed:SED":
-				ssap.hackSDMToSED(result.original)
-
-		vot = ssap.makeSDMVOT(result.original, **votContextArgs)
-
-		def writeData(f):
-			votable.write(vot, f)
-
-		return streaming.streamOut(writeData, request)
+		return payload

@@ -89,7 +89,7 @@ class ProductMapperTest(MapperTest):
 	def _runTest(self, sample):
 		colDef, prodName, encoded = sample
 		colDef = colDef+' type="text">'
-		prodLink = "http://localhost:8080/getproduct?key="+encoded
+		prodLink = "http://localhost:8080/getproduct/"+encoded
 		self.assertMapsTo(colDef, prodName, prodLink)
 	
 	samples = [
@@ -102,7 +102,7 @@ class ProductMapperTest(MapperTest):
 			"gobba", "gobba"),
 		('name="accref"',
 			"wierdo+name/goes somewhere&is/bad",
-			"wierdo%2Bname%2Fgoes+somewhere%26is%2Fbad"),
+			"wierdo%2Bname/goes%20somewhere%26is/bad"),
 		]
 
 

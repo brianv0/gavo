@@ -3,6 +3,7 @@ Tests for the products infrastructure.
 """
 
 from cStringIO import StringIO
+import datetime
 import os
 import tarfile
 
@@ -70,64 +71,88 @@ class TarTest(_TestWithProductsTable):
 		self.failIf("\nobject: gabriel" in res)
 
 
-class FatProductTest(testhelpers.VerboseTest):
-	def testBadConstructorArg(self):
-		self.assertRaisesWithMsg(base.ValidationError,
-			"Invalid constructor argument(s) to FatProductKey: klonk",
-			products.FatProductKey,
-			(), key="testing", klonk=0)
+class _FakeRequest(object):
+	def __init__(self, **kwargs):
+		self.args = dict((key, [value]) for key, value in kwargs.iteritems())
 
-	def testBadConstructurVals(self):
+
+class RaccrefTest(_TestWithProductsTable):
+
+	# tests for dcc: with SDM VOTables are in ssatest.py
+
+	def	testBadConstructurVals(self):
 		self.assertRaisesWithMsg(base.ValidationError,
-			"Invalid value for constructor argument to FatProductKey:"
+			"Invalid value for constructor argument to RAccref:"
 				" scale='klonk'",
-			products.FatProductKey,
-			(), key="testing", scale="klonk")
+			products.RAccref,
+			("testing", {"scale": "klonk"}))
 
 	def testKeyMandatory(self):
 		self.assertRaisesWithMsg(base.ValidationError,
-			"Must give key when constructing FatProductKey",
-			products.FatProductKey,
-			(), scale="2")
+			"Must give key when constructing RAccref",
+			products.RAccref.fromRequest,
+			("/", _FakeRequest(scale="2")))
+
+	def testPathFromKey(self):
+		pk = products.RAccref.fromRequest("/", _FakeRequest(key="abc"))
+		self.assertEqual(pk.accref, "abc")
+
+	def testExtraParamsIgnored(self):
+		pk = products.RAccref("name", {"sra": "3", "ignored": True})
+		self.assertEqual(pk.accref, "name")
+		self.assertEqual(pk.params, {"sra": 3.})
 
 	def testSerialization(self):
-		pk = products.FatProductKey(
-			key="extra weird/product+name%something.fits",
-			scale=4)
+		pk = products.RAccref(
+			"extra weird/product+name%something.fits",
+			{"scale": "4"})
 		self.assertEqual(str(pk),
-			"extra+weird%2Fproduct%2Bname%25something.fits&scale=4")
+			"extra%20weird/product%2Bname%25something.fits?scale=4")
 
 	def testFromRequestSimple(self):
-		class req(object):
-			args = {"key": ["extra weird+key"], "scale": []}
-		pk = products.FatProductKey.fromRequest(req)
-		self.assertEqual(pk, products.FatProductKey(
-			key="extra weird+key"))
+		pk = products.RAccref.fromRequest("extra weird+key", 
+			_FakeRequest(scale=None))
+		self.assertEqual(pk.accref, "extra weird+key")
+		self.assertEqual(pk.params, {})
 
-	def testFromBadRequest(self):
-		class req(object):
-			args = {"scale": ["3"]}
-		self.assertRaisesWithMsg(base.ValidationError,
-			"Must give key when constructing FatProductKey",
-			products.FatProductKey.fromRequest,
-			(req,))
+	def testFromStringWithArgs(self):
+		pk = products.RAccref.fromString(
+			"extra%20weird&?%2bkey?ra=2&sra=0.5&dec=4&sdec=0.75")
+		self.assertEqual(pk.accref, "extra weird&?+key")
+		self.assertEqual(pk.params, {"ra": 2, "sra":0.5, "dec":4, "sdec":0.75})
 
-	def testFromString(self):
-		self.assertEqual(products.FatProductKey.fromString(
-			"extra%20weird%2bkey&ra=2&sra=0.5&dec=4&sdec=0.75"),
-			products.FatProductKey(key="extra weird+key", ra=2,
-				sra=0.5, dec=4, sdec=0.75))
+	def testFromStringWithoutArgs(self):
+		pk = products.RAccref.fromString("extra%20weird&%2bkey")
+		self.assertEqual(pk.accref, "extra weird&+key")
+		self.assertEqual(pk.params, {})
 	
 	def testBadFromString(self):
 		self.assertRaisesWithMsg(base.ValidationError,
-			"Invalid constructor argument(s) to FatProductKey: klonk",
-			products.FatProductKey.fromString,
-			("worz&klonk=huhu",))
+			"Invalid value for constructor argument to RAccref: sra='huhu'",
+			products.RAccref.fromString,
+			("worz?sra=huhu",))
+
+	def testProductsRowRaises(self):
+		nonExProd = products.RAccref("junkomatix/@@ridiculosa")
+		self.assertRaisesWithMsg(base.NotFoundError,
+			"accref 'junkomatix/@@ridiculosa' could not be located in product table",
+			lambda: nonExProd.productsRow,
+			())
+
+	def testProductsRowReturns(self):
+		prod = products.RAccref("data/a.imp")
+		self.assertEqual(prod.productsRow, {
+			'embargo': datetime.date(2030, 12, 31), 
+			'accessPath': 'data/a.imp', 
+			'mime': 'text/plain', 
+			'owner': 'X_test', 
+			'accref': 'data/a.imp', 
+			'sourceTable': 'test.prodtest'})
 
 
 class ProductsCoreTest(_TestWithProductsTable):
 	def _getProductFor(self, accref, moreFields={}):
-		inData = {"accref": products.FatProductKey.fromString(accref)}
+		inData = {"accref": products.RAccref.fromString(accref)}
 		inData.update(moreFields)
 		svc = base.caches.getRD("//products").getById("p")
 		rows = svc.runFromDict(inData, renderer="get"
@@ -156,13 +181,12 @@ class ProductsCoreTest(_TestWithProductsTable):
 			res.renderHTTP,
 			(None,))
 
-
 	def testProtectedProductUnauth(self):
 		res = self._getProductFor("data/a.imp")
 		self.failUnless(isinstance(res, products.UnauthorizedProduct))
 
 	def testProtectedProductWithMoreArg(self):
-		res = self._getProductFor("data/a.imp&scale=2")
+		res = self._getProductFor("data/a.imp?scale=2")
 		self.failUnless(isinstance(res, products.UnauthorizedProduct))
 
 	def testProtectedProductBadAuth(self):
@@ -186,22 +210,26 @@ class ProductsCoreTest(_TestWithProductsTable):
 				res.renderHTTP,
 				(None,))
 
+	def testInvalidProduct(self):
+		with tresc.prodtestTable.prodtblRow(accessPath="/non/existing/file"):
+			res = self._getProductFor("just.testing/nowhere")
+			self.failUnless(isinstance(res, products.InvalidProduct))
+			self.assertRaises(svcs.UnknownURI,
+				res.renderHTTP,
+				None)
+
 	def testScaledProduct(self):
-		res = self._getProductFor("data/b.imp&scale=3")
-		self.failUnless(isinstance(res, products.ScaledProduct))
-		self.assertRaisesWithMsg(NotImplementedError,
-			"Cannot scale yet",
-			self._getOutput, 
-			(res,))
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Cannot generate scaled versions for anything but FITS yet.",
+			self._getProductFor,
+			("data/b.imp?scale=3",))
 	
 	def testCutoutProduct(self):
-		res = self._getProductFor("data/b.imp&ra=3&dec=4&sra=2&sdec=4")
-		self.failUnless(isinstance(res, products.CutoutProduct))
-		self.assertRaisesWithMsg(NotImplementedError,
+		self.assertRaisesWithMsg(base.ValidationError,
 			"Cannot generate cutouts for anything but FITS yet.",
-			self._getOutput, 
-			(res,))
+			self._getProductFor,
+			("data/b.imp?ra=3&dec=4&sra=2&sdec=4",))
 
 
 if __name__=="__main__":
-	testhelpers.main(TarTest)
+	testhelpers.main(RaccrefTest)

@@ -30,8 +30,8 @@ class StreamBuffer(object):
 
 	When everything is written, you must all doneWriting.
 	"""
-	chunkSize = 100000 # XXX TODO: Figure out a good chunk size for the
-	                   # network stack
+	chunkSize = 10000 # XXX TODO: Figure out a good chunk size for the
+	                  # network stack
 
 	def __init__(self):
 		self.buffer = collections.deque()

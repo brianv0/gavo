@@ -2,19 +2,19 @@
 Products, a grammar to make them, and a core turning accrefs into lists
 of products.
 
-The "user-visible" part are just accrefs, as modelled by the FatProductKey
+The "user-visible" part are just accrefs, as modelled by the RAccref
 -- they can contain instructions for cutouts or scaling, hence the additional
 structure.
 
 Using the product table and the ProductsGrammar, such accrefs are turned
-into subclasses of ProductBase.  These have mime types and know how
-to generate their data.  They produce data using their iterData methods;
-they are intended to be streamed out by web.productrender, but they
-may implement renderHTTP themselves, in which case productrender just
-leaves everything to them; it's a bit unfortunate that we thus depend
-on nevow here, but we'd have to reimplement quite a bit of it if we don't,
-and for now it doesn't seem we'll support a different framework in the 
-forseeable future.
+into subclasses of ProductBase.  
+
+These have mime types and know how to generate their data through their
+synchronous iterData methods.  They must also work as nevow resources and thus
+have implement asynchronuous renderHTTP(ctx) methods It's a bit unfortunate
+that we thus depend on nevow here, but we'd have to reimplement quite a bit of
+it if we don't, and for now it doesn't seem we'll support a different framework
+in the forseeable future.  
 """
 
 from __future__ import with_statement
@@ -46,15 +46,33 @@ from gavo.utils import fitstools
 MS = base.makeStruct
 
 
+@utils.memoized
+def getProductsTable():
+	"""returns a DBTable for the product table.
+
+	This is memoized, i.e., it will be the same table for all threads.
+	This should be ok as long as pycopg's promise of its thread-safety
+	holds.
+	"""
+	td = base.caches.getRD("//products").getById("products")
+	conn = base.getDBConnection("admin", autocommitted=True)
+	return rsc.TableForDef(td, connection=conn)
+
+
 class ProductBase(object):
 	"""A base class for products returned by the product core.
 
 	See the module docstring for the big picture.
 
-	A product is constructed with a source specfication and a mime type (both
-	come from dc.products.  These are available as sourceSpec and contentType;
-	additionally, they must come up with a name (suitable as a file name,
-	without a path).
+	The constructor arguments of RAccrefs depend on what they are.
+	The common interface (also used by the ProductGrammar below) is the 
+	the class method fromRAccref(rAccref, grammar=None).  It returns None
+	if the RAccref is not for a product of the respective sort, the
+	product otherwise.  Grammar, if given, is an instance of the
+	products grammar.  It is important, e.g., in controlling access
+	to embargoed products.  This is the main reason you should
+	never hand out products yourself but always expose the to the user
+	through the product core.
 
 	The iterData method has to yield reasonable-sized chunks of data
 	(self.chunkSize should be a good choice).  It must be synchronuous.
@@ -62,6 +80,13 @@ class ProductBase(object):
 	Products usually are used as nevow resources.  Therefore, they
 	must have a renderHTTP method.  This must be asynchronuous, i.e., it
 	should not block for extended periods of time.
+
+	All products must at least have the attributes sourceSpec (a string
+	with an interpretation that's up to the subclass), contentType (which
+	should usually be what renderHTTP puts into its content-type), and
+	name (something suitable as a file name; the default constructor
+	calls a _makeName method to come up with one, and you should simply
+	override it).
 	"""
 	implements(inevow.IResource)
 
@@ -69,6 +94,9 @@ class ProductBase(object):
 
 	def __init__(self, sourceSpec, contentType):
 		self.sourceSpec, self.contentType = str(sourceSpec), str(contentType)
+		self._makeName()
+
+	def _makeName(self):
 		self.name = "invalid product"
 
 	def __str__(self):
@@ -87,9 +115,17 @@ class ProductBase(object):
 	def __ne__(self, other):
 		return not self==other
 
+	@classmethod
+	def fromRAccref(self, accref, grammar=None):
+		return None # ProductBase is not responsible for anything.
+
 	def iterData(self):
 		raise NotImplementedError("Internal error: %s products do not"
 			" implement iterData"%self.__class__.__name__)
+
+	def renderHTTP(self, ctx):
+		raise NotImplementedError("Internal error: %s products cannot be"
+			" rendered."%self.__class__.__name__)
 
 
 class FileProduct(ProductBase):
@@ -98,19 +134,29 @@ class FileProduct(ProductBase):
 	Mime types are guessed based on a class-local dictionary; this is done
 	so we don't depend on nevow here.  If nevow is available, we use its
 	static.File mechanism to deliver the data.
-	"""
-	def __init__(self, sourceSpec, contentType=None):
-		ProductBase.__init__(self, sourceSpec, contentType)
-		self.name = os.path.basename(self.sourceSpec)
-		if contentType is None:
-			contentType = self._guessContentType()
-	
-	def writeTo(self, outFile):
-		with open(self.sourceSpec) as f:
-			utils.cat(f, outFile)
 
+	This is basically a fallback for fromRAccref; as long as the 
+	accessPath in the RAccref's productsRow corresponds to a real file and
+	no params are in the RAccref, this will return a product.
+	"""
+	def __init__(self, sourcePath, contentType=None):
+		ProductBase.__init__(self, sourcePath, contentType)
+		if contentType is None:
+			self.contentType = self._guessContentType()
+
+	@classmethod
+	def fromRAccref(cls, rAccref, grammar=None):
+		if rAccref.params:  # not a plain file
+			return None
+		if os.path.exists(rAccref.localpath):
+			return cls(rAccref.localpath, rAccref.productsRow["mime"])
+
+	def _makeName(self):
+		self.name = os.path.basename(self.sourceSpec)
+	
 	# we probably should be using nevow.static's version of this for
 	# consistency, but the interface there is too cumbersome for now.
+	# It's not regularly used by the DC software any more, anyway.
 	magicMap = {
 		".txt": "text/plain",
 		".fits": "image/fits",
@@ -157,12 +203,21 @@ class UnauthorizedProduct(FileProduct):
 	However, there is a renderHTTP method, so the product renderer will
 	not use it; it will, instead, raise an Authenticate exception.
 	"""
+	@classmethod
+	def fromRAccref(cls, rAccref, grammar=None):
+		dbRow = rAccref.productsRow
+		if (dbRow["embargo"] is None 
+				or dbRow["embargo"]<datetime.date.today()):
+			return None
+		if grammar is None or dbRow["owner"] not in grammar.groups:
+			return cls(rAccref)
+
 	def __str__(self):
 		return "<Protected product %s, access denied>"%self.name
 
 	def __eq__(self, other):
 		return self.__class__==other.__class__
-	
+
 	def renderHTTP(self, ctx):
 		raise svcs.Authenticate(self.sourceSpec)
 
@@ -174,15 +229,21 @@ class NonExistingProduct(ProductBase):
 
 	These should normally yield 404s.
 	"""
-	def __init__(self, sourceSpec, contentType=None):
-		ProductBase.__init__(self, sourceSpec, contentType)
-		self.name = os.path.basename(sourceSpec)
-
 	def __str__(self):
-		return "<Non-existing product %s>"%self.name
+		return "<Non-existing product %s>"%self.sourceSpec
 
 	def __eq__(self, other):
 		return self.__class__==other.__class__
+
+	@classmethod
+	def fromRAccref(cls, rAccref, grammar=None):
+		try:
+			ignored = rAccref.productsRow
+		except base.NotFoundError:
+			return cls(rAccref.accref, "text/html")
+
+	def _makeName(self):
+		self.name = "missing.html"
 
 	def iterData(self):
 		raise IOError("%s does not exist"%self.sourceSpec)
@@ -191,12 +252,42 @@ class NonExistingProduct(ProductBase):
 		raise svcs.UnknownURI(self.sourceSpec)
 
 
+class InvalidProduct(NonExistingProduct):
+	"""An invalid file.
+	
+	This is returned by getProductForRAccref if all else fails.  This
+	usually happens when a file known to the products table is deleted,
+	but it could also be an attempt to use unsupported combinations
+	of files and parameters.
+
+	Since any situation leading here is a bit weird, we probably
+	should be doing something else but just return a 404.  Hm...
+
+	This class always returns an instance from fromRAccref; this means
+	any resolution chain ends with it.  But it shouldn't be in
+	PRODUCT_CLASSES in the first place since the fallback is
+	hardcoded into getProductForRAccref.
+	"""
+	def __str__(self):
+		return "<Invalid product %s>"%self.sourceSpec
+
+	@classmethod
+	def fromRAccref(cls, rAccref, grammar=None):
+		return cls(rAccref.accref, "text/html")
+	
+	def _makeName(self):
+		self.name = "invalid.html"
+	
+	def iterData(self):
+		raise IOError("%s is invalid"%self.sourceSpec)
+
+
 class RemoteProduct(ProductBase):
 	"""A class for products at remote sites, given by their URL.
 	"""
-	def __init__(self, sourceSpec, contentType):
-		ProductBase.__init__(self, sourceSpec, contentType)
-		self.name = urlparse.urlparse(sourceSpec).path.split("/")[-1] or "file"
+	def _makeName(self):
+		self.name = urlparse.urlparse(self.sourceSpec
+			).path.split("/")[-1] or "file"
 
 	def __str__(self):
 		return "<Remote %s at %s>"%(self.contentType, self.sourceSpec)
@@ -205,9 +296,15 @@ class RemoteProduct(ProductBase):
 		return (isinstance(other, self.__class__) 
 			and self.sourceSpec==other.sourceSpec)
 
+	_schemePat = re.compile("(https?|ftp)://")
+
+	@classmethod
+	def fromRAccref(cls, rAccref, grammar=None):
+		if cls._schemePat.match(rAccref.productsRow["accessPath"]):
+			return cls(rAccref.productsRow["accessPath"], 
+				rAccref.productsRow["mime"])
+
 	def iterData(self):
-		# this may block arbitrarily long -- try and use twisted's http
-		# client instead?
 		f = urllib.urlopen(self.sourceSpec)
 		while True:
 			data = f.read(self.chunkSize)
@@ -229,10 +326,12 @@ class CutoutProduct(ProductBase):
 	We assume the cutouts are smallish -- they are, right now, not
 	streamed, but accumulated in memory.
 	"""
-	def __init__(self, sourceSpec, cutoutPars, contentType):
-		ProductBase.__init__(self, sourceSpec, contentType)
+	def __init__(self, sourceSpec, cutoutPars):
+		ProductBase.__init__(self, sourceSpec, "image/fits")
+		self.getfitsArgs = self._computeGetfitsArgs(cutoutPars)
+	
+	def _makeName(self):
 		self.name = "cutout-"+os.path.basename(self.sourceSpec)
-		self.cutoutPars = cutoutPars
 
 	def __str__(self):
 		return "<FITS cutout of %s, (%fx%f)>"%(self.sourceSpec,
@@ -241,14 +340,23 @@ class CutoutProduct(ProductBase):
 	def __eq__(self, other):
 		return (isinstance(other, self.__class__) 
 			and self.sourceSpec==other.sourceSpec
-			and self.contentType==other.contentType
-			and self.cutoutPars==other.cutoutPars)
-	
-	def _computeGetfitsArgs(self):
+			and self.getfitsArgs==other.getfitsArgs)
+
+	_myKeys = frozenset(["ra", "dec", "sra", "sdec"])
+
+	@classmethod
+	def fromRAccref(cls, rAccref, grammar=None):
+		if len(set(rAccref.params.keys())&cls._myKeys)==4:
+			if rAccref.productsRow["mime"]!="image/fits":
+				raise base.ValidationError("Cannot generate cutouts for anything"
+					" but FITS yet.", "accref")
+			return cls(rAccref.localpath, rAccref.params)
+
+	def _computeGetfitsArgs(self, params):
 		"""returns a list of command line arguments for getfits to cut out
 		the field specified in sqlPars from the image specified in item.
 		"""
-		ra, dec, sra, sdec = [self.cutoutPars[key] for key in 
+		ra, dec, sra, sdec = [params[key] for key in 
 			["ra", "dec", "sra", "sdec"]]
 		f = open(self.sourceSpec)
 		header = fitstools.readPrimaryHeaderQuick(f)
@@ -275,12 +383,9 @@ class CutoutProduct(ProductBase):
 		"""returns a pair of program name and program args to start the
 		actual cutout.
 		"""
-		if self.contentType!="image/fits":
-			raise NotImplementedError("Cannot generate cutouts for anything"
-				" but FITS yet.")
 		prog = base.getBinaryName(os.path.join(base.getConfig("inputsDir"),
 			"__system", "bin", "getfits"))
-		return prog, self._computeGetfitsArgs()
+		return prog, self.getfitsArgs
 
 	def iterData(self):
 		prog, args = self._getProcessParameters()
@@ -318,27 +423,34 @@ class ScaledProduct(ProductBase):
 
 	Right now, this only works for local FITS files.
 	"""
-# TODO: should we use web.streaming resp. producer/consumer here?
-# If so: the product renderer should probably check if a product
-# implements a producer interface and the act accordingly.
-	def __init__(self, sourceSpec, pars, contentType):
-		self.scale = pars["scale"]
+	def __init__(self, sourceSpec, scale, contentType):
 		ProductBase.__init__(self, sourceSpec, contentType)
-		self.name = "scaled-"+os.path.basename(self.sourceSpec)
-
+		self.scale = pars["scale"]
+	
 	def __str__(self):
 		return "<Scaled version of %s>"%(self.sourceSpec)
 
+	@classmethod
+	def fromRAccref(cls, rAccref, grammar=None):
+		if rAccref.params.keys()==["scale"]:
+			if rAccref.productsRow["mime"]!="image/fits":
+				raise base.ValidationError("Cannot generate scaled versions"
+					" for anything but FITS yet.", "accref")
+			return cls(rAccref.localpath, rAccref.params["scale"], "image/fits")
+
+	def _makeName(self):
+		self.name = "scaled-"+os.path.basename(self.sourceSpec)
+
 	def iterData(self):
 		raise NotImplementedError("Cannot scale yet")
-		if contentType!="image/fits":
-			raise NotImplementedError("Cannot generate cutouts for anything"
-				" but FITS yet.")
 
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", self.contentType)
 		return self._getDeferred(request, self.iterData())
+# TODO: should we use web.streaming resp. producer/consumer here?
+# If so: the product renderer should probably check if a product
+# implements a producer interface and the act accordingly.
 
 	def _getDeferred(self, request, iterator):
 		d = defer.Deferred()
@@ -358,27 +470,42 @@ class ScaledProduct(ProductBase):
 class DCCProduct(ProductBase):
 	"""A class representing a product returned by a DC core.
 
-	These products are constructed with product table rows and the URL paramters.
-	The source path must have the form dcc://<rd.id>/<core id>?<accref>;
-	rd.id is the rd id with slashes replaced by dots.  This means this
-	scheme doesn't work for RDs with ids containing dots, but you shouldn't
-	to that in the first place.
+	These products are constructed with a complete rAccref, which also
+	becomes the product's sourceSpec.
 
-	(where accref is just an opaque string that does not necessarily match
-	the product's accref, but probably will in most cases).
+	The source path of the rAccref's productsRow must have the form
+	dcc://<rd.id>/<core id>?<coreAccref>; rd.id is the rd id with slashes
+	replaced by dots.  This means this scheme doesn't work for RDs with ids
+	containing dots, but you shouldn't do that in the first place.  coreAccref is
+	just an opaque string that does not necessarily match the product's accref,
+	but probably will in most cases.
 
 	The context grammar receives a dictionary with the param dict, plus
-	the accref.  The core must return an actual mime type and a string.
+	the coreAccref as accref.  The core must return an actual mime type 
+	and a string.
+
+	As a special service, iterData here can take a svcs.QueryMeta
+	instance which, if given, is passed on to the core.
 	
 	See SDMCore for an example for how this can work.
 	"""
-	def __init__(self, tableRow, params):
-		ProductBase.__init__(self, tableRow["accessPath"], tableRow["mime"])
-		self.params = params
-		self.name = os.path.basename(tableRow["accref"])
-		self._parseSourceSpec()
+	def __init__(self, rAccref):
+		ProductBase.__init__(self, rAccref.productsRow["accessPath"], 
+			rAccref.productsRow["mime"])
+		self.params = rAccref.params
+		self._parseAccessPath()
+
+	_schemePat = re.compile("dcc://")
+
+	@classmethod
+	def fromRAccref(cls, rAccref, grammar=None):
+		if cls._schemePat.match(rAccref.productsRow["accessPath"]):
+			return cls(rAccref)
+
+	def _makeName(self):
+		self.name = "untitled"  # set in _parseAccessPath
 	
-	def _parseSourceSpec(self):
+	def _parseAccessPath(self):
 		# The scheme is manually handled to shoehorn urlparse into supporting
 		# queries (and, potentially, fragments)
 		if not self.sourceSpec.startswith("dcc:"):
@@ -388,6 +515,7 @@ class DCCProduct(ProductBase):
 		self.core = base.caches.getRD(
 			res.netloc.replace(".", "/")).getById(res.path.lstrip("/"))
 		self.accref = res.query
+		self.name = os.path.basename(res.query)
 
 	def iterData(self, queryMeta=svcs.emptyQueryMeta):
 		inData = self.params.copy()
@@ -409,56 +537,55 @@ class DCCProduct(ProductBase):
 			str(self.name))
 		return "".join(resultIterator)
 
-	
-class ProductIterator(grammars.RowIterator):
-	"""A RowIterator turning FatProductKeys to Products.
 
-	The source key is a list of annotated FatProductKeys as generated
-	within ProductCore.  FatProductKeys without the annotation from
-	the DB are turned into NonExistingProducts.
+# The following list is checked by getProductForRAccref in sequence.
+# Each product is asked in turn, and the first that matches wins.
+# So, ORDER IS ALL-IMPORTANT here.
+PRODUCT_CLASSES = [
+	NonExistingProduct,
+	UnauthorizedProduct,
+	RemoteProduct,
+	DCCProduct,
+	CutoutProduct,
+	ScaledProduct,
+	FileProduct,
+]
+
+def getProductForRAccref(rAccref, grammar=None):
+	"""returns a product for a RAccref.
+
+	This tries, in sequence, to make a product using each element
+	of PRODUCT_CLASSES' fromRAccref method.  If nothing succeeds,
+	it will return an InvalidProduct.
 	"""
-	def _makeProductForKey(self, fatKey, dbRow):
-		"""returns the proper ProductBsse subclass for a FatProductKey
-		and its corresponding product table row.
-		"""
-		if dbRow["embargo"] is not None and dbRow["embargo"]>self.grammar.now:
-			if dbRow["owner"] not in self.grammar.groups:
-				return UnauthorizedProduct(dbRow["accref"])
+	for prodClass in PRODUCT_CLASSES:
+		res = prodClass.fromRAccref(rAccref, grammar)
+		if res is not None:
+			return res
+	return InvalidProduct.fromRAccref(rAccref, grammar)
 
-		path = dbRow["accessPath"]
-		if path.startswith("http://"):
-			return RemoteProduct(path, dbRow["mime"])
-		elif path.startswith("dcc://"):
-			return DCCProduct(dbRow, fatKey.params)
 
-		sourcePath = os.path.join(base.getConfig("inputsDir"), path)
-		if fatKey.isCutout():
-			return CutoutProduct(sourcePath, fatKey.params, dbRow["mime"])
-		elif fatKey.isScaled():
-			return ScaledProduct(sourcePath, fatKey.params, dbRow["mime"])
-		else:
-			return FileProduct(sourcePath, dbRow["mime"])
-		return rsc
 
+class ProductIterator(grammars.RowIterator):
+	"""A RowIterator turning RAccrefs to instances of subclasses of
+	ProductBase.
+
+	The source key is a list of RAccrefs, as, e.g., produced by
+	the ProductCore.
+	"""
 	def _iterRows(self):
-		for key in self.sourceToken:
-			try:
-				prodRow = key.productsRow
-			except AttributeError:
-				prod = NonExistingProduct(key.baseKey)
-			else:
-				prod = self._makeProductForKey(key, prodRow)
+		for rAccref in self.sourceToken:
 			yield {
-				"source": prod,
+				"source": getProductForRAccref(rAccref, self.grammar)
 			}
 		del self.grammar
 
 
 class ProductsGrammar(grammars.Grammar):
-	"""A grammar for "parsing" annotated FatProductKeys to Product
+	"""A grammar for "parsing" annotated RAccref to Product
 	objects.
 
-	The FatProductKeys must have their product table rows in 
+	The RAccref must have their product table rows in 
 	productsRow attributes (ProductCore.addFSSources does that).
 
 	Product objects are instances of classes derived from ProductBase.
@@ -479,13 +606,16 @@ class ProductCore(svcs.DBCore):
 	used internally to serve /getproduct queries.
 
 	It is instanciated from within //products.rd and relies on
-	certain features in there.
+	tables within that RD.
 
-	The input data consists of FatProductKeys in InMemoryTables.  You
-	can pass those in in both an accref param and table rows.  The
-	accref param is the normal way if you just want to retrieve a
-	single image, the table case is for building tar files and such.
-	There is one core instance in //products for each case.
+	The input data consists of accref; you can use the string form
+	of RAccrefs, and if you renderer wants, it can pass in ready-made
+	RAccrefs.  You can pass accrefs in through both an accref 
+	param and table rows.  
+	
+	The accref param is the normal way if you just want to retrieve a single
+	image, the table case is for building tar files and such.  There is one core
+	instance in //products for each case.
 
 	The core returns a table containing rows with the single column source.
 	Each contains a subclass of ProductBase above.
@@ -497,38 +627,18 @@ class ProductCore(svcs.DBCore):
 	"""
 	name_ = "productCore"
 
-	def _getRequestedKeys(self, inputTable):
-		"""returns a list of FatProductKeys requested within inputTable.
+	def _getRAccrefs(self, inputTable):
+		"""returns a list of RAccref requested within inputTable.
 		"""
-		keysList = [FatProductKey.fromString(r["accref"])
+		keysList = [RAccref.fromString(r["accref"])
 			for r in inputTable.rows if "accref" in r]
 		try:
 			param = inputTable.getParam("accref")
 			if param is not None:
-				keysList.append(FatProductKey.fromString(param))
+				keysList.append(RAccref.fromString(param))
 		except base.NotFoundError: # "tar case", accrefs in rows
 			pass
 		return keysList
-
-	def _addFSSources(self, keysList):
-		"""adds productsRow attributes to each in FatProductKey in keysList.
-
-		This happens by querying the products table in the database.
-		"""
-		keyForAccref = dict(((r.baseKey, r) for r in keysList))
-
-		if not keysList: # stupid SQL doesn't know the empty set
-			query, pars = "FALSE", {}
-		else:
-			query, pars = "accref IN %(keys)s", {"keys": set(k.baseKey
-			for k in keysList)}
-
-		prodTbl = rsc.TableForDef(self.queriedTable,
-				connection=base.caches.getTableConn(None))
-		paths = {}
-		for row in prodTbl.iterQuery(self.rd.getById("productsResult"),
-				query, pars):
-			keyForAccref[row["accref"]].productsRow = row
 
 	def _getGroups(self, user, password):
 		if user is None:
@@ -541,161 +651,196 @@ class ProductCore(svcs.DBCore):
 		inputTable.
 		"""
 		authGroups = self._getGroups(queryMeta["user"], queryMeta["password"])
-		keysList = self._getRequestedKeys(inputTable)
-		self._addFSSources(keysList)
 
 		dd = MS(rscdef.DataDescriptor, grammar=MS(ProductsGrammar,
 				groups=authGroups),
 			make=[MS(rscdef.Make, table=self.outputTable)])
-		return rsc.makeData(dd, forceSource=keysList)
+
+		return rsc.makeData(dd, forceSource=self._getRAccrefs(inputTable))
 
 
-class FatProductKey(object):
-	"""A product key for a possibly processed image.
+class RAccref(object):
+	"""A product key including possible modifiers.
 
-	This consists of a key proper and of optional further data specifying
-	how it is to be processed.  Currently defined are:
+	The product key is in the accref attribute.
 
-	* ra, dec, sra, sdec: center and extend for cutouts.
-	* scale: (integer) factor the image should be scaled down by.
+	The modifiers come in the params dictionary.  It contains (typed)
+	values, the possible keys of which are given in _buildKeys.  The
+	values in passed in the inputDict constructor argument are parsed,
+	anything not in _buildKeys is discarded.
 
-	Stringifying a FPK yields something quoted ready-made for URLs.
+	In principle, these modifiers are just the query part of a URL,
+	and they generally come from the arguments of a web request.  However,
+	we don't want to carry around all request args, just those meant
+	for product generation.
+	
+	One major reason for having this class is serialization into URL-parts.
+	Basically, stringifying a RAccref yields something that can be pasted
+	to <server root>/getproduct to yield the product URL.  For the
+	path part, this means just percent-escaping blanks, plusses and percents
+	in the file name.  The parameters are urlencoded and appended with
+	a question mark.  This representation is be parsed by the fromString
+	function.
 
-	We should probably move as much product handling to this class
-	as possible and not use plain strings as product keys any more --
-	possibly even in the DB.
-
-	During products processing, these keys receive an additional
-	productsRow attribute -- that's a dictionary containing a row form
-	//products#products.
+	RAccrefs have a (read only) property productsRow attribute -- that's 
+	a dictionary containing the row for accres from //products#products
+	if that exists.  If it doesn't, accessing the property will raise
+	an NotFoundError.
 	"""
-	_buildKeys = (
-		("key", str), 
-		("dm", str), 
-		("ra", float),
-		("dec", float),
-		("sra", float),
-		("sdec", float),
-		("scale", int))
+	_buildKeys = dict((
+		("dm", str),    # data model, VOTable generation
+		("ra", float),  # cutouts
+		("dec", float), # cutouts
+		("sra", float), # cutouts
+		("sdec", float),# cutouts
+		("scale", int), # FITS scaling
+	))
 
-	def __init__(self, **kwargs):
-		self.params = {}
-		for key, valCons in self._buildKeys:
-			if key in kwargs and kwargs[key] is not None:
-				try:
-					val = kwargs.pop(key)
-					self.params[key] = valCons(val)
-				except (ValueError, TypeError):
-					raise base.ValidationError(
-						"Invalid value for constructor argument to %s:"
-						" %s=%r"%(self.__class__.__name__, key, val), "accref")
+	def __init__(self, accref, inputDict={}):
+		self.accref = accref
+		self.params = self._parseInputDict(inputDict)
+	
+	@classmethod
+	def fromPathAndArgs(cls, path, args):
+		"""returns a rich accref from a path and a parse_qs-dictionary args.
 
-		if kwargs:
-			raise base.ValidationError(
-					"Invalid constructor argument(s) to %s: %s"%(
-					self.__class__.__name__,
-					", ".join(kwargs)),
-				"accref")
+		(it's mainly a helper for fromRequest and fromString).
+		"""
+		inputDict = {}
+		for key, value in args.iteritems():
+			if len(value)>0:
+				inputDict[key] = value[-1]
 
-		if not "key" in self.params:	
-			raise base.ValidationError("Must give key when constructing %s"%(
-				self.__class__.__name__), "accref")
-		self.baseKey = self.params["key"]
+		# Save old URLs: if no (real) path was passed, try to get it
+		# from key.  Remove this ca. 2014, together with 
+		# RaccrefTest.(testPathFromKey|testKeyMandatory)
+		if not path.strip("/").strip():
+			if "key" in inputDict:
+				path = inputDict["key"]
+			else:
+				raise base.ValidationError(
+					"Must give key when constructing RAccref",
+					"accref")
+
+		return cls(path, inputDict)
 
 	@classmethod
-	def fromRequest(cls, request):
-		"""returns a fat product key from a nevow request.
+	def fromRequest(cls, path, request):
+		"""returns a rich accref from a nevow request.
 
 		Basically, it raises an error if there's no key at all, it will return
 		a (string) accref if no processing is desired, and it will return
-		a FatProductKey if any processing is requested.
+		a RAccref if any processing is requested.
 		"""
-		inArgs = request.args
-		buildArgs = {}
-		for reqKey, _ in cls._buildKeys:
-			argVals = inArgs.get(reqKey, [])
-			if len(argVals)>0:
-				buildArgs[reqKey] = argVals[0]
-		return cls(**buildArgs)
+		return cls.fromPathAndArgs(path, request.args)
+
 
 	@classmethod
 	def fromString(cls, keyString):
 		"""returns a fat product key from a string representation.
 
-		As a convenience, if keyString already is a FatProductKey,
+		As a convenience, if keyString already is a RAccref,
 		it is returned unchanged.
 		"""
-		if isinstance(keyString, FatProductKey):
+		if isinstance(keyString, RAccref):
 			return keyString
-		args = dict((k, v[0]) 
-			for k, v in urlparse.parse_qs("key="+keyString).iteritems())
-		return cls(**args)
+
+		qSep = keyString.rfind("?")
+		if qSep!=-1:
+			return cls.fromPathAndArgs(
+				unquoteProductKey(keyString[:qSep]), 
+				urlparse.parse_qs(keyString[qSep+1:]))
+
+		return cls(unquoteProductKey(keyString))
+
+	@property
+	def productsRow(self):
+		"""returns the row in dc.products corresponding to this RAccref's
+		accref, or raises a NotFoundError.
+		"""
+		try:
+			return self._productsRowCache
+		except AttributeError:
+			pt = getProductsTable()
+			res = list(pt.iterQuery(pt.tableDef, "accref=%(accref)s", 
+				{"accref": self.accref}))
+			if not res:
+				raise base.NotFoundError(self.accref, "accref", "product table",
+					hint="Product URLs may disappear, though in general they should"
+					" not.  If you have an ivo-id for the file you are trying to"
+					" locate, you may still find it by querying the ivoa.obscore table"
+					" using TAP and ADQL.")
+			self._productsRowCache = res[0]
+			return self._productsRowCache
 
 	def __str__(self):
-		# this is an accref as used in getproduct, i.e., the product key
-		# plus optionally processing arguments
-		key = quoteProductKey(self.params["key"])
+		# See the class docstring on quoting considerations.
+		res = quoteProductKey(self.accref)
 		args = urllib.urlencode(dict(
-			(k,str(v)) for k, v in self.params.iteritems() if k!="key"))
+			(k,str(v)) for k, v in self.params.iteritems()))
 		if args:
-			key = key+"&"+args
-		return key
+			res = res+"?"+args
+		return res
 
 	def __repr__(self):
 		return str(self)
 
 	def __eq__(self, other):
-		return (isinstance(other, FatProductKey) 
+		return (isinstance(other, RAccref) 
 			and self.params==other.params)
 
 	def __ne__(self, other):
 		return not self.__eq__(other)
 
-	def isPlain(self):
-		return self.params.keys()==["key"]
+	def _parseInputDict(self, inputDict):
+		res = {}
+		for key, val in inputDict.iteritems():
+			if val is not None and key in self._buildKeys:
+				try:
+					res[key] = self._buildKeys[key](val)
+				except (ValueError, TypeError):
+					raise base.ValidationError(
+						"Invalid value for constructor argument to %s:"
+						" %s=%r"%(self.__class__.__name__, key, val), "accref")
+		return res
 
-	_cutoutKeys = frozenset(["ra", "dec", "sra", "sdec"])
+	@property
+	def localpath(self):
+		try:
+			return self._localpathCache
+		except AttributeError:
+			self._localpathCache = os.path.join(base.getConfig("inputsDir"), 
+				self.productsRow["accessPath"])
+		return self._localpathCache
 
-	def isCutout(self):
-		return len(set(self.params.keys())&self._cutoutKeys)==4
 
-	def isScaled(self):
-		return self.params.get("scale", 1)!=1
-
-
-def getProductForAccref(accref, **prodParams):
-	"""returns a product for accref.
-
-	This is a convenience method for tests or similar, reproducing
-	basically much of what the product renderer does web-facing.
+def unquoteProductKey(key):
+	"""reverses quoteProductKey.
 	"""
-	prodParams.update({"accref": accref})
-	prodSvc = base.caches.getRD("//products").getById("p")
-	svcRes = prodSvc.runFromDict(prodParams, "get",
-		svcs.QueryMeta(prodParams))
-	return svcRes.original.getPrimaryTable().rows[0]["source"]
-
+	return urllib.unquote(key)
 
 @utils.document
 def quoteProductKey(key):
-	"""URL-quotes product keys.
+	"""returns key as getproduct URL-part.
 
-	Actually, it url quotes any string, but we have special arrangements
-	for the presence of FatProductKeys, and we make sure the key is
-	safe for inclusion in URLs as regards the stupid plus-to-space
-	convention.
+	if key is a string, it is quoted as a naked accref so it's usable
+	as the path part of an URL.  If it's an RAccref, it is just stringified.
+	The result is something that can be used after getproduct in URLs
+	in any case.
 	"""
-	if isinstance(key, FatProductKey):
+	if isinstance(key, RAccref):
 		return str(key)
-	return urllib.quote_plus(key)
+	return urllib.quote(key)
 rscdef.addProcDefObject("quoteProductKey", quoteProductKey)
 
 
 @utils.document
 def makeProductLink(key, withHost=True):
 	"""returns the URL at which a product can be retrieved.
+
+	key can be an accref string or an RAccref
 	"""
-	url = base.makeSitePath("/getproduct?key=%s"%quoteProductKey(key))
+	url = base.makeSitePath("/getproduct/%s"%RAccref.fromString(key))
 	if withHost:
 		url = urlparse.urljoin(base.getConfig("web", "serverURL"), url)
 	return url

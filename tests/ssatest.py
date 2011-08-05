@@ -295,13 +295,12 @@ class SDMRenderTest(testhelpers.VerboseTest):
 	resources = [("ssatable", _ssaTable)]
 
 	def testUnknownURI(self):
-		pk = products.FatProductKey.fromString(
+		pk = _FakeRAccref.fromString(
 			"dcc://data.ssatest/mksdm?data/ssatest/foobar")
-		pk.productsRow = {
-			"embargo": None, 
+		pk.setProductsRow({
 			"accref": "data/ssatest/foobar",
 			"accessPath": "dcc://data.ssatest/mksdm?foobar",
-			"mime": "application/fits"}
+			"mime": "application/fits"})
 		prod = list(base.makeStruct(products.ProductsGrammar, groups=[]
 			).parse([pk]))[0]["source"]
 		self.assertEqual(prod.name, "foobar")
@@ -313,12 +312,26 @@ class SDMRenderTest(testhelpers.VerboseTest):
 			(prod.iterData(),))
 
 
+class _FakeRAccref(products.RAccref):
+	"""a RAccref that lets you manually provide a productsRow.
+	"""
+	def setProductsRow(self, val):
+		defaults = {
+			"embargo": None,
+			"mime": "application/x-votable+xml",}
+		defaults.update(val)
+		self._productsRowCache = defaults
+
+
 class _RenderedSDMResponse(testhelpers.TestResource):
 	resources = [("ssatable", _ssaTable)]
 
 	def make(self, deps):
-		rawVOT = "".join(products.getProductForAccref(
-			"data/spec1.ssatest.vot").iterData(svcs.QueryMeta({"_TDENC": True})))
+		rAccref = _FakeRAccref.fromString("bar")
+		rAccref.setProductsRow({
+			"accessPath": "dcc://data.ssatest/mksdm?data/spec1.ssatest.vot",})
+		prod = products.getProductForRAccref(rAccref)
+		rawVOT = "".join(prod.iterData(svcs.QueryMeta({"_TDENC": True})))
 		return rawVOT, testhelpers.getXMLTree(rawVOT)
 
 
@@ -375,9 +388,11 @@ class _RenderedSEDResponse(testhelpers.TestResource):
 	resources = [("ssatable", _ssaTable)]
 
 	def make(self, deps):
-		rawVOT = "".join(products.getProductForAccref(
-			"data/spec1.ssatest.vot&dm=sed",
-			).iterData(svcs.QueryMeta({"_TDENC": True})))
+		rAccref = _FakeRAccref.fromString("bar?dm=sed")
+		rAccref.setProductsRow({
+			"accessPath": "dcc://data.ssatest/mksdm?data/spec1.ssatest.vot",})
+		prod = products.getProductForRAccref(rAccref)
+		rawVOT = "".join(prod.iterData(svcs.QueryMeta({"_TDENC": True})))
 		return rawVOT, testhelpers.getXMLTree(rawVOT)
 
 

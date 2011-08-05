@@ -75,7 +75,7 @@ class ColToRowIterator(grammars.RowIterator):
 					# extract the first element and use that as access key
 					if isinstance(accref, list):
 						accref = accref[0]
-					# The str below is for product.FatProductKeys
+					# The str below is for product.RAccrefs
 					if str(accref) not in self.seenKeys:
 						yield {self.grammar.targetKey: accref}
 						self.seenKeys.add(str(accref))
