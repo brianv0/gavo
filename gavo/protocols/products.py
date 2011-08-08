@@ -493,6 +493,7 @@ class DCCProduct(ProductBase):
 		ProductBase.__init__(self, rAccref.productsRow["accessPath"], 
 			rAccref.productsRow["mime"])
 		self.params = rAccref.params
+		self.name = os.path.basename(rAccref.productsRow["accref"])
 		self._parseAccessPath()
 
 	_schemePat = re.compile("dcc://")
@@ -503,7 +504,7 @@ class DCCProduct(ProductBase):
 			return cls(rAccref)
 
 	def _makeName(self):
-		self.name = "untitled"  # set in _parseAccessPath
+		self.name = "untitled"  # set in the constructor
 	
 	def _parseAccessPath(self):
 		# The scheme is manually handled to shoehorn urlparse into supporting
@@ -515,7 +516,6 @@ class DCCProduct(ProductBase):
 		self.core = base.caches.getRD(
 			res.netloc.replace(".", "/")).getById(res.path.lstrip("/"))
 		self.accref = res.query
-		self.name = os.path.basename(res.query)
 
 	def iterData(self, queryMeta=svcs.emptyQueryMeta):
 		inData = self.params.copy()
@@ -526,7 +526,7 @@ class DCCProduct(ProductBase):
 		yield data
 	
 	def renderHTTP(self, ctx):
-		return thread.deferToThread(self.iterData, 
+		return threads.deferToThread(self.iterData, 
 			svcs.QueryMeta.fromContext(ctx)
 		).addCallback(self._deliver, ctx)
 	

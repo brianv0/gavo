@@ -329,6 +329,7 @@ class _RenderedSDMResponse(testhelpers.TestResource):
 	def make(self, deps):
 		rAccref = _FakeRAccref.fromString("bar")
 		rAccref.setProductsRow({
+			"accref": "spec1.ssatest.vot",
 			"accessPath": "dcc://data.ssatest/mksdm?data/spec1.ssatest.vot",})
 		prod = products.getProductForRAccref(rAccref)
 		rawVOT = "".join(prod.iterData(svcs.QueryMeta({"_TDENC": True})))
@@ -390,6 +391,7 @@ class _RenderedSEDResponse(testhelpers.TestResource):
 	def make(self, deps):
 		rAccref = _FakeRAccref.fromString("bar?dm=sed")
 		rAccref.setProductsRow({
+			"accref": "spec1.ssatest.vot",
 			"accessPath": "dcc://data.ssatest/mksdm?data/spec1.ssatest.vot",})
 		prod = products.getProductForRAccref(rAccref)
 		rawVOT = "".join(prod.iterData(svcs.QueryMeta({"_TDENC": True})))

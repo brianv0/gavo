@@ -131,7 +131,7 @@ class ProductTarMaker(object):
 		b = tarfile.TarInfo(name)
 		b.size = len(data)
 		b.mtime = time.time()
-		return b, StringIO(stuff)
+		return b, StringIO(data)
 
 	def _getHeaderVals(self, queryMeta):
 		if queryMeta.get("Overflow"):
