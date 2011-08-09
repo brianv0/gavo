@@ -222,7 +222,7 @@ def _productMapperFactory(colDesc):
 		if val:
 			return T.a(href=products.makeProductLink(val)+fixedArgs,
 				onmouseover=mouseoverHandler,
-				class_="productlink")[re.sub("&.*", "", 
+				class_="productlink")[re.sub(r"\?.*", "", 
 					os.path.basename(urllib.unquote_plus(str(val)[4:])))]
 		else:
 			return ""

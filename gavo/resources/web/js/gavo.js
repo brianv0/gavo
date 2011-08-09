@@ -65,8 +65,14 @@ function insertPreview(node, width) {
 // image.  node has to have a href attribute pointing to a DC
 // FITS product for this to work.
 	if (node.getAttribute("href")) {
-		insertPreviewURL(node, node.getAttribute("href")+"&preview=True"+
-			"&width="+width);
+		var oldHref = node.getAttribute("href");
+		var newPars = "preview=True&width="+width;
+		var joiner = "?";
+		// TODO: do actual URL parsing here
+		if (oldHref.indexOf("?")!=-1) { // assume we have a query
+			joiner = "&";
+		}
+		insertPreviewURL(node, oldHref+joiner+newPars);
 	}
 }
 
