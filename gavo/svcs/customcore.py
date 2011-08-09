@@ -33,6 +33,8 @@ class CustomCore(core.Core):
 	encountered, this class will be instanciated and will be used
 	instead of the CustomCore, so your code should probably inherit 
 	core.Core.
+
+	See `Writing Custom Cores`_ for details.
 	"""
 	name_ = "customCore"
 

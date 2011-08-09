@@ -22,9 +22,9 @@ from twisted.internet import reactor, defer
 from gavo import base
 from gavo import formats
 from gavo import rsc
+from gavo import rscdef
 from gavo import svcs
 from gavo import utils
-from gavo.base import coords
 from gavo.base import valuemappers
 from gavo.protocols import products
 from gavo.rscdef import rmkfuncs
@@ -373,21 +373,10 @@ class HTMLDataRenderer(rend.Fragment):
 		contains the entire row, and the thing must return a string or at
 		least stan (it can use T.tag).
 		"""
-		ns = dict(globals())
-		ns["queryMeta"] = self.queryMeta
-		ns["source"] = source
-		code = ("def format(data):\n"
-			"  try:\n"+
-			utils.fixIndentation(source, "     ")+"\n"
-			"  except:\n"
-			"    sys.stderr.write('Error in\\n%s\\n'%source)\n"
-			"    traceback.print_exc()\n"
-			"    raise\n")
-		try:
-			exec code in ns
-		except SyntaxError, ex:
-			raise base.BadCode(code, "column render function", ex)
-		return ns["format"]
+		code = ("def format(data):\n"+
+			utils.fixIndentation(source, "  ")+"\n")
+		return rmkfuncs.makeProc("format", code, "", None, 
+			queryMeta=self.queryMeta, source=source, T=T)
 
 	def _computeDefaultTds(self, acquireSamples):
 		"""leaves a sequence of children for each row in the
@@ -404,13 +393,12 @@ class HTMLDataRenderer(rend.Fragment):
 		for index, (desc, field) in enumerate(
 				zip(self.serManager, self.table.tableDef)):
 			formatter = self.serManager.mappers[index]
-			try:
+			if isinstance(field, svcs.OutputField):
 				if field.wantsRow:
 					desc["wantsRow"] = True
 				if field.formatter:
 					formatter = self._compileRenderer(field.formatter)
-			except AttributeError: # a column rather than an OutputField
-				pass
+
 			if desc.has_key("wantsRow"):
 				self.defaultTds.append(
 					T.td(formatter=formatter, render=T.directive("useformatter")))

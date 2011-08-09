@@ -310,4 +310,75 @@
 				yield newRow
 	</code>
 </procDef>
+
+
+<!--############################################################
+Core phrase makers and friends -->
+
+<procDef id="makeRangeQuery" type="phraseMaker">
+	<doc>
+	A phraseMaker that makes a pair of inputKeys into a range query,
+	possibly half-open.
+
+	The name of the column queried can be passed in the late parameter
+	colName; the default is the name of the first inputKey minus the
+	last four characters.  This looks weird but complements the
+	rangeCondDesc stream below.
+	</doc>
+	<setup>
+		<par key="colName" late="True" description="The name of the column queried
+			against">inputKeys[0].name[:-4]</par>
+	</setup>
+	<code><![CDATA[
+			minKey, maxKey = inputKeys
+			minVal, maxVal = inPars.get(minKey.name), inPars.get(maxKey.name)
+			if minVal is None:
+				yield "%s<=%%(%s)s"%(colName,
+					base.getSQLKey(maxKey.name, maxVal, outPars))
+			elif maxVal is None:
+				yield "%s>=%%(%s)s"%(colName,
+					base.getSQLKey(minKey.name, minVal, outPars))
+			else:
+				yield "%s BETWEEN %%(%s)s AND %%(%s)s"%(colName,
+					base.getSQLKey(minKey.name, minVal, outPars),
+					base.getSQLKey(maxKey.name, maxVal, outPars))
+	]]></code>
+</procDef>
+
+<STREAM id="rangeCond">
+	<doc>
+		A condDesc that expresses a range and has an InputKey each for min
+		and max.
+
+		Specify the following macros when replaying:
+
+		* name -- the column name in the core's queried table
+		* groupdesc -- a terse phrase describing the range.  This will be
+		  used in the description of both the input keys and the group
+		* grouplabel -- a label (include the unit, it is not taken from InputKey)
+		  written in front of the form group
+
+		groupdesc has to work after "Range of", "Lower bound of", and
+		"Upper bound of".  Do not include a concluding period.
+	</doc>
+
+	<condDesc combining="True">
+		<inputKey name="\name\+_min" original="\name"
+				description="Lower bound of \groupdesc">
+			<property name="cssClass">formkey_min</property>
+		</inputKey>
+		<inputKey name="\name\+_max" original="\name"
+				description="Upper bound of \groupdesc">
+			<property name="cssClass">formkey_max</property>
+		</inputKey>
+		<group name="mf\name">
+			<description>Range of \groupdesc.  If you only specify one bound,
+				you get a half-infinite interval.</description>
+			<property name="label">\grouplabel</property>
+			<property name="style">compact</property>
+		</group>
+		<phraseMaker procDef="//procs#makeRangeQuery"/>
+	</condDesc>
+</STREAM>
+
 </resource>

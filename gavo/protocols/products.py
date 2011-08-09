@@ -819,6 +819,7 @@ def unquoteProductKey(key):
 	"""
 	return urllib.unquote(key)
 
+
 @utils.document
 def quoteProductKey(key):
 	"""returns key as getproduct URL-part.

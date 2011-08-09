@@ -566,8 +566,6 @@ Embedding the definitions is done using the class attributes
         <values fromdb="tablename from dc_tables where adql=True"/>
       </inputTable>
       """
-    # we don't know what's going to be in the output table until we
-    # know both the uploaded table and the tableName
     outputTableXML = """<outputTable/>"""
 
 You should not override the constructor.  If you need to perform

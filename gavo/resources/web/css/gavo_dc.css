@@ -634,3 +634,9 @@ a.servicelink:hover {
 .busy:after {
 	content: ' (\231A)';
 }
+
+input.formkey_min {width:4em}
+input.formkey_max {width:4em}
+span.formkey_min:before { content:" between "; }
+span.formkey_max:before { content:" and "; }
+
