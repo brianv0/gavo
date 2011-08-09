@@ -34,7 +34,7 @@
 			description="Dataset identifier assigned by the creator"/>
 		<column name="ssa_pubDID" type="text"
 			utype="ssa:Curation.PublisherDID"
-			tablehead="P. DID" verbLevel="25" 
+			tablehead="P. DID" verbLevel="15" 
 			description="Dataset identifier assigned by the publisher"/>
 		<column name="ssa_cdate" type="timestamp"
 			utype="ssa:DataID.Date" ucd="time;meta.dataset"
@@ -104,11 +104,11 @@
 			verbLevel="15" tablehead="Bandwidth" unit="m"
 			description="Width of the spectrum"/>
 		<column name="ssa_specstart"
-			utype="ssa:Char.SpectralAxis.Coverage.Location.Start" ucd="em.wl;stat.min"
+			utype="ssa:Char.SpectralAxis.Coverage.Bounds.Start" ucd="em.wl;stat.min"
 			verbLevel="15" tablehead="Band start" unit="m"
 			description="Lower value of spectral coordinate"/>
 		<column name="ssa_specend"
-			utype="ssa:Char.SpectralAxis.Coverage.Location.Stop" ucd="em.wl;stat.max"
+			utype="ssa:Char.SpectralAxis.Coverage.Bounds.Stop" ucd="em.wl;stat.max"
 			verbLevel="15" tablehead="Band end" unit="m"
 			description="Upper value of spectral coordinate"/>
 	</STREAM>
