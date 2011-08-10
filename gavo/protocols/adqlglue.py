@@ -337,6 +337,7 @@ adql.registerRegionMaker(_makeSimbadRegion)
 def localquery():
 	"""run the argument as an ADQL query.
 	"""
+	from gavo import rscdesc
 	from gavo import formats
 
 	q = sys.argv[1]
