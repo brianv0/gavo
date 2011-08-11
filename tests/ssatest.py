@@ -382,7 +382,11 @@ class SDMTableTest(testhelpers.VerboseTest):
 		table = votRes.xpath("//TABLE")[0]
 		self.assertEqual(table.get("utype"), "spec:Spectrum")
 
-# TODO test for parameter by utype
+	def testAccrefMappedAndUtype(self):
+		# the product link is made in a hack in SDMCore.
+		tree = self.stringAndTree[1]
+		p = tree.xpath("//PARAM[@utype='spec:Spectrum.Access.Reference']")[0]
+		self.failUnless(p.get("value").startswith("http"))
 
 
 class _RenderedSEDResponse(testhelpers.TestResource):

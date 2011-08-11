@@ -205,13 +205,20 @@ class SDMCore(svcs.Core):
 			ssaTable.close()
 
 		resData = rsc.makeData(self.sdmDD, forceSource=ssaRow)
-		resData.getPrimaryTable().setMeta("description",
+		resTable = resData.getPrimaryTable()
+		resTable.setMeta("description",
 			"Spectrum from %s"%products.makeProductLink(accref))
+		# fudge accref  into a full URL
+		resTable.setParam("accref",
+			products.makeProductLink(resTable.getParam("accref")))
 
 		votContextArgs = {}
 		if queryMeta["tdEnc"]:
 			votContextArgs["tablecoding"] = "td"
 
+		# This is for VOSpec, in particular the tablecoding; I guess once
+		# we actually support the sed DM, this should go, and the
+		# specview links should use sed dcc sourcePaths.
 		if inputTable.getParam("dm")=="sed":
 			hackSDMToSED(resData)
 			votContextArgs["tablecoding"] = "td"
