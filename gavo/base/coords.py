@@ -365,6 +365,7 @@ def sgn(a):
 
 
 def computeUnitSphereCoords(alpha, delta):
+# TODO: replaced by mathtricks.spherToCart
 	"""returns the 3d coordinates of the intersection of the direction
 	vector given by the spherical coordinates alpha and delta with the
 	unit sphere.
@@ -382,10 +383,7 @@ def computeUnitSphereCoords(alpha, delta):
 	>>> print computeUnitSphereCoords(180, -45)
 	[-0.71,0,-0.71]
 	"""
-	alpha, delta = alpha*DEG, delta*DEG
-	return Vector3(cos(alpha)*cos(delta),
-		sin(alpha)*cos(delta),
-		sin(delta))
+	return Vector3(*utils.spherToCart(alpha*DEG, delta*DEG))
 
 
 def dirVecToCelCoos(dirVec):

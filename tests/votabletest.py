@@ -18,6 +18,7 @@ from gavo import votable
 from gavo.formats import votableread, votablewrite
 from gavo.helpers import testhelpers
 from gavo.utils import ElementTree
+from gavo.utils import pgsphere
 
 import tresc
 
@@ -218,7 +219,6 @@ class _ImportTestData(testhelpers.TestResource):
 class ImportTest(testhelpers.VerboseTest):
 	"""tests for working VOTable ingestion.
 	"""
-# Ok, so isn't a *unit* test by any stretch.  Sue me.
 	resources = [("testData", _ImportTestData("data/importtest.vot"))]
 
 	def testValidData(self):
@@ -241,14 +241,14 @@ class ImportTest(testhelpers.VerboseTest):
 		self.assertEqual([f.name for f in td],
 			['_r', 'field', 'field_', 'class_', 'result__', 'Cluster', 
 				'RAJ2000', 'GLON', 'xFexHxz', 'n_xFexHxz', 'xFexHxc', 
-				'FileName', 'HR', 'n_VHB'])
+				'FileName', 'HR', 'n_VHB', 'apex', 'roi'])
 
 	def testTypes(self):
 		td, data = self.testData
 		self.assertEqual([f.type for f in td], 
 			['double precision', 'double precision', 'double precision', 
 				'integer', 'smallint', 'text', 'text', 'real[2]', 'real', 
-				'smallint', 'real', 'text', 'text', 'char'])
+				'smallint', 'real', 'text', 'text', 'char', 'spoint', 'spoly'])
 
 	def testParams(self):
 		td, data = self.testData
@@ -266,6 +266,17 @@ class ImportTest(testhelpers.VerboseTest):
 		self.assertEqual(col.description, 
 			"Right ascension (FK5) Equinox=J2000. (computed by"
 			" VizieR, not part of the original data)")
+
+	def testPointVals(self):
+		_, data = self.testData
+		self.failUnless(isinstance(data[0][14], pgsphere.SPoint))
+		self.assertAlmostEqual(data[0][14].x, 42*utils.DEG)
+		self.assertEqual(data[1][14], None)
+
+	def testRegionVals(self):
+		_, data = self.testData
+		self.failUnless(isinstance(data[0][15], pgsphere.SPoly))
+		self.assertEqual(data[1][15], None)
 
 
 class VizierImportTest(testhelpers.VerboseTest):
@@ -732,7 +743,7 @@ class STCParseTest(testhelpers.VerboseTest):
 class SimpleAPIReadTest(testhelpers.VerboseTest):
 	def testSimpleData(self):
 		data, metadata = votable.load("data/importtest.vot")
-		self.assertEqual(len(metadata), 14)
+		self.assertEqual(len(metadata), 16)
 		self.assertEqual(metadata[0].name, "_r")
 		self.assertEqual(data[0][3], 1)
 		self.assertEqual(data[1][0], None)

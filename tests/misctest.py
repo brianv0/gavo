@@ -28,8 +28,10 @@ from gavo.base import valuemappers
 from gavo.helpers import filestuff
 from gavo.helpers import testhelpers
 from gavo.protocols import creds
+from gavo.utils import DEG
 from gavo.utils import pyfits
 from gavo.utils import stanxml
+from gavo.utils import pgsphere
 from gavo.votable import tapquery
 
 import tresc
@@ -583,5 +585,63 @@ class TapquerySyncTest(testhelpers.VerboseTest):
 			self.assertEqual(cgi.parse_qs(fakeInfo.lastData)["MAXREC"], ["0"])
 
 
+class MatrixTest(testhelpers.VerboseTest):
+	def testVecMul(self):
+		mat = utils.Matrix3([1, 0, 1], [-1, 1, 0], [0, -1, -1])
+		self.assertEqual(mat.vecMul((3, 8, -1)), (2, 5, -7))
+	
+	def testMatMul(self):
+		mat1 = utils.Matrix3([1, 0, 1], [-1, 1, 0], [0, -1, -1])
+		mat2 = utils.Matrix3(*mat1.getColumns())
+		self.assertEqual(mat1.matMul(mat2), utils.Matrix3(
+			(2, -1, -1), (-1, 2, -1), (-1, -1, 2)))
+
+
+class PgSphereDryTest(testhelpers.VerboseTest):
+# Tests for pgsphere interface that don't need DB connectivity
+# (others are in dbtest)
+	def _assertCircleBecomesPolygon(self, alpha, delta, radius):
+		alpha, delta, radius = alpha*DEG, delta*DEG, radius*DEG
+		c = pgsphere.SCircle(pgsphere.SPoint(alpha, delta), radius)
+		centerVec = utils.spherToCart(alpha, delta)
+		for pt in c.asPoly().points:
+			circleVec = utils.spherToCart(pt.x, pt.y)
+			self.assertAlmostEqual(utils.spherDist(circleVec, centerVec), radius)
+	
+	def testCircle1AsPoly(self):
+		self._assertCircleBecomesPolygon(0, 90, 3)
+
+	def testCircle2AsPoly(self):
+		self._assertCircleBecomesPolygon(0, 0, 8)
+
+	def testCircle3AsPoly(self):
+		self._assertCircleBecomesPolygon(80, -10, 20)
+
+	def testCircle4AsPoly(self):
+		self._assertCircleBecomesPolygon(120, -80, 1)
+
+	def testCircle5AsPoly(self):
+		self._assertCircleBecomesPolygon(220, -45, 1)
+
+	def testCircle6AsPoly(self):
+		self._assertCircleBecomesPolygon(320, 45, 90)
+
+	def testPolyAsPoly(self):
+		p = pgsphere.SPoly([pgsphere.SPoint(*p) for p in
+			((0.5, 0.4), (1, -0.2), (1.5, 0))])
+		self.failUnless(p.asPoly() is p)
+	
+	def testNormSboxAsPoly(self):
+		b = pgsphere.SBox(pgsphere.SPoint(0.2, -0.5), pgsphere.SPoint(2, 0.1))
+		self.assertEqual(b.asPoly(),
+			pgsphere.SPoly([pgsphere.SPoint(*p) for p in
+			((0.2, -0.5), (0.2, 0.1), (2, 0.1), (2, -0.5))]))
+
+	def testInvSboxAsPoly(self):
+		b = pgsphere.SBox(pgsphere.SPoint(2, 0.1), pgsphere.SPoint(-0.1, -0.5))
+		self.assertEqual(b.asPoly(),
+			pgsphere.SPoly([pgsphere.SPoint(*p) for p in
+			((-0.1, -0.5), (-0.1, 0.1), (2, 0.1), (2, -0.5))]))
+
 if __name__=="__main__":
-	testhelpers.main(StanXMLTest)
+	testhelpers.main(PgSphereDryTest)

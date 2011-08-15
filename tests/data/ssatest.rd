@@ -4,9 +4,8 @@
 		<mixin 
 			instrument="DaCHS test suite" 
 			fluxCalibration="UNCALIBRATED"
-			fluxSI="u"
-			spectralSI="%"
-
+			fluxSI=" "
+			spectralSI="m"
 			>//ssap#hcd</mixin>
 		<column name="excellence" type="integer" description="random number"/>
 	</table>

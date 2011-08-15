@@ -386,7 +386,8 @@
 		<mixinPar key="timeSI" description="Time unit (WCS convention)"
 			>s</mixinPar>
 		<mixinPar key="fluxSI" description="Flux unit in the spectrum
-			instance (not the SSA metadata)"/>
+			instance (not the SSA metadata); use a blank (or a percent) for
+			relative or uncalibrated fluxes."/>
 		<mixinPar key="spectralSI" description="Unit of frequency or 
 			wavelength in the spectrum instance (not the SSA metadata)"/>
 		<mixinPar key="creator" description="Creator designation"

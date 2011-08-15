@@ -216,8 +216,7 @@ def makeDDForVOTable(tableId, vot, gunzip=False, rd=None, **moreArgs):
 
 _xtypeParsers = {
 	'adql:POINT': "parseSimpleSTCS",
-	'adql:REGION': "parseSimpleSTCS", # actually, this is not used since
-		                                # there is not column type for these
+	'adql:REGION': "simpleSTCSToPolygon",
 	'adql:TIMESTAMP': "parseDefaultDatetime",
 }
 
@@ -230,12 +229,13 @@ def _getTupleAdder(table):
 	library returns the right types).
 	"""
 	from gavo.base.literals import parseDefaultDatetime
-	from gavo.stc import parseSimpleSTCS
+	from gavo.stc import parseSimpleSTCS, simpleSTCSToPolygon
 
 	xtypeCols = []
 	for colInd, col in enumerate(table.tableDef):
 		if _xtypeParsers.get(col.xtype):
 			xtypeCols.append((colInd, col))
+
 	if not xtypeCols:
 		return table.addTuple
 	else:
@@ -247,6 +247,7 @@ def _getTupleAdder(table):
 			lastInd = index+1
 		if lastInd!=index:
 			parts.append("row[%s:%s]"%(lastInd, len(table.tableDef.columns)))
+
 		return utils.compileFunction(
 			"def addTuple(row): table.addTuple(%s)"%("+".join(parts)), 
 			"addTuple",

@@ -138,7 +138,7 @@ class FromVOTableConverter(object):
 
 	xtypeMap = {
 		"adql:POINT": "spoint",
-		"adql:REGION": None,    # ignore the useless REGION xtype.
+		"adql:REGION": "spoly",
 		"adql:TIMESTAMP": "timestamp",
 	}
 

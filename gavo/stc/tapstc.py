@@ -148,6 +148,7 @@ class GeomExpr(object):
 		return logOp.join(
 			'(%s)'%self._flatLogic(template, op) for op in self.operands)
 
+
 def _make_pgsposition(coords):
 	if len(coords)!=2:
 		raise common.STCSParseError("STC-S points want two coordinates.")
@@ -249,6 +250,19 @@ def getSimpleSTCSParser():
 			raise common.STCSParseError("Invalid STCS (%s)"%str(msg))
 
 	return parse
+
+
+parseSimpleSTCS = getSimpleSTCSParser()
+
+
+def simpleSTCSToPolygon(stcsExpr):
+	"""returns an spoly for an STC-S region specification.
+
+	This is used to let people upload VOTables with adql:REGION items.
+	"""
+	if stcsExpr is None:
+		return None
+	return parseSimpleSTCS(stcsExpr).asPoly()
 
 
 if __name__=="__main__":

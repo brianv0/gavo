@@ -51,13 +51,12 @@ if sys.version_info[0]>=2 and sys.version_info[1]>4:
 
 	from gavo.stc.syslib import getLibrarySystem
 
-	from gavo.stc.tapstc import TAP_SYSTEMS, getTAPSTC, getSimpleSTCSParser
+	from gavo.stc.tapstc import (TAP_SYSTEMS, getTAPSTC, getSimpleSTCSParser,
+		parseSimpleSTCS, simpleSTCSToPolygon)
 
 	from gavo.stc.utypegen import getUtypes
 
 	from gavo.stc.utypeast import parseFromUtypes
-
-	parseSimpleSTCS = getSimpleSTCSParser()
 
 	def getSTCX(ast, rootElement):
 		return astToStan(ast, rootElement)

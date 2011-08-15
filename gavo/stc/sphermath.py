@@ -15,6 +15,8 @@ from gavo import utils
 from gavo.stc import units
 from gavo.stc.common import *
 
+from gavo.utils.mathtricks import cartToSpher, spherToCart
+
 # filled in for distances not given, in rad (units also insert this for
 # parallaxes too small)
 defaultDistance = units.maxDistance*units.onePc/units.oneAU
@@ -101,6 +103,8 @@ def computeTransMatrixFromPole(poleCoo, longZeroCoo, changeHands=False):
 
 	All angles are in rad.
 	"""
+# when moving from numpy here, replace this with the like-named
+# function from utils.mathtricks.
 	x = spherToCart(*longZeroCoo)
 	z = spherToCart(*poleCoo)
 	if abs(numpy.dot(x, z))>1e-5:
@@ -114,34 +118,6 @@ def computeTransMatrixFromPole(poleCoo, longZeroCoo, changeHands=False):
 
 def vabs(naVec):
 	return math.sqrt(numpy.dot(naVec, naVec))
-
-
-def spherToCart(theta, phi):
-	"""returns a 3-cartesian unit vector pointing to longitude theta,
-	latitude phi.
-
-	The angles are in rad.
-	"""
-	cp = math.cos(phi)
-	return math.cos(theta)*cp, math.sin(theta)*cp, math.sin(phi)
-
-
-def cartToSpher(unitvector):
-	"""returns spherical coordinates for a 3-unit vector.
-
-	We do not check if unitvector actually *is* a unit vector.  The returned
-	angles are in rad.
-	"""
-	x, y, z = unitvector
-	rInXY = math.sqrt(x**2+y**2)
-	if abs(rInXY)<1e-9:  # pole
-		theta = 0
-	else:
-		theta = math.atan2(y, x)
-	if theta<0:
-		theta += 2*math.pi
-	phi = math.atan2(z, rInXY)
-	return (theta, phi)
 
 
 def _ensureSphericalFrame(coo):

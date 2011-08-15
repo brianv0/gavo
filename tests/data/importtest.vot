@@ -60,19 +60,32 @@
     <FIELD name="n_VHB" ucd="NOTE" datatype="char" arraysize="1"><!-- ucd="meta.note" -->
       <DESCRIPTION>[*] Note on HB level (1)</DESCRIPTION>
     </FIELD>
+    <FIELD name="apex" datatype="char" arraysize="*" xtype="adql:POINT">
+    	<DESCRIPTION>Just need a point in the unit test</DESCRIPTION>
+    </FIELD>
+    <FIELD name="roi" datatype="char" arraysize="*" xtype="adql:REGION">
+    	<DESCRIPTION>Just need a region in the unit test</DESCRIPTION>
+    </FIELD>
+
 <DATA>      <TABLEDATA>
 <TR><TD>72.18303</TD><TD>006.0217</TD><TD>-72.0808</TD>
 <TD>1</TD><TD>1</TD><TD>NGC 104</TD>
 <TD>00 24 05.2</TD><TD>305.90 34.4</TD>
 <TD>4.89</TD><TD>0x22</TD><TD>7.3</TD>
 <TD>ngc104.dat</TD>
-<TD>HR</TD><TD>*</TD></TR>
+<TD>HR</TD><TD>*</TD>
+<TD>Position ICRS 42 -23.789</TD>
+<TD>Circle ICRS 42 -23.789 1</TD>
+
+</TR>
 <TR><TD></TD><TD></TD><TD></TD>
 <TD>10</TD><TD></TD><TD><!--NGC 288--></TD>
 <TD></TD><TD></TD>
 <TD></TD><TD></TD><TD></TD>
 <TD></TD>
-<TD></TD><TD></TD></TR>
+<TD></TD><TD></TD>
+<TD/><TD/>
+</TR>
 </TABLEDATA></DATA>
 </TABLE>
 </RESOURCE>

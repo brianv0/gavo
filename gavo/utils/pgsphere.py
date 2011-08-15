@@ -18,6 +18,7 @@ from psycopg2.extensions import (adapt, register_adapter, AsIs, register_type,
 
 from gavo.utils import codetricks
 from gavo.utils import excs
+from gavo.utils import mathtricks
 from gavo.utils.mathtricks import DEG
 
 _TRAILING_ZEROES = re.compile("0+(\s|$)")
@@ -56,6 +57,9 @@ class PgSAdapter(object):
 	You must also define a sequence checkedAttributes; all attributes
 	metioned there must be equal for two adapted values to be equal (equality
 	testing here really is mainly for unit tests with hand-crafted values).
+
+	Also, all subclasses you should provide an asPoly returning a spherical
+	polygon.  This is used when uploading VOTables with adql:REGION columns.
 	"""
 	pgType = None
 
@@ -69,6 +73,10 @@ class PgSAdapter(object):
 
 	def __ne__(self, other):
 		return not self==other
+
+	def asPoly(self):
+		raise ValueError("%s objects cannot be turned into polygons."%
+			self.__class__)
 
 
 class SPoint(PgSAdapter):
@@ -147,6 +155,25 @@ class SCircle(PgSAdapter):
 		return "scircle '< (%.10f, %.10f), %.10f >'"%(
 			self.center.x, self.center.y, self.radius)
 
+	def asPoly(self):
+		# approximate the circle with 32 line segments and don't worry about
+		# circles with radii larger than 90 degrees.
+		# We compute the circle around the north pole and then rotate
+		# the resulting points such that the center ends up at the
+		# circle's center.
+		r = math.sin(self.radius)
+		innerOffset = math.cos(self.radius)
+		rotationMatrix = mathtricks.getRotZ(math.pi/2-self.center.x).matMul(
+			mathtricks.getRotX(math.pi/2-self.center.y))
+
+		points = []
+		for i in range(32):
+			angle = i/16.*math.pi
+			dx, dy = r*math.sin(angle), r*math.cos(angle)
+			points.append(SPoint(
+				*mathtricks.cartToSpher(rotationMatrix.vecMul((dx, dy, innerOffset)))))
+		return SPoly(points)
+
 
 class SPoly(PgSAdapter):
 	"""A spherical polygon from pgSphere.
@@ -158,7 +185,7 @@ class SPoly(PgSAdapter):
 	pattern = re.compile("\([^)]+\)")
 
 	def __init__(self, points):
-		self.points = points
+		self.points = tuple(points)
 
 	@staticmethod
 	def _adaptToPgSphere(spoly):
@@ -174,10 +201,12 @@ class SPoly(PgSAdapter):
 		return removeTrailingZeroes("Polygon %s %s"%(systemString, 
 			" ".join("%.10f %.10f"%(p.x/DEG, p.y/DEG) for p in self.points)))
 
-
 	def asPgSphere(self):
 		return "spoly '{%s}'"%(",".join("(%.10f,%.10f)"%(p.x, p.y)
 			for p in self.points))
+
+	def asPoly(self):
+		return self
 
 
 class SBox(PgSAdapter):
@@ -254,6 +283,17 @@ class SBox(PgSAdapter):
 		return removeTrailingZeroes("PositionInterval %s %s %s"%(systemString, 
 			"%.10f %.10f"%(self.corner1.x/DEG, self.corner1.y/DEG),
 			"%.10f %.10f"%(self.corner2.x/DEG, self.corner2.y/DEG)))
+
+	def asPoly(self):
+		x1, y1 = self.corner1.x, self.corner1.y
+		x2, y2 = self.corner2.x, self.corner2.y
+		minX, maxX = min(x1, x2), max(x1, x2)
+		minY, maxY = min(y1, y2), max(y1, y2)
+		return SPoly((
+			SPoint(minX, minY), 
+			SPoint(minX, maxY),
+			SPoint(maxX, maxY),
+			SPoint(maxX, minY)))
 
 
 _getPgSClass = codetricks.buildClassResolver(PgSAdapter, globals().values(),
