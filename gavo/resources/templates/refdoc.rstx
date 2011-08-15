@@ -349,7 +349,7 @@ To avoid this, make a new creator node in between, i.e., write::
   creator.name: Berta
 
 In DC resources, it's better to be explicit about the tree structure
-(though you could write it like in metastream):
+(though you could write it like in metastream)::
 
   <meta name="creator">
     <meta name="name">Arthur</meta>
@@ -754,10 +754,11 @@ at various phases during the import.
 SQL scripts
 '''''''''''
 
-In SQL scripts, you separate statements with seimcolons.  Note that no
-statements in an SQL script may fail since that will invalidated the
-transaction.  You should, however, not commit or begin transactions in
-SQL scripts as long as Postgres  does not support nested transactions.
+In SQL scripts, you separate statements with semicolons.  Note that no
+statements in an SQL script may fail since that will invalidate the
+transaction.  This is a serious limitation since you must not commit or
+begin transactions in SQL scripts as long as Postgres  does not support
+nested transactions.
 
 You can use table macros in the SQL scripts to parametrize them; the
 most useful among those probably is ``\curtable`` containing the fully
@@ -771,11 +772,15 @@ Python scripts can be indented by a constant amount.
 The table object currently processed is accessible as table.  In
 particular, you can use this to issue queries using 
 ``table.query(query, arguments)`` (parallel to dbapi.execute) and to
-delete rows using ``table.deleteMatching(condition, pars)``.
+delete rows using ``table.deleteMatching(condition, pars)``.  The
+current RD is accessible as ``table.rd``, so you can access items from
+the RD as ``table.rd.getById("some_id")``, and the recommended way to
+read stuff from the resource directory is
+``table.rd.openRes("res/some_file)``.
 
-Some types of scripts may have additional names available, but this
-currently is only true for newSource, where the sourceToken of the new
-source is provided.
+Some types of scripts may have additional names available.  Currently,
+newSource has the name sourceToken – which is the sourceToken as passed
+to the grammar.
 
 Script types
 ''''''''''''

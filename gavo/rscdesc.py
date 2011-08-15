@@ -152,6 +152,7 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 		return "<resource descriptor for %s>"%self.sourceId
 
 	def importModule(self, ctx):
+		# this is a callback for the require attribute
 		utils.loadInternalObject(self.require, "__doc__")
 
 	def onElementComplete(self):
@@ -200,6 +201,11 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 				raise base.StructureError("Element with id '%s' is not a %s"%(
 					id, forceType.__name__))
 		return res
+
+	def openRes(self, relPath, mode="r"):
+		"""returns a file object for relPath within self's resdir.
+		"""
+		return open(os.path.join(self.resdir, relPath), mode)
 
 	def getTimestampPath(self):
 		"""returns a path to a file that's accessed by Resource each time 

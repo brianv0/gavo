@@ -18,7 +18,7 @@ class OutputField(rscdef.Column):
 	(which is based on units, ucds, and displayHints).  You receive
 	the item from the database as data and must return a string or
 	nevow stan.  In addition to the standard `Functions available for
-	rowmakers`_ you have queryMeta and nevow's tags in T.
+	row makers`_ you have queryMeta and nevow's tags in T.
 
 	Here's an example for generating a link to another service using this
 	facility::

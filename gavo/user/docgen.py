@@ -36,6 +36,17 @@ def _indent(stuff, indent):
 	return re.sub("(?m)^", indent, stuff)
 
 
+def _decodeStrings(stringList):
+	"""replaces all byte strings within stringList with unicode objects.
+
+	Everything not already a unicode object is, for now, assumed to be
+	iso-8859-1, since that is what code is encoded in when it's not ASCII.
+	"""
+	for ind, s in enumerate(stringList):
+		if not isinstance(s, unicode):
+			stringList[ind] = s.decode("iso-8859-1", "replace")
+	
+
 class RSTFragment(object):
 	"""is a collection of convenience methods for generation of RST.
 	"""
@@ -413,21 +424,23 @@ def makeReferenceDocs():
 	probably want to change this to having macros here.
 	"""
 	res, docStructure = [], DocumentStructure()
-	f = pkg_resources.resource_stream("gavo", "resources/templates/refdoc.rstx")
+	f = pkg_resources.resource_stream("gavo", 
+		"resources/templates/refdoc.rstx")
 	for ln in f:
 		mat = _replaceWithResultPat.match(ln)
 		if mat:
 			res.extend(eval(mat.group(1)))
 			res.append("\n")
 		else:
-			res.append(ln)
+			res.append(ln.decode("utf-8"))
 	f.close()
 	docStructure.fillOut(res)
+	_decodeStrings(res)
 	return "".join(res)
 
 
 def main():
-	print makeReferenceDocs().replace("\\", "\\\\")
+	print makeReferenceDocs().replace("\\", "\\\\").encode("utf-8")
 
 
 if __name__=="__main__":
