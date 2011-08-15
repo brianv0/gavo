@@ -662,5 +662,12 @@ class UnicodeCharStringsTest(testhelpers.VerboseTest):
 			in self._getDataTable(V.BINARY))
 
 
+class SimpleInterfaceTest(testhelpers.VerboseTest):
+	def testIterDict(self):
+		data, metadata = votable.load("data/importtest.vot")
+		res = list(metadata.iterDicts(data))
+		self.assertEqual(res[0]["FileName"], "ngc104.dat")
+		self.assertEqual(res[1]["apex"], None)
+
 if __name__=="__main__":
 	testhelpers.main(BinaryReadTest)

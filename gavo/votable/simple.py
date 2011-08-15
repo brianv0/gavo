@@ -57,6 +57,15 @@ class TableMetadata(object):
 
 	def getFields(self):
 		return self.votTable.getFields()
+	
+	def iterDicts(self, data):
+		"""iterates over data, but returns each row as a dict.
+
+		data is a result set as returned by load.
+		"""
+		names = [f.name for f in self]
+		for row in data:
+			yield dict(zip(names, row))
 
 
 def makeDtype(tableMetadata):
