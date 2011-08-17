@@ -2,6 +2,8 @@
 Cores to alter the DB state from the Web.
 """
 
+from __future__ import with_statement
+
 import grp
 import os
 import traceback
@@ -78,9 +80,10 @@ class UploadCore(core.Core):
 		if not targetFName:
 			raise base.ValidationError("Bad file name", "File")
 		targetPath = os.path.join(targetDir, targetFName)
-		f = open(targetPath, "w")
-		f.write(srcFile.read())
-		f.close()
+
+		with open(targetPath, "w") as f:
+			f.write(srcFile.read())
+
 		try:
 			self._fixPermissions(targetPath)
 		except os.error:
@@ -91,6 +94,7 @@ class UploadCore(core.Core):
 	def _importData(self, sourcePath, mode):
 		"""parses the input file at sourcePath and writes the result to the DB.
 		"""
+		base.ui.notifyInfo("Web upload ingesting %s in %s mode"%(sourcePath, mode))
 		try:
 			parseOptions = rsc.getParseOptions(validateRows=True, 
 				updateMode=True, doTableUpdates=mode=="u")

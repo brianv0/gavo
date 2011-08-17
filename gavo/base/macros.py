@@ -163,6 +163,12 @@ class StandardMacroMixin(MacroPackage):
 		"""
 		return self.rd.sourceId
 
+	def macro_rdIdDotted(self):
+		"""the identifier for the current resource descriptor with slashes replaced
+		with dots (so they work as the "host part" in URIs.
+		"""
+		return self.rd.sourceId.replace("/", ".")
+
 	def macro_schema(self):
 		"""the schema of the current resource descriptor.
 		"""
