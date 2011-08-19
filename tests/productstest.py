@@ -5,6 +5,7 @@ Tests for the products infrastructure.
 from cStringIO import StringIO
 import datetime
 import os
+import struct
 import tarfile
 
 from gavo import api
@@ -12,6 +13,7 @@ from gavo import base
 from gavo import svcs
 from gavo.helpers import testhelpers
 from gavo.protocols import products
+from gavo.utils import fitstools
 from gavo.web import producttar
 
 import tresc
@@ -219,10 +221,7 @@ class ProductsCoreTest(_TestWithProductsTable):
 				None)
 
 	def testScaledProduct(self):
-		self.assertRaisesWithMsg(base.ValidationError,
-			"Cannot generate scaled versions for anything but FITS yet.",
-			self._getProductFor,
-			("data/b.imp?scale=3",))
+		prod = self._getProductFor("data/b.imp?scale=3")
 	
 	def testCutoutProduct(self):
 		self.assertRaisesWithMsg(base.ValidationError,
@@ -230,6 +229,34 @@ class ProductsCoreTest(_TestWithProductsTable):
 			self._getProductFor,
 			("data/b.imp?ra=3&dec=4&sra=2&sdec=4",))
 
+
+class _FITSTable(tresc.RDDataResource):
+	"""at least one FITS file in the products table.
+	"""
+	dataId = "import_fitsprod"
+
+_fitsTable = _FITSTable()
+
+
+class MangledFITSProductsTest(testhelpers.VerboseTest):
+	resources = [("fitsTable", _fitsTable)]
+
+	def testScaledFITS(self):
+		prod = products.getProductForRAccref("data/ex.fits?scale=3")
+		resFile = StringIO("".join(prod.iterData()))
+		hdr = fitstools.readPrimaryHeaderQuick(resFile)
+		self.assertEqual(hdr["NAXIS1"], 4)
+		self.assertEqual(hdr["BITPIX"], -32)
+		self.failUnless("getproduct/data/ex.fits" in hdr["FULLURL"])
+		self.assertAlmostEqual(
+			struct.unpack("!f", resFile.read(4))[0],
+			7437.5556640625)
+
+# Revive when (and if) we do cutouts in pure python; right now, there's
+# no cutout binary in the test sandbox
+#	def testCutoutFITS(self):
+#		prod = products.getProductForRAccref("data/ex.fits?ra=168.24389&dec=22.21526&sra=0.0085&sdec=0.0142")
+#		open("zw.fits", "w").write("".join(prod.iterData()))
 
 if __name__=="__main__":
 	testhelpers.main(RaccrefTest)

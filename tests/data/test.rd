@@ -293,6 +293,19 @@
 		</make>
 	</data>
 
+	<data id="import_fitsprod">
+		<sources pattern="data/ex.fits"/>
+		<fitsProdGrammar>
+			<rowfilter procDef="//products#define">
+        <bind key="table">"test.prodtest"</bind>
+			</rowfilter>
+		</fitsProdGrammar>
+		<make table="prodtest" role="primary">
+			<rowmaker simplemaps="alpha:CRVAL1, delta:CRVAL2, object:OBJECT"
+				idmaps="*"/>
+		</make>
+	</data>
+
 	<table id="sqlscript" onDisk="True">
 		<column name="counter" type="integer"/>
 	</table>

@@ -8,9 +8,9 @@ from nevow import tags as T, entities as E
 from twisted.internet import defer
 
 from gavo import svcs
+from gavo.svcs import streaming
 from gavo.web import common
 from gavo.web import grend
-from gavo.web import streaming
 
 
 class VOTableResource(rend.Page):

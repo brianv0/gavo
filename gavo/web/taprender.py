@@ -22,9 +22,9 @@ from gavo.protocols import tap
 from gavo.protocols import taprunner
 from gavo.protocols import uws
 from gavo.protocols import uwsactions
+from gavo.svcs import streaming
 from gavo.web import common
 from gavo.web import grend
-from gavo.web import streaming
 from gavo.web import vosi
 
 

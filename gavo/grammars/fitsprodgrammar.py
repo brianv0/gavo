@@ -66,7 +66,8 @@ class FITSProdIterator(RowIterator):
 class FITSProdGrammar(Grammar):
 	"""A grammar that returns FITS-headers as dictionaries.
 
-	This is the grammar you want for FITS images, spectra and such.
+	This is the grammar you want for FITS images, spectra delivered as 1D
+	images (as opposed to in FITS binary tables) and such.
 	"""
 	name_ = "fitsProdGrammar"
 

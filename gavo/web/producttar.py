@@ -22,7 +22,7 @@ from gavo import rscdef
 from gavo import svcs
 from gavo import utils
 from gavo.protocols import products
-from gavo.web import streaming
+from gavo.svcs import streaming
 
 
 MS = base.makeStruct

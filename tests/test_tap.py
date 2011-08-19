@@ -83,8 +83,8 @@ class SyncMetaTest(TAPRenderTest):
 class SyncQueryTest(TAPRenderTest):
 	"""tests for querying sync queries.
 	"""
-# XXX TODO: use some of "our" test tables rather than taptest here;
-# then remove setUp and tearDown
+# XXX TODO: use some of the unittest test tables rather than taptest here;
+# then figure out how to combine testresources and trial.
 	def setUp(self):
 		self.testInputs = base.getConfig("inputsDir")
 		if "GAVO_INPUTSDIR" in os.environ:

@@ -23,11 +23,11 @@ from gavo import utils
 from gavo import votable
 from gavo.imp import formal
 from gavo.imp.formal import form
+from gavo.svcs import streaming
 from gavo.utils import ElementTree
 from gavo.votable import V
 from gavo.web import formrender
 from gavo.web import grend
-from gavo.web import streaming
 
 
 MS = base.makeStruct

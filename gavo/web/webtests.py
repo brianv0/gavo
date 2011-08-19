@@ -6,8 +6,8 @@ from nevow import inevow
 from nevow import rend
 from nevow import tags as T
 
+from gavo.svcs import streaming
 from gavo.web import common
-from gavo.web import streaming
 
 
 class FooPage(rend.Page):

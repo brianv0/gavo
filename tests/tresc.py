@@ -136,19 +136,32 @@ class TestUsers(testhelpers.TestResource):
 testUsers = TestUsers()
 
 
-class CSTestTable(testhelpers.TestResource):
-	"""A database table including positions, as defined by test#adql.
+class RDDataResource(testhelpers.TestResource):
+	"""A resource consiting generated from a data item in an RD.
+
+	Specify the name of an rd file in data in the rdName class attribute
+	(default: test.rd), the id of the data object within in dataId.
 	"""
 	resources = [('conn', dbConnection)]
 
+	rdName = "test.rd"
+	dataId = None
+
 	def make(self, deps):
 		self.conn = deps["conn"]
-		dd = testhelpers.getTestRD().getById("csTestTable")
+		dd = testhelpers.getTestRD(self.rdName).getById(self.dataId)
 		self.dataCreated = rsc.makeData(dd, connection=self.conn)
 		return self.dataCreated.getPrimaryTable()
 	
 	def clean(self, table):
 		self.dataCreated.dropTables()
+
+
+
+class CSTestTable(RDDataResource):
+	"""A database table including positions, as defined by test#adql.
+	"""
+	dataId = "csTestTable"
 
 csTestTable = CSTestTable()
 

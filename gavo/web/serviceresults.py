@@ -22,9 +22,9 @@ from gavo.imp import formal
 from gavo.imp.formal import types as formaltypes
 from gavo.imp.formal.util import render_cssid
 from gavo.svcs import customwidgets
+from gavo.svcs import streaming
 from gavo.web import common
 from gavo.web import producttar
-from gavo.web import streaming
 
 
 class ServiceResult(object):

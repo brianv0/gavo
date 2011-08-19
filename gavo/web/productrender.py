@@ -21,7 +21,6 @@ from gavo import svcs
 from gavo import utils
 from gavo.protocols import products
 from gavo.web import grend
-from gavo.web import streaming
 
 class ItemNotFound(base.Error):
 	pass

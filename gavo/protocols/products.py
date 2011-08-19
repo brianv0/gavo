@@ -23,10 +23,13 @@ import cgi
 import datetime
 import re
 import os
+import struct
 import subprocess
 import urllib
 import urlparse
+from cStringIO import StringIO
 
+import numpy
 from nevow import inevow
 from nevow import static
 from twisted.internet import threads
@@ -41,6 +44,7 @@ from gavo import utils
 from gavo.base import coords
 from gavo.base import valuemappers
 from gavo.protocols import creds
+from gavo.svcs import streaming
 from gavo.utils import fitstools
 
 MS = base.makeStruct
@@ -415,56 +419,58 @@ class CutoutProduct(ProductBase):
 		return str(result)
 		
 
-class ScaledProduct(ProductBase):
+class ScaledFITSProduct(ProductBase):
 	"""A class representing a scaled FITS file.
 
-	pars must be a dictionary containing at least one key, scale, pointing
-	to an int with a sensible scale.
-
-	Right now, this only works for local FITS files.
+	Right now, this only works for local FITS files.  Still, the
+	class is constructed with a full rAccref.
 	"""
-	def __init__(self, sourceSpec, scale, contentType):
-		ProductBase.__init__(self, sourceSpec, contentType)
-		self.scale = pars["scale"]
+	def __init__(self, rAccref):
+		ProductBase.__init__(self, rAccref.localpath, rAccref.productsRow["mime"])
+		self.scale = rAccref.params["scale"]
+		self.baseAccref = rAccref.accref
 	
 	def __str__(self):
 		return "<Scaled version of %s>"%(self.sourceSpec)
 
 	@classmethod
 	def fromRAccref(cls, rAccref, grammar=None):
-		if rAccref.params.keys()==["scale"]:
-			if rAccref.productsRow["mime"]!="image/fits":
-				raise base.ValidationError("Cannot generate scaled versions"
-					" for anything but FITS yet.", "accref")
-			return cls(rAccref.localpath, rAccref.params["scale"], "image/fits")
+		if ("scale" in rAccref.params
+				and rAccref.productsRow["mime"]=="image/fits"):
+			return cls(rAccref)
 
 	def _makeName(self):
 		self.name = "scaled-"+os.path.basename(self.sourceSpec)
 
 	def iterData(self):
-		raise NotImplementedError("Cannot scale yet")
+		if self.contentType!="image/fits":
+			raise base.ValidationError("Cannot generate scaled versions"
+				" for anything but FITS yet.", "accref")
+		scale = int(self.scale)
+		if scale<1:
+			scale = 1
+		
+		with open(self.sourceSpec) as f:
+			oldHdr = fitstools.readPrimaryHeaderQuick(f)
+			newHdr = fitstools.shrinkWCSHeader(oldHdr, scale)
+			newHdr.update("FULLURL", str(makeProductLink(self.baseAccref)))
+			yield fitstools.serializeHeader(newHdr)
+
+			for row in fitstools.iterScaledRows(f, scale):
+				# Unfortunately, numpy's byte swapping for floats is broken in
+				# many wide-spread revisions.  So, we cannot do the fast
+				#	yield row.newbyteorder(">").tostring()
+				# but rather, for now, have to try the slow:
+				yield struct.pack("!%df"%len(row), *row)
+			
+	def _writeStuffTo(self, destF):
+		for chunk in self.iterData():
+			destF.write(chunk)
 
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", self.contentType)
-		return self._getDeferred(request, self.iterData())
-# TODO: should we use web.streaming resp. producer/consumer here?
-# If so: the product renderer should probably check if a product
-# implements a producer interface and the act accordingly.
-
-	def _getDeferred(self, request, iterator):
-		d = defer.Deferred()
-		reactor.callLater(0.01, d.callback)
-		d.addCallback(self._deliver, request, iterator)
-		return d
-
-	def _deliver(self, ignored, request, iterator):
-		try:
-			data = iterator.next()
-		except StopIteration:
-			return ""
-		request.write(data)
-		return _getDeferred(request, iterator)
+		return streaming.streamOut(self._writeStuffTo, request)
 
 
 class DCCProduct(ProductBase):
@@ -547,7 +553,7 @@ PRODUCT_CLASSES = [
 	RemoteProduct,
 	DCCProduct,
 	CutoutProduct,
-	ScaledProduct,
+	ScaledFITSProduct,
 	FileProduct,
 ]
 
@@ -557,13 +563,17 @@ def getProductForRAccref(rAccref, grammar=None):
 	This tries, in sequence, to make a product using each element
 	of PRODUCT_CLASSES' fromRAccref method.  If nothing succeeds,
 	it will return an InvalidProduct.
+
+	If rAccref is a string, the function makes a real RAccref through
+	RAccref's fromString method from it.
 	"""
+	if not isinstance(rAccref, RAccref):
+		rAccref = RAccref.fromString(rAccref)
 	for prodClass in PRODUCT_CLASSES:
 		res = prodClass.fromRAccref(rAccref, grammar)
 		if res is not None:
 			return res
 	return InvalidProduct.fromRAccref(rAccref, grammar)
-
 
 
 class ProductIterator(grammars.RowIterator):

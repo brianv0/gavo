@@ -6,6 +6,11 @@ Some utility functions to deal with FITS files.
 #c
 #c This program is free software, covered by the GNU GPL.  See COPYING.
 
+# I'm wasting a lot of effort on handling gzipped FITS files, which is
+# something that's not terribly common in the end.  Maybe we should
+# cut the crap and let people with gzipped FITSes do their stuff manually?
+
+
 from __future__ import with_statement
 
 import tempfile
@@ -14,6 +19,7 @@ import sys
 import gzip
 import re
 
+import numpy
 
 from gavo.utils import ostricks
 
@@ -22,7 +28,7 @@ from gavo.utils import ostricks
 # see also utils/__init__.py
 os.environ["NUMERIX"] = "numpy"
 try:
-	import pyfits  # not from gavo.utils (this is the original)
+	import pyfits  # not "from gavo.utils" (this is the original)
 except ImportError:  
 	# pyfits is not installed; don't die, since the rest of gavo.utils
 	# will still work.
@@ -39,12 +45,8 @@ else:
 	# where they are found
 	if hasattr(pyfits, "core"):
 		_TempHDU = pyfits.core._TempHDU
-		_pad = pyfits.core._pad
-		_padLength = pyfits.core._padLength
 	else:
 		_TempHDU = pyfits._TempHDU
-		_pad = pyfits._pad
-		_padLength = pyfits._padLength
 
 
 blockLen = 2880
@@ -53,6 +55,29 @@ blockLen = 2880
 
 class FITSError(Exception):
 	pass
+
+
+def padCard(input, length=80):
+	"""pads input (a string) with blanks until len(result)%80=0
+
+	The length keyword argument lets you adjust the "card size".  Use
+	this to pad headers with length=blockLen
+
+	>>> padCard("")
+	''
+	>>> len(padCard("end"))
+	80
+	>>> len(padCard("whacko"*20))
+	160
+	>>> len(padCard("junkodumnk"*17, 27))%27
+	0
+	"""
+# This is like pyfits._pad, but I'd rather not depend on pyfits internals
+# to much.
+	l = len(input)
+	if not l%length:
+		return input
+	return input+' '*(length-l%length)
 
 
 def readPrimaryHeaderQuick(f):
@@ -119,11 +144,12 @@ def parseCards(aString):
 	return cards
 		
 
-def hdr2str(hdr):
-	repr = "".join(c.ascardimage() for c in hdr.ascardlist())
-	repr = repr+_pad('END')
-	repr = repr+_padLength(len(repr))*' '
-	return repr
+def serializeHeader(hdr):
+	"""returns the FITS serialization of a FITS header hdr.
+	"""
+	repr = "".join(map(str, hdr.ascardlist()))
+	repr = repr+padCard('END')
+	return padCard(repr, length=blockLen)
 
 
 def replacePrimaryHeader(inputFile, newHeader, targetFile, bufSize=100000):
@@ -137,7 +163,7 @@ def replacePrimaryHeader(inputFile, newHeader, targetFile, bufSize=100000):
 	scaled data in images when extending a header.
 	"""
 	readPrimaryHeaderQuick(inputFile)
-	targetFile.write(hdr2str(newHeader))
+	targetFile.write(serializeHeader(newHeader))
 	while True:
 		buf = inputFile.read(bufSize)
 		if not buf:
@@ -302,7 +328,7 @@ def openFits(fitsName):
 
 
 class PlainHeaderManipulator:
-	"""is a class that allows header manipulation of fits files
+	"""A class that allows header manipulation of fits files
 	without having to touch the data.
 
 	This class exists because pyfits insists on scaling scaled image data
@@ -351,7 +377,7 @@ class GzHeaderManipulator(PlainHeaderManipulator):
 
 
 def HeaderManipulator(fName):
-	"""is a factory function for header manipulators.
+	"""returns a header manipulator for a FITS file.
 
 	(it's supposed to look like a class, hence the uppercase name)
 	It should automatically handle gzipped files.
@@ -367,3 +393,150 @@ def getPrimarySize(fName):
 	"""
 	hdr = readPrimaryHeaderQuick(open(fName))
 	return hdr["NAXIS1"], hdr["NAXIS2"]
+
+
+def shrinkWCSHeader(oldHeader, factor):
+	"""returns a FITS header suitable for a shrunken version of the image
+	described by oldHeader.
+
+	This only works for 2d images, and you're doing yourself a favour
+	if factor is a power of 2.  It is forced to be integral anyway.
+
+	Note that oldHeader must be an actual pyfits header instance; a dictionary
+	will not do.
+
+	This is a pretty straight port of wcstools's imutil.c#ShrinkFITSHeader,
+	except we clear BZERO and BSCALE and set BITPIX to -32 (float array)
+	under the assumption that in the returned image, 32-bit floats are used
+	(the streaming scaler in this module does this).
+	"""
+	assert oldHeader["NAXIS"]==2
+
+	factor = int(factor)
+	newHeader = oldHeader.copy()
+	newHeader["NAXIS1"] = oldHeader["NAXIS1"]//factor
+	newHeader["NAXIS2"] = oldHeader["NAXIS2"]//factor
+	newHeader["BITPIX"] = -32
+
+	ffac = float(factor)
+	newHeader["CRPIX1"] = oldHeader["CRPIX1"]/ffac+0.5
+	newHeader["CRPIX2"] = oldHeader["CRPIX2"]/ffac+0.5
+	for key in ("CDELT1", "CDELT2",
+			"CD1_1", "CD2_1", "CD1_2", "CD2_2"):
+		if key in oldHeader:
+			newHeader[key] = oldHeader[key]*ffac
+	newHeader.update("IMSHRINK", "Image scaled down %s-fold by DaCHS"%factor)
+
+	for hField in ["BZERO", "BSCALE"]:
+		if newHeader.has_key(hField):
+			del newHeader[hField]
+
+	return newHeader
+
+
+NUM_CODE = {
+		8: 'uint8', 
+		16: '>i2', 
+		32: '>i4', 
+		64: '>i8', 
+		-32: '>f4', 
+		-64: '>f8'}
+
+def _makeDecoder(hdr):
+	"""returns a decoder for the rows of FITS primary image data.
+
+	The decoder is called with an open file and returns the next row.
+	You need to keep track of the total number of rows yourself.
+	"""
+	numType = NUM_CODE[hdr["BITPIX"]]
+	rowLength = hdr["NAXIS1"]
+
+	bzero, bscale = hdr.get("BZERO", 0), hdr.get("BSCALE", 1)
+	if bzero!=0 or bscale!=1:
+		def read(f):
+			return numpy.asarray(
+				numpy.fromfile(f, numType, rowLength), 'float32')*bscale+bzero
+	else:
+		def read(f):
+			return numpy.fromfile(f, numType, rowLength)
+
+	return read
+
+
+def iterFITSRows(hdr, f):
+	"""iterates over the rows of a FITS (primary) image.
+
+	You pass in a FITS header and a file positioned to the start of
+	the image data.
+
+	What's returned are 1d numpy arrays of the datatype implied by bitpix.  The
+	function understands only very basic FITSes (BSCALE and BZERO are known,
+	though, and lead to floats arrays).
+
+	We do this ourselves since pyfits may pull in the whole thing or at least
+	mmaps it; both are not attractive when I want to stream-process large
+	images.
+	"""
+	decoder = _makeDecoder(hdr)
+	for col in xrange(hdr["NAXIS2"]):
+		yield decoder(f)
+
+
+def iterScaledRows(inFile, factor):
+	"""iterates over numpy arrays of pixel rows within the open FITS
+	stream inFile scaled by it integer in factor.
+
+	The arrays are always float32, regardless of the input.  When the
+	image size is not a multiple of factor, border pixels are discarded.
+	"""
+	factor = int(factor)
+	assert factor>1
+
+	inFile.seek(0, 0)
+	hdr = readPrimaryHeaderQuick(inFile)
+	rowLength = hdr["NAXIS1"]
+	destRowLength = rowLength/factor
+	rows = iterFITSRows(hdr, inFile)
+	summedInds = range(factor)
+
+	for index in xrange(hdr["NAXIS2"]//factor):
+		newRow = numpy.zeros((rowLength,), 'float32')
+		for i in summedInds:
+			try:
+				newRow += rows.next()
+			except StopIteration:
+				break
+		newRow /= factor
+
+		# horizontal scaling via reshaping to a matrix and then summing over
+		# its columns...
+		newRow = newRow[:destRowLength*factor]
+		yield sum(numpy.transpose(
+			(newRow/factor).reshape((destRowLength, factor))))
+
+
+def headerFromDict(d):
+	"""returns a primary header sporting the key/value pairs given in the
+	dictionary d.
+
+	In all likelihood, this header will *not* work properly as a primary
+	header because, e.g., there are certain rules on the sequence of
+	header items.  fitstricks.copyFields can make a valid header out
+	of what's returned here.
+
+	keys mapped to None are skipped, i.e., you have to do nullvalue handling
+	yourself.
+	"""
+	hdr = pyfits.PrimaryHDU().header
+	for key, value in d.iteritems():
+		if value is not None:
+			hdr.update(key, value)
+	return hdr
+
+
+def _test():
+	import doctest, fitstools
+	doctest.testmod(fitstools)
+
+if __name__=="__main__":
+	_test()

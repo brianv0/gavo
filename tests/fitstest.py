@@ -9,6 +9,7 @@ import tempfile
 import unittest
 
 
+from gavo import base
 from gavo.helpers import testhelpers
 from gavo.utils import fitstools
 from gavo.utils import pyfits
@@ -171,6 +172,34 @@ class ParseCardsTest(testhelpers.VerboseTest):
 		self.assertEqual(len(fitstools.parseCards(input)), 3)
 
 
+class ScalingTest(testhelpers.VerboseTest):
+
+	def _getExFits(self):
+		return os.path.join(base.getConfig("inputsDir"), "data", "ex.fits")
+
+	def testIterRowsBscale(self):
+		with open(self._getExFits()) as f:
+			hdr = fitstools.readPrimaryHeaderQuick(f)
+			colIter = fitstools.iterFITSRows(hdr, f)
+				
+			col = colIter.next()
+			self.assertEqual(len(col), 12)
+			self.assertEqual(col[-1], 8472.)
+			self.assertEqual(len(list(colIter)), 22)
+
+	def testIterScaledRows2(self):
+		pixelRows = list(fitstools.iterScaledRows(open(self._getExFits()), 2))
+		self.assertEqual(len(pixelRows), 11)
+		self.assertEqual(len(pixelRows[0]), 6)
+		self.assertEqual(pixelRows[0][-1], 8227.75)
+
+	def testIterScaledRows5(self):
+		pixelRows =  list(fitstools.iterScaledRows(open(self._getExFits()), 5))
+		self.assertEqual(len(pixelRows), 4)
+		self.assertEqual(len(pixelRows[0]), 2)
+		self.assertEqual(int(pixelRows[0][-1]), 8621)
+
+
 if __name__=="__main__":
-	testhelpers.main(ParseCardsTest)
+	testhelpers.main(ScalingTest)
 

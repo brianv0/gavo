@@ -15,7 +15,7 @@ from gavo.base import coords
 from gavo.helpers import testhelpers
 from gavo.helpers import fitstricks
 from gavo.protocols import siap
-from gavo.utils import DEG
+from gavo.utils import DEG, fitstools
 
 import tresc
 
@@ -171,7 +171,7 @@ class TestWCSBbox(unittest.TestCase):
 			self._testOverlap(ra, dec)
 
 
-def computeWCSKeys(pos, size):
+def computeWCSKeys(pos, size, cutCrap=False):
 	imgPix = (1000., 1000.)
 	res = {
 		"CRVAL1": pos[0],
@@ -189,23 +189,24 @@ def computeWCSKeys(pos, size):
 		"NAXIS": 2,
 		"CTYPE1": 'RA---TAN-SIP', 
 		"CTYPE2": 'DEC--TAN-SIP',
-		"LONPOLE": 180.,
-		"imageTitle": "test image",
-		"instId": None,
-		"dateObs": None,
-		"refFrame": None,
-		"wcs_equinox": None,
-		"bandpassId": None,
-		"bandpassUnit": None,
-		"bandpassRefval": None,
-		"bandpassHi": None,
-		"bandpassLo": None,
-		"pixflags": None,
-		"accref": "image%s%s"%(pos, size),
-		"accsize": None,
-		"embargo": None,
-		"owner": None,
-	}
+		"LONPOLE": 180.}
+	if not cutCrap:
+		res.update({"imageTitle": "test image",
+			"instId": None,
+			"dateObs": None,
+			"refFrame": None,
+			"wcs_equinox": None,
+			"bandpassId": None,
+			"bandpassUnit": None,
+			"bandpassRefval": None,
+			"bandpassHi": None,
+			"bandpassLo": None,
+			"pixflags": None,
+			"accref": "image%s%s"%(pos, size),
+			"accsize": None,
+			"embargo": None,
+			"owner": None,
+		})
 	return res
 
 
@@ -374,10 +375,11 @@ class ScaleHeaderTest(testhelpers.VerboseTest):
 		self.assertAlmostEqual(pair1[1], pair2[1])
 
 	def testSimple(self):
-		fullHdr = computeWCSKeys((23, 27), (1, 2))
-		halfHdr = fitstricks.shrinkWCSHeader(fullHdr, 2)
+		fullHdr = fitstools.headerFromDict(
+			computeWCSKeys((23, 27), (1, 2), cutCrap=True))
+		halfHdr = fitstools.shrinkWCSHeader(fullHdr, 2)
 
-		self.assertEqual(halfHdr["IMSHRINK"], 'Image scaled down 2-fold')
+		self.assertEqual(halfHdr["IMSHRINK"], 'Image scaled down 2-fold by DaCHS')
 		self.assertEqual(fullHdr["NAXIS2"]/2, halfHdr["NAXIS1"])
 
 		toPhysOld = coords.getWCSTrafo(fullHdr)
@@ -394,6 +396,16 @@ class ScaleHeaderTest(testhelpers.VerboseTest):
 			toPhysOld(fullHdr["NAXIS1"]+1,fullHdr["NAXIS2"]+1),
 			toPhysNew(halfHdr["NAXIS1"]+1,halfHdr["NAXIS2"]+1))
 
+	def testTypesFixed(self):
+		fullHdr = fitstools.headerFromDict(
+			computeWCSKeys((23, 27), (1, 2), cutCrap=True))
+		fullHdr.update("BZERO", 32768)
+		fullHdr.update("BSCALE", 1)
+		fullHdr.update("BITPIX", 8)
+		halfHdr = fitstools.shrinkWCSHeader(fullHdr, 2)
+		self.failIf(halfHdr.has_key("BZERO"))
+		self.failIf(halfHdr.has_key("BSCALE"))
+		self.assertEqual(halfHdr["BITPIX"], -32)
 
 
 if __name__=="__main__":
