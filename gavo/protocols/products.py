@@ -448,7 +448,7 @@ class ScaledFITSProduct(ProductBase):
 				" for anything but FITS yet.", "accref")
 		scale = int(self.scale)
 		if scale<1:
-			scale = 1
+			scale = 2
 		
 		with open(self.sourceSpec) as f:
 			oldHdr = fitstools.readPrimaryHeaderQuick(f)

@@ -21,6 +21,11 @@ from gavo import utils
 from gavo.formats import votablewrite
 
 
+class StopWriting(IOError):
+	"""clients can raise this when they want the stream to abort.
+	"""
+
+
 class StreamBuffer(object):
 	"""a buffer that takes data in arbitrary chunks and returns
 	them in chops of chunkSize bytes.
@@ -115,7 +120,7 @@ class DataStreamer(threading.Thread):
 		self.paused = True
 
 	def stopProducing(self):
-		self.exceptionToRaise = IOError("Stop writing, please")
+		self.exceptionToRaise = StopWriting("Stop writing, please")
 
 	def _deliverBuffer(self):
 		"""causes the accumulated data to be written if enough
@@ -126,12 +131,13 @@ class DataStreamer(threading.Thread):
 		"""
 		while True:
 			data = self.buffer.get()
-			if data is None: # nothing to write yet
+			if data is None: # nothing to write yet/any more
 				return
 			while self.paused:
 				# consumer has requested a pause; let's busy-loop;
 				# doesn't cost much and is easier than semaphores.
 				time.sleep(0.1)
+
 			reactor.callFromThread(self._writeToConsumer, data)
 
 	def write(self, data):
@@ -175,6 +181,8 @@ class DataStreamer(threading.Thread):
 				self.writeStreamTo(self)
 				self.buffer.doneWriting()
 				self._deliverBuffer()
+			except StopWriting:
+				pass
 			except IOError:
 				# I/O errors are most likely not our fault, and I don't want
 				# to make matters worse by pushing any dumps into a line

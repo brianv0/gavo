@@ -13,11 +13,12 @@ Some utility functions to deal with FITS files.
 
 from __future__ import with_statement
 
-import tempfile
-import os
-import sys
+import datetime
 import gzip
+import os
 import re
+import sys
+import tempfile
 
 import numpy
 
@@ -49,7 +50,7 @@ else:
 		_TempHDU = pyfits._TempHDU
 
 
-blockLen = 2880
+FITS_BLOCK_SIZE = 2880
 
 
 
@@ -61,7 +62,7 @@ def padCard(input, length=80):
 	"""pads input (a string) with blanks until len(result)%80=0
 
 	The length keyword argument lets you adjust the "card size".  Use
-	this to pad headers with length=blockLen
+	this to pad headers with length=FITS_BLOCK_SIZE
 
 	>>> padCard("")
 	''
@@ -91,7 +92,7 @@ def readPrimaryHeaderQuick(f):
 	This function is adapted from pyfits.
 	"""
 	end_RE = re.compile('END'+' '*77)
-	block = f.read(blockLen)
+	block = f.read(FITS_BLOCK_SIZE)
 	if block == '':
 		raise EOFError
 
@@ -103,7 +104,7 @@ def readPrimaryHeaderQuick(f):
 		mo = end_RE.search(block)
 		if mo is None:
 			hdu._raw += block
-			block = f.read(blockLen)
+			block = f.read(FITS_BLOCK_SIZE)
 			if block == '' or len(hdu._raw)>40000:
 				break
 		else:
@@ -147,9 +148,9 @@ def parseCards(aString):
 def serializeHeader(hdr):
 	"""returns the FITS serialization of a FITS header hdr.
 	"""
-	repr = "".join(map(str, hdr.ascardlist()))
-	repr = repr+padCard('END')
-	return padCard(repr, length=blockLen)
+	serForm = "".join(map(repr, hdr.ascardlist()))
+	serForm = serForm+padCard('END')
+	return padCard(serForm, length=FITS_BLOCK_SIZE)
 
 
 def replacePrimaryHeader(inputFile, newHeader, targetFile, bufSize=100000):
@@ -399,21 +400,23 @@ def shrinkWCSHeader(oldHeader, factor):
 	"""returns a FITS header suitable for a shrunken version of the image
 	described by oldHeader.
 
-	This only works for 2d images, and you're doing yourself a favour
-	if factor is a power of 2.  It is forced to be integral anyway.
+	This only works for 2d images, scale must be an integer>1.  The function
+	assumes no "fractional" pixels are handled, i.e, remainders in divisions
+	with factors are discarded.  It is thus a companion for
+	iterScaledRows.
 
 	Note that oldHeader must be an actual pyfits header instance; a dictionary
 	will not do.
 
 	This is a pretty straight port of wcstools's imutil.c#ShrinkFITSHeader,
 	except we clear BZERO and BSCALE and set BITPIX to -32 (float array)
-	under the assumption that in the returned image, 32-bit floats are used
-	(the streaming scaler in this module does this).
+	under the assumption that in the returned image, 32-bit floats are used.
 	"""
 	assert oldHeader["NAXIS"]==2
 
 	factor = int(factor)
 	newHeader = oldHeader.copy()
+	newHeader.update("SIMPLE", True,"GAVO DaCHS, %s"%datetime.datetime.utcnow())
 	newHeader["NAXIS1"] = oldHeader["NAXIS1"]//factor
 	newHeader["NAXIS2"] = oldHeader["NAXIS2"]//factor
 	newHeader["BITPIX"] = -32
@@ -488,6 +491,8 @@ def iterScaledRows(inFile, factor):
 
 	The arrays are always float32, regardless of the input.  When the
 	image size is not a multiple of factor, border pixels are discarded.
+
+	A FITS header for this data can be obtained using shrinkWCSHeader.
 	"""
 	factor = int(factor)
 	assert factor>1
@@ -495,7 +500,7 @@ def iterScaledRows(inFile, factor):
 	inFile.seek(0, 0)
 	hdr = readPrimaryHeaderQuick(inFile)
 	rowLength = hdr["NAXIS1"]
-	destRowLength = rowLength/factor
+	destRowLength = rowLength//factor
 	rows = iterFITSRows(hdr, inFile)
 	summedInds = range(factor)
 
