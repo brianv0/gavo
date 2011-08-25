@@ -247,7 +247,7 @@ class ArchiveService(rend.Page):
 
 		If no RD matches, an UnknwownURI exception is raised.
 		"""
-		for srvInd in range(1, len(segments)-1):
+		for srvInd in range(1, len(segments)):
 			try:
 				rd = base.caches.getRD("/".join(segments[:srvInd]))
 			except base.RDNotFound:
@@ -259,12 +259,16 @@ class ArchiveService(rend.Page):
 		try:
 			subId, rendName = segments[srvInd], segments[srvInd+1]
 		except IndexError:
-			raise base.ui.logOldExc(UnknownURI("Bad segments after existing"
-				" resource: %s"%("/".join(segments[srvInd:])), rd=rd))
+			# a URL requesting a default renderer
+			subId, rendName = segments[srvInd], None
 			
 		service = rd.getService(subId)
 		if service is None:
 			raise UnknownURI("No such service: %s"%subId, rd=rd)
+		if rendName is None:
+			rendName = service.defaultRenderer
+		if rendName is None:
+			raise UnknownURI("No renderer given and service has no default")
 		try:
 			rendC = svcs.getRenderer(rendName)
 		except Exception, exc:

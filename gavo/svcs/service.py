@@ -301,6 +301,9 @@ class Service(base.Structure, base.ComputedMetaMixin,
 	_serviceKeys = base.StructListAttribute("serviceKeys",
 		childFactory=inputdef.InputKey, description="Input widgets for"
 			" processing by the service, e.g. output sets.", copyable=True)
+	_defaultRenderer = base.UnicodeAttribute("defaultRenderer",
+		default=None, description="A name of a renderer used when"
+		" none is provided in the URL (lets you have shorter URLs).")
 	_rd = rscdef.RDAttribute()
 	_props = base.PropertyAttribute()
 	_original = base.OriginalAttribute()

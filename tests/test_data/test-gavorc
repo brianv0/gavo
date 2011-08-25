@@ -1,0 +1,17 @@
+# A gavorc for an isolated testbed of the DaCHS fs hierarchy.  Make sure you
+# have GAVOCUSTOM=/invalid (or comparable) when using this lest this
+# configuration gets contaminated.
+[general]
+rootDir: ~/_gavo_test
+# We should set that up somehow... Ah well.
+xsdclasspath:~/gavo/trunk/tests/:/usr/share/java/xercesImpl.jar:/usr/share/java/xmlParserAPIs.jar
+
+[db]
+profilePath: $configDir
+maintainers: testgavoadmin
+queryRoles: testgavo
+adqlRoles: testuntrusted
+
+[web]
+enableTests: True
+adminpasswd: loser

@@ -13,6 +13,7 @@ from nevow import util
 from nevow import testutil
 from nevow import url
 from twisted.trial.unittest import TestCase as TrialTest
+from twisted.python import failure
 
 
 def _requestDone(result, request, ctx):
@@ -185,4 +186,13 @@ class RenderTest(TrialTest):
 		return runQuery(self.renderer, "GET", path, {}).addCallback(
 			lambda res: self.assertEqual(res[1].code, status))
 
+	def assertGETRaises(self, path, args, exc):
+		def cb(res):
+			raise AssertionError("%s not raised (returned %s instead)"%(
+				exc, res))
+		def eb(failure):
+			failure.trap(exc)
+		return runQuery(self.renderer, "GET", path, args
+			).addCallback(cb
+			).addErrback(eb)
 

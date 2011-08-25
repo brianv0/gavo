@@ -5,6 +5,7 @@ Tests for various parts of the server infrastructure, using trial.
 from gavo.helpers import testhelpers
 
 from gavo import api
+from gavo import svcs
 from gavo.imp import formal
 from gavo.web import root
 
@@ -197,3 +198,15 @@ class TemplatingTest(trialhelpers.RenderTest):
 		return self.assertGETHasStrings("//tests/dyntemplate/fixed", 
 			{"foo": '<script language="nasty&"/>'},
 			['&lt;script language="nasty&amp;"/&gt;'])
+
+
+class PathResoutionTest(trialhelpers.RenderTest):
+	renderer = root.ArchiveService()
+
+	def testDefaultRenderer(self):
+		return self.assertGETHasStrings("/data/cores/impgrouptest", {},
+			['id="genForm-rV"']) #form rendered
+			
+	def testNoDefaultRenderer(self):
+		self.assertGETRaises("/data/cores/grouptest", {},
+			svcs.UnknownURI)

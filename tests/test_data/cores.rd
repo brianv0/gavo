@@ -96,7 +96,7 @@
 		</dbCore>
 	</service>
 
-	<service id="impgrouptest">
+	<service id="impgrouptest" defaultRenderer="form">
 		<dbCore queriedTable="data/test#adql">
 			<condDesc>
 				<inputKey original="rV"/>
