@@ -2,8 +2,9 @@
 Tests for the various modules in utils.
 """
 
-from gavo import utils
 from gavo.helpers import testhelpers
+
+from gavo import utils
 from gavo.utils import algotricks
 from gavo.utils import stanxml
 

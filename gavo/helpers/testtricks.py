@@ -2,6 +2,8 @@
 helper functions and classes for unit tests and similar.
 """
 
+from __future__ import with_statement
+
 import os
 import subprocess
 import tempfile
@@ -27,23 +29,22 @@ class XSDTestMixin(object):
 	be necessary to run validation tests.
 	"""
 	def assertValidates(self, xmlSource, leaveOffending=False):
-		classpath = base.getConfig("xsdclasspath")
+		classpath = ":".join(base.getConfig("xsdclasspath"))
 		handle, inName = tempfile.mkstemp("xerctest", "rm")
 		try:
-			f = os.fdopen(handle, "w")
-			f.write(xmlSource)
-			f.close()
-			f = subprocess.Popen(
-				["java", "-cp", classpath, "xsdval", "-n", "-v", "-s", "-f",
-					inName],
+			with os.fdopen(handle, "w") as f:
+				f.write(xmlSource)
+			args = ["java", "-cp", classpath, "xsdval", 
+				"-n", "-v", "-s", "-f", inName]
+
+			f = subprocess.Popen(args,
 				stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 			xercMsgs = f.stdout.read()
 			status = f.wait()
 			if status or "Error]" in xercMsgs:
 				if leaveOffending:
-					of = open("badDocument.xml", "w")
-					of.write(xmlSource)
-					of.close()
+					with open("badDocument.xml", "w") as of:
+						of.write(xmlSource)
 				raise AssertionError(xercMsgs)
 		finally:
 			os.unlink(inName)

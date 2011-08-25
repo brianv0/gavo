@@ -8,12 +8,13 @@ import os
 import struct
 from cStringIO import StringIO
 
+from gavo.helpers import testhelpers
+
 from gavo import base
 from gavo import rsc
 from gavo import rscdef
 from gavo.grammars import binarygrammar
 from gavo.grammars import columngrammar
-from gavo.helpers import testhelpers
 
 
 

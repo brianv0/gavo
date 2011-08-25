@@ -8,6 +8,8 @@ from pprint import pprint
 
 import pyparsing
 
+from gavo.helpers import testhelpers
+
 from gavo import adql
 from gavo import base
 from gavo import stc
@@ -18,7 +20,6 @@ from gavo.adql import annotations
 from gavo.adql import morphpg
 from gavo.adql import nodes
 from gavo.adql import tree
-from gavo.helpers import testhelpers
 from gavo.protocols import adqlglue
 from gavo.stc import tapstc
 
@@ -33,7 +34,7 @@ class Error(Exception):
 # The resources below are used elsewhere (e.g., taptest).
 class _ADQLQuerier(testhelpers.TestResource):
 	def make(self, deps):
-		return base.SimpleQuerier(useProfile="test")
+		return base.SimpleQuerier()
 	
 	def clean(self, querier):
 		querier.close()
@@ -1456,7 +1457,7 @@ class QueryTest(testhelpers.VerboseTest):
 					label, repr(getattr(dataField, label, None))))
 
 	def runQuery(self, query, **kwargs):
-		return adqlglue.query(self.querier, query, metaProfile="test", **kwargs)
+		return adqlglue.query(self.querier, query, **kwargs)
 
 	def testPlainSelect(self):
 		res = self.runQuery(

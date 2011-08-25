@@ -5,11 +5,12 @@ Tests for structures (i.e. instances of structure-decorated classes).
 from cStringIO import StringIO
 import unittest
 
+from gavo.helpers import testhelpers
+
 from gavo import base 
 from gavo.base import structure
 from gavo.base import xmlstruct
 from gavo.base.attrdef import *
-from gavo.helpers import testhelpers
 
 
 

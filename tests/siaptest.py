@@ -7,12 +7,13 @@ Needs connectivity to the db defined in the test profile.
 import unittest
 import math
 
+from gavo.helpers import testhelpers
+
 from gavo import base
 from gavo import rsc
 from gavo import rscdef
 from gavo import rscdesc
 from gavo.base import coords
-from gavo.helpers import testhelpers
 from gavo.helpers import fitstricks
 from gavo.protocols import siap
 from gavo.utils import DEG, fitstools

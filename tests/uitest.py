@@ -6,9 +6,10 @@ import os
 import sys
 import traceback
 
+from gavo.helpers import testhelpers
+
 from gavo import base
 from gavo.base import events
-from gavo.helpers import testhelpers
 from gavo.user import cli
 
 
@@ -121,7 +122,6 @@ class CLITest(testhelpers.VerboseTest):
 			self.assertOutput(cli.main,
 				argList=["--disable-spew", "--suppress-log",
 					"drop", "data/test"], expectedStdout="", expectedStderr="")
-
 			self.failIf(list(querier.query("SELECT * FROM dc.subjects"
 				" WHERE subject=%(s)s", {'s': "Problems, somebody else's"})))
 			self.failIf(querier.tableExists("test.prodtest"))

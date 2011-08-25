@@ -7,11 +7,12 @@ from __future__ import with_statement
 import contextlib
 import os
 
+from gavo.helpers import testhelpers
+
 from gavo import base
 from gavo import rsc
 from gavo import rscdef
 from gavo.base import sqlsupport
-from gavo.helpers import testhelpers
 from gavo.protocols import creds
 from gavo.user import admin
 
@@ -113,7 +114,6 @@ class TestUsers(testhelpers.TestResource):
 	tearDownCost = 2
 
 	def make(self, deps):
-		creds.adminProfile = "test"
 		self.users = [
 			_NS(user="X_test", password="megapass", remarks=""),
 			_NS(user="Y_test", password="megapass", remarks="second test user"),
@@ -155,7 +155,6 @@ class RDDataResource(testhelpers.TestResource):
 	
 	def clean(self, table):
 		self.dataCreated.dropTables()
-
 
 
 class CSTestTable(RDDataResource):

@@ -4,9 +4,10 @@ Tests for STC conversions and conforming.
 
 import math
 
+from gavo.helpers import testhelpers
+
 from gavo import stc
 from gavo import utils
-from gavo.helpers import testhelpers
 from gavo.stc import units
 
 

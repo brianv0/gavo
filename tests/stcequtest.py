@@ -2,9 +2,10 @@
 Tests for the STC equivalence mechanism.
 """
 
+from gavo.helpers import testhelpers
+
 from gavo import stc
 from gavo import utils
-from gavo.helpers import testhelpers
 from gavo.stc import eq
 
 

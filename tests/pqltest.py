@@ -4,9 +4,10 @@ Tests for "PQL" expressions.
 
 import datetime
 
+from gavo.helpers import testhelpers
+
 from gavo import api
 from gavo.base import literals
-from gavo.helpers import testhelpers
 from gavo.svcs import pql
 from gavo.utils import pgsphere, DEG
 

@@ -10,13 +10,14 @@ import shutil
 import tempfile
 import unittest
 
+from gavo.helpers import testhelpers
+
 from gavo import base
 from gavo import grammars
 from gavo import rsc
 from gavo import rscdef
 from gavo import rscdesc
 from gavo.base import sqlsupport
-from gavo.helpers import testhelpers
 from gavo.web import formrender
 
 import tresc
@@ -167,8 +168,8 @@ class ProductsBadNameTest(testhelpers.VerboseTest):
 
 	def _runTest(self, sample):
 		destName, shouldBeOk = sample
-		with open(destName, "w") as f:
-			fullPath = os.path.abspath(f.name)
+		fullPath = os.path.join(base.getConfig("inputsDir"), destName)
+		f = open(fullPath, "w")
 		try:
 			ex = None
 			try:
@@ -181,13 +182,15 @@ class ProductsBadNameTest(testhelpers.VerboseTest):
 				raise AssertionError("Filename %s should be illegal"
 					" but is not"%destName)
 		finally:
+			f.close()
 			os.unlink(fullPath)
 	
 	samples = [
-		("ok_LOT,allowed-this_ought,to10000%do.file", True),
+		("ok_LOT,allowed-this_ought,to10000do.file", True),
 		("Q2232+23.fits", False),
 		("A&A23..1.fits", False),
 		("name with blank.fits", False),
+		("name%with%blank.fits", False),
 		("don't want quotes", False),]
 
 

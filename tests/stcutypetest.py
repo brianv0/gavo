@@ -2,9 +2,10 @@
 Tests for conversion between utype sequences and STC ASTs.
 """
 
+from gavo.helpers import testhelpers
+
 from gavo import stc
 from gavo import utils
-from gavo.helpers import testhelpers
 from gavo.stc import dm
 from gavo.stc import utypeast
 from gavo.utils import ElementTree

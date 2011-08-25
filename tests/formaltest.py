@@ -9,6 +9,7 @@ import re
 import unittest
 
 from gavo.helpers import testhelpers
+
 from gavo.imp import formal
 from gavo.imp.formal import converters, validation, types, util
 

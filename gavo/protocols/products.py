@@ -214,7 +214,7 @@ class UnauthorizedProduct(FileProduct):
 				or dbRow["embargo"]<datetime.date.today()):
 			return None
 		if grammar is None or dbRow["owner"] not in grammar.groups:
-			return cls(rAccref)
+			return cls(rAccref.localpath)
 
 	def __str__(self):
 		return "<Protected product %s, access denied>"%self.name

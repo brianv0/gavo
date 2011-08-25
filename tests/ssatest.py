@@ -5,12 +5,13 @@ Some tests around the SSAP infrastructure.
 import datetime
 import re
 
+from gavo.helpers import testhelpers
+
 from gavo import api
 from gavo import base
 from gavo import svcs
 from gavo import votable
 from gavo.formats import votablewrite
-from gavo.helpers import testhelpers
 from gavo.protocols import products
 from gavo.protocols import ssap
 from gavo.utils import DEG, ElementTree

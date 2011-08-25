@@ -9,6 +9,8 @@ import pkg_resources
 import re
 import unittest
 
+from gavo.helpers import testhelpers
+
 from gavo import base
 from gavo import rsc
 from gavo import rscdef
@@ -16,7 +18,6 @@ from gavo import rscdesc
 from gavo import utils
 from gavo import votable
 from gavo.formats import votableread, votablewrite
-from gavo.helpers import testhelpers
 from gavo.utils import ElementTree
 from gavo.utils import pgsphere
 
@@ -219,7 +220,7 @@ class _ImportTestData(testhelpers.TestResource):
 class ImportTest(testhelpers.VerboseTest):
 	"""tests for working VOTable ingestion.
 	"""
-	resources = [("testData", _ImportTestData("data/importtest.vot"))]
+	resources = [("testData", _ImportTestData("test_data/importtest.vot"))]
 
 	def testValidData(self):
 		td, data = self.testData
@@ -282,7 +283,7 @@ class ImportTest(testhelpers.VerboseTest):
 class VizierImportTest(testhelpers.VerboseTest):
 	"""tests for ingestion of a random vizier VOTable.
 	"""
-	resources = [("testData", _ImportTestData("data/vizier_votable.vot",
+	resources = [("testData", _ImportTestData("test_data/vizier_votable.vot",
 		nameMaker=votableread.AutoQuotedNameMaker()))]
 
 	def testWorked(self):
@@ -742,7 +743,7 @@ class STCParseTest(testhelpers.VerboseTest):
 
 class SimpleAPIReadTest(testhelpers.VerboseTest):
 	def testSimpleData(self):
-		data, metadata = votable.load("data/importtest.vot")
+		data, metadata = votable.load("test_data/importtest.vot")
 		self.assertEqual(len(metadata), 16)
 		self.assertEqual(metadata[0].name, "_r")
 		self.assertEqual(data[0][3], 1)

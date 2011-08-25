@@ -4,9 +4,10 @@ Tests for gavo.coords.
 
 import unittest
 
+from gavo.helpers import testhelpers
+
 from gavo import utils
 from gavo.base import coords
-from gavo.helpers import testhelpers
 
 import tresc
 

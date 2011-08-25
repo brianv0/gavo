@@ -5,8 +5,9 @@ Tests for STC-X parsing and generation.
 import os
 import re
 
-from gavo import stc
 from gavo.helpers import testhelpers
+
+from gavo import stc
 from gavo.stc import stcxgen
 from gavo.stc import dm
 

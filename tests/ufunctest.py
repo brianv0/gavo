@@ -5,9 +5,10 @@ Tests for ADQL user defined functions and Region expressions.
 import re
 import unittest
 
+from gavo.helpers import testhelpers
+
 from gavo import adql
 from gavo import rscdesc
-from gavo.helpers import testhelpers
 from gavo.protocols import adqlglue
 from gavo.protocols import simbadinterface # for getSesame registration
 from gavo.adql import nodes 

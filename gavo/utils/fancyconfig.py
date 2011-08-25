@@ -504,6 +504,16 @@ class PathRelativeConfigItem(StringConfigItem):
 	value = property(_getValue, _setValue)
 
 
+class ExpandedPathConfigItem(StringConfigItem):
+	"""A configuration item in that returns its value expandusered.
+	"""
+	def _parse(self, value):
+		val = StringConfigItem._parse(self, value)
+		if val is not None:
+			val = os.path.expanduser(val)
+		return val
+
+
 class _Undefined(object):
 	"""A sentinel for section.get.
 	"""

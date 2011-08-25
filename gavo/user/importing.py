@@ -98,12 +98,13 @@ def main():
 		(opts, args) = parser.parse_args()
 
 		base.setDBProfile(opts.dbProfile)
-		if opts.uiName not in user.interfaces:
-			raise base.ReportableError("UI %s does not exist.  Choose one of"
-				" %s"%(opts.uiName, ", ".join(user.interfaces)))
-		if opts.metaPlusIndex:
-			opts.metaOnly = True
-		user.interfaces[opts.uiName](base.ui)
+		if opts.uiName:
+			if opts.uiName not in user.interfaces:
+				raise base.ReportableError("UI %s does not exist.  Choose one of"
+					" %s"%(opts.uiName, ", ".join(user.interfaces)))
+			if opts.metaPlusIndex:
+				opts.metaOnly = True
+			user.interfaces[opts.uiName](base.ui)
 		if not args:
 			parser.print_help()
 			sys.exit(1)

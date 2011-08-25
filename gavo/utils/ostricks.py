@@ -70,3 +70,24 @@ def cat(srcF, destF, chunkSize=1<<20):
 		if not data:
 			break
 		destF.write(data)
+
+def ensureDir(dirPath, mode=None, setGroupTo=None):
+	"""makes sure that dirPath exists and is a directory.
+
+	If dirPath does not exist, it is created, and its permissions are
+	set to mode with group ownership setGroupTo if those are given.
+
+	setGroupTo must be a numerical gid if given.
+
+	This function may raise all kinds of os.errors if something goes
+	wrong.  These probably should be handed through all the way to the
+	user since when something fails here, there's usually little
+	the program can safely do to recover.
+	"""
+	if os.path.exists(dirPath):
+		return
+	os.mkdir(dirPath)
+	if mode is not None:
+		os.chmod(dirPath, mode)
+	if setGroupTo:
+		os.chown(dirPath, -1, setGroupTo)

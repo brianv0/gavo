@@ -4,12 +4,13 @@ Tests for rsc.XTable
 
 import datetime
 
+from gavo.helpers import testhelpers
+
 from gavo import base
 from gavo import rsc
 from gavo import rscdef
 from gavo import rscdesc
 from gavo import svcs
-from gavo.helpers import testhelpers
 
 import tresc
 

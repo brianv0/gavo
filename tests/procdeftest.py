@@ -2,8 +2,9 @@
 Tests for function definitions and applications.
 """
 
-from gavo import base
 from gavo.helpers import testhelpers
+
+from gavo import base
 from gavo.base import macros
 from gavo.rscdef import procdef
 

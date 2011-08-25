@@ -12,6 +12,8 @@ import os
 import subprocess
 import warnings
 
+from gavo.helpers import testhelpers
+
 from gavo.imp import testresources
 
 warnings.simplefilter("ignore", category=UserWarning)

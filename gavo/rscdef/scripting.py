@@ -40,8 +40,10 @@ def _getSQLScriptGrammar():
 		sqlComment = Literal("--")+SkipTo("\n", include=True)
 		cStyleComment = Literal("/*")+SkipTo("*/", include=True)
 		comment = sqlComment | cStyleComment
+		lineEnd = Literal("\n")
 
-		simpleStr = QuotedString(quoteChar="'", escChar="\\", unquoteResults=False)
+		simpleStr = QuotedString(quoteChar="'", escChar="\\", 
+			multiline=True, unquoteResults=False)
 		quotedId = QuotedString(quoteChar='"', escChar="\\", unquoteResults=False)
 		dollarQuoted = Regex(r"(?s)\$(\w*)\$.*?\$\1\$")
 		dollarQuoted.setName("dollarQuoted")
@@ -54,7 +56,7 @@ def _getSQLScriptGrammar():
 		other.setName("other")
 
 		literalDollar = Literal("$") + ~ Literal("$")
-		statementEnd = ( Literal(';') | StringEnd())
+		statementEnd = ( Literal(';') + ZeroOrMore(lineEnd) | StringEnd() )
 
 		atom <<  ( Suppress(comment) | other | strLiteral | literalDollar )
 		statement = OneOrMore(atom) + Suppress( statementEnd )
@@ -68,6 +70,7 @@ def _getSQLScriptGrammar():
 
 		if False:
 			atom.setDebug(True)
+			comment.setDebug(True)
 			other.setDebug(True)
 			strLiteral.setDebug(True)
 			statement.setDebug(True)

@@ -10,11 +10,12 @@ import datetime
 import sys
 import unittest
 
+from gavo.helpers import testhelpers
+
 from gavo import base
 from gavo import rsc
 from gavo import rscdesc
 from gavo.protocols import products
-from gavo.helpers import testhelpers
 from gavo.svcs import vizierexprs
 from gavo.svcs import inputdef
 

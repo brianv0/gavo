@@ -7,6 +7,8 @@ Tests having to do with the registry code.
 import datetime
 import os
 
+from gavo.helpers import testhelpers
+
 from gavo import api
 from gavo import base
 from gavo import registry
@@ -14,7 +16,6 @@ from gavo import rscdesc
 from gavo import rscdef
 from gavo import utils
 from gavo.base import meta
-from gavo.helpers import testhelpers
 from gavo.helpers import testtricks
 from gavo.registry import builders
 from gavo.registry import capabilities
@@ -72,7 +73,7 @@ class DeletedTest(testhelpers.VerboseTest):
 		dr = self._makeDeletedRecord()
 		oairec = builders.getVOResourceElement(dr).render()
 		self.failUnless('<oai:header status="deleted"><oai:identifier>'
-			'ivo://org.gavo.dc/foo/bar</oai:identifier><oai:datestamp>'
+			'ivo://x-unregistred/foo/bar</oai:identifier><oai:datestamp>'
 			'2010-10-10T10:10:10Z</oai:datestamp></oai:header></oai:record>'
 			in oairec)
 
@@ -117,11 +118,11 @@ class DeletedTest(testhelpers.VerboseTest):
 		self.assertEqual(resob.resType, "deleted")
 		dcRepr = builders.getDCResourceElement(resob).render()
 		self.failUnless('<oai:header status="deleted"' in dcRepr)
-		self.failUnless("<oai:identifier>ivo://org.gavo.dc/data/pubtest/moribund<"
+		self.failUnless("<oai:identifier>ivo://x-unregistred/data/pubtest/moribund<"
 			in dcRepr)
 		voRepr = builders.getVOResourceElement(resob).render()
 		self.failUnless('<oai:header status="deleted"' in voRepr)
-		self.failUnless("<oai:identifier>ivo://org.gavo.dc/data/pubtest/moribund<"
+		self.failUnless("<oai:identifier>ivo://x-unregistred/data/pubtest/moribund<"
 			in voRepr)
 
 	def testBigAndUgly(self):

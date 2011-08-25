@@ -8,9 +8,10 @@ import re
 
 import numpy
 
+from gavo.helpers import testhelpers
+
 from gavo import stc
 from gavo import utils
-from gavo.helpers import testhelpers
 from gavo.stc import common
 from gavo.stc import conform
 from gavo.stc import spherc

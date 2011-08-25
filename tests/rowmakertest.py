@@ -5,11 +5,12 @@ Tests for the various structures in rscdef.
 import datetime
 import os
 
+from gavo.helpers import testhelpers
+
 from gavo import base
 from gavo import rsc
 from gavo import rscdef
 from gavo import rscdesc
-from gavo.helpers import testhelpers
 from gavo.rscdef import rmkdef
 from gavo.utils import DEG
 
@@ -315,8 +316,8 @@ class PredefinedTest(testhelpers.VerboseTest):
 				'<bind key="sourceName">"%s"</bind>'
 				'<bind key="destination">"y"</bind><bind key="value">'
 				'vars["in2"]</bind></apply>'
-			'<idmaps>*</idmaps>'%(os.path.abspath("data/map1.map"),
-					os.path.abspath("data/map2.map")))
+			'<idmaps>*</idmaps>'%(os.path.abspath("test_data/map1.map"),
+					os.path.abspath("test_data/map2.map")))
 		res = rsc.makeData(dd, forceSource=[{'in1': 'foo', 'in2': 'left'}])
 		self.assertEqual(res.getPrimaryTable().rows, 
 			[{'y': u'right', 'x': u'bar'}])

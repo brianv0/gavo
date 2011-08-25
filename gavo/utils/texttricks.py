@@ -27,7 +27,7 @@ entityrefPat = re.compile("&([^;])+;")
 
 # file names that don't cause headaches in URLs and are otherwise reasonable
 # benign (so, let's disallow shell metachars while we're at it).
-_SAFE_FILENAME = re.compile("[%,-:=@-Z_a-z{}~-]+$")
+_SAFE_FILENAME = re.compile("[,-:=@-Z_a-z{}~-]+$")
 
 xmlEntities = {
 		'lt': '<',

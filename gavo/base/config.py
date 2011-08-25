@@ -4,6 +4,7 @@ Definition of DC config options and their management including I/O.
 
 import ConfigParser
 import cStringIO
+import grp
 import os
 import pkg_resources
 import re
@@ -19,7 +20,7 @@ from gavo.utils import fancyconfig
 from gavo.utils.fancyconfig import ConfigItem, StringConfigItem,\
 	EnumeratedConfigItem, IntConfigItem, PathConfigItem, ListConfigItem,\
 	BooleanConfigItem, DictConfigItem, Section, DefaultSection, MagicSection,\
-	PathRelativeConfigItem, ParseError, SetConfigItem
+	PathRelativeConfigItem, ParseError, SetConfigItem, ExpandedPathConfigItem
 
 defaultSettingsPath = "/etc/gavo.rc"
 
@@ -283,6 +284,7 @@ class Configuration(fancyconfig.Configuration):
 	def setDBProfile(self, profileName):
 		"""is the same as config.set("defaultProfileName", ...)
 		"""
+		self.getDBProfileByName(profileName)
 		self.set("defaultProfileName", profileName)
 
 	def getDBProfile(self):
@@ -295,7 +297,7 @@ class Configuration(fancyconfig.Configuration):
 
 _config = Configuration(
 	DefaultSection('Paths and other general settings.',
-		StringConfigItem("rootDir", default="/var/gavo", description=
+		ExpandedPathConfigItem("rootDir", default="/var/gavo", description=
 			"Path to the root of the DC file (all other paths may be"
 			" relative to this"),
 		RootRelativeConfigItem("configDir", default="etc", 
@@ -328,7 +330,7 @@ _config = Configuration(
 			" (used to construct system entities)", default="admin"),
 		StringConfigItem("group", description="Name of the group that may write"
 			" into the log directory", default="gavo"),
-		StringConfigItem("xsdclasspath", description="Classpath necessary"
+		PathConfigItem("xsdclasspath", description="Classpath necessary"
 			" to validate XSD using an xsdval java class.  You want GAVO's"
 			" VO schemata collection for this.", default="None"),
 		),
@@ -426,10 +428,10 @@ _config = Configuration(
 	MagicSection('profiles', 'Mapping of DC profiles to profile definitions.',
 		itemFactory=ProfileItem,
 		defaults=(("admin", "feed"), ("trustedquery", "trustedquery"),
-			("untrustedquery", "untrustedquery"), ("test", "test"))),
+			("untrustedquery", "untrustedquery"))),
 
 	Section('ivoa', 'The interface to the Greater VO.',
-		StringConfigItem("authority", "org.gavo.dc", 
+		StringConfigItem("authority", "x-unregistred", 
 			"The authority id for this DC"),
 		IntConfigItem("dalDefaultLimit", "10000",
 			"Default match limit on DAL queries"),
@@ -523,6 +525,18 @@ def openDistFile(name):
 		return open(userPath)
 	else:
 		return pkg_resources.resource_stream('gavo', "resources/"+name)
+
+
+def getGroupId():
+	"""returns the numerical group id of the GAVO group.
+	"""
+	gavoGroup = _config.get("group")
+	try:
+		return grp.getgrnam(gavoGroup)[2]
+	except KeyError, ex:
+		raise utils.ReportableError("Group %s does not exist"%str(ex),
+			"You should have created this (unix) group when you created the server"
+			" user (usually, 'gavo').  Just do it now and re-run this program.")
 
 
 def main():

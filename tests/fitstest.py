@@ -8,9 +8,9 @@ import shutil
 import tempfile
 import unittest
 
+from gavo.helpers import testhelpers
 
 from gavo import base
-from gavo.helpers import testhelpers
 from gavo.utils import fitstools
 from gavo.utils import pyfits
 

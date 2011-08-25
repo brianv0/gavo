@@ -5,11 +5,12 @@ from xml import sax
 
 from nevow import tags as T, flat
 
+from gavo.helpers import testhelpers
+
 from gavo import api
 from gavo import base
 from gavo.base import meta
 from gavo.base import metavalidation
-from gavo.helpers import testhelpers
 from gavo.registry import builders
 from gavo.utils import stanxml
 from gavo.web import common as webcommon

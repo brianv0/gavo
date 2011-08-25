@@ -4,11 +4,12 @@ Tests for the macro expansion machinery.
 
 import os
 
+from gavo.helpers import testhelpers
+
 from gavo import base
 from gavo import grammars
 from gavo import rscdef
 from gavo import rscdesc
-from gavo.helpers import testhelpers
 from gavo.base import macros
 
 

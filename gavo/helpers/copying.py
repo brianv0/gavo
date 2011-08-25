@@ -96,10 +96,9 @@ def readCDs(destBase, cdHandler):
 	
 	import os
 	from gavo import api
-	from gavo.helpers import copying
 
 	rd = api.getRD("foo/bar")
-	cd = copying.CDHandler("/dev/cdrom", "mnt/cd")
+	cd = CDHandler("/dev/cdrom", "mnt/cd")
 	copying.readCDs(os.path.join(rd.resdir, "raw"), cd)
 	"""
 	if not os.path.exists(destBase):

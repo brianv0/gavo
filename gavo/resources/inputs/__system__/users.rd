@@ -19,7 +19,7 @@
 
 	<table id="groups" onDisk="True">
 		<readRoles></readRoles>
-		<foreignKey table="users.users" source="username"/>
+		<foreignKey table="dc.users" source="username"/>
 		<column name="username" type="text"/>
 		<column name="groupname" type="text"/>
 	</table>

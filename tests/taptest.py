@@ -20,10 +20,11 @@ from nevow import inevow
 from nevow.testutil import FakeRequest
 from twisted.python.components import registerAdapter
 
+from gavo.helpers import testhelpers
+
 from gavo import base
 from gavo import rscdesc  # uws needs getRD
 from gavo import votable
-from gavo.helpers import testhelpers
 from gavo.helpers import testtricks
 from gavo.protocols import tap
 from gavo.protocols import taprunner

@@ -7,11 +7,11 @@ Tests for the unit conversion subsystem
 import sys
 import unittest
 
+from gavo.helpers import testhelpers
 
 from gavo import base
 from gavo import rscdef
 from gavo.base import unitconv
-from gavo.helpers import testhelpers
 
 
 class GrammarTest(testhelpers.VerboseTest):

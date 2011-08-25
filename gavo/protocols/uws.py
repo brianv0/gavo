@@ -25,6 +25,7 @@ from twisted.python import log
 from gavo import base
 from gavo import rsc
 from gavo import utils
+from gavo.base import config
 from gavo.base import cron
 
 RD_ID = "__system__/uws"
@@ -473,7 +474,9 @@ class UWSJob(ROUWSJob):
 
 	@classmethod
 	def _allocateDataDir(cls):
-		jobDir = tempfile.mkdtemp("", "", dir=base.getConfig("uwsWD"))
+		uwsWD = base.getConfig("uwsWD")
+		utils.ensureDir(uwsWD, mode=0775, setGroupTo=config.getGroupId())
+		jobDir = tempfile.mkdtemp("", "", dir=uwsWD)
 		return os.path.basename(jobDir)
 
 	@classmethod

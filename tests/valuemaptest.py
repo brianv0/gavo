@@ -7,10 +7,11 @@ Tests for value mapping
 import datetime
 import urllib
 
+from gavo.helpers import testhelpers
+
 from gavo import base
 from gavo import rscdef
 from gavo.base import valuemappers
-from gavo.helpers import testhelpers
 from gavo.protocols import products
 from gavo.utils import pgsphere
 

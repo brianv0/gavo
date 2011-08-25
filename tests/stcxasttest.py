@@ -6,9 +6,10 @@ Tests for parsing STC-X into ASTs.
 import bz2
 import datetime
 
+from gavo.helpers import testhelpers
+
 from gavo import stc
 from gavo import utils
-from gavo.helpers import testhelpers
 from gavo.stc import dm
 
 

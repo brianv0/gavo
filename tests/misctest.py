@@ -17,8 +17,10 @@ import unittest
 
 import numpy
 
+from gavo.helpers import processing
+from gavo.helpers import testhelpers
+
 from gavo import base
-from gavo import helpers
 from gavo import rscdef
 from gavo import rscdesc
 from gavo import votable
@@ -26,7 +28,6 @@ from gavo import stc
 from gavo import utils
 from gavo.base import valuemappers
 from gavo.helpers import filestuff
-from gavo.helpers import testhelpers
 from gavo.protocols import creds
 from gavo.utils import DEG
 from gavo.utils import pyfits
@@ -165,9 +166,9 @@ class ProcessorTest(testhelpers.VerboseTest):
 		base.setConfig("inputsDir", self.origInputs)
 		shutil.rmtree(self.resdir, True)
 
-	class SimpleProcessor(helpers.HeaderProcessor):
+	class SimpleProcessor(processing.HeaderProcessor):
 		def __init__(self, *args, **kwargs):
-			helpers.HeaderProcessor.__init__(self, *args, **kwargs)
+			processing.HeaderProcessor.__init__(self, *args, **kwargs)
 			self.headersBuilt = 0
 
 		def _isProcessed(self, srcName):
@@ -189,7 +190,7 @@ class ProcessorTest(testhelpers.VerboseTest):
 		# procmain reads argv, don't confuse it
 		sys.argv = ["test"]
 		# Normal run, no headers present yet
-		proc, stdout, _ = testhelpers.captureOutput(helpers.procmain,
+		proc, stdout, _ = testhelpers.captureOutput(processing.procmain,
 			(self.SimpleProcessor, "filetest/filetest", "import"))
 		self.assertEqual(stdout.split('\r')[-1].strip(), 
 			"10 files processed, 0 files with errors")
@@ -205,7 +206,7 @@ class ProcessorTest(testhelpers.VerboseTest):
 
 		This needs to run after _testPlainRun.
 		"""
-		proc, stdout, _ = testhelpers.captureOutput(helpers.procmain,
+		proc, stdout, _ = testhelpers.captureOutput(processing.procmain,
 			(self.SimpleProcessor, "filetest/filetest", "import"))
 		self.assertEqual(stdout.split('\r')[-1].strip(), 
 			"10 files processed, 0 files with errors")
@@ -216,7 +217,7 @@ class ProcessorTest(testhelpers.VerboseTest):
 		"""
 		sys.argv = ["misctest.py", "--no-compute"]
 		os.unlink(os.path.join(self.resdir, "src4.fits.hdr"))
-		proc, stdout, _ = testhelpers.captureOutput(helpers.procmain,
+		proc, stdout, _ = testhelpers.captureOutput(processing.procmain,
 			(self.SimpleProcessor, "filetest/filetest", "import"))
 		self.assertEqual(proc.headersBuilt, 0)
 
@@ -226,7 +227,7 @@ class ProcessorTest(testhelpers.VerboseTest):
 		This needs to run before _testApplyCaches and after _testNoCompute.
 		"""
 		sys.argv = ["misctest.py"]
-		proc, stdout, _ = testhelpers.captureOutput(helpers.procmain,
+		proc, stdout, _ = testhelpers.captureOutput(processing.procmain,
 			(self.SimpleProcessor, "filetest/filetest", "import"))
 		self.assertEqual(stdout.split('\r')[-1].strip(), 
 			"10 files processed, 0 files with errors")
@@ -238,7 +239,7 @@ class ProcessorTest(testhelpers.VerboseTest):
 		This needs to run after _testPlainRun
 		"""
 		sys.argv = ["misctest.py", "--apply"]
-		proc, stdout, _ = testhelpers.captureOutput(helpers.procmain,
+		proc, stdout, _ = testhelpers.captureOutput(processing.procmain,
 			(self.SimpleProcessor, "filetest/filetest", "import"))
 		self.assertEqual(stdout.split('\r')[-1].strip(), 
 			"10 files processed, 0 files with errors")
@@ -253,7 +254,7 @@ class ProcessorTest(testhelpers.VerboseTest):
 		"""tests for working --reprocess.
 		"""
 		sys.argv = ["misctest.py", "--reprocess"]
-		proc, stdout, _ = testhelpers.captureOutput(helpers.procmain,
+		proc, stdout, _ = testhelpers.captureOutput(processing.procmain,
 			(self.SimpleProcessor, "filetest/filetest", "import"))
 		self.assertEqual(proc.headersBuilt, 10)
 
@@ -271,7 +272,7 @@ class ProcessorTest(testhelpers.VerboseTest):
 		self.SimpleProcessor._getHeader = new.instancemethod(newGetHeader,
 			None, self.SimpleProcessor)
 		sys.argv = ["misctest.py", "--reprocess"]
-		proc, stdout, _ = testhelpers.captureOutput(helpers.procmain,
+		proc, stdout, _ = testhelpers.captureOutput(processing.procmain,
 			(self.SimpleProcessor, "filetest/filetest", "import"))
 		self.assertEqual(self._getHeader("src6.fits.hdr")["SQUARE"], 216)
 

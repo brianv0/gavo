@@ -15,7 +15,51 @@ import subprocess
 import sys
 import traceback
 import unittest
+import warnings
 from cStringIO import StringIO
+
+
+# This sets up a test environment of the DaCHS software, assuming you've
+# done a
+#
+#  createdb --encoding=UTF-8 dachstest
+#
+# before.
+# You should be able to tear both ~/_gavo_test and the database 
+# down, and this should automatically recreate everything.  That's 
+# an integration test for DaCHS, too.
+#
+# This must be run before anything else from gavo is imported because
+# it manipulates the config stuff; this, in turn, runs as soon as
+# base is imported.
+
+# This forces tests to be run from the tests directory.  Reasonable, I'd
+# say.
+TEST_BASE = os.getcwd()
+os.environ["GAVOCUSTOM"] = "/invalid"
+os.environ["GAVOSETTINGS"] = os.path.join(TEST_BASE, "test_data", "test-gavorc")
+if not os.path.exists(os.environ["GAVOSETTINGS"]):
+	warnings.warn("testhelpers imported from non-test directory.  This"
+		" is almost certainly not what you want.")
+
+from gavo import base
+dbname = "dachstest"
+if not os.path.exists(base.getConfig("rootDir")):
+	from gavo.user import initdachs
+	try:
+		subprocess.call(["createdb", "--encoding=UTF-8", dbname])
+		initdachs.createFSHierarchy(dbname, "test")
+		base.setDBProfile("admin")
+		initdachs.initDB(dbname)
+		os.symlink(os.path.join(TEST_BASE, "test_data"),
+			os.path.join(base.getConfig("inputsDir"), "data"))
+	except:
+		import traceback
+		traceback.print_exc()
+		sys.stderr.write("Creation of test environment failed.  Remove %s\n"
+			" before trying again.\n"%(base.getConfig("rootDir")))
+		sys.exit(1)
+
 
 from gavo.helpers.testtricks import *
 from gavo.imp import testresources
@@ -35,7 +79,7 @@ from gavo.imp.testresources import TestResource
 # the superclass's setUp method.
 
 # the following only needs to be set correctly if you run 
-# twisted trial-based tests (which currently doesn't happen at all).
+# twisted trial-based tests
 testsDir = "/home/msdemlei/gavo/trunk/tests"
 
 
@@ -308,7 +352,7 @@ class SamplesBasedAutoTest(type):
 def getTestRD(id="test.rd"):
 	from gavo import rscdesc
 	from gavo import base
-	return base.caches.getRD(os.path.abspath("data/%s"%id))
+	return base.caches.getRD("data/%s"%id)
 
 
 def getTestTable(tableName, id="test.rd"):
@@ -383,16 +427,5 @@ def main(testClass, methodPrefix=None):
 		errhandle.raiseAndCatch(base)
 
 
-try:
-# do a q'n'd test setup of the DC software if possible.  It would probably
-# be better to use stuff like testEnv tresc.py had until rev. 1328 and
-# have tests declare they need this -- but aw, there's little to be gained
-# by this sort of bureaucracy.
-	from gavo import base
-	origInputs = base.getConfig("inputsDir")
-	base.setConfig("inputsDir", os.getcwd())
-	os.environ["GAVO_INPUTSDIR"] = os.getcwd()
-	base.setDBProfile("test")
-except ImportError:
-	pass
-
+# remaining setup for tests
+base.setDBProfile("admin")

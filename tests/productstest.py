@@ -8,10 +8,11 @@ import os
 import struct
 import tarfile
 
+from gavo.helpers import testhelpers
+
 from gavo import api
 from gavo import base
 from gavo import svcs
-from gavo.helpers import testhelpers
 from gavo.protocols import products
 from gavo.utils import fitstools
 from gavo.web import producttar

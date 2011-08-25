@@ -6,8 +6,9 @@ import re
 import struct
 from cStringIO import StringIO
 
-from gavo import votable
 from gavo.helpers import testhelpers
+
+from gavo import votable
 from gavo.votable import common
 from gavo.votable import V
 from gavo.utils.plainxml import iterparse
@@ -664,7 +665,7 @@ class UnicodeCharStringsTest(testhelpers.VerboseTest):
 
 class SimpleInterfaceTest(testhelpers.VerboseTest):
 	def testIterDict(self):
-		data, metadata = votable.load("data/importtest.vot")
+		data, metadata = votable.load("test_data/importtest.vot")
 		res = list(metadata.iterDicts(data))
 		self.assertEqual(res[0]["FileName"], "ngc104.dat")
 		self.assertEqual(res[1]["apex"], None)

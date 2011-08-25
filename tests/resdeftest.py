@@ -6,14 +6,14 @@ import datetime
 import os
 import weakref
 
-import gavo
+from gavo.helpers import testhelpers
+
 from gavo import base
 from gavo import grammars
 from gavo import rscdef
 from gavo import rscdesc
 from gavo import utils
 from gavo.base import parsecontext
-from gavo.helpers import testhelpers
 from gavo.rscdef import scripting
 
 

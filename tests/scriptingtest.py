@@ -3,6 +3,7 @@ Tests dealing with script parsing and execution.
 """
 
 from gavo.helpers import testhelpers
+
 from gavo.rscdef import scripting
 
 
@@ -27,6 +28,8 @@ class SQLSplittingTest(testhelpers.VerboseTest):
 		("/* this should be ignored: ; */; this should be there", 1),
 		("$funcdef$ stmt; stmt; $$deep;er$$ $funcdef$; two", 2),
 		("$funcdef$ stmt\n\n; stmt; $$deep;er$$ $funcdef$; two", 2),
+		("'multiline\nstring;'", 1),
+		("statement1;\n -- Sp'\nstatement 2 'quoted';", 2),
 	]
 
 

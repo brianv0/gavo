@@ -2,10 +2,11 @@
 Tests for active tags within RDs (and friends).
 """
 
+from gavo.helpers import testhelpers
+
 from gavo import base
 from gavo import rscdef
 from gavo import rscdesc
-from gavo.helpers import testhelpers
 
 
 class BasicTest(testhelpers.VerboseTest):

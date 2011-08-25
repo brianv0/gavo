@@ -1,9 +1,7 @@
 """
 Twisted trial-based tests for TAP and UWS.
 
-Synchronous tests go to taptest.py
-
-Some of these tests need the taptest tables installed.
+Tests not requiring the TAP renderer go to taptest.py
 
 The real big integration tap tests use the HTTP interface and are in
 an external resource package taptest.
@@ -34,14 +32,31 @@ from twisted.internet import reactor
 from twisted.python import threadable
 threadable.init()
 
+from gavo.helpers import testhelpers
+
 from gavo import base
 from gavo import rscdesc
-from gavo.helpers import testhelpers
 from gavo.protocols import scs  # for table's q3c mixin
 from gavo.web import weberrors
 from gavo.web.taprender import TAPRenderer
 
 import trialhelpers
+
+
+# This stuff needs the data/tests#adql table.  We import it here and
+# don't delete it since trial doesn't seem to provide a hook for it and
+# we can't use testresources since trial has its own runner.
+# Not cleaning up behind us isn't cool, but working around it isn't
+# worth it right now.
+
+def _importADQLTable():
+	from gavo import api
+	dd = api.getRD("data/test").getById("ADQLTest")
+	api.makeData(dd, forceSource=[
+		{"alpha": 2, "delta": 14, "mag": 10.25, "rv": -23.75},
+		{"alpha": 25, "delta": -14, "mag": 1.25, "rv": 0},
+		{"alpha": 290.125, "delta": 89, "mag": -1, "rv": 28}])
+_importADQLTable()
 
 
 base.DEBUG = True
@@ -83,29 +98,17 @@ class SyncMetaTest(TAPRenderTest):
 class SyncQueryTest(TAPRenderTest):
 	"""tests for querying sync queries.
 	"""
-# XXX TODO: use some of the unittest test tables rather than taptest here;
-# then figure out how to combine testresources and trial.
-	def setUp(self):
-		self.testInputs = base.getConfig("inputsDir")
-		if "GAVO_INPUTSDIR" in os.environ:
-			del os.environ["GAVO_INPUTSDIR"]
-		base.setConfig("inputsDir", testhelpers.origInputs)
-	
-	def tearDown(self):
-		base.setConfig("inputsDir", self.testInputs)
-		os.environ["GAVO_INPUTSDIR"] = self.testInputs
-
 	def testNoLangRejected(self):
 		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery", 
-				"QUERY": 'SELECT ra FROM taptest.main WHERE ra<3'},
+				"QUERY": 'SELECT alpha FROM test.adql WHERE alpha<3'},
 			["<INFO", "Required parameter 'LANG' missing.</INFO>"])
 
 	def testBadLangRejected(self):
 		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery",
 				"LANG": "Furz",
-				"QUERY": 'SELECT ra FROM taptest.main WHERE ra<3'},
+				"QUERY": 'SELECT alpha FROM test.adql WHERE alpha<3'},
 			['<INFO name="QUERY_STATUS" value="ERROR">This service does'
 				' not support the query language Furz'])
 
@@ -113,9 +116,9 @@ class SyncQueryTest(TAPRenderTest):
 		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery",
 				"LANG": "ADQL",
-				"QUERY": 'SELECT ra FROM taptest.main WHERE ra<2'}, [
-					'<FIELD datatype="float" ucd="pos.eq.ra;meta.main" ID="ra"'
-					' unit="deg" name="ra">'
+				"QUERY": 'SELECT alpha FROM test.adql WHERE alpha<2'}, [
+				'<FIELD datatype="float" ucd="pos.eq.ra;meta.main"'
+				' ID="alpha" unit="deg" name="alpha">'
 				])
 
 	def testOverflow(self):
@@ -123,7 +126,7 @@ class SyncQueryTest(TAPRenderTest):
 				"REQUEST": "doQuery",
 				"LANG": "ADQL",
 				"MAXREC": "1",
-				"QUERY": 'SELECT ra FROM taptest.main'}, [
+				"QUERY": 'SELECT alpha FROM test.adql'}, [
 					'<INFO name="QUERY_STATUS" value="OVERFLOW"',
 				])
 
@@ -131,7 +134,7 @@ class SyncQueryTest(TAPRenderTest):
 		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery",
 				"LANG": "ADQL",
-				"QUERY": 'SELECT ra FROM taptest.main WHERE ra<2',
+				"QUERY": 'SELECT alpha FROM test.adql WHERE alpha<2',
 				"FORMAT": 'xls'}, [
 				'<INFO name="QUERY_STATUS" value="ERROR">Unsupported format \'xls\'',
 				'Legal format codes include'])
@@ -140,32 +143,32 @@ class SyncQueryTest(TAPRenderTest):
 		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery",
 				"LANG": "ADQL",
-				"QUERY": 'SELECT ra FROM taptest.main WHERE ra<2',
+				"QUERY": 'SELECT alpha, delta FROM test.adql WHERE alpha<3',
 				"FORMAT": "votable/td"},
-			['<DATA><TABLEDATA><TR><TD>0.9631899'])
+			['<DATA><TABLEDATA><TR><TD>2.0</TD><TD>14.0</TD>'])
 
 	def testCSV(self):
 		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery",
 				"LANG": "ADQL",
-				"QUERY": 'SELECT ra,de FROM taptest.main WHERE ra<2',
+				"QUERY": 'SELECT alpha,delta FROM test.adql WHERE alpha<3',
 				"FORMAT": "text/csv"},
-			['0.96319,71.6269'])
+			['2.0,14.0'])
 
 	def testTSV(self):
 		return self.assertGETHasStrings("/sync", {
 			"REQUEST": "doQuery",
 			"LANG": "ADQL",
-			"QUERY": 'SELECT ra FROM taptest.main WHERE ra<2',
+			"QUERY": 'SELECT alpha, delta FROM test.adql WHERE alpha<3',
 			"FORMAT": "TSV"},
-			['0.96319', '\n', '0.56091'])
+			['2.0\t14.0'])
 
 	def testBadUploadSyntax(self):
 		return self.assertPOSTHasStrings("/sync", {
 			"REQUEST": "doQuery",
 			"UPLOAD": "bar",
 			"LANG": "ADQL",
-			"QUERY": 'SELECT * FROM taptest.main'}, [
+			"QUERY": 'SELECT * FROM test.adql'}, [
 			"only allow regular SQL identifiers"
 			])
 
@@ -174,7 +177,7 @@ class SyncQueryTest(TAPRenderTest):
 			"REQUEST": "doQuery",
 			"UPLOAD": "bar,http://x.y;",
 			"LANG": "ADQL",
-			"QUERY": 'SELECT * FROM taptest.main'}, [
+			"QUERY": 'SELECT * FROM test.adql'}, [
 			"only allow regular SQL identifiers"
 			])
 
@@ -183,7 +186,7 @@ class SyncQueryTest(TAPRenderTest):
 			"REQUEST": "doQuery",
 			"UPLOAD": "bar,http://127.0.0.1:65000",
 			"LANG": "ADQL",
-			"QUERY": 'SELECT * FROM taptest.main'}, [
+			"QUERY": 'SELECT * FROM test.adql'}, [
 			"'http://127.0.0.1:65000' cannot be retrieved</INFO",
 			"Connection refused"
 			])
@@ -193,7 +196,7 @@ class SyncQueryTest(TAPRenderTest):
 			"REQUEST": "doQuery",
 			"UPLOAD": "bar,file:///etc/passwd",
 			"LANG": "ADQL",
-			"QUERY": 'SELECT * FROM taptest.main'}, [
+			"QUERY": 'SELECT * FROM test.adql'}, [
 			"'file:///etc/passwd' cannot be retrieved</INFO",
 			"unknown url type"
 			]).addErrback(lambda failure: None)
@@ -203,7 +206,7 @@ class SyncQueryTest(TAPRenderTest):
 			"REQUEST": "doQuery",
 			"UPLOAD": "http://fit://file://x.ab",
 			"LANG": "ADQL",
-			"QUERY": 'SELECT * FROM taptest.main'}, [
+			"QUERY": 'SELECT * FROM test.adql'}, [
 			'<INFO name="QUERY_STATUS" value="ERROR">Syntax error in UPLOAD parameter'
 			])
 
@@ -275,7 +278,7 @@ class SimpleAsyncTest(TAPRenderTest):
 
 		return trialhelpers.runQuery(self.renderer, "POST", "/async", {
 			"REQUEST": "doQuery", "LANG": "ADQL", 
-			"QUERY": "SELECT ra FROM taptest.main WHERE ra<3"}
+			"QUERY": "SELECT ra FROM test.adql WHERE ra<3"}
 		).addCallback(checkPosted)
 
 	def testBadConstructionArgument(self):
@@ -290,6 +293,6 @@ class SimpleAsyncTest(TAPRenderTest):
 		return trialhelpers.runQuery(self.renderer, "POST", "/async", {
 			"REQUEST": "doQuery", "LANG": "ADQL", 
 			"MAXREC": "kaputt",
-			"QUERY": "SELECT ra FROM taptest.main WHERE ra<3"}
+			"QUERY": "SELECT ra FROM test.adql WHERE ra<3"}
 		).addCallback(checkPosted)
 

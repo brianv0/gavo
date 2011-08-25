@@ -10,6 +10,8 @@ from nevow import context
 from nevow import inevow
 from nevow import flat
 
+from gavo.helpers import testhelpers
+
 from gavo import base
 from gavo import rsc
 from gavo import rscdesc
@@ -17,7 +19,6 @@ from gavo import protocols
 from gavo import svcs
 from gavo.imp import formal
 from gavo.imp.formal import iformal
-from gavo.helpers import testhelpers
 from gavo.web import formrender
 
 import tresc

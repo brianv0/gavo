@@ -187,12 +187,31 @@ def _parseTableName(tableName, schema=None):
 		return schema.lower(), tableName.lower()
 
 
+def parseBannerString(bannerString, digits=2):
+	"""returns digits from a postgres server banner.
+
+	This hardcodes the response given by postgres 8 and raises a ValueError
+	if the expected format is not found.
+	"""
+	mat = re.match(r"PostgreSQL ([\d.]*)", bannerString)
+	if not mat:
+		raise ValueError("Cannot make out the Postgres server version from %s"%
+			repr(bannerString))
+	return ".".join(mat.group(1).split(".")[:digits])
+
+
 class PostgresQueryMixin(object):
 	"""is a mixin containing various useful queries that are postgres specific.
 
 	This mixin expects a parent that mixes is QuerierMixin (that, for now,
 	also mixes in PostgresQueryMixin, so you won't need to mix this in).
 	"""
+	def getServerVersion(self, digits=2):
+		"""returns the version of the connection's server to digits numbers.
+		"""
+		bannerString = list(self.query("SELECT version()"))[0][0]
+		return parseBannerString(bannerString, digits)
+
 	def getPrimaryIndexName(self, tableName):
 		"""returns the name of the index corresponding to the primary key on 
 		(the unqualified) tableName.

@@ -2,10 +2,11 @@
 Tests for various parts of the server infrastructure, using trial.
 """
 
+from gavo.helpers import testhelpers
+
 from gavo import api
 from gavo.imp import formal
 from gavo.web import root
-from gavo.helpers import testhelpers
 
 import trialhelpers
 

@@ -8,6 +8,8 @@ import datetime
 import sys
 import unittest
 
+from gavo.helpers import testhelpers
+
 from gavo import base
 from gavo import rsc
 from gavo import rscdef
@@ -18,7 +20,6 @@ from gavo.base import coords
 from gavo.base import config
 from gavo.base import sqlsupport
 from gavo.utils import pgsphere
-from gavo.helpers import testhelpers
 
 import tresc
 
@@ -173,7 +174,7 @@ class TestMetaTable(TestWithTableCreation):
 		self.assertEqual(adql, False)
 
 	def testColInfo(self):
-		mh = rsc.MetaTableHandler('test')
+		mh = rsc.MetaTableHandler()
 		res = mh.getColumnsForTable(self.tableDef.getQName())
 		self.assertEqual([(f.name, f.type, f.tablehead)
 				for f in res], [
@@ -197,7 +198,7 @@ class TestMetaTableADQL(TestWithTableCreation):
 		self.assertEqual(adql, True)
 
 	def testColInfo(self):
-		mh = rsc.MetaTableHandler('test')
+		mh = rsc.MetaTableHandler()
 		res = mh.getColumnsForTable(self.tableDef.getQName())
 		self.assertEqual([(f.name, f.type, f.tablehead) 
 				for f in res], [

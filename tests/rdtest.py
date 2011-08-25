@@ -6,11 +6,12 @@ import cStringIO
 import os
 import unittest
 
+from gavo.helpers import testhelpers
+
 from gavo import base
 from gavo import rscdef
 from gavo import rscdesc
 from gavo.base import meta
-from gavo.helpers import testhelpers
 from gavo.protocols import tap
 from gavo.rscdef import tabledef
 
