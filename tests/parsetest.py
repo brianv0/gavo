@@ -86,7 +86,8 @@ class SimpleParseTest(testhelpers.VerboseTest):
 
 
 def assertRowset(self, found, expected):
-	self.assertEqual(len(found), len(expected), "Rowset length didn't match")
+	self.assertEqual(len(found), len(expected), 
+		"Rowset length didn't match: %s"%str(found))
 	for f, e in itertools.izip(sorted(found), sorted(expected)):
 		self.assertEqual(f, e, "Rows don't match: %s vs. %s"%(f, e))
 
@@ -194,7 +195,7 @@ class ProductsBadNameTest(testhelpers.VerboseTest):
 		("don't want quotes", False),]
 
 
-class TestCleanedup(testhelpers.VerboseTest):
+class CleanedupTest(testhelpers.VerboseTest):
 	"""tests for cleanup after table drop (may fail if other tests failed).
 	"""
 	resources = [("conn", tresc.dbConnection)]

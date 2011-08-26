@@ -13,6 +13,7 @@ records.
 """
 
 import datetime
+import itertools
 import os
 import sys
 import time
@@ -134,7 +135,7 @@ class RDRscRecIterator(grammars.RowIterator):
 			self.curSource = res.id
 			for sr in iterResRecs(res):
 				yield sr.copy()
-		for res in self.sourceToken.tables:
+		for res in itertools.chain(self.sourceToken.tables, self.sourceToken.dds):
 			self.curSource = res.id
 			if res.registration:
 				for sr in iterDataRecs(res):

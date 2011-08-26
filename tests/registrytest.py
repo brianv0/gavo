@@ -253,17 +253,32 @@ class DataPublicationMetaTest(testhelpers.VerboseTest):
 			list,
 			(publication._rdRscRecGrammar.parse(rd),))
 
-	def testIterData(self):
-		rd = base.parseFromString(rscdesc.RD, """<resource schema="data">
+	_minimalMeta = """
 			<meta>
 				title:x
 				creationDate:y
 				description:z
 				subject:a
 				referenceURL:b
-			</meta>
+			</meta>"""
+
+	def testIterDataTable(self):
+		rd = base.parseFromString(rscdesc.RD, """<resource schema="data">
+			%s
 			<table id="ronk"><register sets="ivo_managed,local"/>
-			</table></resource>""")
+			</table></resource>"""%self._minimalMeta)
+		recs = list(publication._rdRscRecGrammar.parse(rd))
+		self.assertEquals(len(recs), 2)
+		self.assertEquals(recs[0]["setName"], "ivo_managed")
+		self.assertEquals(recs[1]["setName"], "local")
+
+	def testIterDataData(self):
+		rd = base.parseFromString(rscdesc.RD, """<resource schema="data">
+			%s
+			<table id="ronk"/><table id="funk"/>
+			<data id="ronkcoll"><register sets="ivo_managed,local"/>
+			<make table="ronk"/><make table="funk"/>
+			</data></resource>"""%self._minimalMeta)
 		recs = list(publication._rdRscRecGrammar.parse(rd))
 		self.assertEquals(len(recs), 2)
 		self.assertEquals(recs[0]["setName"], "ivo_managed")

@@ -249,7 +249,7 @@ class Make(base.Structure, scripting.ScriptingMixin):
 			raiseOnBadKeys=False)
 
 
-class DataDescriptor(base.Structure, base.MetaMixin):
+class DataDescriptor(base.Structure, base.MetaMixin, common.IVOMetaMixin):
 	"""A description of how to process data from a given set of sources.
 
 	Data descriptors bring together a grammar, a source specification and
@@ -260,12 +260,19 @@ class DataDescriptor(base.Structure, base.MetaMixin):
 	are used as arguments to gavoimp for partial imports.
 	"""
 	name_ = "data"
+	resType = "data"
 
 	_rowmakers = base.StructListAttribute("rowmakers",
 		childFactory=rmkdef.RowmakerDef, 
 		description="Embedded build rules (usually rowmakers are defined toplevel)",
 		copyable=True,
 		before="makes")
+
+	_registration = base.StructAttribute("registration",
+		default=None,
+		childFactory=common.Registration,
+		copyable=False,
+		description="A registration (to the VO registry) of this data collection.")
 
 	_tables = base.StructListAttribute("tables",
 		childFactory=tabledef.TableDef, 
@@ -318,10 +325,20 @@ class DataDescriptor(base.Structure, base.MetaMixin):
 
 	_original = base.OriginalAttribute()
 
+	metaModel = ("title(1), creationDate(1), description(1),"
+		"subject, referenceURL(1)")
+
+	def validate(self):
+		self._validateNext(DataDescriptor)
+		if self.registration and self.id is None:
+			raise base.StructureError("Published data needs an assigned id.")
+
 	def onElementComplete(self):
 		self._onElementCompleteNext(DataDescriptor)
 		for t in self.tables:
 			t.setMetaParent(self)
+		if self.registration:
+			self.registration.register()
 
 	# since we want to be able to create DDs dynamically , they must find their
 	# meta parent themselves.  We do this while the DD is being adopted;
@@ -352,10 +369,16 @@ class DataDescriptor(base.Structure, base.MetaMixin):
 		for m in self.makes:
 			yield m.table
 
-	def getTableDefById(self, id):
+	def iterTableDefs(self):
+		"""iterates over the definitions of all the tables built by this DD.
+		"""
 		for m in self.makes:
-			if m.table.id==id:
-				return m.table
+			yield m.table
+
+	def getTableDefById(self, id):
+		for td in self.iterTableDefs():
+			if td.id==id:
+				return td
 		raise base.StructureError("No table name %s will be built"%id)
 
 	def getTableDefWithRole(self, role):
@@ -387,3 +410,14 @@ class DataDescriptor(base.Structure, base.MetaMixin):
 		"""
 		return DataDescriptor(self.parent, rowmakers=self.rowmakers[:],
 			tables=self.tables[:], grammar=self.grammar, makes=self.makes[:])
+	
+	def getURL(self, rendName, absolute=True):
+		# there's no sensible URL for DDs; thus, let people browse
+		# the RD info.  At least they should find links to any tables
+		# included here there.
+		basePath = "%sbrowse/%s"%(
+			base.getConfig("web", "nevowRoot"),
+			self.rd.sourceId)
+		if absolute:
+			return base.getConfig("web", "serverURL")+basePath
+		return basePath

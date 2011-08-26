@@ -414,21 +414,59 @@ _dataMetaBuilder = meta.ModelBasedBuilder([
 	('format', SF(VS1.format)),  
 ])
 
-class TableResourceMaker(ResourceMaker):
-	"""A ResourceMaker for rscdef.TableDef items (yielding DataCollections)
+
+class DataCollectionResourceMaker(ResourceMaker):
+	"""A base class for Table- and DataResourceMaker.
 	"""
 	resourceClass = VS1.DataCollection
+
+	def _makeTableset(self, schemas):
+		"""see _makeDCResource.
+		"""
+		res = VS1.tableset()
+		for rd, tables in schemas:
+			res[VS1.schema[
+				VS1.name[rd.schema],
+				VS1.title[base.getMetaText(rd, "title")],
+				VS1.description[base.getMetaText(rd, "description")],
+				[tableset.getTableForTableDef(td)
+					for td in tables]]]
+		return res
+
+	def _makeResourceForSchemas(self, metaCarrier, schemas, setNames):
+		"""returns xmlstan for schemas within metaCarrier.
+
+		metaCarrier has to provide all the VOR metadata.  schemas is a
+		sequence of triples of (rd, tables); rd is used to define a 
+		VODataService schema, tables is a sequence of TableDefs that 
+		define the tables within that schema.
+		"""
+		return ResourceMaker._makeResource(self, metaCarrier, setNames)[
+			_orgMetaBuilder.build(metaCarrier),
+			_dataMetaBuilder.build(metaCarrier),
+			_coverageMetaBuilder.build(metaCarrier),
+			self._makeTableset(schemas)]
+
+
+class TableResourceMaker(DataCollectionResourceMaker):
+	"""A ResourceMaker for rscdef.TableDef items (yielding DataCollections)
+	"""
 	resType = "table"
 
 	def _makeResource(self, td, setNames):
-		return ResourceMaker._makeResource(self, td, setNames)[
-			_orgMetaBuilder.build(td),
-			_dataMetaBuilder.build(td),
-			_coverageMetaBuilder.build(td),
-			VS1.tableset[
-				VS1.schema[
-					VS1.name[td.rd.schema], 
-					tableset.getTableForTableDef(td)]]]
+		return DataCollectionResourceMaker._makeResourceForSchemas(
+			self, td, [(td.rd, [td])], setNames)
+
+
+class DataResourceMaker(DataCollectionResourceMaker):
+	"""A ResourceMaker for rscdef.DataDescriptor items (yielding DataCollections)
+	"""
+	resourceClass = VS1.DataCollection
+	resType = "data"
+
+	def _makeResource(self, dd, setNames):
+		return DataCollectionResourceMaker._makeResourceForSchemas(
+			self, dd, [(dd.rd, dd.iterTableDefs())], setNames)
 
 
 _getResourceMaker = utils.buildClassResolver(ResourceMaker, 

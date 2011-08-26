@@ -217,45 +217,6 @@ class STCDef(base.Structure):
 		return self._origFields.iteritems()
 
 
-class Registration(base.Structure):
-	"""A request for registration of a data collection.
-
-	This is much like publish for services, but there's only one of
-	those per data, and thus there's no register-local metadata.
-	Data registrations may refer to published services that make their
-	data available.
-	"""
-	name_ = "register"
-
-	_defaultSets = frozenset(["ivo_managed"])
-
-	_sets = base.StringSetAttribute("sets",
-		description="A comma-separated list of sets this data will be"
-			" published in.  To publish data to the VO registry, just"
-			" say ivo_managed here.  Other sets probably don't make much"
-			" sense right now.  ivo_managed also is the default.")
-
-	_servedThrough = base.ReferenceListAttribute("services",
-		description="A DC-internal reference to a service that lets users"
-			" query that within the data collection.")
-
-	def completeElement(self, ctx):
-		self._completeElementNext(Registration, ctx)
-		if not self.sets:
-			self.sets = self._defaultSets
-
-	def register(self):
-		"""adds servedBy and serviceFrom metadata to data, service pairs
-		in this registration.
-		"""
-		for srv in self.services:
-			srv.declareServes(self.parent)
-
-		# Tables in ADQL are always published via TAP
-		if getattr(self.parent, "adql", False):
-			base.caches.getRD("//tap").getById("run").declareServes(self.parent)
-
-
 class TableDef(base.Structure, base.ComputedMetaMixin, common.RolesMixin,
 		common.IVOMetaMixin, base.StandardMacroMixin):
 	"""A definition of a table, both on-disk and internal.
@@ -344,7 +305,7 @@ class TableDef(base.Structure, base.ComputedMetaMixin, common.RolesMixin,
 
 	_registration = base.StructAttribute("registration",
 		default=None,
-		childFactory=Registration,
+		childFactory=common.Registration,
 		copyable=False,
 		description="A registration (to the VO registry) of this table.")
 
