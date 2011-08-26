@@ -249,7 +249,8 @@ class Make(base.Structure, scripting.ScriptingMixin):
 			raiseOnBadKeys=False)
 
 
-class DataDescriptor(base.Structure, base.MetaMixin, common.IVOMetaMixin):
+class DataDescriptor(base.Structure, base.ComputedMetaMixin, 
+		common.IVOMetaMixin):
 	"""A description of how to process data from a given set of sources.
 
 	Data descriptors bring together a grammar, a source specification and

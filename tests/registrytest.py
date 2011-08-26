@@ -305,7 +305,7 @@ class DataPublicationMetaTest(testhelpers.VerboseTest):
 			publication.getDependencies("__system__/services", connection=self.conn),
 			[],
 			"registrytest._PublishedData.clean failed?")
-
+	
 
 class _PublishedData(testhelpers.TestResource):
 	resources = [("conn", tresc.dbConnection)]
@@ -346,7 +346,7 @@ class DataPublicationTest(testhelpers.VerboseTest):
 			["data/testdata"])
 
 
-class _DataVORRecord(testhelpers.TestResource):
+class _TableVORRecord(testhelpers.TestResource):
 	def make(self, ignored):
 		rd = base.parseFromString(rscdesc.RD, """<resource schema="data">
 			<meta name="creationDate">2011-03-04T11:00:00</meta>
@@ -372,13 +372,13 @@ class _DataVORRecord(testhelpers.TestResource):
 			builders.getVOResourceElement(td).render(), debug=False)
 		return tree.xpath("metadata/Resource")[0]
 
-_dataVORRecord = _DataVORRecord()
+_tableVORRecord = _TableVORRecord()
 
 
 
-class DataPublicationRecordTest(testhelpers.VerboseTest):
+class TablePublicationRecordTest(testhelpers.VerboseTest):
 # Tests for the registry record of a data publication
-	resources = [("tree", _dataVORRecord)]
+	resources = [("tree", _tableVORRecord)]
 
 	def testCreatedInherited(self):
 		self.assertEqual(self.tree.attrib["created"], "2011-03-04T11:00:00")
@@ -427,6 +427,53 @@ class DataPublicationRecordTest(testhelpers.VerboseTest):
 			"ivo://org.g-vo.junk/tap")
 		self.assertEqual(par.xpath("relatedResource")[1].attrib["ivo-id"],
 			"ivo://org.g-vo.junk/adql")
+
+
+
+class _DataGetRecordRes(testhelpers.TestResource):
+	def make(self, ignored):
+		rd = base.parseFromString(rscdesc.RD, """<resource schema="data">
+			<meta name="creationDate">2011-03-04T11:00:00</meta>
+			<meta name="title">My first DataCollection</meta>
+			<table id="honk">
+				<column name="col1" description="column from honk"/>
+			</table>
+			<table id="funk">
+				<column name="oink" utype="noises:animal.pig"/>
+				<column name="where" type="spoint" ucd="pos.eq;source"/>
+			</table>
+			<data id="punk">
+				<register sets="ivo_managed,local"/>
+				<meta name="description">Some silly test data</meta>
+				<meta name="subject">testing</meta>
+				<meta name="subject">regressions</meta>
+				<meta name="coverage.profile">Box ICRS 12 13 2 3</meta>
+				<meta name="format">audio/vorbis</meta>
+				<meta name="referenceURL">http://junk.g-vo.org</meta>
+				<make table="honk"/>
+				<make table="funk"/>
+			</data></resource>""")
+		rd.sourceId = "funky/town"
+		dd = rd.dds[0]
+
+		from gavo.registry import oaiinter
+		from gavo.registry.model import OAI
+		pars = {"verb": "GetRecord", "metadataPrefix": "ivo_vor"}
+		source = OAI.PMH[
+			oaiinter.getResponseHeaders(pars),
+			builders.getVOGetRecordElement(dd)].render()
+		tree = testhelpers.getXMLTree(source, debug=False)
+		return source, tree
+
+_dataGetRecordRes = _DataGetRecordRes()
+
+
+class DataGetRecordTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
+	resources = [("srcAndTree", _dataGetRecordRes)]
+
+	def testIsValid(self):
+		open("zw.xml", "w").write(self.srcAndTree[0]+"\n")
+		self.assertValidates(self.srcAndTree[0])
 
 
 # minimal meta for successful RR generation without a (working) RD
@@ -501,6 +548,5 @@ class RelatedTest(testhelpers.VerboseTest):
 			base.caches.clearForName("//adql")
 
 
-
 if __name__=="__main__":
-	testhelpers.main(DataPublicationTest)
+	testhelpers.main(DataGetRecordTest)
