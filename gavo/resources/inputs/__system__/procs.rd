@@ -364,10 +364,12 @@ Core phrase makers and friends -->
 
 	<condDesc combining="True">
 		<inputKey name="\name\+_min" original="\name"
+				tablehead="Min \grouplabel"
 				description="Lower bound of \groupdesc">
 			<property name="cssClass">formkey_min</property>
 		</inputKey>
 		<inputKey name="\name\+_max" original="\name"
+				tablehead="Max \grouplabel"
 				description="Upper bound of \groupdesc">
 			<property name="cssClass">formkey_max</property>
 		</inputKey>

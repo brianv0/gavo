@@ -422,7 +422,7 @@ class RegistryRenderer(grend.ServiceBasedPage):
 			code = "badArgument" # Why the hell don't they have a serverError?
 			message = "Internal Error: "+str(exception)
 		return ElementTree.ElementTree(OAI.PMH[
-			OAI.responseDate[datetime.datetime.now().strftime(
+			OAI.responseDate[datetime.datetime.utcnow().strftime(
 				utils.isoTimestampFmt)],
 			OAI.request(verb=pars.get("verb", ["Identify"])[0], 
 					metadataPrefix=pars.get("metadataPrefix", [None])[0]),
