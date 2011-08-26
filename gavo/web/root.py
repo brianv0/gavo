@@ -338,23 +338,6 @@ ArchiveService.parseVanityMap(os.path.join(base.getConfig("webDir"),
 
 root = ArchiveService()
 
-# Nevow's ICanHandleException and friends is completely broken for my
-# purposes (or just extremely obscure).  Let's go monkeypatching...
-
-def processingFailed(error, request, ctx):
-	try:
-		handler = weberrors.getDCErrorPage(error)
-		handler.renderHTTP(ctx)
-	except:
-		error = failure.Failure()
-		weberrors.PanicPage(error).renderHTTP_exception(ctx, error)
-	request.finishRequest(False)
-	return appserver.errorMarker
-
-appserver.processingFailed = processingFailed
-
 site = appserver.NevowSite(root, timeout=300)
-# the next line unfortunately has no effect with 2010 twisted, but
-# should eventually replace the processingFailed hack above.
-site.remember(weberrors.DCExceptionHandler)
+site.remember(weberrors.DCExceptionHandler())
 site.requestFactory = common.Request

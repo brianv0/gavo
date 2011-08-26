@@ -350,22 +350,25 @@ class InternalServerErrorPage(ErrorPage):
 		]])
 
 
-class PanicPage(rend.Page):
-	"""The last-resort page when some error handler failed.
+def _writePanicInfo(ctx, failure, secErr=None):
+	"""write some panic-type stuff for failure and finishes the request.
 	"""
-	implements(inevow.ICanHandleException)
-
-	def renderHTTP_exception(self, ctx, failure):
-		request = inevow.IRequest(ctx)
-		request.setResponseCode(500)
-		base.ui.notifyFailure(failure)
-		base.ui.notifyInfo("Arguments were %s"%request.args)
-			# write out some HTML and hope
-			# for the best (it might well turn up in the middle of random output)
-		request.write(
-			"<html><head><title>Severe Error</title></head>"+
-			_formatFailure(failure)+
-			"</html>")
+	request = inevow.IRequest(ctx)
+	request.setResponseCode(500)
+	base.ui.notifyFailure(failure)
+	base.ui.notifyInfo("Arguments were %s"%request.args)
+		# write out some HTML and hope
+		# for the best (it might well turn up in the middle of random output)
+	request.write(
+		"<html><head><title>Severe Error</title></head><body>")
+	try:
+		request.write(_formatFailure(failure))
+	except:
+		request.write("<h1>Ouch</h1><p>There has been an error that in"
+			" addition breaks the toplevel error catching code.  Complan.</p>")
+	base.ui.notifyError("Error while processing failure: %s"%secErr)
+	request.write("</body></html>")
+	request.finishRequest(False)
 
 
 _getErrorPage = utils.buildClassResolver(
@@ -376,6 +379,26 @@ _getErrorPage = utils.buildClassResolver(
 	default=InternalServerErrorPage)
 
 
+def getDCErrorPage(error):
+	"""returns stuff for root.ErrorCatchingNevowSite.
+	"""
+# This should be replaced by remembering DCExceptionHandler when
+# some day we fix nevow.
+	if error is None:
+		error = failure.Failure()
+	return _getErrorPage(error.value.__class__)(error)
+
+
+def _finishErrorProcessing(ctx, error):
+	"""finishes ctx's request.
+	"""
+# this is also intended as a hook when something weird happens during
+# error processing.  When everything's fine, you should end up here.
+	request = inevow.IRequest(ctx)
+	request.finishRequest(False)
+	return ""
+
+
 class DCExceptionHandler(object):
 	"""The toplevel exception handler.
 	"""
@@ -383,12 +406,14 @@ class DCExceptionHandler(object):
 	implements(inevow.ICanHandleException, inevow.ICanHandleNotFound)
 
 	def renderHTTP_exception(self, ctx, error):
-		ctx.remember(PanicPage) # have last resort in place when we fail
-		if error is None:
-			error = failure.Failure()
-		def panic(failure):
-			return PanicPage(failure), ()
-		return _getErrorPage(error.value.__class__)(error)
+		try:
+			handler = getDCErrorPage(error)
+			return defer.maybeDeferred(handler.renderHTTP, ctx
+				).addCallback(lambda ignored: _finishErrorProcessing(ctx, error)
+				).addErrback(lambda secErr: _writePanicInfo(ctx, error, secErr))
+		except:
+			base.ui.notifyError("Error while handling %s error:"%error)
+			_writePanicInfo(ctx, error)
 
 	def renderHTTP_notFound(self, ctx):
 		try:
@@ -403,11 +428,4 @@ class DCExceptionHandler(object):
 			'[[ERROR]]</div>')
 
 
-def getDCErrorPage(error):
-	"""returns stuff for root.ErrorCatchingNevowSite.
-	"""
-# This should be replaced by remembering DCExceptionHandler when
-# some day we fix nevow.
-	if error is None:
-		error = failure.Failure()
-	return _getErrorPage(error.value.__class__)(error)
+
