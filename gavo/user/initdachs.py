@@ -346,5 +346,5 @@ def parseCommandLine():
 def main():
 	opts = parseCommandLine()
 	createFSHierarchy(opts.dbname)
-	if not opts.initDB:
+	if opts.initDB:
 		initDB(opts.dbname)

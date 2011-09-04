@@ -105,6 +105,7 @@ def main():
 
 	if len(sys.argv)>1 and sys.argv[1]=="init":  
 		# Special case: initial setup, no api working yet
+		del sys.argv[1]
 		from gavo.user import initdachs
 		sys.exit(initdachs.main())
 
