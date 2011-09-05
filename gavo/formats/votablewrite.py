@@ -44,7 +44,7 @@ class VOTableContext(utils.IdManagerMixin):
 	VOTableContexts optionally take
 
 		- a value mapper registry (by default, valuemappers.defaultMFRegistry)
-		- the tablecoding (one of the keys of votable.tableEncoders).
+		- the tablecoding (currently, td or binary)
 		- version=(1,1) to order a 1.1-version VOTable
 		- acquireSamples=False to suppress reading some rows to get
 		  samples for each column

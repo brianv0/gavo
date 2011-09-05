@@ -7,6 +7,8 @@ Needs connectivity to the db defined in the test profile.
 import unittest
 import math
 
+from lxml import etree as lxtree
+
 from gavo.helpers import testhelpers
 
 from gavo import base
@@ -15,14 +17,11 @@ from gavo import rscdef
 from gavo import rscdesc
 from gavo.base import coords
 from gavo.helpers import fitstricks
+from gavo.formats import votablewrite
 from gavo.protocols import siap
 from gavo.utils import DEG, fitstools
 
 import tresc
-
-
-def raCorr(dec):
-	return math.cos(dec*DEG)
 
 
 class TestWCSTrafos(unittest.TestCase):
@@ -79,7 +78,7 @@ class TestWCSBbox(unittest.TestCase):
 		wcs = {
 			"CRVAL1": float(ra),   "CRVAL2": float(dec),
 			"CRPIX1": 50,  "CRPIX2": 50,
-			"CD1_1": 0.01/raCorr(dec), "CD1_2": 0,
+			"CD1_1": 0.01/math.cos(dec*DEG), "CD1_2": 0,
 			"CD2_1": 0,    "CD2_2": 0.01,
 			"NAXIS1": 100, "NAXIS2": 100,
 			"CUNIT1": "deg", "CUNIT2": "deg",
@@ -160,7 +159,7 @@ class TestWCSBbox(unittest.TestCase):
 		notOverlapOffsets = [(0, 1.1), (2.4, 0), (0, -1.6), (-1.6, 0), 
 			(-0.8, -1.6)]
 		for da, dd in notOverlapOffsets:
-			wcs["CRVAL1"], wcs["CRVAL2"] = ra+da/raCorr(dec), dec+dd
+			wcs["CRVAL1"], wcs["CRVAL2"] = ra+da/math.cos(dec*DEG), dec+dd
 			bbox = coords.getBboxFromWCSFields(wcs)
 			self.failIf(overlaps(bbox, targBbox), "Overlap test false positive"
 				" at %s, offsets %s"%((ra, dec), (da, dd)))
@@ -314,10 +313,12 @@ class BboxQueriesTest(CooQueryTestBase):
 	resources = [("data", _SIAPTestTable("bbox_siaptest"))]
 
 
+_siapTestTable = _SIAPTestTable("pgs_siaptest")
+
 class PgSphereQueriesTest(CooQueryTestBase):
 	"""tests for actual queries on the sphere with trivial WCS data.
 	"""
-	resources = [("data", _SIAPTestTable("pgs_siaptest"))]
+	resources = [("data", _siapTestTable)]
 
 
 class ImportTest(testhelpers.VerboseTest):
@@ -366,6 +367,63 @@ class ImportTest(testhelpers.VerboseTest):
 		finally:
 			data.dropTables()
 			self.conn.commit()
+
+
+class SIAPTestResponse(testhelpers.TestResource):
+	resources = [("siapTable", _siapTestTable)]
+
+	def make(self, deps):
+		svc = testhelpers.getTestRD().getById("pgsiapsvc")
+		data = svc.runFromDict({}, renderer="siap.xml").original
+		vot = votablewrite.getAsVOTable(data,
+			tablecoding="td", suppressNamespace=True)
+		return vot, lxtree.fromstring(vot)
+
+_siapTestResponse = SIAPTestResponse()
+
+
+class SIAPResponseTest(testhelpers.VerboseTest):
+
+	resources = [("siapResp", _siapTestResponse)]
+
+	def _getSTCGroup(self):
+		try:
+			return _siapTestResponse._stcGroup
+		except AttributeError:
+			_siapTestResponse._stcGroup = self.siapResp[1].find(
+			".//GROUP[@utype='stc:CatalogEntryLocation']")
+		return _siapTestResponse._stcGroup
+
+	def _getFieldForUtype(self, utype):
+		ref = self._getSTCGroup().find(
+			"FIELDref[@utype='%s']"%utype).get("ref")
+		return self.siapResp[1].find(".//FIELD[@ID='%s']"%ref)
+
+	def testSTCDefined(self):
+		self.failUnless(len(self._getSTCGroup()))
+	
+	def testCoverageDefined(self):
+		self.assertEqual(
+			self._getFieldForUtype("stc:AstroCoordArea.Polygon").get("name"),
+			"coverage")
+
+	def testSpectralDefined(self):
+		self.assertEqual(
+			self._getFieldForUtype("stc:AstroCoordArea.SpectralInterval.HiLimit"
+				).get("name"),
+			"bandpassHi")
+
+	def testPositionDefined(self):
+		self.assertEqual(
+			self._getFieldForUtype("stc:AstroCoords.Position2D.Value2.C1",
+				).get("name"),
+			"centerAlpha")
+
+
+	def testRefsysDefined(self):
+		self.assertEqual(self._getSTCGroup().find(
+			"PARAM[@utype='stc:AstroCoordSystem.SpaceFrame.CoordRefFrame']").get(
+				"value"), "ICRS")
 
 
 class ScaleHeaderTest(testhelpers.VerboseTest):

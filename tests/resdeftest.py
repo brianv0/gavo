@@ -246,6 +246,14 @@ class TableDefTest(testhelpers.VerboseTest):
 		self.assertEqual(fk.source, fk.dest)
 		self.assertEqual(fk.table, "zz")
 
+	def testSTCCopy(self):
+		t0 = base.parseFromString(rscdef.TableDef, '<table id="test">'
+			'<stc>Position ICRS "a" "b"</stc>'
+			'<column name="a"/><column name="b"/><index columns="a"/></table>')
+		t = t0.copy(None)
+		self.failUnless(t.getColumnByName("a").stc is
+			t0.getColumnByName("a").stc)
+
 
 class _QuotedNamesTable(testhelpers.TestResource):
 	def make(self, ignored):

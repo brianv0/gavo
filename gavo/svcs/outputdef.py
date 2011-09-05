@@ -65,7 +65,9 @@ class OutputField(rscdef.Column):
 
 	@classmethod
 	def fromColumn(cls, col):
-		return cls(None, **col.getAttributes(rscdef.Column)).finishElement()
+		res = cls(None, **col.getAttributes(rscdef.Column))
+		res.stc = col.stc
+		return res.finishElement()
 
 
 class OutputTableDef(rscdef.TableDef):

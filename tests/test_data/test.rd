@@ -9,6 +9,10 @@
 	<table id="bbox_siaptable" mixin="//siap#bbox" onDisk="True"/>
 	<table id="pgs_siaptable" mixin="//siap#pgs" onDisk="True"/>
 
+	<service id="pgsiapsvc">
+		<siapCore queriedTable="pgs_siaptable"/>
+	</service>
+
 	<data id="siap_base" auto="False">
 		<dictlistGrammar>
 			<rowfilter procDef="//products#define">

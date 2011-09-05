@@ -150,10 +150,15 @@
 		<FEED source="//products#hackProductsData"/>
 
 		<events>
+			<stc>
+				Time TT "dateObs"
+				Polygon ICRS [coverage] Position "centerAlpha" "centerDelta"
+				SpectralInterval "bandpassLo" "bandpassHi" Spectral "bandpassRefval"
+					unit m
+			</stc>
 			<FEED source="//siap#SIAPbase"/>
 			<column name="coverage" type="spoly" unit="deg"
-				description="Field covered by the image"
-				displayHint="type=suppress"/>
+				description="Field covered by the image"/>
 			<index columns="coverage" name="pgspos" method="GIST"/>
 		</events>
 	</mixinDef>
