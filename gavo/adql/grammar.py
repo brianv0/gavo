@@ -519,10 +519,12 @@ def getADQLGrammarCopy():
 		possiblyAliasedTable = tableName + Optional( correlationSpecification)
 		joinedTable = Forward()
 		subJoin = '(' + joinedTable + ')'
-		joinOpener = (possiblyAliasedTable 
+		joinOperand = (possiblyAliasedTable 
 			| derivedTable
 			| subJoin)
-		tableReference =  joinedTable | possiblyAliasedTable | derivedTable
+		tableReference = (joinedTable 
+			| possiblyAliasedTable 
+			| derivedTable)
 
 # JOINs
 		columnNameList = columnName + ZeroOrMore( "," + columnName)
@@ -536,14 +538,13 @@ def getADQLGrammarCopy():
 		joinType = (CaselessKeyword("INNER") 
 			| (outerJoinType + CaselessKeyword("OUTER"))
 			| CaselessKeyword("CROSS"))  # local extension
-		qualifiedJoin = (joinOpener
-			+ Optional( CaselessKeyword("NATURAL") )
+		joinOperator = (Optional( CaselessKeyword("NATURAL") )
 			+ Optional( joinType )
-			+ CaselessKeyword( "JOIN" )
-			+ tableReference
-			+ Optional( joinSpecification ))
-		joinedTable << (qualifiedJoin 
-			| subJoin)
+			+ CaselessKeyword( "JOIN" ))
+		joinedTable << (joinOperand
+			+ ZeroOrMore( joinOperator
+				+ joinOperand
+				+ Optional( joinSpecification ) ))
 
 # Detritus in table expressions
 		groupByClause = (CaselessKeyword( "GROUP" ) + CaselessKeyword( "BY" ) 
@@ -560,6 +561,8 @@ def getADQLGrammarCopy():
 			+ ZeroOrMore( ',' + sortSpecification ))("orderBy")
 
 # FROM fragments and such
+# XXX TODO: the "," below is a CROSS JOIN; it should be folded into
+# the join mechanics, including column resolution.
 		fromClause = ( CaselessKeyword("FROM") 
 			+ tableReference 
 			+ ZeroOrMore( ',' + tableReference ))("fromClause")
@@ -592,7 +595,7 @@ def enableDebug(syms, debugNames=None):
 		if not ob.debug:
 			ob.setDebug(True)
 			ob.setName(name)
-
+	syms["sqlComment"].setDebug(False)
 
 def enableTree(syms):
 	def makeAction(name):
@@ -626,8 +629,7 @@ if __name__=="__main__":
 	import pprint, sys
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
-	res = syms["searchCondition"].parseString(
-		"(contains(point('icrs', mine.raj2000, mine.dej2000),exts.bbox))"
-#		"select * from mcextinct.exts as exts join tap_uploads.mytable as mine on (contains(point('icrs', mine.raj2000, mine.dej2000),exts.bbox))"
-		,parseAll=True)
+	res = syms["querySpecification"].parseString(
+		"select * from z join x"
+		, parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)

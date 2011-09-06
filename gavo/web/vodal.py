@@ -152,7 +152,8 @@ class DALRenderer(grend.ServiceBasedPage):
 		return streaming.streamVOTable(request, data)
 
 	def _handleRandomFailure(self, failure, ctx):
-		base.ui.notifyFailure(failure)
+		if not isinstance(failure, base.ValidationError):
+			base.ui.notifyFailure(failure)
 		return self._writeErrorTable(ctx,
 			"Unexpected failure, error message: %s"%failure.getErrorMessage())
 	
@@ -433,7 +434,8 @@ class RegistryRenderer(grend.ServiceBasedPage):
 
 	def _renderError(self, failure, ctx, pars):
 		try:
-			if not isinstance(failure.value, registry.OAIError):
+			if not isinstance(failure.value, 
+					(registry.OAIError, base.ValidationError)):
 				base.ui.notifyFailure(failure)
 			return self._renderXML(self._getErrorTree(failure.value, pars),
 				ctx)

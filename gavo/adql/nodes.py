@@ -549,10 +549,21 @@ class JoinSpecification(ADQLNode):
 		return locals()
 
 
+class JoinOperator(ADQLNode):
+	"""the complete join operator (including all LEFT, RIGHT and whatever).
+	"""
+	type = "joinOperator"
+
+
 class JoinedTable(ColumnBearingNode, TransparentMixin):
 	"""A joined table.
+
+	These aren't made directly by the parser since parsing a join into
+	a binary structure is very hard using pyparsing.  Instead, there's
+	the helper function makeJoinedTableTree handling the joinedTable
+	symbol that manually creates a binary tree.
 	"""
-	type = "joinedTable"
+	type = None
 	originalTable = None
 	tableName = TableName()
 	qName = None
@@ -586,6 +597,26 @@ class JoinedTable(ColumnBearingNode, TransparentMixin):
 		"""returns true if this table can be referred to by name.
 		"""
 		return self.tableName.lower()==name.lower()
+
+
+
+@symbolAction("joinedTable")
+def makeBinaryJoinTree(children):
+	try:
+		children = list(children)
+		while len(children)>1:
+			if len(children)>3 and isinstance(children[3], JoinSpecification):
+				exprLen = 4
+			else:
+				exprLen = 3
+			args = children[:exprLen]
+			children[:exprLen] = [JoinedTable.fromParseResult(args)]
+	except:
+		# remove this, it's just here for debugging
+		import traceback
+		traceback.print_exc()
+		raise
+	return children[0]
 
 
 class TransparentNode(ADQLNode, TransparentMixin):

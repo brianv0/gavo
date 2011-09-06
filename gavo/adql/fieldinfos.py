@@ -153,7 +153,8 @@ class TableFieldInfos(FieldInfos):
 
 		This is a helper for makeFieldInfosForTable.
 		"""
-		if not tableNode.type=="joinedTable":
+# XXX TODO: support CROSS joins (same as ON)
+		if not hasattr(tableNode, "joinSpecification"):
 			return set()
 		if tableNode.joinSpecification is None: 
 			# NATURAL JOIN, collect common names

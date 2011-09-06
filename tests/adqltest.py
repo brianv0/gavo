@@ -1022,6 +1022,25 @@ class JoinColResTest(ColumnTest):
 			("real", "rad", "pos.eq.ra", False),
 			("real", "deg", "pos.eq.dec;meta.main", False)])
 
+	def testUsingJoin3(self):
+		cols = self._getColSeq("SELECT ra1, dec, mass FROM"
+			" spatial JOIN spatial2 USING (ra1, dist) JOIN misc ON (dist=mass)")
+		self._assertColumns(cols, [
+			("real", "deg", "pos.eq.ra;meta.main", False),
+			("real", "deg", "pos.eq.dec;meta.main", False),
+			("real", "kg", "phys.mass", False),])
+
+	def testUsingJoin4(self):
+		cols = self._getColSeq("SELECT ra1, dec, mass FROM"
+			" (SELECT * FROM spatial) as q JOIN spatial2"
+			" USING (ra1, dist) JOIN misc ON (dist=mass)")
+		self._assertColumns(cols, [
+			("real", "deg", "pos.eq.ra;meta.main", False),
+			("real", "deg", "pos.eq.dec;meta.main", False),
+			("real", "kg", "phys.mass", False),])
+
+
+
 
 class UploadColResTest(ColumnTest):
 	def setUp(self):
