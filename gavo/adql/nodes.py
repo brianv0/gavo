@@ -530,7 +530,7 @@ class DerivedTable(ColumnBearingNode):
 		return self.tableName.lower()==name.lower()
 
 
-class JoinSpecification(ADQLNode):
+class JoinSpecification(ADQLNode, TransparentMixin):
 	"""A join specification ("ON" or "USING").
 	"""
 	type = "joinSpecification"
@@ -549,7 +549,7 @@ class JoinSpecification(ADQLNode):
 		return locals()
 
 
-class JoinOperator(ADQLNode):
+class JoinOperator(ADQLNode, TransparentMixin):
 	"""the complete join operator (including all LEFT, RIGHT and whatever).
 	"""
 	type = "joinOperator"
@@ -597,7 +597,6 @@ class JoinedTable(ColumnBearingNode, TransparentMixin):
 		"""returns true if this table can be referred to by name.
 		"""
 		return self.tableName.lower()==name.lower()
-
 
 
 @symbolAction("joinedTable")

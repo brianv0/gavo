@@ -913,7 +913,6 @@ class DelimitedColResTest(ColumnTest):
 			("real", 'km*fin', None, True)])
 
 
-
 class JoinColResTest(ColumnTest):
 	"""tests for column resolution with joins.
 	"""
@@ -1038,8 +1037,6 @@ class JoinColResTest(ColumnTest):
 			("real", "deg", "pos.eq.ra;meta.main", False),
 			("real", "deg", "pos.eq.dec;meta.main", False),
 			("real", "kg", "phys.mass", False),])
-
-
 
 
 class UploadColResTest(ColumnTest):
@@ -1194,6 +1191,15 @@ class MiscFlatteningTest(_FlatteningTest):
 		self._assertFlattensTo(
 			"select round(x,2)as a, truncate(x,-2) as b from foo",
 			"SELECT ROUND(x, 2) AS a, TRUNCATE(x, - 2) AS b FROM foo")
+
+	def testJoin(self):
+		self._assertFlattensTo(
+			"SELECT ra1, dec, mass FROM\n"
+			" (SELECT * FROM spatial) as q LEFT OUTER JOIN spatial2\n"
+			" USING (ra1, dist) JOIN misc ON (dist=mass)",
+			"SELECT ra1, dec, mass FROM (SELECT * FROM spatial) AS q"
+			" LEFT OUTER JOIN spatial2 USING ( ra1 , dist ) JOIN misc"
+			" ON ( dist = mass )")
 
 
 class CommentTest(_FlatteningTest):
