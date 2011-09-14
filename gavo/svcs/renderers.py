@@ -37,7 +37,6 @@ RENDERER_REGISTRY = {
 	'siap.xml': ("web.vodal", "SIAPRenderer"),
 	'siap.xml': ("web.vodal", "SIAPRenderer"),
 	'ssap.xml': ("web.vodal", "SSAPRenderer"),
-	'sdm': ("web.productrender", "SDMRenderer"),
 	'pubreg.xml': ("web.vodal", "RegistryRenderer"),
 	'availability': ("web.vosi", "VOSIAvailabilityRenderer"),
 	'capabilities': ("web.vosi", "VOSICapabilityRenderer"),

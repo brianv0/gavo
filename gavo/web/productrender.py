@@ -211,37 +211,3 @@ class ProductRenderer(grend.ServiceBasedPage):
 		if segments:
 			self.pathFromSegments = "/".join(segments)
 		return self, ()
-
-
-class SDMRenderer(grend.ServiceBasedPage):
-# THIS WAS A TEMPORARY HACK.  It's not used in new code.  Remove it
-# and the reference to it from svc.cores about 2011-09
-	"""A renderer that makes VOTables from SDM-like tables as generated
-	by sdmCores.
-
-	Don't use this externally -- it will probably go away when we've
-	figured out how our new structured accrefs are to look like.
-	"""
-	name = "sdm"
-
-	def renderHTTP(self, ctx):
-		request = inevow.IRequest(ctx)
-		try:
-			data = {"accref": request.args["key"][0]}
-		except (IndexError, KeyError):
-			raise base.ui.logOldExc(svcs.UnknownURI("No product specified"))
-		return self.runServiceWithContext(data, ctx
-			).addCallback(self._deliver, ctx)
-
-	def _deliver(self, result, ctx):
-		from gavo import votable
-		from gavo.protocols import ssap
-
-		mime, payload = result.original
-
-		request = inevow.IRequest(ctx)
-		request.setHeader("content-type", mime)
-		request.setHeader('content-disposition', 
-			'attachment; filename=spec.vot')
-
-		return payload
