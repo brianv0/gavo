@@ -213,6 +213,17 @@ class Element(object):
 			raise ChildNotAllowed("No %s children in %s"%(
 				getattr(child, "name_", "text"), self.name_))
 
+	def deepcopy(self):
+		"""returns a deep copy of self.
+		"""
+		copy = self.__class__(**self._makeAttrDict())
+		for child in self.iterChildren():
+			if isinstance(child, Element):
+				copy.addChild(child.deepcopy())
+			else:
+				copy.addChild(child)
+		return copy
+
 	def addChild(self, child):
 		"""adds child to the list of children.
 

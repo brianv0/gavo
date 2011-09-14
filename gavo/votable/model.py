@@ -244,6 +244,7 @@ class VOTable(object):
 			"PARAM", "LINK", "TABLE", "INFO_atend", "RESOURCE", "stub"]
 		# (stub for delayed overflow warnings and such)
 
+
 	class STREAM(_VOTElement):
 		_a_actuate = None
 		_a_encoding = None

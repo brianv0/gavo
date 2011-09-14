@@ -11,7 +11,7 @@ from gavo.votable.model import VOTable as V, voTag
 
 from gavo.votable.parser import parse, parseString, readRaw
 
-from gavo.votable.simple import load
+from gavo.votable.simple import load, save
 
 from gavo.votable.tablewriter import (
 	DelayedTable, OverflowElement, write, asString)

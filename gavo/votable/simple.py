@@ -29,6 +29,7 @@ except ImportError:
 	pass
 
 from gavo.votable import parser
+from gavo.votable import tablewriter
 from gavo.votable.model import VOTable as V
 
 
@@ -44,7 +45,6 @@ class TableMetadata(object):
 		self.votTable = tableElement
 		self.infos = infos
 		self.fields = list(tableElement.iterChildrenOfType(V.FIELD))
-# ... do stuff ...
 
 	def __iter__(self):
 		return iter(self.fields)
@@ -116,3 +116,19 @@ def load(source):
 	if rows is None: # No table included
 		return None, None
 	return rows, fields
+
+
+def save(data, tableDef, destF):
+	"""saves (data, tableDef) in VOTable format to destF.
+
+	data is a sequence of tuples, tableDef V.TABLE instance as, for example,
+	obtainable from metadata.votTable as returned by load.  data must contain
+	type-right python values that match the table definition.
+
+	A load-save cycle loses all top-level and resource level metadata in the
+	simplified interface.  Use the full interface if that hurts you.
+	"""
+	root = V.VOTABLE[
+		V.RESOURCE[
+			tablewriter.DelayedTable(tableDef, data, V.BINARY)]]
+	tablewriter.write(root, destF)

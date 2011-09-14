@@ -445,7 +445,7 @@ class BinaryWriteTest(testhelpers.VerboseTest):
 			[V.FIELD(datatype="short", arraysize="3x2")],
 			[[[1,2,3,4,5,6]]],
 			'\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06'
-		)
+		),
 	]
 
 
@@ -669,6 +669,16 @@ class SimpleInterfaceTest(testhelpers.VerboseTest):
 		res = list(metadata.iterDicts(data))
 		self.assertEqual(res[0]["FileName"], "ngc104.dat")
 		self.assertEqual(res[1]["apex"], None)
+
+	def testWrite(self):
+		data, metadata = votable.load("test_data/importtest.vot")
+		dest = StringIO()
+		votable.save(data, metadata.votTable, dest)
+		content = dest.getvalue()
+		self.failUnless("QFILtsN2C/ZAGBY4hllK" in content)
+		self.failUnless('name="n_VHB"' in content)
+		self.failUnless('Right Ascension (J2000)</DESCRIPTION>' in content)
+
 
 if __name__=="__main__":
 	testhelpers.main(BinaryReadTest)

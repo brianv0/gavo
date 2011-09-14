@@ -472,7 +472,6 @@ class DataGetRecordTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 	resources = [("srcAndTree", _dataGetRecordRes)]
 
 	def testIsValid(self):
-		open("zw.xml", "w").write(self.srcAndTree[0]+"\n")
 		self.assertValidates(self.srcAndTree[0])
 
 

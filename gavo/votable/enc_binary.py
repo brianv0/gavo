@@ -26,7 +26,7 @@ def _getArrayShapingCode(field, padder):
 	if field.hasVarLength():
 		return base+["tokens.append(struct.pack('!i', len(val)))"]
 	else:
-		return base+["val = coding.trim(val, %s, %s)"%(
+		return base+["val = coding.trim(list(val), %s, %s)"%(
 			field.getLength(), padder)]
 
 
@@ -151,7 +151,7 @@ def _makeCharArrayEncoder(field):
 		raise NotImplementedError("Cannot do string arrays yet.  Could you"
 			" help out?")
 
-	nullvalue = coding.getNullvalue(field, lambda _: True)
+	nullvalue = coding.getNullvalue(field, lambda _: True, default="")
 	src = []
 
 	if field.datatype=="char":
