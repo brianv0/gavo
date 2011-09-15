@@ -457,9 +457,10 @@ class TreeParseTest(testhelpers.VerboseTest):
 
 	def testQuotedSchemaName(self):
 		t = adql.parseToTree('select * from "Murks Schema"."Murks Tabelle"')
-		self.assertEqual(t.fromClause.tablesReferenced[0].tableName.name,
+		table = t.fromClause.tableReference
+		self.assertEqual(table.tableName.name,
 			utils.QuotedName("Murks Tabelle"))
-		self.assertEqual(t.fromClause.tablesReferenced[0].tableName.schema,
+		self.assertEqual(table.tableName.schema,
 			utils.QuotedName("Murks Schema"))
 
 
@@ -512,6 +513,41 @@ class ParseErrorTest(testhelpers.VerboseTest):
 			"xpected coordinate system literal (ICRS, GALACTIC,...) (at char 13)"),
 		("SELECT * from a join b on foo",
 			"Expected comparison operator (at char 29"),
+	]
+
+
+class JoinTypeTest(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+	sym = adql.getSymbols()["joinedTable"]
+
+	def _collectJoinTypes(self, joinedNode):
+		res = []
+		if hasattr(joinedNode.leftOperand, "leftOperand"):
+			res.extend(self._collectJoinTypes(joinedNode.leftOperand))
+		res.append(joinedNode.getJoinType())
+		if hasattr(joinedNode.rightOperand, "leftOperand"):
+			res.extend(self._collectJoinTypes(joinedNode.rightOperand))
+		return res
+
+	def _runTest(self, sample):
+		query, joinType = sample
+		self.assertEqual(
+			self._collectJoinTypes(self.sym.parseString(query)[0]), joinType)
+	
+	samples = [
+		("a,b", ["CROSS"]),
+		("a join b", ["NATURAL"]),
+		("a join b using (x)", ["USING"]),
+		("a,b,c", ["CROSS", "CROSS"]),
+		("a,b join c", ["CROSS", "NATURAL"]),
+#5
+		("a join b, c", ["NATURAL", "CROSS"]),
+		("a join b on (x=y), c", ["CROSS", "CROSS"]),
+		("a join b using (x,y) join c", ["USING", "NATURAL"]),
+		("a join b using (x,y) join c using (z,v)", ["USING", "USING"]),
+		("(a join b using (x,y)) join c using (z,v)", ["USING", "USING"]),
+# 10
+		("(a join b) cross join (c join d)", ["NATURAL", "CROSS", "NATURAL"]),
 	]
 
 
@@ -680,6 +716,13 @@ class SelectClauseTest(ColumnTest):
 	def testBadRefRaises(self):
 		self.assertRaises(adql.ColumnNotFound, self._getColSeq, 
 			"select x, foo.* from spatial, misc")
+
+	def testQualifiedStarSingle(self):
+		cols = self._getColSeq("select misc.* from misc")
+		self._assertColumns(cols, [
+			("real", "kg", "phys.mass", False),
+			("real", "mag", "phot.mag", False),
+			("real", "km/s", "phys.veloc", False),])
 
 	def testQualifiedStar(self):
 		cols = self._getColSeq("select misc.* from spatial, misc")
@@ -1037,6 +1080,12 @@ class JoinColResTest(ColumnTest):
 			("real", "deg", "pos.eq.ra;meta.main", False),
 			("real", "deg", "pos.eq.dec;meta.main", False),
 			("real", "kg", "phys.mass", False),])
+	
+	def testCommaAll(self):
+		cols = self._getColSeq("SELECT * from spatial, spatial, misc")
+		self.assertEqual([c[1].userData[0].name for c in cols], [
+			'dist', 'width', 'height', 'ra1', 'ra2', 'dist', 'width', 
+			'height', 'ra1', 'ra2', 'mass', 'mag', 'speed'])
 
 
 class UploadColResTest(ColumnTest):
@@ -1200,6 +1249,18 @@ class MiscFlatteningTest(_FlatteningTest):
 			"SELECT ra1, dec, mass FROM (SELECT * FROM spatial) AS q"
 			" LEFT OUTER JOIN spatial2 USING ( ra1 , dist ) JOIN misc"
 			" ON ( dist = mass )")
+
+	def testCommaJoin(self):
+		self._assertFlattensTo(
+			"SELECT ra1, dec, mass FROM\n spatial, spatial2, misc",
+			"SELECT ra1, dec, mass FROM spatial , spatial2 , misc ")
+
+	def testSubJoin(self):
+		self._assertFlattensTo(
+			"SELECT ra1, dec, mass FROM\n"
+			" (spatial join spatial2 using (ra1)), misc",
+			"SELECT ra1, dec, mass FROM"
+			" (spatial JOIN spatial2 USING ( ra1 )) , misc ")
 
 
 class CommentTest(_FlatteningTest):
@@ -1681,7 +1742,7 @@ class IntersectsFallbackTest(testhelpers.VerboseTest):
 			"SELECT * from geo as a join geo as b on (intersects("
 			"circle('ICRS', coord1(b.pt), coord2(b.pt), 1), a.pt)=1)",
 			_sampleFieldInfoGetter)
-		funNode = tree.fromClause.tablesReferenced[0].children[3].children[2].op1
+		funNode = tree.fromClause.tableReference.joinSpecification.children[2].op1
 		self.assertEqual(funNode.funName, "CONTAINS")
 		self.assertEqual(funNode.args[0].fieldInfo.type, "spoint")
 

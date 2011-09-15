@@ -472,6 +472,9 @@ class PlainTableRef(ColumnBearingNode):
 	def getAllNames(self):
 		yield self.tableName.qName
 
+	def getAllTables(self):
+		yield self
+
 	def makeUpId(self):
 		# for suggestAName
 		n = self.tableName.name
@@ -479,12 +482,6 @@ class PlainTableRef(ColumnBearingNode):
 			return "_"+re.sub("[^A-Za-z0-9_]", "", n.name)
 		else:
 			return n
-
-	def nameMatches(self, name):
-		"""returns true if this table can be referred to by name.
-		"""
-		return (self.tableName.lower()==name.lower()
-			or self.originalTable.lower()==name.lower())
 
 
 class DerivedTable(ColumnBearingNode):
@@ -516,6 +513,9 @@ class DerivedTable(ColumnBearingNode):
 	def getAllNames(self):
 		yield self.tableName.qName
 
+	def getAllTables(self):
+		yield self
+
 	def makeUpId(self):
 		# for suggestAName
 		n = self.tableName.name
@@ -524,11 +524,6 @@ class DerivedTable(ColumnBearingNode):
 		else:
 			return n
 
-	def nameMatches(self, name):
-		"""returns true if this table can be referred to by name.
-		"""
-		return self.tableName.lower()==name.lower()
-
 
 class JoinSpecification(ADQLNode, TransparentMixin):
 	"""A join specification ("ON" or "USING").
@@ -536,13 +531,13 @@ class JoinSpecification(ADQLNode, TransparentMixin):
 	type = "joinSpecification"
 	
 	_a_children = ()
-	_a_joinType = None
+	_a_predicate = None
 	_a_usingColumns = ()
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
-		joinType = _parseResult[0].upper()
-		if joinType=="USING":
+		predicate = _parseResult[0].upper()
+		if predicate=="USING":
 			usingColumns = [n for n in _parseResult["columnNames"] if n!=',']
 			del n
 		children = list(_parseResult)
@@ -550,12 +545,15 @@ class JoinSpecification(ADQLNode, TransparentMixin):
 
 
 class JoinOperator(ADQLNode, TransparentMixin):
-	"""the complete join operator (including all LEFT, RIGHT and whatever).
+	"""the complete join operator (including all LEFT, RIGHT, ",", and whatever).
 	"""
 	type = "joinOperator"
 
+	def isCrossJoin(self):
+		return self.children[0] in (',', 'CROSS')
 
-class JoinedTable(ColumnBearingNode, TransparentMixin):
+
+class JoinedTable(ColumnBearingNode):
 	"""A joined table.
 
 	These aren't made directly by the parser since parsing a join into
@@ -568,13 +566,35 @@ class JoinedTable(ColumnBearingNode, TransparentMixin):
 	tableName = TableName()
 	qName = None
 
+	_a_leftOperand = None
+	_a_operator = None
+	_a_rightOperand = None
+	_a_joinSpecification = None
+
+	@classmethod
+	def _getInitKWs(cls, _parseResult):
+		leftOperand = _parseResult[0]
+		operator = _parseResult[1]
+		rightOperand = _parseResult[2]
+		if len(_parseResult)>3:
+			joinSpecification = _parseResult[3]
+		return locals()
+
+	def flatten(self):
+		js = ""
+		if self.joinSpecification is not None:
+			js = flatten(self.joinSpecification)
+		return "%s %s %s %s"%(
+			self.leftOperand.flatten(),
+			self.operator.flatten(),
+			self.rightOperand.flatten(),
+			js)
+
 	def addFieldInfos(self, context):
 		self.fieldInfos = fieldinfos.TableFieldInfos.makeForNode(self, context)
 
 	def _polish(self):
-		self.joinedTables = getChildrenOfClass(self.children, ColumnBearingNode)
-		self.joinSpecification = getChildOfClass(
-				self.children, JoinSpecification, default=None)
+		self.joinedTables = [self.leftOperand, self.rightOperand]
 
 	def getAllNames(self):
 		"""iterates over all fully qualified table names mentioned in this
@@ -584,23 +604,78 @@ class JoinedTable(ColumnBearingNode, TransparentMixin):
 			yield t.tableName.qName
 
 	def getTableForName(self, name):
-		for t in self.joinedTables:
-			if t.nameMatches(name):
-				return t
-		raise ColumnNotFound("No %s table found"%name)
+		return self.fieldInfos.locateTable(name)
 
 	def makeUpId(self):
 		# for suggestAName
 		return "_".join(t.makeUpId() for t in self.joinedTables)
 
-	def nameMatches(self, name):
-		"""returns true if this table can be referred to by name.
+	def getJoinType(self):
+		"""returns a keyword indicating how result rows are formed in this
+		join.
+
+		This can be NATURAL (all common columns are folded into one),
+		USING (check the joinSpecification what columns are folded),
+		CROSS (no columns are folded).
 		"""
-		return self.tableName.lower()==name.lower()
+		if self.operator.isCrossJoin():
+			if self.joinSpecification is not None:
+				raise Error("Cannot use cross join with a join predicate.")
+			return "CROSS"
+		if self.joinSpecification is not None:
+			if self.joinSpecification.predicate=="USING":
+				return "USING"
+			if self.joinSpecification.predicate=="ON":
+				return "CROSS"
+		return "NATURAL"
+
+	def getAllTables(self):
+		"""returns all actual tables and subqueries (not sub-joins) 
+		within this join.
+		"""
+		res = []
+		def collect(node):
+			if hasattr(node.leftOperand, "leftOperand"):
+				collect(node.leftOperand)
+			else:
+				res.append(node.leftOperand)
+			if hasattr(node.rightOperand, "leftOperand"):
+				collect(node.rightOperand)
+			else:
+				res.append(node.rightOperand)
+		collect(self)
+		return res
+
+
+class SubJoin(ADQLNode):
+	"""A sub join (JoinedTable surrounded by parens).
+
+	The parse result is just the parens and a joinedTable; we need to
+	camouflage as that joinedTable.
+	"""
+	type = "subJoin"
+	_a_joinedTable = None
+
+	@classmethod
+	def _getInitKWs(cls, _parseResult):
+		return {"joinedTable": _parseResult[1]}
+
+	def flatten(self):
+		return "("+self.joinedTable.flatten()+")"
+
+	def __getattr__(self, attName):
+		return getattr(self.joinedTable, attName)
 
 
 @symbolAction("joinedTable")
 def makeBinaryJoinTree(children):
+	"""takes the parse result for a join and generates a binary tree of
+	JoinedTable nodes from it.
+
+	It's much easier to do this in a separate step than to force a 
+	non-left-recursive grammar to spit out the right parse tree in the
+	first place.
+	"""
 	try:
 		children = list(children)
 		while len(children)>1:
@@ -705,7 +780,7 @@ class QuerySpecification(ColumnBearingNode):
 		"""
 		try:
 			sources = [tableRef.makeUpId()
-				for tableRef in self.fromClause.tablesReferenced]
+				for tableRef in self.fromClause.getAllTables()]
 			if sources:
 				return "_".join(sources)
 			else:
@@ -750,30 +825,23 @@ class ColumnReference(FieldInfoedNode):
 
 class FromClause(ADQLNode):
 	type = "fromClause"
-	_a_tablesReferenced = ()
+	_a_tableReference = ()
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
-		res = {"tablesReferenced": list(_parseResult)[1::2]}
-		return res
+		tableReference = _parseResult[1]
+		return locals()
 	
 	def flatten(self):
-		return "FROM %s"%(", ".join(flatten(r) for r in self.tablesReferenced))
+		return "FROM %s"%self.tableReference.flatten()
 	
 	def getAllNames(self):
 		"""returns the names of all tables taking part in this from clause.
 		"""
-		return itertools.chain(*(t.getAllNames() for t in self.tablesReferenced))
+		return self.tableReference.getAllNames()
 	
 	def resolveField(self, name):
-		matches = []
-# XXX TODO: implement matching rules for delimitedIdentifiers
-		for t in self.tablesReferenced:
-			try:
-				matches.append(t.fieldInfos.getFieldInfo(name))
-			except ColumnNotFound:
-				pass
-		return getUniqueMatch(matches, name)
+		return self.tableReference.getFieldInfo(name)
 
 	def _makeColumnReference(self, sourceTableName, colPair):
 		"""returns a ColumnReference object for a name, colInfo pair from a 
@@ -789,37 +857,22 @@ class FromClause(ADQLNode):
 		On an unannotated tree, this will return the empty list.
 		"""
 		res = []
-		for table in self.tablesReferenced:
-			for column in table.fieldInfos.seq:
-				res.append(self._makeColumnReference(table.tableName, column))
+		for column in self.tableReference.fieldInfos.seq:
+			res.append(self._makeColumnReference(
+				self.tableReference.tableName, column))
 		return res
 
-	def resolveNameToTable(self, srcTableName):
-		"""returns a ColumnBearingNode below self that has a name like srcTableName
-		
-		This raises an exception when no such thing can be found.  I
-		need to work on the rules here, badly.
-		"""
-		for table in self.tablesReferenced:
-			if table.nameMatches(srcTableName):
-				return table
-			# try to iterate over names of joined tables, too
-			try:
-				return table.getTableForName(srcTableName)
-			except (AttributeError, ColumnNotFound):
-				# Not a joined table, or srcTableName not joind, fall through
-				pass   
-		raise ColumnNotFound("No %s table to draw columns from in this clause"%(
-			srcTableName))
-		
 	def getFieldsForTable(self, srcTableName):
 		"""returns the fields in srcTable.
 
 		srcTableName is a TableName.
 		"""
-		table = self.resolveNameToTable(srcTableName)
+		table = self.tableReference.fieldInfos.locateTable(srcTableName)
 		return [self._makeColumnReference(table.tableName, ci)
 			for ci in table.fieldInfos.seq]
+
+	def getAllTables(self):
+		return self.tableReference.getAllTables()
 
 
 class DerivedColumn(FieldInfoedNode):

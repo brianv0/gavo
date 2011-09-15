@@ -539,8 +539,9 @@ def getADQLGrammarCopy():
 			| (outerJoinType + CaselessKeyword("OUTER"))
 			| CaselessKeyword("CROSS"))  # local extension
 		joinOperator = (Optional( CaselessKeyword("NATURAL") )
-			+ Optional( joinType )
-			+ CaselessKeyword( "JOIN" ))
+				+ Optional( joinType )
+				+ CaselessKeyword( "JOIN" )
+			) | Literal( ',' )
 		joinedTable << (joinOperand
 			+ ZeroOrMore( joinOperator
 				+ joinOperand
@@ -561,11 +562,8 @@ def getADQLGrammarCopy():
 			+ ZeroOrMore( ',' + sortSpecification ))("orderBy")
 
 # FROM fragments and such
-# XXX TODO: the "," below is a CROSS JOIN; it should be folded into
-# the join mechanics, including column resolution.
 		fromClause = ( CaselessKeyword("FROM") 
-			+ tableReference 
-			+ ZeroOrMore( ',' + tableReference ))("fromClause")
+			+ tableReference )("fromClause")
 		tableExpression = (fromClause + Optional( whereClause ) 
 			+ Optional( groupByClause )  + Optional( havingClause ) 
 			+ Optional( orderByClause ))
@@ -630,6 +628,8 @@ if __name__=="__main__":
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
 	res = syms["querySpecification"].parseString(
-		"select * from z join x"
+		"SELECT ra1, dec, mass FROM\n"
+			" (SELECT * FROM spatial) as q LEFT OUTER JOIN spatial2\n"
+			" USING (ra1, dist) JOIN misc ON (dist=mass)"
 		, parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)

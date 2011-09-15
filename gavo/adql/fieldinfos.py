@@ -62,10 +62,6 @@ class FieldInfos(object):
 		for t in self.subTables:
 			if self._namesMatch(t, refName):
 				return t
-			try:
-				return t.fieldInfos.locateTable(refName)
-			except TableNotFound:
-				pass
 		raise TableNotFound("No table %s found."%refName.qName)
 
 	def addColumn(self, label, info):
@@ -140,7 +136,7 @@ class TableFieldInfos(FieldInfos):
 		return result
 
 	def _collectSubTables(self, node):
-		self.subTables = getattr(node, "joinedTables", [])
+		self.subTables = list(node.getAllTables())
 
 	@staticmethod
 	def _computeCommonColumns(tableNode):
@@ -153,19 +149,15 @@ class TableFieldInfos(FieldInfos):
 
 		This is a helper for makeFieldInfosForTable.
 		"""
-# XXX TODO: support CROSS joins (same as ON)
-		if not hasattr(tableNode, "joinSpecification"):
-			return set()
-		if tableNode.joinSpecification is None: 
+		joinType = getattr(tableNode, "getJoinType", lambda: "CROSS")()
+		if joinType=="NATURAL":
 			# NATURAL JOIN, collect common names
 			return reduce(lambda a,b: a&b, 
 				[set(t.fieldInfos.columns) for t in tableNode.joinedTables])
-		elif tableNode.joinSpecification.joinType=="ON":
-			# JOIN ON, no columns vanish
-			return set()
-		else:
-			# JOIN USING, collect all column names from joinSpec.
+		elif joinType=="USING":
 			return set(tableNode.joinSpecification.usingColumns)
+		else: # CROSS join, comma, etc.
+			return set()
 
 
 def _annotateNodeRecurse(node, context):
@@ -178,7 +170,7 @@ def _annotateNodeRecurse(node, context):
 
 
 class QueryFieldInfos(FieldInfos):
-	"""FieldInfos inferred from something like a select clause.
+	"""FieldInfos inferred from a FROM clause.
 
 	To instanciate those, use the makeForNode class method below.
 	"""
@@ -206,10 +198,9 @@ class QueryFieldInfos(FieldInfos):
 		return result
 
 	def _collectSubTables(self, queryNode):
-		self.subTables = []
-		for subRef in queryNode.fromClause.tablesReferenced:
-			if hasattr(subRef, "getFieldInfo"):
-				self.subTables.append(subRef)
+		self.subTables = list(
+			queryNode.fromClause.tableReference.getAllTables())
+		self.tableReference = queryNode.fromClause.tableReference
 
 	def getFieldInfoFromSources(self, colName, refName=None):
 		"""returns a field info for colName from anything in the from clause.
@@ -222,11 +213,10 @@ class QueryFieldInfos(FieldInfos):
 		colName = colName.lower()
 		matched = []
 		if refName is None:
-			# no explicit table reference, look everywhere
-			for t in self.subTables:
-				subCols = t.fieldInfos.columns
-				if colName in subCols and subCols[colName]:
-					matched.append(subCols[colName])
+			# no explicit table reference, in immediate table
+			subCols = self.tableReference.fieldInfos.columns
+			if colName in subCols and subCols[colName]:
+				matched.append(subCols[colName])
 		else:
 			subCols = self.locateTable(refName).fieldInfos.columns
 			if colName in subCols and subCols[colName]:
@@ -253,4 +243,3 @@ class QueryFieldInfos(FieldInfos):
 			return ownMatch
 		else:
 			return self.getFieldInfoFromSources(colName, refName)
-

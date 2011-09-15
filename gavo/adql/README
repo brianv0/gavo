@@ -13,4 +13,6 @@ What's where:
 * Processing of nodes, actual tree building: tree.py
 * Metadata inference: annotations.py
 * Creation of actual postgres queries from the results of the above
-  modules: morphpg.py, morphhelpers.py
+  modules: morphpg.py, morphhelpers.py; postproc.py belongs here
+  to some extent, but it's tree manipulation that's probably desirable
+  independent of the target language.
