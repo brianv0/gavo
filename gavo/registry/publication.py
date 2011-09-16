@@ -266,15 +266,14 @@ def parseCommandLine():
 def updateRegistryTimestamp():
 	"""edits the dateupdated field for the registry service in servicelist.
 	"""
-	q = base.SimpleQuerier()
-	regSrv = getRegistryService()
-	q.runIsolatedQuery("UPDATE services SET dateupdated=%(now)s"
-		" WHERE sourcerd=%(rdId)s AND resId=%(sId)s", {
-		"rdId": regSrv.rd.sourceId,
-		"sId": regSrv.id,
-		"now": datetime.datetime.utcnow(),
-	})
-	q.close()
+	with base.SimpleQuerier() as q:
+		regSrv = getRegistryService()
+		q.query("UPDATE services SET dateupdated=%(now)s"
+			" WHERE sourcerd=%(rdId)s AND resId=%(sId)s", {
+			"rdId": regSrv.rd.sourceId,
+			"sId": regSrv.id,
+			"now": datetime.datetime.utcnow(),
+		})
 	getServicesRD().touchTimestamp()
 
 

@@ -54,14 +54,16 @@ class IgnoreSpec(base.Structure):
 		"""
 		self.inputsDir = base.getConfig("inputsDir")
 		self.ignoredSet = set()
+
 		if self.fromdb:
-			try:
-				self.ignoredSet |= set(r[0] 
-					for r in base.SimpleQuerier(connection=connection
-						).query(self.fromdb))
-			except base.DBError: # table probably doesn't exist yet.
-				if base.DEBUG:
-					base.ui.logError()
+			with base.SimpleQuerier(connection=connection) as q:
+				try:
+					self.ignoredSet |= set(r[0] 
+						for r in q.query(self.fromdb))
+				except base.DBError: # table probably doesn't exist yet.
+					if base.DEBUG:
+						base.ui.logError()
+
 		if self.fromfile:
 			for ln in open(self.fromfile):
 				ln = ln.strip()

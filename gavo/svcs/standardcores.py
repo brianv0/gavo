@@ -416,18 +416,19 @@ class FancyQueryCore(TableBasedCore, base.RestrictionMixin):
 
 	def run(self, service, inputTable, queryMeta):
 		fragment, pars = self._getSQLWhere(inputTable, queryMeta)
-		querier = base.SimpleQuerier(connection=base.caches.getTableConn(None))
-		if fragment:
-			fragment = " WHERE "+fragment
-		else:
-			fragment = ""
-		try:
-			return self._makeTable(
-				querier.runIsolatedQuery(self.query%fragment, pars,
-						silent=True, timeout=queryMeta["timeout"], asDict=True), 
-					self.outputTable, queryMeta)
-		except:
-			mapDBErrors(*sys.exc_info())
+		with base.SimpleQuerier(connection=base.caches.getTableConn(None)
+				) as querier:
+			if fragment:
+				fragment = " WHERE "+fragment
+			else:
+				fragment = ""
+			try:
+				return self._makeTable(
+					querier.runIsolatedQuery(self.query%fragment, pars,
+							silent=True, timeout=queryMeta["timeout"], asDict=True), 
+						self.outputTable, queryMeta)
+			except:
+				mapDBErrors(*sys.exc_info())
 
 
 class DBCore(TableBasedCore):
@@ -527,12 +528,13 @@ class FixedQueryCore(core.Core, base.RestrictionMixin):
 		self._completeElementNext(FixedQueryCore, ctx)
 
 	def run(self, service, inputTable, queryMeta):
-		querier = base.SimpleQuerier(connection=base.caches.getTableConn(None))
-		try:
-			return self._parseOutput(querier.runIsolatedQuery(self.query,
-				timeout=self.timeout), queryMeta)
-		except:
-			mapDBErrors(*sys.exc_info())
+		with base.SimpleQuerier(connection=base.caches.getTableConn(None)
+				) as querier:
+			try:
+				return self._parseOutput(querier.runIsolatedQuery(self.query,
+					timeout=self.timeout), queryMeta)
+			except:
+				mapDBErrors(*sys.exc_info())
 
 	def _parseOutput(self, dbResponse, queryMeta):
 		"""builds an InternalDataSet out of dbResponse and the outputFields

@@ -41,7 +41,7 @@ def getGroupsForUser(username, password):
 	query = ("SELECT groupname FROM dc.groups NATURAL JOIN dc.users as u"
 		" where username=%(username)s AND u.password=%(password)s")
 	pars = {"username": username, "password": password}
-	with base.SimpleQuerier(useProfile=adminProfile, autoClose=True) as querier:
+	with base.SimpleQuerier(useProfile=adminProfile) as querier:
 		return parseResponse(querier.query(query, pars))
 
 
@@ -53,15 +53,15 @@ def hasCredentials(user, password, reqGroup):
 			) and password==base.getConfig("web", "adminpasswd"):
 		return True
 
-	conn = base.SimpleQuerier(useProfile=adminProfile)
-	dbRes = conn.runIsolatedQuery("select password from dc.users where"
-		" username=%(user)s", {"user": user})
-	if not dbRes or not dbRes[0]:
-		return False
-	dbPw = dbRes[0][0]
-	if dbPw!=password:
-		return False
-	dbRes = conn.runIsolatedQuery("select groupname from dc.groups where"
-		" username=%(user)s and groupname=%(group)s", 
-		{"user": user, "group": reqGroup,})
-	return not not dbRes
+	with base.SimpleQuerier(useProfile=adminProfile) as querier:
+		dbRes = list(querier.query("select password from dc.users where"
+			" username=%(user)s", {"user": user}))
+		if not dbRes or not dbRes[0]:
+			return False
+		dbPw = dbRes[0][0]
+		if dbPw!=password:
+			return False
+		dbRes = list(querier.query("select groupname from dc.groups where"
+			" username=%(user)s and groupname=%(group)s", 
+			{"user": user, "group": reqGroup,}))
+		return not not dbRes

@@ -29,14 +29,12 @@ def drop(opts, rdId, ddIds=None):
 	
 	# purge from system tables that have sourceRD
 	# all traces that may have been left from this RD
-	querier = base.SimpleQuerier(connection=connection)
-	for tableName in ["dc.tablemeta", "tap_schema.tables", 
-			"tap_schema.columns", "tap_schema.keys", "tap_schema.key_columns"]:
-		if querier.tableExists(tableName):
-			querier.query("delete from %s where sourceRd=%%(sourceRD)s"%tableName,
-				{"sourceRD": rd.sourceId})
-
-	connection.commit()
+	with base.SimpleQuerier(connection=connection) as querier:
+		for tableName in ["dc.tablemeta", "tap_schema.tables", 
+				"tap_schema.columns", "tap_schema.keys", "tap_schema.key_columns"]:
+			if querier.tableExists(tableName):
+				querier.query("delete from %s where sourceRd=%%(sourceRD)s"%tableName,
+					{"sourceRD": rd.sourceId})
 
 
 def main():

@@ -192,11 +192,10 @@ class Values(base.Structure):
 		if not getattr(ctx, "doQueries", True):
 			return
 		try:
-			res = base.SimpleQuerier().runIsolatedQuery("SELECT DISTINCT %s"%(
-				self.fromdb))
-			for row in res:
-				self._options.feedObject(self, base.makeStruct(Option,
-					content_=row[0]))
+			with base.SimpleQuerier() as q:
+				for row in q.query("SELECT DISTINCT %s"%(self.fromdb)):
+					self._options.feedObject(self, base.makeStruct(Option,
+						content_=row[0]))
 		except base.DBError: # Table probably doesn't exist yet, ignore.
 			base.ui.notifyWarning("Values fromdb '%s' failed, ignoring"%self.fromdb)
 

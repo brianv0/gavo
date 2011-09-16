@@ -579,9 +579,13 @@ class SimpleQuerier(QuerierMixin):
 
 	You have to close() manually; you also have to commit() when you
 	change something, finish() does 'em both.
+
+	You can also use the SimpleQuerier as a context manager; in that case,
+	the connection gets commited if everything worked out, and rolled
+	back otherwise.  In either case, a connection allocated by the 
+	SimpleQuerier gets closed, a connection passed in is left alone.
 	"""
-	def __init__(self, connection=None, useProfile=None, autoClose=False):
-		self.connection, self.autoClose = None, autoClose
+	def __init__(self, connection=None, useProfile=None):
 		self.defaultProfile = useProfile
 		if connection:
 			self.ownedConnection = False
@@ -600,7 +604,7 @@ class SimpleQuerier(QuerierMixin):
 		else:
 			if not self.connection.closed:
 				self.rollback()
-		if self.autoClose:
+		if self.ownedConnection:
 			self.connection.close()
 
 	def rollback(self):
@@ -624,7 +628,8 @@ class SimpleQuerier(QuerierMixin):
 
 	def __del__(self):
 		if self.ownedConnection and self.connection:
-			self.close()
+			if not self.connection.closed:
+				self.close()
 
 
 def _initPsycopg(conn):

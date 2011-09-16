@@ -18,18 +18,18 @@ def findNClosest(alpha, delta, tableDef, n, fields, searchRadius=5):
 	The query depends on postgastro extension (and should be changed to
 	use pgsphere).  It also requires the q3c extension.
 	"""
-	q = base.SimpleQuerier()
-	raField = tableDef.getColumnByUCDs("pos.eq.ra;meta.main", 
-		"POS_EQ_RA_MAIN").name
-	decField = tableDef.getColumnByUCDs("pos.eq.dec;meta.main", 
-		"POS_EQ_RA_MAIN").name
-	res = q.query("SELECT %s,"
-			" celDistDD(%s, %s, %%(alpha)s, %%(delta)s) as dist_"
-			" FROM %s WHERE"
-			" q3c_radial_query(%s, %s, %%(alpha)s, %%(delta)s,"
-			" %%(searchRadius)s)"
-			" ORDER BY dist_ LIMIT %%(n)s"%
-				(",".join(fields), raField, decField, tableDef.getQName(),
-					raField, decField),
-		locals()).fetchall()
-	return res
+	with base.SimpleQuerier(base.caches.getTableConn(None)) as q:
+		raField = tableDef.getColumnByUCDs("pos.eq.ra;meta.main", 
+			"POS_EQ_RA_MAIN").name
+		decField = tableDef.getColumnByUCDs("pos.eq.dec;meta.main", 
+			"POS_EQ_RA_MAIN").name
+		res = q.query("SELECT %s,"
+				" celDistDD(%s, %s, %%(alpha)s, %%(delta)s) as dist_"
+				" FROM %s WHERE"
+				" q3c_radial_query(%s, %s, %%(alpha)s, %%(delta)s,"
+				" %%(searchRadius)s)"
+				" ORDER BY dist_ LIMIT %%(n)s"%
+					(",".join(fields), raField, decField, tableDef.getQName(),
+						raField, decField),
+			locals()).fetchall()
+		return res

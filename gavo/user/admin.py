@@ -228,7 +228,6 @@ def indexStatements(querier, args):
 
 def main():
 	base.setDBProfile("admin")
-	querier = base.SimpleQuerier()
-	args = makeParser(globals()).parse_args()
-	args.subAction(querier, args)
-	querier.commit()
+	with base.SimpleQuerier() as querier:
+		args = makeParser(globals()).parse_args()
+		args.subAction(querier, args)

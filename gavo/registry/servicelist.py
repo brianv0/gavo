@@ -114,10 +114,9 @@ def getTableDef(tableName):
 
 	If no such table is known to the system, a NotFoundError is raised.
 	"""
-	q = base.SimpleQuerier()
-	res = q.query("SELECT sourceRD FROM dc.tablemeta WHERE"
-			" tableName=%(tableName)s", {"tableName": tableName}).fetchall()
-	q.close()
+	with base.SimpleQuerier() as q:
+		res = list(q.query("SELECT sourceRD FROM dc.tablemeta WHERE"
+				" tableName=%(tableName)s", {"tableName": tableName}))
 	if len(res)!=1:
 		raise base.NotFoundError(tableName, what="Table",
 			within="data center table listing.", hint="The table is missing from"

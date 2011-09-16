@@ -342,6 +342,6 @@ def localquery():
 
 	q = sys.argv[1]
 	base.setDBProfile("trustedquery")
-	querier = base.SimpleQuerier()
-	table = query(querier, q, timeout=1000)
-	formats.formatData("votable", table, sys.stdout)
+	with base.SimpleQuerier() as querier:
+		table = query(querier, q, timeout=1000)
+		formats.formatData("votable", table, sys.stdout)

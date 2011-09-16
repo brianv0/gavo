@@ -58,8 +58,8 @@ class FileProcessor(object):
 	def printTableSize(self):
 		try:
 			tableName = self.dd.makes[0].table.getQName()
-			itemsInDB = base.SimpleQuerier(useProfile="admin").runIsolatedQuery(
-				"SELECT count(*) from %s"%tableName)[0][0]
+			with base.SimpleQuerier(useProfile="admin") as q:
+				itemsInDB = list(q.query("SELECT count(*) from %s"%tableName))[0][0]
 			print "Items currently in assumed database table: %d\n"%itemsInDB
 		except (base.DBError, IndexError):
 			pass
