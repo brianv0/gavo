@@ -97,6 +97,10 @@ def _reloadConfig():
 	"""should clear as many caches as we can get hold of.
 	"""
 	base.caches.clearCaches()
+
+	from gavo.web import root
+	root.loadUserVanity(root.ArchiveService)
+
 	base.ui.notifyInfo("Cleared all caches on SIGHUP")
 
 

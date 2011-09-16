@@ -1253,7 +1253,7 @@ class MiscFlatteningTest(_FlatteningTest):
 	def testCommaJoin(self):
 		self._assertFlattensTo(
 			"SELECT ra1, dec, mass FROM\n spatial, spatial2, misc",
-			"SELECT ra1, dec, mass FROM spatial , spatial2 , misc ")
+			"SELECT ra1, dec, mass FROM spatial , spatial2  , misc ")
 
 	def testSubJoin(self):
 		self._assertFlattensTo(

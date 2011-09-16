@@ -69,6 +69,11 @@ builtinVanity = """
 """
 
 
+def loadUserVanity(siteClass):
+	siteClass.parseVanityMap(os.path.join(base.getConfig("configDir"), 
+		"vanitynames.txt"))
+
+
 def makeDynamicPage(pageClass):
 	"""returns a resource that returns a "dynamic" resource of pageClass.
 
@@ -331,10 +336,7 @@ if (base.getConfig("web", "favicon")
 		static.File(base.getConfig("web", "favicon")))
 
 ArchiveService.parseVanityMap(StringIO(builtinVanity))
-ArchiveService.parseVanityMap(os.path.join(base.getConfig("configDir"), 
-	"vanitynames.txt"))
-ArchiveService.parseVanityMap(os.path.join(base.getConfig("webDir"), 
-	"vanitynames.txt"))
+loadUserVanity(ArchiveService)
 
 root = ArchiveService()
 
