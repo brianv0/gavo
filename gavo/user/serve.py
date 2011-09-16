@@ -101,7 +101,7 @@ def _reloadConfig():
 	from gavo.web import root
 	root.loadUserVanity(root.ArchiveService)
 
-	base.ui.notifyInfo("Cleared all caches on SIGHUP")
+	base.ui.notifyInfo("Cleared caches on SIGHUP")
 
 
 def _dropPrivileges():
