@@ -107,6 +107,7 @@ class CommonRenderers(object):
 				type="text/css"),
 			T.link(rel="stylesheet", href=base.makeSitePath(
 				"/static/css/gavo_dc.css"), type="text/css"),
+#			T.script(src=base.makeSitePath("/static/js/jquery.min.js"), type="text/javascript"),
 			T.script(src=base.getConfig("web", "mochiURL"),
 				type="text/javascript"),
 			T.script(type='text/javascript', src=base.makeSitePath(

@@ -65,7 +65,7 @@ class SOAPRenderer(grend.ServiceBasedPage):
 	name="soap"
 	preferredMethod = "POST"
 	urlUse = "full"
-# XXX TODO: With the next VODataService, make this to:
+# XXX TODO: With the next VODataService, uncomment:
 	#urlUse = "post"
 
 	@classmethod
@@ -101,4 +101,10 @@ class SOAPRenderer(grend.ServiceBasedPage):
 		request = inevow.IRequest(ctx)
 		if request.uri.endswith("?wsdl"): # XXX TODO: use parsed headers here
 			return self, ()
+		if request.method!='POST': 
+			# SOAP only makes sense when data is posted; with no data,
+			# twisted generates ugly tracebacks, and we may as well do
+			# something sensible, like... redirect to the service's info
+			# page
+			raise svcs.WebRedirect(self.service.getURL("info"))
 		return SOAPProcessor(ctx, self.service, self.runServiceFromArgs), ()
