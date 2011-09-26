@@ -134,7 +134,7 @@ class PQLClausesTest(testhelpers.VerboseTest):
 class PQLPositionsTest(testhelpers.VerboseTest):
 	def testNoStep(self):
 		self.assertRaisesWithMsg(api.ValidationError,
-			"Ranges not allowed as cone centers",
+			"Ranges are not allowed as cone centers",
 			pql.PQLPositionPar.fromLiteral("12,12/14", "POS").getConeSQL,
 			("POS", {}, 0.1))
 
@@ -167,6 +167,14 @@ class PQLPositionsTest(testhelpers.VerboseTest):
 		self.assertEqual(pars, {'size0': 0.5*DEG, 
 			'pos0': pgsphere.SPoint.fromDegrees(10.0, 12.0),
 			'pos1': pgsphere.SPoint.fromDegrees(-10.0, 13.0)})
+
+	def testExtraEncoding(self):
+		cs = pql.PQLPositionPar.fromLiteral("180.0%2C60.0", "POS")
+		pars = {}
+		expr = cs.getConeSQL("loc", pars, 0.5)
+		self.assertEqual(pars, {'size0': 0.5*DEG, 
+			'pos0': pgsphere.SPoint.fromDegrees(180.0, 60.0)})
+
 
 
 class PQLFloatTest(testhelpers.VerboseTest):

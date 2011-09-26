@@ -369,6 +369,14 @@ class PQLPositionPar(PQLPar):
 	valParser = float
 	nullvalue = ""
 
+	@classmethod
+	def fromLiteral(cls, val, destName):
+		# Hack: allow encodeded commas; this has been seen in the
+		# wild and would be the saner way to encode this.
+		if val is not None:
+			val = val.upper().replace("%2C", ",")
+		return cls._parsePQLString(cls, val, destName)
+
 	def getSQL(self, colName, sqlPars):
 		raise NotImplementedError("Ranges for PQL POS not implemented yet.")
 	
@@ -386,7 +394,7 @@ class PQLPositionPar(PQLPar):
 		lastCoo = None
 		for r in self.ranges:
 			if r.value is None:
-				raise base.ValidationError("Ranges not allowed as cone centers",
+				raise base.ValidationError("Ranges are not allowed as cone centers",
 					self.destName)
 			if lastCoo is None:
 				lastCoo = r.value
