@@ -116,7 +116,7 @@ def iterDataRecs(res):
 	rec = makeBaseRecord(res)
 	for setName in res.registration.sets:
 		rec["setName"] = setName
-		rec["renderer"] = "datadisplay"
+		rec["renderer"] = "rcdisplay"
 		for subject in [str(item) for item in res.getMeta("subject") or (None,)]:
 			rec["subject"] = subject
 			yield rec

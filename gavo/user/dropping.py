@@ -10,7 +10,39 @@ from gavo import base
 from gavo.protocols import tap
 
 
-def drop(opts, rdId, ddIds=None):
+def _do_dropTable(tableName):
+	"""deletes rows generated from tableName from the DC's metadata
+	(and tableName itself).
+	"""
+	with api.SimpleQuerier(useProfile="admin") as q:
+		for metaTableName, columnName in [
+				("dc.columnmeta", "tableName"),
+				("dc.tablemeta", "tableName"),
+				("ivoa._obscoresources", "tableName"),]:
+			if q.tableExists(metaTableName):
+				q.query("delete from %s where %s=%%(tableName)s"%(
+					metaTableName, columnName),
+					{"tableName": tableName})
+
+
+def dropTable():
+	"""tries to "manually" purge a table from the DC's memory.
+
+	This is a "toplevel" function inteded to be called by cli directly.
+	"""
+	def parseCmdline():
+		from gavo.imp.argparse import ArgumentParser
+		parser = ArgumentParser(
+			description="Removes all traces of the named table within the DC.")
+		parser.add_argument("tablename", help="The name of the table to drop,"
+		 	" including the schema name.")
+		return parser.parse_args()
+	
+	opts = parseCmdline()
+	_do_dropTable(opts.tablename)
+
+
+def _do_dropRD(opts, rdId, ddIds=None):
 	"""drops the data and services defined in the RD selected by rdId.
 	"""
 	try:
@@ -37,9 +69,11 @@ def drop(opts, rdId, ddIds=None):
 					{"sourceRD": rd.sourceId})
 
 
-def main():
+def dropRD():
 	"""parses the command line and drops data and services for the
 	selected RD.
+
+	This is a "toplevel" function inteded to be called by cli directly.
 	"""
 	def parseCmdline():
 		from gavo.imp.argparse import ArgumentParser
@@ -56,4 +90,4 @@ def main():
 	ddIds = None
 	if opts.ddids:
 		ddIds = set(opts.ddids)
-	drop(opts, rdId, ddIds)
+	_do_dropRD(opts, rdId, ddIds)
