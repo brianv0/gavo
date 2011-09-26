@@ -103,18 +103,17 @@ class CommonRenderers(object):
 
 	def render_commonhead(self, ctx, data):
 		return ctx.tag[
-			T.link(rel="stylesheet", href=base.makeSitePath("/formal.css"), 
+			T.link(rel="stylesheet", href=base.makeSitePath("/formal.css"),
 				type="text/css"),
 			T.link(rel="stylesheet", href=base.makeSitePath(
 				"/static/css/gavo_dc.css"), type="text/css"),
-#			T.script(src=base.makeSitePath("/static/js/jquery.min.js"), type="text/javascript"),
-			T.script(src=base.getConfig("web", "mochiURL"),
+			T.script(src=base.makeSitePath("/static/js/jquery-gavo.js"), 
 				type="text/javascript"),
 			T.script(type='text/javascript', src=base.makeSitePath(
 				'/js/formal.js')),
-			T.script(src=base.makeSitePath("/static/js/gavo.js"), 
+			T.script(src=base.makeSitePath("/static/js/gavo.js"),
 				type="text/javascript"),
-			T.meta(**{"http-equiv": "Content-type", 
+			T.meta(**{"http-equiv": "Content-type",
 				"content": "text/html;charset=UTF-8"}),
 		]
 

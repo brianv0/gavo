@@ -530,14 +530,14 @@ class Rowmaker(object):
 
 	def __call__(self, vars, table):
 		try:
-			missingKeys = self.keySet-set(vars)
-			for k in missingKeys:
-				vars[k] = self.defaults[k]
 			locals = {
 				"vars": vars,
 				"result": {},
 				"targetTable": table
 			}
+			missingKeys = self.keySet-set(vars)
+			for k in missingKeys:
+				vars[k] = self.defaults[k]
 			exec self.code in self.globals, locals
 			return locals["result"]
 		except rmkfuncs.IgnoreThisRow: # pass these on

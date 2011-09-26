@@ -291,7 +291,7 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 			+ Optional( velocityUnit ) 
 			+ cooProps).addParseAction(makeTree)
 		_spatialTail = (_spatialProps + 
-			Optional( velocityInterval )("velocity"))
+			Optional( velocityInterval)("velocity"))
 		_regionTail = Optional( positionSpec ) + _spatialTail
 		_commonSpaceItems = ( frame + Optional( refpos ) + 
 			Optional( flavor ) + Optional( 

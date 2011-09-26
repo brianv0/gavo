@@ -204,6 +204,18 @@ def lastSourceElements(path, numElements):
 
 
 @utils.document
+def scale(val, factor, offset=0):
+	"""returns val*factor+offset if val is not None, None otherwise.
+
+	This is when you want to manipulate a numeric value that may be NULL.
+	It is a somewhat safer alternative to using nullExcs with scaled values.
+	"""
+	if val is None:
+		return None
+	return factor*val+offset
+
+
+@utils.document
 def parseWithNull(literal, baseParser, nullLiteral=base.Undefined,
 		default=None, checker=None):
 	"""returns default if literal is nullLiteral, else baseParser(literal).

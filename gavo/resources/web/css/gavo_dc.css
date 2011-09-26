@@ -503,10 +503,8 @@ div.innerWin {
 	font-style: normal;
 	font-size: medium;
 	font-weight: normal;
-	max-width:20em;
 	overflow: hidden;
 	text-align: left;
-	position: absolute;
 	background: #ffffff;
 	border: 1px solid black;
 	z-index:100;
@@ -525,8 +523,6 @@ p.innerTitle {
 div.innerBody { /* like an iframe, except not in a frame */
 	border: 1px solid #d2dcf0;
 	background: white;
-	min-width: 20em;
-	max-height: 15em;
 	overflow: auto;
 	padding: 0.3ex;
 }
@@ -640,3 +636,17 @@ input.formkey_max {width:4em}
 span.formkey_min:before { content:" between "; }
 span.formkey_max:before { content:" and "; }
 
+
+/* jquery css */
+
+.ui-resizable-se { 
+	cursor: se-resize; 
+	width: 12px; 
+	height: 12px; 
+	right: 1px; 
+	bottom: 1px; 
+}
+
+.ui-resizable-handle {
+	background:red;
+}

@@ -292,71 +292,6 @@ function output_tdEncSelector(pars) {
 }
 
 
-function output_makePopupCleanup(child, govButton) {
-// returns a function to put destNode back into the main form
-	return function() {
-		child.parentNode.removeChild(child);
-		child.style.visibility = "hidden";
-		child.style.position = "absolute";
-		appendChildNodes(document.getElementById("genForm"), child);
-		govButton.onclick = output_popupAddSel;
-		govButton.firstChild.data = "More output fields";
-	}
-}
-
-
-function output_popupAddSel() {
-// pops up the dialog with the additional output items.  The popup
-// receives a cleanup function.
-	child = getElement("genForm-_ADDITEMS");
-	child.parentNode.removeChild(child);
-	child.style.visibility = "visible";
-	child.style.position = "static";
-	// I'd like to access the button via its id, but firefox doesn't let me.
-	govButton = output_bussedElements[2];
-	closer = openDOMsubwindow(getElement("genForm-_OUTPUT"), child,
-		output_makePopupCleanup(child, govButton), true);
-	govButton.onclick = closer;
-	govButton.firstChild.data = "Pop down field selection";
-	return false;
-}
-
-
-function output_itemSelector(pars) {
-	// returns a Bussedelement to pop up the element Selector
-	var root = document.createElement("button");
-
-	root["type"] = "button";
-	root["id"] = "op_addbutton";
-	root.setAttribute("class", "popButton");
-	root.onclick = output_popupAddSel;
-	root.appendChild(document.createTextNode("More output fields"));
-
-	// show nowhere unless there actually is a dialogue
-	var showFor = new Array();
-	if (getElement("genForm-_ADDITEMS")) {
-		showFor.push('HTML');
-	}
-	return output_BussedElement(root, "op_additem", showFor);
-}
-
-
-function output_hide(el) {
-	if (document.getElementById(el.id)) {
-		el.parentNode.removeChild(el);
-	}
-}
-
-
-function output_show(el) {
-	if (!document.getElementById(el.id)) {
-		dest = document.getElementById("genForm-_OUTPUT");
-		dest.appendChild(document.createTextNode(" "));
-		dest.appendChild(el);
-	}
-}
-
-
 function output_setFormat(format) {
 	var opts=document.getElementById("genForm-_FORMAT").options;
 	for (var optInd=0; optInd<opts.length; optInd++) {
@@ -403,102 +338,95 @@ function output_broadcast(newFormat) {
 }
 
 
-if (window.addEventListener) {
-	window.addEventListener("load", output_init, false);
-} else {
-	window.load = output_init;
+$(document).ready(
+	function() {
+		output_init();
+	});
+
+
+
+///////////////// jquery-dependent code (TODO: move the rest of the
+/// stuff from plain js to jquery, too)
+
+function popupInnerWindow(content, parent, onClose) {
+// puts content into a thing that looks like a window and can be
+// dragged and resized.  Parent is the element the container
+// gets added to within the tree.
+// The function returns a closer function destroying the subwindow.
+	var prevParent = content.parent()
+	content.detach();
+	content.css("visibility", "visible");
+
+	var container = $("<div class='innerWin'/>");
+	var titlebar = $(
+		"<p class='innerTitle'><span class='closer'>x&nbsp;</span></p>");
+	container.append(titlebar);
+	container.append(content);
+	content.show();
+
+	container.draggable();
+	parent.append(container);
+	// XXX TODO: Why doesn't container expand to content size in the first place?
+	container.css({"width": content.width(),
+		"height": content.height()+titlebar.height()});
+
+	closer = function(ignored) {
+		container.hide();
+		container.detach();
+		content.detach();
+		content.hide();
+		prevParent.append(content);
+		onClose();
+	}
+
+	container.find(".closer").bind("click", closer);
+	return closer;
 }
 
 
-///////////////// New, MochiKit dependent code (should grow over time)
-
-function makeCloser(node, callback) {
-	function close() {
-		if (callback) {
-			callback();
-		}
-		removeElement(node);
-		return false;  // make this work as an event handler
-	}
-	return close;
-};
-
-
-function makeDraggable(handle, item) {
-// makes item drabbable by handle
-// item needs to be positioned (i.e., position absolute or relative)
-	function startDrag(ev) {
-		mouseX0 = ev.clientX;
-		mouseY0 = ev.clientY;
-		pos0 = getElementPosition(item);
-
-		function moveHandler(inEv) {
-			alert("  "+pos0.x+" "+pos0.y);
-			curPos = {
-				'x': pos0.x+inEv.clientX-mouseX0,
-				'y': pos0.y+inEv.clientY-mouseY0};
-			setElementPosition(item, curPos);
-			return false;
-		};
-
-		function upHandler(inEv) {
-			document.removeEventListener("mousemove", moveHandler, true);
-			document.removeEventListener("mouseup", upHandler, true);
-		};
-
-		document.addEventListener("mousemove", moveHandler, true);
-		document.addEventListener("mouseup", upHandler, false);
-
-		return false;
-	}
-	handle.addEventListener("mousedown", startDrag, false);
-};
-
-
-function openDOMsubwindow(parent, innerDOM, callback) {
-// open a "subwindow" containing innerDOM.
-//
-// parent is a DOM element innerDOM is to be centered on.  callback
-// can be a function that is called when the window is being closed.
-//
-// returns a function that, when called, closes the "subwindow".
-	makePositioned(parent);
-	docWin = DIV({'class': 'innerWin'});
-	closeSubWindow = makeCloser(docWin, callback);
-	titlebar = P({'class': 'innerTitle'}, 
-			SPAN({'onclick': closeSubWindow, 'title': 'Close this'}, 'x'));
-	appendChildNodes(docWin, titlebar, innerDOM);
-	docWin.style.position = 'absolute';
-	appendChildNodes(parent, docWin);
-
-//	makeDraggable(titlebar, docWin);
-	return closeSubWindow;
-}
-
-
-function bubbleUpDOM(srcNode, innerDOM) {
-// opens a "subwindow" containing innerURL, replacing srcNode.
-//
-// returns false for cheapo event handling
-	var parent = srcNode.parentNode
-	parent.removeChild(srcNode);
-	function callback() {
-		parent.appendChild(srcNode);
-	}
-	openDOMsubwindow(parent, innerDOM, callback);
+function output_popupAddSel() {
+// pops up the dialog with the additional output items.  The popup
+// receives a cleanup function.
+	var govButton = output_bussedElements[2];
+	var closer = popupInnerWindow(
+		$("#genForm-_ADDITEMS"), $("#genForm-_OUTPUT"),
+		function() {
+			govButton.unbind("click");
+			govButton.bind("click", output_popupAddSel);
+			govButton.contents()[0].data = "More output fields";
+		})
+	govButton.unbind("click");
+	govButton.bind("click", closer);
+	govButton.contents()[0].data = "Pop down field selector";
 	return false;
 }
 
-function bubbleUpByURL(srcNode, innerURL) {
-// opens a "subwindow" containing innerURL.  This replaces srcNode in
-// the doc tree.
-//
-// returns false for cheapo event handling
-	function callback(result) {
-		newNode = MochiKit.DOM.createDOM('div', {'class': 'innerBody'});
-		newNode.innerHTML = result.responseText;
-		bubbleUpDOM(srcNode, newNode);
+
+function output_itemSelector(pars) {
+	// returns a Bussedelement to pop up the element Selector
+	var root = $('<button type="button" id="op_addbutton" class="popButton">More output fields</button>');
+
+	root.bind("click", output_popupAddSel);
+	// show nowhere unless there actually are items to show
+	var showFor = new Array();
+	if ($("#genForm-_ADDITEMS")) {
+		showFor.push('HTML');
 	}
-	doXHR(innerURL).addCallback(callback);
-	return false;
+	res = output_BussedElement(root, "op_additem", showFor);
+	return res;
+}
+
+
+function output_show(el) {
+	if (!document.getElementById(el.id)) {
+		var dest = $("#genForm-_OUTPUT");
+		dest.append(document.createTextNode(" "));
+		dest.append(el);
+	}
+}
+
+function output_hide(el) {
+	if (document.getElementById(el.id)) {
+		el.detach();
+	}
 }

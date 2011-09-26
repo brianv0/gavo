@@ -55,7 +55,13 @@ class RenderCrashPage(rend.Page):
 	"""is a page that crashes during render.
 	"""
 	def render_crash(self, ctx, data):
-		raise Exception("Wanton crash")
+		try:
+			raise Exception("Wanton crash")
+		except:
+			import traceback
+			traceback.print_exc()
+			raise
+
 
 	docFactory = common.doctypedStan(T.html[
 		T.head[

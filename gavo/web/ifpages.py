@@ -97,7 +97,7 @@ class LoginPage(rend.Page, grend.GavoRenderMixin):
 		else:  # user is not logged in
 			if relogging:  #...but was and has just logged out: forward to dest
 				return url.URL.fromContext(ctx).click(self.nextURL)
-			else: # ... and want to log in.
+			else: # ... and wants to log in.
 				return self.doAuth(ctx)
 
 	docFactory = svcs.loadSystemTemplate("loginout.html")
