@@ -291,14 +291,15 @@ class SSACapabilityMaker(CapabilityMaker):
 		service = publication.parent
 		return CapabilityMaker._makeCapability(self, publication)[
 			# XXX TODO: see what we need for "full"
-			SSAP.complianceLevel["minimal"], 
+			SSAP.complianceLevel[
+				service.getMeta("ssap.complianceLevel", default="minimal")], 
 			SSAP.dataSource[service.getMeta("ssap.dataSource", raiseOnFail=True)],
 			SSAP.creationType[service.getMeta("ssap.creationType", 
 				default="archival")],
 			SSAP.maxSearchRadius["180"],
 			SSAP.maxRecords[str(base.getConfig("ivoa", "dalHardLimit"))],
 			SSAP.defaultMaxRecords[str(base.getConfig("ivoa", "dalDefaultLimit"))],
-			SSAP.supportedFrame["ICRS"],
+			SSAP.maxAperture["180"],
 			SSAP.testQuery[
 				SSAP.queryDataCmd[base.getMetaText(service, "ssap.testQuery", 
 					raiseOnFail=True)+"&REQUEST=queryData"]],

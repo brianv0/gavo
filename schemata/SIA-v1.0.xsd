@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" 
            xmlns:vr="http://www.ivoa.net/xml/VOResource/v1.0"
-           xmlns:vs="http://www.ivoa.net/xml/VODataService/v1.0"
            xmlns:sia="http://www.ivoa.net/xml/SIA/v1.0"
            xmlns:vm="http://www.ivoa.net/xml/VOMetadata/v0.1"
            targetNamespace="http://www.ivoa.net/xml/SIA/v1.0"
@@ -23,9 +22,6 @@
 
    <xs:import namespace="http://www.ivoa.net/xml/VOResource/v1.0"
               schemaLocation="http://vo.ari.uni-heidelberg.de/docs/schemata/VOResource-v1.0.xsd"/>
-   <xs:import namespace="http://www.ivoa.net/xml/VODataService/v1.0"
-              schemaLocation="http://vo.ari.uni-heidelberg.de/docs/schemata/VODataService-v1.0.xsd"/>
-
    <xs:complexType name="SIACapRestriction" abstract="true">
       <xs:annotation>
          <xs:documentation>

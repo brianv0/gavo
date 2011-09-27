@@ -34,9 +34,9 @@ registerPrefix("cs", "http://www.ivoa.net/xml/ConeSearch/v1.0",
 	schemaURL("ConeSearch-v1.0.xsd"))
 registerPrefix("sia", "http://www.ivoa.net/xml/SIA/v1.0",
 	schemaURL("SIA-v1.0.xsd"))
-registerPrefix("ssap", "http://www.ivoa.net/xml/SSA/v0.4",
-	schemaURL("SSA-v0.4.xsd"))
-registerPrefix("tr", "http://www.ivoa.net/xml/TAP/v1.0",
+registerPrefix("ssap", "http://www.ivoa.net/xml/SSA/v1.0",
+	schemaURL("SSA-v1.0.xsd"))
+registerPrefix("tr", "http://www.ivoa.net/xml/TAPRegExt/v1.0",
 	schemaURL("TAPRegExt-v1.0.xsd"))
 
 

@@ -25,7 +25,7 @@ functions = [
 	("adql", ("protocols.adqlglue", "localquery")),
 	("config", ("base.config", "main")),
 	("drop", ("user.dropping", "dropRD")),
-	("droptable", ("user.dropping", "dropTable")),
+	("purge", ("user.dropping", "dropTable")),
 	("gendoc", ("user.docgen", "main")),
 	("import", ("user.importing", "main")),
 	("info", ("user.info", "main")),

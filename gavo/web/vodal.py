@@ -241,13 +241,25 @@ class SIAPRenderer(DALRenderer):
 	These have errors in the content of an info element, and they support
 	metadata queries.
 
-	It is recommended to set the following metadata items on services
-	using this renderer:
+	For registration, services using this renderer must set the following
+	metadata items:
+
+		- sia.type -- one of Cutout, Mosaic, Atlas, Pointed, see SIAP spec
+	
+	You should set the following metadata items:
 
 		- testQuery.pos.ra, testQuery.pos.dec -- RA and Dec for a query that
 			yields at least one image
 		- testQuery.size.ra, testQuery.size.dec -- RoI extent for a query that 
 			yields at least one image.
+	
+	You can set the following metadata items (there are defaults on them
+	that basically communicate there are no reasonable limits on them):
+
+	 - sia.maxQueryRegionSize.(long|lat)
+	 - sia.maxImageExtent.(long|lat)
+	 - sia.maxFileSize
+	 - sia.maxRecord (default dalHardLimit global meta)
 	"""
 # XXX TODO: put more functionality into the core and then use
 # UnifiedDALRenderer rather than siap.xml.
@@ -361,14 +373,19 @@ class UnifiedDALRenderer(DALRenderer):
 class SSAPRenderer(UnifiedDALRenderer):
 	"""A renderer for the simple spectral access protocol.
 
-	SSAP-specific metadata includes:
+	For registration, you must set the following metadata on services 
+	using the ssap.xml renderer:
 
 	 - ssap.dataSource -- survey, pointed, custom, theory, artificial
-	   (mandatory)
+	 - ssap.testQuery -- a query string that returns some data; REQUEST=queryData
+	   is added automatically
+	
+	Other SSA metadata includes:
+
 	 - ssap.creationType -- archival, cutout, filtered, mosaic,
 	   projection, specialExtraction, catalogExtraction (defaults to archival)
-	 - ssap.testQuery -- a query string that returns some data; REQUEST=queryData
-	   is added automaticall (mandatory)
+	 - ssap.complianceLevel -- set to "query" when you don't deliver
+	   SDM compliant spectra.
 	"""
 	name = "ssap.xml"
 

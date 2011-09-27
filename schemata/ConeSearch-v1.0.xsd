@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" 
            xmlns:vr="http://www.ivoa.net/xml/VOResource/v1.0"
-           xmlns:vs="http://www.ivoa.net/xml/VODataService/v1.0"
            xmlns:cs="http://www.ivoa.net/xml/ConeSearch/v1.0"
            xmlns:vm="http://www.ivoa.net/xml/VOMetadata/v0.1"
            targetNamespace="http://www.ivoa.net/xml/ConeSearch/v1.0"
@@ -29,9 +28,6 @@
 
    <xs:import namespace="http://www.ivoa.net/xml/VOResource/v1.0"
               schemaLocation="http://vo.ari.uni-heidelberg.de/docs/schemata/VOResource-v1.0.xsd"/>
-   <xs:import namespace="http://www.ivoa.net/xml/VODataService/v1.0"
-              schemaLocation="http://vo.ari.uni-heidelberg.de/docs/schemata/VODataService-v1.0.xsd"/>
-
    <xs:complexType name="CSCapRestriction" abstract="true">
       <xs:annotation>
          <xs:documentation>
@@ -61,9 +57,7 @@
    <xs:complexType name="ConeSearch">
       <xs:annotation>
          <xs:documentation>
-            The capabilities of a Cone Search implementation.  It includes
-            the listing of the columns that appear in image query
-            output VOTable and Cone Search-specific metadata.
+            The capabilities of a Cone Search implementation.  
          </xs:documentation>
       </xs:annotation>
 
@@ -182,7 +176,7 @@
                </xs:documentation>
                <xs:documentation>
                    this value should be in the form of name=value
-                   pairs delimited with apersands (&amp;).  
+                   pairs delimited with ampersands (&amp;).  
                </xs:documentation>
             </xs:annotation>
          </xs:element>
