@@ -416,8 +416,8 @@ class FancyQueryCore(TableBasedCore, base.RestrictionMixin):
 
 	def run(self, service, inputTable, queryMeta):
 		fragment, pars = self._getSQLWhere(inputTable, queryMeta)
-		with base.SimpleQuerier(connection=base.caches.getTableConn(None)
-				) as querier:
+		with base.getTableConn() as conn:
+			querier = base.SimpleQuerier(connection=conn)
 			if fragment:
 				fragment = " WHERE "+fragment
 			else:
@@ -467,21 +467,22 @@ class DBCore(TableBasedCore):
 
 	def _runQuery(self, resultTableDef, fragment, pars, queryMeta,
 			**kwargs):
-		queriedTable = rsc.TableForDef(self.queriedTable, nometa=True,
-			create=False, role="primary", connection=base.caches.getTableConn(None))
-		queriedTable.setTimeout(queryMeta["timeout"])
-		iqArgs = {"limits": queryMeta.asSQL(), "distinct": self.distinct,
-			"groupBy": self.groupBy}
-		iqArgs.update(kwargs)
-		try:
+		with base.getTableConn()  as conn:
+			queriedTable = rsc.TableForDef(self.queriedTable, nometa=True,
+				create=False, role="primary", connection=conn)
+			queriedTable.setTimeout(queryMeta["timeout"])
+			iqArgs = {"limits": queryMeta.asSQL(), "distinct": self.distinct,
+				"groupBy": self.groupBy}
+			iqArgs.update(kwargs)
 			try:
-				return self._makeTable(
-					queriedTable.iterQuery(resultTableDef, fragment, pars,
-						**iqArgs), resultTableDef, queryMeta)
-			except:
-				mapDBErrors(*sys.exc_info())
-		finally:
-			queriedTable.close()
+				try:
+					return self._makeTable(
+						queriedTable.iterQuery(resultTableDef, fragment, pars,
+							**iqArgs), resultTableDef, queryMeta)
+				except:
+					mapDBErrors(*sys.exc_info())
+			finally:
+				queriedTable.close()
 
 	def run(self, service, inputTable, queryMeta):
 		"""does the DB query and returns an InMemoryTable containing
@@ -528,8 +529,8 @@ class FixedQueryCore(core.Core, base.RestrictionMixin):
 		self._completeElementNext(FixedQueryCore, ctx)
 
 	def run(self, service, inputTable, queryMeta):
-		with base.SimpleQuerier(connection=base.caches.getTableConn(None)
-				) as querier:
+		with base.getTableConn() as conn:
+			querier = base.SimpleQuerier(connection=conn)
 			try:
 				return self._parseOutput(querier.runIsolatedQuery(self.query,
 					timeout=self.timeout), queryMeta)

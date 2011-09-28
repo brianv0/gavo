@@ -119,7 +119,7 @@ class DBProfile(structure.Structure):
 		description="An identifier for this profile")
 	_host = attrdef.UnicodeAttribute("host", default="", description="Host"
 		" the database runs on")
-	_port = attrdef.UnicodeAttribute("port", default="", description=
+	_port = attrdef.IntAttribute("port", default=None, description=
 		"Port the DB server listens on")
 	_database = attrdef.UnicodeAttribute("database", default=attrdef.Undefined,
 		description="Name of the database to connect to")
@@ -135,6 +135,20 @@ class DBProfile(structure.Structure):
 			if getattr(self, part):
 				parts.append("%s=%s"%(key, getattr(self, part)))
 		return " ".join(parts)
+	
+	def getArgs(self):
+		"""returns a dictionary suitable as keyword arguments to psycopg2's
+		connect.
+		"""
+		res = {}
+		for key in ["database", "user", "password", "host", "port"]:
+			if getattr(self, key):
+				res[key] = getattr(self, key)
+		if not res:
+			raise utils.logOldExc(utils.StructureError("Insufficient information"
+			" to connect to the database in profile '%s'."%(
+				self.profileName)))
+		return res
 
 
 class ProfileParser(object):

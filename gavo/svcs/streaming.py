@@ -35,8 +35,7 @@ class StreamBuffer(object):
 
 	When everything is written, you must all doneWriting.
 	"""
-	chunkSize = 10000 # XXX TODO: Figure out a good chunk size for the
-	                  # network stack
+	chunkSize = 50000 # XXX TODO: Can we make a reasoned  choice here?
 
 	def __init__(self):
 		self.buffer = collections.deque()
@@ -110,8 +109,18 @@ class DataStreamer(threading.Thread):
 		self.writeStreamTo, self.consumer = writeStreamTo, consumer
 		self.paused, self.exceptionToRaise = False, None
 		consumer.registerProducer(self, True)
+		self.connectionLive = True
+		consumer.notifyFinish().addCallback(self._abortProducing)
 		self.setDaemon(True) # kill transfers on server restart
 		self.buffer = StreamBuffer()
+
+	def _abortProducing(self, res):
+		# the callback for notifyFinish -- res is non-None when the remote
+		# end has hung up
+		if res is not None:
+			self.connectionLive = False
+			self.consumer.unregisterProducer()
+			self.exceptionToRaise = StopWriting("Client has hung up")
 
 	def resumeProducing(self):
 		self.paused = False
@@ -129,7 +138,7 @@ class DataStreamer(threading.Thread):
 		This must be called at least once after buffer.doneWriting()
 		as been called.
 		"""
-		while True:
+		while self.connectionLive:
 			data = self.buffer.get()
 			if data is None: # nothing to write yet/any more
 				return
@@ -171,8 +180,9 @@ class DataStreamer(threading.Thread):
 	def cleanup(self, result=None):
 		# Must be callFromThread'ed
 		self.join(0.01)
-		self.consumer.unregisterProducer()
-		self.consumer.finish()
+		if self.connectionLive:
+			self.consumer.unregisterProducer()
+			self.consumer.finish()
 		self.consumer = None
 
 	def run(self):

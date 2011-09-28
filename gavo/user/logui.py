@@ -22,6 +22,7 @@ class LoggingUI(ObserverBase):
 			logging.Formatter("[%(process)s] %(message)s"))
 		self.errorLogger = logging.getLogger("dcErrors")
 		self.errorLogger.addHandler(errH)
+		self.errorLogger.propagate = False
 
 		infoH = RotatingFileHandler(
 			os.path.join(base.getConfig("logDir"), "dcInfos"),
@@ -29,6 +30,7 @@ class LoggingUI(ObserverBase):
 		infoH.setFormatter(
 			logging.Formatter("%(levelname)s [%(process)s] %(message)s"))
 		self.infoLogger = logging.getLogger("dcInfos")
+		self.infoLogger.propagate = False
 		self.infoLogger.addHandler(infoH)
 		self.infoLogger.setLevel(logging.DEBUG)
 

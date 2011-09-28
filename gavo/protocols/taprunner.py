@@ -16,7 +16,6 @@ ABORTED or ERROR.
 from __future__ import with_statement
 
 import datetime
-import logging
 import os
 import sys
 import time
@@ -37,7 +36,7 @@ from gavo.protocols import adqlglue
 from gavo.protocols import tap
 from gavo.protocols import uws
 
-base.DEBUG = True
+base.DEBUG = False
 
 # The following would point to executors for other languages at some point.
 SUPPORTED_LANGS = {
@@ -222,7 +221,7 @@ def _runTAPJob(parameters, jobId, queryProfile, timeout):
 	tdsForUploads = _ingestUploads(parameters.get("UPLOAD", ""), 
 		connectionForQuery)
 
-	logging.info("taprunner executing %s"%query)
+	base.ui.notifyInfo("taprunner executing %s"%query)
 	res = runTAPQuery(query, timeout, connectionForQuery,
 		tdsForUploads, maxrec)
 	res = _makeDataFor(res)
@@ -269,7 +268,7 @@ def setINTHandler(jobId):
 		with tap.TAPJob.makeFromId(jobId) as job:
 			job.phase = uws.ABORTED
 			if _WORKER_PID:
-				logging.info("Trying to abort %s, wpid %s"%(
+				base.ui.notifyInfo("Trying to abort %s, wpid %s"%(
 					jobId, _WORKER_PID))
 				killConn = base.getDBConnection("admin")
 				curs = killConn.cursor()
@@ -319,27 +318,14 @@ def main():
 	opts, jobId = parseCommandLine()
 	setINTHandler(jobId)
 	try:
-		from gavo.protocols.gavolog import RotatingFileHandler
-		logHandler = RotatingFileHandler(
-			os.path.join(base.getConfig("logDir"), "taprunner"),
-			maxBytes=500000, backupCount=1, mode=0664)
-		# this will race since potentially many tap runners log to the
-		# same file, but the logs are only for emergencies anyway.
-		logging.getLogger("").addHandler(logHandler)
-		logging.getLogger("").setLevel(logging.INFO)
-		logging.debug("taprunner for %s started"%jobId)
-	except: # don't die just because logging fails
-		traceback.print_exc()
-
-	try:
 		_runInThread(lambda: runTAPJob(jobId))
-		logging.debug("taprunner for %s finished"%jobId)
+		base.notifyInfo("taprunner for %s finished"%jobId)
 	except SystemExit:
 		pass
 	except uws.JobNotFound: # someone destroyed the job before I was done
-		logging.info("giving up non-existing TAP job %s."%jobId)
+		base.ui.notifyInfo("giving up non-existing TAP job %s."%jobId)
 	except Exception, ex:
-		logging.error("taprunner %s major failure"%jobId, exc_info=True)
+		base.ui.notifyError("taprunner %s major failure"%jobId, exc_info=True)
 		# try to push job into the error state -- this may well fail given
 		# that we're quite hosed, but it's worth the try
 		with tap.TAPJob.makeFromId(jobId) as job:

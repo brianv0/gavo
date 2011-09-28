@@ -190,19 +190,19 @@ class SDMCore(svcs.Core):
 			self.sdmDD.setMeta("utype", "spec:Spectrum")
 
 	def run(self, service, inputTable, queryMeta):
-		ssaTable = rsc.TableForDef(self.queriedTable,
-			connection=base.caches.getTableConn(None))
-		try:
-			# XXX TODO: Figure why the unquote here is required.
-			accref = urllib.unquote(inputTable.getParam("accref"))
-			res = list(ssaTable.iterQuery(ssaTable.tableDef, 
-				"accref=%(accref)s", {"accref": accref}))
-			if not res:
-				raise svcs.UnknownURI("No spectrum with accref %s known here"%
-					inputTable.getParam("accref"))
-			ssaRow = res[0]
-		finally:
-			ssaTable.close()
+		with base.getTableConn() as conn:
+			ssaTable = rsc.TableForDef(self.queriedTable, connection=conn)
+			try:
+				# XXX TODO: Figure why the unquote here is required.
+				accref = urllib.unquote(inputTable.getParam("accref"))
+				res = list(ssaTable.iterQuery(ssaTable.tableDef, 
+					"accref=%(accref)s", {"accref": accref}))
+				if not res:
+					raise svcs.UnknownURI("No spectrum with accref %s known here"%
+						inputTable.getParam("accref"))
+				ssaRow = res[0]
+			finally:
+				ssaTable.close()
 
 		resData = rsc.makeData(self.sdmDD, forceSource=ssaRow)
 		resTable = resData.getPrimaryTable()

@@ -586,11 +586,14 @@ class RDInfoRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 
 	def data_publishedRDs(self, ctx, data):
 		td = base.caches.getRD("//services").getById("resources")
-		table = rsc.TableForDef(td,
-			connection=base.caches.getTableConn(None))
-		return [row["sourceRD"] for row in
-			table.iterQuery([td.getColumnByName("sourceRD")], "", 
-			distinct=True, limits=("ORDER BY sourceRD", {}))]
+		with base.getTableConn() as conn:
+			table = rsc.TableForDef(td, connection=conn)
+			try:
+				return [row["sourceRD"] for row in
+					table.iterQuery([td.getColumnByName("sourceRD")], "", 
+					distinct=True, limits=("ORDER BY sourceRD", {}))]
+			finally:
+				table.close()
 
 	def locateChild(self, ctx, segments):
 		rdId = "/".join(segments)

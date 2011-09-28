@@ -54,7 +54,7 @@ from gavo.base.parsecontext import (
 
 from gavo.base.sqlsupport import (getDBConnection, getDefaultDBConnection,
 	DBError, QueryCanceledError, IntegrityError,
-	SimpleQuerier, encodeDBMsg)
+	SimpleQuerier, encodeDBMsg, getTableConn)
 
 from gavo.base.structure import (Structure, ParseableStructure, 
 	DataContent, makeStruct, RestrictionMixin)

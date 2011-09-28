@@ -7,6 +7,7 @@ from gavo.helpers import testhelpers
 from gavo import api
 from gavo import svcs
 from gavo.imp import formal
+from gavo.svcs import streaming
 from gavo.web import root
 
 import trialhelpers
@@ -154,13 +155,16 @@ class StreamingTest(trialhelpers.RenderTest):
 
 		def assertResult(result):
 			# at least one chunk must have been delivered
-			self.failUnless(result[0].startswith("xxxxxxxxxx"))
+			self.failUnless(result[0].startswith("xxxxxxxxxx"), 
+				"No data delivered at all")
 			# ...but the kill must become active before the whole mess
 			# has been written
-			self.failIf(len(result[0])>20000)
+			self.failIf(len(result[0])>streaming.StreamBuffer.chunkSize,
+				"Kill hasn't happened")
 
 		return trialhelpers.runQuery(self.renderer, "GET", "/test/stream",
-			{"chunksize": "10", "size": "35000"}, requestClass=StoppingRequest
+			{"chunksize": "10", "size": streaming.StreamBuffer.chunkSize*2}, 
+			requestClass=StoppingRequest
 		).addCallback(assertResult)
 
 	def testClosingConnection(self):

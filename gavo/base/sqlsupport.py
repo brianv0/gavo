@@ -6,6 +6,7 @@ This is currently very postgres specific.  If we really wanted to
 support some other database, this would need massive refactoring.
 """
 
+import contextlib
 import operator
 import os
 import re
@@ -19,8 +20,8 @@ from gavo.base import config
 debug = "GAVO_SQL_DEBUG" in os.environ
 
 import psycopg2
-import psycopg2.extras
 import psycopg2.extensions
+import psycopg2.pool
 psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
 try:
 	psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
@@ -126,18 +127,10 @@ def getDBConnection(profile, debug=debug, autocommitted=False):
 		profile = config.getDBProfileByName(profile)
 	elif profile is None:
 		profile = config.getDBProfile()
-	try:
-		connString = ("dbname='%s' port='%s' host='%s'"
-			" user='%s' password='%s'")%(profile.database, 
-				profile.port, profile.host, profile.user, 
-				profile.password)
-	except (utils.StructureError, AttributeError):
-		raise utils.logOldExc(utils.StructureError("Insufficient information"
-			" to connect to the database in profile '%s'."%(
-				profile.profileName)))
 
 	if debug:
-		conn = psycopg2.connect(connString, connection_factory=DebugConnection)
+		conn = psycopg2.connect(connection_factory=DebugConnection,
+			**profile.getArgs())
 		print "NEW CONN using %s"%profile.name, id(conn)
 		def closer():
 			print "CONNECTION CLOSE", id(conn)
@@ -145,7 +138,7 @@ def getDBConnection(profile, debug=debug, autocommitted=False):
 		conn.close = closer
 	else:
 		try:
-			conn = psycopg2.connect(connString)
+			conn = psycopg2.connect(**profile.getArgs())
 		except OperationalError, msg:
 			raise utils.ReportableError("Cannot connect to the database server."
 				" The database library reported:\n\n%s"%msg,
@@ -641,41 +634,20 @@ def _initPsycopg(conn):
 	_PSYCOPG_INITED = True
 
 
-class _GetTableConn(object):
-	"""A cache for a trusted connection for use with "canned" queries.
+_TQ_POOL = psycopg2.pool.ThreadedConnectionPool(1, 400, 
+	**config.getDBProfileByName("trustedquery").getArgs())
 
-	Clients must *not* close this connection.  It is inteded to be shared
-	by all cores issuing canned queries.
-
-	In a typical scenario, opening a connection is not all that expensive,
-	so if you're doing more than just run a query, consider getting
-	a connection of your own.
-
-	This callable is fiddled into base.caches, so once standardcores
-	is imported, you can call base.caches.getTableConn(None).  This
-	is mainly for use with custom cores.
-
-	As a last-resort measure, we check if the connection is closed.  If
-	that is so, the last user of the connection is buggy (since you
-	must not close...), but we don't want to take half the data center
-	down, so we re-open a new connection.
+@contextlib.contextmanager
+def getTableConn():
+	"""a context manager returning a pooled and autocommitted 
+	trustedquery connection.
 	"""
-	def __init__(self):
-		self.conn = None
-	
-	def __call__(self, ignored):
-# hotfix, 2011-05-19: When hammered, it seems that DaCHS can hang
-# when communicating with the DB server, presumably in the cached
-# connection.  I can't investigate that now, but I hope this will
-# avoid these lockups.
-		return getDBConnection("trustedquery", autocommitted=True)
-		if self.conn is None:
-			self.conn = getDBConnection("trustedquery", autocommitted=True)
-		if self.conn.closed:
-			utils.sendUIEvent("Error", "TableConn was found closed.  DRAMATIC."
-				"  There's a buggy core on the loose.  Find it.  Fix it.  Now."
-				"  Meanwhile, I'm opening a new connection.")
-			self.conn = getDBConnection("trustedquery", autocommitted=True)
-		return self.conn
+	conn = _TQ_POOL.getconn()
+	conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+# Use this when we can rely on recent enough psycopg2:
+#	conn.set_session(
+#		isolation_level=psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT,
+#		readonly=True)
+	yield conn
+	_TQ_POOL.putconn(conn)
 
-caches.getTableConn = _GetTableConn()

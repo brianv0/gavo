@@ -144,11 +144,12 @@ class IVOMetaMixin(object):
 			pass
 		# We're not going through servicelist since we don't want to depend
 		# on the registry subpackage.
-		curs = base.caches.getTableConn(None).cursor()
-		curs.execute("SELECT dateUpdated, recTimestamp, setName"
-			" FROM dc.resources_join WHERE sourceRD=%(rdId)s AND resId=%(id)s",
-			{"rdId": self.rd.sourceId, "id": self.id})
-		res = list(curs)
+		with base.getTableConn() as conn:
+			curs = conn.cursor()
+			curs.execute("SELECT dateUpdated, recTimestamp, setName"
+				" FROM dc.resources_join WHERE sourceRD=%(rdId)s AND resId=%(id)s",
+				{"rdId": self.rd.sourceId, "id": self.id})
+			res = list(curs)
 		if res:
 			row = res[0]
 			self.__dbRecord = {

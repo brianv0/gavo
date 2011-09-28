@@ -100,8 +100,6 @@ def _parseCLArgs():
 	return opts, module, funcName
 
 
-
-
 def main():
 
 	if len(sys.argv)>1 and sys.argv[1]=="init":  

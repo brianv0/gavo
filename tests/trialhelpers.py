@@ -14,6 +14,7 @@ from nevow import testutil
 from nevow import url
 from twisted.trial.unittest import TestCase as TrialTest
 from twisted.python import failure
+from twisted.internet import defer
 
 
 def _requestDone(result, request, ctx):
@@ -89,6 +90,10 @@ class FakeRequest(testutil.AccumulatingFakeRequest):
 	registerProducer that produces an endless loop with push
 	producers (which is what we have).
 	"""
+	def __init__(self, *args, **kwargs):
+		self.finishDeferred = defer.Deferred()
+		testutil.AccumulatingFakeRequest.__init__(self, *args, **kwargs)
+
 	def registerProducer(self, producer, isPush):
 		self.producer = producer
 		if not isPush:
@@ -97,6 +102,8 @@ class FakeRequest(testutil.AccumulatingFakeRequest):
 	def unregisterProducer(self):
 		del self.producer
 
+	def notifyFinish(self):
+		return self.finishDeferred
 
 
 def _buildRequest(method, path, rawArgs, requestClass=FakeRequest):
