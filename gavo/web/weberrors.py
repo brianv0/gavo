@@ -26,11 +26,6 @@ from gavo import utils
 from gavo.web import common
 
 
-def escapeForHTML(aString):
-	return aString.replace("&", "&amp;"
-		).replace("<", "&lt;").replace(">", "&gt;")
-
-
 class ErrorPage(rend.Page, common.CommonRenderers):
 	"""A base for error handling pages.
 
@@ -291,7 +286,7 @@ def _formatFailure(failure):
 		" or the data descriptions, and we would be extremely grateful"
 		" for a report at"
 		" gavo@ari.uni-heidelberg.de</p>"%(failure.value.__class__.__name__,
-			escapeForHTML(failure.getErrorMessage())))
+			common.escapeForHTML(failure.getErrorMessage())))
 
 
 class InternalServerErrorPage(ErrorPage):

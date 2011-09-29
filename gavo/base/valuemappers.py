@@ -405,6 +405,7 @@ class SerManager(utils.IdManagerMixin):
 		self.notes = {}  # notes referenced by our fields
 
 		self._makeColDescs()
+		self._indexColDescs()
 		if acquireSamples:
 			self._acquireSamples()
 			if withRanges:
@@ -434,6 +435,9 @@ class SerManager(utils.IdManagerMixin):
 					self.colDescs[-1]["note"] = column.note
 				except (ValueError, utils.NotFoundError): 
 					pass # don't worry about missing notes
+
+	def _indexColDescs(self):
+		self.colDescIndex = dict((d["name"], d) for d in self.colDescs)
 
 	def _findRanges(self):
 		"""obtains minima, maxima, and the existence of null values for

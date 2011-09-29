@@ -24,6 +24,7 @@ from gavo.formats import fitstable
 from gavo.formats import texttable
 from gavo.formats import csvtable
 from gavo.formats import votablewrite
+from gavo.svcs import outputdef
 from gavo.utils import pyfits
 from gavo.web import htmltable
 
@@ -189,7 +190,7 @@ class FormatDataTest(testhelpers.VerboseTest):
 
 	def testHTML(self):
 		self.assertOutputContains("html", [
-			'<table class="results"><tr>',
+			'<table class="results">',
 			'Real</th><th ',
 			'td>-0.5</td><td>zw\xc3\xb6i</td><td>2456575.5'])
 
@@ -336,5 +337,120 @@ class ExplicitNullValueTest(testhelpers.VerboseTest):
 		self._runTestForFormat("tsv", assertion)
 
 
+def _mkr(i, s, d, dd, obl, st):
+	return locals()
+
+class _RenderedHTML(testhelpers.TestResource):
+	def make(self, ignored):
+		td = base.parseFromString(outputdef.OutputTableDef,
+			"""
+			<outputTable id="foo">
+				<outputField name="i" type="integer"/>
+				<outputField name="s" type="text" description="some string &lt;"/>
+				<outputField name="d" type="timestamp" tablehead="date"/>
+				<outputField name="dd" type="timestamp" tablehead="Ja"
+					unit="Y-M-D" note="junk"/>
+				<outputField name="obl" type="text">
+					<formatter>
+						if data is None:
+							return None
+						return "&amp;"+data+"&lt;"
+					</formatter>
+				</outputField>
+				<outputField name="st" type="text" wantsRow="True">
+					<formatter>
+						if data["i"] is None:
+							return None
+						return T.a(href=str(2*data["i"]))[str(data["obl"])]
+					</formatter>
+				</outputField>
+				<meta name="note" tag="junk">
+					This column only here for no purpose at all
+				</meta>
+			</outputTable>
+			""")
+		table = rsc.TableForDef(td, rows=[
+			_mkr(1, "Hnä".decode("iso-8859-1"), 
+				datetime.datetime(2005, 4, 3, 2, 1),
+				datetime.datetime(2005, 4, 3, 2, 22), "gurke", None),
+			_mkr(None, None, None, None, None, None)])
+		destF = StringIO()
+		formats.formatData("html", table, destF)
+		return destF.getvalue(), testhelpers.getXMLTree(destF.getvalue())
+
+
+class HTMLRenderTest(testhelpers.VerboseTest):
+	resources = [("rendered", _RenderedHTML())]
+
+	def _assertXpathText(self, xpath, value):
+#		import code; code.interact(local=locals())
+		els = self.rendered[1].xpath(xpath)
+		self.assertEqual(len(els), 1, "Ambiguous xpath %s"%xpath)
+		self.assertEqual(els[0].text, value)
+
+	def testTitleFallbackOnName(self):
+		self._assertXpathText("table/thead/tr[1]/th[1]", "i")
+
+	def testTitleIsTablehead(self):
+		self._assertXpathText("table/thead/tr[1]/th[4]", "Ja")
+
+	def testDescriptionTitleEscaped(self):
+		self.assertEqual(
+			self.rendered[1].xpath("table/thead/tr[1]/th[2]")[0].get("title"),
+			"some string <")
+
+	def testNoteInTitle(self):
+		self._assertXpathText("table/thead/tr[1]/th[4]/sup/a", "junk")
+
+	def testIntRendered(self):
+		self._assertXpathText("table/tbody/tr[1]/td[1]", "1")
+
+	def testIntNull(self):
+		self._assertXpathText("table/tbody/tr[2]/td[1]", "N/A")
+
+	def testUnicodeRendered(self):
+		self._assertXpathText("table/tbody/tr[1]/td[2]", 
+			"Hn\xe4".decode("iso-8859-1"))
+
+	def testTextNull(self):
+		self._assertXpathText("table/tbody/tr[2]/td[2]", "N/A")
+	
+	def testDefaultDateDisplay(self):
+		self._assertXpathText("table/tbody/tr[1]/td[3]", 
+			"2453463.58403")
+
+	def testDateNull(self):
+		self._assertXpathText("table/tbody/tr[2]/td[3]", "N/A")
+
+	def testISODateDisplay(self):
+		self._assertXpathText("table/tbody/tr[1]/td[4]", 
+			"2005-04-03T02:22:00")
+
+	def testDateNull(self):
+		self._assertXpathText("table/tbody/tr[2]/td[4]", "N/A")
+
+	def testSingleFormatter(self):
+		self._assertXpathText("table/tbody/tr[1]/td[5]", 
+			"&gurke<")
+
+	def testSingleFormatterNull(self):
+		self._assertXpathText("table/tbody/tr[2]/td[5]", "N/A")
+
+	def testRowFormatter(self):
+		self._assertXpathText("table/tbody/tr[1]/td[6]/a", 
+			"gurke")
+		anchor = self.rendered[1].xpath("table/tbody/tr[1]/td[6]/a")[0]
+		self.assertEqual(anchor.get("href"), "2")
+
+	def testRowFormatterNull(self):
+		self._assertXpathText("table/tbody/tr[2]/td[6]", "N/A")
+
+	def testFootnotePresent(self):
+		self._assertXpathText("dl/dd/p", 
+			"This column only here for no purpose at all")
+		anchor = self.rendered[1].xpath("dl/dt/a")[0]
+		self.assertEqual(anchor.get("name"), "note-junk")
+
+
 if __name__=="__main__":
-	testhelpers.main(ExplicitNullValueTest)
+	testhelpers.main(HTMLRenderTest)

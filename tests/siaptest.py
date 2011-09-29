@@ -7,8 +7,6 @@ Needs connectivity to the db defined in the test profile.
 import unittest
 import math
 
-from lxml import etree as lxtree
-
 from gavo.helpers import testhelpers
 
 from gavo import base
@@ -377,7 +375,7 @@ class SIAPTestResponse(testhelpers.TestResource):
 		data = svc.runFromDict({}, renderer="siap.xml").original
 		vot = votablewrite.getAsVOTable(data,
 			tablecoding="td", suppressNamespace=True)
-		return vot, lxtree.fromstring(vot)
+		return vot, testhelpers.getXMLTree(vot)
 
 _siapTestResponse = SIAPTestResponse()
 

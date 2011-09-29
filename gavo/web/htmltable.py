@@ -3,6 +3,7 @@ A renderer for Data to HTML/stan
 """
 
 import datetime
+import itertools
 import math
 import re
 import urlparse
@@ -128,7 +129,7 @@ def _stringWrapMF(baseMF):
 			def realHandler(val):
 				res = handler(val)
 				if isinstance(res, float):
-					return lambda val: fmtstr%(handler(val))
+					return fmtstr%res
 				else:
 					if res is None:
 						return "N/A"
@@ -313,16 +314,15 @@ _registerHTMLMF(valuemappers._pgSphereMapperFactory)
 class HeadCellsMixin(object):
 	"""A mixin providing renders for table headings.
 
-	The class mixing in must provide the table column definitions as
-	self.fieldDefs, and the column properties as computed by
-	HTMLDataRenderer as colDesc.
+	The class mixing in must give the SerManager used in a serManager
+	attribute.
 	"""
 	def data_fielddefs(self, ctx, ignored):
-		return self.fieldDefs
+		return self.serManager.table.tableDef.columns
 
-	def render_headCell(self, ctx, fieldDef):
-		cd = self.colDescIndex[fieldDef.key]
-		cont = fieldDef.getLabel()
+	def render_headCell(self, ctx, colDef):
+		cd = self.serManager.colDescIndex[colDef.key]
+		cont = colDef.getLabel()
 		desc = cd["description"]
 		if not desc:
 			desc = cont
@@ -337,9 +337,8 @@ class HeadCellsMixin(object):
 
 
 class HeadCells(rend.Page, HeadCellsMixin):
-	def __init__(self, fieldDefs, colDescIndex):
-		self.fieldDefs = fieldDefs
-		self.colDescIndex = colDescIndex
+	def __init__(self, serManager):
+		self.serManager = serManager
 
 	docFactory = loaders.stan(
 		T.tr(data=T.directive("fielddefs"), render=rend.sequence) [
@@ -361,7 +360,6 @@ class HTMLDataRenderer(rend.Fragment):
 			acquireSamples=True):
 		self.table, self.queryMeta = table, queryMeta
 		self.yieldNowAndThen = yieldNowAndThen
-		self.fieldDefs = self.table.tableDef.columns
 		super(HTMLDataRenderer, self).__init__()
 		self._computeDefaultTds(acquireSamples)
 		self._computeHeadCellsStan()
@@ -378,18 +376,17 @@ class HTMLDataRenderer(rend.Fragment):
 		return rmkfuncs.makeProc("format", code, "", None, 
 			queryMeta=self.queryMeta, source=source, T=T)
 
-	def _computeDefaultTds(self, acquireSamples):
-		"""leaves a sequence of children for each row in the
-		defaultTds attribute.
+	def _computeSerializationRules(self, acquireSamples):
+		"""creates the serialization manager and the formatter sequence.
 
-		It also creates the attributes serManager and colDescIndex
-		that should be used to obtain the units for the respective
-		columns since the formatters might have changed them.
+		These are in the attributes serManager and formatterSeq, respectively.
+		formatterSeq consists of triples of (name, formatter, fullRow), where 
+		fullRow is true if the formatter wants to be passed the full row rather
+		than just the column value.
 		"""
 		self.serManager = valuemappers.SerManager(self.table, withRanges=False,
 			mfRegistry=_htmlMFRegistry, acquireSamples=acquireSamples)
-		self.colDescIndex = dict((c["name"], c) for c in self.serManager)
-		self.defaultTds = []
+		self.formatterSeq = []
 		for index, (desc, field) in enumerate(
 				zip(self.serManager, self.table.tableDef)):
 			formatter = self.serManager.mappers[index]
@@ -398,22 +395,38 @@ class HTMLDataRenderer(rend.Fragment):
 					desc["wantsRow"] = True
 				if field.formatter:
 					formatter = self._compileRenderer(field.formatter)
+			self.formatterSeq.append(
+				(desc["name"], formatter, desc.get("wantsRow", False)))
 
-			if desc.has_key("wantsRow"):
+	def _computeDefaultTds(self, acquireSamples):
+		"""leaves a sequence of children for each row in the
+		defaultTds attribute.
+
+		This calls _computeSerializationRules.  The function was
+		(and can still be) used for stan-based serialization of HTML tables,
+		but beware that that is dead slow.  The normal rendering doesn't
+		use defaultTds any more.
+		"""
+		self._computeSerializationRules(acquireSamples)
+		self.defaultTds = []
+		for (name, formatter, wantsRow) in self.formatterSeq:
+			if wantsRow:
 				self.defaultTds.append(
 					T.td(formatter=formatter, render=T.directive("useformatter")))
 			else:
-				self.defaultTds.append(T.td(data=T.slot(unicode(desc["name"])),
+				self.defaultTds.append(T.td(
+					data=T.slot(unicode(name)),
 					formatter=formatter,
 					render=T.directive("useformatter")))
 
 	def render_footnotes(self, ctx, data):
 		"""renders the footnotes as a definition list.
 		"""
-		yield T.hr(class_="footsep")
-		yield T.dl(class_="footnotes")[[
-			T.xml(note.getContent(targetFormat="html"))
-			for tag, note in sorted(self.serManager.notes.items())]]
+		if self.serManager.notes:
+			yield T.hr(class_="footsep")
+			yield T.dl(class_="footnotes")[[
+				T.xml(note.getContent(targetFormat="html"))
+				for tag, note in sorted(self.serManager.notes.items())]]
 
 	def render_useformatter(self, ctx, data):
 		attrs = ctx.tag.attributes
@@ -427,7 +440,7 @@ class HTMLDataRenderer(rend.Fragment):
 		return ctx.tag[val]
 
 	def _computeHeadCellsStan(self):
-		self.headCells = HeadCells(self.table.tableDef, self.colDescIndex)
+		self.headCells = HeadCells(self.serManager)
 		self.headCellsStan = T.xml(self.headCells.renderSynchronously())
 
 	def render_headCells(self, ctx, data):
@@ -439,10 +452,10 @@ class HTMLDataRenderer(rend.Fragment):
 # huge tables.
 		if self.yieldNowAndThen:
 			d = defer.Deferred()
-			reactor.callLater(0.05, d.callback, self.headCellsStan)
+			reactor.callLater(0.05, d.callback, ctx.tag[self.headCellsStan])
 			return d
 		else:
-			return self.headCellsStan
+			return ctx.tag[self.headCellsStan]
 
 	def data_fielddefs(self, ctx, data):
 		return self.table.tableDef.columns
@@ -460,60 +473,67 @@ class HTMLDataRenderer(rend.Fragment):
 class HTMLTableFragment(HTMLDataRenderer):
 	"""A nevow renderer for result tables.
 	"""
-	def render_defaultRow(self, ctx, items):
+	rowsPerDivision = 20
+
+	def _getRowFormatter(self):
+		"""returns a callable returning a rendered row in HTML (as used for the
+		stan xml tag).
+		"""
+		source = [
+			"def formatRow(row, rowAttrs=''):",
+			"  res = ['<tr%s>'%rowAttrs]",]
+		for index, (name, _, wantsRow) in enumerate(self.formatterSeq):
+			if wantsRow:
+				source.append("  val = formatters[%d](row)"%index)
+			else:
+				source.append("  val = formatters[%d](row[%s])"%(index, repr(name)))
+			source.extend([
+#				"  import code;code.interact(local=locals())",
+				"  if val is None:",
+				"    val = 'N/A'",
+				"  if isinstance(val, basestring):",
+				"    serFct = escapeForHTML",
+				"  else:",
+				"    serFct = flatten",
+				"  res.append('<td>%s</td>'%serFct(val))",])
+		source.extend([
+			"  res.append('</tr>')",
+			"  return ''.join(res)"])
+
+		return utils.compileFunction("\n".join(source), "formatRow", {
+				"formatters": [p[1] for p in self.formatterSeq],
+				"escapeForHTML": common.escapeForHTML,
+				"flatten": flat.flatten})
+
+	def render_rowSet(self, ctx, items):
+		# slow, use data_chunkedRows
 		return ctx.tag(render=rend.mapping)[self.defaultTds]
 
-	def data_table(self, ctx, data):
-		return self.table
+	def data_chunkedRenderedRows(self, ctx, data):
+		"""returns HTML-rendered table rows in chunks of rowsPerDivision.
 
-	docFactory = loaders.stan(T.form(action="form", method="post")[
+		We don't use stan here since we can concat all those tr/td much faster
+		ourselves.
+		"""
+		rowAttrsIterator = itertools.cycle(["", ' class="even"'])
+		formatRow = self._getRowFormatter()
+		rendered = []
+		for row in self.table:
+			rendered.append(formatRow(row, rowAttrsIterator.next()))
+			if len(rendered)>=self.rowsPerDivision:
+				yield "\n".join(rendered)
+				rendered = []
+		if rendered:
+			yield T.xml("\n".join(rendered))
+
+	docFactory = loaders.stan(T.div(class_="tablewrap")[
 		T.div(render=T.directive("meta"), class_="warning")["_warning"],
-		T.table(class_="results", render=rend.sequence,
-					data=T.directive("table")) [
-				T.invisible(pattern="header", render=T.directive("headCells")),
-				T.tr(pattern="item", render=T.directive("defaultRow")),
-				T.tr(pattern="item", render=T.directive("defaultRow"), class_="even"),
-				T.invisible(pattern="divider"),  # only put a header every bla divisions
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider"),
-				T.invisible(pattern="divider", render=T.directive("headCells")),
+		T.table(class_="results") [
+				T.thead(render=T.directive("headCells")),
+				T.tbody(render=rend.sequence,
+					data=T.directive("chunkedRenderedRows"))[
+					T.invisible(pattern="item", render=T.directive("data")),
+					T.invisible(pattern="divider", render=T.directive("headCells"))],
 			],
 			T.invisible(render=T.directive("footnotes")),
 		]
@@ -537,7 +557,8 @@ class HTMLKeyValueFragment(HTMLDataRenderer, HeadCellsMixin):
 						td],
 					T.tr(class_="keyvaluedesc")[T.td(colspan=2)[
 						colDef.description]]]
-					for colDef, td in zip(self.fieldDefs, self.defaultTds)]],
+					for colDef, td in zip(self.serManager.table.tableDef.columns, 
+						self.defaultTds)]],
 			T.invisible(render=T.directive("footnotes")),
 			])
 	

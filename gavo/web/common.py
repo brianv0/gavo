@@ -22,6 +22,11 @@ from gavo.base import meta
 from gavo.protocols import creds
 
 
+def escapeForHTML(aString):
+	return aString.replace("&", "&amp;"
+		).replace("<", "&lt;").replace(">", "&gt;")
+
+
 def getfirst(ctx, key, default):
 	"""returns the first value of key in the nevow context ctx.
 	"""
