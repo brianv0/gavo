@@ -319,13 +319,13 @@ def main():
 	setINTHandler(jobId)
 	try:
 		_runInThread(lambda: runTAPJob(jobId))
-		base.notifyInfo("taprunner for %s finished"%jobId)
+		base.ui.notifyInfo("taprunner for %s finished"%jobId)
 	except SystemExit:
 		pass
 	except uws.JobNotFound: # someone destroyed the job before I was done
 		base.ui.notifyInfo("giving up non-existing TAP job %s."%jobId)
 	except Exception, ex:
-		base.ui.notifyError("taprunner %s major failure"%jobId, exc_info=True)
+		base.ui.notifyError("taprunner %s major failure"%jobId)
 		# try to push job into the error state -- this may well fail given
 		# that we're quite hosed, but it's worth the try
 		with tap.TAPJob.makeFromId(jobId) as job:
