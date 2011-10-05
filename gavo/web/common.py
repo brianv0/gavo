@@ -12,7 +12,6 @@ try:
     from twisted.web import http
 except ImportError:
     from twisted.protocols import http
-from twisted.internet import defer
 
 
 from gavo import base
@@ -24,7 +23,8 @@ from gavo.protocols import creds
 
 def escapeForHTML(aString):
 	return aString.replace("&", "&amp;"
-		).replace("<", "&lt;").replace(">", "&gt;")
+		).replace("<", "&lt;"
+		).replace(">", "&gt;")
 
 
 def getfirst(ctx, key, default):

@@ -684,7 +684,8 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		"""
 		inputTable = self._makeInputTableFor(renderer, contextData)
 		coreRes = self.getCoreFor(renderer).run(self, inputTable, queryMeta)
-		return SvcResult(coreRes, inputTable, queryMeta, self)
+		res = SvcResult(coreRes, inputTable, queryMeta, self)
+		return res
 
 	def runFromDict(self, contextData, renderer="form", queryMeta=None):
 		"""runs the service with a dictionary input and within a given renderer.

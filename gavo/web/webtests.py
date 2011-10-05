@@ -2,6 +2,8 @@
 A special renderer for testish things requring the full server to be up
 """
 
+from twisted.internet import reactor
+
 from nevow import inevow
 from nevow import rend
 from nevow import tags as T
@@ -51,6 +53,16 @@ class StreamerCrashPage(rend.Page):
 		return streaming.streamOut(writeNoise, request)
 
 
+class ExitPage(rend.Page):
+	"""A page that lets the server exit (useful for profiling).
+	"""
+	def renderHTTP(self, ctx):
+		request = inevow.IRequest(ctx)
+		request.setHeader("content-type", "text/plain")
+		reactor.callLater(1, lambda: reactor.stop())
+		return "The server is now exiting in 1 second."
+
+
 class RenderCrashPage(rend.Page):
 	"""is a page that crashes during render.
 	"""
@@ -61,7 +73,6 @@ class RenderCrashPage(rend.Page):
 			import traceback
 			traceback.print_exc()
 			raise
-
 
 	docFactory = common.doctypedStan(T.html[
 		T.head[
@@ -76,6 +87,7 @@ class Tests(rend.Page):
 	child_stream = StreamerPage()
 	child_streamcrash = StreamerCrashPage()
 	child_rendercrash = RenderCrashPage()
+	child_exit = ExitPage()
 	docFactory = common.doctypedStan(T.html[
 		T.head[
 			T.title["Wrong way"],

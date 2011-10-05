@@ -383,7 +383,6 @@ class HTMLRenderTest(testhelpers.VerboseTest):
 	resources = [("rendered", _RenderedHTML())]
 
 	def _assertXpathText(self, xpath, value):
-#		import code; code.interact(local=locals())
 		els = self.rendered[1].xpath(xpath)
 		self.assertEqual(len(els), 1, "Ambiguous xpath %s"%xpath)
 		self.assertEqual(els[0].text, value)

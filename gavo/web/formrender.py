@@ -2,12 +2,15 @@
 The form renderer is the standard renderer for web-facing services.
 """
 
+import types
 
+from nevow import context
+from nevow import flat
 from nevow import inevow
 from nevow import loaders
 from nevow import rend
 from nevow import tags as T, entities as E
-from twisted.internet import defer
+from twisted.internet import defer, reactor
 from twisted.python.components import registerAdapter
 
 from gavo import base
@@ -16,8 +19,105 @@ from gavo.base import typesystems
 from gavo.imp import formal
 from gavo.imp.formal import iformal
 from gavo.svcs import customwidgets
+from gavo.svcs import streaming
 from gavo.web import grend
 from gavo.web import serviceresults
+
+
+def _getDeferredImmediate(deferred, 
+		default="(non-ready deferreds not supported here)"):
+	"""returns the value of deferred if it's already in, default otherwise.
+	"""
+	resultHolder = [default]
+
+	def grabResult(res):
+		resultHolder[0] = res
+
+	# adding a callback to a ready deferred immediately calls the callback
+	deferred.addCallback(grabResult)
+	return resultHolder[0]
+
+
+def _flattenStan(stan, ctx):
+	"""helps streamStan.
+	"""
+# this is basically ripped from nevow's iterflatten
+	rest = [iter([flat.partialflatten(ctx, stan)])]
+	while rest:
+		gen = rest.pop()
+		for item in gen:
+			if isinstance(item, str):
+				yield item
+			elif isinstance(item, unicode):
+				yield item.encode("utf-8")
+			else:
+				# something iterable is coming up.  Suspend the current
+				# generator and start iterating something else.
+				rest.append(gen)
+				if isinstance(item, (list, types.GeneratorType)):
+					rest.append(iter(item))
+				elif isinstance(item, defer.Deferred):
+					# we actually cannot do deferreds that need to wait;
+					# those shouldn't be necessary with forms.
+					# Instead, grab the result immediately and go ahead with it.
+					rest.append(iter(_getDeferredImmediate(item)))
+				else:
+					rest.append(flat.partialflatten(ctx, item))
+				break
+
+
+def iterStanChunked(stan, ctx, chunkSize):
+	"""yields strings made from stan.
+
+	This is basically like iterflatten, but it doesn't accumulate as much
+	material in strings.  We need this here since stock nevow iterflatten
+	will block the server thread of extended periods of time (say, several
+	seconds) on large HTML tables.
+
+	Note that deferreds are not really supported (i.e., if you pass in
+	deferreds, they must already be ready).
+	"""
+	accu, curBytes = [], 0
+	for chunk in _flattenStan(stan, ctx):
+		accu.append(chunk)
+		curBytes += len(chunk)
+		if curBytes>chunkSize:
+			yield "".join(accu)
+			accu, curBytes = [], 0
+	yield "".join(accu)
+	
+
+def streamStan(stan, ctx, destFile):
+	"""writes strings made from stan to destFile.
+	"""
+	for chunk in iterStanChunked(stan, ctx, 50000):
+		destFile.write(chunk)
+
+
+def _iterWithReactor(iterable, finished, destFile):
+	"""push out chunks coming out of iterable to destFile using a chain of
+	deferreds.
+
+	This is being done to yield to the reactor now and then.
+	"""
+	try:
+		destFile.write(iterable.next())
+	except StopIteration:
+		finished.callback('')
+	except:
+ 		finished.errback()
+ 	else:
+	 	reactor.callLater(0, _iterWithReactor, iterable, finished, destFile)
+
+
+def deliverYielding(stan, ctx, request):
+	"""delivers rendered stan to request, letting the reactor schedule
+	now and then.
+	"""
+	stanChunks = iterStanChunked(stan, ctx, 50000)
+	finished = defer.Deferred()
+	_iterWithReactor(stanChunks, finished, request)
+	return finished
 
 
 class ToFormalConverter(typesystems.FromSQLConverter):
@@ -198,7 +298,6 @@ class FormMixin(formal.ResourceMixin):
 					" in the internal or generated field '%s': %s"%(
 						failure.value.colName, failure.getErrorMessage())))
 		else:
-			failure.printTraceback()
 			return failure
 		return self.form.errors
 
@@ -421,11 +520,42 @@ class Form(FormMixin,
 			inevow.IRequest(ctx).args[formal.FORMS_KEY] = ["genForm"]
 		return FormMixin.renderHTTP(self, ctx)
 
+	def _formatStreaming(self, ctx):
+		"""returns a resource streaming out an HTML table.
+
+		Our result tables may be so large that stan-internal operations
+		("".join, etc) may block the event loop for several seconds.  To
+		work around this, we format large tables ourselves and use the
+		streaming framwork to deliver the stuff.  This means we're 
+		basically re-implementing renderSynchronously (with some additional
+		hacks, though we can't support deferreds since all this is running
+		in a thread).
+		"""
+# this is not done right now; we're getting by asynchronously.
+		def produceData(destFile):
+			streamStan(doc, ctx, destFile)
+
+		return streaming.streamOut(produceData, inevow.IRequest(ctx))
+
+
 	def _formatOutput(self, res, ctx):
+		"""actually delivers the whole document.
+
+		This is basically nevow's rend.Page._renderHTTP, changed to
+		provide less blocks.
+		"""
 		self.result = res
 		if "response" in self.service.templates:
 			self.customTemplate = self.service.getTemplate("response")
-		return grend.ServiceBasedPage.renderHTTP(self, ctx)
+
+		ctx = context.PageContext(parent=ctx, tag=self)
+		self.rememberStuff(ctx)
+		doc = self.docFactory.load(ctx)
+		ctx =  context.WovenContext(ctx, T.invisible[doc])
+
+		return deliverYielding(doc, ctx, inevow.IRequest(ctx))
+
+
 
 	defaultDocFactory = svcs.loadSystemTemplate("defaultresponse.html")
 

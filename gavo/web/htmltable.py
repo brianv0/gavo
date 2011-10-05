@@ -18,8 +18,6 @@ from nevow import loaders
 from nevow import rend
 from nevow import tags as T, entities as E
 
-from twisted.internet import reactor, defer
-
 from gavo import base
 from gavo import formats
 from gavo import rsc
@@ -160,20 +158,15 @@ _registerHTMLMF(humanDatesFactory)
 
 
 def humanTimesFactory(colDesc):
-	if (colDesc["displayHint"].get("type")=="humanTime" and
-			isinstance(colDesc["sample"], (datetime.timedelta, datetime.time))):
+	if colDesc["displayHint"].get("type")=="humanTime":
 		sf = int(colDesc["displayHint"].get("sf", 0))
 		fmtStr = "%%02d:%%02d:%%0%d.%df"%(sf+3, sf)
-		if isinstance(colDesc["sample"], datetime.time):
-			def coder(val):
-				if val is None:
-					return "N/A"
-				else:
+		def coder(val):
+			if val is None:
+				return "N/A"
+			else:
+				if isinstance(val, datetime.time):
 					return fmtStr%(val.hours, val.minutes, val.seconds)
-		else:
-			def coder(val):
-				if val is None:
-					return "N/A"
 				else:
 					hours = val.seconds//3600
 					minutes = (val.seconds-hours*3600)//60
@@ -356,10 +349,8 @@ class HTMLDataRenderer(rend.Fragment):
 	Both HTMLTableFragment (for complete tables) and HTMLKeyValueFragment
 	(for single rows) inherit from this.
 	"""
-	def __init__(self, table, queryMeta, yieldNowAndThen=True,
-			acquireSamples=True):
+	def __init__(self, table, queryMeta, acquireSamples=False):
 		self.table, self.queryMeta = table, queryMeta
-		self.yieldNowAndThen = yieldNowAndThen
 		super(HTMLDataRenderer, self).__init__()
 		self._computeDefaultTds(acquireSamples)
 		self._computeHeadCellsStan()
@@ -447,15 +438,8 @@ class HTMLDataRenderer(rend.Fragment):
 		"""returns the header line for this table as an XML string.
 		"""
 # The head cells are prerendered and memoized since they might occur 
-# quite frequently in long tables.  Also, we return a deferred to
-# give other requests a chance to be processed when we render
-# huge tables.
-		if self.yieldNowAndThen:
-			d = defer.Deferred()
-			reactor.callLater(0.05, d.callback, ctx.tag[self.headCellsStan])
-			return d
-		else:
-			return ctx.tag[self.headCellsStan]
+# quite frequently in long tables.
+		return ctx.tag[self.headCellsStan]
 
 	def data_fielddefs(self, ctx, data):
 		return self.table.tableDef.columns
@@ -473,7 +457,7 @@ class HTMLDataRenderer(rend.Fragment):
 class HTMLTableFragment(HTMLDataRenderer):
 	"""A nevow renderer for result tables.
 	"""
-	rowsPerDivision = 20
+	rowsPerDivision = 19
 
 	def _getRowFormatter(self):
 		"""returns a callable returning a rendered row in HTML (as used for the
@@ -506,10 +490,10 @@ class HTMLTableFragment(HTMLDataRenderer):
 				"flatten": flat.flatten})
 
 	def render_rowSet(self, ctx, items):
-		# slow, use data_chunkedRows
+		# slow, use render_tableBody
 		return ctx.tag(render=rend.mapping)[self.defaultTds]
 
-	def data_chunkedRenderedRows(self, ctx, data):
+	def render_tableBody(self, ctx, data):
 		"""returns HTML-rendered table rows in chunks of rowsPerDivision.
 
 		We don't use stan here since we can concat all those tr/td much faster
@@ -518,23 +502,20 @@ class HTMLTableFragment(HTMLDataRenderer):
 		rowAttrsIterator = itertools.cycle(["", ' class="even"'])
 		formatRow = self._getRowFormatter()
 		rendered = []
+		yield T.xml("<tbody>")
 		for row in self.table:
 			rendered.append(formatRow(row, rowAttrsIterator.next()))
 			if len(rendered)>=self.rowsPerDivision:
-				yield "\n".join(rendered)
+				yield T.xml("\n".join(rendered))
+				yield self.headCellsStan
 				rendered = []
-		if rendered:
-			yield T.xml("\n".join(rendered))
+		yield T.xml("\n".join(rendered)+"\n</tbody>")
 
 	docFactory = loaders.stan(T.div(class_="tablewrap")[
 		T.div(render=T.directive("meta"), class_="warning")["_warning"],
 		T.table(class_="results") [
 				T.thead(render=T.directive("headCells")),
-				T.tbody(render=rend.sequence,
-					data=T.directive("chunkedRenderedRows"))[
-					T.invisible(pattern="item", render=T.directive("data")),
-					T.invisible(pattern="divider", render=T.directive("headCells"))],
-			],
+				T.tbody(render=T.directive("tableBody"))],
 			T.invisible(render=T.directive("footnotes")),
 		]
 	)
@@ -565,13 +546,13 @@ class HTMLKeyValueFragment(HTMLDataRenderer, HeadCellsMixin):
 	docFactory = property(makeDocFactory)
 
 
-def writeDataAsHTML(data, outputFile, acquireSamples=True):
+def writeDataAsHTML(data, outputFile, acquireSamples=False):
 	"""writes data's primary table to outputFile.  
 	"""
 	if isinstance(data, rsc.Data):
 		data = data.getPrimaryTable()
 	fragment = HTMLTableFragment(data, svcs.emptyQueryMeta,
-		yieldNowAndThen=False, acquireSamples=acquireSamples)
+		acquireSamples=acquireSamples)
 	outputFile.write(flat.flatten(fragment))
 
 

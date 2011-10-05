@@ -234,7 +234,7 @@ class HTMLResultRenderMixin(object):
 	def render_resulttable(self, ctx, data):
 		if hasattr(data, "child"):
 			return htmltable.HTMLTableFragment(data.child(ctx, "table"), 
-				data.queryMeta)
+				data.queryMeta, acquireSamples=False)
 		else:
 			# a FormError, most likely
 			return ""
