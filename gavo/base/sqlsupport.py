@@ -634,14 +634,20 @@ def _initPsycopg(conn):
 	_PSYCOPG_INITED = True
 
 
-_TQ_POOL = psycopg2.pool.ThreadedConnectionPool(1, 400, 
-	**config.getDBProfileByName("trustedquery").getArgs())
+_TQ_POOL = None
 
 @contextlib.contextmanager
 def getTableConn():
 	"""a context manager returning a pooled and autocommitted 
 	trustedquery connection.
 	"""
+	# create global connection pool when necessary.  We need to delay this
+	# because gavo init imports sqlsupport, and thus the trustedquery
+	# profile may not yet exist during sqlsupport import.
+	global _TQ_POOL
+	if _TQ_POOL is None:
+		_TQ_POOL = psycopg2.pool.ThreadedConnectionPool(1, 400, 
+			**config.getDBProfileByName("trustedquery").getArgs())
 	conn = _TQ_POOL.getconn()
 	conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 # Use this when we can rely on recent enough psycopg2:
