@@ -192,7 +192,7 @@ class FormatDataTest(testhelpers.VerboseTest):
 		self.assertOutputContains("html", [
 			'<table class="results">',
 			'Real</th><th ',
-			'td>-0.5</td><td>zw\xc3\xb6i</td><td>2456575.5'])
+			'td>-0.5</td><td>zw\xc3\xb6i</td><td>2013-10-10</td>'])
 
 	def testCSV(self):
 		self.assertOutputContains("csv", ["2,-0.5,zw\xc3\xb6i,2456575.5"])

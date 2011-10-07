@@ -349,10 +349,10 @@ class HTMLDataRenderer(rend.Fragment):
 	Both HTMLTableFragment (for complete tables) and HTMLKeyValueFragment
 	(for single rows) inherit from this.
 	"""
-	def __init__(self, table, queryMeta, acquireSamples=False):
+	def __init__(self, table, queryMeta):
 		self.table, self.queryMeta = table, queryMeta
 		super(HTMLDataRenderer, self).__init__()
-		self._computeDefaultTds(acquireSamples)
+		self._computeDefaultTds()
 		self._computeHeadCellsStan()
 
 	def _compileRenderer(self, source):
@@ -367,7 +367,7 @@ class HTMLDataRenderer(rend.Fragment):
 		return rmkfuncs.makeProc("format", code, "", None, 
 			queryMeta=self.queryMeta, source=source, T=T)
 
-	def _computeSerializationRules(self, acquireSamples):
+	def _computeSerializationRules(self):
 		"""creates the serialization manager and the formatter sequence.
 
 		These are in the attributes serManager and formatterSeq, respectively.
@@ -376,7 +376,7 @@ class HTMLDataRenderer(rend.Fragment):
 		than just the column value.
 		"""
 		self.serManager = valuemappers.SerManager(self.table, withRanges=False,
-			mfRegistry=_htmlMFRegistry, acquireSamples=acquireSamples)
+			mfRegistry=_htmlMFRegistry, acquireSamples=False)
 		self.formatterSeq = []
 		for index, (desc, field) in enumerate(
 				zip(self.serManager, self.table.tableDef)):
@@ -389,7 +389,7 @@ class HTMLDataRenderer(rend.Fragment):
 			self.formatterSeq.append(
 				(desc["name"], formatter, desc.get("wantsRow", False)))
 
-	def _computeDefaultTds(self, acquireSamples):
+	def _computeDefaultTds(self):
 		"""leaves a sequence of children for each row in the
 		defaultTds attribute.
 
@@ -398,7 +398,7 @@ class HTMLDataRenderer(rend.Fragment):
 		but beware that that is dead slow.  The normal rendering doesn't
 		use defaultTds any more.
 		"""
-		self._computeSerializationRules(acquireSamples)
+		self._computeSerializationRules()
 		self.defaultTds = []
 		for (name, formatter, wantsRow) in self.formatterSeq:
 			if wantsRow:
@@ -548,11 +548,13 @@ class HTMLKeyValueFragment(HTMLDataRenderer, HeadCellsMixin):
 
 def writeDataAsHTML(data, outputFile, acquireSamples=False):
 	"""writes data's primary table to outputFile.  
+
+	(acquireSamples is actually ignored; it is just present for compatibility
+	with the other writers until I rip out the samples stuff altogether).
 	"""
 	if isinstance(data, rsc.Data):
 		data = data.getPrimaryTable()
-	fragment = HTMLTableFragment(data, svcs.emptyQueryMeta,
-		acquireSamples=acquireSamples)
+	fragment = HTMLTableFragment(data, svcs.emptyQueryMeta)
 	outputFile.write(flat.flatten(fragment))
 
 
