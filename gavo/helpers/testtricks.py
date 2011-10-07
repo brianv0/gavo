@@ -4,6 +4,7 @@ helper functions and classes for unit tests and similar.
 
 from __future__ import with_statement
 
+import contextlib
 import os
 import subprocess
 import tempfile
@@ -49,3 +50,16 @@ class XSDTestMixin(object):
 		finally:
 			os.unlink(inName)
 
+
+@contextlib.contextmanager
+def testFile(destPath, content):
+	"""a context manager that provides and deletes content in a file a destPath.
+
+	As usual, you should not use fixed, predictable file names in tmp.
+	"""
+	with open(destPath, "w") as f:
+		f.write(content)
+	try:
+		yield
+	finally:
+		os.unlink(destPath)

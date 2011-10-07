@@ -26,9 +26,16 @@ def process(opts, args):
 	"""
 	src, ddIds = args[0], set(args[1:])
 	rd = rscdesc.openRD(src)
+	if rd.sourceId.startswith("/"):
+		raise base.ReportableError(
+			"Only RDs from below inputsDir may be imported.",
+			hint="Your current configuration (from /etc/gavo.rc or ~/.gavorc)"
+			" makes %s the inputsDir"%base.getConfig("inputsDir"))
+
 	connection = base.getDBConnection("admin")
 	tap.unpublishFromTAP(rd, connection)
 	tap.publishToTAP(rd, connection)
+
 	for dd in rd.dds:
 		if ddIds and not dd.id in ddIds:
 			continue

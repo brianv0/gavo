@@ -128,6 +128,13 @@ class CLITest(testhelpers.VerboseTest):
 		finally:
 			querier.close()
 
+	def testImportDeniedForOffInputs(self):
+		destName = os.path.expanduser("~/foobar.rd")
+		with testhelpers.testFile(destName, '<resource schema="junk"/>'):
+			self.assertOutput(cli.main, 
+				argList=["imp", destName],
+				expectedRetcode=1, expectedStderr=
+				"*** Error: Only RDs from below inputsDir may be imported.\n")
 
 
 if __name__=="__main__":
