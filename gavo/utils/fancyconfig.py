@@ -678,6 +678,8 @@ class Configuration(object):
 	def addFromFp(self, fp, origin="user", fName="<internal>"):
 		"""adds the config items in the file fp to self.
 		"""
+		import misctricks
+		misctricks.sendUIEvent("Info", "bin da")
 		p = ConfigParser.SafeConfigParser()
 		try:
 			p.readfp(fp, fName)

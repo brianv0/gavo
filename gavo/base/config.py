@@ -450,15 +450,18 @@ _config = Configuration(
 			"Hard match limit on DAL queries"),),
 )
 
-try:
-	fancyconfig.readConfiguration(_config,
-		os.environ.get("GAVOSETTINGS", "/etc/gavo.rc"),
-		os.environ.get("GAVOCUSTOM", 
-			os.path.join(os.environ.get("HOME", "/no_home"), ".gavorc")))
-except fancyconfig.ConfigError, ex:
-	# This is usually not be protected by top-level exception catcher
-	sys.exit("Bad configuration item in %s.  %s"%(
-		ex.fileName, unicode(ex).encode("utf-8")))
+def loadConfig():
+	try:
+		fancyconfig.readConfiguration(_config,
+			os.environ.get("GAVOSETTINGS", "/etc/gavo.rc"),
+			os.environ.get("GAVOCUSTOM", 
+				os.path.join(os.environ.get("HOME", "/no_home"), ".gavorc")))
+	except fancyconfig.ConfigError, ex:
+		# This is usually not be protected by top-level exception catcher
+		sys.exit("Bad configuration item in %s.  %s"%(
+			ex.fileName, unicode(ex).encode("utf-8")))
+
+loadConfig()
 
 
 if os.environ.has_key("GAVO_INPUTSDIR"):
@@ -471,7 +474,7 @@ getDBProfile = _config.getDBProfile
 getDBProfileByName = _config.getDBProfileByName
 
 
-def makeFallbackMeta():
+def makeFallbackMeta(reload=False):
 	"""fills meta.configMeta with items from $configDir/defaultmeta.txt.
 	"""
 	srcPath = os.path.join(get("configDir"), "defaultmeta.txt")
@@ -484,7 +487,7 @@ def makeFallbackMeta():
 	f = open(srcPath)
 	content = f.read()
 	f.close()
-	meta.parseMetaStream(meta.configMeta, content)
+	meta.parseMetaStream(meta.configMeta, content, clearItems=reload)
 
 makeFallbackMeta()
 

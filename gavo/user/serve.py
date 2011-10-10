@@ -100,6 +100,8 @@ def _reloadConfig():
 
 	from gavo.web import root
 	root.loadUserVanity(root.ArchiveService)
+	config.makeFallbackMeta(reload=True)
+	config.loadConfig()
 
 	base.ui.notifyInfo("Cleared caches on SIGHUP")
 

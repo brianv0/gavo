@@ -113,11 +113,16 @@ def parseKey(metaKey):
 	return metaKey.split(".")
 
 
-def parseMetaStream(metaContainer, metaStream, expand=None):
+def parseMetaStream(metaContainer, metaStream, expand=None, 
+		clearItems=False):
 	"""parser meta key/value pairs from metaStream and adds them to
 	metaContainer.
 
 	If expand is given, it must be a function expanding macros.
+
+	If clearItems is true, for each key found in the metaStream there's
+	first a delMeta for that key executed.  This is for re-parsing 
+	meta streams.
 
 	The stream format is: 
 	
@@ -133,6 +138,8 @@ def parseMetaStream(metaContainer, metaStream, expand=None):
 	# handle continuation lines
 	metaStream = re.sub("\\\\\r?\n[\t ]*", "", metaStream)
 
+	keysSeen = set()
+
 	for line in metaStream.split("\n"):
 		line = line.strip()
 		if line.startswith("#") or not line:
@@ -145,10 +152,14 @@ def parseMetaStream(metaContainer, metaStream, expand=None):
 				hint="In general, meta streams contain lines like 'meta.key:"
 				" meta value; see also the documentation.")
 
+		key = key.strip()
 		if expand is not None and '\\' in value:
 			value = expand(value)
-
-		metaContainer.addMeta(key.strip(), value.strip())
+		
+		if key not in keysSeen and clearItems:
+			metaContainer.delMeta(key)
+		keysSeen.add(key)
+		metaContainer.addMeta(key, value.strip())
 				
 
 class MetaParser(common.Parser):
@@ -874,10 +885,14 @@ class BibcodeMeta(MetaValue):
 	into ADS.
 	"""
 	bibcodePat = re.compile("\d\d\d\d\w[^ ]{14}")
-	adsMirror = "http://ads.ari.uni-heidelberg.de/"
+
 	def _makeADSLink(self, matOb):
+		# local import of config to avoid circular import.
+		# (move special metas to separate module?)
+		from gavo.base import config
+		adsMirror = config.get("web", "adsMirror")
 		return '<a href="%s">%s</a>'%(
-			self.adsMirror+"cgi-bin/nph-data_query?bibcode=%s&"
+			adsMirror+"cgi-bin/nph-data_query?bibcode=%s&"
 				"link_type=ABSTRACT"%urllib.quote(matOb.group(0)),
 			matOb.group(0))  
 
