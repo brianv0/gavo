@@ -321,7 +321,6 @@ class ArchiveService(rend.Page):
 
 
 ArchiveService.addStatic("login", makeDynamicPage(ifpages.LoginPage))
-ArchiveService.addStatic("reload", makeDynamicPage(ifpages.ReloadPage))
 ArchiveService.addStatic("static", ifpages.StaticServer())
 
 ArchiveService.addStatic('formal.css', formal.defaultCSS)

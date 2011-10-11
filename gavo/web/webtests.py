@@ -64,7 +64,7 @@ class ExitPage(rend.Page):
 
 
 class RenderCrashPage(rend.Page):
-	"""is a page that crashes during render.
+	"""A page that crashes during render.
 	"""
 	def render_crash(self, ctx, data):
 		try:
@@ -82,11 +82,22 @@ class RenderCrashPage(rend.Page):
 			T.p(render=T.directive("crash"))["You should not see this"]]])
 
 
+class BadGatewayPage(rend.Page):
+	"""A page that returns a 502 error.
+	"""
+	def renderHTTP(self, ctx):
+		request = inevow.IRequest(ctx)
+		request.setResponseCode(502, message="Bad Gateway")
+		request.setHeader("content-type", "text/plain")
+		return "Bad Gateway"
+
+
 class Tests(rend.Page):
 	child_foo = FooPage()
 	child_stream = StreamerPage()
 	child_streamcrash = StreamerCrashPage()
 	child_rendercrash = RenderCrashPage()
+	child_badgateway = BadGatewayPage()
 	child_exit = ExitPage()
 	docFactory = common.doctypedStan(T.html[
 		T.head[

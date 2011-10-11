@@ -24,7 +24,15 @@ from gavo.web import grend
 
 
 class ReloadPage(grend.GavoRenderMixin, rend.Page):
+	"""A page to clear some caches.
 
+	Right now, we don't use it (e.g., it's not reachable from the web).  There's
+	gavo serve reload and reloads of individual RDs, so there may not be much of
+	a niche for this.
+
+	If it ever gets resurrected, we probably should use user.server._reload
+	as the implementation.
+	"""
 	modsToReload = []
 
 	def __init__(self, ctx):
