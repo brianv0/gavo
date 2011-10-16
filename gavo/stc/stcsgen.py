@@ -441,18 +441,25 @@ def _makeVelocityFlattener():
 	This is only used by _makePositionFlattener, since velocity is a subclause.
 	"""
 	flatteners = {
-		"pos": _makeKeywordFlattener("Velocity"),
-	}
+		"pos": _makePosValueFlattener("VelocityInterval"),
+		}
 	flatteners.update(_commonFlatteners)
 
 	def flattenVelocity(val, node):
 		"""custom flattener for velocities, used by _flattenPosition.
 		"""
+		res = []
 		if val:
-			return "VelocityInterval "+_joinKeysWithNull(val, ["fillfactor",
-			"coos", "pos", "unit", "error", "resolution", "size", 
-			"pixSize"], flatteners)
-		return ""
+			if val.get("coos") is not None:
+				res.extend(["VelocityInterval", _joinKeysWithNull(val, 
+					["fillfactor", "coos"], flatteners)])
+			if val.get("pos") is not None:
+				res.extend(["Velocity", _joinKeysWithNull(val, ["pos"], flatteners)])
+			if not res:
+				res.append("Velocity")
+			res.append(_joinKeysWithNull(val, 
+				["unit", "error", "resolution", "size", "pixSize"], flatteners))
+		return _joinWithNull(res)
 
 	return flattenVelocity
 

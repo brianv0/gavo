@@ -1,5 +1,8 @@
 """
 Transformation of STC-S CSTs to STC ASTs.
+
+The central function here is buildTree; the rest of the module basically
+provides the handler functions.  All this is tied together in parseSTCS.
 """
 
 #c Copyright 2009 the GAVO Project.
@@ -20,9 +23,10 @@ def buildTree(tree, context, pathFunctions={}, nameFunctions={},
 	pathFunctions is a dictionary mapping complete paths (i.e., tuples
 	of node labels) to handler functions, nameFunctions name a single
 	label and are called for nodes that don't match a pathFunction if
-	the last item of their paths is the label.  If none of those
-	match, if a node has a type value, it will be checked against
-	typeFuncitons.
+	the last item of their paths is the label.  Both of these currently
+	are not used.  Instead, everything hinges on the fallback, which is
+	a node's type value (generated from the key words), matched against
+	typeFunctions.
 
 	The handler functions must be iterators.  If they yield anything,
 	it must be key-value pairs.
@@ -494,6 +498,9 @@ def getCoords(cst, system):
 			"place", None, spatial=True),
 		"PositionInterval": _makeCooBuilder("spaceFrame",
 			dm.SpaceInterval, "areas", dm.SpaceCoo, "place",
+			_makeIntervalKeyIterator(), spatial=True),
+		"Velocity": _makeCooBuilder("spaceFrame",
+			dm.VelocityInterval, "velocityAs", dm.VelocityCoo, "velocity",
 			_makeIntervalKeyIterator(), spatial=True),
 		"VelocityInterval": _makeCooBuilder("spaceFrame",
 			dm.VelocityInterval, "velocityAs", dm.VelocityCoo, "velocity",

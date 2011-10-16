@@ -430,3 +430,28 @@ function output_hide(el) {
 		el.detach();
 	}
 }
+
+
+function _plotUsingFlot(table) {
+// allows simple plotting of HTML tables.  This only works from
+// within openFlotPlot since it uses javascript that's not loaded
+// by default.
+	plotElement = $('<div id="plotarea" style="position:fixed;z-index:3000;width:700px;height:400px;background:white"></div>');
+	plotElement.draggable();
+	$("body").prepend(plotElement);
+	var data = [];
+	table.children('tr').each(function(index, row) {
+		tds = row.childNodes;
+		data.push([
+			parseFloat(tds[1].firstChild.data), 
+			parseFloat(tds[2].firstChild.data)]);
+	});
+	jQuery.plot(jQuery('#plotarea'), [data]);
+}
+
+function openFlotPlot(tableElement) {
+// opens a div that lets you plot some columns of tableElement
+	$.getScript("http://localhost:8080/static/js/jquery.flot.js",
+		function() {_plotUsingFlot(tableElement)});
+}
+

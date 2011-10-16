@@ -307,7 +307,7 @@ class ComplexSTCSTreesTest(STCSTreeParseTestBase):
 			[{'frame': 'FK4', 'type': 'PositionInterval', 'velocity': [
 				{'coos': [12., 13.], 'fillfactor': 0.25, 
 				'error': [4., 5.], 'pos': [12.5], 'resolution': [1.25], 
-				'unit': 'km/s', 'pixSize': [1.5], 'type': "VelocityInterval"}]}]),
+				'unit': 'km/s', 'pixSize': [1.5], 'type': "Velocity"}]}]),
 		("stcsPhrase", "Circle ICRS 2 23 12 RedshiftInterval RADIO 0.125 0.25", {
 			'space': {
 				'coos': [2., 23., 12.], 'frame': 'ICRS', 'type': 'Circle'}, 
@@ -378,26 +378,36 @@ class TreeIterTest(testhelpers.VerboseTest):
 
 
 class DefaultingTest(testhelpers.VerboseTest):
-	def testSpatial(self):
+	def testPositionInterval(self):
 		self.assertEqual(stcs.getCST("PositionInterval ICRS"),
 			{'space': {'frame': 'ICRS', 'unit': 'deg', 'type': 'PositionInterval', 
 			'flavor': 'SPHER2'}})
+	
+	def testSpatialWithVelInterval(self):
 		self.assertEqual(stcs.getCST("PositionInterval ICRS VelocityInterval"
 			" Velocity 1 2"),
 			{'space': {'frame': 'ICRS', 'unit': 'deg', 'type': 'PositionInterval', 
 			'flavor': 'SPHER2',
 			'velocity': [{'pos': [1.0, 2.0], 'unit': 'm/s', 
-				'type': 'VelocityInterval'}]}})
+				'type': 'Velocity'}]}})
+
+	def testWithUnit(self):
 		self.assertEqual(stcs.getCST("PositionInterval ICRS unit arcsec"),
 			{'space': {'frame': 'ICRS', 'unit': 'arcsec', 
 			'type': 'PositionInterval',
 			'flavor': 'SPHER2'}})
+
+	def testConvex(self):
 		self.assertEqual(stcs.getCST("Convex ICRS"),
 			{'space': {'frame': 'ICRS', 'unit': '', 'type': 'Convex', 
 			'flavor': 'UNITSPHER'}})
+
+	def testCart2(self):
 		self.assertEqual(stcs.getCST("PositionInterval FK4 TOPOCENTER CART2"),
 			{'space': {'frame': 'FK4', 'unit': 'm', 'type': 'PositionInterval', 
 			'refpos': 'TOPOCENTER', 'flavor': 'CART2', "equinox": 'B1950.0'}})
+
+	def testGeoC(self):
 		self.assertEqual(stcs.getCST("PositionInterval GEO_C"),
 			{'space': {'frame': 'GEO_C', 'unit': 'deg deg m', 
 				'type': 'PositionInterval', 'flavor': 'SPHER2'}})
@@ -537,9 +547,13 @@ class VelocitiesGenerationTest(SampleGenerationTestBase):
 		("Position ICRS VelocityInterval 1 2 Velocity 1.5 2.5",
 			"Position ICRS VelocityInterval 1.0 2.0 Velocity 1.5 2.5"),
 		("Position ICRS 12 13 VelocityInterval Velocity 1.5 2.5",
-			"Position ICRS 12.0 13.0 VelocityInterval Velocity 1.5 2.5"),
+			"Position ICRS 12.0 13.0 Velocity 1.5 2.5"),
+		("Position ICRS 12 13 Velocity 1.5 2.5",
+			"Position ICRS 12.0 13.0 Velocity 1.5 2.5"),
 		("Position ICRS VelocityInterval unit deg/s Error 0.125 0.125",
-			"Position ICRS VelocityInterval unit deg/s Error 0.125 0.125"),
+			"Position ICRS Velocity unit deg/s Error 0.125 0.125"),
+		("Position ICRS Velocity 1 2 unit deg/s Error 0.125 0.125",
+			"Position ICRS Velocity 1.0 2.0 unit deg/s Error 0.125 0.125"),
 	]
 
 
@@ -571,4 +585,4 @@ class SyslibTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(SyslibTest)
+	testhelpers.main(VelocitiesGenerationTest)

@@ -144,15 +144,16 @@ def makeTree(parseResult):
 	Note that unnamed children of nodes becoming dicts will be lost in
 	the result.
 	"""
-	if not len(parseResult):  # empty parse results become empty lists
-		res = []
+	if not len(parseResult):  # empty parse results become Nones
+		res = None
 	elif parseResult.keys():  # named children, generate a dict
 		res = {}
 		for k in parseResult.keys():
 			v = parseResult[k]
+			# discard empty branches
 			if isinstance(v, ParseResults):
-				res[k] = makeTree(v)
-			else:
+				v = makeTree(v)
+			if v is not None:  # discard empty branches
 				res[k] = v
 	else:                     # no named children, generate a list
 		if isinstance(parseResult[0], ParseResults):
@@ -283,10 +284,13 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 		positionSpec = Suppress( CaselessKeyword("Position") ) + _pos
 		epochSpec = Suppress( CaselessKeyword("Epoch") ) - astroYear
 		_spatialProps = Optional( spaceUnit ) + cooProps
-		velocitySpec = Suppress( CaselessKeyword("Velocity") ) + OneOrMore( number )("pos")
-		velocityInterval = (CaselessKeyword("VelocityInterval")("type") 
-			+ Optional( fillfactor ) 
-			+ _coos 
+		velocitySpec = (CaselessKeyword("Velocity")("type")
+			 + OneOrMore( number )("pos"))
+		velocityInterval = (
+			Optional(
+				CaselessKeyword("VelocityInterval")("type") 
+				+ Optional( fillfactor ) 
+				+ _coos )
 			+ Optional( velocitySpec ) 
 			+ Optional( velocityUnit ) 
 			+ cooProps).addParseAction(makeTree)
@@ -521,5 +525,5 @@ if __name__=="__main__":
 #	print getCST("PositionInterval ICRS 1 2 3 4")
 	enableDebug(syms)
 	pprint.pprint(makeTree(syms["stcsPhrase"].parseString(
-		"Position ICRS TOPOCENTER JPL-DE200"
+		"Position ICRS Velocity 1 2 unit deg/s"
 		, parseAll=True)))

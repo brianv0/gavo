@@ -458,7 +458,7 @@ class STCSRoundtripTest(testhelpers.VerboseTest):
 			" TOPOCENTER RELATIVISTIC 0.1"),
 		('Position ICRS Epoch J1999.9 VelocityInterval Velocity 1 2'
 			' unit pc/cy Error 0.25 0.5',
-			'Position ICRS Epoch J1999.9 VelocityInterval Velocity 1.0 2.0'
+			'Position ICRS Epoch J1999.9 Velocity 1.0 2.0'
 			' unit pc/cy Error 0.25 0.5'),
 		("Position ICRS VelocityInterval 0.25 0.5 2 3 Velocity 1 2",
 			"Position ICRS VelocityInterval 0.25 0.5 2.0 3.0 Velocity 1.0 2.0"),
@@ -472,7 +472,7 @@ class STCSRoundtripTest(testhelpers.VerboseTest):
 			"PositionInterval ICRS CART3 1.0 2.0 3.0 4.0 5.0 6.0 VelocityInterval"
 			" 0.0 0.0 0.0 10.0 10.0 10.0 Velocity 2.0 3.0 4.0 unit pc/cy"),
 		("Circle ICRS 1 2 3 unit arcsec VelocityInterval Velocity 1 2",
-			"Circle ICRS 1.0 2.0 3.0 unit arcsec VelocityInterval Velocity 1.0 2.0"),
+			"Circle ICRS 1.0 2.0 3.0 unit arcsec Velocity 1.0 2.0"),
 		("Redshift 2",
 			"Redshift 2.0"),
 		("Time nil UNKNOWNRefPos MJD302",
@@ -678,10 +678,10 @@ class CLITest(testhelpers.VerboseTest):
 				" unit deg/cy",
 				"Position FK5"],
 			expectedStdout="Position FK5 264.371974024 -24.2795040403"
-				" VelocityInterval Velocity 0.00768930497899 0.00737459624525"
+				" Velocity 0.00768930497899 0.00737459624525"
 				" unit deg/cy\n")
 
-	_utypeInput = 'Position GALACTIC "l" "b" VelocityInterval Velocity "vl" "vb"'
+	_utypeInput = 'Position GALACTIC "l" "b" Velocity "vl" "vb"'
 	_utypeOutput = 'eJwrLkm2ciwuKcp3zs8vSgmuLC5JzdULLkhMTnUrSsxN1QMLu+UkluUXKWAAW4XgAA/XIE9nRx+u\nYmIMCkpNA/MwDXJ39HF0DvF0jvf0RDOqWC8gvzizJDM/z8hFLywxpzTVSM/ZENMxUKBrp5BDjAlG\n+ExIwjAhLDUnPzmzpJJYN5RhOgKLEXgdUZbEBQBATnG5\n'.decode("base64").decode("zlib")
 
 	def testUtypeGen(self):

@@ -11,6 +11,7 @@ from gavo import rsc
 from gavo import rscdef
 from gavo import rscdesc
 from gavo import svcs
+from gavo.stc import dm
 
 import tresc
 
@@ -297,6 +298,15 @@ class STCTest(testhelpers.VerboseTest):
 			"ICRS")
 		self.assertEqual(td.getColumnByName("mag").stc, None)
 
+	def testErrorCircle(self):
+		td = base.parseFromString(rscdef.TableDef, 
+			'<table id="errors">'
+			'  <stc>Position ICRS 20 20 Error "e_pos" "e_pos"</stc>'
+			'  <column name="e_pos"/>'
+			'</table>')
+		posSTC = td.getColumnByName("e_pos").stc
+		self.failUnless(isinstance(posSTC.place.error, dm.RadiusWiggle))
+
 	def testComplexSTC(self):
 		td = base.parseFromString(rscdef.TableDef, 
 			'<table id="complex">'
@@ -435,4 +445,4 @@ class QueryTableTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(ParamTest)
+	testhelpers.main(STCTest)
