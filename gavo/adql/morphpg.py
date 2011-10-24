@@ -26,6 +26,13 @@ class PostgresMorphError(morphhelpers.MorphError):
 
 ######## Begin q3c specials
 
+def _flatAndMorph(node):
+# This helper flattens a node after applying standard morphs on it.
+# I need this for the arguments of q3c stuff, since there may
+# be ADQL specifics in there (like, say, TAP_UPLOAD references, or
+# weird functions.
+	return nodes.flatten(morphPG(node)[1])
+
 def _containsToQ3c(node, state):
 	if node.funName!='CONTAINS':
 		return node
@@ -48,16 +55,16 @@ def _containsToQ3c(node, state):
 		state.killParentOperator = True
 		# The pg planner works much smoother if you have constants first.
 		if p.x.type=='columnReference':
-			return ("q3c_join(%s, %s, %s, %s, %s)"%tuple(map(nodes.flatten, 
+			return ("q3c_join(%s, %s, %s, %s, %s)"%tuple(map(_flatAndMorph,
 				(shape.x, shape.y, p.x, p.y, shape.radius))))
 		else:
-			return ("q3c_join(%s, %s, %s, %s, %s)"%tuple(map(nodes.flatten, 
+			return ("q3c_join(%s, %s, %s, %s, %s)"%tuple(map(_flatAndMorph, 
 				(p.x, p.y, shape.x, shape.y, shape.radius))))
 	elif shape=="polygon":
 		state.killParentOperator = True
 		return "q3c_poly_query(%s, %s, ARRAY[%s])"%(
-			nodes.flatten(p.x), nodes.flatten(p.y), ",".join([
-				"%s,%s"%(nodes.flatten(x), nodes.flatten(y)) for x,y in shape.coos]))
+			_flatAndMorph(p.x), _flatAndMorph(p.y), ",".join([
+				"%s,%s"%(_flatAndMorph(x), _flatAndMorph(y)) for x,y in shape.coos]))
 	else:
 		return node
 
@@ -68,7 +75,8 @@ _q3Morphers = {
 }
 
 
-#	This has to run *before* morphPG.
+#	This has to run *before* morphPG since otherwise what we deal with
+# here has already been morphed to pgSphere.
 insertQ3Calls = morphhelpers.Morpher(_q3Morphers).morph
 
 

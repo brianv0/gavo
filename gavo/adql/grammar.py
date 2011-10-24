@@ -628,8 +628,6 @@ if __name__=="__main__":
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
 	res = syms["querySpecification"].parseString(
-		"SELECT ra1, dec, mass FROM\n"
-			" (SELECT * FROM spatial) as q LEFT OUTER JOIN spatial2\n"
-			" USING (ra1, dist) JOIN misc ON (dist=mass)"
+		"SELECT TAP_UPLOAD.user_table.ra FROM TAP_UPLOAD.user_table WHERE (1=CONTAINS(POINT('ICRS', usnob.data.raj2000, usnob.data.dej2000), CIRCLE('ICRS', TAP_UPLOAD.user_table.ra2000, a.dec2000, 0.016666666666666666)))"
 		, parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)

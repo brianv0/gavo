@@ -1348,7 +1348,7 @@ class PQMorphTest(unittest.TestCase):
 	"""
 	def _testMorph(self, stIn, stOut):
 		tree = adql.parseToTree(stIn)
-		#pprint(tree.asTree())
+		pprint(tree.asTree())
 		status, t = adql.morphPG(tree)
 		self.assertEqual(nodes.flatten(t), stOut)
 
@@ -1413,6 +1413,25 @@ class PQMorphTest(unittest.TestCase):
 	def testAliasedUploadKilled(self):
 		self._testMorph("select * from TAP_UPLOAD.abc as o",
 			"SELECT * FROM abc AS o")
+
+	def testUploadColRef(self):
+		self._testMorph("select TAP_UPLOAD.abc.c from TAP_UPLOAD.abc",
+			"SELECT abc.c FROM abc")
+	
+	def testUploadColRefInGeom(self):
+		self._testMorph("select POINT('', TAP_UPLOAD.abc.b, TAP_UPLOAD.abc.c)"
+			" from TAP_UPLOAD.abc",
+			"SELECT spoint(RADIANS(abc.b), RADIANS(abc.c)) FROM abc")
+
+	def testUploadColRefInGeomContains(self):
+		self._testMorph("SELECT TAP_UPLOAD.user_table.ra FROM"
+			" TAP_UPLOAD.user_table WHERE (1=CONTAINS(POINT('ICRS',"
+			" usnob.data.raj2000, usnob.data.dej2000), CIRCLE('ICRS',"
+			" TAP_UPLOAD.user_table.ra2000, a.dec2000, 0.016666666666666666)))",
+			'SELECT user_table.ra FROM user_table WHERE (  ((spoint(RADIANS('
+			'usnob.data.raj2000), RADIANS(usnob.data.dej2000))) @ (scircle('
+			'spoint(RADIANS(user_table.ra2000), RADIANS(a.dec2000)), RADIANS('
+			'0.016666666666666666)))) )')
 
 	def testSTCSSingle(self):
 		self._testMorph(

@@ -115,10 +115,15 @@ def serializeParameters(data):
 	"""returns a base64-encoded version of a pickle of data
 	"""
 	# data should only contain strings, and I'm forcing them all to
-	# be shorter than 1k; this should ward off broken clients that 
-	# might push in files as "harmless" parameters.
+	# be shorter than 50k; this should ward off broken clients that 
+	# might push in files as "harmless" parameters while not actually
+	# discarding actual queries.  Let's put in a warning nevertheless
+	# XXX TODO: parse parameters in a way such that we catch/weed out
+	# malformed uploads somewhere else and remove that limit here.
 	for key in data.keys():
-		if isinstance(data[key], basestring) and len(data[key])>1000:
+		if isinstance(data[key], basestring) and len(data[key])>50000:
+			base.ui.notifyWarning("UWS Parameter %s discarded as too long; first"
+				" bytes: %s"%(key, repr(data[key][:20])))
 			del data[key]
 	return pickle.dumps(data, 1).encode("base64")
 

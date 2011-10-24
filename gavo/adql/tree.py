@@ -73,4 +73,4 @@ def getTreeBuildingGrammar():
 
 
 if __name__=="__main__":
-	getTreeBuildingGrammar()[1].parseString('select * from z join x')
+	print getTreeBuildingGrammar()[1].parseString('select TAP_UPLOAD.user_table.ra FROM TAP_UPLOAD.user_table')

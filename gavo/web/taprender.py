@@ -244,7 +244,7 @@ def reparseRequestArgs(ctx):
 
 
 class TAPRenderer(grend.ServiceBasedPage):
-	"""A renderer for the synchronous version of TAP.
+	"""A renderer speaking all of TAP (including sync, async, and VOSI).
 
 	Basically, this just dispatches to the sync and async resources.
 	"""
