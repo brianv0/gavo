@@ -139,6 +139,9 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 		# real dateUpdated is set by getRD, this is just for RDs created
 		# on the fly.
 		self.dateUpdated = datetime.datetime.utcnow()
+		# if an RD is parsed from a disk file, this gets set to its path
+		# by getRD below
+		self.srcPath = None
 		# this is for modified-since and friends.
 		self.loadedAt = time.time()
 		# keep track of RDs depending on us for the registry code
@@ -150,6 +153,21 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 
 	def __repr__(self):
 		return "<resource descriptor for %s>"%self.sourceId
+
+	def isDirty(self):
+		"""returns true if the RD on disk has a timestamp newer than
+		loadedAt.
+		"""
+		try:
+			if self.srcPath is not None:
+				return os.path.getmtime(self.srcPath)>self.loadedAt
+		except os.error:
+			# this could mean the file went away (in which case we should
+			# be dirty), but mostly it's something from pkg_resources which
+			# isn't supposed to change.  So, most of the time returning false
+			# should be all right...
+			return False
+		return False
 
 	def importModule(self, ctx):
 		# this is a callback for the require attribute
@@ -368,7 +386,7 @@ def getRD(srcId, forImport=False, doQueries=True, dumpTracebacks=False,
 	rd = RD(canonicalizeRDId(srcId))
 	srcPath, inputFile = getRDInputStream(rd.sourceId)
 	context = RDParseContext(forImport, doQueries, dumpTracebacks, restricted)
-	context.srcPath = srcPath
+	rd.srcPath = context.srcPath = os.path.abspath(srcPath)
 	context.forRD = rd.sourceId
 	rd.idmap = context.idmap
 
@@ -413,6 +431,10 @@ def _makeRDCache():
 		if kwargs:
 			return getRD(srcId, **kwargs)
 		srcId = canonicalizeRDId(srcId)
+
+		if srcId in rdCache and rdCache[srcId].isDirty():
+			base.caches.clearForName(srcId)
+
 		if srcId not in rdCache:
 			rd = getRD(srcId)
 			rdCache[srcId] = rd

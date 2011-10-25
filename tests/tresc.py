@@ -177,3 +177,25 @@ class RandomDataTable(testhelpers.TestResource):
 			{"n": 42, "x": -1.75}])
 
 randomDataTable = RandomDataTable()
+
+
+class FileResource(testhelpers.TestResource):
+	"""An "abstract" resource that represents a temporary file within
+	the root directory with a given name and content.
+
+	path and content are given in class attributes of the same names,
+	where path is interpreted relative to rootDir.
+	"""
+	path, content = None, None
+
+	def make(self, ignored):
+		if self.path is None or self.content is None:
+			raise Exception("FileResource without name or content")
+		self.absPath = os.path.join(base.getConfig("rootDir"), self.path)
+		with open(self.absPath, "w") as f:
+			f.write(self.content)
+		return self.absPath
+	
+	def clean(self, rsc):
+		os.unlink(self.absPath)
+

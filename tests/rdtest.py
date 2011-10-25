@@ -4,6 +4,7 @@ Tests for resource descriptor handling
 
 import cStringIO
 import os
+import time
 import unittest
 
 from gavo.helpers import testhelpers
@@ -311,7 +312,14 @@ class RestrictionTest(testhelpers.VerboseTest):
 	]
 
 
+class _TempRDFile(tresc.FileResource):
+	path = "inputs/temp.rd"
+	content = "<resource schema='temptemp'/>"
+
+
 class CachesTest(testhelpers.VerboseTest):
+	resources = [("tempRDFile", _TempRDFile())]
+
 	def testCacheWorks(self):
 		rd1 = base.caches.getRD("//users")
 		rd2 = base.caches.getRD("//users")
@@ -336,6 +344,15 @@ class CachesTest(testhelpers.VerboseTest):
 		self.failIf(rd1 is rd3)
 		self.failUnless(hasattr(rd1.getById("users"), "gobble"))
 		self.failIf(hasattr(rd2.getById("users"), "gobble"))
+
+	def testDirty(self):
+		origRD = base.caches.getRD("temp")
+		sameRD = base.caches.getRD("temp")
+		self.failUnless(origRD is sameRD)
+		now = time.time()
+		os.utime(self.tempRDFile, (now+1, now+1))
+		otherRD = base.caches.getRD("temp")
+		self.failIf(origRD is otherRD)
 
 
 if __name__=="__main__":

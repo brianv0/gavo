@@ -1348,7 +1348,6 @@ class PQMorphTest(unittest.TestCase):
 	"""
 	def _testMorph(self, stIn, stOut):
 		tree = adql.parseToTree(stIn)
-		pprint(tree.asTree())
 		status, t = adql.morphPG(tree)
 		self.assertEqual(nodes.flatten(t), stOut)
 
