@@ -32,21 +32,21 @@ RD_ID = "__system__/tap"
 FORMAT_CODES = {
 	"application/x-votable+xml": 
 		("votable", "application/x-votable+xml", "VOTable, binary", 
-			"ivo://ivoa.net/TAPRegExt#output-votable-binary"),
+			"ivo://ivoa.net/std/TAPRegExt#output-votable-binary"),
 	"text/xml": 
 		("votable", "text/xml", "VOTable, binary",
-			"ivo://ivoa.net/TAPRegExt#output-votable-binary"),
+			"ivo://ivoa.net/std/TAPRegExt#output-votable-binary"),
 	"votable": 
 		("votable", "application/x-votable+xml", "VOTable, binary",
-			"ivo://ivoa.net/TAPRegEXT#output-votable-binary"),
+			"ivo://ivoa.net/std/TAPRegEXT#output-votable-binary"),
 	"application/x-votable+xml;encoding=tabledata":
 		("votabletd", "application/x-votable+xml;encoding=tabledata", 
 			"VOTable, tabledata",
-			"ivo://ivoa.net/TAPRegEXT#output-votable-td"),
+			"ivo://ivoa.net/std/TAPRegEXT#output-votable-td"),
 	"votable/td":
 		("votabletd", "application/x-votable+xml;encoding=tabledata", 
 			"VOTable, tabledata",
-			"ivo://ivoa.net/TAPRegEXT#output-votable-td"),
+			"ivo://ivoa.net/std/TAPRegEXT#output-votable-td"),
 	"text/csv": 
 		("csv", "text/csv", "CSV without column labels", None),
 	"csv": ("csv+header", "text/csv;header=present", 
@@ -74,8 +74,8 @@ FORMAT_CODES = {
 # this is used below in for registry purposes (values are pairs of
 # IVOA id and a human-readable label).
 SUPPORTED_LANGUAGES = {
-	"ADQL": ("ivo://ivoa.net/ADQL/2.0", "ADQL 2.0"),
-	"ADQL-2.0": ("ivo://ivoa.net/ADQL/2.0", "ADQL 2.0"),
+	"ADQL": ("ivo://ivoa.net/std/ADQL#2.0", "ADQL 2.0"),
+	"ADQL-2.0": ("ivo://ivoa.net/std/ADQL#2.0", "ADQL 2.0"),
 }
 
 

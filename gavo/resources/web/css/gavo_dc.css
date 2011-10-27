@@ -511,6 +511,7 @@ div.innerWin {
 }
 
 p.innerTitle {
+	z-index: 3000;
 	background: #d2dcf0;
 	text-align: right;
 	font-weight: bold;

@@ -557,16 +557,18 @@ def main():
 	try:
 		if len(sys.argv)==1:
 			print fancyconfig.makeTxtDocs(_config, underlineChar="'")
+			sys.exit(0)
 		elif len(sys.argv)==2:
-			print get(sys.argv[1])
+			item = _config.getitem(sys.argv[1])
 		elif len(sys.argv)==3:
-			print get(sys.argv[1], sys.argv[2])
+			item = _config.getitem(sys.argv[1], sys.argv[2])
 		else:
 			sys.stderr.write("Usage: %s [<sect> <key> | <key>]\n")
 			sys.exit(1)
 	except NoOptionError:
 		print ""
 		sys.exit(2)
+	print item.getAsString()
 
 
 def _test():

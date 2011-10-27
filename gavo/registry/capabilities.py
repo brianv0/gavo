@@ -330,13 +330,14 @@ class TAPCapabilityMaker(CapabilityMaker):
 						TR.name[langName],
 						TR.version(ivoId=ivoId)[version],
 						TR.description[description],
-						TR.languageFeatures(type="ivo://ivoa.net/TAPRegExt#features-udf")[
+						TR.languageFeatures(
+							type="ivo://ivoa.net/std/TAPRegExt#features-udf")[
 							[TR.feature[
 								TR.form[udf.adqlUDF_signature],
 								TR.description[udf.adqlUDF_doc]]
 							for udf in ufunctions.UFUNC_REGISTRY.values()]],
 						TR.languageFeatures(
-								type="ivo://ivoa.net/TAPRegExt#features-adqlgeo")[
+								type="ivo://ivoa.net/std/TAPRegExt#features-adqlgeo")[
 							[TR.feature[
 								TR.form[funcName]]
 							# take this from adql.grammar somehow?
@@ -354,7 +355,7 @@ class TAPCapabilityMaker(CapabilityMaker):
 # strings is out of use.
 				[TR.uploadMethod(ivoId="ivo://ivoa.org/tap/uploadmethods#%s"%proto.replace("upload-", ""))
 					for proto in tap.UPLOAD_METHODS],
-				[TR.uploadMethod(ivoId="ivo://ivoa.net/TAPRegExt#%s"%proto)
+				[TR.uploadMethod(ivoId="ivo://ivoa.net/std/TAPRegExt#%s"%proto)
 					for proto in tap.UPLOAD_METHODS],
 				TR.retentionPeriod[
 					TR.default[str(base.getConfig("async", "defaultLifetime"))]],

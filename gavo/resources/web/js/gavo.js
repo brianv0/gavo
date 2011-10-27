@@ -436,16 +436,26 @@ function _plotUsingFlot(table) {
 // allows simple plotting of HTML tables.  This only works from
 // within openFlotPlot since it uses javascript that's not loaded
 // by default.
-	plotElement = $('<div id="plotarea" style="position:fixed;z-index:3000;width:700px;height:400px;background:white"></div>');
+	plotElement = $('<div id="plotcontainer" style="position:fixed;z-index:3000;background:white;padding-left:3px;padding-right:3px;padding-bottom:3px;border:2px solid gray"><p class="innerTitle"><span class="closer">x&nbsp;</span></p><div id="plotarea" style="width:700px;height:400px;"/></div>');
 	plotElement.draggable();
+	plotElement.find(".closer").bind("click", function(){
+		plotElement.remove()});
+
+	fieldsel = $('<select/>');
+	table.find('tr th').each(function(index, head) {
+		fieldsel.append($('<option>'+$(head).text()+'</option>'));
+	});
+	plotElement.append(fieldsel);
+
 	$("body").prepend(plotElement);
 	var data = [];
-	table.children('tr').each(function(index, row) {
-		tds = row.childNodes;
+	table.find('tr').each(function(index, row) {
+		tds = $(row).children()
 		data.push([
-			parseFloat(tds[1].firstChild.data), 
-			parseFloat(tds[2].firstChild.data)]);
+			parseFloat(tds[3].firstChild.data), 
+			parseFloat(tds[4].firstChild.data)]);
 	});
+	data.sort();
 	jQuery.plot(jQuery('#plotarea'), [data]);
 }
 
