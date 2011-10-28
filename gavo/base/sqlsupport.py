@@ -649,6 +649,12 @@ def getTableConn():
 		_TQ_POOL = psycopg2.pool.ThreadedConnectionPool(1, 400, 
 			**config.getDBProfileByName("trustedquery").getArgs())
 	conn = _TQ_POOL.getconn()
+
+	# self-healing on database restart (the first query through a reset 
+	# connection, but at least subsequent queries succeed again).
+	while conn.closed:
+		conn = _TQ_POOL.getconn()
+
 	conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 # Use this when we can rely on recent enough psycopg2:
 #	conn.set_session(

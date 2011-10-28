@@ -432,6 +432,8 @@ function output_hide(el) {
 }
 
 
+function _doFlotPlot(
+
 function _plotUsingFlot(table) {
 // allows simple plotting of HTML tables.  This only works from
 // within openFlotPlot since it uses javascript that's not loaded
@@ -441,11 +443,13 @@ function _plotUsingFlot(table) {
 	plotElement.find(".closer").bind("click", function(){
 		plotElement.remove()});
 
-	fieldsel = $('<select/>');
+	fieldsel = $('<select id="flot-xsel"/>');
 	table.find('tr th').each(function(index, head) {
-		fieldsel.append($('<option>'+$(head).text()+'</option>'));
+		fieldsel.append($('<option value="'+index+'">'+$(head).text()+'</option>'));
 	});
 	plotElement.append(fieldsel);
+	flotYsel = fieldsel.clone();
+	plotElement.append(flotYsel);
 
 	$("body").prepend(plotElement);
 	var data = [];

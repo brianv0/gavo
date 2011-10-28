@@ -20,7 +20,7 @@ xsi:schemaLocation="http://www.w3.org/2001/XMLSchema http://vo.ari.uni-heidelber
     A description of the capabilities metadata for TAP services.
     </xs:documentation>
   </xs:annotation>
-  <xs:import namespace="http://www.ivoa.net/xml/VOResource/v1.0" schemaLocation="http://www.ivoa.net/xml/VOResource/VOResource-v1.0.xsd" schemaLocation="http://vo.ari.uni-heidelberg.de/docs/schemata/VOResource-v1.0.xsd"/>
+  <xs:import namespace="http://www.ivoa.net/xml/VOResource/v1.0" schemaLocation="http://vo.ari.uni-heidelberg.de/docs/schemata/VOResource-v1.0.xsd"/>
   <xs:import namespace="http://www.ivoa.net/xml/VODataService/v1.1" schemaLocation="http://vo.ari.uni-heidelberg.de/docs/schemata/VODataService-v1.1.xsd"/>
   <xs:complexType name="TAPCapRestriction" abstract="true">
     <xs:annotation>
@@ -243,7 +243,7 @@ xsi:schemaLocation="http://www.w3.org/2001/XMLSchema http://vo.ari.uni-heidelber
 
 		<xs:simpleContent>
 			<xs:extension base="xs:token">
-				<xs:attribute name="ivo-id" type="vr:AnyURI">
+				<xs:attribute name="ivo-id" type="xs:anyURI">
   				<xs:annotation>
     				<xs:documentation>
     				An optional IVORN of the language.
