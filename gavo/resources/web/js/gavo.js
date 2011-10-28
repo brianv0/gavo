@@ -229,7 +229,7 @@ function followEmbeddedLink(parent) {
 
 
 function output_BussedElement(domNode, id, visibleFor) {
-	// is an element that can be passed to output_broadcast and does something
+	// An element that can be passed to output_broadcast and does something
 	// in response.
 	domNode.id = id;
 	for (var ind in visibleFor) {
@@ -404,7 +404,7 @@ function output_popupAddSel() {
 
 function output_itemSelector(pars) {
 	// returns a Bussedelement to pop up the element Selector
-	var root = $('<button type="button" id="op_addbutton" class="popButton">More output fields</button>');
+	var root = $('<button type="button" id="op_additem" class="popButton">More output fields</button>');
 
 	root.bind("click", output_popupAddSel);
 	// show nowhere unless there actually are items to show
@@ -427,7 +427,7 @@ function output_show(el) {
 
 function output_hide(el) {
 	if (document.getElementById(el.id)) {
-		el.detach();
+		$(el).detach();
 	}
 }
 
