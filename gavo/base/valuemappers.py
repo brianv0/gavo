@@ -177,6 +177,13 @@ def _pgSphereMapperFactory(colDesc):
 #	XXX TODO: When we've scrapped colDesc and used column annotations,
 # take the system from the column's STC info
 			return val.asSTCS("ICRS")
+
+	if not colDesc["xtype"]:
+		if colDesc["dbtype"]=='spoint':
+			colDesc["xtype"] = "adql:POINT"
+		else:
+			colDesc["xtype"] = "adql:REGION"
+
 	colDesc["datatype"], colDesc["arraysize"] = "char", "*"
 	return mapper
 _registerDefaultMF(_pgSphereMapperFactory)

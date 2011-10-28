@@ -250,8 +250,8 @@ xsi:schemaLocation="http://www.w3.org/2001/XMLSchema http://vo.ari.uni-heidelber
     				</xs:documentation>
     				<xs:documentation>
     					To more formally define a language supported by a service,
-    					a resource record for the language can be created, both
-    					centrally on the RofR and by other registry operators.  
+    					a resource record for the language can be created, either
+    					centrally on the RofR or by other registry operators.  
     					When such a record exists, the language element's ivo-id
     					should point to it.
     				</xs:documentation>
@@ -352,7 +352,7 @@ xsi:schemaLocation="http://www.w3.org/2001/XMLSchema http://vo.ari.uni-heidelber
       use a MIME type (or make one up using the x- syntax), although
       the concrete MIME syntax is not enforced by the schema.
 
-      For further specification, an IVORN may be used.
+      For more detailed specification, an IVORN may be used.
       </xs:documentation>
     </xs:annotation>
 
@@ -390,7 +390,7 @@ xsi:schemaLocation="http://www.w3.org/2001/XMLSchema http://vo.ari.uni-heidelber
         An optional IVORN of the output format.
         </xs:documentation>
         <xs:documentation>
-        	In cases where the MIME type does not uniquely define the
+        	When the MIME type does not uniquely define the
         	format (or a generic MIME like application/octet-stream or
         	text/plain is given), the IVORN can point to a key
         	or StandardsRegExt document defining the format more
@@ -454,7 +454,7 @@ xsi:schemaLocation="http://www.w3.org/2001/XMLSchema http://vo.ari.uni-heidelber
         minOccurs="0" maxOccurs="1">
         <xs:annotation>
           <xs:documentation>
-          The value this limit has for newly-created jobs, given in seconds.
+          The value of this limit for newly-created jobs, given in seconds.
           </xs:documentation>
         </xs:annotation>
       </xs:element>
@@ -481,7 +481,7 @@ xsi:schemaLocation="http://www.w3.org/2001/XMLSchema http://vo.ari.uni-heidelber
         minOccurs="0" maxOccurs="1">
         <xs:annotation>
           <xs:documentation>
-          The value this limit has for newly-created jobs.
+          The value of this limit for newly-created jobs.
           </xs:documentation>
         </xs:annotation>
       </xs:element>

@@ -549,6 +549,21 @@ class BinaryNullValueTest(VOTableRenderTest):
 			'\x00\x00\x00\x00')
 
 
+class GeoXtypeTest(VOTableRenderTest):
+	def testRegionXtype(self):
+		tree = self._getAsETree('<column name="x" type="spoly"/>')
+		self.assertEqual(
+			self._getEls(tree, "FIELD")[0].get("xtype"), 
+			"adql:REGION")
+
+	def testPointXtype(self):
+		tree = self._getAsETree('<column name="x" type="spoint"/>')
+		self.assertEqual(
+			self._getEls(tree, "FIELD")[0].get("xtype"), 
+			"adql:POINT")
+
+
+
 class ValuesParsedTest(testhelpers.VerboseTest):
 	def testNull(self):
 		td = getTDForVOTable(
