@@ -494,8 +494,9 @@ class Service(base.Structure, base.ComputedMetaMixin,
 			for row in mth.queryTablesTable("adql"):
 				try:
 					tables.append(mth.getTableDefForTable(row["tableName"]))
-				except base.NotFoundError:
-					pass
+				except:
+					base.ui.notifyError("Failure trying to retrieve table definition"
+						" for table %s.  Please fix RD."%row["tableName"])
 		return [t for t in tables if t is not None]
 
 	def declareServes(self, data):
