@@ -27,8 +27,10 @@ _FITS_TABLE_MUTEX = mutex.mutex()
 def exclusiveFits():
 	while not _FITS_TABLE_MUTEX.testandset():
 		time.sleep(0.1)
-	yield
-	_FITS_TABLE_MUTEX.unlock()
+	try:
+		yield
+	finally:
+		_FITS_TABLE_MUTEX.unlock()
 
 
 
@@ -43,6 +45,36 @@ _fitsCodeMap = {
 }
 
 
+def _makeStringArray(values, colInd, colDesc):
+	"""returns a pyfits-capable column array for strings stored in the colInd-th
+	column of values.
+	"""
+	try:
+		arr = numpy.array([str(v[colInd]) for v in values], dtype=numpy.str)
+	except UnicodeEncodeError:
+		arr = numpy.array([str(v[colInd].encode("utf-8")) for v in values], 
+			dtype=numpy.str)
+	return "%dA"%arr.itemsize, arr
+
+
+def _makeValueArray(values, colInd, colDesc):
+	"""returns a pyfits-capable column array for non-string values
+	stored in the colInd-th column of values.
+	"""
+	if colDesc["hasNulls"]:
+		nullValue = colDesc["nullvalue"]
+		def mkval(v):
+			if v is None:
+				return nullValue
+			else:
+				return v
+		arr = numpy.array([mkval(v[colInd]) for v in values])
+	else:
+		arr = numpy.array([v[colInd] for v in values])
+	typecode = _fitsCodeMap[colDesc["datatype"]]
+	return typecode, arr
+
+
 def _makeExtension(serMan):
 	"""returns a pyfits hdu for the valuemappers.SerManager instance table.
 	"""
@@ -50,18 +82,13 @@ def _makeExtension(serMan):
 	columns = []
 	for colInd, colDesc in enumerate(serMan):
 		if colDesc["datatype"]=="char":
-			try:
-				arr = numpy.array([str(v[colInd]) for v in values], dtype=numpy.str)
-			except UnicodeEncodeError:
-				arr = numpy.array([str(v[colInd].encode("utf-8")) for v in values], 
-					dtype=numpy.str)
-			typecode = "%dA"%arr.itemsize
+			makeArray = _makeStringArray
 		else:
-			arr = numpy.array([v[colInd] for v in values])
-			typecode = _fitsCodeMap[colDesc["datatype"]]
+			makeArray = _makeValueArray
+		typecode, arr = makeArray(values, colInd, colDesc)
 		columns.append(pyfits.Column(name=str(colDesc["name"]), 
 			unit=str(colDesc["unit"]), format=typecode, 
-			null=colDesc.computeNullvalue(), array=arr))
+			null=colDesc.nullvalueInType(), array=arr))
 	return pyfits.new_table(pyfits.ColDefs(columns))
 	
 

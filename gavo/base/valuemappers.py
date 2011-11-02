@@ -349,14 +349,22 @@ class VColDesc(dict):
 		"""has to be called after feeding is done.
 		"""
 		if samplesAcquired:
-			self.computeNullvalue()
+			self._computeNullvalue()
 			self["hasNulls"] = self.nullSeen
 
-	def computeNullvalue(self):
+	def nullvalueInType(self):
+		"""returns the designated null value in a python value of an
+		appropriate type.
+		"""
+		if self["nullvalue"] is None:
+			return None
+		return typesystems.sqltypeToPython(self["dbtype"])(self["nullvalue"])
+
+	def _computeNullvalue(self):
 		"""tries to come up with a null value for integral data.
 
-		This is called by finish(), but you could call it yourself to find out
-		if a nullvalue can be computed.
+		This is called by finish().  Since all that sample taking is
+		now frowned upon, I guess this whole function is on the way out.
 		"""
 		if self["nullvalue"] is not None:
 			return

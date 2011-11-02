@@ -32,7 +32,8 @@ from gavo.web import htmltable
 
 
 _colDefs = {
-	"klein": '<column name="klein"  type="smallint"/>',
+	"klein": '<column name="klein"  type="smallint">'
+		'<values nullLiteral="-1"/></column>',
 	"prim": '<column name="prim" type="integer"'
 		' description="Some random primary key"/><primary>prim</primary>',
 	"nopt": '<column name="nopt" type="real" required="True"/>',
@@ -46,7 +47,7 @@ def _getFields(*args):
 
 
 class FITSWriterTest(unittest.TestCase):
-	def _makeRd(self, colNames, rd=None):
+	def _makeRD(self, colNames, rd=None):
 		return base.parseFromString(rscdesc.RD,
 			"""<resource resdir="%s" schema="test">
 			<data id="randomTest">
@@ -68,7 +69,7 @@ class FITSWriterTest(unittest.TestCase):
 	def testMakeSimpleTable(self):
 		"""tests for creation of a simple FITS table.
 		"""
-		rd = self._makeRd(["klein", "prim", "nopt", "indf"])
+		rd = self._makeRD(["klein", "prim", "nopt", "indf"])
 		dataSet = rsc.makeData(rd.getById("randomTest"),
 			forceSource=self._testData)
 		hdulist = fitstable.makeFITSTable(dataSet)
@@ -86,7 +87,7 @@ class FITSWriterTest(unittest.TestCase):
 	def testMakeDoubleTable(self):
 		"""tests for creation of a two-extension FITS table.
 		"""
-		rd = self._makeRd(("klein", "prim", "nopt", "indf"))
+		rd = self._makeRD(("klein", "prim", "nopt", "indf"))
 		rec2 = base.parseFromString(rscdef.TableDef, 
 			'<table id="part2">%s</table>'%"".join(_getFields("prim", "nopt")))
 		dd = rd.getById("randomTest")
@@ -99,7 +100,7 @@ class FITSWriterTest(unittest.TestCase):
 			" doesn't catch additional tables")
 
 	def testTableWrite(self):
-		rd = self._makeRd(("klein", "prim", "nopt", "indf"))
+		rd = self._makeRD(("klein", "prim", "nopt", "indf"))
 		dataSet = rsc.makeData(rd.getById("randomTest"),
 			forceSource=self._testData)
 		fName = fitstable.makeFITSTableFile(dataSet)
@@ -109,6 +110,16 @@ class FITSWriterTest(unittest.TestCase):
 		self.assertEqual(len(hdulist), 2, "makeFITSTableFile wrote"
 			" weird file")
 		os.unlink(fName)
+
+	def testSomeNullvalues(self):
+		rd = self._makeRD(("klein", "echter", "indf"))
+		dataSet = rsc.makeData(rd.getById("randomTest"),
+			forceSource=[{"klein": None, "echter": None, "indf": None}])
+		hdulist = fitstable.makeFITSTable(dataSet)
+		resTup = hdulist[1].data[0]
+		self.assertEqual(resTup[0], -1)
+		self.failIf(resTup[1]==resTup[1]) # "isNan"
+		self.assertEqual(resTup[2], "None") # Well, that should probably be sth else...
 
 
 class TextOutputTest(unittest.TestCase):
