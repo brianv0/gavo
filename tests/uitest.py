@@ -136,6 +136,28 @@ class CLITest(testhelpers.VerboseTest):
 				expectedRetcode=1, expectedStderr=
 				"*** Error: Only RDs from below inputsDir may be imported.\n")
 
+	def testMetaImportAndPurge(self):
+		self.assertOutput(cli.main, argList=["purge", "test.adql"])
+		try:
+			with base.SimpleQuerier(useProfile="admin") as querier:
+				querier.query("CREATE TABLE test.adql (erratic INTEGER)")
+				querier.query("INSERT INTO test.adql VALUES (1)")
+
+			with base.getTableConn() as conn:
+				querier = base.SimpleQuerier(connection=conn)
+				self.assertOutput(cli.main, argList=
+					["imp", "-m", "data/test", "ADQLTest"],
+					expectedStdout="Updating meta for ADQLTest\n")
+				self.assertEqual(list(querier.query(
+					"select * from dc.tablemeta where tablename='test.adql'")),
+					[(u'test.adql', u'data/test', None, None, True)])
+				
+				# make sure gavo imp didn't touch the table
+				self.assertEqual(list(querier.query("SELECT * FROM test.adql")),
+					[(1,)])
+		finally:
+			self.assertOutput(cli.main, argList=["purge", "test.adql"])
+
 
 if __name__=="__main__":
 	testhelpers.main(CLITest)

@@ -432,7 +432,23 @@ function output_hide(el) {
 }
 
 
-function _doFlotPlot(
+function _doFlotPlot(table, xsel, ysel) {
+	xInd = xsel.find("option:selected").val()
+	yInd = ysel.find("option:selected").val()
+
+	data = Array();
+	table.find('tr').each(function(index, row) {
+		tds = $(row).children();
+		x = parseFloat(tds[xInd].firstChild.data); 
+		y = parseFloat(tds[yInd].firstChild.data);
+		// check for NaNs
+		if (x==x && y==y) {
+			data.push([x, y]);
+		}
+	});
+	data.sort(function(a,b){return a[0]-b[0]});
+	jQuery.plot(jQuery('#plotarea'), [data]);
+}
 
 function _plotUsingFlot(table) {
 // allows simple plotting of HTML tables.  This only works from
@@ -443,24 +459,21 @@ function _plotUsingFlot(table) {
 	plotElement.find(".closer").bind("click", function(){
 		plotElement.remove()});
 
-	fieldsel = $('<select id="flot-xsel"/>');
-	table.find('tr th').each(function(index, head) {
-		fieldsel.append($('<option value="'+index+'">'+$(head).text()+'</option>'));
+	xsel = $('<select/>');
+	$(table.find('tr')[0]).find('th').each(function(index, head) {
+		xsel.append($('<option value="'+index+'">'+$(head).text()+'</option>'));
 	});
-	plotElement.append(fieldsel);
-	flotYsel = fieldsel.clone();
-	plotElement.append(flotYsel);
+	plotElement.append(xsel);
+	ysel = xsel.clone();
+	plotElement.append(ysel);
+
+	updatePlot = function() {
+		_doFlotPlot(table, xsel, ysel);}
+	xsel.change(updatePlot);
+	ysel.change(updatePlot);
 
 	$("body").prepend(plotElement);
-	var data = [];
-	table.find('tr').each(function(index, row) {
-		tds = $(row).children()
-		data.push([
-			parseFloat(tds[3].firstChild.data), 
-			parseFloat(tds[4].firstChild.data)]);
-	});
-	data.sort();
-	jQuery.plot(jQuery('#plotarea'), [data]);
+	updatePlot();
 }
 
 function openFlotPlot(tableElement) {

@@ -96,13 +96,7 @@ class MetaTableMixin(object):
 	It requires a tableDef attribute on the parent, and the parent must
 	mix in QuerierMixin.
 	"""
-	@property
-	def dcTablesRD(self):
-		try:
-			return self.__dcTablesRD
-		except AttributeError:
-			self.__dcTablesRD = base.caches.getRD("__system__/dc_tables")
-			return self.__dcTablesRD
+	__metaRDId = "__system__/dc_tables"
 
 	def _cleanFromSourceTable(self):
 		"""removes information about self.tableDef from the tablemeta table.
@@ -113,7 +107,8 @@ class MetaTableMixin(object):
 	def _addToSourceTable(self):
 		"""adds information about self.tableDef to the tablemeta table.
 		"""
-		t = DBTable(self.dcTablesRD.getTableDefById("tablemeta"),
+		t = DBTable(base.caches.getRD(
+			self.__metaRDId).getTableDefById("tablemeta"),
 			connection=self.connection)
 		t.addRow({"tableName": self.tableDef.getQName(), 
 			"sourceRD": self.tableDef.rd.sourceId,
@@ -132,9 +127,10 @@ class MetaTableMixin(object):
 		"""adds information about self.tableDef to columnmeta.
 		"""
 		tableName = self.tableDef.getQName()
-		t = DBTable(self.dcTablesRD.getTableDefById("columnmeta"),
+		rd = base.caches.getRD(self.__metaRDId)
+		t = DBTable(rd.getTableDefById("columnmeta"),
 			connection=self.connection)
-		makeRow = self.dcTablesRD.getById("fromColumnList").compileForTableDef(
+		makeRow = rd.getById("fromColumnList").compileForTableDef(
 			t.tableDef)
 		feeder = t.getFeeder(notify=False)
 		for colInd, column in enumerate(self.tableDef):

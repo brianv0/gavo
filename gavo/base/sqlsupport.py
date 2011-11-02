@@ -655,11 +655,13 @@ def getTableConn():
 	while conn.closed:
 		conn = _TQ_POOL.getconn()
 
-	conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
-# Use this when we can rely on recent enough psycopg2:
-#	conn.set_session(
-#		isolation_level=psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT,
-#		readonly=True)
+	try:
+		conn.set_session(
+			isolation_level=psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT,
+			readonly=True)
+	except AttributeError:
+		# fallback for old psycopg2
+		conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 	yield conn
 	_TQ_POOL.putconn(conn)
 
