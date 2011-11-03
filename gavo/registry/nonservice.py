@@ -25,28 +25,30 @@ class NonServiceResource(
 			
 
 class ResRec(rscdef.IVOMetaMixin, NonServiceResource):
-	"""A "resource" for registration purposes.
+	"""A resource for pure registration purposes.
 
 	A Resource does nothing; it is for registration of Authorities,
 	Organizations, Instruments, or whatever.  Thus, they consist
 	of metadata only (resources that do something are services; they
 	carry their own metadata and care for their registration themselves.).
 
-	All resources must have an id (which is used in the construction of
-	their ivoa id; alternatively, you can force an id via the identifier
-	meta). 
+	All resources must either have an id (which is used in the construction of
+	their IVORN), or you must give an identifier meta item.
 	
 	You must further set the following meta items:
 
-	   - resType specifying the kind of resource record
-		 - title
-		 - subject(s)
-		 - description
-		 - referenceURL
-		 - creationDate
+	   - resType specifying the kind of resource record.  This element
+	     is intended to be used to build registry, organization, authority, 
+	     and deleted resources.  For other types of records, use either
+	     service or table elements.
+	   - title
+	   - subject(s)
+	   - description
+	   - referenceURL
+	   - creationDate
 	
-	Additional meta keys may be required depending on resType.  See the
-	tutorial chapter on registry support.
+	Additional meta keys (e.g., accessURL for a registry) may be required 
+	depending on resType.  See the tutorial chapter on registry support.
 	"""
 	name_ = "resRec"
 	_rd = rscdef.RDAttribute()

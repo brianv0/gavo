@@ -432,15 +432,12 @@ function output_hide(el) {
 }
 
 
-function _doFlotPlot(table, xsel, ysel) {
-	xInd = xsel.find("option:selected").val()
-	yInd = ysel.find("option:selected").val()
-
-	data = Array();
+def _doLinePlot(table, xInd, yInd) {
+	var data = Array();
 	table.find('tr').each(function(index, row) {
-		tds = $(row).children();
-		x = parseFloat(tds[xInd].firstChild.data); 
-		y = parseFloat(tds[yInd].firstChild.data);
+		var tds = $(row).children();
+		var x = parseFloat(tds[xInd].firstChild.data); 
+		var y = parseFloat(tds[yInd].firstChild.data);
 		// check for NaNs
 		if (x==x && y==y) {
 			data.push([x, y]);
@@ -449,6 +446,33 @@ function _doFlotPlot(table, xsel, ysel) {
 	data.sort(function(a,b){return a[0]-b[0]});
 	jQuery.plot(jQuery('#plotarea'), [data]);
 }
+
+
+def _doHistogramPlot(table, colInd) {
+	var data = Array();
+	table.find('tr').each(function(index, row) {
+		var tds = $(row).children();
+		var x = parseFloat(tds[xInd].firstChild.data); 
+		var y = parseFloat(tds[yInd].firstChild.data);
+		// check for NaNs
+		if (x==x && y==y) {
+			data.push([x, y]);
+		}
+	});
+	data.sort(function(a,b){return a[0]-b[0]});
+}	
+
+
+function _doFlotPlot(table, xsel, ysel) {
+	xInd = xsel.find("option:selected").val()
+	yInd = ysel.find("option:selected").val()
+	if (yInd=='Histogram') {
+		_doHistogramPlot(table, xInd);
+	} else {
+		_doLinePlot(table, xInd, yInd);
+	}
+}
+
 
 function _plotUsingFlot(table) {
 // allows simple plotting of HTML tables.  This only works from

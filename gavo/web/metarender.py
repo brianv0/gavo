@@ -49,14 +49,14 @@ class MetaRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 
 	def render_sortOrder(self, ctx, data):
 		request = inevow.IRequest(ctx)
-		if "dbOrder" in request.args:
-			return ctx.tag["Sorted by DB column index. ",
-				T.a(href=url.URL.fromRequest(request).remove("dbOrder"))[
-					"[Sort alphabetically]"]]
-		else:
+		if "alphaOrder" in request.args:
 			return ctx.tag["Sorted alphabetically. ",
-				T.a(href=url.URL.fromRequest(request).add("dbOrder", "True"))[
+				T.a(href=url.URL.fromRequest(request).remove("alphaOrder"))[
 					"[Sort by DB column index]"]]
+		else:
+			return ctx.tag["Sorted by DB column index. ",
+				T.a(href=url.URL.fromRequest(request).add("alphaOrder", "True"))[
+					"[Sort alphabetically]"]]
 
 	def render_rdInfoLink(self, ctx, data):
 		# a link to the info to data's RD (i.e., data needs an rd attribute).
@@ -367,7 +367,7 @@ class TableInfoRenderer(MetaRenderer):
 		for d in res:
 			if d["note"]:
 				d["noteKey"] = d["note"].tag
-		if not "dbOrder" in inevow.IRequest(ctx).args:
+		if "alphaOrder" in inevow.IRequest(ctx).args:
 			res.sort(key=lambda item: item["name"].lower())
 		return res
 
