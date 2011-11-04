@@ -33,6 +33,16 @@ function isIn(item, arr) {
 }
 
 
+function getJD(date) {
+	return date/86400000+2440587.5;
+}
+
+
+function getJYear(date) {
+	return (getJD(date)-2451545)/365.25+2000;
+}
+
+
 ///////////// Code handling previews
 
 function insertPreviewURL(node, previewHref) {
@@ -431,15 +441,35 @@ function output_hide(el) {
 	}
 }
 
+DATE_RE = /^(\d\d\d\d)-(\d\d)-(\d\d)[T ](\d\d):(\d\d):(\d\d.?\d*)$/
+function _getValue(s) {
+// tries to make some kind of number from a string s
+// if s looks like a datetime, return a julian year
+// TODO: do something with hours/sexagesimal angles
+// if s looks like a float number, return a float
+// else return null.
+	var dm = DATE_RE.exec(s);
+	if (dm!=null) {
+		var dt = new Date(parseInt(dm[1]), parseInt(dm[2]), parseInt(dm[3]),
+			parseInt(dm[4]), parseInt(dm[5]), parseFloat(dm[6]));
+		return getJYear(dt);
+	}
+	var num = parseFloat(s);
+	if (num==num) { // not NaN
+		return num;
+	}
+	return null;
+}
+	
+
 
 function _doLinePlot(table, xInd, yInd) {
 	var data = new Array();
 	table.find('tr').each(function(index, row) {
 		var tds = $(row).children();
-		var x = parseFloat(tds[xInd].firstChild.data); 
-		var y = parseFloat(tds[yInd].firstChild.data);
-		// check for NaNs
-		if (x==x && y==y) {
+		var x = _getValue(tds[xInd].firstChild.data); 
+		var y = _getValue(tds[yInd].firstChild.data);
+		if (x!=null && y!=null) {
 			data.push([x, y]);
 		}
 	});
@@ -456,7 +486,7 @@ function _makeHistogram(data, numBins) {
 	var zp = data[0];
 	var binSize = (data[data.length-1]-zp)/numBins;
 	if (binSize==0) {
-		return [[zp, data.length]];
+		binSize = 1;
 	}
 
 	var histo = new Array();
@@ -477,9 +507,8 @@ function _makeHistogram(data, numBins) {
 function _doHistogramPlot(table, colInd) {
 	var data = new Array();
 	table.find('tr').each(function(index, row) {
-		var val = parseFloat($(row).children()[colInd].firstChild.data);
-		// check for NaNs
-		if (val==val) {
+		var val = _getValue($(row).children()[colInd].firstChild.data);
+		if (val!=null) {
 			data.push(val);
 		}
 	});
@@ -488,7 +517,7 @@ function _doHistogramPlot(table, colInd) {
 	jQuery.plot(jQuery('#plotarea'), [{
 		bars: {
 			show: true,
-			barWidth: histo[0][0]-histo[1][0]},
+			barWidth: histo[1][0]-histo[0][0]},
 		data: histo}]);
 }	
 
@@ -528,6 +557,7 @@ function _plotUsingFlot(table) {
 			_doFlotPlot(table, xsel, ysel);
 		} catch (e) {
 			jQuery.plot(jQuery('#plotarea'), [{data:[], label: "unplottable"}]);
+			throw e;
 		}
 	}
 	xsel.change(updatePlot);
