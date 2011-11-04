@@ -166,11 +166,11 @@ def humanTimesFactory(colDesc):
 				return "N/A"
 			else:
 				if isinstance(val, datetime.time):
-					return fmtStr%(val.hours, val.minutes, val.seconds)
+					return fmtStr%(val.hours, val.minutes, val.second)
 				else:
-					hours = val.seconds//3600
-					minutes = (val.seconds-hours*3600)//60
-					seconds = (val.seconds-hours*3600-minutes*60)+val.microseconds/1e6
+					hours = val.second//3600
+					minutes = (val.second-hours*3600)//60
+					seconds = (val.second-hours*3600-minutes*60)+val.microsecond/1e6
 					return fmtStr%(hours, minutes, seconds)
 		return coder
 _registerHTMLMF(humanTimesFactory)
