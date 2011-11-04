@@ -303,7 +303,7 @@ function output_setFormat(format) {
 	}
 }
 
-var output_bussedElements = Array();
+var output_bussedElements = new Array();
 
 
 function output_init() {
@@ -432,8 +432,8 @@ function output_hide(el) {
 }
 
 
-def _doLinePlot(table, xInd, yInd) {
-	var data = Array();
+function _doLinePlot(table, xInd, yInd) {
+	var data = new Array();
 	table.find('tr').each(function(index, row) {
 		var tds = $(row).children();
 		var x = parseFloat(tds[xInd].firstChild.data); 
@@ -448,18 +448,48 @@ def _doLinePlot(table, xInd, yInd) {
 }
 
 
-def _doHistogramPlot(table, colInd) {
-	var data = Array();
+function _makeHistogram(data, numBins) {
+	if (data.length<2) {
+		return new Array();
+	}
+	data.sort(function(a,b){return a-b});
+	var zp = data[0];
+	var binSize = (data[data.length-1]-zp)/numBins;
+	if (binSize==0) {
+		return [[zp, data.length]];
+	}
+
+	var histo = new Array();
+	for (var i=0; i<numBins; i++) {
+		histo.push(0);
+	}
+	for (index in data) {
+		histo[Math.floor((data[index]-zp)/binSize)]++;
+	}
+	
+	data = new Array();
+	for (index in histo) {
+		data.push([index*binSize+zp, histo[index]]);
+	}
+	return data;
+}
+
+function _doHistogramPlot(table, colInd) {
+	var data = new Array();
 	table.find('tr').each(function(index, row) {
-		var tds = $(row).children();
-		var x = parseFloat(tds[xInd].firstChild.data); 
-		var y = parseFloat(tds[yInd].firstChild.data);
+		var val = parseFloat($(row).children()[colInd].firstChild.data);
 		// check for NaNs
-		if (x==x && y==y) {
-			data.push([x, y]);
+		if (val==val) {
+			data.push(val);
 		}
 	});
-	data.sort(function(a,b){return a[0]-b[0]});
+
+	var histo = _makeHistogram(data, 20);
+	jQuery.plot(jQuery('#plotarea'), [{
+		bars: {
+			show: true,
+			barWidth: histo[0][0]-histo[1][0]},
+		data: histo}]);
 }	
 
 
@@ -489,10 +519,17 @@ function _plotUsingFlot(table) {
 	});
 	plotElement.append(xsel);
 	ysel = xsel.clone();
+	ysel.append($(
+		'<option value="Histogram" selected="selected">Histogram</option>'));
 	plotElement.append(ysel);
 
 	updatePlot = function() {
-		_doFlotPlot(table, xsel, ysel);}
+		try {
+			_doFlotPlot(table, xsel, ysel);
+		} catch (e) {
+			jQuery.plot(jQuery('#plotarea'), [{data:[], label: "unplottable"}]);
+		}
+	}
 	xsel.change(updatePlot);
 	ysel.change(updatePlot);
 
