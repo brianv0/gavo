@@ -8,4 +8,10 @@ or otherwise mainly spitting out templates with little manipulation.
 		<nullCore/>
 		<template key="fixed">//specview.html</template>
 	</service>
+
+	<service id="voplot" allowed="fixed">
+		<meta name="title">VOPlot Applet Runner</meta>
+		<nullCore/>
+		<template key="fixed">//voplot.html</template>
+	</service>
 </resource>

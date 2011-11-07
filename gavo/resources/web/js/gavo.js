@@ -153,9 +153,7 @@ function getFormQuery(form, ignoreNames) {
 		fragment = makeQueryItem(items[i]);
 		if (fragment && ignoreNames[items[i].name]==undefined) {
 			fragments.push(fragment);
-		} else {
-			window.status = "ignoring "+items[i].name;
-		}
+		} 
 	}
 	return form.getAttribute("action")+"?"+fragments.join("&");
 }
@@ -273,7 +271,7 @@ function output_verbSelector(pars) {
 		}
 	}
 	root.appendChild(sel);
-	return output_BussedElement(root, "op_verb", ["VOTable", "VOPlot", "FITS",
+	return output_BussedElement(root, "op_verb", ["VOTable", "FITS",
 		"TSV"]);
 }
 
@@ -569,7 +567,17 @@ function _plotUsingFlot(table) {
 
 function openFlotPlot(tableElement) {
 // opens a div that lets you plot some columns of tableElement
-	$.getScript("http://localhost:8080/static/js/jquery.flot.js",
+	$.getScript("/static/js/jquery.flot.js",
 		function() {_plotUsingFlot(tableElement)});
 }
 
+
+function openVOPlot() {
+	votURL = getFormQuery(
+			document.getElementById("genForm"), 
+			{'_FORMAT': 1, "_TDENC": 1})+
+		"&_FORMAT=VOTable&_TDENC=on&_VERB=H";
+	window.open(
+		'/__system__/run/voplot/fixed?source='+encodeURIComponent(votURL),
+		"_self");
+}

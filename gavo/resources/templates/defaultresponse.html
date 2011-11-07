@@ -39,10 +39,11 @@
 			<p>Matched: <n:slot name="itemsMatched"/></p>
 		</div>
 		<div class="result" n:render="ifresult">
-			<n:invisible n:render="resulttable"/>
 			<p class="plotbuttons">
 				<button onClick="openFlotPlot($('table.results'))">Quick Plot</button>
+				<button onClick="openVOPlot()">Open in VOPlot</button>
 			</p>
+			<n:invisible n:render="resulttable"/>
 		</div>
 		<div class="warning" n:render="ifnoresult">
 			<p n:render="metahtml">_noresultwarning</p>

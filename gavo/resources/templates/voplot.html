@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns:n="http://nevow.com/ns/nevow/0.1" 
+		xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>VOPlot</title>
+		<n:invisible n:render="commonhead"/>
+	</head>
+	<body>
+	<p style="width:auto;max-width:5000px">
+	<object n:render="voplotArea"
+			type="application/x-java-applet"
+			codetype="application/java-vm"
+			standby="Loading VOPlot by VO india -- please wait"
+    	style="width:100%;height:100%">
+    <param name="votablepath">
+    	<n:attr name="value" n:render="data" n:data="parameter source"/></param>
+    <p style="padding-left:2em;padding-right:2em;border:2pt solid #eecccc"
+    >VOPlot is a Java applet.  This means you have to have a
+    java virtual machine active within your browser.  A common way
+    to get this is to install a plugin, available, e.g., from
+    <a href="http://java.sun.com">java.sun.com</a>, or by installing
+    a package like openjdk-?-jre on Debian-derived systems (where ? corresponds
+    to some version).</p>
+    <p>Also, this HTML page assumes you run a post-Y2k (i.e., at least
+    HTML 4.01) standards-compliant browser.  There are plenty of those
+    out there.</p>
+  </object>
+	</p>
+	</body>
+</html>
+

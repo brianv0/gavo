@@ -174,7 +174,7 @@ class QueryMeta(dict):
 
 		try:
 			self["tdEnc"] = base.parseBooleanLiteral(args.get("_TDENC", "False"))
-		except base.ValueError:
+		except ValueError:
 			self["tdEnc"] = False
 
 		try:

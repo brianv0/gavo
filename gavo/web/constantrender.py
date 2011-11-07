@@ -71,9 +71,15 @@ class FixedPageRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 
 	The file is given in the service's fixed template.
 
-	You can fetch parameters from the URL using the parameter data function.
+	You can fetch parameters from the URL using the parameter data
+	function.
 
-	See the specview.html template as an example.
+	This is mainly for applet/browser app support; See the
+	specview.html or voplot.html templates as an example.  This is
+	the place to add further render or data function for programs
+	like those.
+
+	Services for this should go through the //run RD.
 	"""
 	name = "fixed"
 
@@ -85,6 +91,15 @@ class FixedPageRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 		except KeyError:
 			raise base.ui.logOldExc(
 				svcs.UnknownURI("fixed renderer needs a 'fixed' template"))
+
+	def render_voplotArea(self, ctx, data):
+		"""fills out the variable attributes of a voplot object with
+		stuff from config.
+		"""
+		baseURL = base.makeAbsoluteURL("/static/voplot")
+		return ctx.tag(
+			code="com.jvt.applets.PlotVOApplet",
+			archive=baseURL+"/voplot.jar")
 
 	def data_parameter(self, parName):
 		"""lets you insert an URL parameter into the template.
@@ -102,4 +117,3 @@ class FixedPageRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 	@classmethod
 	def isBrowseable(self, service):
 		return True
-

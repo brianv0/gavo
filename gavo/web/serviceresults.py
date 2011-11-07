@@ -90,63 +90,6 @@ class VOTableResult(ServiceResult):
 		return streaming.streamVOTable(request, data)
 
 
-tag_embed = T.Proto("embed")
-tag_noembed = T.Proto("noembed")
-
-
-class VOPlotResponse(rend.Page, common.CommonRenderers):
-	"""returns a page embedding the VOPlot applet.
-	"""
-	def render_voplotArea(self, ctx, data):
-		request = inevow.IRequest(ctx)
-		parameters = request.args.copy()
-		parameters[formal.FORMS_KEY] = "genForm"
-		parameters["_FORMAT"]=["VOTable"]
-		parameters["_TDENC"]=["True"]
-		return ctx.tag[tag_embed(type = "application/x-java-applet",
-				code="com.jvt.applets.PlotVOApplet",
-				codebase=base.getConfig("web", "voplotCodebase"),
-				votablepath=urlparse.urljoin(base.getConfig("web", "serverURL"),
-					request.path)+"?",
-				userguideURL=base.getConfig("web", "voplotUserman"),
-				archive="voplot.jar",
-				width="850",
-				height="650",
-				parameters=urllib.urlencode(parameters, doseq=True),
-				MAYSCRIPT="true",
-				background="#faf0e6",
-				scriptable="true",
-				pluginspage="http://java.sun.com/products/plugin"
-					"plugin-install.html")[
-					tag_noembed["You need proper Java support for VOPlot"]]]
-
-	docFactory = common.doctypedStan(T.html[
-		T.head[
-			T.title["DaCHS VOPlot"],
-			T.invisible(render=T.directive("commonhead")),
-		],
-		T.body[
-			T.div(class_="voplotarea", render=T.directive("voplotArea"),
-				style="text-align:center"),
-		]
-	])
-
-
-class VOPlotResult(ServiceResult):
-	"""A ResultFormatter that returns a VOPlot container loading the
-	current result.
-	"""
-	compute = False
-	code = "VOPlot"
-
-	@classmethod
-	def _formatOutput(cls, data, ctx):
-		return VOPlotResponse()
-
-	@classmethod
-	def getFormat(self, tableDef):
-		return base.getConfig("web", "voplotCodeBase")
-
 class FITSTableResult(ServiceResult):
 	"""returns data as a FITS binary table.
 	"""
@@ -229,7 +172,7 @@ def getFormat(formatName):
 
 
 class OutputFormat(object):
-	"""is a widget that offers various output options in close cooperation
+	"""A widget that offers various output options in close cooperation
 	with gavo.js and QueryMeta.
 
 	The javascript provides options for customizing output that non-javascript
