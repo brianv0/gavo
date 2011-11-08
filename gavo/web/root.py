@@ -322,6 +322,7 @@ class ArchiveService(rend.Page):
 
 ArchiveService.addStatic("login", makeDynamicPage(ifpages.LoginPage))
 ArchiveService.addStatic("static", ifpages.StaticServer())
+ArchiveService.addStatic("robots.txt", makeDynamicPage(ifpages.RobotsTxt))
 
 ArchiveService.addStatic('formal.css', formal.defaultCSS)
 ArchiveService.addStatic('js', formal.formsJS)

@@ -214,3 +214,11 @@ class PathResoutionTest(trialhelpers.RenderTest):
 	def testNoDefaultRenderer(self):
 		self.assertGETRaises("/data/cores/grouptest", {},
 			svcs.UnknownURI)
+
+
+class BuiltinResTest(trialhelpers.RenderTest):
+	renderer = root.ArchiveService()
+
+	def testRobotsTxt(self):
+		return self.assertGETHasStrings("/robots.txt", {},
+			['Disallow: /login'])

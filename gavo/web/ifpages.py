@@ -224,3 +224,30 @@ class StaticServer(rend.Page):
 	processors = {
 		".shtml": _replaceConfigStrings,
 	}
+
+
+class RobotsTxt(rend.Page):
+	"""A page combining some built-in robots.txt material with etc/robots.txt
+	if it exists.
+	"""
+	builtin = utils.fixIndentation("""
+		Disallow: /login
+		Disallow: /seffe
+		""", "")
+
+	def _getContent(self):
+		content = self.builtin
+		try:
+			with open(os.path.join(base.getConfig("webDir"), "robots.txt")) as f:
+				content = content+"\n"+f.read()
+		except IOError:
+			pass
+		return content
+
+	def renderHTTP(self, ctx):
+		request = inevow.IRequest(ctx)
+		request.setHeader("content-type", "text/plain")
+		return self._getContent()
+
+	def locateChild(self, segments):
+		return None
