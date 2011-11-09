@@ -1,19 +1,37 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
 	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns:n="http://nevow.com/ns/nevow/0.1" 
-		xmlns="http://www.w3.org/1999/xhtml">
+		xmlns="http://www.w3.org/1999/xhtml"
+		class="fullscreen">
 	<head>
 		<title>VOPlot</title>
 		<n:invisible n:render="commonhead"/>
+		<style type="text/css">
+			.fullscreen {
+				max-width: 6000px;
+				width:100%;
+				height:100%;
+			}
+
+			object.fullscreen {
+				padding: 1ex;
+				width:1200px;
+			}
+
+			html.fullscreen, body.fullscreen {
+				padding: 0px;
+				margin: 0px;
+			}
+		</style>
 	</head>
-	<body>
+	<body class="fullscreen">
 	<p style="width:auto;max-width:5000px;height:100%">
 	<object n:render="voplotArea"
 			type="application/x-java-applet"
 			code="com.jvt.applets.PlotVOApplet"
 			codetype="application/java-vm"
 			standby="Loading VOPlot by VO india -- please wait"
-    	style="min-width:600px;min-height:400px;width:100%;height:100%">
+    	class="fullscreen">
     <param name="votablepath">
     	<n:attr name="value" n:render="data" n:data="parameter source"/></param>
     <p style="padding-left:2em;padding-right:2em;border:2pt solid #eecccc"
