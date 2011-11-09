@@ -7,8 +7,10 @@ and there's FixedPageRenderer that just formats a defined template.
 
 import os
 
+from nevow import flat
 from nevow import inevow
 from nevow import static
+from nevow import tags as T
 
 from gavo import base
 from gavo import svcs
@@ -96,10 +98,12 @@ class FixedPageRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 		"""fills out the variable attributes of a voplot object with
 		stuff from config.
 		"""
+		# Incredibly, firefox about 2.x requires archive before code.
+		# so, we need to hack this.
 		baseURL = base.makeAbsoluteURL("/static/voplot")
-		return ctx.tag(
-			code="com.jvt.applets.PlotVOApplet",
-			archive=baseURL+"/voplot.jar")
+		res = flat.flatten(ctx.tag, ctx)
+		return T.xml(res.replace(
+			"<object", '<object archive="%s/voplot.jar"'%baseURL))
 
 	def data_parameter(self, parName):
 		"""lets you insert an URL parameter into the template.

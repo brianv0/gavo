@@ -222,3 +222,12 @@ class BuiltinResTest(trialhelpers.RenderTest):
 	def testRobotsTxt(self):
 		return self.assertGETHasStrings("/robots.txt", {},
 			['Disallow: /login'])
+
+
+class ConstantRenderTest(trialhelpers.RenderTest):
+	renderer = root.ArchiveService()
+
+	def testVOPlot(self):
+		return self.assertGETHasStrings("/__system__/run/voplot/fixed",
+			{"source": "http%3A%3A%2Ffoo%3Asentinel"}, 
+			['<object archive="http://']) # XXX TODO: votablepath is url-encoded -- that can't be right?

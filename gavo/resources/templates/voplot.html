@@ -7,12 +7,13 @@
 		<n:invisible n:render="commonhead"/>
 	</head>
 	<body>
-	<p style="width:auto;max-width:5000px">
+	<p style="width:auto;max-width:5000px;height:100%">
 	<object n:render="voplotArea"
 			type="application/x-java-applet"
+			code="com.jvt.applets.PlotVOApplet"
 			codetype="application/java-vm"
 			standby="Loading VOPlot by VO india -- please wait"
-    	style="width:100%;height:100%">
+    	style="min-width:600px;min-height:400px;width:100%;height:100%">
     <param name="votablepath">
     	<n:attr name="value" n:render="data" n:data="parameter source"/></param>
     <p style="padding-left:2em;padding-right:2em;border:2pt solid #eecccc"
@@ -27,6 +28,10 @@
     out there.</p>
   </object>
 	</p>
+	 <p><em>If neither applet nor fallback content appears above, your browser's
+  java support is broken.</em></p>
+  <p>VOPlot is developed by <a href="http://www.persistentsys.com/">Persistent Systems</a> in cooperation with <a href="http://vo.iucaa.ernet.in/~voi">VO india</a>.
+  Standalone versions and user guides are available at <a href="http://vo.iucaa.ernet.in/~voi/voplot.htm">VO India's VOPlot page</a>.</p>
 	</body>
 </html>
 
