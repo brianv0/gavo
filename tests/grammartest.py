@@ -15,6 +15,7 @@ from gavo import rsc
 from gavo import rscdef
 from gavo.grammars import binarygrammar
 from gavo.grammars import columngrammar
+from gavo.grammars import fitsprodgrammar
 
 
 
@@ -327,7 +328,41 @@ class BinaryGrammarTest(testhelpers.VerboseTest):
 		self.assertEqual(
 			list(grammar.parse(inputFile)),
 			self.plainExpectedResult)
+
+
+class FITSProdGrammarTest(testhelpers.VerboseTest):
+
+	sample = os.path.join(base.getConfig("inputsDir"), "data", "ex.fits")
+	grammarT = fitsprodgrammar.FITSProdGrammar
+
+	def _getParse(self, grammarDef):
+		grammar = base.parseFromString(self.grammarT, grammarDef)
+		return list(grammar.parse(self.sample))[0]
+
+	def _assertBasicFieldsPresent(self, d):
+		self.assertEqual(len(d), 103)
+		self.assertEqual(d["EXTEND"], True)
+		self.assertEqual(d["OBSERVER"], "M.Wolf")
+		self.assertEqual(d["LATPOLE"], 0.0)
+		self.failUnless("PLATE_ID" in d)
+
+	def testBasic(self):
+		self._assertBasicFieldsPresent(
+			self._getParse("""<fitsProdGrammar qnd="False"/>"""))
+
+	def testBasicQnD(self):
+		self._assertBasicFieldsPresent(
+			self._getParse("""<fitsProdGrammar/>"""))
+
+	def testNameMapping(self):
+		d = self._getParse("""<fitsProdGrammar><mapKeys><map
+			dest="blind">EXPTIME</map></mapKeys></fitsProdGrammar>""")
+		self.assertEqual(d["blind"], '10801')
 	
-	
+	def testHDUsField(self):
+		d = self._getParse("""<fitsProdGrammar hdusField="__HDUS"/>""")
+		self.assertEqual(d["__HDUS"][0].data[0][0], 7896.0)
+
+
 if __name__=="__main__":
-	testhelpers.main(SequencedRowfilterTest)
+	testhelpers.main(FITSProdGrammarTest)

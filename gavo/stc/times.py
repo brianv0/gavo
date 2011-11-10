@@ -22,12 +22,14 @@ def parseISODT(value):
 		raise STCLiteralError(unicode(ex), value)
 
 
+@utils.document
 def jdnToDateTime(jd):
 	"""returns a datetime.datetime instance for a julian day number.
 	"""
 	return jYearToDateTime((jd-2451545.0)/365.25+2000.0)
 
 
+@utils.document
 def mjdToDateTime(mjd):
 	"""returns a datetime.datetime instance for a modified julian day number.
 
@@ -46,6 +48,7 @@ def bYearToDateTime(bYear):
 	return jdnToDateTime(jdn)
 
 
+@utils.document
 def jYearToDateTime(jYear):
 	"""returns a datetime.datetime instance for a fractional (julian) year.
 	
@@ -75,7 +78,7 @@ def dateTimeToJdn(dt):
 
 @utils.document
 def dateTimeToMJD(dt):
-	"""returns a modified mjd for a datetime instance.
+	"""returns a modified julian date for a datetime instance.
 	"""
 	return dateTimeToJdn(dt)-2400000.5
 
@@ -100,11 +103,13 @@ def getSeconds(td):
 
 _TDTminusTAI = datetime.timedelta(seconds=32.184)
 
+@utils.document
 def TTtoTAI(tdt):
 	"""returns TAI for a (datetime.datetime) TDT.
 	"""
 	return tdt+_TDTminusTAI
 
+@utils.document
 def TAItoTT(tai):
 	"""returns TAI for a (datetime.datetime) TDT.
 	"""

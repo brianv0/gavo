@@ -236,7 +236,7 @@
 			verbLevel="25" unit="m"
 			description="Statistical error in wavelength">\statSpectError</param>
 		<param name="ssa_sysError"
-			utype="ssa:Char.SpectralAxis.Accuracy.StatError" ucd="stat.error.sys;em"
+			utype="ssa:Char.SpectralAxis.Accuracy.SysError" ucd="stat.error.sys;em"
 			verbLevel="25" unit="m"
 			description="Systematic error in wavelength">\sysSpectError</param>
 		<param name="ssa_speccalib" type="text"
@@ -301,50 +301,60 @@
 		<setup>
 			<par key="dstitle" late="True" description="a title for the data set
 				(e.g., instrument, filter, target in some short form; must be filled
-				in)"/>
+				in); ssa:DataID.Title"/>
 			<par key="creatorDID" late="True" description="id given by the
-				creator (leave out if not applicable)">None</par>
+				creator (leave out if not applicable); ssa:DataID.CreatorDID"
+				>None</par>
 			<par key="pubDID" late="True" description="Id provided by the
-				publisher (i.e., you); this is an opaque string and must be given"/>
+				publisher (i.e., you); this is an opaque string and must be given;
+				ssa:Curation.PublisherDID"/>
 			<par key="cdate" late="True" description="date the file was
 				created (or processed; optional); this must be either a string
-				in ISO format, or you need to parse to a timestamp yourself.">None</par>
+				in ISO format, or you need to parse to a timestamp yourself; 
+				ssa:DataID.Date">None</par>
 			<par key="pdate" late="True" description="date the file was
-				last published (in general, the default is fine)"
+				last published (in general, the default is fine); ssa:Curation.Date"
 				>datetime.datetime.utcnow()</par>
 			<par key="bandpass" late="True" description="bandpass (i.e., rough
-				spectral location) of this dataset">None</par>
-			<par key="cversion" late="True" description="creator assigned version 
-				for this file (should be incremented when it is changed)."
+				spectral location) of this dataset; ssa:DataID.Bandpass"
 				>None</par>
+			<par key="cversion" late="True" description="creator assigned version 
+				for this file (should be incremented when it is changed); 
+				ssa:DataID.Version">None</par>
 			<par key="targname" late="True" description="common name of 
-				the object observed.">None</par>
+				the object observed; ssa:Target.Name">None</par>
 			<par key="targclass" late="True" description="object class (star,
-				QSO,...)">None</par>
-			<par key="redshift" late="True" description="source redshift">
-				None</par>
+				QSO,...); ssa:Target.Class">None</par>
+			<par key="redshift" late="True" description="source redshift; 
+				ssa:Target.Redshift">None</par>
 			<par key="snr" late="True" description="signal-to-noise ratio 
-				estimated for this dataset">None</par>
+				estimated for this dataset; ssa:Derived.SNR">None</par>
 			<par key="alpha" late="True" description="right ascension of target
-				(ICRS degrees)" >None</par>
+				(ICRS degrees); ssa:Char.SpatialAxis.Coverage.Location.Value.C1"
+				>None</par>
 			<par key="delta" late="True" description="declination of target
-				(ICRS degrees)">None</par>
+				(ICRS degrees); ssa:Char.SpatialAxis.Coverage.Location.Value.C2"
+				>None</par>
 			<par key="aperture" late="True" description="angular diameter of
-				aperture (expected in degrees)">None</par>
+				aperture (expected in degrees);
+				ssa:Char.SpatialAxis.Coverage.Bounds.Extent">None</par>
 			<par key="dateObs" late="True" description="observation midpoint
 				(datetime or iso format)">None</par>
 			<par key="timeExt" late="True" description="exposure time
-				(in seconds)">None</par>
+				(in seconds); ssa:Char.TimeAxis.Coverage.Bounds.Extent">None</par>
 			<par key="specmid" late="True" description="central wavelength
-				(in meters)">None</par>
+				(in meters); ssa:Char.SpectralAxis.Coverage.Location.Value">None</par>
 			<par key="specext" late="True" description="width of bandpass
-				(in meters of wavelength)">None</par>
+				(in meters of wavelength); 
+				ssa:Char.SpectralAxis.Coverage.Bounds.Extent">None</par>
 			<par key="specstart" late="True" description="lower bound of
-				wavelength interval (in meters)">None</par>
+				wavelength interval (in meters);
+				ssa:Char.SpectralAxis.Coverage.Bounds.Start">None</par>
 			<par key="specend" late="True" description="upper bound of
-				wavelength interval (in meters)">None</par>
-			<par key="length" late="True" description="Number of sample
-				in the spectrum">None</par>
+				wavelength interval (in meters);
+				ssa:Char.SpectralAxis.Coverage.Bounds.Stop">None</par>
+			<par key="length" late="True" description="Number of samples
+				in the spectrum; ssa:Dataset.Length">None</par>
 			<code>
 				copiedKWs = ['dstitle', 'creatorDID', 'pubDID', 'cdate', 
 					'pdate', 'bandpass', 'cversion', 'targname', 'targclass', 
@@ -369,7 +379,7 @@
 		<doc><![CDATA[
 			This mixin is for "homogeneous" data collections, where homogeneous
 			means that all values in hcd_outpars are constant for all datasets
-			in the collection.  This is usually the case if they call come
+			in the collection.  This is usually the case if they all come
 			from one instrument.
 
 			Rowmakers for tables using this mixin should use the `//ssap#setMeta`_
@@ -383,55 +393,64 @@
 					<bind name="table">"mySchema.myTableName"</bind>
 				</rowfilter>
 		]]></doc>
-		<mixinPar key="timeSI" description="Time unit (WCS convention)"
-			>s</mixinPar>
+		<mixinPar key="timeSI" description="Time unit (WCS convention);
+			ssa:DataSet.TimeSI">s</mixinPar>
 		<mixinPar key="fluxSI" description="Flux unit in the spectrum
 			instance (not the SSA metadata); use a blank (or a percent) for
-			relative or uncalibrated fluxes."/>
+			relative or uncalibrated fluxes; ssa:Dataset.FluxSI"/>
 		<mixinPar key="spectralSI" description="Unit of frequency or 
-			wavelength in the spectrum instance (not the SSA metadata)"/>
-		<mixinPar key="creator" description="Creator designation"
-			>__NULL__</mixinPar>
+			wavelength in the spectrum instance (not the SSA metadata);
+			ssa:Dataset.SpectralSI"/>
+		<mixinPar key="creator" description="Creator designation;
+			ssa:DataID.Creator">__NULL__</mixinPar>
 		<mixinPar key="publisher" description="Publisher IVO (by default
-			 taken from the DC config)">\metaString{publisherID}</mixinPar>
+			 taken from the DC config); ssa:Curation.Publisher"
+			 >\metaString{publisherID}</mixinPar>
 		<mixinPar key="instrument" description="Instrument or code used to produce
-			these datasets">__NULL__</mixinPar>
+			these datasets; ssa:DataID.Instrument">__NULL__</mixinPar>
 		<mixinPar key="dataSource" description="Generation type (typically, one
-			survey, pointed, theory, custom, artificial)">__NULL__</mixinPar>
+			survey, pointed, theory, custom, artificial); ssa:DataID.DataSource"
+			>__NULL__</mixinPar>
 		<mixinPar key="creationType" description="Process used to
 			produce the data (zero or more of archival, cutout, filtered, 
-			mosaic, projection, spectralExtraction, catalogExtraction)"
-			>__NULL__</mixinPar>
+			mosaic, projection, spectralExtraction, catalogExtraction); 
+			ssa:DataID.CreationType">__NULL__</mixinPar>
 		<mixinPar key="reference" description="URL or bibcode of a 
-			publication describing this data.">__NULL__</mixinPar>
-		<mixinPar key="statFluxError" description="Statistical error in flux"
+			publication describing this data; ssa:Curation.Reference"
 			>__NULL__</mixinPar>
-		<mixinPar key="sysFluxError" description="Systematic error in flux"
+		<mixinPar key="statFluxError" description="Statistical error in flux;
+			ssa:Char.FluxAxis.Accuracy.StatError"
+			>__NULL__</mixinPar>
+		<mixinPar key="sysFluxError" description="Systematic error in flux;
+			ssa:Char.FluxAxis.Accuracy.SysError"
 			>__NULL__</mixinPar>
 		<mixinPar key="fluxCalibration" description="Type of flux calibration
-			(one of ABSOLUTE, RELATIVE, NORMALIZED, or UNCALIBRATED)"/>
+			(one of ABSOLUTE, RELATIVE, NORMALIZED, or UNCALIBRATED);
+			ssa:Char.FluxAxis.Calibration"/>
 		<mixinPar key="statSpectError" 
-			description="Statistical error in wavelength">__NULL__</mixinPar>
-		<mixinPar key="sysSpectError" description="Systematic error in wavelength"
+			description="Statistical error in wavelength; 
+			ssa:Char.SpectralAxis.Accuracy.StatError">__NULL__</mixinPar>
+		<mixinPar key="sysSpectError" description="Systematic error in wavelength;
+			ssa:Char.SpectralAxis.Accuracy.SysError"
 			>__NULL__</mixinPar>
 		<mixinPar key="spectralCalibration" description="Type of wavelength 
-			Calibration (one of ABSOLUTE, RELATIVE, NORMALIZED, or UNCALIBRATED)"
-			>__NULL__</mixinPar>
-
-		<mixinPar key="statSpaceError" description="Statistical error in position"
+			Calibration (one of ABSOLUTE, RELATIVE, NORMALIZED, or UNCALIBRATED);
+			ssa:Char.SpectralAxis.Calibration">__NULL__</mixinPar>
+		<mixinPar key="statSpaceError" description="Statistical error in position;
+			ssa:Char.SpatialAxis.Accuracy.StatError"
 			>__NULL__</mixinPar>
 		<mixinPar key="collection" description="ivo id of the originating
-			collection">__NULL__</mixinPar>
+			collection; ssa:DataID.Collection">__NULL__</mixinPar>
 		<mixinPar key="spectralUCD" description="ucd of the spectral column, like
-			em.freq or em.energy; default is wavelength"
+			em.freq or em.energy; default is wavelength; ssa:Char.SpectralAxis.Ucd"
 			>em.wl</mixinPar>
 		<mixinPar key="fluxUCD" description="ucd of the flux column, like
 			phot.count, phot.flux.density, etc.  Default is for flux over
-			wavelength.">phot.flux.density;em.wl</mixinPar>
-
+			wavelength; ssa:Char.FluxAxis.Ucd">phot.flux.density;em.wl</mixinPar>
 		<mixinPar key="spectralResolution" 
 			description="Resolution on the spectral axis; you must give this here
-			as wavelength in meters; approximate as necessary.">NaN</mixinPar>
+			as wavelength in meters; approximate as necessary; 
+			ssa:Char.SpectralAxis.Resolution">NaN</mixinPar>
 
 		<FEED source="//products#hackProductsData"/>
 		<events>

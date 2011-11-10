@@ -38,7 +38,9 @@ class FITSProdIterator(RowIterator):
 			except ValueError:
 				self._hackBotchedCard(card, res)
 		res["parser_"] = self
-		return res
+		if self.grammar.hdusField:
+			res[self.grammar.hdusField] = fitstools.openFits(self.sourceToken)
+		return self.grammar.mapKeys.doMap(res)
 	
 	def _parseFast(self):
 		fName = self.sourceToken
@@ -48,16 +50,14 @@ class FITSProdIterator(RowIterator):
 			f = open(fName)
 		header = fitstools.readPrimaryHeaderQuick(f)
 		f.close()
-		row = self._buildDictFromHeader(header)
-		yield self.grammar.mapKeys.doMap(row)
+		yield self._buildDictFromHeader(header)
 
 	def _parseSlow(self):
 		fName = self.sourceToken
 		hdus = fitstools.openFits(fName)
 		header = hdus[int(self.grammar.hdu)].header
 		hdus.close()
-		row = self._buildDictFromHeader(header)
-		yield self.grammar.mapKeys.doMap(row)
+		yield self._buildDictFromHeader(header)
 	
 	def getLocator(self):
 		return self.sourceToken
@@ -66,8 +66,16 @@ class FITSProdIterator(RowIterator):
 class FITSProdGrammar(Grammar):
 	"""A grammar that returns FITS-headers as dictionaries.
 
-	This is the grammar you want for FITS images, spectra delivered as 1D
-	images (as opposed to in FITS binary tables) and such.
+	This is the grammar you want when one FITS file corresponds to one
+	row in the destination table.
+
+	The keywords of the grammar record are the cards in the primary
+	header (or some other hdu using the same-named attribute).  
+	
+	If you have more complex structures in your FITS files, you can get access
+	to the pyfits HDU using the hdusField attribute.  With
+	``hdusField="_H"``, you could say things like ``@H[1].data[10][0]``
+	to get the first data item in the tenth row in the second HDU.
 	"""
 	name_ = "fitsProdGrammar"
 
@@ -77,7 +85,11 @@ class FITSProdGrammar(Grammar):
 	_hduIndex = base.IntAttribute("hdu", default=0,
 		description="Take the header from this HDU")
 	_mapKeys = base.StructAttribute("mapKeys", childFactory=MapKeys,
-		default=None, copyable=True)
+		default=None, copyable=True, description="Prescription for how to"
+		" map header keys to grammar dictionary keys")
+	_hdusAttr = base.UnicodeAttribute("hdusField", default=None,
+		description="If set, the complete pyfits HDU list for the FITS"
+		" file is returned in this grammar field.", copyable="True")
 
 	rowIterator = FITSProdIterator
 

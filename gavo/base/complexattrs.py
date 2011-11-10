@@ -191,9 +191,9 @@ class DictAttribute(attrdef.AttributeDef):
 			expl = "the key is the element content, the value is in the %s attribute"
 		else:
 			expl = "the value is the element content, the key is in the %s attribute"
-		expl = expl%self.itemAttD.name_
+		expl = expl%self.keyName
 		return "**%s** (mapping; %s) -- %s"%(
-			 expl, self.keyName, self.description_)
+			 self.xmlName_, expl, self.description_)
 
 
 class PropertyAttribute(DictAttribute):
