@@ -14,6 +14,34 @@ from gavo.protocols import tap
 from gavo import user
 
 
+def getDDsToImportDefault(rd):
+	"""returns all "auto"-DDs in rd.
+
+	This is used to obtain the list of dds to process when the user has
+	not passed an explicit list of ids.
+	"""
+	res = []
+	for dd in rd.dds:
+		if dd.auto:
+			res.append(dd)
+	return res
+
+
+def getDDsToImportManual(rd, ddsToImport):
+	"""returns the dds from RD selected by the list of ids in ddsToImport.
+	"""
+	res = []
+	ddDict = dict((dd.id, dd) for dd in rd.dds)
+	for ddId in ddsToImport:
+		if ddId not in ddDict:
+			raise base.ReportableError(
+				"The DD '%s' you are trying to import is not defined within"
+				" the RD '%s'."%(ddId, rd.sourceId),
+				hint="Data elements available in %s include %s"%(rd.sourceId,
+					", ".join(ddDict) or '(None)'))
+		res.append(ddDict[ddId])
+	return res
+
 def process(opts, args):
 	"""imports the data set described by args governed by opts.
 
@@ -31,6 +59,22 @@ def process(opts, args):
 			"Only RDs from below inputsDir may be imported.",
 			hint="Your current configuration (from /etc/gavo.rc or ~/.gavorc)"
 			" makes %s the inputsDir"%base.getConfig("inputsDir"))
+
+	if ddIds:
+		dds = getDDsToImportManual(rd, ddIds)
+	else:
+		dds = getDDsToImportDefault(rd)
+	if not dds:
+		if not rd.dds:
+			hint = ("There is no data element in your RD.  This is almost"
+			 " never what you want (see the tutorial)")
+		else:
+			hint = ("All data elements have auto=False.  You have to"
+				" explicitely name one or more data to import (names"
+				" available: %s)"%(", ".join(dd.id or "(anon)" for dd in rd.dds)))
+		raise base.ReportableError(
+			"Neither automatic not manual data selected from RD %s "%rd.sourceId,
+			hint=hint)
 
 	connection = base.getDBConnection("admin")
 	tap.unpublishFromTAP(rd, connection)

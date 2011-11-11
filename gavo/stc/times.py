@@ -39,6 +39,7 @@ def mjdToDateTime(mjd):
 	return jdnToDateTime(mjd+2400000.5)
 
 
+@utils.document
 def bYearToDateTime(bYear):
 	"""returns a datetime.datetime instance for a fractional Besselian year.
 
@@ -86,6 +87,7 @@ def dateTimeToBYear(dt):
 	return (dateTimeToJdn(dt)-2415020.31352)/tropicalYear+1900.0
 
 
+@utils.document
 def dateTimeToJYear(dt):
 	"""returns a fractional (julian) year for a datetime.datetime instance.
 	"""

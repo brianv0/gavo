@@ -10,6 +10,7 @@ from gavo.helpers import testhelpers
 
 from gavo import base
 from gavo.base import events
+from gavo.helpers import testtricks
 from gavo.user import cli
 
 
@@ -157,6 +158,38 @@ class CLITest(testhelpers.VerboseTest):
 					[(1,)])
 		finally:
 			self.assertOutput(cli.main, argList=["purge", "test.adql"])
+
+	def testNoDataImpError(self):
+		with testtricks.testFile(
+				os.path.join(base.getConfig("inputsDir"), "empty.rd"),
+				"""<resource schema="test"><table id="foo"/></resource>"""):
+			self.assertOutput(cli.main, argList=["--hints", "imp", "empty"],
+				expectedRetcode=1, expectedStderr='*** Error: Neither automatic'
+					" not manual data selected from RD empty\nHint: There is no"
+					" data element in your RD.  This is almost never what\nyou want"
+					' (see the tutorial)\n')
+
+	def testNonExistingDataImpError(self):
+		with testtricks.testFile(
+				os.path.join(base.getConfig("inputsDir"), "empty.rd"),
+				"""<resource schema="test"><table id="foo"/></resource>"""):
+			self.assertOutput(cli.main, argList=["--hints", "imp", "empty", "foo"],
+				expectedRetcode=1, expectedStderr="*** Error: The DD 'foo'"
+					" you are trying to import is not defined within\nthe RD"
+					" 'empty'.\nHint: Data elements available in empty include (None)\n")
+
+	def testNoAutoDataImpError(self):
+		with testtricks.testFile(
+				os.path.join(base.getConfig("inputsDir"), "empty.rd"),
+				"""<resource schema="test"><table id="foo"/>
+				<data auto="False" id="x"><make table="foo"/></data>
+				<data auto="False" id="y"><make table="foo"/></data>
+				</resource>"""):
+			self.assertOutput(cli.main, argList=["--hints", "imp", "empty"],
+				expectedRetcode=1, expectedStderr='*** Error: Neither automatic'
+					' not manual data selected from RD empty\nHint: All data'
+					' elements have auto=False.  You have to explicitely name\none'
+					' or more data to import (names available: x, y)\n')
 
 
 if __name__=="__main__":

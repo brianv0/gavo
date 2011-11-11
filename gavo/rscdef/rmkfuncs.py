@@ -22,8 +22,8 @@ from gavo import utils
 from gavo.base import coords, parseBooleanLiteral, parseInt, sqlmunge
 from gavo.base.literals import *
 from gavo.stc import parseSimpleSTCS
-from gavo.stc.times import (dateTimeToJdn, dateTimeToMJD, jdnToDateTime,
-	mjdToDateTime, TTtoTAI, TAItoTT)
+from gavo.stc.times import (dateTimeToJdn, dateTimeToMJD, dateTimeToJYear,
+	bYearToDateTime, jdnToDateTime, mjdToDateTime, TTtoTAI, TAItoTT)
 from gavo.utils import codetricks
 from gavo.utils import dmsToDeg, hmsToDeg, DEG
 from gavo.utils import pgsphere
