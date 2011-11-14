@@ -274,6 +274,18 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 		new.sourceId = self.sourceId
 		return new
 
+	def macro_RSTccby(self, stuffDesignation):
+		"""expands to a declaration that stuffDesignation is available under
+		CC-BY.
+		
+		This only works in reStructured text (though it's still almost
+		readable as source).
+		"""
+		return ("%s is licensed under the `Creative Commons Attribution 3.0"
+			" License <http://creativecommons.org/licenses/by/3.0/>`_\n\n"
+			".. image:: /static/img/ccby.png\n\n"
+			)%stuffDesignation
+
 
 class RDParseContext(base.ParseContext):
 	"""is a parse context for RDs.

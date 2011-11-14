@@ -173,7 +173,19 @@ class StandardMacroMixin(MacroPackage):
 		"""the schema of the current resource descriptor.
 		"""
 		return self.rd.schema
-	
+
+	def macro_RSTccby(self, stuffDesignation):
+		"""expands to a declaration that stuffDesignation is available under
+		CC-BY.
+		
+		This only works in reStructured text (though it's still almost
+		readable as source).
+		"""
+		return ("%s is licensed under the `Creative Commons Attribution 3.0"
+			" License <http://creativecommons.org/licenses/by/3.0/>`_\n\n"
+			".. image:: /static/img/ccby.png\n\n"
+			)%stuffDesignation
+
 	def macro_RSTservicelink(self, serviceId, title=None):
 		"""a link to an internal service; id is <rdId>/<serviceId>/<renderer>,
 		title, if given, is the anchor text.
