@@ -36,7 +36,6 @@ from gavo.protocols import adqlglue
 from gavo.protocols import tap
 from gavo.protocols import uws
 
-base.DEBUG = False
 
 # The following would point to executors for other languages at some point.
 SUPPORTED_LANGS = {
@@ -315,6 +314,7 @@ def main():
 	# main, a job that may have been created will remain QUEUED forever.
 	# There's little we can do about that, though, since we cannot put
 	# a job into ERROR when we don't know its id or cannot get it from the DB.
+	base.DEBUG = False
 	opts, jobId = parseCommandLine()
 	setINTHandler(jobId)
 	try:

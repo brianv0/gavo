@@ -317,13 +317,27 @@ def silence():
 
 
 @contextlib.contextmanager
+def in_dir(destDir):
+	"""executes the controlled block within destDir and then returns
+	to the previous directory.
+
+	Think "within dir".  Haha.
+	"""
+	owd = os.getcwd()
+	os.chdir(destDir)
+	try:
+		yield owd
+	finally:
+		os.chdir(owd)
+
+
+@contextlib.contextmanager
 def sandbox(tmpdir=None, debug=False):
 	"""sets up and tears down a sandbox directory within tmpdir.
 
-	This is supposed to be used as a context manager.  The object
-	returned is the original path (which allows you to copy stuff from
-	there).  The working directory is the sandbox created while
-	in the controlled block.
+	This is is a context manager.  The object returned is the original path
+	(which allows you to copy stuff from there).  The working directory is the
+	sandbox created while in the controlled block.
 
 	If tmpdir is None, the *system* default is used (usually /tmp), rather
 	than dachs' tmpdir.  So, you will ususally want to call this as

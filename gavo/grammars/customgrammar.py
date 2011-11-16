@@ -33,8 +33,7 @@ def getModuleName():
 class CustomGrammar(common.Grammar, base.RestrictionMixin):
 	"""A Grammar with a user-defined row iterator taken from a module.
 
-	See the separate document on user code in the DC on how to define custom
-	grammars.
+	See the `Writing Custom Grammars`_ for details.
 	"""
 #	To save on time when initializing the grammar (which happens at
 #	RD parsing time), we delay initializing the user grammar to when

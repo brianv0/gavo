@@ -125,7 +125,8 @@ def raiseAndCatch(opts=None, output=outputError):
 		if hasattr(msg, "excRow"):
 			messages.append("Snafu in %s, %s\n"%(msg.excRow, msg.excCol))
 			messages.append("")
-		messages.append("Oops.  Unhandled exception %s.\n"%unicode(msg))
+		messages.append("Oops.  Unhandled exception %s.\n"%msg.__class__.__name__)
+		messages.append("Exception payload: %s"%unicode(msg))
 		if getattr(opts, "enablePDB", False):
 			raise
 		else:

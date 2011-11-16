@@ -178,7 +178,10 @@ def getFortranRec(f):
 
 	If the two length specs do not match, a ValueError is raised.
 	"""
-	startPos = f.tell()
+	try:
+		startPos = f.tell()
+	except IOError:
+		startPos = "(stdin)"
 	rawLength = f.read(4)
 	if rawLength=='': # EOF
 		return None
@@ -186,7 +189,7 @@ def getFortranRec(f):
 	data = f.read(recLen)
 	rawPost = f.read(4)
 	if not rawPost:
-		raise ValueError("Record starting at %s has not postamble"%startPos)
+		raise ValueError("Record starting at %s has no postamble"%startPos)
 	postambleLen = struct.unpack("i", rawPost)[0]
 	if recLen!=postambleLen:
 		raise ValueError("Record length at record (%d) and did not match"
