@@ -354,8 +354,6 @@ class STCTest(testhelpers.VerboseTest):
 		self.failUnless(tdc.getColumnByName("bbox").stc is
 			td.getColumnByName("bbox").stc)
 
-# test exc. with duplicate names.
-
 
 class _ParamTD(testhelpers.TestResource):
 	def make(self, ignored):

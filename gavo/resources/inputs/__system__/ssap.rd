@@ -8,15 +8,13 @@
 		
 		There is only minimal CoordSys metadata here; we assume 
 		such information is conveyed via STC groups anyway.  If that
-		should turn out to be not sufficient, we'll think again.
+		should turn out to be not sufficient, we'll think again. -->
+
 		<stc>Time TT "ssa_dateObs" Size "ssa_timeExt" 
 			Position ICRS [ssa_location] Size "ssa_aperture" "ssa_aperture"
 			SpectralInterval "ssa_specstart" "ssa_specend"
 				Spectral "ssa_specmid" Size "ssa_specext"</stc>
 		
-		TROUBLE: This is bad stc for us since you're not allowed to
-		reference a column twice in STC.  Check that at some point.
-		-->
 		<FEED source="//products#tablecols">
 			<EDIT ref="column[accref]" utype="ssa:Access.Reference"
 				ucd="meta.ref.url;meta.dataset"/>
@@ -276,7 +274,6 @@
 	<table id="instance" onDisk="False">
 		<meta name="description">A sample of SSA fields for referencing and such.
 		</meta>
-		<FEED source="base_columns"/>
 		<FEED source="hcd_fields"/>
 		<FEED source="hcd_outpars" timeSI="junk" fluxSI="junk"
 			publisher="junk" creator="junk" collection="junk"
