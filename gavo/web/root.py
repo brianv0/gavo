@@ -28,7 +28,6 @@ from gavo.web import caching
 from gavo.web import common
 from gavo.web import grend
 from gavo.web import ifpages
-from gavo.web import lowlevel
 from gavo.web import weberrors
 
 from gavo.svcs import (Error, UnknownURI, ForbiddenURI, 
