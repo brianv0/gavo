@@ -634,6 +634,31 @@ def _initPsycopg(conn):
 	_PSYCOPG_INITED = True
 
 
+class CustomConnectionPool(psycopg2.pool.ThreadedConnectionPool):
+	"""A threaded connection pool that returns trustedquery connections.
+	"""
+	def __init__(self, minconn, maxconn):
+# make sure no additional arguments come in, since we don't
+# support them.
+		psycopg2.pool.ThreadedConnectionPool.__init__(
+			self, minconn, maxconn)
+
+	def _connect(self, key=None):
+		"""creates a new trustedquery connection and assigns it to
+		key if not None.
+
+		This is an implementation detail of psycopg2's connection
+		pools.
+		"""
+		conn = getDBConnection("trustedquery")
+		if key is not None:
+			self._used[key] = conn
+			self._rused[id(conn)] = key
+		else:
+			self._pool.append(conn)
+		return conn
+
+
 _TQ_POOL = None
 
 @contextlib.contextmanager
@@ -646,13 +671,13 @@ def getTableConn():
 	# profile may not yet exist during sqlsupport import.
 	global _TQ_POOL
 	if _TQ_POOL is None:
-		_TQ_POOL = psycopg2.pool.ThreadedConnectionPool(1, 400, 
-			**config.getDBProfileByName("trustedquery").getArgs())
+		_TQ_POOL = CustomConnectionPool(1, 400)
 	conn = _TQ_POOL.getconn()
 
 	# self-healing on database restart (the first query through a reset 
-	# connection, but at least subsequent queries succeed again).
+	# connection dies, but at least subsequent queries succeed again).
 	while conn.closed:
+		_TQ_POOL.putconn(conn, close=True)
 		conn = _TQ_POOL.getconn()
 
 	try:
