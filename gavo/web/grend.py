@@ -18,6 +18,7 @@ from nevow import util as nevowutil
 from twisted.internet import defer
 from twisted.internet import threads
 from twisted.python import failure
+from twisted.python import log
 from zope.interface import implements
 
 from gavo import base
@@ -409,6 +410,41 @@ class ResourceBasedPage(rend.Page, GavoRenderMixin):
 		return lambda ctx, data: base.makeSitePath("/browse/%s"%self.rd.sourceId)
 
 
+_IGNORED_KEYS = set(["__nevow_form__", "_charset_", "submit"])
+
+def _formatRequestArgs(args):
+	r"""formats nevow request args for logging.
+
+	Basically, long objects (ones with len, and len>100) are truncated.
+
+	>>> _formatRequestArgs({"x": range(2), "y": [u"\u3020"], "submit": ["Ok"]})
+	"{'x': [0,1,],'y': [u'\\u3020',],}"
+	>>> _formatRequestArgs({"hokus": ["Pokus"*300]})
+	"{'hokus': [<data starting with PokusPokusPokusPokusPokusPokus>,],}"
+	>>> _formatRequestArgs({"no": []})
+	'{}'
+	"""
+	res = ["{"]
+	for key in sorted(args):
+		valList = args[key]
+		if not valList or key in _IGNORED_KEYS:
+			continue
+		res.append("%s: ["%repr(key))
+		for value in valList:
+			try:
+				if len(value)>100:
+					res.append("<data starting with %s>,"%value[:30])
+				else:
+					res.append(repr(value)+",")
+			except TypeError:  # no len on value
+				res.append(repr(value)+",")
+		res.append("],")
+	res.append("}")
+	return "".join(res)
+
+
+
+
 class ServiceBasedPage(ResourceBasedPage):
 	"""the base class for renderers turning service-based info into
 	character streams.
@@ -430,8 +466,8 @@ class ServiceBasedPage(ResourceBasedPage):
 		ResourceBasedPage.__init__(self, ctx, service.rd)
 
 		self.service = service
+		request = inevow.IRequest(ctx)
 		if service.limitTo:
-			request = inevow.IRequest(ctx)
 			if not creds.hasCredentials(request.getUser(), request.getPassword(),
 					service.limitTo):
 				raise svcs.Authenticate(base.getConfig("web", "realm"))
@@ -445,6 +481,13 @@ class ServiceBasedPage(ResourceBasedPage):
 
 		# Set to true when we notice we need to fix the service's output fields
 		self.fieldsChanged = False 
+
+		try:
+			log.msg("# Processing starts: %s %s"%(request.path, 
+				_formatRequestArgs(request.args)))
+		except: # don't fail because of logging problems
+			base.ui.notifyError("Formatting of request args failed.")
+
 
 	def processData(self, rawData, queryMeta):
 		return self.service.runWithData(self, rawData, queryMeta)
@@ -494,3 +537,8 @@ class ServiceBasedPage(ResourceBasedPage):
 
 	def renderHTTP(self, ctx):
 		return rend.Page.renderHTTP(self, ctx)
+
+
+if __name__=="__main__":
+	import doctest, grend
+	doctest.testmod(grend)

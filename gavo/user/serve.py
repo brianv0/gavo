@@ -175,7 +175,7 @@ def _startServer():
 			" other server is already taking up this port; you may want to change"
 			" the [web] serverPort setting in that case.")
 	_dropPrivileges()
-	_configureTwistedLog()
+	root.site.webLog = _configureTwistedLog()
 	
 	PIDManager.setPID()
 	try:
