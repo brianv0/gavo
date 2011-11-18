@@ -122,7 +122,19 @@ class DebugConnection(psycopg2.extensions.connection):
 		return psycopg2.extensions.connection.cursor(self, *args, **kwargs)
 
 
+class GAVOConnection(psycopg2.extensions.connection):
+	"""A standard psycopg2 connection.
+
+	This derivation is just done so we can attach the getDBConnection
+	arguments to the connection; it is used when recovering from
+	a database restart.
+	"""
+
 def getDBConnection(profile, debug=debug, autocommitted=False):
+	"""returns a slightly instrumented connection through profile.
+
+	For the standard table connection, there's a pool of those below.
+	"""
 	if isinstance(profile, basestring):
 		profile = config.getDBProfileByName(profile)
 	elif profile is None:
@@ -138,7 +150,8 @@ def getDBConnection(profile, debug=debug, autocommitted=False):
 		conn.close = closer
 	else:
 		try:
-			conn = psycopg2.connect(**profile.getArgs())
+			conn = psycopg2.connect(connection_factory=GAVOConnection, 
+				**profile.getArgs())
 		except OperationalError, msg:
 			raise utils.ReportableError("Cannot connect to the database server."
 				" The database library reported:\n\n%s"%msg,
@@ -151,6 +164,11 @@ def getDBConnection(profile, debug=debug, autocommitted=False):
 	if autocommitted:
 		conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 	conn.set_client_encoding("UTF8")
+
+	conn._getDBConnectionArgs = {
+		"profile": profile,
+		"debug": debug,
+		"autocommitted": autocommitted}
 	return conn
 
 
@@ -481,6 +499,8 @@ class QuerierMixin(PostgresQueryMixin, StandardQueryMixin):
 	The mixin assumes an attribute connection from the parent.
 	"""
 	defaultProfile = None
+	# _reconnecting is used in query
+	_reconnecting = False
 
 	def configureConnection(self, settings):
 		cursor = self.connection.cursor()
@@ -535,19 +555,31 @@ class QuerierMixin(PostgresQueryMixin, StandardQueryMixin):
 		self.connection.set_isolation_level(
 			psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
+	def _queryReconnecting(self, query, data):
+		"""helps query in case of disconnections.
+		"""
+		self.connection = getDBConnection(
+			**self.connection._getDBConnectionArgs)
+		self._reconnecting = True
+		res = self.query(query, data)
+		self._reconnection = False
+		return res
+
 	def query(self, query, data={}):
 		"""runs a single query in a new cursor and returns that cursor.
 
-		You will see all exceptions, no transaction management will be
-		done.
+		You will see all exceptions, no transaction management is
+		done here.
 
-		Do not simply ignore errors you get from query.  To safely ignore
-		errors, use runIsolatedQuery.
+		query will try to re-establish broken connections.
 		"""
 		cursor = self.connection.cursor()
 		try:
 			cursor.execute(query, data)
-		except DBError:
+		except DBError, ex:
+			if isinstance(ex, OperationalError) and self.connection.fileno()==-1:
+				if not self._reconnecting:
+					return self._queryReconnecting(query, data)
 			utils.sendUIEvent("Info", "Failed db query: '%s'"%
 				getattr(cursor, "query", query))
 			raise
@@ -674,12 +706,6 @@ def getTableConn():
 		_TQ_POOL = CustomConnectionPool(1, 400)
 	conn = _TQ_POOL.getconn()
 
-	# self-healing on database restart (the first query through a reset 
-	# connection dies, but at least subsequent queries succeed again).
-	while conn.closed:
-		_TQ_POOL.putconn(conn, close=True)
-		conn = _TQ_POOL.getconn()
-
 	try:
 		conn.set_session(
 			isolation_level=psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT,
@@ -687,6 +713,20 @@ def getTableConn():
 	except AttributeError:
 		# fallback for old psycopg2
 		conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
-	yield conn
-	_TQ_POOL.putconn(conn)
+
+	try:
+		yield conn
+	except OperationalError:
+		if conn.fileno()==-1: 
+			# this is probably a db server restart.  Invalidate all connections
+			# immediately.
+			utils.sendUIEvent("Warning", "Suspecting a database restart."
+				"  Discarding old connection pool, making a new one.")
+			_TQ_POOL.closeall()
+			_TQ_POOL = CustomConnectionPool(1, 400)
+			raise
+
+	# let clients close connections if the so chose.
+	if not conn.closed:
+		_TQ_POOL.putconn(conn)
 
