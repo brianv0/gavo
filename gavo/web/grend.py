@@ -483,8 +483,9 @@ class ServiceBasedPage(ResourceBasedPage):
 		self.fieldsChanged = False 
 
 		try:
-			log.msg("# Processing starts: %s %s"%(request.path, 
-				_formatRequestArgs(request.args)))
+			if request.args:
+				log.msg("# Processing starts: %s %s"%(request.path, 
+					_formatRequestArgs(request.args)))
 		except: # don't fail because of logging problems
 			base.ui.notifyError("Formatting of request args failed.")
 
