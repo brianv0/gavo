@@ -137,9 +137,14 @@ def runTAPQuery(query, timeout, connection, tdsForUploads, maxrec):
 		querier.configureConnection([("enable_seqscan", False)])
 		result = rsc.QueryTable(tableTrunk.tableDef, pgQuery,
 			connection=querier.connection)
-		# copy meta info over from tableTrunk?
 	except:
 		adqlglue.mapADQLErrors(*sys.exc_info())
+
+	# copy over info metas as applicable (result will receive more info
+	# metas later that will then obscure infos from tableTrunk)
+	for infoMeta in tableTrunk.iterMeta("info"):
+		result.addMeta("info", infoMeta)
+
 	return result
 
 

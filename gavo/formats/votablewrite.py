@@ -109,7 +109,8 @@ def _iterToplevelMeta(ctx, dataSet):
 	if rd is None:
 		return
 	yield V.DESCRIPTION[base.getMetaText(rd, "description")]
-	yield V.INFO(name="legal", value=base.getMetaText(rd, "copyright"))
+	for infoItem in rd.iterMeta("copyright"):
+		yield V.INFO(name="legal", value=infoItem.getContent())
 
 
 ################# Generating FIELD and PARAM elements.

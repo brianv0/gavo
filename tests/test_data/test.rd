@@ -4,6 +4,8 @@
 
 <resource resdir=".">
 	<meta name="test.inRd">from Rd</meta>
+	<meta name="copyright">Everything in here is pure fantasy 
+	(distributed under the GNU GPL)</meta>
 	<schema>test</schema>
 
 	<table id="bbox_siaptable" mixin="//siap#bbox" onDisk="True"/>
@@ -73,6 +75,7 @@
 	</data>
 
 	<table id="adqltable" onDisk="True" adql="True">
+		<meta name="description">A meaningless table</meta>
 		<column name="foo"
 			type="double precision" required="True"/>
 	</table>

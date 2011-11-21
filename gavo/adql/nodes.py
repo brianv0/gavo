@@ -789,6 +789,15 @@ class QuerySpecification(ColumnBearingNode):
 			import traceback;traceback.print_exc()
 			return "weird_table_report_this"
 
+	def getContributingNames(self):
+		"""returns a set of table names mentioned below this node.
+		"""
+		names = set()
+		for name, val in self.iterTree():
+			if isinstance(val, TableName):
+				names.add(val.flatten())
+		return names
+
 
 class ColumnReference(FieldInfoedNode):
 	type = "columnReference"

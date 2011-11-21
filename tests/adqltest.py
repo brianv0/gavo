@@ -404,10 +404,20 @@ class TreeParseTest(testhelpers.VerboseTest):
 	def testSourceTablesJoin(self):
 		for q, e in [
 			("select * from z join x", ["z", "x"]),
+			("select * from (select * from a,b, (select * from c,d) as q) as r join"
+				"(select * from x,y) as p", ["r", "p"]),
 		]:
 			res = list(self.grammar.parseString(q)[0].getAllNames())
 			self.assertEqual(res, e, 
 				"Source tables from %s: expected %s, got %s"%(q, e, res))
+
+	def testContributingTables(self):
+		q = ("select * from (select * from urks.a,b,"
+			" (select * from c,monk.d) as q) as r join"
+			" (select * from x,y) as p")
+		self.grammar.parseString(q)[0].getContributingNames()
+		self.assertEqual(self.grammar.parseString(q)[0].getContributingNames(),
+			set(['c', 'b', 'urks.a', 'q', 'p', 'r', 'y', 'x', 'monk.d']))
 
 	def testAliasedColumn(self):
 		q = "select foo+2 as fp2 from x"

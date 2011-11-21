@@ -74,8 +74,8 @@ FORMAT_CODES = {
 # this is used below in for registry purposes (values are pairs of
 # IVOA id and a human-readable label).
 SUPPORTED_LANGUAGES = {
-	"ADQL": ("ivo://ivoa.net/std/ADQL#2.0", "ADQL 2.0"),
-	"ADQL-2.0": ("ivo://ivoa.net/std/ADQL#2.0", "ADQL 2.0"),
+	"ADQL": ("ivo://ivoa.net/std/ADQL#v2.0", "ADQL 2.0"),
+	"ADQL-2.0": ("ivo://ivoa.net/std/ADQL#v2.0", "ADQL 2.0"),
 }
 
 

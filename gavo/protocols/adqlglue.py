@@ -13,6 +13,7 @@ from gavo import rscdef
 from gavo import stc
 from gavo import svcs
 from gavo import utils
+from gavo.base import meta
 from gavo.base import sqlsupport
 from gavo.base import typesystems
 
@@ -102,6 +103,8 @@ def _makeColumnFromFieldInfo(ctx, colName, fi):
 	
 	# integral types must have a null value set since we can't be
 	# sure that a query yields defined results for all of them.
+	# Tough luck if our artificial value is already taken by the table
+	# (remedy: select a suitable null value in the column metadata)
 	if (res.type in _artificialNULLs 
 			and (
 				not (res.values and res.values.nullLiteral)
@@ -184,6 +187,47 @@ def getFieldInfoGetter(accessProfile=None, tdsForUploads=[]):
 	return getFieldInfos
 
 
+def _addTableMeta(query, tree, table):
+	"""adds various info items from query and its parsed tree to a
+	result table.
+	"""
+	table.addMeta("info", meta.makeMetaValue(name="info",
+			infoName="server", infoValue=base.getConfig("web", "serverURL")))
+	table.addMeta("info", meta.makeMetaValue(name="info",
+			infoName="query", infoValue=query))
+
+	copyrights = set()
+	mth = base.caches.getMTH(None)
+	for tableName in tree.getContributingNames():
+		try:
+			sourceTD = mth.getTableDefForTable(tableName)
+			table.addMeta("info", meta.makeMetaValue(
+				base.getMetaText(sourceTD.rd, "description", ""),
+				name="info",
+				infoName="src_res", 
+				infoValue="Contains traces from resource %s"%(sourceTD.rd.sourceId)))
+			table.addMeta("info", meta.makeMetaValue(
+				base.getMetaText(sourceTD, "description", ""),
+				name="info",
+				infoName="src_table", 
+				infoValue="Contains traces from table %s"%(
+					sourceTD.getQName())))
+			copyrights.add(
+				(sourceTD.rd.sourceId, base.getMetaText(sourceTD, "copyright")))
+		except base.Error:
+			# don't fail just because of funny metadata or tables not found
+			pass
+
+	for rdId, rightsText in copyrights:
+		if rightsText:
+			table.addMeta("info", meta.makeMetaValue(
+					rightsText,
+					name="info",
+					infoName="copyright", 
+					infoValue="Content from %s has rights note (see INFO content)"%(
+						rdId)))
+
+
 def morphADQL(query, metaProfile=None, tdsForUploads=[], 
 		externalLimit=None, hardLimit=None):
 	"""returns an postgres query and an (empty) result table for the
@@ -214,6 +258,7 @@ def morphADQL(query, metaProfile=None, tdsForUploads=[],
 	query = adql.flatten(morphedTree).replace("%", "%%")
 
 	table.tableDef.setLimit = t.setLimit and int(t.setLimit)
+	_addTableMeta(query, t, table)
 	return query, table
 
 

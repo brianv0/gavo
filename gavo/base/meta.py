@@ -340,6 +340,27 @@ class MetaMixin(object):
 			raise
 		return default
 
+	def _iterMeta(self, atoms):
+		mine, others = atoms[0], atoms[1:]
+		for mv in self.meta_.get(mine, []):
+			if others:
+				for child in mv._iterMeta(others):
+					yield child
+			else:
+				yield mv
+			
+	def iterMeta(self, key):
+		"""yields all MetaValues for key.
+
+		This will traverse down all branches necessary to yield, in sequence,
+		all MetaValues reachable by key.
+
+		So far, no meta propagation takes place; if this is implemented,
+		think whether or not meta items along the propagation axis
+		should be concatenated.
+		"""
+		return self._iterMeta(parseKey(key))
+
 	def buildRepr(self, key, builder, propagate=True, raiseOnFail=True):
 		value = self.getMeta(key, raiseOnFail=raiseOnFail, propagate=propagate)
 		if value:

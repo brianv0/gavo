@@ -169,6 +169,14 @@ class SequenceTest(testhelpers.VerboseTest):
 			"stuff.alc")
 
 
+class IterMetaTest(testhelpers.VerboseTest):
+	def testMixedMetas(self):
+		m = base.MetaMixin()
+		meta.parseMetaStream(m, "foo.bar: a\nfoo:\nfoo.bar:b\nfoo.bar:c")
+		self.assertEqual(list(v.getContent() for v in m.iterMeta("foo.bar")),
+			["a", "b", "c"])
+
+
 class SetAndDelTest(testhelpers.VerboseTest):
 	"""tests for working deletion and setting of meta items.
 	"""
@@ -699,4 +707,4 @@ class StructureValidationTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(XMLTest)
+	testhelpers.main(IterMetaTest)

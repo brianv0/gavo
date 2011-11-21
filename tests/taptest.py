@@ -15,6 +15,7 @@ import Queue
 import time
 import threading
 import traceback
+from cStringIO import StringIO
 
 from nevow import inevow
 from nevow.testutil import FakeRequest
@@ -278,9 +279,8 @@ class SimpleRunnerTest(testhelpers.VerboseTest):
 	def setUp(self):
 		testhelpers.VerboseTest.setUp(self)
 		self.tableName = self.ds.tables["adql"].tableDef.getQName()
-	
-	def _getQueryResult(self, query):
-		# returns a votable.simple result for query.
+
+	def _getUnparsedQueryResult(self, query):
 		with tap.TAPJob.create(args={
 				"QUERY": query,
 				"REQUEST": "doQuery",
@@ -292,10 +292,17 @@ class SimpleRunnerTest(testhelpers.VerboseTest):
 				if job.phase==uws.ERROR:
 					self.fail("Job died with msg %s"%job.getError())
 				name, mime = job.getResult("result")
-				res = votable.load(name)
+				with open(name) as f:
+					res = f.read()
 		finally:
 			with tap.TAPJob.makeFromId(jobId) as job:
 				job.delete()
+		return res
+
+	def _getQueryResult(self, query):
+		# returns a votable.simple result for query.
+		vot = self._getUnparsedQueryResult(query)
+		res = votable.load(StringIO(vot))
 		return res
 
 	def testSimpleJob(self):
@@ -357,6 +364,21 @@ class SimpleRunnerTest(testhelpers.VerboseTest):
 		self.assertEqual(fields[1].datatype, "char")
 		self.assertEqual(fields[1].xtype, "adql:POINT")
 		self.assertEqual(fields[2].datatype, "double")
+
+	def testInfoMetasSimple(self):
+		tree = testhelpers.getXMLTree(
+			self._getUnparsedQueryResult(
+				"SELECT rv, PI() from %s"%self.tableName))
+		self.assertEqual(tree.xpath("//INFO[@name='query']")[0].get("value"),
+			"SELECT rv, PI() FROM test.adql LIMIT 2000")
+		self.assertEqual(tree.xpath("//INFO[@name='src_res']")[0].get("value"),
+			"Contains traces from resource data/test")
+		self.assertEqual(tree.xpath("//INFO[@name='src_table']")[0].get("value"),
+			"Contains traces from table test.adql")
+		self.assertEqual(tree.xpath("//INFO[@name='copyright']")[0].get("value"),
+			"Content from data/test has rights note (see INFO content)")
+		self.assertEqual(tree.xpath("//INFO[@name='copyright']")[0].text,
+			"Everything in here is pure fantasy (distributed under the GNU GPL)")
 
 
 class TAPTransitionsTest(testhelpers.VerboseTest):
@@ -431,4 +453,4 @@ class CapabilitiesTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 
 
 if __name__=="__main__":
-	testhelpers.main(CapabilitiesTest)
+	testhelpers.main(SimpleRunnerTest)
