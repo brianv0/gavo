@@ -248,7 +248,7 @@ class TableDef(base.Structure, base.ComputedMetaMixin, common.RolesMixin,
 		default=None,
 		description="A single SQL statement to create a view.  Setting this"
 		" makes this table a view.  The statement will typically be something"
-		" like CREATE VIEW \\\\curTable AS (SELECT \\\\colNames FROM...).", 
+		" like CREATE VIEW \\\\curtable AS (SELECT \\\\colNames FROM...).", 
 		copyable=True)
 
 		# onDisk must not be copyable since queries might copy the tds and havoc

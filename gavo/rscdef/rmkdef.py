@@ -375,7 +375,7 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		for colName in self.idmaps:
 			matching = fnmatch.filter(baseNames, colName)
 			if not matching:
-				raise NotFoundError(colName, "columns matching", "unknown")
+				raise base.NotFoundError(colName, "columns matching", "unknown")
 			for dest in matching:
 				if dest not in existingMaps:
 					self.maps.append(MapRule(self, dest=dest).finishElement(None))

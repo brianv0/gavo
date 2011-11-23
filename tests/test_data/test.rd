@@ -339,6 +339,8 @@
 		</make>
 	</data>
 
+	<data id="recaftertest" recreateAfter="import_pythonscript"/>
+
 	<dbCore id="prodscore" queriedTable="prodtest"/>
 
 	<service id="basicprod" core="prodscore">

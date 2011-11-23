@@ -42,6 +42,7 @@ def getDDsToImportManual(rd, ddsToImport):
 		res.append(ddDict[ddId])
 	return res
 
+
 def process(opts, args):
 	"""imports the data set described by args governed by opts.
 
@@ -52,6 +53,9 @@ def process(opts, args):
 	opts is either a ParseOption instance or the object returned by
 	main's parseOption function below.
 	"""
+	# process manages its dependencies itself
+	opts.buildDependencies = False
+
 	src, ddIds = args[0], set(args[1:])
 	rd = rscdesc.openRD(src)
 	if rd.sourceId.startswith("/"):
@@ -80,11 +84,7 @@ def process(opts, args):
 	tap.unpublishFromTAP(rd, connection)
 	tap.publishToTAP(rd, connection)
 
-	for dd in rd.dds:
-		if ddIds and not dd.id in ddIds:
-			continue
-		if not dd.auto and not dd.id in ddIds:
-			continue
+	for dd in dds:
 		if opts.metaOnly:
 			base.ui.notifyInfo("Updating meta for %s"%dd.id)
 			res = rsc.Data.create(dd, parseOptions=opts, connection=connection
@@ -94,6 +94,11 @@ def process(opts, args):
 			res = rsc.makeData(dd, parseOptions=opts, connection=connection)
 		if hasattr(res, "nAffected"):
 			base.ui.notifyInfo("Columns affected: %s"%res.nAffected)
+	# We're committing here so that we don't lose all importing
+	# work just because some dependent messes up.
+	connection.commit()
+
+	rsc.makeDependentsFor(dds, opts, connection)
 	connection.commit()
 	rd.touchTimestamp()
 

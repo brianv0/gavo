@@ -124,7 +124,6 @@ class Data(base.MetaMixin):
 			controlledTables[make.table.id]._runScripts = make.getRunner()
 		data = cls(dd, controlledTables, parseOptions)
 		data.dropTables()
-		_makeDependents(dd, parseOptions, connection)
 
 	def dropTables(self):
 		for t in self:
@@ -322,17 +321,35 @@ def makeData(dd, parseOptions=common.parseNonValidating,
 		else:
 			res.commitAll()
 	res.nAffected = feeder.getAffected()
-	_makeDependents(dd, parseOptions, connection)
+
+	if parseOptions.buildDependencies:
+		makeDependentsFor([dd], parseOptions, connection)
+
 	return res
 
 
-def _makeDependents(srcDD, parseOptions, connection):
-	"""rebuilds all data dependent on srcDD with parseOptions and within
-	connection.
+def makeDependentsFor(dds, parseOptions, connection):
+	"""rebuilds all data dependent on one of the DDs in the dds sequence.
 	"""
-	for dependentId in srcDD.dependents:
-		makeDataById(dependentId, parseOptions, connection,
-			inRD=srcDD.rd)
+	toBuild = set()
+
+	def gatherDependents(dd):
+		for dependentId in dd.dependents:
+			try:
+				dependentDD = base.resolveId(dd.rd, dependentId)
+				if dependentDD not in toBuild:
+					toBuild.add(dependentDD)
+					gatherDependents(dependentDD)
+			except (base.StructureError, base.NotFoundError), msg:
+				base.ui.notifyWarning("Ignoring dependent %s of %s (%s)"%(
+					dependentId, dd.id, unicode(msg)))
+
+	for dd in dds:
+		gatherDependents(dd)
+	if parseOptions.buildDependencies:
+		parseOptions = parseOptions.change(buildDependencies=False)
+	for dd in toBuild:
+		makeData(dd, parseOptions=parseOptions, connection=connection)
 
 
 def makeDataById(ddId, parseOptions=common.parseNonValidating,

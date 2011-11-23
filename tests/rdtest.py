@@ -10,6 +10,7 @@ import unittest
 from gavo.helpers import testhelpers
 
 from gavo import base
+from gavo import rsc
 from gavo import rscdef
 from gavo import rscdesc
 from gavo.base import meta
@@ -355,5 +356,103 @@ class CachesTest(testhelpers.VerboseTest):
 		self.failIf(origRD is otherRD)
 
 
+class RecreateAfterTest(testhelpers.VerboseTest):
+	resources = [("conn", tresc.dbConnection)]
+
+	def testRecreateAfter(self):
+		q = base.SimpleQuerier(connection=self.conn)
+		rd = testhelpers.getTestRD()
+		t0 = rsc.TableForDef(rd.getById("pythonscript"), connection=self.conn,
+			create=False)
+		t0.drop()
+		self.failIf(q.tableExists("test.pythonscript"))
+		data = rsc.makeDependentsFor([rd.getById("recaftertest")],
+			rsc.parseNonValidating, connection=self.conn)
+		self.failUnless(q.tableExists("test.pythonscript"))
+		self.conn.rollback()
+
+	def testFailedDependencyNonFatal(self):
+		dd = base.parseFromString(rscdef.DataDescriptor,
+			'<data recreateAfter="data/test#foobarmatic"/>')
+
+		msgs = []
+		handler = lambda msg: msgs.append(msg)
+		base.ui.subscribe("Warning", handler)
+		try:
+			rsc.makeDependentsFor([dd], 
+				rsc.parseNonValidating, connection=self.conn)
+		finally:
+			base.ui.unsubscribe("Warning", handler)
+		self.assertEqual(len(msgs), 1)
+		self.assertEqual(msgs[0], "Ignoring dependent data/test#foobarmatic"
+			" of None (No element with id 'foobarmatic' found in RD data/test)")
+
+	def testRecursiveDepedency(self):
+		rd = base.parseFromString(rscdesc.RD, """
+			<resource schema="test">
+			<table id="made"/>
+			<rowmaker id="add_fu">
+				<apply>
+					<code>
+						targetTable.tableDef.rd.dataMade.append(vars["dn"])
+					</code>
+				</apply>
+			</rowmaker>
+			<data id="stuff0" recreateAfter="stuff1">
+				<sources items="1"/>
+				<embeddedGrammar id="g">
+					<iterator>
+						<code>
+							yield {"dn": self.grammar.parent.id}
+						</code>
+					</iterator>
+				</embeddedGrammar>
+				<make table="made" rowmaker="add_fu"/>
+			</data>
+			<data original="stuff0" id="stuff1" recreateAfter="stuff2">
+				<recreateAfter>stuff3</recreateAfter>
+			</data>
+			<data id="stuff2" original="stuff0"/>
+			<data id="stuff3" original="stuff0"/>
+			</resource>
+			""")
+		rd.dataMade = []
+		data = rsc.makeDependentsFor([rd.getById("stuff0")],
+			rsc.parseNonValidating, connection=self.conn)
+		self.assertEqual(set(rd.dataMade), set(["stuff1", "stuff2", "stuff3"]))
+	
+	def testCyclicDependency(self):
+		rd = base.parseFromString(rscdesc.RD, """
+			<resource schema="test">
+			<table id="made"/>
+			<rowmaker id="add_fu">
+				<apply>
+					<code>
+						targetTable.tableDef.rd.dataMade.append(vars["dn"])
+					</code>
+				</apply>
+			</rowmaker>
+			<data id="stuff0" recreateAfter="stuff1">
+				<sources items="1"/>
+				<embeddedGrammar id="g">
+					<iterator>
+						<code>
+							yield {"dn": self.grammar.parent.id}
+						</code>
+					</iterator>
+				</embeddedGrammar>
+				<make table="made" rowmaker="add_fu"/>
+			</data>
+			<data original="stuff0" id="stuff1" recreateAfter="stuff2"/>
+			<data original="stuff0" id="stuff2" recreateAfter="stuff1"/>
+			</resource>
+			""")
+		rd.dataMade = []
+		data = rsc.makeDependentsFor([rd.getById("stuff0")],
+			rsc.parseNonValidating, connection=self.conn)
+		self.assertEqual(set(rd.dataMade), set(["stuff1", "stuff2"]))
+	
+
+
 if __name__=="__main__":
-	testhelpers.main(InputStreamTest)
+	testhelpers.main(RecreateAfterTest)

@@ -429,8 +429,9 @@ class _ObscorePublishedTable(testhelpers.TestResource):
 			_obscoreRDTrunk%'productType="\'image\'" '
 			'collectionName="\'testing detritus\'"').getById("import")
 		dd.rd.sourceId = "__testing__"
-		return rsc.makeData(dd, forceSource=[{"accref": "foo/bar"}],
+		d =  rsc.makeData(dd, forceSource=[{"accref": "foo/bar"}],
 			connection=conn)
+		return d
 
 	def clean(self, data):
 		conn = data.tables["glob"].connection

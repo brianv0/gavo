@@ -420,7 +420,7 @@ def _formatRequestArgs(args):
 	>>> _formatRequestArgs({"x": range(2), "y": [u"\u3020"], "submit": ["Ok"]})
 	"{'x': [0,1,],'y': [u'\\u3020',],}"
 	>>> _formatRequestArgs({"hokus": ["Pokus"*300]})
-	"{'hokus': [<data starting with PokusPokusPokusPokusPokusPokus>,],}"
+	"{'hokus': [<data starting with 'PokusPokusPokusPokusPokusPokus'>,],}"
 	>>> _formatRequestArgs({"no": []})
 	'{}'
 	"""
@@ -433,7 +433,7 @@ def _formatRequestArgs(args):
 		for value in valList:
 			try:
 				if len(value)>100:
-					res.append("<data starting with %s>,"%value[:30])
+					res.append("<data starting with %s>,"%repr(value[:30]))
 				else:
 					res.append(repr(value)+",")
 			except TypeError:  # no len on value
