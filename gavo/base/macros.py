@@ -184,6 +184,13 @@ class StandardMacroMixin(MacroPackage):
 			title = serviceId
 		return "`%s <%s>`_"%(title, config.makeSitePath(serviceId))
 
+	def macro_RSTtable(self, tableName):
+		"""adds an reStructured test link to a tableName pointing to its table
+		info.
+		"""
+		return "`%s <%s>`_"%(tableName, 
+			config.makeSitePath("tableinfo/%s"%tableName))
+
 	def macro_internallink(self, relPath):
 		"""an absolute URL from a path relative to the DC root.
 		"""
