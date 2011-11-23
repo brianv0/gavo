@@ -37,6 +37,7 @@ from gavo.svcs import (Error, UnknownURI, ForbiddenURI,
 ###  some global manipulations of nevow/twisted
 # monkeypatch static's mime magic
 static.File.contentTypes[".ascii"] = "application/octet-stream"
+static.File.contentTypes[".f"] = "text/x-fortran"
 static.File.contentTypes[".vot"] = "application/x-votable+xml"
 static.File.contentTypes[".rd"] = "application/x-gavo-descriptor+xml"
 # this one is for co-operation with ifpages
