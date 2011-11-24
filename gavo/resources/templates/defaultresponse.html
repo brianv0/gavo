@@ -40,7 +40,7 @@
 		</div>
 		<div class="result" n:render="ifresult">
 			<p class="plotbuttons">
-				<button onClick="openFlotPlot($('table.results'))">Quick Plot</button>
+				<button n:render="flotplot">Quick Plot</button>
 				<button onClick="openVOPlot()">Open in VOPlot</button>
 			</p>
 			<n:invisible n:render="resulttable"/>

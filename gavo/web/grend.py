@@ -305,6 +305,20 @@ class HTMLResultRenderMixin(object):
 		s.sort()
 		return s
 
+	def render_flotplot(self, ctx, data):
+		"""adds an onClick attribute opening a flot plot.
+
+		This is evaluates the _plotOptions meta.  This should be a javascript
+		dictionary literal with certain plot options.  More on this in
+		the reference documentation on the _plotOptions meta.
+		"""
+		plotOptions = base.getMetaText(self.service, "_plotOptions")
+		if plotOptions is not None:
+			args = ", %s"%plotOptions
+		else:
+			args = ""
+		return ctx.tag(onclick="openFlotPlot($('table.results')%s)"%args)
+
 
 class CustomTemplateMixin(object):
 	"""is a mixin providing for customized templates.
@@ -441,8 +455,6 @@ def _formatRequestArgs(args):
 		res.append("],")
 	res.append("}")
 	return "".join(res)
-
-
 
 
 class ServiceBasedPage(ResourceBasedPage):

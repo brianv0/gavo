@@ -260,6 +260,17 @@ start with an underscore.  Among those are:
 * _type -- on Data instances, used by the VOTable writer to set the
   ``type`` attribute on ``RESOURCE`` elements (to either "results"
   or "meta").  Probably only useful internally.
+* _plotOptions – typically set on services, this lets you configure
+  the initial appearance of the javascript-based quick plot.  The value
+  must be a javascript dictionary literal (like ``{"xselIndex": 2}``)
+  unless you're trying CSS deviltry (which you could, using this meta;
+  then again, if you can inject RDs, you probably don't need CSS attacks).
+  Keys evaluated include:
+
+  * xselIndex – 0-based index of the column plotted on the x-axis 
+    (default: 0)
+  * yselIndex – 0-based index of the column plotted on the y-axis
+    (default: length of the column list; that's "histogram on y)
 
 
 RMI-Style Metadata

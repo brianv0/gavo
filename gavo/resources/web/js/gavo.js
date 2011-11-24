@@ -145,12 +145,11 @@ function getFormQuery(form, ignoreNames) {
 	// returns a link to the result sending the HTML form form would
 	// yield.
 	var fragments = new Array();
-	var fragment;
 	var i;
 
 	items = form.elements;
 	for (i=0; i<items.length; i++) {
-		fragment = makeQueryItem(items[i]);
+		var fragment = makeQueryItem(items[i]);
 		if (fragment && ignoreNames[items[i].name]==undefined) {
 			fragments.push(fragment);
 		} 
@@ -531,26 +530,41 @@ function _doFlotPlot(table, xsel, ysel) {
 }
 
 
-function _plotUsingFlot(table) {
+function _plotUsingFlot(table, options) {
 // allows simple plotting of HTML tables.  This only works from
 // within openFlotPlot since it uses javascript that's not loaded
 // by default.
-	plotElement = $('<div id="plotcontainer" style="position:fixed;z-index:3000;background:white;padding-left:3px;padding-right:3px;padding-bottom:3px;border:2px solid gray"><p class="innerTitle"><span class="closer">x&nbsp;</span></p><div id="plotarea" style="width:700px;height:400px;"/></div>');
+	// create the plot element
+	var plotElement = $('<div id="plotcontainer" style="position:fixed;z-index:3000;background:white;padding-left:3px;padding-right:3px;padding-bottom:3px;border:2px solid gray"><p class="innerTitle"><span class="closer">x&nbsp;</span></p><div id="plotarea" style="width:700px;height:400px;"/></div>');
 	plotElement.draggable();
 	plotElement.find(".closer").bind("click", function(){
 		plotElement.remove()});
 
-	xsel = $('<select/>');
+	// Make column selectors from table headings
+	var xsel = $('<select/>');
 	$(table.find('tr')[0]).find('th').each(function(index, head) {
 		xsel.append($('<option value="'+index+'">'+$(head).text()+'</option>'));
 	});
 	plotElement.append(xsel);
-	ysel = xsel.clone();
+	var ysel = xsel.clone();
 	ysel.append($(
-		'<option value="Histogram" selected="selected">Histogram</option>'));
+		'<option value="Histogram">Histogram</option>'));
 	plotElement.append(ysel);
 
-	updatePlot = function() {
+	// Set default plot features from options if given there
+	xselIndex = 0;
+	if (options.xselIndex) {
+		xselIndex = options.xselIndex;
+	}
+	yselIndex = ysel.children().length-1;
+	if (options.yselIndex) {
+		yselIndex = options.yselIndex;
+	}
+	xsel.children()[xselIndex].setAttribute("selected", "selected")
+	ysel.children()[yselIndex].setAttribute("selected", "selected")
+
+	// the callback for any form items that change what's plotted
+	var updatePlot = function() {
 		try {
 			_doFlotPlot(table, xsel, ysel);
 		} catch (e) {
@@ -565,16 +579,19 @@ function _plotUsingFlot(table) {
 	updatePlot();
 }
 
-function openFlotPlot(tableElement) {
+function openFlotPlot(tableElement, options) {
 // opens a div that lets you plot some columns of tableElement
+	if (options==undefined) {
+		options = {};
+	}
 	$.getScript("/static/js/jquery.flot.js",
-		function() {_plotUsingFlot(tableElement)});
+		function() {_plotUsingFlot(tableElement, options)});
 }
 
 
 function openVOPlot() {
 	votURL = getFormQuery(
-			document.getElementById("genForm"), 
+		document.getElementById("genForm"), 
 			{'_FORMAT': 1, "_TDENC": 1})+
 		"&_FORMAT=VOTable&_TDENC=on&_VERB=H";
 	window.open(
