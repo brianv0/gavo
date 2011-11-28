@@ -489,7 +489,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		queried table, except when there is a TAP renderer on the service.
 		"""
 		baseTD = getattr(self.core, "queriedTable", None)
-		if baseTD is None:
+		if baseTD is None and self.outputTable and self.outputTable.columns:
 			baseTD = self.outputTable
 		tables = [baseTD]
 
