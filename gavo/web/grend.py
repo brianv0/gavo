@@ -200,7 +200,26 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 					self._doRenderMeta(ctx, raiseOnFail=True)]]
 		except base.MetaError, ex:
 			return ""
-	
+
+	def render_intro(self, ctx, data):
+		"""returns something suitable for inclusion above the form.
+
+		The renderer tries, in sequence, to retrieve a meta called _intro,
+		the description meta, or nothing.
+		"""
+		for key in ["_intro", "description"]:
+			if self.service.getMeta(key, default=None) is not None:
+				introKey = key
+				break
+		else:
+			introKey = None
+		if introKey is None:
+			return ctx.tag[""]
+		else:
+			return ctx.tag[T.xml(self.buildRepr(introKey, 
+				common.HTMLMetaBuilder(self.macroPackage),
+				raiseOnFail=False))]
+
 	def render_authinfo(self, ctx, data):
 		request = inevow.IRequest(ctx)
 		nextURL = str(url.URL.fromContext(ctx))
