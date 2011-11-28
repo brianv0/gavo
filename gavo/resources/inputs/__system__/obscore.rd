@@ -14,10 +14,10 @@
 				NULL, NULL, NULL, NULL, NULL,
 				NULL, NULL, NULL, NULL, NULL,
 				NULL, NULL, NULL, NULL, NULL,
-				NULL)) as q WHERE 0=1);
+				NULL, NULL, NULL, NULL)) as q WHERE 0=1);
 		</viewStatement>
 		<column name="dataproduct_type" type="text"
-			utype="obscore:obs.dataproducttype" ucd="meta.id;class"
+			utype="obscore:obs.dataproducttype" ucd="meta.id"
 			description="High level scientific classification of the data product,
 				taken from an enumeration"
 			verbLevel="5">
@@ -34,12 +34,12 @@
 		</column>
 
 		<column name="dataproduct_subtype" type="text"
-			utype="obscore:obs.dataproductsubtype" ucd="meta.id;class"
+			utype="obscore:obs.dataproductsubtype" ucd="meta.id"
 			description="Data product specific type"
 			verbLevel="15"/>
 	
-		<column name="calib_level" type="smallint" 
-			utype="obscore:obs.caliblevel" ucd="meta.id;class"
+		<column name="calib_level" type="smallint" required="True"
+			utype="obscore:obs.caliblevel" ucd="meta.code;obs.calib"
 			description="Amount of data processing that has been
 				applied to the data"
 			verbLevel="10" note="calib">
@@ -72,14 +72,14 @@
 		</column>
 
 		<column name="obs_id" type="text" 
-			utype="obscore:dataid.creatordid" ucd="meta.id"
+			utype="obscore:DataID.observationID" ucd="meta.id"
 			description="Unique identifier for an observation"
 			verbLevel="5">
 			<property name="std">1</property>
 		</column>
 
 		<column name="obs_title" type="text"
-			utype="obscore:dataid.title" ucd="meta.title;meta.dataset"
+			utype="obscore:dataid.title" ucd="meta.title;obs"
 			description="Free-from title of the data set"
 			verbLevel="5"/>
 
@@ -91,7 +91,7 @@
 		</column>
 
 		<column name="obs_creator_did" type="text"
-			utype="obscore:curation.creatordid" ucd="meta.id"
+			utype="obscore:dataid.creatordid" ucd="meta.id"
 			description="Dataset identifier assigned by the creator."
 			verbLevel="15"/>
 
@@ -104,14 +104,14 @@
 
 		<column name="access_format" type="text"
 			description="MIME type of the resource at access_url"
-			utype="obscore:access.format" ucd="meta.id;class"
+			utype="obscore:access.format" ucd="meta.code.mime"
 			verbLevel="5">
 			<property name="std">1</property>
 		</column>
 
 		<column name="access_estsize" type="bigint"
 			description="Estimated size of data product"
-			unit="kB" utype="obscore:access.size" ucd="phys.size;meta.file"
+			unit="kbyte" utype="obscore:access.size" ucd="phys.size;meta.file"
 			verbLevel="5">
 			<property name="std">1</property>
 		</column>
@@ -125,7 +125,7 @@
 
 		<column name="target_class" type="text" 
 			description="Class of the target object (star, QSO, ...)"
-			utype="obscore:target.name" ucd="src.class"
+			utype="obscore:target.class" ucd="src.class"
 			verbLevel="20">
 			<property name="std">1</property>
 		</column>
@@ -157,7 +157,8 @@
 			
 		<column name="s_region" type="spoly"
 			description="Region covered by the observation, as a polygon"
-			utype="obscore:char.spatialaxis.coverage.support.area" ucd="phys.area;obs"
+			utype="obscore:char.spatialaxis.coverage.support.area"
+			ucd="phys.angArea;obs"
 			verbLevel="15">
 			<property name="std">1</property>
 		</column>
@@ -165,7 +166,7 @@
 		<column name="s_resolution" type="double precision"
 			description="Best spatial resolution within the data set"
 			unit="arcsec"  
-			utype="obscore:char.spatialaxis.resolution.refval.cresolution"
+			utype="obscore:Char.SpatialAxis.Resolution.refval"
 			ucd="pos.angResolution"
 			verbLevel="15">
 			<property name="std">1</property>
@@ -184,7 +185,7 @@
 			description="Upper bound of times represented in the data set, as MJD"
 			unit="d" 
 			utype="obscore:char.timeaxis.coverage.bounds.limits.interval.stoptime"
-			ucd="time.stop;obs.exposure"
+			ucd="time.end;obs.exposure"
 			verbLevel="10">
 			<property name="std">1</property>
 		</column>
@@ -206,7 +207,7 @@
 
 		<column name="em_min" type="double precision"
 			description="Minimal wavelength represented within the data set"
-			unit="m" utype="obscore:char.spectralaxis.coverage.bounds.limits.interval.lolimit"
+			unit="m" utype="obscore:char.spectralaxis.coverage.bounds.limits.interval.lolim"
 			ucd="em.wl;stat.min"
 			verbLevel="10">
 			<property name="std">1</property>
@@ -214,7 +215,7 @@
 																			
 		<column name="em_max" type="double precision"
 			description="Maximal wavelength represented within the data set"
-			unit="m" utype="obscore:char.spectralaxis.coverage.bounds.limits.interval.hilimit"
+			unit="m" utype="obscore:char.spectralaxis.coverage.bounds.limits.interval.hilim"
 			ucd="em.wl;stat.max"
 			verbLevel="10">
 			<property name="std">1</property>
@@ -223,14 +224,38 @@
 		<column name="em_res_power" type="double precision"
 			description="Spectral resolving power delta lambda/lamda"
 			utype="obscore:char.spectralaxis.resolution.resolpower.refval"
-			ucd="spec.resolution"
+			ucd="spect.resolution"
 			verbLevel="15">
 			<property name="std">1</property>
 		</column>
 
 		<column name="o_ucd" type="text"
 			description="UCD for the product's observable"
-			utype="obscore:char.observableaxis.ucd" ucd="meta.codeucd"
+			utype="obscore:char.observableaxis.ucd" ucd="meta.ucd"
+			verbLevel="15">
+			<property name="std">1</property>
+		</column>
+
+		<column name="pol_states" type="text"
+			description="List of polarization states in the data set"
+			utype="obscore:Char.PolarizationAxis.stateList"
+			ucd="meta.code;phys.polarization"
+			verbLevel="15">
+			<property name="std">1</property>
+		</column>
+
+		<column name="facility_name" type="text"
+			description="Name of the facility at which data was taken"
+			utype="obscore:Provenance.ObsConfig.facility.name"
+			ucd="meta.id;instr.tel"
+			verbLevel="15">
+			<property name="std">1</property>
+		</column>
+
+		<column name="instrument_name" type="text"
+			description="Name of the instrument that produced the data"
+			utype="obscore:Provenance.ObsConfig.instrument.name"
+			ucd="meta.id;instr"
 			verbLevel="15">
 			<property name="std">1</property>
 		</column>
@@ -306,10 +331,10 @@
 			pending">NULL</mixinPar>
 		<mixinPar name="calibLevel" description="Calibration level of data,
 			a number between 0 and 3; for details, see obsCore's calib_level
-			column.">NULL</mixinPar>
+			column.">0</mixinPar>
 		<mixinPar name="collectionName" description="A human-readable name
 			for this collection.  This should be short, so don't just use the
-			resource title">NULL</mixinPar>
+			resource title">'unnamed'</mixinPar>
 		<mixinPar name="targetName" description="Name of the target object."
 			>NULL</mixinPar>
 		<mixinPar name="targetClass" description="Class of target object(s).
@@ -321,6 +346,10 @@
 			delta lambda/lambda">NULL</mixinPar>
 		<mixinPar name="expTime" description="Total time of event counting.
 			This simply is tMax-tMin for simple exposures.">NULL</mixinPar>
+		<mixinPar name="polStates" description="List of polarization
+			states present in the data">NULL</mixinPar>
+		<mixinPar name="facilityName" description="The institute or observatory
+			at which the data was produced">NULL</mixinPar>
 
 		<events>
 			<adql>True</adql>
@@ -353,7 +382,10 @@
 						CAST(\emMin AS double precision) AS em_min,
 						CAST(\emMax AS double precision) AS em_max,
 						CAST(\emResPower AS double precision) AS em_res_power,
-						CAST(\oUCD AS text) AS o_ucd
+						CAST(\oUCD AS text) AS o_ucd,
+						CAST(\polStates AS text) AS pol_states,
+						CAST(\facilityName AS text) AS facility_name,
+						CAST(\instrumentName AS text) AS instrument_name
 			</property>
 		</events>
 
@@ -418,8 +450,8 @@
 			This means mapping or giving quite a bit of data from the present
 			table to ObsCore rows.  Internally, this information is converted
 			to an SQL select statement used within a create view statement.
-			In consequence, you must give *SQL* expression in the parameter 
-			values; or just naked column names from your input table are ok,
+			In consequence, you must give *SQL* expressions in the parameter 
+			values; just naked column names from your input table are ok,
 			of course.  Most parameters are set to NULL or appropriate
 			defaults for tables mixing in //products#table.
 
@@ -459,7 +491,8 @@
 			e.g., em.opt for wide-band optical frames.">NULL</mixinPar>
 		<mixinPar name="sResolution" description="The (best) angular
 			resolution within the data set, in arcsecs">NULL</mixinPar>
-
+		<mixinPar name="instrumentName" description="The instrument that produced
+			the data">NULL</mixinPar>
 		<LFEED source="_publishProduct"/>
 		<LFEED source="_publishCommon"/>
 	</mixinDef>
@@ -507,6 +540,8 @@
 			wrong or you have uncalibrated images in your collection, you
 			may need to be more careful here."
 			>pixelScale[1]*3600</mixinPar>
+		<mixinPar name="instrumentName" description="The instrument that produced
+			the data">instId</mixinPar>
 
 		<LFEED source="_publishProduct"/>
 		<LFEED source="_publishCommon"/>
