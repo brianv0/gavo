@@ -488,7 +488,11 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		This is for VOSI-type queries.  Usually, that's just the core's
 		queried table, except when there is a TAP renderer on the service.
 		"""
-		tables = [getattr(self.core, "queriedTable", None)]
+		baseTD = getattr(self.core, "queriedTable", None)
+		if baseTD is None:
+			baseTD = self.outputTable
+		tables = [baseTD]
+
 		if "tap" in self.allowed:
 			mth = base.caches.getMTH(None)
 			for row in mth.queryTablesTable("adql"):
@@ -497,7 +501,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 				except:
 					base.ui.notifyError("Failure trying to retrieve table definition"
 						" for table %s.  Please fix RD."%row["tableName"])
-		return [t for t in tables if t is not None]
+		return [t for t in tables if t is not None and t.rd is not None]
 
 	def declareServes(self, data):
 		"""adds meta to self and data indicating that data is served by

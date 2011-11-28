@@ -1410,6 +1410,10 @@ class PQMorphTest(unittest.TestCase):
 			'SELECT delta * 2, alpha * mag, alpha + delta FROM something'
 			' WHERE mag < - 10')
 
+	def testUnaryLogic(self):
+		self._testMorph("select x from something where y not in (1,2)",
+			'SELECT x FROM something WHERE y NOT IN ( 1 , 2 )')
+
 	def testOrder(self):
 		self._testMorph("select top 100 * from ppmx.data where cmag>10"
 			" order by cmag", 'SELECT * FROM ppmx.data WHERE cmag > 10'
@@ -1776,4 +1780,4 @@ class IntersectsFallbackTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(CommentTest)
+	testhelpers.main(PQMorphTest)

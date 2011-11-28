@@ -334,6 +334,33 @@ class OutputTableTest(testhelpers.VerboseTest):
 		self.assertEqual(pars[1].name, "bar")
 
 
+class TableSetTest(testhelpers.VerboseTest):
+	def testFromCore(self):
+		rd = base.parseFromString(rscdesc.RD,
+			"""<resource schema="test"><table id="foo"><column name="bar"/>
+			</table>
+			<service id="quux"><dbCore queriedTable="foo"/></service></resource>""")
+		cols = rd.getById("quux").getTableSet()[0].columns
+		self.assertEqual(len(cols), 1)
+		self.assertEqual(cols[0].name, "bar")
+
+	def testOutputTable(self):
+		rd = base.parseFromString(rscdesc.RD,
+			"""<resource schema="test">
+			<service id="quux"><nullCore/><outputTable><outputField
+			name="knotz"/></outputTable></service></resource>""")
+		cols = rd.getById("quux").getTableSet()[0].columns
+		self.assertEqual(len(cols), 1)
+		self.assertEqual(cols[0].name, "knotz")
+
+	def testTAPTableset(self):
+		rd = base.parseFromString(rscdesc.RD,
+			"""<resource schema="test">
+			<service id="quux" allowed="tap"><nullCore/></service></resource>""")
+		ts = rd.getById("quux").getTableSet()
+		self.failUnless("tap_schema.tables" in [t.getQName() for t in ts])
+
+
 if __name__=="__main__":
 	base.DEBUG = True
-	testhelpers.main(OutputTableTest)
+	testhelpers.main(TableSetTest)

@@ -263,7 +263,7 @@ try:
 		we provide this c.m.  Since it is possible that grammars will be
 		compiled in threads (e.g., as a side effect of getRD), this is
 		protected by a lock.  This, in turn, means that this can 
-		potentially block for a long time.
+		potentially block for a fairly long time.
 
 		Bottom line: When compiling pyparsing grammars, *always* set
 		the whitespace chars explicitely, and do it through this c.m.
