@@ -777,8 +777,8 @@ class MetaURL(MetaValue):
 class RelatedResourceMeta(MetaValue):
 	"""A meta value containing an ivo-id and a name of a related resource.
 
-	These are intended for serviceFor, servedBy, and derivedFrom metas 
-	(and mirrorOf, relatedTo when and if we support them).
+	These are intended for serviceFor, servedBy, derivedFrom,
+	mirrorOf, and relatedTo metas.
 
 	It should look like this::
 
@@ -937,6 +937,9 @@ _typesForKeys = {
 	"_related": "link",
 	"servedBy": "relResource",
 	"serviceFor": "relResource",
+	"relatedTo": "relResource",
+	"mirrorOf": "relResource",
+	"derivedFrom": "relResource",
 	"_news": "news",
 	"referenceURL": "link",
 	"info": "info",

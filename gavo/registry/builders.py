@@ -80,6 +80,12 @@ _vrResourceBuilder = meta.ModelBasedBuilder([
 					"ivoId": "ivoId"})]),
 		(None, SF(lambda: VOR.relationship[VOR.relationshipType["derived-from"]]), [
 			('derivedFrom', SF(VOR.relatedResource), (), {
+					"ivoId": "ivoId"})]),
+		(None, SF(lambda: VOR.relationship[VOR.relationshipType["related-to"]]), [
+			('relatedTo', SF(VOR.relatedResource), (), {
+					"ivoId": "ivoId"})]),
+		(None, SF(lambda: VOR.relationship[VOR.relationshipType["mirror-of"]]), [
+			('mirrorOf', SF(VOR.relatedResource), (), {
 					"ivoId": "ivoId"})]),]),
 ])
 
