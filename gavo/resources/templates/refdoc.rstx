@@ -271,6 +271,8 @@ start with an underscore.  Among those are:
     (default: 0)
   * yselIndex – 0-based index of the column plotted on the y-axis
     (default: length of the column list; that's "histogram on y)
+  * usingIndex – 0-based index of the plotting style selector.  For
+    now, that's 0 for points and 1 for lines.
 
 
 RMI-Style Metadata

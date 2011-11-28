@@ -460,8 +460,10 @@ function _getValue(s) {
 	
 
 
-function _doLinePlot(table, xInd, yInd) {
+function _doLinePlot(table, xInd, yInd, style) {
 	var data = new Array();
+	var options = {"series": {}};
+
 	table.find('tr').each(function(index, row) {
 		var tds = $(row).children();
 		var x = _getValue(tds[xInd].firstChild.data); 
@@ -470,8 +472,13 @@ function _doLinePlot(table, xInd, yInd) {
 			data.push([x, y]);
 		}
 	});
-	data.sort(function(a,b){return a[0]-b[0]});
-	jQuery.plot(jQuery('#plotarea'), [data]);
+	if (style=="Lines") {
+		options.series["lines"] = {'show': true};
+		data.sort(function(a,b){return a[0]-b[0]});
+	} else {
+		options.series["points"] = {'show': true};
+	}
+	jQuery.plot(jQuery('#plotarea'), [data], options);
 }
 
 
@@ -519,13 +526,14 @@ function _doHistogramPlot(table, colInd) {
 }	
 
 
-function _doFlotPlot(table, xsel, ysel) {
+function _doFlotPlot(table, xsel, ysel, usingSel) {
 	xInd = xsel.find("option:selected").val()
 	yInd = ysel.find("option:selected").val()
+	style = usingSel.find("option:selected").val()
 	if (yInd=='Histogram') {
 		_doHistogramPlot(table, xInd);
 	} else {
-		_doLinePlot(table, xInd, yInd);
+		_doLinePlot(table, xInd, yInd, style);
 	}
 }
 
@@ -539,17 +547,23 @@ function _plotUsingFlot(table, options) {
 	plotElement.draggable();
 	plotElement.find(".closer").bind("click", function(){
 		plotElement.remove()});
+	var controlPara = $('<p class="flotControl"></p>');
+	plotElement.append(controlPara);
 
 	// Make column selectors from table headings
 	var xsel = $('<select/>');
 	$(table.find('tr')[0]).find('th').each(function(index, head) {
 		xsel.append($('<option value="'+index+'">'+$(head).text()+'</option>'));
 	});
-	plotElement.append(xsel);
+	controlPara.append(xsel);
+	controlPara.append(' vs. ');
 	var ysel = xsel.clone();
 	ysel.append($(
 		'<option value="Histogram">Histogram</option>'));
-	plotElement.append(ysel);
+	controlPara.append(ysel);
+	controlPara.append(' using ');
+	var usingSel = $('<select><option selected="selected">Points</option><option>Lines</option></select>')
+	controlPara.append(usingSel);
 
 	// Set default plot features from options if given there
 	xselIndex = 0;
@@ -562,11 +576,12 @@ function _plotUsingFlot(table, options) {
 	}
 	xsel.children()[xselIndex].setAttribute("selected", "selected")
 	ysel.children()[yselIndex].setAttribute("selected", "selected")
+	usingSel.children()[usingIndex].setAttribute("selected", "selected")
 
-	// the callback for any form items that change what's plotted
+	// the callback any form items controlling the plot
 	var updatePlot = function() {
 		try {
-			_doFlotPlot(table, xsel, ysel);
+			_doFlotPlot(table, xsel, ysel, usingSel);
 		} catch (e) {
 			jQuery.plot(jQuery('#plotarea'), [{data:[], label: "unplottable"}]);
 			throw e;
@@ -574,6 +589,7 @@ function _plotUsingFlot(table, options) {
 	}
 	xsel.change(updatePlot);
 	ysel.change(updatePlot);
+	usingSel.change(updatePlot);
 
 	$("body").prepend(plotElement);
 	updatePlot();
