@@ -122,6 +122,13 @@ class DebugConnection(psycopg2.extensions.connection):
 		kwargs["cursor_factory"] = DebugCursor
 		return psycopg2.extensions.connection.cursor(self, *args, **kwargs)
 
+	def getPID(self):
+		cursor = self.cursor()
+		cursor.execute("SELECT pg_backend_pid()")
+		pid = list(cursor)[0][0]
+		cursor.close()
+		return pid
+
 
 class GAVOConnection(psycopg2.extensions.connection):
 	"""A standard psycopg2 connection.
@@ -130,6 +137,7 @@ class GAVOConnection(psycopg2.extensions.connection):
 	arguments to the connection; it is used when recovering from
 	a database restart.
 	"""
+
 
 def getDBConnection(profile, debug=debug, autocommitted=False):
 	"""returns a slightly instrumented connection through profile.
@@ -144,7 +152,7 @@ def getDBConnection(profile, debug=debug, autocommitted=False):
 	if debug:
 		conn = psycopg2.connect(connection_factory=DebugConnection,
 			**profile.getArgs())
-		print "NEW CONN using %s"%profile.name, id(conn)
+		print "NEW CONN using %s (%s)"%(profile.name, conn.getPID()), id(conn)
 		def closer():
 			print "CONNECTION CLOSE", id(conn)
 			return DebugConnection.close(conn)
@@ -719,12 +727,12 @@ def _makeConnectionManager(profileName, maxConn=20):
 		if not pool:
 			with poolLock:
 				pool.append(CustomConnectionPool(1, maxConn, profileName))
-		
+
 		conn = pool[0].getconn()
 		try:
 			yield conn
-		except OperationalError:
-			if conn.fileno()==-1: 
+		except Exception, ex:
+			if isinstance(ex, OperationalError) and conn.fileno()==-1: 
 				# this is probably a db server restart.  Invalidate all connections
 				# immediately.
 				utils.sendUIEvent("Warning", "Suspecting a database restart."
@@ -733,18 +741,21 @@ def _makeConnectionManager(profileName, maxConn=20):
 					if pool:
 						pool[0].closeall()
 						pool.pop()
-				raise
 			# Make sure the connection is closed, since we're not going
 			# to re-use it
 			try:
-				conn.close()
-			except OperationalError:
+				pool[0].putconn(conn, close=True)
+			except InterfaceError:  
+				# Connection already closed
 				pass
 			raise
 
-		# let clients close connections if they so chose.
-		if not conn.closed:
-			pool[0].putconn(conn)
+		try:
+			pool[0].putconn(conn, close=conn.closed)
+		except InterfaceError:
+			# Connection already closed
+			pass
+
 	return contextlib.contextmanager(getConnFromPool)
 
 
