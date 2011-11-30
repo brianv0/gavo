@@ -266,7 +266,7 @@ def parseCommandLine():
 def updateRegistryTimestamp():
 	"""edits the dateupdated field for the registry service in servicelist.
 	"""
-	with base.SimpleQuerier() as q:
+	with base.AdhocQuerier(base.getAdminConn) as q:
 		regSrv = getRegistryService()
 		q.query("UPDATE services SET dateupdated=%(now)s"
 			" WHERE sourcerd=%(rdId)s AND resId=%(sId)s", {

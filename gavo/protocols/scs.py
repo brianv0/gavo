@@ -18,8 +18,7 @@ def findNClosest(alpha, delta, tableDef, n, fields, searchRadius=5):
 	The query depends on postgastro extension (and should be changed to
 	use pgsphere).  It also requires the q3c extension.
 	"""
-	with base.getTableConn() as conn:
-		q = base.SimpleQuerier(conn)
+	with base.AdhocQuerier(base.getTableConn) as q:
 		raField = tableDef.getColumnByUCDs("pos.eq.ra;meta.main", 
 			"POS_EQ_RA_MAIN").name
 		decField = tableDef.getColumnByUCDs("pos.eq.dec;meta.main", 

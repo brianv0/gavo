@@ -35,6 +35,15 @@ class Error(utils.Error):
 	pass
 
 
+_PG_TIME_UNITS = {
+	"ms": 0.0001,
+	"s": 1.,
+	"": 1.,
+	"min": 60.,
+	"h": 3600.,
+	"d": 86400.,}
+
+
 # Keep track of wether we have installed our extensions
 # (this is to not require a DB connection on just importing this)
 _PSYCOPG_INITED = False
@@ -183,13 +192,6 @@ def getDBConnection(profile, debug=debug, autocommitted=False):
 
 def getDefaultDBConnection(debug=debug):
 	return getDBConnection(config.getDBProfile(), debug=debug)
-
-
-def encodeDBMsg(msg):
-	"""returns the string or sql exception msg in ascii.
-	"""
-	return str(msg).decode(config.get("db", "msgEncoding")
-		).encode("ascii", "replace")
 
 
 def _parseTableName(tableName, schema=None):
@@ -488,13 +490,38 @@ class StandardQueryMixin(object):
 
 		timeout is in seconds.
 		"""
-		if timeout==0: # Special instrumentation for testing
-			self.query("SET statement_timeout TO 1")
-		elif timeout is not None:
-			self.query("SET statement_timeout TO %d"%(int(float(timeout)*1000)))
+		# don't use query here since query may call setTimeout
+		cursor = self.connection.cursor()
+		try:
+			if timeout==0: # Special instrumentation for testing
+				cursor.execute("SET statement_timeout TO 1")
+			elif timeout is not None:
+				cursor.execute(
+					"SET statement_timeout TO %d"%(int(float(timeout)*1000)))
+		finally:
+			cursor.close()
+
+	def getTimeout(self):
+		"""returns the current timeout setting.
+
+		The value is in float seconds.
+		"""
+		# don't use query here since it may call getTimeout
+		cursor = self.connection.cursor()
+		try:
+			cursor.execute("SHOW statement_timeout")
+			rawVal = list(cursor)[0][0]
+			mat = re.match("(\d+)(\w*)$", rawVal)
+			try:
+				return int(mat.group(1))*_PG_TIME_UNITS[mat.group(2)]
+			except (ValueError, AttributeError, KeyError):
+				raise ValueError("Bad timeout value from postgres: %s"%rawVal)
+		finally:
+			cursor.close()
 
 
 def dictifyRowset(descr, rows):
+# deprecated -- remove this when SimpleQuerier is gone
 	"""turns a standard, tuple-based rowset into a list of dictionaries,
 	the keys of which are taken from descr (a cursor.description).
 	"""
@@ -574,7 +601,7 @@ class QuerierMixin(PostgresQueryMixin, StandardQueryMixin):
 		self._reconnection = False
 		return res
 
-	def query(self, query, data={}):
+	def query(self, query, data={}, timeout=None):
 		"""runs a single query in a new cursor and returns that cursor.
 
 		You will see all exceptions, no transaction management is
@@ -582,9 +609,24 @@ class QuerierMixin(PostgresQueryMixin, StandardQueryMixin):
 
 		query will try to re-establish broken connections.
 		"""
+		if self.connection is None:
+			raise utils.ReportableError(
+				"SimpleQuerier connection is None.",
+				hint="This ususally is because an AdhocQuerier's query method"
+				" was used outside of a with block.")
+
 		cursor = self.connection.cursor()
 		try:
-			cursor.execute(query, data)
+
+			if timeout is not None:
+				oldTimeout = self.getTimeout()
+				self.setTimeout(timeout)
+			try:
+				cursor.execute(query, data)
+			finally:
+				if timeout is not None:
+					self.setTimeout(oldTimeout)
+
 		except DBError, ex:
 			if isinstance(ex, OperationalError) and self.connection.fileno()==-1:
 				if not self._reconnecting:
@@ -593,6 +635,14 @@ class QuerierMixin(PostgresQueryMixin, StandardQueryMixin):
 				getattr(cursor, "query", query))
 			raise
 		return cursor
+
+	def queryDicts(self, *args, **kwargs):
+		"""as query, but returns dicts with the column names.
+		"""
+		cursor = self.query(*args, **kwargs)
+		keys = [d[0] for d in cursor.description]
+		for row in cursor:
+			yield dict(izip(keys, row))
 
 	def finish(self):
 		self.connection.commit()
@@ -604,6 +654,9 @@ class QuerierMixin(PostgresQueryMixin, StandardQueryMixin):
 
 class SimpleQuerier(QuerierMixin):
 	"""is a tiny interface to querying the standard database.
+
+	This was a design mistake.  It's deprecated and slated to go when we've
+	converted all dependent code.  Use AdhocQuerier instead.
 
 	You can query (which makes raises normal exceptions and renders
 	the connection unusable after an error), runIsolatedQuery (which
@@ -664,6 +717,36 @@ class SimpleQuerier(QuerierMixin):
 		if self.ownedConnection and self.connection:
 			if not self.connection.closed:
 				self.close()
+
+
+class AdhocQuerier(QuerierMixin):
+	"""A simple interface to querying the database through pooled
+	connections.
+
+	These are constructed using the connection getters (getTableConn (default),
+	getAdminConn) and then serve as context managers, handing back the connection
+	as you exit the controlled block.
+
+	Since they operate through pooled connections, no transaction
+	management takes place.  These are typically for read-only things.
+
+	You can use the query method and everything that's in the QuerierMixin.
+	"""
+	def __init__(self, connectionManager=None):
+		if connectionManager is None:
+			self.connectionManager = getTableConn
+		else:
+			self.connectionManager = connectionManager
+		self.connection = None
+	
+	def __enter__(self):
+		self._cm = self.connectionManager()
+		self.connection = self._cm.__enter__()
+		return self
+	
+	def __exit__(self, *args):
+		self.connection = None
+		return self._cm.__exit__(*args)
 
 
 def _initPsycopg(conn):

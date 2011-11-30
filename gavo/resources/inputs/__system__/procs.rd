@@ -40,18 +40,6 @@
 			dbNames, recNames = assignments.keys(), assignments.values()
 			query = "SELECT %s FROM %s WHERE %s=%%(val)s"%(
 				", ".join(dbNames), table, column)
-			<!-- TODO: probably use the connection pool -->
-			try:
-				querier = base.SimpleQuerier()
-				querier.enableAutocommit()
-			except (base.Error, base.DbError):
-				# we probably have no db connectivity.  Don't bring down the
-				# whole program without knowing we actually need it -- raise an error
-				# as soon as someone tries to use the connection
-				class Raiser:
-					def __getattr__(self, name):
-						raise base.Error("No db connectivity available.")
-				querier = Raiser()
 
 			def parseDestWithDefault(dest, defRe=re.compile(r"(\w+)\((.*)\)")):
 				"""returns name, default from dests like bla(0).
@@ -68,21 +56,20 @@
 	</setup>
 	<code><![CDATA[
 		try:
-			res = querier.query(query, {"val": val}).fetchall()[0]
-			for name, resVal in zip(recNames, res):
-				name, default = parseDestWithDefault(name)
-				if resVal is None:
-					vars[name] = default
-				else:
-					vars[name] = resVal
+			with base.AdhocQuerier(base.getAdminConn) as querier:
+				res = querier.query(query, {"val": val}).fetchall()[0]
+				for name, resVal in zip(recNames, res):
+					name, default = parseDestWithDefault(name)
+					if resVal is None:
+						vars[name] = default
+					else:
+						vars[name] = resVal
 		except IndexError:
 			raise base.ValidationError("The item %s didn't match"
 				" any data.  Since this data is required for further"
 				" operations, I'm giving up"%val, errCol)
 		except base.DBError, msg:
-			querier.rollback()
-			raise base.ValidationError("Internal error (%s)"%
-				base.encodeDBMsg(msg), "<unknown>")
+			raise base.ValidationError("Internal error (%s)"%msg, "<unknown>")
 	]]></code>
 </procDef>
 
@@ -185,17 +172,14 @@
 			>'&lt;unknown&gt;'</par>
 	</setup>
 	<code>
-		<!-- TODO: probably use the connection pool -->
-		q = base.SimpleQuerier()
-		try:
-			res = q.runIsolatedQuery(query, data=locals(), asDict=True)
-			try:
-				vars.update(res[0])
-			except IndexError:
+		with base.AdhocQuerier(base.getTableConn) as q:
+			cursor = q.query(query, locals())
+			keys = [f[0] for f in cursor.description]
+			res = list(cursor)
+			if not res:
 				raise base.ValidationError("Could not find a matching row",
 					errCol)
-		finally:
-			q.close()
+			vars.update(dict(zip(keys, res[0])))
 	</code>
 </procDef>
 

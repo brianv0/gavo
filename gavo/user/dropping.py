@@ -14,7 +14,7 @@ def _do_dropTable(tableName):
 	"""deletes rows generated from tableName from the DC's metadata
 	(and tableName itself).
 	"""
-	with api.SimpleQuerier(useProfile="admin") as q:
+	with base.AdhocQuerier(base.getAdminConn) as q:
 		for metaTableName, columnName in [
 				("dc.columnmeta", "tableName"),
 				("dc.tablemeta", "tableName"),

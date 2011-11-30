@@ -316,6 +316,8 @@ class InternalServerErrorPage(ErrorPage):
 		base.ui.notifyFailure(self.failure)
 		base.ui.notifyInfo("Arguments of failed request: %s"%
 			repr(request.args)[:2000])
+		if getattr(self.failure.value, "hint", None):
+			base.ui.notifyDebug("Exception hint: %s"%self.failure.value.hint)
 		if request.startedWriting:
 			# exception happened while rendering a page.
 			return self.renderInnerException(ctx)

@@ -41,7 +41,7 @@ def getGroupsForUser(username, password):
 	query = ("SELECT groupname FROM dc.groups NATURAL JOIN dc.users as u"
 		" where username=%(username)s AND u.password=%(password)s")
 	pars = {"username": username, "password": password}
-	with base.SimpleQuerier(useProfile=adminProfile) as querier:
+	with base.AdhocQuerier(base.getAdminConn) as querier:
 		return parseResponse(querier.query(query, pars))
 
 
@@ -53,8 +53,7 @@ def hasCredentials(user, password, reqGroup):
 			) and password==base.getConfig("web", "adminpasswd"):
 		return True
 
-	# ADMINPOOL
-	with base.SimpleQuerier(useProfile=adminProfile) as querier:
+	with base.AdhocQuerier(base.getAdminConn) as querier:
 		dbRes = list(querier.query("select password from dc.users where"
 			" username=%(user)s", {"user": user}))
 		if not dbRes or not dbRes[0]:

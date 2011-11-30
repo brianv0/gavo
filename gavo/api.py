@@ -15,7 +15,8 @@ RD = rscdesc.RD
 
 from gavo.base import (getConfig, setConfig,
 	getDBConnection, getDefaultDBConnection, setDBProfile, 
-	SimpleQuerier, 
+	SimpleQuerier,  # deprecated
+	AdhocQuerier, getTableConn, getAdminConn,
 	NoMetaKey, Error, StructureError, ValidationError, LiteralParseError, 
 	ReportableError, NotFoundError, RDNotFound, 
 	parseFromString,

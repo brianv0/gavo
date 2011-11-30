@@ -124,14 +124,11 @@ class TestRoleSetting(TestPrivs):
 		# We need a private querier here since we must squeeze those
 		# users in before TestPriv's setup
 		try:
-			querier = base.SimpleQuerier()
-			querier.query("create user privtestuser")
-			querier.query("create user testadmin")
-			querier.commit()
+			with base.AdhocQuerier(base.getAdminConn) as querier:
+				querier.query("create user privtestuser")
+				querier.query("create user testadmin")
 		except base.DBError: # probably left over from a previous crash
 			sys.stderr.write("Test roles already present?  Rats.\n")
-			querier.rollback()
-		querier.close()
 		TestPrivs.setUp(self)
 	
 	def tearDown(self):
@@ -161,13 +158,57 @@ class SimpleQuerierTest(TestWithTableCreation):
 				'adate': datetime.date(2003, 11, 13)}])
 
 
+class AdhocQuerierTest(testhelpers.VerboseTest):
+	resources = [("table", tresc.csTestTable)]
+
+	def testBasic(self):
+		with base.AdhocQuerier() as q:
+			self.assertEqual(1, len(list(q.query(
+				"select * from %s limit 1"%self.table.tableDef.getQName()))))
+
+	def testAdminQuerier(self):
+		with base.AdhocQuerier(base.getAdminConn) as q:
+			self.assertRuns(q.query,
+				("create role dont",))
+			self.assertRuns(q.query,
+				("drop role dont",))
+	
+	def testNoAdminQuerier(self):
+		with base.AdhocQuerier() as q:
+			self.assertRaises(sqlsupport.ProgrammingError, q.query,
+				"create role dont")
+
+	def testReopen(self):
+		q = base.AdhocQuerier()
+		with q:
+			self.assertEqual(1, len(list(q.query(
+				"select * from %s limit 1"%self.table.tableDef.getQName()))))
+		self.assertRaises(base.ReportableError, 
+			q.query, "select * from dc.tables")
+		with q:
+			self.assertEqual(1, len(list(q.query(
+				"select * from %s limit 1"%self.table.tableDef.getQName()))))
+
+	def testGetSetTimeout(self):
+		with base.AdhocQuerier() as q:
+			q.setTimeout(3)
+			self.assertAlmostEqual(q.getTimeout(), 3.)
+
+	def testTimeoutReset(self):
+		with base.AdhocQuerier() as q:
+			q.setTimeout(0)
+			self.assertEqual(1, len(list(q.query(
+				"select * from %s limit 1"%self.table.tableDef.getQName(), timeout=2))))
+			self.assertEqual(q.getTimeout(), 0)
+
+
 class TestMetaTable(TestWithTableCreation):
 	tableName = "typesTable"
 
 	def testDcTablesEntry(self):
-		q = base.SimpleQuerier()
-		res = q.query("select * from dc.tablemeta where tableName=%(n)s",
-			{"n": self.tableDef.getQName()}).fetchall()
+		with  base.AdhocQuerier() as q:
+			res = q.query("select * from dc.tablemeta where tableName=%(n)s",
+				{"n": self.tableDef.getQName()}).fetchall()
 		qName, srcRd, td, rd, adql = res[0]
 		self.assertEqual(qName, 'test.typesTable')
 		self.assertEqual(srcRd.split("/")[-1], 'test')
@@ -295,4 +336,4 @@ class TestQueryExpands(TestWithTableCreation):
 
 
 if __name__=="__main__":
-	testhelpers.main(TestPgSphere)
+	testhelpers.main(AdhocQuerierTest)

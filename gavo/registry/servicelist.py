@@ -115,7 +115,7 @@ def getTableDef(tableName):
 
 	If no such table is known to the system, a NotFoundError is raised.
 	"""
-	with base.SimpleQuerier() as q:
+	with base.AdhocQuerier(base.getTableConn) as q:
 		res = list(q.query("SELECT sourceRD FROM dc.tablemeta WHERE"
 				" tableName=%(tableName)s", {"tableName": tableName}))
 	if len(res)!=1:
