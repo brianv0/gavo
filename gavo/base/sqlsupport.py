@@ -11,6 +11,7 @@ import operator
 import os
 import re
 import sys
+import threading
 from itertools import *
 
 from gavo import utils
@@ -668,10 +669,14 @@ def _initPsycopg(conn):
 
 class CustomConnectionPool(psycopg2.pool.ThreadedConnectionPool):
 	"""A threaded connection pool that returns trustedquery connections.
+
+	For now, all connections managed here are autocommitted;
+	there's code that does this in _connect.
 	"""
-	def __init__(self, minconn, maxconn):
+	def __init__(self, minconn, maxconn, profileName):
 # make sure no additional arguments come in, since we don't
 # support them.
+		self.profileName = profileName
 		psycopg2.pool.ThreadedConnectionPool.__init__(
 			self, minconn, maxconn)
 
@@ -682,7 +687,16 @@ class CustomConnectionPool(psycopg2.pool.ThreadedConnectionPool):
 		This is an implementation detail of psycopg2's connection
 		pools.
 		"""
-		conn = getDBConnection("trustedquery")
+		conn = getDBConnection(self.profileName)
+
+		try:
+			conn.set_session(
+				isolation_level=psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT,
+				readonly=True)
+		except AttributeError:
+			# fallback for old psycopg2
+			conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+
 		if key is not None:
 			self._used[key] = conn
 			self._rused[id(conn)] = key
@@ -691,42 +705,48 @@ class CustomConnectionPool(psycopg2.pool.ThreadedConnectionPool):
 		return conn
 
 
-_TQ_POOL = None
-
-@contextlib.contextmanager
-def getTableConn():
-	"""a context manager returning a pooled and autocommitted 
-	trustedquery connection.
+def _makeConnectionManager(profileName, maxConn=20):
+	"""returns a context manager for a connection pool for profileName
+	connections.
 	"""
-	# create global connection pool when necessary.  We need to delay this
-	# because gavo init imports sqlsupport, and thus the trustedquery
-	# profile may not yet exist during sqlsupport import.
-	global _TQ_POOL
-	if _TQ_POOL is None:
-		_TQ_POOL = CustomConnectionPool(1, 400)
-	conn = _TQ_POOL.getconn()
+	pool = []
+	poolLock = threading.Lock()
 
-	try:
-		conn.set_session(
-			isolation_level=psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT,
-			readonly=True)
-	except AttributeError:
-		# fallback for old psycopg2
-		conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
-
-	try:
-		yield conn
-	except OperationalError:
-		if conn.fileno()==-1: 
-			# this is probably a db server restart.  Invalidate all connections
-			# immediately.
-			utils.sendUIEvent("Warning", "Suspecting a database restart."
-				"  Discarding old connection pool, making a new one.")
-			_TQ_POOL.closeall()
-			_TQ_POOL = CustomConnectionPool(1, 400)
+	def getConnFromPool():
+		# we delay pool creation since these functions are built during
+		# sqlsupport import.  We probably don't have profiles ready
+		# at that point.
+		if not pool:
+			with poolLock:
+				pool.append(CustomConnectionPool(1, maxConn, profileName))
+		
+		conn = pool[0].getconn()
+		try:
+			yield conn
+		except OperationalError:
+			if conn.fileno()==-1: 
+				# this is probably a db server restart.  Invalidate all connections
+				# immediately.
+				utils.sendUIEvent("Warning", "Suspecting a database restart."
+					"  Discarding old connection pool, making a new one.")
+				with poolLock:
+					if pool:
+						pool[0].closeall()
+						pool.pop()
+				raise
+			# Make sure the connection is closed, since we're not going
+			# to re-use it
+			try:
+				conn.close()
+			except OperationalError:
+				pass
 			raise
 
-	# let clients close connections if the so chose.
-	if not conn.closed:
-		_TQ_POOL.putconn(conn)
+		# let clients close connections if they so chose.
+		if not conn.closed:
+			pool[0].putconn(conn)
+	return contextlib.contextmanager(getConnFromPool)
 
+
+getTableConn = _makeConnectionManager("trustedquery")
+getAdminConn = _makeConnectionManager("admin")

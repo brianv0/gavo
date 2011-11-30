@@ -53,6 +53,7 @@ def hasCredentials(user, password, reqGroup):
 			) and password==base.getConfig("web", "adminpasswd"):
 		return True
 
+	# ADMINPOOL
 	with base.SimpleQuerier(useProfile=adminProfile) as querier:
 		dbRes = list(querier.query("select password from dc.users where"
 			" username=%(user)s", {"user": user}))

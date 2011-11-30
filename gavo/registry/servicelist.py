@@ -59,9 +59,10 @@ def querySubjectsList(setName=None):
 	svcsForSubjs = {}
 	td = base.caches.getRD(SERVICELIST_ID).getById("subjects_join")
 	otd = svcs.OutputTableDef.fromTableDef(td, None)
-	for row in rsc.TableForDef(td).iterQuery(otd, 
-			"setName=%(setName)s AND subject IS NOT NULL", {"setName": setName}):
-		svcsForSubjs.setdefault(row["subject"], []).append(row)
+	with base.getTableConn() as conn:
+		for row in rsc.TableForDef(td, connection=conn).iterQuery(otd, 
+				"setName=%(setName)s AND subject IS NOT NULL", {"setName": setName}):
+			svcsForSubjs.setdefault(row["subject"], []).append(row)
 	for s in svcsForSubjs.values():
 		s.sort(key=lambda a: a["title"])
 	res = [{"subject": subject, "chunk": s}

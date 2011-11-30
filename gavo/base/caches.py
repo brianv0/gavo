@@ -20,7 +20,6 @@ An alternative interface to registering caches is the registerCache function
 (see there).
 """
 
-import mutex
 import time
 
 
