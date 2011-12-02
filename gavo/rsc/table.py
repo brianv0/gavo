@@ -74,7 +74,7 @@ def _makeFailIncomplete(name):
 	return fail
 
 
-class BaseTable(base.MetaMixin):
+class BaseTable(base.MetaMixin, common.ParamMixin):
 	"""is a container for row data.
 
 	Tables consist of rows, where each row maps column names to their
@@ -137,47 +137,7 @@ class BaseTable(base.MetaMixin):
 		self.validateRows = kwargs.get("validateRows", False)
 		self.votCasts = kwargs.get("votCasts", {})
 		self.role = kwargs.get("role")
-		self._params = self.tableDef.params.deepcopy(self.tableDef)
-		self._params.withinId = "table "+self.tableDef.id
-		if "params" in kwargs:
-			self.setParams(kwargs.pop("params"))
-
-	def setParams(self, parDict, raiseOnBadKeys=True):
-		for k, v in parDict.iteritems():
-			try:
-				self.setParam(k, v)
-			except base.NotFoundError:
-				if raiseOnBadKeys:
-					raise
-
-	def setParam(self, parName, value):
-		"""sets a parameter to a value.
-
-		String-typed values will be parsed, everything else is just entered
-		directly.  Trying to write to non-existing params will raise a
-		NotFoundError.
-
-		Do now write to params directly, you'll break things.
-		"""
-		self._params.getColumnByName(parName).set(value)
-	
-	def getParam(self, parName):
-		"""retrieves a parameter (python) value.
-		"""
-		return self._params.getColumnByName(parName).value
-
-	def getParamByName(self, parName):
-		return self._params.getColumnByName(parName)
-
-	def iterParams(self):
-		"""iterates over the parameters for this table.
-
-		The items returned are rscdef.Param instances.
-		"""
-		return self._params
-
-	def getParamDict(self):
-		return dict((p.name, p.value) for p in self.iterParams())
+		self._initParams(self.tableDef, kwargs.pop("params", None))
 
 	__iter__ = _makeFailIncomplete("__iter__")
 	__len__ = _makeFailIncomplete("__len__")

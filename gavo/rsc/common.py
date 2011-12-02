@@ -19,6 +19,65 @@ class DBTableError(base.Error):
 		self.args = [msg, qName]
 
 
+class ParamMixin(object):
+	"""A mixin providing param processing.
+
+	This is for tables and data elements.  If you mix this in, you have
+	to call _initParams(rscdefObject, params=None) 
+	
+	rscdefObject is a TableDef or DataDef, params, if given, a dictionary
+	mapping param names to param values.
+	"""
+	def _initParams(self, paramsDef, params=None):
+		self.paramsDef = paramsDef
+		self._params = self.paramsDef.params.deepcopy(self.paramsDef)
+		if self.paramsDef.id:
+			self._params.withinId = "%s %s"%(
+				self.paramsDef.__class__.__name__, self.paramsDef.id)
+		else:
+			self._params.withinId = "anonymous "+self.paramsDef.__class__.__name__
+		if params is not None:
+			self.setParams(params)
+	
+	def setParams(self, parDict, raiseOnBadKeys=True):
+		for k, v in parDict.iteritems():
+			try:
+				self.setParam(k, v)
+			except base.NotFoundError:
+				if raiseOnBadKeys:
+					raise
+
+	def setParam(self, parName, value):
+		"""sets a parameter to a value.
+
+		String-typed values will be parsed, everything else is just entered
+		directly.  Trying to write to non-existing params will raise a
+		NotFoundError.
+
+		Do now write to params directly, you'll break things.
+		"""
+		self._params.getColumnByName(parName).set(value)
+	
+	def getParam(self, parName):
+		"""retrieves a parameter (python) value.
+		"""
+		return self._params.getColumnByName(parName).value
+
+	def getParamByName(self, parName):
+		return self._params.getColumnByName(parName)
+
+	def iterParams(self):
+		"""iterates over the parameters for this table.
+
+		The items returned are rscdef.Param instances.
+		"""
+		return self._params
+
+	def getParamDict(self):
+		return dict((p.name, p.value) for p in self.iterParams())
+
+
+
 class ParseOptions(object):
 	"""see getParseOptions.
 	"""

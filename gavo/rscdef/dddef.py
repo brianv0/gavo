@@ -14,6 +14,7 @@ import os
 from gavo import base
 from gavo import utils
 from gavo.rscdef import builtingrammars
+from gavo.rscdef import column
 from gavo.rscdef import common
 from gavo.rscdef import rmkdef
 from gavo.rscdef import scripting
@@ -321,6 +322,12 @@ class DataDescriptor(base.Structure, base.ComputedMetaMixin,
 		copyable=True, 
 		description="Specification of a target table and the rowmaker"
 			" to feed them.")
+	
+	_params = common.ColumnListAttribute("params",
+		childFactory=column.Param, 
+		description='Param ("global columns") for this data (mostly for'
+		 ' VOTable serialization).', 
+		copyable=True)
 
 	_properties = base.PropertyAttribute()
 

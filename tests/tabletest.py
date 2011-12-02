@@ -398,7 +398,7 @@ class ParamTest(testhelpers.VerboseTest):
 	def testSetParamFail(self):
 		table = rsc.TableForDef(self.td)
 		self.assertRaisesWithMsg(base.NotFoundError,
-		"column 'doric' could not be located in table u",
+		"column 'doric' could not be located in TableDef u",
 		table.setParam,
 		("doric", 10))
 

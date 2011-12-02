@@ -79,7 +79,7 @@ class DataFeeder(table.Feeder):
 		return self.nAffected
 
 
-class Data(base.MetaMixin):
+class Data(base.MetaMixin, common.ParamMixin):
 	"""is a collection of data parsed from a consistent set of sources.
 
 	That is, Data is the instanciation of a DataDescriptor.  In consists
@@ -90,6 +90,7 @@ class Data(base.MetaMixin):
 		self.dd, self.parseOptions = dd, parseOptions
 		self.tables = tables
 		self.setMetaParent(self.dd)
+		self._initParams(self.dd)
 
 	def __iter__(self):
 		for make in self.dd.makes:

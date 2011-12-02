@@ -4,9 +4,9 @@ Writing data in FITS binary tables
 
 from __future__ import with_statement
 
-import mutex
 import os
 import tempfile
+import threading
 import time
 from contextlib import contextmanager
 
@@ -19,18 +19,17 @@ from gavo.formats import common
 from gavo.utils import pyfits
 
 
-# pyfits obviously is not thread-safe.  We put a mutex around table generation
+# pyfits obviously is not thread-safe.  We put a lock around table generation
 # and hope we'll be fine.
-_FITS_TABLE_MUTEX = mutex.mutex()
+_FITS_TABLE_LOCK = threading.Lock()
 
 @contextmanager
 def exclusiveFits():
-	while not _FITS_TABLE_MUTEX.testandset():
-		time.sleep(0.1)
+	_FITS_TABLE_LOCK.acquire()
 	try:
 		yield
 	finally:
-		_FITS_TABLE_MUTEX.unlock()
+		_FITS_TABLE_LOCK.release()
 
 
 

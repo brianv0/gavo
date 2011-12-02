@@ -243,6 +243,10 @@ def _iterTableParams(serManager):
 def _iterParams(ctx, dataSet):
 	"""iterates over the entries in the parameters table of dataSet.
 	"""
+# deprecate this.  The parameters table of a data object was a grave
+# mistake.
+# Let's see who's using it and then remove this in favor of actual
+# data parameters (or table parameters)
 	try:
 		parTable = dataSet.getTableWithRole("parameters")
 	except base.DataError:  # no parameter table
@@ -363,7 +367,9 @@ def _makeResource(ctx, data):
 			type=base.getMetaText(data, "_type"),
 			utype=base.getMetaText(data, "utype"))[
 		_iterResourceMeta(ctx, data),
-		_iterParams(ctx, data)]
+		_iterParams(ctx, data), [
+			_makeVOTParam(ctx, param) for param in data.iterParams()],
+		]
 	for table in data:
 		if table.role!="parameters":
 			res[makeTable(ctx, table)]

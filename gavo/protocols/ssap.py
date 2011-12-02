@@ -40,14 +40,18 @@ class SSAPCore(svcs.DBCore):
 		</outputTable>"""
 
 	def _makeMetadata(self, service):
-		metaTD = self.outputTable.copy(None)
-		for inP in self.inputTable.params:
-			metaTD.feedObject("param", inP.change(name="INPUT:"+inP.name))
+		metaTD = self.outputTable.change(id="results")
+		for param in metaTD.params:
+			param.name = "OUTPUT:"+param.name
 		dd = base.makeStruct(rscdef.DataDescriptor, parent_=self.rd,
-			makes=[base.makeStruct(rscdef.Make, table=metaTD)])
+			makes=[base.makeStruct(rscdef.Make, table=metaTD,
+				rowmaker=base.makeStruct(rscdef.RowmakerDef))])
 		dd.setMetaParent(service)
 
-		dd.setMeta("type", "meta")
+		for inP in self.inputTable.params:
+			dd.feedObject("param", inP.change(name="INPUT:"+inP.name))
+
+		dd.setMeta("_type", "meta")
 		dd.addMeta("info", base.makeMetaValue(
 			"", name="info", infoName="QUERY_STATUS", infoValue="OK"))
 		dd.addMeta("info", base.makeMetaValue(
