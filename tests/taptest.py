@@ -10,6 +10,7 @@ running reactor and are based on trial.
 
 from __future__ import with_statement
 
+import datetime
 import os
 import Queue
 import time
@@ -270,6 +271,48 @@ class LockingTest(testhelpers.VerboseTest):
 				(req, (self.jobId, "phase")))
 
 
+class QueueTest(testhelpers.VerboseTest):
+	def testQuote(self):
+		now = datetime.datetime.utcnow()
+		tick = datetime.timedelta(minutes=15)
+		jobs = []
+		try:
+			with uws.UWSJob.create() as job:
+				job.phase = uws.QUEUED
+				job.destructionTime = now+10*tick
+				jobs.append(job.jobId)
+
+			testJob = uws.ROUWSJob.makeFromId(job.jobId)
+			# don't fail just because jobs are left in the queue
+			baseDelay = testJob.quote-now
+
+			with uws.UWSJob.create() as job:
+				job.phase = uws.QUEUED
+				job.destructionTime = now+9*tick
+				jobs.append(job.jobId)
+			
+			# our quote must now be roughly 10 minutes (as configured in
+			# uws.EST_TIME_PER_JOB) later
+			self.assertEqual((testJob.quote-now-baseDelay).seconds/10, 
+				uws.EST_TIME_PER_JOB.seconds/10)
+
+			with uws.UWSJob.create() as job:
+				job.phase = uws.QUEUED
+				job.destructionTime = now+11*tick
+				jobs.append(job.jobId)
+
+			# the new job will run later then our test job, so no change
+			# expected
+			self.assertEqual((testJob.quote-now-baseDelay).seconds/10, 
+				uws.EST_TIME_PER_JOB.seconds/10)
+
+		finally:
+			for jobId in jobs:
+				with uws.UWSJob.makeFromId(jobId) as job:
+					job.delete()
+
+
+
 class SimpleRunnerTest(testhelpers.VerboseTest):
 	"""tests various taprunner scenarios.
 	"""
@@ -451,5 +494,6 @@ class CapabilitiesTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 		self.assertValidates(res.render(), leaveOffending=True)
 
 
+
 if __name__=="__main__":
-	testhelpers.main(SimpleRunnerTest)
+	testhelpers.main(QueueTest)

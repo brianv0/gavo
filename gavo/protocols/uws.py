@@ -37,6 +37,8 @@ DESTROYED = "DESTROYED"  # local extension
 
 END_STATES = set([DESTROYED, COMPLETED, ERROR, ABORTED])
 
+# used in the computation of quote
+EST_TIME_PER_JOB = datetime.timedelta(minutes=10)
 
 class UWSError(base.Error):
 	def __init__(self, msg, jobId, hint=None):
@@ -281,7 +283,7 @@ class ROUWSJob(object):
 	there is.  I'll think about that when I want to support more types
 	of UWS jobs.
 	"""
-	_dbAttrs = ["jobId", "phase", "runId", "quote", "executionDuration",
+	_dbAttrs = ["jobId", "phase", "runId", "executionDuration",
 		"destructionTime", "owner", "actions", "pid", "startTime", "endTime"]
 	_closed = True
 
@@ -439,6 +441,21 @@ class ROUWSJob(object):
 			raise ValueError("No path components allowed on job files.")
 		return open(os.path.join(self.getWD(), name), mode)
 
+	@property
+	def quote(self):
+		"""returns an estimation of the job completion.
+
+		This currently is very naive: we give each job that's going to run
+		before this one 10 minutes.
+
+		This method needs to be changed when the dequeueing algorithm
+		is changed.
+		"""
+		nBefore = self.jobsTable.query("select count(*) from \curtable where"
+			" phase='QUEUED' and destructionTime<=%(dt)s",
+			{"dt": self.destructionTime}).next()[0]
+		return datetime.datetime.utcnow()+nBefore*EST_TIME_PER_JOB
+
 
 class UWSJob(ROUWSJob):
 	"""A job description within UWS.
@@ -475,7 +492,7 @@ class UWSJob(ROUWSJob):
 # in __enter__, and the rest would just keep instanciated.  Well,
 # we can always clean this up later while keeping code assuming
 # the current semantics working.
-	_dbAttrs = ["jobId", "phase", "runId", "quote", "executionDuration",
+	_dbAttrs = ["jobId", "phase", "runId", "executionDuration",
 		"destructionTime", "owner", "actions", "pid", "startTime", "endTime"]
 	_closed = True
 
@@ -513,10 +530,10 @@ class UWSJob(ROUWSJob):
 		kws["parameters"] = serializeParameters({})
 		jobsTable = getJobsTable(timeout=timeout)
 		utils.addDefaults(kws, {
-			"quote": None,
 			"executionDuration": base.getConfig("async", "defaultExecTime"),
 			"destructionTime": datetime.datetime.utcnow()+datetime.timedelta(
 					seconds=base.getConfig("async", "defaultLifetime")),
+			"quote": None,  # see below in _persist
 			"runId": None,
 			"owner": None,
 			"pid": None,
@@ -551,7 +568,7 @@ class UWSJob(ROUWSJob):
 		name (i.e., a string) of a registred Actions class.
 		"""
 		return cls.create(args=request.scalars, actions=actions)
-	
+
 	def __del__(self):
 		# if a job has not been closed, commit it (this may be hiding programming
 		# errors, though -- should we rather roll back?)
@@ -591,6 +608,10 @@ class UWSJob(ROUWSJob):
 		if self._closed:
 			raise ValueError("Cannot persist closed UWSJob")
 		dbRec = self.getAsDBRec()
+		# artifically add quote; we now compute this on the fly, but
+		# I'd like to wait with a schema change until we refurbish the
+		# whole UWS mess
+		dbRec["quote"] = None
 		if self.phase==DESTROYED:
 			self.jobsTable.deleteMatching("jobId=%(jobId)s", dbRec)
 		else:

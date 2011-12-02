@@ -262,10 +262,15 @@ class SimpleAsyncTest(TAPRenderTest):
 				"/async/%s/phase"%jobId, {"PHASE": "RUN"}
 			).addCallback(assertStarted, jobId)
 
+		def checkQuote(ingored, jobId):
+			return self.assertGETHasStrings("/async/%s/quote"%jobId, {},
+				['-']
+				).addCallback(promote, jobId)
+
 		def checkPhase(jobId):
 			return self.assertGETHasStrings("/async/%s/phase"%jobId, {},
 				['PENDING']
-				).addCallback(promote, jobId)
+				).addCallback(checkQuote, jobId)
 
 		def checkPosted(result):
 			# jobId is in location of result[1]
