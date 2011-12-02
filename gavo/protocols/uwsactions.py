@@ -281,9 +281,11 @@ class PhaseAction(JobAction):
 				wjob.changeToPhase(uws.ABORTED)
 			else:
 				raise base.ValidationError("Bad phase: %s"%newPhase, "phase")
+		uws.getActions(job.actions).checkProcessQueue()
 		raise svcs.WebRedirect("async/"+job.jobId)
 	
 	def doGET(self, job, request):
+		uws.getActions(job.actions).checkProcessQueue()
 		request.setHeader("content-type", "text/plain")
 		return job.phase
 _JobActions.addAction(PhaseAction)

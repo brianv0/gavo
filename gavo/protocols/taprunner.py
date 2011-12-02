@@ -271,15 +271,15 @@ def setINTHandler(jobId):
 		# Let's be reckless for now and kill from the signal handler.
 		with tap.TAPJob.makeFromId(jobId) as job:
 			job.phase = uws.ABORTED
-			if _WORKER_PID:
-				base.ui.notifyInfo("Trying to abort %s, wpid %s"%(
-					jobId, _WORKER_PID))
-				killConn = base.getDBConnection("admin")
-				curs = killConn.cursor()
-				curs.execute("SELECT pg_cancel_backend(%d)"%_WORKER_PID)
-				curs.close()
-				killConn.close()
-			sys.exit(2)
+		if _WORKER_PID:
+			base.ui.notifyInfo("Trying to abort %s, wpid %s"%(
+				jobId, _WORKER_PID))
+			killConn = base.getDBConnection("admin")
+			curs = killConn.cursor()
+			curs.execute("SELECT pg_cancel_backend(%d)"%_WORKER_PID)
+			curs.close()
+			killConn.close()
+		sys.exit(2)
 
 	signal.signal(signal.SIGINT, handler)
 

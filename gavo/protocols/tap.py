@@ -97,11 +97,12 @@ class TAPError(base.Error):
 	"""
 	def __init__(self, msg, sourceEx=None, hint=None):
 		base.Error.__init__(self, msg, hint=hint)
+		self.msg = msg
 		self.sourceEx = sourceEx
 	
 	def __str__(self):
-		if self.message:
-			return self.message
+		if self.msg:
+			return self.msg
 		elif self.sourceEx:
 			return "TAP operation failed (%s, %s)"%(
 				self.sourceEx.__class__.__name__,
@@ -371,6 +372,7 @@ def _replaceFDs(inFName, outFName):
   os.dup(outF.fileno())
 
 
+
 class _TAPBackendProtocol(protocol.ProcessProtocol):
 	"""The protocol used for taprunners when spawning them under a twisted
 	reactor.
@@ -391,6 +393,7 @@ class _TAPBackendProtocol(protocol.ProcessProtocol):
 		"""
 		try:
 			with uws.UWSJob.makeFromId(self.jobId) as job:
+			
 				if job.phase==uws.QUEUED or job.phase==uws.EXECUTING:
 					try:
 						raise uws.UWSError("Job hung in %s"%job.phase, job.jobId)
@@ -401,27 +404,41 @@ class _TAPBackendProtocol(protocol.ProcessProtocol):
 
 
 class TAPActions(uws.UWSActions):
-# XXX TODO: Implement a real queue rather than starting blindly
+	"""The transition function for TAP jobs.
+
+	There's a hack here: After each transition, when you've released
+	your lock on the job, call checkProcessQueue (in reality, only
+	PhaseAction does this).
+	"""
 	def __init__(self):
 		uws.UWSActions.__init__(self, "TAP", [
-			(uws.PENDING, uws.QUEUED, "startJob"),
+			(uws.PENDING, uws.QUEUED, "queueJob"),
 			(uws.PENDING, uws.ABORTED, "markAborted"),
 			(uws.QUEUED, uws.ABORTED, "markAborted"),
-			(uws.EXECUTING, uws.COMPLETED, "noOp"),
+			(uws.EXECUTING, uws.COMPLETED, "completeJob"),
 			(uws.EXECUTING, uws.ABORTED, "killJob"),
+			(uws.EXECUTING, uws.ERROR, "errorOutJob"),
+# Unknown is abused here as "forked, but not up yet"
+# Thus, it's to be treated more or less like executing
+			(uws.UNKNOWN, uws.COMPLETED, "completeJob"),
+			(uws.UNKNOWN, uws.ABORTED, "killJob"),
+			(uws.UNKNOWN, uws.ERROR, "errorOutJob"),
 			(uws.COMPLETED, uws.ERROR, "ignoreAndLog"),
 			])
+		# _processQueueDirty is set if the QUEUED jobs are expected
+		# to have a chance to get run; this is set by action
+		self._processQueueDirty = False
 
-	def _startJobTwisted(self, newState, job, ignored):
+	def _startJobTwisted(self, job):
 		"""starts a job when we're running within a twisted reactor.
 		"""
 		pt = reactor.spawnProcess(_TAPBackendProtocol(job.jobId),
 			"gavo", args=["gavo", "tap", "--", str(job.jobId)],
 				env=os.environ)
 		job.pid = pt.pid
-		job.phase = uws.QUEUED
+		job.phase = uws.UNKNOWN
 
-	def _startJobNonTwisted(self, newState, job, ignored):
+	def _startJobNonTwisted(self, job):
 		"""forks off a new job when (hopefully) a manual child reaper is in place.
 		"""
 		try:
@@ -431,23 +448,111 @@ class TAPActions(uws.UWSActions):
 				os.execlp("gavo", "gavo", "--disable-spew", 
 					"tap", "--", job.jobId)
 			elif pid>0:
-				job.phase = uws.QUEUED
 				job.pid = pid
+				job.phase = uws.UNKNOWN
 			else:
 				raise Exception("Could not fork")
 		except Exception, ex:
 			job.changeToPhase(uws.ERROR, ex)
+	
+	def _startJob(self, job):
+		"""causes a process to be started that executes job.
 
-	def startJob(self, newState, job, ignored):
+		This dispatches according to whether or not we are within a twisted
+		event loop, mostly for testing support.
+		"""
+		if reactor.running:
+			return self._startJobTwisted(job)
+		else:
+			return self._startJobNonTwisted(job)
+
+	def _manuallyErrorOutJob(self, writableJobsTable, jobId, errMsg):
+		job = ROTAPJob(jobId)
+		with job.getWritable() as wj:
+			wj.setError(errMsg)
+			base.ui.notifyError("Stale/dead taprunner: '%s'"%errmsg)
+			wj.changeToPhase(uws.ERROR)
+
+	def _ensureJobsAreRunning(self):
+		"""pushes all executing jobs that silently died to ERROR.
+		"""
+		jt = uws.getROJobsTable()
+		for jobId, pid in  jt.iterquery([
+					jt.tableDef.getColumnByName("jobId"),
+					jt.tableDef.getColumnByName("pid")],
+				"phase='EXECUTING'"):
+
+			if pid is None:
+				self._manuallyErrorOutJob(jobId,
+					"EXECUTING job %s had no pid."%jobId)
+			else:
+				try:
+					os.waitpid(pid, os.WNOHANG)
+				except os.error: # child presumably is dead
+					self._manuallyErrorOutJob(jobId,
+						"EXECUTING job %s has silently died."%jobId)
+
+	def _processQueue(self):
+		"""tries to take jobs from the queue.
+
+		This function is called whenever a job is queued and on transitions
+		from EXECUTING so somewhere else.
+
+		Currently, the jobs with the earliest destructionTime are processed
+		first.  That's, of course, completely ad-hoc.
+
+		job is the job that initiated the action.  We need it since it's
+		likely it is being manipulated, and so we need to commit all its
+		changes.  Also, it needs updating at the end of this function.
+		"""
+		if uws.countQueuedJobs()==0:
+			return
+		runcountGoal = base.getConfig("async", "maxTAPRunning")
+
+		jobsTable = uws.getROJobsTable()
+		try:
+			started = 0
+			for row in  list(jobsTable.iterQuery(
+					[jobsTable.tableDef.getColumnByName("jobId")],
+					"phase=%(phase)s", {"phase": uws.QUEUED},
+					limits=('ORDER BY destructionTime ASC', {}))):
+				if uws.countRunningJobs()>=runcountGoal:
+					break
+				self._startJob(TAPJob(row["jobId"]))
+				started += 1
+			
+			if started==0:
+				# No jobs could be started.  This may be fine when long-runnning
+				# jobs  block job submission, but for catastrophic taprunner
+				# failures we want to make sure all jobs we think are executing
+				# actually are.  If they've silently died, we log that and
+				# push them to error.
+				self._ensureJobsAreRunning()
+		except Exception, ex:
+			base.ui.notifyError("Error during queue processing, TAP"
+				" is probably botched now.")
+
+	def checkProcessQueue(self):
+		if self._processQueueDirty:
+			self._processQueueDirty = False
+			self._processQueue()
+
+	def queueJob(self, newState, job, ignored):
 		"""starts a job.
 
 		The method will venture a guess whether there is a twisted reactor
 		and dispatch to _startReactorX methods based on this guess.
 		"""
-		if reactor.running:
-			return self._startJobTwisted(newState, job, ignored)
-		else:
-			return self._startJobNonTwisted(newState, job, ignored)
+		job.phase = uws.QUEUED
+		self._processQueueDirty = True
+
+	def errorOutJob(self, newPhase, job, ignored):
+		self.flagError(newPhase, job, ignored)
+		self._processQueueDirty = True
+
+	def completeJob(self, newPhase, job, ignored):
+		job.phase = newPhase
+		self._processQueueDirty = True
 
 	def killJob(self, newState, job, ignored):
 		"""tries to kill -INT the pid the job has registred.
@@ -459,14 +564,17 @@ class TAPActions(uws.UWSActions):
 		the child taprunner.
 		"""
 		try:
-			pid = job.pid
-			if pid is None:
-				raise TAPError("Job is not running")
-			os.kill(pid, signal.SIGINT)
-		except TAPError:
-			raise
-		except Exception, ex:
-			raise TAPError(None, ex)
+			try:
+				pid = job.pid
+				if pid is None:
+					raise TAPError("Job is not running")
+				os.kill(pid, signal.SIGINT)
+			except TAPError:
+				raise
+			except Exception, ex:
+				raise TAPError(None, ex)
+		finally:
+			self._processQueueDirty = True
 
 	def markAborted(self, newState, job, ignored):
 		"""simply marks job as aborted.
@@ -474,9 +582,8 @@ class TAPActions(uws.UWSActions):
 		This is what happens if you abort a job from QUEUED or
 		PENDING.
 		"""
-		with job.getWritable() as job:
-			job.phase = uws.ABORTED
-			job.endTime = datetime.datetime.utcnow()
+		job.phase = uws.ABORTED
+		job.endTime = datetime.datetime.utcnow()
 
 	def ignoreAndLog(self, newState, job, exc):
 		base.ui.logErrorOccurred("Request to push COMPLETED job to ERROR: %s"%

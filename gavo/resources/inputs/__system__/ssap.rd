@@ -466,6 +466,7 @@
 				utype="ssa:Char.SpatialAxis.Coverage.Location.Value"/>
 			<inputKey name="SIZE" description="Size of the region of
 				interest around POS" std="True" 
+				unit="deg"
 				utype="ssa:Char.SpatialAxis.Coverage.Bounds.Extent"/>
 			<phraseMaker procDef="//pql#coneParameter">
 				<bind name="posCol">"ssa_location"</bind>

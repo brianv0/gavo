@@ -32,7 +32,7 @@ RD_ID = "__system__/uws"
 
 # Ward against typos
 from gavo.votable.tapquery import (PENDING, QUEUED, EXECUTING, COMPLETED,
-	ERROR, ABORTED)
+	ERROR, ABORTED, UNKNOWN)
 DESTROYED = "DESTROYED"  # local extension
 
 END_STATES = set([DESTROYED, COMPLETED, ERROR, ABORTED])
@@ -109,6 +109,18 @@ def getJobsTable(timeout=None):
 	jobsTable.query = jobsQuery
 
 	return jobsTable
+
+def countRunningJobs():
+	"""returns the number of EXECUTING jobs in the jobsTable.
+	"""
+	return getROJobsTable().query("SELECT COUNT(*) FROM \curtable"
+		" WHERE phase='EXECUTING' or phase='UNKNOWN'").next()[0]
+
+def countQueuedJobs():
+	"""returns the number of QUEUED jobs in jobsTable.
+	"""
+	return getROJobsTable().query("SELECT COUNT(*) FROM \curtable"
+		" WHERE phase='QUEUED'").next()[0]
 
 
 def serializeParameters(data):
@@ -276,21 +288,23 @@ class ROUWSJob(object):
 	protocolParameters = UWSParameters((), DestructionParameter,
 		ExecDParameter, RunIdParameter)
 
+# XXX TODO: passing in a jobs table in this way probably makes no
+# sense.  Remove that soon.
 	def __init__(self, jobId, jobsTable=None):
 		self.jobId = jobId
 		self.jobsTable = jobsTable
-		self.ownedJobsTable = False
 		if self.jobsTable is None:
 			self.jobsTable = getROJobsTable()
-			self.ownedJobsTable = True
+		self._closed = False
+		self._updateFromDB(jobId)
 
+	def _updateFromDB(self, jobId):
 		res = list(self.jobsTable.iterQuery(
 			self.jobsTable.tableDef, "jobId=%(jobId)s",
 			pars={"jobId": jobId}))
 		if not res:
 			self._closed = True
 			raise JobNotFound(jobId)
-		self._closed = False
 		kws = res[0]
 
 		for att in self._dbAttrs:
@@ -301,12 +315,13 @@ class ROUWSJob(object):
 	def makeFromId(cls, jobId):
 		return cls(jobId)
 
+# XXX TODO: this shouldn't be a context manager.  Is this used
+# anywhere?
 	def __enter__(self):
 		return self
 	
 	def __exit__(self, type, value, tb):
-		if self.ownedJobsTable:
-			self.jobsTable.close()
+		pass
 
 	def getWritable(self, timeout=10):
 		return UWSJob.makeFromId(self.jobId, timeout=timeout)
@@ -517,8 +532,8 @@ class UWSJob(ROUWSJob):
 		jobsTable.commit()
 
 		# Can't race for jobId here since _allocateDataDir uses mkdtemp
+		res = cls(kws["jobId"], jobsTable)
 		try:
-			res = cls(kws["jobId"], jobsTable)
 			for key, value in args.iteritems():
 				res.addParameter(key, value)
 		except:
@@ -535,7 +550,6 @@ class UWSJob(ROUWSJob):
 		request is something implementing nevow.IRequest, actions is the
 		name (i.e., a string) of a registred Actions class.
 		"""
-		# XXX TODO: Allow UPLOAD spec in initial POST?
 		return cls.create(args=request.scalars, actions=actions)
 	
 	def __del__(self):
@@ -680,6 +694,8 @@ def cleanupJobsTable(includeFailed=False, includeCompleted=False,
 cron.every(3600*12, cleanupJobsTable)
 
 
+# XXX TODO: These should be called transistionFunctions or so to tell them
+# apart from the uwsactions (which are REST manipulations).
 class UWSActions(object):
 	"""An abstract base for classes defining the behaviour of a UWS.
 
@@ -765,6 +781,14 @@ class UWSActions(object):
 		if not isinstance(exception, base.ValidationError):
 			base.ui.notifyError("Error during UWS execution of job %s"%job.jobId)
 		job.setError(exception)
+	
+	def checkProcessQueue(self):
+		"""should push processes from the queue to executing.
+
+		The default is a no-op, so it must be overridden unless you don't
+		actually use queuing.
+		"""
+		pass
 
 _actionsRegistry = {}
 

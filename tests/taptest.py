@@ -63,7 +63,6 @@ class _PlainActions(uws.UWSActions):
 		f.close()
 		uwsJob.changeToPhase(uws.COMPLETED)
 
-
 uws.registerActions(_PlainActions)
 
 
@@ -315,18 +314,18 @@ class SimpleRunnerTest(testhelpers.VerboseTest):
 				jobId = job.jobId
 				self.assertEqual(job.phase, uws.PENDING)
 				job.changeToPhase(uws.QUEUED, None)
-			
-			runningPhases = set([uws.QUEUED, uws.EXECUTING])
+			uws.getActions("TAP").checkProcessQueue()
+		
+			runningPhases = set([uws.QUEUED, uws.UNKNOWN, uws.EXECUTING])
 			# let things run, but bail out if nothing happens 
 			for i in range(100):
 				time.sleep(0.1)
-				with uws.UWSJob.makeFromId(jobId) as job:
+				with uws.ROUWSJob.makeFromId(jobId) as job:
 					if job.phase not in runningPhases:
 						break
 			else:
 				raise AssertionError("Job does not finish.  Your machine cannot be"
 					" *that* slow?")
-
 			with uws.UWSJob.makeFromId(jobId) as job:
 				self.assertEqual(job.phase, uws.COMPLETED)
 				result = open(os.path.join(job.getWD(), 
@@ -453,4 +452,7 @@ class CapabilitiesTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 
 
 if __name__=="__main__":
+	base.DEBUG = True
+	from gavo.user import logui
+	logui.LoggingUI(base.ui)
 	testhelpers.main(SimpleRunnerTest)

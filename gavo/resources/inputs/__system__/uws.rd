@@ -14,6 +14,7 @@
 				<option>COMPLETED</option>
 				<option>ERROR</option>
 				<option>ABORTED</option>
+				<option>UNKNOWN</option>
 			</values>
 		</column>
 		<column name="executionDuration" type="integer" unit="s"
