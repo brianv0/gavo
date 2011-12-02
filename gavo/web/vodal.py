@@ -272,8 +272,13 @@ class SIAPRenderer(DALRenderer):
 
 	def renderHTTP(self, ctx):
 		args = inevow.IRequest(ctx).args
-		if args.get("FORMAT")==["METADATA"]:
+		try:
+			metadataQuery = args["FORMAT"][0].lower()=="metadata"
+		except (IndexError, KeyError):
+			metadataQuery = False
+		if metadataQuery:
 			return self._serveMetadata(ctx)
+
 		return DALRenderer.renderHTTP(self, ctx)
 
 	_outputTableCasts = {

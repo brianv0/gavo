@@ -192,7 +192,7 @@ class MetaKeyTest(_WithSSATableTest):
 
 	def testMetadata(self):
 		res = getRD().getById("s").runFromDict(
-			{"REQUEST": "queryData", "FORMAT": "METADATA"}, "ssap.xml")
+			{"REQUEST": "queryData", "FORMAT": "Metadata"}, "ssap.xml")
 		self.assertEqual(res.original[0], "application/x-votable+xml")
 		val = res.original[1]
 		self.failUnless("<VOTABLE" in val)
@@ -428,4 +428,5 @@ class SEDTableTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
+	base.DEBUG = True
 	testhelpers.main(SEDTableTest)

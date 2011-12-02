@@ -40,34 +40,29 @@ class SSAPCore(svcs.DBCore):
 		</outputTable>"""
 
 	def _makeMetadata(self, service):
-		inputTable = self.inputTable
-		inParams =[votablewrite.makeFieldFromColumn(V.PARAM, param)
-			for param in inputTable.params]
-		for p in inParams:
-			p.name = "INPUT:"+p.name
+		metaTD = self.outputTable.copy(None)
+		for inP in self.inputTable.params:
+			metaTD.feedObject("param", inP.change(name="INPUT:"+inP.name))
+		dd = base.makeStruct(rscdef.DataDescriptor, parent_=self.rd,
+			makes=[base.makeStruct(rscdef.Make, table=metaTD)])
+		dd.setMetaParent(service)
 
-		emptyTable = rsc.TableForDef(self.outputTable)
-		ctx = votablewrite.VOTableContext()
+		dd.setMeta("type", "meta")
+		dd.addMeta("info", base.makeMetaValue(
+			"", name="info", infoName="QUERY_STATUS", infoValue="OK"))
+		dd.addMeta("info", base.makeMetaValue(
+			"SSAP", name="info", infoName="SERVICE_PROTOCOL", infoValue="1.04"))
 
-		vot = V.VOTABLE[
-			V.RESOURCE(type="meta")[
-				V.DESCRIPTION[
-					base.getMetaText(service, "description")],
-				V.INFO(name="QUERY_STATUS", value="OK"), [
-					inParams,
-					votablewrite.makeTable(ctx, emptyTable)],
-				V.INFO(name="SERVICE_PROTOCOL", value="1.04")[
-					"SSAP"]]]
-
-		res =  StringIO()
-		votable.write(vot, res)
-		return "application/x-votable+xml", res.getvalue()
+		data = rsc.makeData(dd)
+		
+		return "application/x-votable+xml", votablewrite.getAsVOTable(data)
 
 	def run(self, service, inputTable, queryMeta):
 		if inputTable.getParam("REQUEST")!="queryData":
 			raise base.ValidationError("Only queryData operation supported so"
 				" far for SSAP.", "REQUEST")
-		if inputTable.getParam("FORMAT")=="METADATA":
+		format = inputTable.getParam("FORMAT") or ""
+		if format.lower()=="metadata":
 			return self._makeMetadata(service)
 
 		limits = [q for q in 
