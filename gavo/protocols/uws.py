@@ -295,8 +295,8 @@ class ROUWSJob(object):
 		self.jobsTable = jobsTable
 		if self.jobsTable is None:
 			self.jobsTable = getROJobsTable()
-		self._closed = False
 		self._updateFromDB(jobId)
+		self._closed = False
 
 	def _updateFromDB(self, jobId):
 		res = list(self.jobsTable.iterQuery(

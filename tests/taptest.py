@@ -452,7 +452,4 @@ class CapabilitiesTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 
 
 if __name__=="__main__":
-	base.DEBUG = True
-	from gavo.user import logui
-	logui.LoggingUI(base.ui)
 	testhelpers.main(SimpleRunnerTest)

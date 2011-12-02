@@ -416,7 +416,8 @@ def main(testClass, methodPrefix=None):
 			sys.modules["__main__"])
 
 	try:
-		runner = unittest.TextTestRunner()
+		runner = unittest.TextTestRunner(
+			verbosity=int(os.environ.get("TEST_VERBOSITY", 1)))
 		runner.run(suite)
 	except (SystemExit, KeyboardInterrupt):
 		raise
