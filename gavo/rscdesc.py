@@ -411,6 +411,7 @@ def getRD(srcId, forImport=False, doQueries=True, dumpTracebacks=False,
 		# have recursive definitions in RDs (while still not allowing
 		# forward references).
 		lock.acquire()
+		lock.release()
 		return rd
 	else:
 		lock = threading.RLock()

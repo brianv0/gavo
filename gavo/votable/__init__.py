@@ -5,7 +5,8 @@ GAVO's VOTable python library.
 from gavo.votable.coding import unravelArray
 
 from gavo.votable.common import (VOTableError, VOTableParseError,
-	BadVOTableLiteral, BadVOTableData)
+	BadVOTableLiteral, BadVOTableData,
+	escapePCDATA, escapeAttrVal)
 
 from gavo.votable.model import VOTable as V, voTag
 

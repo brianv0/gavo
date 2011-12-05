@@ -796,7 +796,7 @@ class CustomConnectionPool(psycopg2.pool.ThreadedConnectionPool):
 		return conn
 
 
-def _makeConnectionManager(profileName, maxConn=20):
+def _makeConnectionManager(profileName, minConn=3, maxConn=20):
 	"""returns a context manager for a connection pool for profileName
 	connections.
 	"""
@@ -809,7 +809,7 @@ def _makeConnectionManager(profileName, maxConn=20):
 		# at that point.
 		if not pool:
 			with poolLock:
-				pool.append(CustomConnectionPool(1, maxConn, profileName))
+				pool.append(CustomConnectionPool(minConn, maxConn, profileName))
 
 		conn = pool[0].getconn()
 		try:

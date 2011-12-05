@@ -17,11 +17,6 @@ _encoders = {
 }
 
 
-def _escapeAttrVal(val):
-	return '"%s"'%(common.escapePCDATA(val).replace('"', '&quot;'
-		).encode("utf-8"))
-
-
 def write(root, outputFile, xmlDecl=True):
 	"""writes the VOTable below row to outputFile.
 
@@ -38,7 +33,7 @@ def write(root, outputFile, xmlDecl=True):
 # This should be in a different module, really.  It's too specialized
 # for xmlstan itself, though.
 	def visit(node, text, attrs, childIter):
-		attrRepr = " ".join("%s=%s"%(k, _escapeAttrVal(v))
+		attrRepr = " ".join("%s=%s"%(k, common.escapeAttrVal(v))
 			for k, v in attrs.iteritems())
 		if attrRepr:
 			attrRepr = " "+attrRepr
