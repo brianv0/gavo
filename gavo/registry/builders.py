@@ -13,9 +13,6 @@ using common.getResType; this means the resType meta is tried first,
 using resob.resType as a fallback.
 """
 
-import traceback
-import warnings
-
 from gavo import base
 from gavo import stc
 from gavo import utils
@@ -151,6 +148,8 @@ def getResourceArgs(resob):
 
 
 def getOAIHeaderElementForRestup(restup):
+	if isinstance(restup, OAI.OAIElement):
+		return restup
 	status = None
 	if restup["deleted"]:
 		status = "deleted"
@@ -217,6 +216,8 @@ def getListSetsElement():
 def getResourceElement(resob, setNames, metadataMaker):
 	"""helps get[VO|DC]ResourceElement.
 	"""
+	if isinstance(resob, OAI.OAIElement):
+		return resob
 	status = None
 	if base.getMetaText(resob, "status")=="deleted":
 		status = "deleted"
@@ -251,12 +252,11 @@ def getDCListRecordsElement(resobs, setNames,
 		try:
 			recs[makeRecord(resob, setNames)]
 		except base.NoMetaKey, msg:
-			warnings.warn("Cannot create registry record for %s#%s"
+			base.ui.notifyError("Cannot create registry record for %s#%s"
 			" because mandatory meta %s is missing"%(
 				resob.rd.sourceId, resob.id, msg))
 		except Exception, msg:
-			traceback.print_exc()
-			warnings.warn("Cannot create registry record %s.  Reason: %s"%(
+			base.ui.notifyError("Cannot create registry record %s.  Reason: %s"%(
 				resob, msg))
 	return recs
 

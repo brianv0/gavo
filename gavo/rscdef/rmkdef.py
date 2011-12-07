@@ -66,9 +66,13 @@ class MapRule(base.Structure):
 
 	def completeElement(self, ctx):
 		self.restrictedMode = getattr(ctx, "restricted", False)
-		if self.restrictedMode and self.content_:
+		if self.restrictedMode and (
+				self.content_
+				or self.nullExpr
+				or self.nullValue):
 			raise base.RestrictedElement("map", hint="In restricted mode, only"
-				" maps with a src attribute are allowed.")
+				" maps with a src attribute are allowed; nullExpr or nullValue"
+				" are out, too, since they can be used to inject raw code.")
 		if not self.content_ and not self.src:
 			self.src = self.dest
 		if self.content_ and "\\" in self.content_:
@@ -98,13 +102,11 @@ class MapRule(base.Structure):
 		"""returns python source code for this map.
 		"""
 		code = []
+
 		if self.content_:
 			code.append('result["%s"] = %s'%(self.dest, self.content_))
 		else:
 			colDef = columns.getColumnByName(self.dest)
-			if colDef.values and colDef.values.nullLiteral is not None:
-				code.append("if vars['%s']=='%s':\n  result['%s'] = None\n"
-					"else:"%(self.src, colDef.values.nullLiteral, self.dest))
 			try:
 				code.append('result["%s"] = %s'%(self.dest, 
 					base.sqltypeToPythonCode(colDef.type)%'vars["%s"]'%self.src))
@@ -112,10 +114,12 @@ class MapRule(base.Structure):
 				raise base.ui.logOldExc(base.LiteralParseError("map", colDef.type,
 					hint="Auto-mapping to %s is impossible since"
 					" no default map for %s is known"%(self.dest, colDef.type)))
+
 		if self.nullExpr is not base.NotGiven:
 			code.append('\nif result["%s"]==%s: result["%s"] = None'%(
 				self.dest, self.nullExpr, self.dest))
 		code = "".join(code)
+
 		if self.nullExcs is not base.NotGiven:
 			code = 'try:\n%s\nexcept (%s): result["%s"] = None'%(
 				re.sub("(?m)^", "  ", code), self.nullExcs, self.dest)

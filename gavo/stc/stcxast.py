@@ -61,9 +61,6 @@ def _noIter(ign, ored):
 def _buildTuple(val):
 	return (val,)
 
-def _identity(val):
-	return val
-
 
 def _makeUnitYielder(unitKeys, prefix="", tuplify=False):
 	"""returns a function that yields unit information from an elementTree
@@ -72,7 +69,7 @@ def _makeUnitYielder(unitKeys, prefix="", tuplify=False):
 	if tuplify:
 		mkRes = _buildTuple
 	else:
-		mkRes = _identity
+		mkRes = utils.identity
 	def yieldUnits(node, buildArgs):
 		for key in unitKeys:
 			if key in node.attrib:

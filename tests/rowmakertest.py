@@ -172,7 +172,7 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 		self.assertEqual(mapper({'foo': "22"}, None), {'foo': None})
 		self.assertEqual(mapper({'foo': "23"}, None), {'foo': 23})
 
-	def testMapNullExpr(self):
+	def testMapNullExprValue(self):
 		dd, td = makeDD('<column name="foo" type="integer"/>',
 			'<map dest="foo" nullExpr="22">parseInt(@bar)+22</map>')
 		mapper = dd.rowmakers[0].compileForTableDef(td)

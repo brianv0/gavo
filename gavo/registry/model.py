@@ -116,6 +116,12 @@ class OAI(object):
 	
 	class setName(OAIElement): pass
 
+	class resumptionToken(OAIElement): pass
+		# optional attributes not supported here
+		# In our implementation, the resumptionToken has the format
+		# <seconds since epoch>;offset, and you get a BadResumptionToken
+		# exception when the repository has changed between two queries.
+
 
 class OAIDC:
 	"""is a container for OAI's Dublin Core metadata model.

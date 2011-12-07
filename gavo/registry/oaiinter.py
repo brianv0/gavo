@@ -9,7 +9,8 @@ is web-callable.
 """
 
 import datetime
-import warnings
+import re
+import time
 
 from gavo import base
 from gavo import rsc
@@ -71,7 +72,7 @@ def run_ListRecords(pars):
 	"""returns a tree of stanxml Elements for a response to ListRecords.
 	"""
 	return _handleVerb(pars, 
-		["metadataPrefix"], ["from", "until", "set"],
+		["metadataPrefix"], ["from", "until", "set", "resumptionToken"],
 		builders.getDCListRecordsElement,
 		builders.getVOListRecordsElement,
 		lambda pars: (getMatchingResobs(pars), getSetNames(pars)))
@@ -83,7 +84,8 @@ def run_ListIdentifiers(pars):
 	We don't have ivo specific metadata in the headers, so this ignores
 	the metadata prefix.
 	"""
-	return _handleVerb(pars, ["metadataPrefix"], ["from", "until", "set"],
+	return _handleVerb(pars, 
+		["metadataPrefix"], ["from", "until", "set", "resumptionToken"],
 		builders.getListIdentifiersElement,
 		builders.getListIdentifiersElement,
 		lambda pars: (getMatchingRestups(pars),))
@@ -124,11 +126,28 @@ def run_ListMetadataFormats(pars):
 
 ########################### Helpers for OAI handlers
 
-def checkPars(pars, required, optional=[], ignored=set(["verb"])):
+def parseResumptionToken(rawToken):
+	"""returns the offset encoded in the resumptionToken rawToken.
+
+	See model.OAI.resumptionToken for rawToken's format.  If we believe
+	that the registry has changed since rawToken's timestamp, we raise
+	a BadResumptionToken exception.  This is based on gavo pub reloading
+	the //services RD after publication.  Not perfect, but probably
+	adequate.
+	"""
+	mat = re.match("(\d+);(\d+)$", rawToken)
+	if not mat:
+		raise BadResumptionToken("Bad syntax of resumption token")
+	tokenGeneratedAt = int(mat.group(1))
+	if tokenGeneratedAt<=base.caches.getRD("//services").loadedAt:
+		raise BadResumptionToken("Service table has changed")
+	return int(mat.group(2))
+
+
+def checkPars(pars, required, optional=[], 
+		ignored=set(["verb", "maxRecords"])):
 	"""raises exceptions for missing or illegal parameters.
 	"""
-	if "resumptionToken" in pars:
-		raise BadResumptionToken(pars["resumptionToken"])
 	required, optional = set(required), set(optional)
 	for name in pars:
 		if name not in ignored and name not in required and name not in optional:
@@ -200,18 +219,40 @@ def _parseOAIPars(pars):
 def getMatchingRestups(pars, connection=None):
 	"""returns a list of res tuples matching the OAI query arguments pars.
 
+	The last element of the list could be an OAI.resumptionToken element.
+
 	pars is a dictionary mapping any of the following keys to values:
 
 		- from
 		- until -- these give a range for which changed records are being returned
 		- set -- maps to a sequence of set names to be matched.
+		- resumptionToken -- an integer literal that specifies an offset
+		  into the service list
+		- maxRecords -- an integer literal that specifies the maximum number
+		  of records returned, defaulting to 10000
+	
+	maxRecords is not part of OAI-PMH; it is used internally to
+	turn paging on when we think it's a good idea, and for testing.
 	"""
-	frag, pars = _parseOAIPars(pars)
+	frag, fillers = _parseOAIPars(pars)
+
+	maxRecords = int(pars.get("maxRecords", 10000))
+	resumptionToken = 0
+	if "resumptionToken" in pars:
+		resumptionToken = parseResumptionToken(pars["resumptionToken"])
+
 	try:
 		srvTable = rsc.TableForDef(getServicesRD().getById("resources"),
-			connection=connection)
-		res = list(srvTable.iterQuery(srvTable.tableDef, frag, pars))
+			connection=connection) 
+		res = list(srvTable.iterQuery(srvTable.tableDef, frag, fillers,
+			limits=(
+				"LIMIT %(maxRecords)s OFFSET %(resumptionToken)s", locals())))
 		srvTable.close()
+		
+		if len(res)==maxRecords:
+			# there's probably more data, request a resumption token
+			res.append(OAI.resumptionToken["%d;%d"%(
+				int(time.time()), maxRecords+resumptionToken)])
 	except base.DBError:
 		raise base.ui.logOldExc(BadArgument("Bad syntax in some parameter value"))
 	except KeyError, msg:
@@ -222,12 +263,19 @@ def getMatchingRestups(pars, connection=None):
 
 
 def getMatchingResobs(pars):
+	"""returns a list of res objects matching the OAI-PMH pars.
+
+	See getMatchingRestups for details.
+	"""
 	res = []
 	for restup in getMatchingRestups(pars):
-		try:
-			res.append(identifiers.getResobFromRestup(restup))
-		except base.NotFoundError:
-			warnings.warn("Could not create resource for %s"%repr(restup))
+		if isinstance(restup, OAI.OAIElement):
+			res.append(restup)
+		else:
+			try:
+				res.append(identifiers.getResobFromRestup(restup))
+			except base.NotFoundError:
+				base.ui.notifyError("Could not create resource for %s"%repr(restup))
 	return res
 
 

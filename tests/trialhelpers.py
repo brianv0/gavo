@@ -16,6 +16,7 @@ from twisted.trial.unittest import TestCase as TrialTest
 from twisted.python import failure
 from twisted.internet import defer
 
+from gavo import base
 
 def _requestDone(result, request, ctx):
 	if isinstance(result, basestring):
@@ -203,3 +204,6 @@ class RenderTest(TrialTest):
 			).addCallback(cb
 			).addErrback(eb)
 
+
+from gavo.user import logui
+logui.LoggingUI(base.ui)

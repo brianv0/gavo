@@ -5,6 +5,7 @@
 rootDir: ~/_gavo_test
 # We should set that up somehow... Ah well.
 xsdclasspath:~/gavo/trunk/tests/:/usr/share/java/xercesImpl.jar:/usr/share/java/xmlParserAPIs.jar
+logDir:~/gavo/logs
 
 [db]
 profilePath: $configDir

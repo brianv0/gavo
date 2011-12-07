@@ -173,8 +173,12 @@ class Values(base.Structure):
 	_default = UnicodeAttribute("default", default=None, description="A default"
 		" value (currently only used for options).", copyable=True)
 	_nullLiteral = UnicodeAttribute("nullLiteral", default=None, description=
-		"String representing a null for this column in string literals",
-		copyable=True)
+		"An appropriate value representing a NULL for this column in VOTables"
+		" and similar places.  You usually should only set it for integer"
+		" types and chars.  Note that rowmakers mak no use of this nullLiteral,"
+		" i.e., you can and should choose null values independently of your"
+		" your source.  Again, for reals, floats and (mostly) text you probably"
+		" do not want to do this.", copyable=True)
 	_multiOk = BooleanAttribute("multiOk", False, "Allow selection of"
 		" multiple options", copyable=True)
 	_fromDB = ActionAttribute("fromdb", "_evaluateFromDB", description=
