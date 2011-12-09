@@ -33,7 +33,7 @@ def getModuleName():
 class CustomGrammar(common.Grammar, base.RestrictionMixin):
 	"""A Grammar with a user-defined row iterator taken from a module.
 
-	See the `Writing Custom Grammars`_ for details.
+	See the `Writing Custom Grammars`_ (in the reference manual) for details.
 	"""
 #	To save on time when initializing the grammar (which happens at
 #	RD parsing time), we delay initializing the user grammar to when
@@ -44,6 +44,9 @@ class CustomGrammar(common.Grammar, base.RestrictionMixin):
 
 	_module = rscdef.ResdirRelativeAttribute("module", default=base.Undefined,
 		description="Path to module containing your row iterator.", copyable=True)
+	_isDispatching = base.BooleanAttribute("isDispatching", default=False,
+		description="Is this a dispatching grammar (i.e., does the row iterator"
+		" return pairs of role, row rather than only rows)?", copyable=True)
 
 	def _initUserGrammar(self):
 		self.userModule, _ = utils.loadPythonModule(self.module)

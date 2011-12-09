@@ -220,5 +220,43 @@ class CleanedupTest(testhelpers.VerboseTest):
 			[])
 
 
+class DispatchedGrammarTest(testhelpers.VerboseTest):
+	def testSimple(self):
+		rd = base.parseFromString(rscdesc.RD,
+			"""
+			<resource schema="test">
+				<table id="t1"><column name="x" type="text"/></table>
+				<table id="t2"><column name="y" type="text"/></table>
+				<data id="import">
+					<sources items="foo"/>
+					<embeddedGrammar isDispatching="True"><iterator><code>
+						yield "one", {"x": "x1", "y": "FAIL"}
+						yield "two", {"x": "FAIL", "y": "y1"}
+						yield "one", {"x": "x2", "y": "FAIL"}
+					</code></iterator></embeddedGrammar>
+					<make role="one" table="t1"/>
+					<make role="two" table="t2"/>
+				</data>
+			</resource>
+			""")
+		data = rsc.makeData(rd.getById("import"))
+		self.assertEqual([r["x"] for r in data.getTableWithRole("one").rows],
+			["x1", "x2"])
+		self.assertEqual([r["y"] for r in data.getTableWithRole("two").rows],
+			["y1"])
+
+	def testNoRole(self):
+		dd = base.parseFromString(rscdef.DataDescriptor, """<data id="import">
+					<sources items="foo"/>
+					<embeddedGrammar isDispatching="True"><iterator><code>
+						yield "one", {"x": "x1", "y": "FAIL"}
+					</code></iterator></embeddedGrammar>
+				</data>
+			""")
+		self.assertRaisesWithMsg(base.ReportableError,
+			"Grammar tries to feed to role 'one', but there is no corresponding make",
+			rsc.makeData, (dd,))
+
+
 if __name__=="__main__":
-	testhelpers.main(ProductsBadNameTest)
+	testhelpers.main(DispatchedGrammarTest)

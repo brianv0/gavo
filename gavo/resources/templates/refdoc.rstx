@@ -735,6 +735,28 @@ and access the table in the row iterator.
 Also look into EmbeddedGrammar, which may be a more convenient way to
 achieve the same thing.
 
+Dispatched Grammars
+-------------------
+
+With normal grammars, all rows are fed to all rowmakers of all makes
+within a data object.  The rowmakers can than decide to not process a
+given row by raising ``IgnoreThisRow`` or using the trigger mechanism.
+However, when filling complex data models with potentially dozens of
+tables, this becomes highly inefficient.
+
+With custom grammars, you can to better.  Instead of just yielding a row
+from ``_iterRows``, you yield a pair of a role (as specified in the
+``role`` attribute of a ``make`` element) and the row.  The machinery
+will then pass the row only to the feeder for the table in the
+corresponding make.
+
+Currently, the only way to define such a dispatching grammar is to use a
+custom grammar or an embedded grammar.  For these, just change your
+``_iterRows`` and say ``isDispatching="True"`` in the ``customGrammar``
+element.  If you implement ``getParameters``, you can return either
+pairs of role and row or just the row; in the latter case, the row will
+be broadcast to all parmakers.
+
 
 Functions Available for Row Makers
 ==================================

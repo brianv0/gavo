@@ -90,7 +90,6 @@ class RecordParser(IdParser):
 		self.recs[-1].setdefault(name, []).append(content)
 
 
-
 class OAIQuery(object):
 	"""A container for queries to OAI interfaces.
 	"""
@@ -189,5 +188,3 @@ def getRecords(registry, startDate=None, endDate=None, set=None):
 	q = OAIQuery(registry, verb="ListRecords", startDate=startDate,
 		endDate=endDate, set=set)
 	return q.talkOAI(RecordParser)
-
-

@@ -2,6 +2,8 @@
 Making data out of descriptors and sources.
 """
 
+import itertools
+import operator
 import sys
 
 from gavo import base
@@ -23,11 +25,21 @@ class DataFeeder(table.Feeder):
 	This is basically a collection of all feeders of the tables belonging
 	to data, except it will also call the table's mappers, i.e., add
 	expects source rows from data's grammars.
+
+	Feeders can be dispatched; this only works if the grammar returns
+	pairs of role and row rather than only the row.  Dispatched
+	feeders only pass rows to the makes corresponding to the role.
 	"""
-	def __init__(self, data, batchSize=1024):
+	def __init__(self, data, batchSize=1024, dispatched=False):
 		self.data, self.batchSize = data, batchSize
 		self.nAffected = 0
-		self._makeFeeds()
+		if dispatched:
+			makeAdders = self._makeFeedsDispatched
+		else:
+			makeAdders = self._makeFeedsNonDispatched
+
+		addersDict, parAddersDict, self.feeders = self._getAdders()
+		self.add, self.addParameters = makeAdders(addersDict, parAddersDict)
 
 	def _getAdders(self):
 		"""returns a triple of (rowAdders, parAdders, feeds) for the data we
@@ -38,7 +50,7 @@ class DataFeeder(table.Feeder):
 		feeds is a list containing all feeds the adders add to (this
 		is necessary to let us exit all of them.
 		"""
-		adders, parAdders, feeders = [], [], []
+		adders, parAdders, feeders = {}, {}, []
 		for make in self.data.dd.makes:
 			table = self.data.tables[make.table.id]
 			feeder = table.getFeeder(batchSize=self.batchSize)
@@ -50,22 +62,45 @@ class DataFeeder(table.Feeder):
 				except rscdef.IgnoreThisRow, msg:
 					pass
 			if make.rowSource=="parameters":
-				parAdders.append(addRow)
+				parAdders.setdefault(make.role, []).append(addRow)
 			else:
-				adders.append(addRow)
+				adders.setdefault(make.role, []).append(addRow)
 			feeders.append(feeder)
 		return adders, parAdders, feeders
 
-	def _makeFeeds(self):
-		adders, parAdders, self.feeders = self._getAdders()
+	def _makeFeedsNonDispatched(self, addersDict, parAddersDict):
+		adders = reduce(operator.add, addersDict.values(), [])
+		parAdders = reduce(operator.add, parAddersDict.values(), [])
 		def add(row):
 			for adder in adders:
 				adder(row)
 		def addParameters(row):
 			for adder in parAdders:
 				adder(row)
-		self.add = add
-		self.addParameters = addParameters
+		return add, addParameters
+
+	def _makeFeedsDispatched(self, addersDict, parAddersDict):
+		def add(roleRow):
+			role, row = roleRow
+			if role not in addersDict:
+				raise base.ReportableError("Grammar tries to feed to role '%s',"
+					" but there is no corresponding make"%role)
+			for adder in addersDict[role]:
+				adder(row)
+
+		# for parameters, allow broadcast
+		def addParameters(roleRow):
+			try:
+				role, row = roleRow
+			except ValueError:
+				# assume we only got a row, broadcast it
+				for adder in itertools.chain(*parAddersDict.values()):
+					adder(row)
+			else:
+				for adder in parAddersDict[role]:
+					adder(row)
+
+		return add, addParameters
 
 	def exit(self, *excInfo):
 		affected = []
@@ -221,6 +256,7 @@ class Data(base.MetaMixin, common.ParamMixin):
 	def feedGrammarParameters(self, grammarParameters):
 		"""feeds grammarParameters to the parmakers of all makes that have one.
 		"""
+# XXX TODO: remove this, it's a misfeature.  _pipeRows does all we want here
 		for m in self.dd.makes:
 			m.runParmakerFor(grammarParameters, self.tables[m.table.id])
 
@@ -297,7 +333,12 @@ def makeData(dd, parseOptions=common.parseNonValidating,
 	else:
 		res = data
 	res.recreateTables(connection)
-	feeder = res.getFeeder(batchSize=parseOptions.batchSize)
+	
+	feederOpts = {"batchSize": parseOptions.batchSize}
+	if getattr(dd.grammar, "isDispatching", False):
+		feederOpts["dispatched"] = True
+
+	feeder = res.getFeeder(**feederOpts)
 	try:
 		if forceSource is None:
 			for source in dd.iterSources(connection):

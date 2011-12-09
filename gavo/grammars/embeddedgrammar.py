@@ -49,6 +49,9 @@ class EmbeddedGrammar(common.Grammar, base.RestrictionMixin):
 	_iterator = base.StructAttribute("iterator", default=base.Undefined,
 		childFactory=EmbeddedIterator,
 		description="Code yielding row dictionaries", copyable=True)
+	_isDispatching = base.BooleanAttribute("isDispatching", default=False,
+		description="Is this a dispatching grammar (i.e., does the row iterator"
+		" return pairs of role, row rather than only rows)?", copyable=True)
 
 	def onElementComplete(self):
 		self._onElementCompleteNext(EmbeddedGrammar)
