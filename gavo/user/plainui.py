@@ -8,19 +8,6 @@ from gavo.base import ObserverBase, listensTo
 class StingyPlainUI(ObserverBase):
 	"""An Observer swallowing infos, warnings, and the like.
 	"""
-	@listensTo("SourceError")
-	def announceSourceError(self, srcString):
-		self.showMsg("Failed %s"%srcString)
-
-	@listensTo("Error")
-	def printErrMsg(self, errMsg):
-		self.showMsg("*X*X* "+errMsg)
-
-
-class PlainUI(StingyPlainUI):
-	"""An Observer spitting out most info to the screen.
-	"""
-
 	def __init__(self, eh):
 		self.curIndent = ""
 		ObserverBase.__init__(self, eh)
@@ -33,6 +20,27 @@ class PlainUI(StingyPlainUI):
 	
 	def popIndent(self):
 		self.curIndent = self.curIndent[:-2]
+
+	@listensTo("SourceError")
+	def announceSourceError(self, srcString):
+		self.showMsg("Failed %s"%srcString)
+
+	@listensTo("Error")
+	def printErrMsg(self, errMsg):
+		self.showMsg("*X*X* "+errMsg)
+
+
+class SemiStingyPlainUI(StingyPlainUI):
+	"""a StingyPlainUI that at least displays warnings.
+	"""
+	@listensTo("Warning")
+	def printWarning(self, message):
+		self.showMsg(message)
+
+
+class PlainUI(SemiStingyPlainUI):
+	"""An Observer spitting out most info to the screen.
+	"""
 
 	@listensTo("NewSource")
 	def announceNewSource(self, srcString):
@@ -73,10 +81,3 @@ class PlainUI(StingyPlainUI):
 	@listensTo("Info")
 	def printInfo(self, message):
 		self.showMsg(message)
-
-	@listensTo("Warning")
-	def printWarning(self, message):
-		self.showMsg(message)
-
-
-

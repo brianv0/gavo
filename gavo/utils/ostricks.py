@@ -9,6 +9,7 @@ OS abstractions and related.
 import os
 import urllib2
 
+from gavo.utils import codetricks
 from gavo.utils import misctricks
 
 
@@ -23,31 +24,63 @@ def safeclose(f):
 	f.close()
 
 
+class _UrlopenRemotePasswordMgr(urllib2.HTTPPasswordMgr):
+	"""A password manager that grabs credentials from upwards in
+	its call stack.
+
+	This is for cooperation with urlopenRemote, which defines a name
+	_temp_credentials.  If this is non-None, it's supposed to be
+	a pair of user password presented to *any* realm.  This means
+	that, at least with http basic auth, password stealing is
+	almost trivial.
+	"""
+	def find_user_password(self, realm, authuri):
+		creds = codetricks.stealVar("_temp_credentials")
+		if creds is not None:
+			return creds
+
+
 _restrictedURLOpener = urllib2.OpenerDirector()
 _restrictedURLOpener.add_handler(urllib2.HTTPRedirectHandler())
 _restrictedURLOpener.add_handler(urllib2.HTTPHandler())
 _restrictedURLOpener.add_handler(urllib2.HTTPSHandler())
+_restrictedURLOpener.add_handler(urllib2.HTTPErrorProcessor())
+_restrictedURLOpener.add_handler(
+	urllib2.HTTPBasicAuthHandler(_UrlopenRemotePasswordMgr()))
 _restrictedURLOpener.add_handler(urllib2.FTPHandler())
 _restrictedURLOpener.add_handler(urllib2.UnknownHandler())
+_restrictedURLOpener.addheaders = [("user-agent", 
+	"GAVO DaCHS HTTP client")]
 
-def urlopenRemote(url, data=None):
+def urlopenRemote(url, data=None, creds=(None, None)):
 	"""works like urllib2.urlopen, except only http, https, and ftp URLs
 	are handled.
 
 	The function also massages the error messages of urllib2 a bit.  urllib2
 	errors always become IOErrors (which is more convenient within the DC).
+
+	creds may be a pair of username and password.  Those credentials
+	will be presented in http basic authentication to any server
+	that cares to ask.  For both reasons, don't use any valuable credentials
+	here.
 	"""
+	_temp_credentials = creds # see _UrlopenRemotePasswrodMgr above
 	try:
 		return _restrictedURLOpener.open(url, data)
 	except (urllib2.URLError, ValueError), msg:
-		msgStr = msg.args[0]
-		if isinstance(msgStr, Exception):
-			try:  # maybe it's an os/socket type error
-				msgStr = msgStr.args[1]
-			except IndexError:  # maybe not...
-				pass
-		if not isinstance(msgStr, basestring):
-			msgStr = str(msg)
+		msgStr = str(msg)
+		try:
+			msgStr = msg.args[0]
+			if isinstance(msgStr, Exception):
+				try:  # maybe it's an os/socket type error
+					msgStr = msgStr.args[1]
+				except IndexError:  # maybe not...
+					pass
+			if not isinstance(msgStr, basestring):
+				msgStr = str(msg)
+		except:
+			# there's going to be an error message, albeit maybe a weird one
+			pass
 		raise IOError("Could not open URL %s: %s"%(url, msgStr))
 
 
