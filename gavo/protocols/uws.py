@@ -116,7 +116,7 @@ def countRunningJobs():
 	"""returns the number of EXECUTING jobs in the jobsTable.
 	"""
 	return getROJobsTable().query("SELECT COUNT(*) FROM \curtable"
-		" WHERE phase='EXECUTING' or phase='UNKNOWN'").next()[0]
+		" WHERE phase='EXECUTING'").next()[0]
 
 def countQueuedJobs():
 	"""returns the number of QUEUED jobs in jobsTable.

@@ -4,6 +4,7 @@ TAP: schema maintenance, job/parameter definition incl. upload and UWS actions.
 
 from __future__ import with_statement
 
+import datetime
 import os
 import signal
 import subprocess
@@ -418,11 +419,6 @@ class TAPActions(uws.UWSActions):
 			(uws.EXECUTING, uws.COMPLETED, "completeJob"),
 			(uws.EXECUTING, uws.ABORTED, "killJob"),
 			(uws.EXECUTING, uws.ERROR, "errorOutJob"),
-# Unknown is abused here as "forked, but not up yet"
-# Thus, it's to be treated more or less like executing
-			(uws.UNKNOWN, uws.COMPLETED, "completeJob"),
-			(uws.UNKNOWN, uws.ABORTED, "killJob"),
-			(uws.UNKNOWN, uws.ERROR, "errorOutJob"),
 			(uws.COMPLETED, uws.ERROR, "ignoreAndLog"),
 			])
 		# _processQueueDirty is set if the QUEUED jobs are expected
@@ -436,7 +432,7 @@ class TAPActions(uws.UWSActions):
 			"gavo", args=["gavo", "tap", "--", str(job.jobId)],
 				env=os.environ)
 		job.pid = pt.pid
-		job.phase = uws.UNKNOWN
+		job.phase = uws.EXECUTING
 
 	def _startJobNonTwisted(self, job):
 		"""forks off a new job when (hopefully) a manual child reaper is in place.
@@ -449,7 +445,7 @@ class TAPActions(uws.UWSActions):
 					"tap", "--", job.jobId)
 			elif pid>0:
 				job.pid = pid
-				job.phase = uws.UNKNOWN
+				job.phase = uws.EXECUTING
 			else:
 				raise Exception("Could not fork")
 		except Exception, ex:
@@ -555,20 +551,31 @@ class TAPActions(uws.UWSActions):
 		self._processQueueDirty = True
 
 	def killJob(self, newState, job, ignored):
-		"""tries to kill -INT the pid the job has registred.
+		"""tries to kill/abort job.
 
-		This will raise a TAPError with some description if that's not possible
-		for some reason.
+		Actually, there are two different scenarios here: Either the job as
+		a non-NULL startTime.  In that case, taprunner is in control and will
+		manage the state itself.  Then kill -INT will do the right thing.
 
-		This does not actually change the job's state.  That's the job of
-		the child taprunner.
+		However, if startTime is NULL, taprunner is still starting up.  Sending
+		a kill -INT may to many things, and most of them we don't want.
+		So, in this case we kill -TERM the child, to state management ourselves
+		and hope for the best.
 		"""
 		try:
 			try:
 				pid = job.pid
 				if pid is None:
 					raise TAPError("Job is not running")
-				os.kill(pid, signal.SIGINT)
+				if job.startTime is None:
+					# the taprunner is not up yet, kill it brutally and manage
+					# state ourselves
+					os.kill(pid, signal.SIGTERM)
+					job.endTime = datetime.datetime.utcnow()
+					job.phase = uws.ABORTED
+				else:
+					# taprunner is up, can manage state itself
+					os.kill(pid, signal.SIGINT)
 			except TAPError:
 				raise
 			except Exception, ex:

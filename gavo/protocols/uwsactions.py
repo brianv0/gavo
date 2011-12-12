@@ -252,6 +252,24 @@ class ErrorAction(JobAction):
 _JobActions.addAction(ErrorAction)
 
 
+class StartTimeAction(JobAction):
+# This an extension over plain UWS allowing users to retrieve when
+# their job started.  In the GAVO DC's TAP implementation, this lets 
+# you discern whether the taprunner is already processing an EXECUTING
+# job (startTime!=NULL) or whether it's still coming up (else)
+	name = "startTime"
+	mime = "text/plain"
+
+	def doGET(self, job, request):
+		if job.startTime is None:
+			return "NULL"
+		else:
+			return utils.formatISODT(job.startTime)
+
+	doPOST = doGET
+_JobActions.addAction(StartTimeAction)
+
+
 class ParameterAction(JobAction):
 	name = "parameters"
 

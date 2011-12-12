@@ -201,12 +201,22 @@ class _PhaseParser(utils.StartEndHandler):
 
 class _QuoteParser(utils.StartEndHandler):
 	quote = None
+	def parseDate(self, literal):
+		val = None
+		if literal and literal!="NULL":
+			val = utils.parseISODT(literal)
+		return val
+
 	def _end_quote(self, name, attrs, content):
-		if content.strip():
-			self.quote = int(content)
-			if self.quote<0:
-				self.quote = None
-	
+		self.quote = self.parseDate(content.strip())
+
+	def parseString(self, data):
+		data = data.strip()
+		if data.startswith("<"): # XML :-)
+			utils.StartEndHandler.parseString(self, data)
+		else:
+			self.quote = self.parseDate(data)
+
 	def getResult(self):
 		return self.quote
 
@@ -640,17 +650,11 @@ class ADQLTAPJob(_WithEndpoint):
 		"""
 		return self._queryJobResource("/phase", _PhaseParser())
 
-	def _intOrNone(self, val):
-		if not val.strip():
-			return None
-		else:
-			return int(val)
-
 	@property
 	def quote(self):
 		"""returns the estimate the server gives for the run time of the job.
 		"""
-		return self._queryJobResource("/quote", _makeFlatParser(self._intOrNone)())
+		return self._queryJobResource("/quote", _QuoteParser())
 
 	@property
 	def owner(self):
