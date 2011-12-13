@@ -70,8 +70,9 @@ class ComputedCore(core.Core):
 
 	def completeElement(self, ctx):
 		if self.resultParse:
-			self.outputTable = outputdef.OutputTableDef.fromTableDef(
-				self.resultParse.getPrimary(), ctx)
+			self._outputTable.feedObject(self,
+				outputdef.OutputTableDef.fromTableDef(
+					self.resultParse.getPrimary(), ctx))
 		self._completeElementNext(ComputedCore, ctx)
 
 	def _feedInto(self, data, destFile):

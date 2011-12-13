@@ -111,6 +111,12 @@ class ComputedServiceTest(testhelpers.VerboseTest):
 		self.assertDatafields(res.original.getPrimaryTable().tableDef.columns, 
 			["a", "b", "d", "c", "e"])
 
+	def testTableSet(self):
+		svc = self.rd.getById("basiccat")
+		res = svc.getTableSet()
+		self.assertEqual(len(res), 1)
+		self.assertEqual(res[0].columns[0].name, "a")
+
 
 class BrowsableTest(testhelpers.VerboseTest):
 	"""tests for selection of URLs for browser users.
@@ -362,5 +368,4 @@ class TableSetTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	base.DEBUG = True
-	testhelpers.main(TableSetTest)
+	testhelpers.main(ComputedServiceTest)
