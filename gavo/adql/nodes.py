@@ -1085,7 +1085,8 @@ class GenericValueExpression(CombiningFINode, TransparentMixin):
 			# let's taint the first info and be done with it
 			return infoChildren[0].fieldInfo.copyModified(tainted=True)
 		else:
-			return noTypeFieldInfo
+			# if all else fails: let's hope someone can make a string from it
+			return fieldinfo.FieldInfo("text", "", "")
 
 
 @symbolAction("valueExpression")

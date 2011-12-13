@@ -32,6 +32,7 @@ class Error(Exception):
 
 
 # The resources below are used elsewhere (e.g., taptest).
+# XXX TODO: move them to tresc
 class _ADQLQuerier(testhelpers.TestResource):
 	def make(self, deps):
 		return base.SimpleQuerier()

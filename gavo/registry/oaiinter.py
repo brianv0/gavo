@@ -150,7 +150,6 @@ def checkPars(pars, required, optional=[],
 	"""
 	required, optional = set(required), set(optional)
 	for name in pars:
-		print name, ignored, required, optional
 		if name not in ignored and name not in required and name not in optional:
 			raise BadArgument(name)
 	for name in required:

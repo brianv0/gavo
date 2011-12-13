@@ -14,6 +14,8 @@ from gavo.protocols import simbadinterface # for getSesame registration
 from gavo.adql import nodes 
 from gavo.adql import ufunctions 
 
+import adqltest
+
 
 class BasicTest(unittest.TestCase):
 	def testRaising(self):
@@ -24,7 +26,7 @@ class BasicTest(unittest.TestCase):
 		self.assertEqual(
 			adql.parseToTree("SELECT x FROM y WHERE 1=gavo_match('x.*', frob)"
 				).flatten(),
-			"SELECT x FROM y WHERE 1 = (CASE WHEN frob ~ 'x.*' THEN 1 ELSE 0)")
+			"SELECT x FROM y WHERE 1 = (CASE WHEN frob ~ 'x.*' THEN 1 ELSE 0 END)")
 
 
 class _UfuncDefinition(testhelpers.TestResource):
@@ -47,7 +49,9 @@ class _UfuncDefinition(testhelpers.TestResource):
 
 
 class UfuncDefTest(testhelpers.VerboseTest):
-	resources = [("ufunc_defined", _UfuncDefinition())]
+	resources = [("ufunc_defined", _UfuncDefinition()),
+		("adqlTestTable", adqltest.adqlTestTable),
+		("querier", adqltest.adqlQuerier)]
 
 	def testUfuncMeta(self):
 		f = ufunctions.UFUNC_REGISTRY["GAVO_TESTINGXXX"]
@@ -62,6 +66,34 @@ class UfuncDefTest(testhelpers.VerboseTest):
 			adql.parseToTree("SELECT GAVO_TESTINGXXX(frob) FROM x"
 				).flatten(),
 			"SELECT (frob+1) FROM x")
+
+	def testQueryInSelectList(self):
+		self.assertEqual(adqlglue.query(self.querier,
+			"SELECT GAVO_TESTINGXXX(rV) FROM test.adql").rows[0].values(),
+			[1.])
+
+	def testQueryInWhereClause(self):
+		self.assertEqual(adqlglue.query(self.querier,
+			"SELECT rV FROM test.adql where GAVO_TESTINGXXX(rV)>0").rows[0].values(),
+			[0.])
+
+
+class BuiltinUfuncTest(testhelpers.VerboseTest):
+	resources = [("ufunc_defined", _UfuncDefinition()),
+		("adqlTestTable", adqltest.adqlTestTable),
+		("querier", adqltest.adqlQuerier)]
+
+	def testHaswordMorph(self):
+		self.assertEqual(adql.parseToTree("select * from x where"
+			" 1=gavo_hasword('cat&dog', v)").flatten(),
+			"SELECT * FROM x WHERE 1 = (CASE WHEN to_tsvector(v) @@"
+			" to_tsquery('cat&dog') THEN 1 ELSE 0 END)")
+
+	def testHaswordQuery(self):
+		self.assertEqual(adqlglue.query(self.querier,
+			"select * from test.adql where"
+			" 1=gavo_hasword('0', 'abc'||rv)").rows,
+			[])
 
 
 class RegionTest(unittest.TestCase):

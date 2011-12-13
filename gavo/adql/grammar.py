@@ -626,7 +626,7 @@ if __name__=="__main__":
 	import pprint, sys
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
-	res = syms["fromClause"].parseString(
-		"FROM t"
+	res = syms["querySpecification"].parseString(
+		"select gavo_foo(x) from y"
 		, parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)

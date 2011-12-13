@@ -11,6 +11,7 @@ import warnings
 from gavo import utils
 from gavo.adql import common
 from gavo.adql import grammar
+from gavo.adql import fieldinfo
 from gavo.adql import nodes
 from gavo.adql import tree
 
@@ -18,20 +19,29 @@ from gavo.adql import tree
 UFUNC_REGISTRY = {}
 
 
-def userFunction(name, signature, doc):
-	"""a decorator adding some metadata to python functions to make them
-	suitable as ADQL user defined functions.
+def userFunction(name, signature, doc, returntype="double precision", 
+		unit="", ucd=""):
+	"""a decorator adding some metadata to python functions to make
+	them suitable as ADQL user defined functions.
 
-	name is the name the function will be visible under in ADQL, *without*
-	the _funPrefix; signature is a signature not including the name of
-	the form '(parName1 type1, parName1 type2) -> resulttype'; doc
-	is preformatted ASCII documentation.  The indentation of the second
-	line will be removed from all lines.
+	name is the name the function will be visible under in
+	ADQL, *without* the _funPrefix; signature is a signature
+	not including the name of the form '(parName1 type1, parName1
+	type2) -> resulttype'; doc is preformatted ASCII documentation.
+	The indentation of the second line will be removed from all lines.
 
-	The python function receives an array of arguments; this will in general
-	be ADQL expression trees.  It must return a string that will go
-	literally into the SQL string, so beware quoting.  In general,
-	you will use nodes.flatten(arg) to flatten individual args.
+	returntype is the SQL return type, which defaults to double
+	precision.  With current ADQL, you could specialize to INTEGER
+	if you like, but there's little in the way of variation on top
+	of that since user defined functions must be numeric.  unit and
+	ucd are optional for when you actually have a good guess what's
+	coming back from your ufunc.
+
+	The python function receives an array of arguments; this will in
+	general be ADQL expression trees.  It must return a string that
+	will go literally into the SQL string, so take care to quote.
+	In general, you will use nodes.flatten(arg) to flatten individual
+	args.
 
 	If you receive bad arguments or something else goes awry, raise
 	a UfuncError.
@@ -40,6 +50,9 @@ def userFunction(name, signature, doc):
 		f.adqlUDF_name = grammar.userFunctionPrefix+name
 		f.adqlUDF_signature = f.adqlUDF_name+signature.strip()
 		f.adqlUDF_doc = utils.fixIndentation(doc, "", 1).strip()
+		f.adqlUDF_returntype = returntype
+		f.adqlUDF_unit = unit
+		f.adqlUDF_ucd = ucd
 		UFUNC_REGISTRY[f.adqlUDF_name.upper()] = f
 		return f
 	return deco
@@ -50,13 +63,30 @@ def userFunction(name, signature, doc):
 	"""
 	gavo_match returns 1 if the POSIX regular expression pattern
 	matches anything in string, 0 otherwise.
-	""")
+	""",
+	"integer")
 def _match(args):
 	if len(args)!=2:
 		raise UfuncError("match takes exactly two arguments")
-	return "(CASE WHEN %s ~ %s THEN 1 ELSE 0)"%(
+	return "(CASE WHEN %s ~ %s THEN 1 ELSE 0 END)"%(
 		nodes.flatten(args[1]), nodes.flatten(args[0]))
 
+
+@userFunction("hasword",
+	"(word TEXT, string TEST) -> INTEGER",
+	"""
+	gavo_hasword returns 1 if word shows up in string, 0 otherwise.  This
+	is for "google-like"-searches in text-like fields.  In word, you can
+	actually employ a fairly complex query language; see
+	http://www.postgresql.org/docs/8.3/static/textsearch.html
+	for details.
+	""",
+	"integer")
+def _hasword(args):
+	if len(args)!=2:
+		raise UfuncError("match takes exactly two arguments")
+	return "(CASE WHEN to_tsvector(%s) @@ to_tsquery(%s) THEN 1 ELSE 0 END)"%(
+		nodes.flatten(args[1]), nodes.flatten(args[0]))
 
 class UserFunction(nodes.FunctionNode):
 	"""A node processing user defined functions.
@@ -75,5 +105,14 @@ class UserFunction(nodes.FunctionNode):
 
 	def flatten(self):
 		return self.processedExpression
+
+	def addFieldInfo(self, context):
+		try:
+			ufunc = UFUNC_REGISTRY[self.funName.upper()]
+		except KeyError:
+			raise common.UfuncError("No such function: %s"%self.funName)
+		self.fieldInfo = fieldinfo.FieldInfo(ufunc.adqlUDF_returntype, 
+			ufunc.adqlUDF_unit, ufunc.adqlUDF_ucd)
+
 
 tree.registerNode(UserFunction)
