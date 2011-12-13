@@ -736,7 +736,7 @@ Also look into EmbeddedGrammar, which may be a more convenient way to
 achieve the same thing.
 
 Dispatched Grammars
--------------------
+'''''''''''''''''''
 
 With normal grammars, all rows are fed to all rowmakers of all makes
 within a data object.  The rowmakers can than decide to not process a

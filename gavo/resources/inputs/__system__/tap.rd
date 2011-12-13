@@ -143,6 +143,17 @@
 		<column name="sourceRD" type="text" description="Id of the originating rd"/>
 	</table>
 
+	<table id="examples" onDisk="True" adql="True">
+		<meta name="description">Site-local sample queries"</meta>
+		<column name="name" type="text"
+			description="A short name for the query"/>
+		<column name="query" type="text"
+			description="ADQL for the query"/>
+		<column name="description" type="text"
+			description="A concise, human-readable description of what the
+			query does."/>
+	</table>
+
 	<data id="importTablesFromRD" auto="False">
 		<embeddedGrammar>
 			<iterator>
@@ -320,6 +331,20 @@
 				tap.publishToTAP(rd, table.connection)
 			</script>
 		</make>
+	</data>
+
+	<data id="import_examples">
+		<sources pattern="adqlsamples/*.sample"/>
+		<freeREGrammar 
+			enc="utf-8"
+			rowProduction="(?s).*\.\."
+			stripTokens="True">
+			<parseRE><![CDATA[(?xsm)^name::(?P<name>.*)
+				^query::(?P<query>.*)
+				^description::(?P<description>.*)\.\.
+			]]></parseRE>
+		</freeREGrammar>
+		<make table="examples"/>
 	</data>
 
 	<nullCore id="null"/>

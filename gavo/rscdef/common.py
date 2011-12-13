@@ -184,18 +184,18 @@ class IVOMetaMixin(object):
 
 
 class Registration(base.Structure):
-	"""A request for registration of a data collection.
+	"""A request for registration of a data or table item.
 
-	This is much like publish for services, but there's only one of
-	those per data, and thus there's no register-local metadata.
+	This is much like publish for services, just for data and tables;
+	since they have no renderers, you can only have one register element
+	per such element.
+
 	Data registrations may refer to published services that make their
 	data available.
 	"""
 	name_ = "register"
 
-	_defaultSets = frozenset(["ivo_managed"])
-
-	_sets = base.StringSetAttribute("sets",
+	_sets = base.StringSetAttribute("sets", default=frozenset(["ivo_managed"]),
 		description="A comma-separated list of sets this data will be"
 			" published in.  To publish data to the VO registry, just"
 			" say ivo_managed here.  Other sets probably don't make much"
@@ -203,12 +203,8 @@ class Registration(base.Structure):
 
 	_servedThrough = base.ReferenceListAttribute("services",
 		description="A DC-internal reference to a service that lets users"
-			" query that within the data collection.")
-
-	def completeElement(self, ctx):
-		self._completeElementNext(Registration, ctx)
-		if not self.sets:
-			self.sets = self._defaultSets
+			" query that within the data collection; tables with adql=True"
+			" are automatically declared to be servedBy the TAP service.")
 
 	def register(self):
 		"""adds servedBy and serviceFrom metadata to data, service pairs

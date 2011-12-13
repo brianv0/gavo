@@ -59,6 +59,15 @@ class FreeREGrammar(common.Grammar):
 	document.  All matches of rowProduction will then be matched with
 	parseRE, which in turn must have named groups.  The dictionary from
 	named groups to their matches makes up the input row.
+
+	For writing the parseRE, we recommend writing an element, using a
+	CDATA construct, and taking advantage of python's "verbose" regular
+	expressions.  Here's an example::
+
+		<parseRE><![CDATA[(?xsm)^name::(?P<name>.*)
+			^query::(?P<query>.*)
+			^description::(?P<description>.*)\.\.
+		]]></parseRE>
 	"""
 	name_ = "freeREGrammar"
 
