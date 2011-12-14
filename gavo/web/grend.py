@@ -570,6 +570,14 @@ class ServiceBasedPage(ResourceBasedPage):
 	def renderHTTP(self, ctx):
 		return rend.Page.renderHTTP(self, ctx)
 
+	def locateChild(self, ctx, segments):
+		# By default, ServiceBasedPages have no directory-like resources.
+		# So, if some overzealous entity added a slash, just redirect.
+		# Do not upcall to this if you override locateChild.
+		if segments==("",):
+			raise svcs.WebRedirect(url.URL.fromContext(ctx))
+		else:
+			return ResourceBasedPage.locateChild(self, segments)
 
 if __name__=="__main__":
 	import doctest, grend

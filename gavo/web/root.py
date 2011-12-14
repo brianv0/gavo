@@ -315,7 +315,8 @@ class ArchiveService(rend.Page):
 			segments = self.mappings[segments[0]]+list(segments[1:])
 
 		try:
-			return self._locateResourceBasedChild(ctx, segments)
+			res = self._locateResourceBasedChild(ctx, segments)
+			return res
 		except grend.RDBlocked:
 			return static.File(svcs.getTemplatePath("blocked.html")), () 
 

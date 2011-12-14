@@ -215,6 +215,16 @@ class PathResoutionTest(trialhelpers.RenderTest):
 		self.assertGETRaises("/data/cores/grouptest", {},
 			svcs.UnknownURI)
 
+	def testSlashAtEndRedirects(self):
+		def checkRedirect(failure):
+			self.failUnless(isinstance(failure.value, svcs.WebRedirect))
+			# (the destination of the redirect is wrong due to limitiations
+			# of the test context object)
+		return trialhelpers.runQuery(self.renderer, "GET", 
+			"/data/cores/convcat/form/", {}
+		).addCallback(lambda ig: self.fail("WebRedirect not raised")
+		).addErrback(checkRedirect)
+
 
 class BuiltinResTest(trialhelpers.RenderTest):
 	renderer = root.ArchiveService()
