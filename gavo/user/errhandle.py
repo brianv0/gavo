@@ -99,7 +99,7 @@ def raiseAndCatch(opts=None, output=outputError):
 	except base.SourceParseError, msg:
 		messages.append("While parsing source %s, near %s:\n"%(
 			msg.source, msg.location))
-		messages.append(msg.msg+"\n")
+		messages.append((msg.msg+"\n").decode("iso-8859-1", "ignore"))
 		if msg.offending:
 			messages.append("Offending literal: %s\n"%repr(offending))
 
@@ -120,7 +120,7 @@ def raiseAndCatch(opts=None, output=outputError):
 			base.MetaValidationError), msg:
 		if getattr(msg, "inFile", None):
 			messages.append("In %s:"%msg.inFile)
-		messages.append(unicode(msg))
+		messages.append(str(msg).decode("iso-8859-1", "ignore"))
 	except Exception, msg:
 		if hasattr(msg, "excRow"):
 			messages.append("Snafu in %s, %s\n"%(msg.excRow, msg.excCol))

@@ -566,13 +566,17 @@ function _plotUsingFlot(table, options) {
 	controlPara.append(usingSel);
 
 	// Set default plot features from options if given there
-	xselIndex = 0;
+	var xselIndex = 0;
 	if (options.xselIndex) {
 		xselIndex = options.xselIndex;
 	}
-	yselIndex = ysel.children().length-1;
+	var yselIndex = ysel.children().length-1;
 	if (options.yselIndex) {
 		yselIndex = options.yselIndex;
+	}
+	var usingIndex = 0;
+	if (options.usingIndex) {
+		usingIndex = options.usingIndex;
 	}
 	xsel.children()[xselIndex].setAttribute("selected", "selected")
 	ysel.children()[yselIndex].setAttribute("selected", "selected")
