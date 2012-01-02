@@ -150,12 +150,12 @@ class SourceParseError(Error):
 	"""is raised when some syntax error occurs during a source parse.
 
 	They are constructed with the offending input construct (a source line
-	or similar, None in a pinch) and the result of the grammar's getLocator
+	or similar, None in a pinch) and the result of the row iterator's getLocator
 	call.
 	"""
 	def __init__(self, msg, offending=None, location="unspecified location",
-			source="<unspecified source>"):
-		Error.__init__(self, msg)
+			source="<unspecified source>", hint=None):
+		Error.__init__(self, msg, hint=hint)
 		self.args = [msg, offending, location, source]
 		self.offending, self.location = offending, location
 		self.source = source

@@ -16,6 +16,7 @@ from gavo import rscdef
 from gavo.grammars import binarygrammar
 from gavo.grammars import columngrammar
 from gavo.grammars import fitsprodgrammar
+from gavo.grammars import regrammar
 
 
 
@@ -364,5 +365,15 @@ class FITSProdGrammarTest(testhelpers.VerboseTest):
 		self.assertEqual(d["__HDUS"][0].data[0][0], 7896.0)
 
 
+class ReGrammarTest(testhelpers.VerboseTest):
+	def testBadInputRejection(self):
+		grammar = base.parseFromString(regrammar.REGrammar,
+			"""<reGrammar names="a,b"/>""")
+		self.assertRaisesWithMsg(base.SourceParseError,
+			"At line 2: Only 1 fields found, expected 2",
+			lambda: list(grammar.parse(StringIO("1 2\n3"))),
+			())
+
+
 if __name__=="__main__":
-	testhelpers.main(FITSProdGrammarTest)
+	testhelpers.main(ReGrammarTest)

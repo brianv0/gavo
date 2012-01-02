@@ -53,8 +53,17 @@ class REIterator(FileRowIterator):
 				raise base.SourceParseError("'%s' does not match cleaner"%inputLine,
 					source=str(self.sourceToken))
 			inputLine = " ".join(cleanMat.groups())
-		return dict(zip(self.grammar.names, self.grammar.fieldSep.split(
-			inputLine)))
+
+		fields = self.grammar.fieldSep.split(inputLine)
+		if len(fields)!=len(self.grammar.names):
+			raise base.SourceParseError("Only %d fields found, expected %d"%(
+					len(fields), len(self.grammar.names)),
+				source=self.sourceToken,
+				location=self.getLocator(),
+				hint="reGrammars need the same number of input fields in each line,"
+				" and that number has to match the number of tokens in the names"
+				" attribute")
+		return dict(zip(self.grammar.names, fields))
 
 	def getLocator(self):
 		return "line %d"%self.curLine

@@ -457,7 +457,7 @@ class HTMLDataRenderer(rend.Fragment):
 class HTMLTableFragment(HTMLDataRenderer):
 	"""A nevow renderer for result tables.
 	"""
-	rowsPerDivision = 19
+	rowsPerDivision = 20
 
 	def _getRowFormatter(self):
 		"""returns a callable returning a rendered row in HTML (as used for the
