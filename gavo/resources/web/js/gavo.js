@@ -447,8 +447,8 @@ function _getValue(s) {
 // else return null.
 	var dm = DATE_RE.exec(s);
 	if (dm!=null) {
-		var dt = new Date(parseInt(dm[1]), parseInt(dm[2]), parseInt(dm[3]),
-			parseInt(dm[4]), parseInt(dm[5]), parseFloat(dm[6]));
+		var dt = new Date(parseFloat(dm[1]), parseFloat(dm[2]), parseFloat(dm[3]),
+			parseFloat(dm[4]), parseFloat(dm[5]), parseFloat(dm[6]));
 		return getJYear(dt);
 	}
 	var num = parseFloat(s);
