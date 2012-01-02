@@ -66,13 +66,6 @@ class PlainUI(SemiStingyPlainUI):
 	def announceIndexing(self, indexName):
 		self.showMsg("Create index %s"%indexName)
 	
-	@listensTo("FailedRow")
-	def announceFailedRow(self, args):
-		row, excInfo = args
-		self.showMsg("--- Ignoring bad row: %s (%s)"%(
-			utils.makeEllipsis(str(row), 30), 
-			str(excInfo[1])))
-	
 	@listensTo("ScriptRunning")
 	def announceScriptRunning(self, runner):
 		self.showMsg("%s excecuting script %s"%(

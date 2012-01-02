@@ -61,7 +61,13 @@ class Feeder(table.Feeder):
 		self.batchCache.append(data)
 		if len(self.batchCache)>=self.batchSize:
 			self.shipout()
+
+	def flush(self):
+		self.shipout()
 	
+	def reset(self):
+		self.batchCache = []
+
 	def exit(self, *args):
 		if not args or args[0] is None: # regular exit, ship out
 			try:

@@ -192,17 +192,6 @@ class EventDispatcher(object):
 		"""
 		return indexName
 
-	def notifyFailedRow(self, row, exc_info):
-		"""is called when an inputRow could not be added by a feeder.
-
-		Most likely, this is due to a rowmaker failing.  The notification
-		should only be done if processing continues.
-
-		The callbacks receive the incoming row and the 3-tuple returned by
-		sys.exc_info().
-		"""
-		return row, exc_info
-
 	def notifyScriptRunning(self, script):
 		"""is called when a script is being started.
 

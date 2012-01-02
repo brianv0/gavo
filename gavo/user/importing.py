@@ -149,7 +149,7 @@ def main():
 			" to the database.", dest="batchSize", action="store", type="int",
 			default=5000, metavar="N")
 		parser.add_option("-c", "--continue-bad", help="go on if processing a"
-			" row failed.", dest="keepGoing", action="store_true", default=False)
+			" source.", dest="keepGoing", action="store_true", default=False)
 
 		(opts, args) = parser.parse_args()
 
@@ -167,10 +167,8 @@ def main():
 		return opts, args
 
 
-	problemlog = user.interfaces["problemlog"](base.ui)
 	opts, args = parseCmdline()
 	process(opts, args)
-	problemlog.dump("last.badrows")
 
 
 if __name__=="__main__":

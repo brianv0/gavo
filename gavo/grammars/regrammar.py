@@ -55,7 +55,7 @@ class REIterator(FileRowIterator):
 			inputLine = " ".join(cleanMat.groups())
 
 		fields = self.grammar.fieldSep.split(inputLine)
-		if len(fields)!=len(self.grammar.names):
+		if not self.grammar.lax and len(fields)!=len(self.grammar.names):
 			raise base.SourceParseError("Only %d fields found, expected %d"%(
 					len(fields), len(self.grammar.names)),
 				source=self.sourceToken,
@@ -93,3 +93,5 @@ class REGrammar(Grammar):
 		" use macros here, e.g., \colNames{someTable}.", expand=True)
 	_gunzip = base.BooleanAttribute("gunzip", description="Unzip sources"
 		" while reading?", default=False)
+	_lax = base.BooleanAttribute("lax", description="allow more or less"
+		" fields in source records than there are names", default=False)

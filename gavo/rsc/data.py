@@ -102,6 +102,14 @@ class DataFeeder(table.Feeder):
 
 		return add, addParameters
 
+	def flush(self):
+		for feeder in self.feeders:
+			feeder.flush()
+	
+	def reset(self):
+		for feeder in self.feeders:
+			feeder.reset()
+	
 	def exit(self, *excInfo):
 		affected = []
 		for feeder in self.feeders:
@@ -281,20 +289,14 @@ def _pipeRows(srcIter, feeder, opts):
 			base.ui.notifyIncomingRow(srcRow)
 		if opts.dumpRows:
 			print srcRow
-		try:
-			feeder.add(srcRow)
-		except:
-			if opts.keepGoing:
-				base.ui.notifyFailedRow(srcRow, sys.exc_info())
-			else:
-				raise
+		feeder.add(srcRow)
 		if opts.maxRows:
 			if base.ui.totalRead>opts.maxRows:
 				raise _EnoughRows
 
 
-def processSource(data, source, feeder, opts):
-	"""ingests source into the Data instance data.
+def _processSourceReal(data, source, feeder, opts):
+	"""helps processSource.
 	"""
 	if data.dd.grammar is None:
 		raise base.ReportableError("The data descriptor %s cannot be used"
@@ -315,13 +317,46 @@ def processSource(data, source, feeder, opts):
 		srcIter(data)
 
 
+def processSource(data, source, feeder, opts, connection=None):
+	"""ingests source into the Data instance data.
+
+	If you pass in a connection, you can set opts.keepGoing to true
+	and make the system continue importing even if a particular source 
+	has caused an error.  In that case, everything contributed by
+	the bad source is rolled back.
+	"""
+	if not opts.keepGoing:
+		# simple shortcut if we don't want to recover from bad sources
+		_processSourceReal(data, source, feeder, opts)
+	
+	else: # recover from bad sources, be more careful
+		if connection is None:
+			raise base.ReportableError("Can only ignore source errors"
+				" with an explicit connection", hint="This is a programming error.")
+		cursor = connection.cursor()
+		cursor.execute("SAVEPOINT thisSource")
+		try:
+			_processSourceReal(data, source, feeder, opts)
+			feeder.flush()
+		except Exception, ex:
+			feeder.reset()
+			cursor.execute("ROLLBACK TO SAVEPOINT thisSource")
+			cursor.execute("RELEASE SAVEPOINT thisSource")
+			base.ui.notifyError("Error while importing source; changes from"
+				" this source will be rolled back, processing will continue."
+				" (%s)"%unicode(ex))
+		else:
+			cursor.execute("RELEASE SAVEPOINT thisSource")
+
+
+
 def makeData(dd, parseOptions=common.parseNonValidating,
 		forceSource=None, connection=None, data=None):
 	"""returns a data instance built from dd.
 
 	It will arrange for the parsing of all tables generated from dd's grammar.
 	If connection is passed in, the the entire operation will run within a 
-	single transaction within this transaction.  The connection will be
+	single transaction within this connection.  The connection will be
 	rolled back or committed depending on the success of the operation.
 
 	You can pass in a data instance created by yourself in data.  This
@@ -343,13 +378,13 @@ def makeData(dd, parseOptions=common.parseNonValidating,
 		if forceSource is None:
 			for source in dd.iterSources(connection):
 				try:
-					processSource(res, source, feeder, parseOptions)
+					processSource(res, source, feeder, parseOptions, connection)
 				except _EnoughRows:
 					break
 				except base.SkipThis:
 					continue
 		else:
-			processSource(res, forceSource, feeder, parseOptions)
+			processSource(res, forceSource, feeder, parseOptions, connection)
 	except:
 		if connection:
 			connection.rollback()

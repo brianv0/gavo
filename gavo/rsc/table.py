@@ -29,6 +29,10 @@ class Feeder(object):
 
 		- add(row) -> None -- add row to table.  This may raise all kinds
 			of crazy exceptions.
+		- flush() -> None -- flush out all data that may be cached to the table
+		  (this is done automatically on a successful exit)
+		- reset() -> None -- discard any data that may still wait to be 
+		  flushed to the table
 		- exit(excType=None, excVal=None, excTb=None) -> None -- must
 			be called when all rows are added.  If an exception happened,
 			pass sys.exc_info() here; see below on what the method really does.
@@ -41,6 +45,10 @@ class Feeder(object):
 	This should become a context manager when we can require python 2.5.
 
 	The batch size constructor argument is for the benefit of DBTables.
+
+	The flush and reset methods are necessary when you do explicit
+	transaction management; you will need to call flush before committing
+	a transaction and reset before rolling one back.
 	"""
 	def __init__(self, table, batchSize=1024):
 		self.table = table
