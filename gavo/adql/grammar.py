@@ -433,7 +433,7 @@ def getADQLGrammarCopy():
 		math1ArgFunctionName = Regex("(?i)ABS|CEILING|DEGREES|EXP|FLOOR|LOG10|"
 			"LOG|RADIANS|SQUARE|SQRT")
 		optPrecArgFunctionName = Regex("(?i)ROUND|TRUNCATE")
-		math2ArgFunctionName = Regex("(?i)POWER")
+		math2ArgFunctionName = Regex("(?i)POWER|MOD")
 		mathFunction = (
 				math0ArgFunctionName("fName") + '(' + ')' 
 			|	optIntFunctionName("fName") + '(' 
