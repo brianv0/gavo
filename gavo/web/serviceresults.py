@@ -245,6 +245,7 @@ class OutputFormat(object):
 				options=self.availableFormats,
 				noneOption=("HTML", "HTML")).render(ctx, "_FORMAT", args, errors)(
 					onchange="output_broadcast(this.value)")]
+
 		if self.availableFields:
 			res[
 				T.div(title="Additional output column selector", 
