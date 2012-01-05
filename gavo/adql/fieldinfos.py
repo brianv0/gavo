@@ -8,6 +8,10 @@ here are called from the addFieldInfo methods of the respective
 nodes classes.
 """
 
+# XXX TODO: This is a horrible mess.  Carefully read the SQL specification,
+# figure out the actual rules for name resolution and then write an
+# actual namespace management in annotations.py
+
 from __future__ import with_statement
 
 from gavo.adql.common import *
@@ -32,10 +36,10 @@ class FieldInfos(object):
 	and the annotation (i.e., setting of the fieldInfos attribute on
 	the parent) will happen during instanciation.
 	"""
-	def __init__(self, parent):
+	def __init__(self, parent, context):
 		self.seq, self.columns = [], {}
 		parent.fieldInfos = self
-		self._collectSubTables(parent)
+		self._collectSubTables(parent, context)
 
 	def __repr__(self):
 		return "<Column information %s>"%(repr(self.seq))
@@ -48,6 +52,9 @@ class FieldInfos(object):
 
 		toName is a qualified name (i.e., including schema).
 		"""
+		if not hasattr(table, "tableName"): # the root query specifiation
+			return toName==""
+
 		return (table.tableName.qName==toName.qName
 			or (
 				table.originalTable
@@ -62,7 +69,7 @@ class FieldInfos(object):
 		for t in self.subTables:
 			if self._namesMatch(t, refName):
 				return t
-		raise TableNotFound("No table %s found."%refName.qName)
+		raise TableNotFound(refName.qName)
 
 	def addColumn(self, label, info):
 		"""adds a new visible column to this info.
@@ -99,6 +106,7 @@ class TableFieldInfos(FieldInfos):
 
 	To instanciate those, use the makeForNode class method below.
 	"""
+
 	@classmethod
 	def makeForNode(cls, tableNode, context):
 		"""returns a TableFieldInfos instance for an ADQL tableNode.
@@ -108,7 +116,7 @@ class TableFieldInfos(FieldInfos):
 		Whatever tableNode actually is, it The needs an originalTable
 		attribute which is used to retrieve the column info.
 		"""
-		result = cls(tableNode)
+		result = cls(tableNode, context)
 		
 		# add infos for the table itself.
 		if tableNode.originalTable:
@@ -135,7 +143,7 @@ class TableFieldInfos(FieldInfos):
 
 		return result
 
-	def _collectSubTables(self, node):
+	def _collectSubTables(self, node, context):
 		self.subTables = list(node.getAllTables())
 
 	@staticmethod
@@ -174,13 +182,21 @@ class QueryFieldInfos(FieldInfos):
 
 	To instanciate those, use the makeForNode class method below.
 	"""
+
+	# enclosingQuery is set non-None when a whereClause is found in the
+	# ancestors in _collectSubTables.  It then refers to the query spec
+	# the where clause is a child from.  All names from that qs are
+	# also immediately accessible from the current qs.
+	enclosingQuery = None
+
+
 	@classmethod
 	def makeForNode(cls, queryNode, context):
 		"""cf. TableFieldInfos.makeForNode.
 		"""
-		result = cls(queryNode)
+		result = cls(queryNode, context)
 
-		# now annotate the children of the select clause, using info
+		# annotate the children of the select clause, using info
 		# from queryNode's queried tables; we must manipulate the context's 
 		# name resolution.
 		with context.customResolver(result.getFieldInfoFromSources):
@@ -197,10 +213,30 @@ class QueryFieldInfos(FieldInfos):
 			result.addColumn(col.name, col.fieldInfo)
 		return result
 
-	def _collectSubTables(self, queryNode):
+	def _getEnclosingQuery(self, context):
+		"""returns the enclosing query specification if this is a subquery within
+		a where clause.
+		"""
+		ancs = context.ancestors
+		index = len(ancs)-1
+		while index>=0:
+			if ancs[index].type=="whereClause":
+				return ancs[index-1]
+			index -= 1
+
+	def _collectSubTables(self, queryNode, context):
 		self.subTables = list(
 			queryNode.fromClause.tableReference.getAllTables())
 		self.tableReference = queryNode.fromClause.tableReference
+
+		# if we are in a from clause, add its querySpecification, too
+		# (for things like exists(select * from x where a=q.b))
+		encQS = self._getEnclosingQuery(context)
+		if encQS:
+			self.subTables.append(encQS)
+			self.subTables.extend(
+				encQS.fromClause.tableReference.getAllTables())
+			self.enclosingQuery = encQS
 
 	def getFieldInfoFromSources(self, colName, refName=None):
 		"""returns a field info for colName from anything in the from clause.
@@ -217,7 +253,14 @@ class QueryFieldInfos(FieldInfos):
 			subCols = self.tableReference.fieldInfos.columns
 			if colName in subCols and subCols[colName]:
 				matched.append(subCols[colName])
+			if self.enclosingQuery:
+				subCols = (self.enclosingQuery.fromClause.
+					tableReference.fieldInfos.columns)
+				if colName in subCols and subCols[colName]:
+					matched.append(subCols[colName])
+
 		else:
+			# locate an appropriate table
 			subCols = self.locateTable(refName).fieldInfos.columns
 			if colName in subCols and subCols[colName]:
 				matched.append(subCols[colName])

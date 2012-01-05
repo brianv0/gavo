@@ -35,12 +35,16 @@ class AnnotationContext(object):
 	The annotation context also manages the namespaces for column reference
 	resolution.  It maintains a stack of getters; is is maintained
 	using the customResolver context manager.
+
+	Finally, the annotation context provides a ancestors attribute that,
+	at any time, gives a list of the current node's ancestor nodes.
 	"""
 	def __init__(self, retrieveFieldInfos, equivalencePolicy=stc.defaultPolicy):
 		self.retrieveFieldInfos = retrieveFieldInfos
 		self.policy = equivalencePolicy
 		self.colResolvers = []
 		self.errors, self.warnings = [], []
+		self.ancestors = []
 
 	@contextlib.contextmanager
 	def customResolver(self, getter):
@@ -64,8 +68,10 @@ class AnnotationContext(object):
 def _annotateTraverse(node, context):
 	"""does the real tree traversal for annotate.
 	"""
+	context.ancestors.append(node)
 	for c in node.iterNodeChildren():
 		_annotateTraverse(c, context)
+	context.ancestors.pop()
 	if hasattr(node, "addFieldInfos"):
 		node.addFieldInfos(context)
 

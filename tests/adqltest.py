@@ -907,10 +907,21 @@ class ColResTest(ColumnTest):
 		self._assertColumns(cols, [
 			("real", 'm', 'phys.distance', False)])
 
+	def testWhereResolutionPlain(self):
+		cols = self._getColSeq("select dist from spatial where exists"
+			" (select * from misc where dist=misc.mass)")
+		self._assertColumns(cols, [
+			("real", 'm', 'phys.distance', False)])
+
+	def testWhereResolutionWithAlias(self):
+		cols = self._getColSeq("select dist from spatial as q where exists"
+			" (select * from misc where q.dist=misc.mass)")
+		self._assertColumns(cols, [
+			("real", 'm', 'phys.distance', False)])
+
 	def testErrorReporting(self):
 		self.assertRaises(adql.ColumnNotFound, self._getColSeq,
 			"select gnurks from spatial")
-
 
 class DelimitedColResTest(ColumnTest):
 	"""tests for column resolution with delimited identifiers.

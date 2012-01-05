@@ -471,6 +471,8 @@ class RecreateAfterTest(testhelpers.VerboseTest):
 
 
 class ConcurrentRDTest(testhelpers.VerboseTest):
+	resources = [("tempBadRDFile", _TempBadRDFile())]
+
 	def testInvalidation(self):
 		rd = base.parseFromString(rscdesc.RD, '<resource schema="test"/>')
 		rd.sourceId = "artificial"
@@ -501,6 +503,40 @@ class ConcurrentRDTest(testhelpers.VerboseTest):
 		base.caches.clearForName("__system__/services")
 		newRD = base.caches.getRD("__system__/services")
 		self.failUnless(hasattr(newRD, "serviceIndex"))
+
+	def testParallelRDIsInvalidated(self):
+		base.caches.clearForName("tempbad")
+		fromThread = []
+		def loadFromOne():
+			try:
+				fromThread.append(base.caches.getRD("tempbad"))
+			except Exception, ex:
+				fromThread.append(ex)
+		t1 = threading.Thread(target=loadFromOne)
+		t1.start()
+# this is an extremely haphazard way to try and make the RD import from
+# the thread "parallel" with the one in the main thread.
+# What we *should* do to make this test robust is run some code inside
+# the borken RD that expects an action from the main thread and only
+# then bombs out.  But then maybe the whole functionality we test
+# here stinks...
+		time.sleep(0.0001)
+		try:
+			fromMain = base.caches.getRD("tempbad")
+		except Exception, ex:
+			fromMain = ex
+		t1.join()
+		try:
+			# one of the two accesses will fail if one actually got back
+			# an invalidated RD.
+			fromMain.sourceId, fromThread[0].sourceId
+		except base.ReportableError:
+			# all's fine
+			return
+		self.fail("On a parallel load of a bad RD, none of the returned values"
+			" was a BrokenClass.  Most likely your machine is too fast for this"
+			" test and you should just nuke it and forget about this.")
+
 
 
 if __name__=="__main__":
