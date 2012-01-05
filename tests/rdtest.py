@@ -4,6 +4,7 @@ Tests for resource descriptor handling
 
 import cStringIO
 import os
+import threading
 import time
 import unittest
 
@@ -317,9 +318,14 @@ class _TempRDFile(tresc.FileResource):
 	path = "inputs/temp.rd"
 	content = "<resource schema='temptemp'/>"
 
+class _TempBadRDFile(tresc.FileResource):
+	path = "inputs/tempbad.rd"
+	content = "<resource schema='temptemp'>junk</resource>"
+
 
 class CachesTest(testhelpers.VerboseTest):
-	resources = [("tempRDFile", _TempRDFile())]
+	resources = [("tempRDFile", _TempRDFile()),
+		("tempBadRDFile", _TempBadRDFile())]
 
 	def testCacheWorks(self):
 		rd1 = base.caches.getRD("//users")
@@ -354,6 +360,17 @@ class CachesTest(testhelpers.VerboseTest):
 		os.utime(self.tempRDFile, (now+1, now+1))
 		otherRD = base.caches.getRD("temp")
 		self.failIf(origRD is otherRD)
+
+	def testExceptionsAreCached(self):
+		try:
+			rd = base.caches.getRD("tempbad")
+		except base.StructureError, ex:
+			ex1 = ex
+		try:
+			rd2 = base.caches.getRD("tempbad")
+		except base.StructureError, ex:
+			ex2 = ex
+		self.failUnless(ex1 is ex2)
 
 
 class RecreateAfterTest(testhelpers.VerboseTest):
@@ -451,8 +468,40 @@ class RecreateAfterTest(testhelpers.VerboseTest):
 		data = rsc.makeDependentsFor([rd.getById("stuff0")],
 			rsc.parseNonValidating, connection=self.conn)
 		self.assertEqual(set(rd.dataMade), set(["stuff1", "stuff2"]))
-	
+
+
+class ConcurrentRDTest(testhelpers.VerboseTest):
+	def testInvalidation(self):
+		rd = base.parseFromString(rscdesc.RD, '<resource schema="test"/>')
+		rd.sourceId = "artificial"
+		rd.invalidate()
+		try:
+			rd.sourceId
+		except base.ReportableError, ex:
+			self.assertEqual(str(ex), "Loading of artificial"
+				" failed in another thread; this RD cannot be used here")
+		else:
+			self.fail("Invalidation of an RD didn't work")
+
+	def testRacingClear(self):
+		# this is a bit non-deterministic...
+		base.caches.clearForName("__system__/services")
+		def loadFromOne():
+			rd = base.caches.getRD("__system__/services")
+			self.failUnless(hasattr(rd, "serviceIndex"))
+		t1 = threading.Thread(target=loadFromOne)
+		t1.daemon = True
+		t1.start()
+		for retry in range(50):
+			if "__system__/services" in rscdesc._currentlyParsing:
+				break
+			time.sleep(0.05)
+		else:
+			self.fail("getRD does not load the services RD?")
+		base.caches.clearForName("__system__/services")
+		newRD = base.caches.getRD("__system__/services")
+		self.failUnless(hasattr(newRD, "serviceIndex"))
 
 
 if __name__=="__main__":
-	testhelpers.main(RecreateAfterTest)
+	testhelpers.main(ConcurrentRDTest)

@@ -86,6 +86,7 @@ def _makeCache(creator, isDirty):
 			raise cache[id]
 		else:
 			return cache[id]
+
 	return func
 
 

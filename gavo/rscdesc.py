@@ -16,8 +16,6 @@ import os
 import pkg_resources
 import time
 import threading
-import traceback
-import warnings
 import weakref
 
 from gavo import base
@@ -134,7 +132,7 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 		self.sourceId = srcId
 		base.Structure.__init__(self, None, **kwargs)
 		# The rd attribute is a weakref on self.  Always.  So, this is the class
-		# that in roots common.RDAttributes
+		# that roots common.RDAttributes
 		self.rd = weakref.proxy(self)
 		# real dateUpdated is set by getRD, this is just for RDs created
 		# on the fly.
@@ -249,7 +247,8 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 			except (KeyError, os.error):
 				pass
 		except (os.error, IOError):
-			warnings.warn("Could not update timestamp on RD %s"%self.sourceId)
+			base.ui.notifyWarning(
+				"Could not update timestamp on RD %s"%self.sourceId)
 
 	def _computeIdmap(self):
 		res = {}
@@ -273,6 +272,22 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 		new.idmap = new._computeIdmap()
 		new.sourceId = self.sourceId
 		return new
+
+	def invalidate(self):
+		"""make the RD fail on every attribute read.
+
+		See rscdesc._loadRDIntoCache for why we want this.
+		"""
+		errMsg = ("Loading of %s failed in another thread; this RD cannot"
+			" be used here")%self.sourceId
+
+		class BrokenClass(object):
+			"""A class that reacts to all attribute requests with a some exception.
+			"""
+			def __getattribute__(self, attributeName):
+				raise base.ReportableError(errMsg)
+
+		self.__class__ = BrokenClass
 
 	def macro_RSTccby(self, stuffDesignation):
 		"""expands to a declaration that stuffDesignation is available under
@@ -380,13 +395,8 @@ def setRDDateTime(rd, inputFile):
 		rd.timestampUpdated)
 
 
-# in _currentlyParsing, getRD keeps track of what RDs are currently being
-# parsed.  The keys are the sourceIds, the values are pairs of
-# RLock and the RD object.
-_currentlyParsing = {}
-
-def getRD(srcId, forImport=False, doQueries=True, dumpTracebacks=False,
-		restricted=False):
+def getRD(srcId, forImport=False, doQueries=True, 
+		dumpTracebacks=False, restricted=False, useRD=None):
 	"""returns a ResourceDescriptor for srcId.
 
 	srcId is something like an input-relative path; you'll generally
@@ -394,50 +404,91 @@ def getRD(srcId, forImport=False, doQueries=True, dumpTracebacks=False,
 
 	getRD furnishes the resulting RD with an idmap attribute containing
 	the mapping from id to object collected by the parse context.
+
+	The useRD parameter is for _loadRDIntoCache exclusively and is
+	used by it internally.  It is strictly an ugly implementation detail.
 	"""
-	rd = RD(canonicalizeRDId(srcId))
+	if useRD is None:
+		rd = RD(canonicalizeRDId(srcId))
+	else:
+		rd = useRD
+
 	srcPath, inputFile = getRDInputStream(rd.sourceId)
 	context = RDParseContext(forImport, doQueries, dumpTracebacks, restricted)
 	rd.srcPath = context.srcPath = os.path.abspath(srcPath)
 	context.forRD = rd.sourceId
 	rd.idmap = context.idmap
 
-	# concurrency handling (threads suck -- I shouldn't have gone down that
-	# way...)
-	if rd.sourceId in _currentlyParsing:
-		lock, rd = _currentlyParsing[rd.sourceId]
-		# lock is an RLock, which means the following will block for
-		# all threads but the currently parsing one.  This lets us
-		# have recursive definitions in RDs (while still not allowing
-		# forward references).
+	try:
+		rd = base.parseFromStream(rd, inputFile, context=context)
+	except Exception, ex:
+		ex.srcPath = srcPath
+		raise
+	setRDDateTime(rd, inputFile)
+	return rd
+
+
+# in _currentlyParsing, getRD keeps track of what RDs are currently being
+# parsed.  The keys are the canonical sourceIds, the values are pairs of
+# an unfinished RD and RLocks protecting it.
+_currentlyParsingLock = threading.Lock()
+_currentlyParsing = {}
+import threading
+
+def _loadRDIntoCache(canonicalRDId, cacheDict):
+	"""helps _makeRDCache.
+
+	This function contains the locking logic that makes sure multiple
+	threads can load RDs.
+	"""
+	with _currentlyParsingLock:
+		if canonicalRDId in _currentlyParsing:
+			lock, rd = _currentlyParsing[canonicalRDId]
+			justWait = True
+		else:
+			lock, rd = threading.RLock(), RD(canonicalRDId)
+			_currentlyParsing[canonicalRDId] = lock, rd
+			justWait = False
+
+	if justWait:
+		# Someone else is already parsing.  If it's the current thread,
+		# go on (lock is an RLock!) so we can resolve circular references
+		# (as long as they are forward references).  All other threads
+		# just wait for the parsing thread to finish
 		lock.acquire()
 		lock.release()
 		return rd
-	else:
-		lock = threading.RLock()
-		_currentlyParsing[rd.sourceId] = lock, rd
-		lock.acquire()
 
+	lock.acquire()
 	try:
 		try:
-			rd = base.parseFromStream(rd, inputFile, context=context)
+			cacheDict[canonicalRDId] = getRD(canonicalRDId, useRD=rd)
 		except Exception, ex:
-			ex.srcPath = srcPath
+			# Importing failed, invalidate the RD (in case other threads still
+			# see it from _currentlyParsing)
+			cacheDict[canonicalRDId] = ex
+			rd.invalidate()
 			raise
 	finally:
-		del _currentlyParsing[rd.sourceId]
+		del _currentlyParsing[canonicalRDId]
 		lock.release()
-	setRDDateTime(rd, inputFile)
-	return rd
+	return cacheDict[canonicalRDId]
 
 
 def _makeRDCache():
 	"""installs the cache for RDs.
 
-	The main trick here is to handle "aliasing", i.e. making sure that
+	One trick here is to handle "aliasing", i.e. making sure that
 	you get identical objects regardless of whether you request
 	__system__/adql.rd, __system__/adql, or //adql.
+
+	Then, we're checking for "dirty" RDs (i.e., those that should
+	be reloaded).
+
+	The messiest part is the support for getting RDs in the presence of
+	threads while still supporting recursive references, though.
 	"""
+# TODO: Maybe unify this again with caches._makeCache?
 	rdCache = {}
 
 	def getRDCached(srcId, **kwargs):
@@ -445,13 +496,18 @@ def _makeRDCache():
 			return getRD(srcId, **kwargs)
 		srcId = canonicalizeRDId(srcId)
 
-		if srcId in rdCache and rdCache[srcId].isDirty():
+		if (srcId in rdCache 
+				and getattr(rdCache[srcId], "isDirty", lambda: False)()):
 			base.caches.clearForName(srcId)
 
-		if srcId not in rdCache:
-			rd = getRD(srcId)
-			rdCache[srcId] = rd
-		return rdCache[srcId]
+		try:
+			cachedOb = rdCache[srcId]
+			if isinstance(cachedOb, Exception):
+				raise  cachedOb
+			else:
+				return cachedOb
+		except KeyError:
+			return _loadRDIntoCache(srcId, rdCache)
 	
 	base.caches.registerCache("getRD", rdCache, getRDCached)
 

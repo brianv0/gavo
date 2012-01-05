@@ -6,6 +6,7 @@ The root resource of the data center.
 import os
 import time
 import traceback
+import sys
 from cStringIO import StringIO
 
 from twisted.internet import defer

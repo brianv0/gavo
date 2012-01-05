@@ -57,7 +57,7 @@ def querySubjectsList(setName=None):
 	"""
 	setName = setName or 'local'
 	svcsForSubjs = {}
-	td = base.caches.getRD(SERVICELIST_ID).getById("subjects_join")
+	td = getServicesRD().getById("subjects_join")
 	otd = svcs.OutputTableDef.fromTableDef(td, None)
 	with base.getTableConn() as conn:
 		for row in rsc.TableForDef(td, connection=conn).iterQuery(otd, 

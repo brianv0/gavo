@@ -164,4 +164,3 @@ class AdminRenderer(formal.ResourceMixin,
 			T.body[
 				T.p["Admin services are only available with a admin.html template"]]
 		])
-

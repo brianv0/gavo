@@ -8,6 +8,7 @@ from nevow import inevow
 from nevow import rend
 from nevow import tags as T
 
+from gavo import base
 from gavo.svcs import streaming
 from gavo.web import common
 
@@ -92,6 +93,17 @@ class BadGatewayPage(rend.Page):
 		return "Bad Gateway"
 
 
+class ServiceUnloadPage(rend.Page):
+	"""a page that clears the services RD.
+	"""
+	def renderHTTP(self, ctx):
+		request = inevow.IRequest(ctx)
+		request.setHeader("content-type", "text/plain")
+		base.caches.clearForName("__system__/services")
+		return "Cleared the services RD"
+
+
+
 class Tests(rend.Page):
 	child_foo = FooPage()
 	child_stream = StreamerPage()
@@ -99,6 +111,7 @@ class Tests(rend.Page):
 	child_rendercrash = RenderCrashPage()
 	child_badgateway = BadGatewayPage()
 	child_exit = ExitPage()
+	child_clearservice = ServiceUnloadPage()
 	docFactory = common.doctypedStan(T.html[
 		T.head[
 			T.title["Wrong way"],
