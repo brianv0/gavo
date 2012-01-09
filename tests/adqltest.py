@@ -271,6 +271,7 @@ class NakedParseTest(_ADQLParsesTest):
 		"""
 		p = "select x from y where "
 		self._assertParse([
+			p+"Point(NULL, 2, 3)=x",
 			p+"Point('fk5', 2, 3)=x",
 			p+"CIRCLE('fk5', 2, 3, 3)=x",
 			p+"box('fk5', 2, 3, 3, 0)=x",
@@ -363,7 +364,6 @@ class FunctionsParseTest(_ADQLParsesTest):
 class AsTreeTest(testhelpers.VerboseTest):
 	"""tests for asTree()
 	"""
-# This is an example from the docs; this is why I'd like some separate test.
 	def testSimple(self):
 		t = adql.parseToTree("SELECT * FROM t WHERE 1=CONTAINS("
 			"CIRCLE('ICRS', 4, 4, 2), POINT('', ra, dec))").asTree()
@@ -1148,7 +1148,26 @@ class STCTest(ColumnTest):
 			"select point('ICRS', ra1, 2) from spatial")
 		self.assertEqual(cs[0][1].stc.astroSystem.spaceFrame.refFrame, 'ICRS')
 		self.assertEqual(ctx.errors, [])
-	
+
+	def testEmptyCoosysInherits(self):
+		cs, ctx = self._getColSeqAndCtx(
+			"select point('', ra2, 2) from spatial")
+		self.assertEqual(cs[0][1].stc.astroSystem.spaceFrame.refFrame, 'FK4')
+		self.assertEqual(ctx.errors, [])
+
+	def testEmptyCoosysBecomesNone(self):
+		cs, ctx = self._getColSeqAndCtx(
+			"select point('', mag, 2) from misc")
+		self.assertEqual(cs[0][1].stc.astroSystem.spaceFrame.refFrame, None)
+		self.assertEqual(ctx.errors, [])
+
+	def testNULLCoosys(self):
+		cs, ctx = self._getColSeqAndCtx(
+			"select point(NULL, ra1, 2) from spatial")
+		self.assertEqual(cs[0][1].stc.astroSystem.spaceFrame.refFrame, 'ICRS')
+		self.assertEqual(ctx.errors, [])
+
+
 	def testPointBadCoo(self):
 		cs, ctx = self._getColSeqAndCtx(
 			"select point('ICRS', ra2, 2) from spatial")
@@ -1792,4 +1811,4 @@ class IntersectsFallbackTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(PQMorphTest)
+	testhelpers.main(STCTest)

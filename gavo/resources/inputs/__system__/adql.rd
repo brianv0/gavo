@@ -80,6 +80,13 @@ no conforming of coordinate systems will be performed.
 The output of ADQL geometries follows the TAP standard (simplified STC-S)
 rather than the ADQL standard (something similarly messy).
 
+ADQL defines coord_sys (the first argument to the geometry functions)
+to be a string_value_expression; thus, you can have column references 
+or concatenations or basically anthing there.  We only allow string literals
+containing one of the defined coordinate systems there (these include at least
+the empty string, GALACTIC, UNKNOWN, ICRS, FK4, FK5, and RELOCATABLE), or
+NULL.
+
 SELECT and SELECT ALL are not exactly the same thing.  The latter will add
 an OFFSET 0 to the resulting postgresql query.  Use this when the query
 planner messes up; see the `Story I: Guide Star`_ below.

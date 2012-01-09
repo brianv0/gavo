@@ -91,8 +91,14 @@ def getTAPSTC(stcInstance):
 @utils.memoized
 def getSTCForTAP(tapIdentifier):
 	"""returns an stc AST for a tap reference system identifier.
+
+	The tapIdentifier is any string in which the first item is the reference 
+	system.  Everything else is ignored (this is because it seems someone
+	intended additional specs like "BARYCENTER" to be legal, although
+	there really is nothing we can do about them).
 	"""
-	tapIdentifier = utils.identifierPattern.findall(tapIdentifier)[0]
+	if tapIdentifier:
+		tapIdentifier = utils.identifierPattern.findall(tapIdentifier)[0]
 	if tapIdentifier in ["BROKEN", '', "UNKNOWN"]:
 		tapIdentifier = "UNKNOWNFrame"
 	ast = stcsast.parseSTCS("Position %s"%tapIdentifier)

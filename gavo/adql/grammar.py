@@ -306,6 +306,7 @@ def getADQLGrammarCopy():
 		multOperator = Literal("*") | Literal("/")
 		addOperator =  Literal("+") | Literal("-")
 		notKeyword = CaselessKeyword("NOT")
+		nullLiteral = CaselessKeyword("NULL")
 
 		regularIdentifier = RegularIdentifier(allReservedWords)
 		regularIdentifier.setName("identifier")
@@ -370,10 +371,12 @@ def getADQLGrammarCopy():
 		numericValueExpression << (term + ZeroOrMore( addOperator + term ))
 
 # geometry types and expressions
-		coordSys = Regex("(?i)'(?P<sys>%s)'"%"|".join(stc.TAP_SYSTEMS)
-			).addParseAction(lambda s,p,t: t["sys"].upper()
+		tapCoordLiteral = Regex("(?i)'(?P<sys>%s)'"%"|".join(stc.TAP_SYSTEMS)
+				).addParseAction(lambda s,p,t: t["sys"].upper())
+		tapCoordLiteral.setName("coordinate system literal (ICRS, GALACTIC,...)")
+		coordSys = (tapCoordLiteral
+			| nullLiteral.addParseAction(lambda s,p,t: "UNKNOWN")
 			).setResultsName("coordSys")
-		coordSys.setName("coordinate system literal (ICRS, GALACTIC,...)")
 		coordinates = (Args(numericValueExpression) 
 			+ ',' + Args(numericValueExpression))
 		box = (CaselessKeyword("BOX")("fName") 
@@ -492,7 +495,7 @@ def getADQLGrammarCopy():
 		likePredicate = (characterValueExpression + Optional( notKeyword ) + 
 			CaselessKeyword("LIKE") + characterValueExpression)
 		nullPredicate = (columnReference + CaselessKeyword("IS") +
-			Optional( notKeyword ) - CaselessKeyword("NULL"))
+			Optional( notKeyword ) - nullLiteral)
 		predicate = (comparisonPredicate | betweenPredicate | inPredicate | 
 			likePredicate | nullPredicate | existsPredicate)
 		booleanPrimaryOpener = Literal('(')  # for error messages

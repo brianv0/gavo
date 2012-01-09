@@ -1253,12 +1253,19 @@ class GeometryNode(CoosysMixin, FieldInfoedNode):
 			if fi.stc]
 		childUserData, childUnits = [], []
 		thisSystem = tapstc.getSTCForTAP(self.cooSys)
+
+		# get reference frame from first child if not given in node
+		if thisSystem.astroSystem.spaceFrame.refFrame is None:
+			if fis:
+				thisSystem = fis[0].stc
+
 		for index, fi in enumerate(fis):
 			childUserData.extend(fi.userData)
 			childUnits.append(fi.unit)
 			if not context.policy.match(fi.stc, thisSystem):
 				context.errors.append("When constructing %s: Argument %d has"
 					" incompatible STC"%(self.type, index+1))
+
 		self.fieldInfo = fieldinfo.FieldInfo(
 			type=self.sqlType,
 			unit=",".join(childUnits), 
