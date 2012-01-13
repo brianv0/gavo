@@ -375,7 +375,7 @@ def getADQLGrammarCopy():
 				).addParseAction(lambda s,p,t: t["sys"].upper())
 		tapCoordLiteral.setName("coordinate system literal (ICRS, GALACTIC,...)")
 		coordSys = (tapCoordLiteral
-			| nullLiteral.addParseAction(lambda s,p,t: "UNKNOWN")
+			| nullLiteral.copy().addParseAction(lambda s,p,t: "UNKNOWN")
 			).setResultsName("coordSys")
 		coordinates = (Args(numericValueExpression) 
 			+ ',' + Args(numericValueExpression))
