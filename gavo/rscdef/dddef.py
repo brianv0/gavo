@@ -238,7 +238,8 @@ class Make(base.Structure, scripting.ScriptingMixin):
 		"""returns a new empty instance of the table this is making.
 		"""
 		newTable = tableFactory(self.table,
-			parseOptions=parseOptions, connection=connection, role=self.role)
+			parseOptions=parseOptions, connection=connection, role=self.role,
+			create=True)
 		newTable._runScripts = self.getRunner()
 		return newTable
 	

@@ -154,7 +154,7 @@ class RDDataResource(testhelpers.TestResource):
 		return self.dataCreated.getPrimaryTable()
 	
 	def clean(self, table):
-		self.dataCreated.dropTables()
+		self.dataCreated.dropTables(rsc.parseNonValidating)
 
 
 class CSTestTable(RDDataResource):

@@ -85,6 +85,7 @@ def makeDirVerbose(path, setGroupTo=None):
 
 
 _GAVO_WRITABLE_DIRS = set([
+	"stateDir",
 	"cacheDir",
 	"logDir",
 	"tempDir",])

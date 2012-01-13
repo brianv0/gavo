@@ -6,6 +6,7 @@ from __future__ import with_statement
 
 import os
 import traceback
+from cStringIO import StringIO
 
 from nevow import inevow
 from nevow import rend
@@ -66,11 +67,14 @@ class TAPQueryResource(rend.Page):
 	tears it down later.
 	"""
 	def _doRender(self, ctx):
-		with tap.TAPJob.createFromRequest(inevow.IRequest(ctx)) as job:
-			job.executionduration = base.getConfig("async", "defaultExecTimeSync")
-			jobId = job.jobId
-		taprunner.runTAPJob(jobId)
-		with tap.TAPJob.makeFromId(jobId) as job:
+		jobId = tap.workerSystem.getNewIdFromRequest(inevow.IRequest(ctx))
+		try:
+			with tap.workerSystem.changeableJob(jobId) as job:
+				job.change(executionDuration=
+					base.getConfig("async", "defaultExecTimeSync"))
+			taprunner.runTAPJob(jobId)
+
+			job = tap.workerSystem.getJob(jobId)
 			if job.phase==uws.COMPLETED:
 				# This is TAP, so there's exactly one result
 				res = job.getResults()[0]
@@ -78,20 +82,18 @@ class TAPQueryResource(rend.Page):
 				# hold on to the result fd so its inode is not lost when we delete
 				# the job.
 				f = open(os.path.join(job.getWD(), name))
-				job.delete()
 				return (f, type)
 			elif job.phase==uws.ERROR:
-				exc = job.getError()
-				job.delete()
+				exc = job.error
 				raise base.Error(exc["msg"], hint=exc["hint"])
 			elif job.phase==uws.ABORTED:
-				job.delete()
 				raise uws.UWSError("Job was manually aborted.  For synchronous"
 					" jobs, this probably means the operators killed it.",
 					jobId)
 			else:
-				job.delete()
 				raise uws.UWSError("Internal error.  Invalid UWS phase.")
+		finally:
+			tap.workerSystem.destroy(jobId)
 
 	def renderHTTP(self, ctx):
 		try:
@@ -125,7 +127,7 @@ class TAPQueryResource(rend.Page):
 def getSyncResource(ctx, service, segments):
 	if segments:
 		raise svcs.UnknownURI("No resources below sync")
-	request = common.getfirst(ctx, "REQUEST", base.Undefined)
+	request = common.getfirst(ctx, "request", base.Undefined)
 	if request=="doQuery":
 		return TAPQueryResource(service, ctx)
 	elif request=="getCapabilities":
@@ -168,12 +170,11 @@ class JoblistResource(MethodAwareResource, UWSErrorMixin):
 	GET yields a job list, POST creates a job.
 	"""
 	def _doGET(self, ctx, request):
-		res = uwsactions.getJobList()
+		res = uwsactions.getJobList(tap.workerSystem)
 		return res
 	
 	def _doPOST(self, ctx, request):
-		with tap.TAPJob.createFromRequest(request) as job:
-			jobId = job.jobId
+		jobId = tap.workerSystem.getNewIdFromRequest(request)
 		return UWSRedirect("async/%s"%jobId)
 
 	def _deliverResult(self, res, request):
@@ -190,7 +191,7 @@ class JobResource(rend.Page, UWSErrorMixin):
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
 		return threads.deferToThread(
-			uwsactions.doJobAction, request, self.segments
+			uwsactions.doJobAction, tap.workerSystem, request, self.segments
 		).addCallback(self._deliverResult, request
 		).addErrback(self._redirectAsNecessary, ctx
 		).addErrback(self._deliverError, request)
@@ -214,33 +215,12 @@ def getAsyncResource(ctx, service, segments):
 		return JoblistResource(service)
 
 
-# Sadly, TAP protocol keys need to be case insensitive (2.3.10)
-# In general, this is, of course, an extremely unwelcome feature,
-# so we restrict it to the keys specified in the TAP spec.
-_caseInsensitiveKeys = set(["REQUEST", "VERSION", "LANG", "QUERY", 
-	"FORMAT", "MAXREC", "RUNID", "UPLOAD"])
-
-def reparseRequestArgs(ctx):
-	"""adds attributes scalars and files to ctx's request.
-
-	Scalars contains non-field arguments, files the files.  Both are
-	dictionaries containing the first item found for a key.
-	"""
-	request = inevow.IRequest(ctx)
-	request.scalars, request.files = {}, {}
-	if request.fields:
-		for key in request.fields:
-			field = request.fields[key]
-			if field.filename:
-				request.files[key] = field
-			else:
-				request.scalars[key] = request.fields.getfirst(key)
-	else:
-		for key, val in request.args.iteritems():
-			if val:
-				request.scalars[key] = val[0]
-			else:
-				request.scalars[key] = None
+class _FakeUploadedFile(object):
+# File uploads without filenames are args containing a string.
+# This class lets them work as uploaded files in _saveUpload.
+	def __init__(self, name, content):
+		self.filename = name
+		self.file = StringIO(content)
 
 
 class TAPRenderer(grend.ServiceBasedPage):
@@ -252,26 +232,58 @@ class TAPRenderer(grend.ServiceBasedPage):
 	urlUse = "base"
 
 	def renderHTTP(self, ctx):
-		# we *could* have some nice intro here, but really -- let's just
-		# redirect to info and save some work, ok?
+		# The root resource  redirects to an info on TAP
 		raise svcs.WebRedirect(self.service.getURL("info", absolute=False))
 
+	def gatherUploadFiles(self, request):
+		"""creates a files attribute on request, containing all uploaded
+		files.
+
+		The upload files are removed from args, which is good since we
+		don't want to serialize those in the parameters dictionary.
+
+		This method inspects all upload parameters and converts the
+		referenced arguments to cgi-like files as necessary.  Missing
+		uploads will be noticed here, and the request will be rejected.
+
+		Of course, all that hurts if someone manages to upload from REQUEST --
+		but that's their fault then.
+		"""
+		request.files = {}
+		for uploadSpec in request.args.get("upload", []):
+			for tableName, upload in tap.parseUploadString(uploadSpec):
+				if upload.startswith("param:"):
+					paramName = upload[6:]
+					if paramName not in request.args or not request.args[paramName]:
+						raise base.ReportableError("No parameter for upload"
+							" table %s"%tableName)
+
+					item = request.args.pop(paramName)[0]
+					# fix if it doesn't already look like a file
+					if getattr(item, "file", None) is None:
+						item = _FakeUploadedFile(
+							"unnamed_inline_upload_%s"%paramName, item)
+					request.files[paramName] = item
+
 	def locateChild(self, ctx, segments):
+		request = inevow.IRequest(ctx)
+		uwsactions.lowercaseProtocolArgs(request.args)
+
 		if not segments[-1]: # trailing slashes are forbidden here
 			if len(segments)==1: # root resource; don't redirect, it would be a loop
 				return self, ()
 			raise svcs.WebRedirect(
 				self.service.getURL("tap")+"/"+"/".join(segments[:-1]))
-		reparseRequestArgs(ctx)
-		request = inevow.IRequest(ctx)
+
 		try:
-			if "VERSION" in request.scalars:
-				if request.scalars["VERSION"]!=getTAPVersion():
-					return uwsactions.ErrorResource({
-						"msg": "Version mismatch; this service only supports"
-							" TAP version %s."%getTAPVersion(),
-						"type": "ValueError",
-						"hint": ""}), ()
+			self.gatherUploadFiles(request)
+			if (getTAPVersion()!=
+					utils.getfirst(request.args, "version", getTAPVersion())):
+				return uwsactions.ErrorResource({
+					"msg": "Version mismatch; this service only supports"
+						" TAP version %s."%getTAPVersion(),
+					"type": "ValueError",
+					"hint": ""}), ()
 			if segments:
 				if segments[0]=='sync':
 					res = getSyncResource(ctx, self.service, segments[1:])

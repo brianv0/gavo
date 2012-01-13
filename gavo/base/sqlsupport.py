@@ -653,7 +653,7 @@ class QuerierMixin(PostgresQueryMixin, StandardQueryMixin):
 
 
 class SimpleQuerier(QuerierMixin):
-	"""is a tiny interface to querying the standard database.
+	"""A facade to dbapi2 and system catalog queries.
 
 	This was a design mistake.  It's deprecated and slated to go when we've
 	converted all dependent code.  Use AdhocQuerier instead.
@@ -749,6 +749,58 @@ class AdhocQuerier(QuerierMixin):
 		return self._cm.__exit__(*args)
 
 
+@contextlib.contextmanager
+def connectionConfiguration(conn, isLocal=True, timeout=None, **runtimeVals):
+	"""A context manager setting and resetting runtimeVals in conn.
+
+	You pass just pass keyword arguments corresponding to postgres runtime
+	configuration items (as in SET and SHOW).  The manager obtains their previous
+	values and restores them before exiting.
+
+	When the controlled body is terminated by a DBError, the settings 
+	are not reset.
+
+	If you set isLocal=False, this works for autocommitted connections,
+	too (and in that case the reset of the run-time parameters will
+	be attempted even when DBErrors occurred.
+
+	Since it's so frequent, you can pass timeout to give a statement_timeout
+	in seconds.
+	"""
+	cursor = conn.cursor()
+
+	if timeout is not None:
+		runtimeVals["statement_timeout"] = int(float(timeout)*1000)
+
+	oldVals = {}
+	for parName, parVal in runtimeVals.iteritems():
+		parVal = str(parVal)
+		cursor.execute("SELECT current_setting(%(parName)s)", locals())
+		oldVals[parName] = list(cursor)[0][0]
+		cursor.execute(
+			"SELECT set_config(%(parName)s, %(parVal)s, %(isLocal)s)", locals())
+	cursor.close()
+
+	def resetAll(isLocal):
+		cursor = conn.cursor()
+		for parName, parVal in oldVals.iteritems():
+			cursor.execute(
+				"SELECT set_config(%(parName)s, %(parVal)s, %(isLocal)s)", 
+				locals())
+		cursor.close()
+		
+	try:
+		yield
+	except DBError: # the connection probably is dirty, do not try to reset
+		if not isLocal:
+			resetAll(isLocal)
+		raise
+	except:
+		resetAll(isLocal)
+		raise
+	resetAll(isLocal)
+
+
 def _initPsycopg(conn):
 # collect all DB setup in this function.  XXX TODO: in particular, the
 # Box mess from coords (if we still want it)
@@ -764,10 +816,11 @@ class CustomConnectionPool(psycopg2.pool.ThreadedConnectionPool):
 	For now, all connections managed here are autocommitted;
 	there's code that does this in _connect.
 	"""
-	def __init__(self, minconn, maxconn, profileName):
+	def __init__(self, minconn, maxconn, profileName, autocommitted=True):
 # make sure no additional arguments come in, since we don't
 # support them.
 		self.profileName = profileName
+		self.autocommitted = autocommitted
 		psycopg2.pool.ThreadedConnectionPool.__init__(
 			self, minconn, maxconn)
 
@@ -780,13 +833,15 @@ class CustomConnectionPool(psycopg2.pool.ThreadedConnectionPool):
 		"""
 		conn = getDBConnection(self.profileName)
 
-		try:
-			conn.set_session(
-				isolation_level=psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT,
-				readonly=True)
-		except AttributeError:
-			# fallback for old psycopg2
-			conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+		if self.autocommitted:
+			try:
+				conn.set_session(
+					isolation_level=psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT,
+					readonly=True)
+			except AttributeError:
+				# fallback for old psycopg2
+				conn.set_isolation_level(
+					psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
 		if key is not None:
 			self._used[key] = conn
@@ -796,7 +851,8 @@ class CustomConnectionPool(psycopg2.pool.ThreadedConnectionPool):
 		return conn
 
 
-def _makeConnectionManager(profileName, minConn=3, maxConn=20):
+def _makeConnectionManager(profileName, minConn=3, maxConn=20,
+		autocommitted=True):
 	"""returns a context manager for a connection pool for profileName
 	connections.
 	"""
@@ -809,12 +865,15 @@ def _makeConnectionManager(profileName, minConn=3, maxConn=20):
 		# at that point.
 		if not pool:
 			with poolLock:
-				pool.append(CustomConnectionPool(minConn, maxConn, profileName))
+				pool.append(CustomConnectionPool(minConn, maxConn, profileName,
+					autocommitted))
 
 		conn = pool[0].getconn()
 		try:
 			yield conn
 		except Exception, ex:
+			if not autocommitted:
+				conn.rollback()
 			if isinstance(ex, OperationalError) and conn.fileno()==-1: 
 				# this is probably a db server restart.  Invalidate all connections
 				# immediately.
@@ -833,6 +892,12 @@ def _makeConnectionManager(profileName, minConn=3, maxConn=20):
 				pass
 			raise
 
+		else:
+			# no exception raised, commit if not autocommitted
+			if not autocommitted:
+				conn.commit()
+
+
 		try:
 			pool[0].putconn(conn, close=conn.closed)
 		except InterfaceError:
@@ -844,3 +909,9 @@ def _makeConnectionManager(profileName, minConn=3, maxConn=20):
 
 getTableConn = _makeConnectionManager("trustedquery")
 getAdminConn = _makeConnectionManager("admin")
+
+getWritableTableConn = _makeConnectionManager("trustedquery", 
+	autocommitted=False)
+getWritableAdminConn = _makeConnectionManager("admin", 
+	autocommitted=False)
+	

@@ -54,7 +54,7 @@ def runTrialTests():
 if __name__=="__main__":
 	unittestSuite = testresources.TestLoader().loadTestsFromNames(
 		unittestModules)
-	runner = unittest.TextTestRunner()
+	runner = unittest.TextTestRunner(verbosity=1)
  	runner.run(unittest.TestSuite([unittestSuite, getDoctests()]))
 	print "\nTrial-based tests:"
 	runTrialTests()

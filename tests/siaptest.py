@@ -1,7 +1,5 @@
 """
 Some plausibility testing for our siap infrastructure.
-
-Needs connectivity to the db defined in the test profile.
 """
 
 import unittest
@@ -236,7 +234,7 @@ class _SIAPTestTable(testhelpers.TestResource):
 				((162, 45), (2.1, 1.1))]])
 
 	def clean(self, data):
-		data.dropTables()
+		data.dropTables(rsc.parseNonValidating)
 		self.conn.commit()
 
 
@@ -343,7 +341,7 @@ class ImportTest(testhelpers.VerboseTest):
 				n in ("centerAlpha", "centerDelta")], ""))[0]
 			self.assertEqual(int(res["centerDelta"]), 67)
 		finally:
-			data.dropTables()
+			data.dropTables(rsc.parseNonValidating)
 			self.conn.commit()
 	
 	def testRaisingOnNull(self):
@@ -363,7 +361,7 @@ class ImportTest(testhelpers.VerboseTest):
 			self.assertEqual(res, 
 				[{u'accref': u'uu'}, {u'accref': u'image(34, 67)(0.25, 0.5)'}])
 		finally:
-			data.dropTables()
+			data.dropTables(rsc.parseNonValidating)
 			self.conn.commit()
 
 

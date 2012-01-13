@@ -515,8 +515,12 @@ class ServiceBasedPage(ResourceBasedPage):
 
 		try:
 			if request.args:
-				log.msg("# Processing starts: %s %s"%(request.path, 
-					_formatRequestArgs(request.args)))
+				# even if there are args, don't log them if only boring ones
+				# were given
+				fmtArgs = _formatRequestArgs(request.args)
+				if fmtArgs!='{}':
+					log.msg("# Processing starts: %s %s"%(request.path, 
+						fmtArgs))
 		except: # don't fail because of logging problems
 			base.ui.notifyError("Formatting of request args failed.")
 

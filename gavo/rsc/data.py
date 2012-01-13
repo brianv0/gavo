@@ -167,13 +167,13 @@ class Data(base.MetaMixin, common.ParamMixin):
 			# make, and makes and tables should have different runners...
 			controlledTables[make.table.id]._runScripts = make.getRunner()
 		data = cls(dd, controlledTables, parseOptions)
-		data.dropTables()
+		data.dropTables(parseOptions)
 
-	def dropTables(self):
+	def dropTables(self, parseOptions):
 		for t in self:
-			if t.tableDef.system and not self.parseOptions.systemImport:
-				continue
 			if t.tableDef.onDisk:
+				if not parseOptions.systemImport and t.tableDef.system:
+					continue
 				t.drop()
 
 	def updateMeta(self, updateIndices=False):

@@ -98,44 +98,50 @@ class SyncMetaTest(TAPRenderTest):
 class SyncQueryTest(TAPRenderTest):
 	"""tests for querying sync queries.
 	"""
+	aVOTable = os.path.join(base.getConfig("inputsdir"), 
+		"data/vizier_votable.vot")
+
 	def testNoLangRejected(self):
 		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery", 
-				"QUERY": 'SELECT alpha FROM test.adql WHERE alpha<3'},
-			["<INFO", "Required parameter 'LANG' missing.</INFO>"])
+				"QUERY": 'SELECT alpha FROM test.adql WHERE alpha<3'
+			}, [
+				"<INFO", "Required parameter 'lang' missing.</INFO>"])
 
 	def testBadLangRejected(self):
 		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery",
 				"LANG": "Furz",
-				"QUERY": 'SELECT alpha FROM test.adql WHERE alpha<3'},
-			['<INFO name="QUERY_STATUS" value="ERROR">This service does'
+				"QUERY": 'SELECT alpha FROM test.adql WHERE alpha<3'
+			}, [
+				'<INFO name="QUERY_STATUS" value="ERROR">This service does'
 				' not support the query language Furz'])
 
 	def testSimpleQuery(self):
 		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery",
 				"LANG": "ADQL",
-				"QUERY": 'SELECT alpha FROM test.adql WHERE alpha<2'}, [
+				"QUERY": 'SELECT alpha FROM test.adql WHERE alpha<2'
+			}, [
 				'<FIELD datatype="float" ucd="pos.eq.ra;meta.main"'
-				' ID="alpha" unit="deg" name="alpha">'
-				])
+				' ID="alpha" unit="deg" name="alpha">'])
 
 	def testOverflow(self):
 		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery",
 				"LANG": "ADQL",
 				"MAXREC": "1",
-				"QUERY": 'SELECT alpha FROM test.adql'}, [
-					'<INFO name="QUERY_STATUS" value="OVERFLOW"',
-				])
+				"QUERY": 'SELECT alpha FROM test.adql'
+			}, [
+				'<INFO name="QUERY_STATUS" value="OVERFLOW"', ])
 
 	def testBadFormat(self):
 		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery",
 				"LANG": "ADQL",
 				"QUERY": 'SELECT alpha FROM test.adql WHERE alpha<2',
-				"FORMAT": 'xls'}, [
+				"FORMAT": 'xls'
+			}, [
 				'<INFO name="QUERY_STATUS" value="ERROR">Unsupported format \'xls\'',
 				'Legal format codes include'])
 
@@ -144,33 +150,36 @@ class SyncQueryTest(TAPRenderTest):
 				"REQUEST": "doQuery",
 				"LANG": "ADQL",
 				"QUERY": 'SELECT alpha, delta FROM test.adql WHERE alpha<3',
-				"FORMAT": "votable/td"},
-			['<DATA><TABLEDATA><TR><TD>2.0</TD><TD>14.0</TD>'])
+				"FORMAT": "votable/td"
+			}, [
+				'<DATA><TABLEDATA><TR><TD>2.0</TD><TD>14.0</TD>'])
 
 	def testCSV(self):
 		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery",
 				"LANG": "ADQL",
 				"QUERY": 'SELECT alpha,delta FROM test.adql WHERE alpha<3',
-				"FORMAT": "text/csv"},
-			['2.0,14.0'])
+				"FORMAT": "text/csv"
+			}, [
+				'2.0,14.0'])
 
 	def testTSV(self):
 		return self.assertGETHasStrings("/sync", {
-			"REQUEST": "doQuery",
-			"LANG": "ADQL",
-			"QUERY": 'SELECT alpha, delta FROM test.adql WHERE alpha<3',
-			"FORMAT": "TSV"},
-			['2.0\t14.0'])
+				"REQUEST": "doQuery",
+				"LANG": "ADQL",
+				"QUERY": 'SELECT alpha, delta FROM test.adql WHERE alpha<3',
+				"FORMAT": "TSV"
+			}, [
+				'2.0\t14.0'])
 
 	def testBadUploadSyntax(self):
 		return self.assertPOSTHasStrings("/sync", {
-			"REQUEST": "doQuery",
-			"UPLOAD": "bar",
-			"LANG": "ADQL",
-			"QUERY": 'SELECT * FROM test.adql'}, [
-			"only allow regular SQL identifiers"
-			])
+				"REQUEST": "doQuery",
+				"UPLOAD": "bar",
+				"LANG": "ADQL",
+				"QUERY": 'SELECT * FROM test.adql'
+			}, [
+				"only allow regular SQL identifiers"])
 
 	def testBadUploadSyntax2(self):
 		return self.assertPOSTHasStrings("/sync", {
@@ -183,13 +192,13 @@ class SyncQueryTest(TAPRenderTest):
 
 	def testNonExistingUpload(self):
 		return self.assertPOSTHasStrings("/sync", {
-			"REQUEST": "doQuery",
-			"UPLOAD": "bar,http://127.0.0.1:65000",
-			"LANG": "ADQL",
-			"QUERY": 'SELECT * FROM test.adql'}, [
-			"'http://127.0.0.1:65000' cannot be retrieved</INFO",
-			"Connection refused"
-			])
+				"REQUEST": "doQuery",
+				"UPLOAD": "bar,http://127.0.0.1:65000",
+				"LANG": "ADQL",
+				"QUERY": 'SELECT * FROM test.adql'
+			}, [
+				"'http://127.0.0.1:65000' cannot be retrieved</INFO",
+				"Connection refused"])
 
 	def testUploadCannotReadLocalFile(self):
 		return self.assertPOSTHasStrings("/sync", {
@@ -209,6 +218,29 @@ class SyncQueryTest(TAPRenderTest):
 			"QUERY": 'SELECT * FROM test.adql'}, [
 			'<INFO name="QUERY_STATUS" value="ERROR">Syntax error in UPLOAD parameter'
 			])
+
+	def testInlineUploadFromArgsWorks(self):
+		return self.assertPOSTHasStrings("/sync", {
+				"REQUEST": "doQuery",
+				"UPLOAD": "bar,param:HoNk",
+				"LANG": "ADQL",
+				"QUERY": 'SELECT * FROM tap_upload.bar',
+				"HoNk": open(self.aVOTable).read(),
+			}, [
+				'xmlns="http://www.ivoa.net/xml/VOTable/',
+				'ucd="pos.eq.ra;meta.main"',
+				'encoding="base64"'])
+
+	def testMissingInlineParameter(self):
+		return self.assertPOSTHasStrings("/sync", {
+				"REQUEST": "doQuery",
+				"UPLOAD": "bar,param:HoNk",
+				"LANG": "ADQL",
+				"QUERY": 'SELECT top 1 * FROM tap_upload.bar',
+				"MoNk": open(self.aVOTable).read(),
+			}, [
+				'<INFO name="QUERY_STATUS" value="ERROR">No parameter for'
+				' upload table bar'])
 
 
 class SimpleAsyncTest(TAPRenderTest):
@@ -300,4 +332,3 @@ class SimpleAsyncTest(TAPRenderTest):
 			"MAXREC": "kaputt",
 			"QUERY": "SELECT ra FROM test.adql WHERE ra<3"}
 		).addCallback(checkPosted)
-

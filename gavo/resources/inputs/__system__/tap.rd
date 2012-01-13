@@ -50,6 +50,9 @@
 	with, this will probably not be fixed.]]>
 	</meta>
 
+
+<!--**************************** the TAP schema *********************-->
+
 	<table id="schemas" onDisk="True" system="True"
 			forceUnique="True" dupePolicy="drop" primary="schema_name"
 			readRoles="defaults,untrusted" adql="True">
@@ -347,6 +350,21 @@
 		<make table="examples"/>
 	</data>
 
+
+<!--********************* TAP UWS job table ******************-->
+
+<table id="tapjobs" system="True">
+	<FEED source="//uws#uwsfields"/>
+	<column name="pid" type="integer" 
+		description="A unix pid to kill to make the job stop"/>
+</table>
+
+<data id="createJobTable">
+	<make table="tapjobs"/>
+</data>
+
+
+<!--********************* The TAP Service *********************-->
 	<nullCore id="null"/>
 
 	<service id="run" core="null" allowed="tap">

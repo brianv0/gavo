@@ -136,5 +136,14 @@ class GrammarMacroTest(testhelpers.VerboseTest):
 		self._testOne(r"\inputRelativePath", "/etc/passwd", ValueError())
 
 
+class RDMacroTest(testhelpers.VerboseTest):
+	def testInternallink(self):
+		rd = base.parseFromString(rscdesc.RD, r"""<resource schema="test">
+			<meta name="testing" format="rst">Go to 
+			\internallink{h/e/l/l}</meta></resource>""")
+		self.failUnless("</a>" in 
+			rd.getMeta("testing").getContent(targetFormat="html", macroPackage=rd))
+	
+
 if __name__=="__main__":
-	testhelpers.main(GrammarMacroTest)
+	testhelpers.main(RDMacroTest)

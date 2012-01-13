@@ -37,7 +37,7 @@ class MemoryPrimaryKeyTest(testhelpers.VerboseTest):
 		td = base.parseFromString(rscdef.TableDef, '<table><column name="x" type='
 			'"text"/><column name="y" type="text"/><primary>x,y</primary></table>')
 		t = rsc.TableForDef(td, rows=
-			[{"x": "aba", "y": "bab"}, {"x": "xyx", "y": "yxy"}])
+			[{"x": "aba", "y": "bab"}, {"x": "xyx", "y": "yxy"}], create=True)
 		self.assertEqual(t.getRow("aba", "bab"), {"x": "aba", "y": "bab"})
 		self.assertRaises(KeyError, t.getRow, "bab", "aba")
 		self.assertRaises(KeyError, t.getRow, "xyx")
@@ -58,7 +58,7 @@ class UniqueForcedTest(tresc.TestWithDBConnection):
 			'"text"/><column name="y" type="text"/><primary>x</primary></table>')
 		t = rsc.TableForDef(td, nometa=True, rows=
 			[{"x": "aba", "y": "bab"}, {"x": "xyx", "y": "yxy"}],
-			connection=self.conn)
+			connection=self.conn, create=True)
 		self.assertEqual(t.getRow("aba"), {"x": "aba", "y": "bab"})
 		t.addRow({"x": "aba", "y": "bab"})
 		self.assertEqual(t.getRow("aba"), {"x": "aba", "y": "bab"})
@@ -68,10 +68,10 @@ class UniqueForcedTest(tresc.TestWithDBConnection):
 			'"text"/><column name="y" type="text"/><primary>x</primary></table>')
 		self.assertRaises(base.ValidationError, rsc.TableForDef, td, nometa=True,
 			rows=[{"x": "aba", "y": "bab"}, {"x": "aba", "y": "yxy"}],
-			connection=self.conn)
+			connection=self.conn, create=True)
 		t = rsc.TableForDef(td, rows=
 			[{"x": "aba", "y": "bab"}, {"x": "xyx", "y": "yxy"}],
-			connection=self.conn)
+			connection=self.conn, create=True)
 		self.assertRaisesWithMsg(base.ValidationError, 
 			"Differing rows for primary key ('aba',); bax vs. bab",
 			t.addRow, ({"x": "aba", "y": "bax"},))
@@ -82,7 +82,7 @@ class UniqueForcedTest(tresc.TestWithDBConnection):
 			'<primary>x</primary></table>')
 		t = rsc.TableForDef(td, nometa=True, rows=
 			[{"x": "aba", "y": "bab"}, {"x": "xyx", "y": "yxy"}],
-			connection=self.conn)
+			connection=self.conn, create=True)
 		self.assertEqual(t.getRow("aba"), {"x": "aba", "y": "bab"})
 		t.addRow({"x": "aba", "y": "bax"})
 		self.assertEqual(t.getRow("aba"), {"x": "aba", "y": "bab"})
@@ -93,7 +93,7 @@ class UniqueForcedTest(tresc.TestWithDBConnection):
 			'"text"/><column name="y" type="text"/><primary>x</primary></table>')
 		t = rsc.TableForDef(td, nometa=True, rows=
 			[{"x": "aba", "y": "bab"}, {"x": "xyx", "y": "yxy"}],
-			connection=self.conn)
+			connection=self.conn, create=True)
 		self.assertEqual(t.getRow("aba"), {"x": "aba", "y": "bab"})
 		t.addRow({"x": "aba", "y": "bax"})
 		self.assertEqual(t.getRow("aba"), {"x": "aba", "y": "bax"})
@@ -105,7 +105,7 @@ class UniqueForcedTest(tresc.TestWithDBConnection):
 			'<primary>x,n</primary></table>')
 		t = rsc.TableForDef(td, nometa=True, rows=
 			[{"x": "aba", "n": 1, "y": "bab"}, {"x": "aba", "n":2, "y": "yxy"}],
-			connection=self.conn)
+			connection=self.conn, create=True)
 		t.addRow({"x": "aba", "n": 3, "y": "bab"})
 		t.addRow({"x": "aba", "n": 1, "y": "aba"})
 		self.assertEqual(t.getRow("aba", 1), {"x": "aba", "n": 1, "y": "aba"})
@@ -115,7 +115,7 @@ class UniqueForcedTest(tresc.TestWithDBConnection):
 			'"text"/><column name="y" type="text"/><primary>x</primary></table>')
 		t = rsc.TableForDef(td, nometa=True, rows=
 			[{"x": "aba", "y": None}, {"x": "xyx", "y": None}],
-			connection=self.conn)
+			connection=self.conn, create=True)
 		self.assertEqual(t.getRow("aba"), {"x": "aba", "y": None})
 		t.addRow({"x": "aba", "y": None})
 		self.assertEqual(t.getRow("aba"), {"x": "aba", "y": None})
@@ -157,7 +157,7 @@ class DBUniqueForcedTest(UniqueForcedTest):
 			'"text"/><column name="y" type="text"/><primary>x</primary></table>')
 		t = rsc.TableForDef(td, nometa=True, rows=
 			[{"x": "aba", "y": "bab"}, {"x": "xyx", "y": "yxy"}],
-			connection=self.conn)
+			connection=self.conn, create=True)
 		self.assertRaises(base.ValidationError, 
 			t.addRow, {"x": "aba", "y": "bax"},)
 
@@ -258,7 +258,7 @@ class FixupTest(tresc.TestWithDBConnection):
 			'<table id="test" onDisk="True" temporary="True">'
 			'<column name="ab" type="text" fixup="\'ab\'+___"/></table>')
 		t = rsc.TableForDef(td, rows=[{"ab": "xy"}, {"ab": "zz"}],
-			connection=self.conn)
+			connection=self.conn, create=True)
 		self.assertEqual(
 			list(t.iterQuery(svcs.OutputTableDef.fromTableDef(td, None), "")),
 			[{u'ab': u'abxy'}, {u'ab': u'abzz'}])
@@ -274,7 +274,7 @@ class FixupTest(tresc.TestWithDBConnection):
 		t = rsc.TableForDef(td, rows=[
 			{"ab": datetime.date(2002, 2, 2), "x": 14, 't': "ab"}, 
 			{"ab": datetime.date(2002, 2, 3), "x": 15, 't': None}],
-			connection=self.conn)
+			connection=self.conn, create=True)
 		self.assertEqual(
 			list(t.iterQuery(svcs.OutputTableDef.fromTableDef(td, None), "")), [
 				{u'x': 12, u'ab': datetime.date(2002, 2, 3),

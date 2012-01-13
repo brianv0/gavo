@@ -54,7 +54,7 @@ class _ADQLTestTable(testhelpers.TestResource):
 		return ds
 	
 	def clean(self, ds):
-		ds.dropTables()
+		ds.dropTables(rsc.parseNonValidating)
 		ds.commitAll().closeAll()
 adqlTestTable = _ADQLTestTable()
 
@@ -1495,6 +1495,17 @@ class PQMorphTest(unittest.TestCase):
 		self._testMorph(
 			"select * from foo where 1=INTERSECTS(REGION('NOT (circle  1 2 3)'), x)",
 			"SELECT * FROM foo WHERE  (NOT (scircle '< (0.0174532925, 0.0349065850), 0.0523598776 >' && (x)))")
+
+	def testIsNotNull(self):
+		self._testMorph(
+			"select * from foo where x is not null",
+			"SELECT * FROM foo WHERE x IS NOT NULL")
+
+	def testIsNull(self):
+		self._testMorph(
+			"select * from foo where x is null",
+			"SELECT * FROM foo WHERE x IS NULL")
+
 
 
 class PGSMorphTest(testhelpers.VerboseTest):

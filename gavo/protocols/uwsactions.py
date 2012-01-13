@@ -8,11 +8,8 @@ However, these are caught in JobResource._redirectAsNecessary and appended
 to the base URL auf the TAP service, so you must only give URIs relative
 to the TAP service's root URL.
 
-All this probably is only useful for web.taprender.
-
-NOTE: The requests used here are not the normal twisted requests but instead
-requests furnished with files and scalars attributes by 
-taprender.reparseRequestArgs.
+This UWS system should adapt to concrete UWSes; the UWS in use is passed
+into the top-level functions (doJobAction , getJobList)
 """
 
 from __future__ import with_statement
@@ -40,6 +37,31 @@ stanxml.registerPrefix("uws", UWSNamespace,
 	stanxml.schemaURL("uws-1.0.xsd"))
 stanxml.registerPrefix("xlink", XlinkNamespace,
 	stanxml.schemaURL("xlink.xsd"))
+
+
+# Sadly, TAP protocol keys need to be case insensitive (spec, 2.3.10)
+# The code here assumes all keys to be in lowercase, and this function
+# forces this.  You should call it as soon as possible when processing
+# requests.
+#
+# Note that non-protocol keys are not case-normalized, since there's always
+# the hope for sane protocols that don't have crazy case-folding rules.
+# UWS parameters are lower-cased, too, right now, though (in 
+# set/getSerializedPar, by a different mechanism).
+#
+# XXX TODO: there are TAP keys in here, too.  Come up with a way
+# to have worker systems say which keys they want case insensitive
+_CASE_INSENSITIVE_KEYS = set(["request", "version", "lang", "query", 
+	"format", "maxrec", "runid", "upload", "action", "phase",
+	"executionduration", "destruction",])
+
+def lowercaseProtocolArgs(args):
+	for key in args:
+		if key.lower()==key:
+			continue
+		if key.lower() in _CASE_INSENSITIVE_KEYS:
+			content = args.pop(key)
+			args[key.lower()] = content
 
 
 class UWS(object):
@@ -118,16 +140,12 @@ def getJobURL(jobId):
 		jobId)
 
 
-def getJobList():
-	jobstable = uws.getROJobsTable()
-	fields = jobstable.tableDef.columns
+def getJobList(workerSystem):
 	result = UWS.jobs()
-	for row in jobstable.iterQuery([
-			fields.getColumnByName("jobId"),
-			fields.getColumnByName("phase"),], ""):
+	for jobId, phase in workerSystem.getIdsAndPhases():
 		result[
-			UWS.jobref(id=row["jobId"], href=getJobURL(row["jobId"]))[
-				UWS.phase[row["phase"]]]]
+			UWS.jobref(id=jobId, href=getJobURL(jobId))[
+				UWS.phase[phase]]]
 	return stanxml.xmlrender(result, "<?xml-stylesheet "
 		"href='/static/xsl/uws-joblist-to-html.xsl' type='text/xsl'?>")
 
@@ -135,9 +153,8 @@ def getJobList():
 def getErrorSummary(job):
 # all our errors are fatal, and for now .../error yields the same thing
 # as we include here, so we hardcode the attributes.
-	try:
-			errDesc = job.getError()
-	except ValueError:
+	errDesc = job.error
+	if not errDesc:
 		return None
 	msg = errDesc["msg"]
 	if errDesc["hint"]:
@@ -150,7 +167,7 @@ def getParametersElement(job):
 	"""returns a UWS.parameters element for job.
 	"""
 	res = UWS.parameters()
-	for key, value in job.iterParameters():
+	for key, value in job.iterSerializedPars():
 		if isinstance(value, uws.ParameterRef):
 			res[UWS.parameter(id=key, byReference=True)[value.url]]
 		else:
@@ -241,12 +258,9 @@ class ErrorAction(JobAction):
 	mime = "text/plain"
 
 	def doGET(self, job, request):
-		try:
-			excInfo = job.getError()
-			return ErrorResource(excInfo, httpStatus=200)
-		except ValueError:  # no error posted so far
-			pass
-		return ""
+		if job.error is None:
+			return ""
+		return ErrorResource(job.error, httpStatus=200)
 
 	doPOST = doGET
 _JobActions.addAction(ErrorAction)
@@ -279,8 +293,8 @@ class ParameterAction(JobAction):
 	
 	def doPOST(self, job, request):
 		with job.getWritable() as wjob:
-			for key, value in request.scalars.iteritems():
-				wjob.addParameter(key, value)
+			for key in request.args:
+				wjob.setSerializedPar(key, utils.getfirst(request.args, key, None))
 		raise svcs.WebRedirect("async/"+job.jobId)
 
 _JobActions.addAction(ParameterAction)
@@ -291,19 +305,17 @@ class PhaseAction(JobAction):
 	timeout = 10  # this is here for testing
 
 	def doPOST(self, job, request):
-		newPhase = request.scalars.get("PHASE", None)
-		with job.getWritable(self.timeout) as wjob:
-			if newPhase=="RUN":
-				wjob.changeToPhase(uws.QUEUED)
-			elif newPhase=="ABORT":
-				wjob.changeToPhase(uws.ABORTED)
-			else:
-				raise base.ValidationError("Bad phase: %s"%newPhase, "phase")
-		uws.getActions(job.actions).checkProcessQueue()
+		newPhase = utils.getfirst(request.args, "phase", None)
+		if newPhase=="RUN":
+			job.uws.changeToPhase(job.jobId, uws.QUEUED, timeout=self.timeout)
+		elif newPhase=="ABORT":
+			job.uws.changeToPhase(job.jobId, uws.ABORTED, timeout=self.timeout)
+		else:
+			raise base.ValidationError("Bad phase: %s"%newPhase, "phase")
 		raise svcs.WebRedirect("async/"+job.jobId)
 	
 	def doGET(self, job, request):
-		uws.getActions(job.actions).checkProcessQueue()
+		job.uws.checkProcessQueue()
 		request.setHeader("content-type", "text/plain")
 		return job.phase
 _JobActions.addAction(PhaseAction)
@@ -315,7 +327,7 @@ class _SettableAction(JobAction):
 	mime = "text/plain"
 
 	def doPOST(self, job, request):
-		raw = request.scalars.get(self.name.upper(), None)
+		raw = utils.getfirst(request.args, self.name.lower(), None)
 		if raw is None:  # with no parameter, fall back to GET
 			return self.doGET(job, request)
 		try:
@@ -324,7 +336,8 @@ class _SettableAction(JobAction):
 			raise base.ui.logOldExc(uws.UWSError("Invalid %s value: %s."%(
 				self.name.upper(), repr(raw)), job.jobId))
 		with job.getWritable() as wjob:
-			setattr(wjob, self.attName, val)
+			args = {self.attName: val}
+			wjob.change(**args)
 		raise svcs.WebRedirect("async/"+job.jobId)
 
 	def doGET(self, job, request):
@@ -332,7 +345,6 @@ class _SettableAction(JobAction):
 		return self.serializeValue(getattr(job, self.attName))
 
 
-# XXX TODO: These should probably simply go through uwsjob.addParameter
 class ExecDAction(_SettableAction):
 	name = "executionduration"
 	attName = 'executionDuration'
@@ -431,17 +443,15 @@ class RootAction(JobAction):
 	"""
 	name = ""
 	def doDELETE(self, job, request):
-		with job.getWritable() as wjob:
-			wjob.delete()
+		job.uws.destroy(job.jobId)
 		raise svcs.WebRedirect("async")
 
-	def doPOST(self, job, request):
+	def doPOST(self, wjob, request):
 		# (Extension to let web browser delete jobs)
-		with job.getWritable() as wjob:
-			if utils.getfirst(request.args, "ACTION")=="DELETE":
-				self.doDELETE(wjob, request)
-			else:
-				raise svcs.BadMethod("POST")
+		if utils.getfirst(request.args, "action", None)=="DELETE":
+			self.doDELETE(wjob, request)
+		else:
+			raise svcs.BadMethod("POST")
 
 	def doGET(self, job, request):
 		tree = UWS.makeRoot(UWS.job[
@@ -463,7 +473,9 @@ class RootAction(JobAction):
 _JobActions.addAction(RootAction)
 
 
-def doJobAction(request, segments):
+
+
+def doJobAction(workerSystem, request, segments):
 	"""handles the async UI of UWS.
 
 	Depending on method and segments, it will return various XML strings
@@ -479,4 +491,4 @@ def doJobAction(request, segments):
 # XXX TODO: We need some parametrization of what UWSJob subclass gets
 # used here and in subclasses
 	return _JobActions.dispatch(action, 
-		tap.ROTAPJob.makeFromId(jobId), request, segments)
+		workerSystem.getJob(jobId), request, segments)

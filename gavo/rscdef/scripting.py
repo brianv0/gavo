@@ -116,6 +116,27 @@ class SQLScriptRunner(ScriptRunner):
 			dbTable.query(statement.replace("%", "%%"))
 
 
+class ACSQLScriptRunner(SQLScriptRunner):
+	"""A runner for "autocommitted" SQL scripts.
+
+	These are like SQLScriptRunners, except that for every statement,
+	a savepoint is created, and for SQL errors, the savepoint is restored
+	(in other words ACSQL scripts turn SQL errors into warnings).
+	"""
+	def run(self, dbTable, **kwargs):
+		for statement in self.statements:
+			try:
+				dbTable.query("SAVEPOINT beforeStatement")
+				try:
+					dbTable.query(statement.replace("%", "%%"))
+				except sqlsupport.DBError, msg:
+					dbTable.query("ROLLBACK TO SAVEPOINT beforeStatement")
+					base.ui.notifyError("Ignored error during script execution: %s"%
+						msg)
+			finally:
+				dbTable.query("RELEASE SAVEPOINT beforeStatement")
+
+
 class PythonScriptRunner(ScriptRunner):
 	"""A runner for python scripts.
 
@@ -140,12 +161,22 @@ class PythonScriptRunner(ScriptRunner):
 		self.scriptFun(dbTable, **kwargs)
 
 
+RUNNER_CLASSES = {
+	"SQL": SQLScriptRunner,
+	"python": PythonScriptRunner,
+	"AC_SQL": ACSQLScriptRunner,
+}
+
 class Script(base.Structure, base.RestrictionMixin):
 	"""A script, i.e., some executable item within a resource descriptor.
 
 	The content of scripts is given by their type -- usually, they are
 	either python scripts or SQL with special rules for breaking the
 	script into individual statements (which are basically like python's).
+
+	The special language AC_SQL is like SQL, but execution errors are
+	ignored.  This is not what you want for most data RDs (it's intended
+	for housekeeping scripts).
 
 	See `Scripting`_.
 	"""
@@ -154,7 +185,7 @@ class Script(base.Structure, base.RestrictionMixin):
 
 	_lang = base.EnumeratedUnicodeAttribute("lang", default=base.Undefined,
 		description="Language of the script.", 
-		validValues=["SQL", "python"], copyable=True)
+		validValues=["SQL", "python", "AC_SQL"], copyable=True)
 	_type = base.EnumeratedUnicodeAttribute("type", default=base.Undefined,
 		description="Point of time at which script is to run.", 
 		validValues=["preImport", "newSource", "preIndex", "postCreation",
@@ -172,6 +203,7 @@ class Script(base.Structure, base.RestrictionMixin):
 		"""returns the content with all macros expanded.
 		"""
 		return self.parent.getExpander().expand(self.content_)
+
 
 
 class ScriptingMixin(object):
@@ -193,10 +225,7 @@ class ScriptingMixin(object):
 	def getRunner(self):
 		runnersByPhase = {}
 		for rawScript in self.scripts:
-			if rawScript.lang=="SQL":
-				runner = SQLScriptRunner(rawScript)
-			else:
-				runner = PythonScriptRunner(rawScript)
+			runner = RUNNER_CLASSES[rawScript.lang](rawScript)
 			runnersByPhase.setdefault(rawScript.type, []).append(runner)
 			
 		def runScripts(table, phase, **kwargs):

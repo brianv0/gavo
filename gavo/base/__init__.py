@@ -20,7 +20,7 @@ from gavo.base.config import(
 	get as getConfig, set as setConfig,
 	setDBProfile, getDBProfile, getDBProfileByName,
 	makeSitePath, makeAbsoluteURL, getBinaryName,
-	openDistFile)
+	openDistFile, getGroupId)
 
 from gavo.base.coords import Box
 
@@ -54,7 +54,9 @@ from gavo.base.parsecontext import (
 
 from gavo.base.sqlsupport import (getDBConnection, getDefaultDBConnection,
 	DBError, QueryCanceledError, IntegrityError,
-	SimpleQuerier, AdhocQuerier, getTableConn, getAdminConn)
+	SimpleQuerier, AdhocQuerier, 
+	connectionConfiguration,
+	getTableConn, getAdminConn, getWritableTableConn, getWritableAdminConn)
 
 from gavo.base.structure import (Structure, ParseableStructure, 
 	DataContent, makeStruct, RestrictionMixin)

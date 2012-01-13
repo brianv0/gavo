@@ -9,7 +9,9 @@ Formatting, text manipulation, string constants, and such.
 import datetime
 import math
 import os
+import random
 import re
+import string
 import time
 from email import utils as emailutils
 
@@ -507,6 +509,14 @@ def ensureOneSlash(s):
 	"""
 	return s.rstrip("/")+"/"
 
+
+_RANDOM_STRING_OK_CHARS = string.letters+string.digits+"_.,"
+
+def getRandomString(length):
+	"""returns a random string of harmless printable characters.
+	"""
+	return "".join(
+		random.choice(_RANDOM_STRING_OK_CHARS) for c in range(length))
 
 def _test():
 	import doctest, texttricks

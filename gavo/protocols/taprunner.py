@@ -63,26 +63,26 @@ def _parseTAPParameters(jobId, parameters):
 	rd = base.caches.getRD("__system__/tap")
 	version = rd.getProperty("TAP_VERSION")
 	try:
-		if parameters.get("VERSION", version)!=version:
+		if parameters.get("version", version)!=version:
 			raise uws.UWSError("Version mismatch.  This service only supports"
 				" TAP version %s"%version, jobId)
-		if parameters["REQUEST"]!="doQuery":
+		if parameters["request"]!="doQuery":
 			raise uws.UWSError("This service only supports REQUEST=doQuery", jobId)
-		if parameters["LANG"] not in SUPPORTED_LANGS:
+		if parameters["lang"] not in SUPPORTED_LANGS:
 			raise uws.UWSError("This service only supports LANG=ADQL", jobId)
-		query = parameters["QUERY"]
+		query = parameters["query"]
 	except KeyError, key:
 		raise base.ui.logOldExc(base.ValidationError(
 			"Required parameter %s missing."%key, key))
 
-	format = normalizeTAPFormat(parameters.get("FORMAT", "votable"))
+	format = normalizeTAPFormat(parameters.get("format", "votable"))
 
 	try:
 		maxrec = min(base.getConfig("async", "hardMAXREC"),
-			int(parameters["MAXREC"]))
+			int(parameters["maxrec"]))
 	except ValueError:
 		raise base.ui.logOldError(
-			uws.UWSError("Invalid MAXREC literal '%s'."%parameters["MAXREC"]))
+			uws.UWSError("Invalid MAXREC literal '%s'."%parameters["maxrec"]))
 	except KeyError:
 		maxrec = base.getConfig("async", "defaultMAXREC")
 	return query, format, maxrec
@@ -187,11 +187,11 @@ def _noteWorkerPID(conn):
 
 def _hangIfMagic(jobId, parameters, timeout):
 # Test intrumentation. There are more effective ways to DoS me.
-	if parameters.get("QUERY")=="JUST HANG around":
+	if parameters.get("query")=="JUST HANG around":
 		time.sleep(timeout)
-		with tap.TAPJob.makeFromId(jobId) as job:
-			job.phase = uws.COMPLETED
-			job.endTime = datetime.datetime.utcnow()
+		with tap.workerSystem.changeableJob(jobId) as job:
+			job.change(phase=uws.COMPLETED,
+				endTime=datetime.datetime.utcnow())
 		sys.exit()
 
 
@@ -222,16 +222,16 @@ def _runTAPJob(parameters, jobId, queryProfile, timeout):
 	except: # Don't fail just because we can't kill workers
 		base.ui.notifyError(
 			"Could not obtain PID for the worker, job %s"%jobId)
-	tdsForUploads = _ingestUploads(parameters.get("UPLOAD", ""), 
+	tdsForUploads = _ingestUploads(parameters.get("upload", ""), 
 		connectionForQuery)
 
 	base.ui.notifyInfo("taprunner executing %s"%query)
 	res = runTAPQuery(query, timeout, connectionForQuery,
 		tdsForUploads, maxrec)
 	res = _makeDataFor(res)
-	with tap.TAPJob.makeFromId(jobId) as job:
-		destF = job.openResult(
-			_getResultType(format, job.parameters.get("FORMAT")), "result")
+	job = tap.workerSystem.getJob(jobId)
+	destF = job.openResult(
+		_getResultType(format, job.parameters.get("format")), "result")
 	writeResultTo(format, res, destF)
 	connectionForQuery.close()
 	destF.close()
@@ -240,23 +240,20 @@ def _runTAPJob(parameters, jobId, queryProfile, timeout):
 def runTAPJob(jobId, queryProfile="untrustedquery"):
 	"""executes a TAP job defined by parameters and job id.
 	"""
-	with tap.TAPJob.makeFromId(jobId) as job:
-		job.phase = uws.EXECUTING
-		job.startTime = datetime.datetime.utcnow()
+	with tap.workerSystem.changeableJob(jobId) as job:
+		# actually, job should already be in executing when we see this,
+		# but it should be ok for clients to let us set it
+		job.change(phase=uws.EXECUTING,
+			startTime=datetime.datetime.utcnow())
 		timeout = job.executionDuration
 		parameters = job.parameters
 	try:
 		_runTAPJob(parameters, jobId, queryProfile, timeout)
 	except Exception, ex:
-		with tap.TAPJob.makeFromId(jobId) as job:
-			# This creates an error document in our WD and writes a log.
-			job.changeToPhase(uws.ERROR, ex)
-			job.endTime = datetime.datetime.utcnow()
+		tap.workerSystem.changeToPhase(jobId, uws.ERROR, ex)
 		base.ui.notifyError("While executing TAP job %s: %s"%(jobId, ex))
 	else:
-		with tap.TAPJob.makeFromId(jobId) as job:
-			job.changeToPhase(uws.COMPLETED, None)
-			job.endTime = datetime.datetime.utcnow()
+		tap.workerSystem.changeToPhase(jobId, uws.COMPLETED, None)
 
 
 ############### CLI
@@ -269,8 +266,9 @@ def setINTHandler(jobId):
 
 	def handler(signo, frame):
 		# Let's be reckless for now and kill from the signal handler.
-		with tap.TAPJob.makeFromId(jobId) as job:
-			job.phase = uws.ABORTED
+		with tap.workerSystem.changeableJob(jobId) as wjob:
+			wjob.change(phase=uws.ABORTED)
+
 		if _WORKER_PID:
 			base.ui.notifyInfo("Trying to abort %s, wpid %s"%(
 				jobId, _WORKER_PID))
@@ -333,6 +331,6 @@ def main():
 		base.ui.notifyError("taprunner %s major failure"%jobId)
 		# try to push job into the error state -- this may well fail given
 		# that we're quite hosed, but it's worth the try
-		with tap.TAPJob.makeFromId(jobId) as job:
-			job.changeToPhase(uws.ERROR, ex)
+		with tap.workerSystem.changeableJob(jobId) as wjob:
+			wjob.changeToPhase(uws.ERROR, ex)
 		raise

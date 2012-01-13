@@ -4,12 +4,14 @@ TAP: schema maintenance, job/parameter definition incl. upload and UWS actions.
 
 from __future__ import with_statement
 
+import cPickle as pickle
 import datetime
 import os
+import shutil
 import signal
 import subprocess
+import tempfile
 import warnings
-from cStringIO import StringIO
 
 from pyparsing import ParseException
 from twisted.internet import reactor
@@ -19,6 +21,7 @@ import twisted.internet.utils
 from gavo import base
 from gavo import formats
 from gavo import rsc
+from gavo import svcs
 from gavo import utils
 from gavo.protocols import uws
 from gavo.utils import codetricks
@@ -26,6 +29,8 @@ from gavo.utils import codetricks
 
 RD_ID = "__system__/tap"
 
+# used in the computation of quote
+EST_TIME_PER_JOB = datetime.timedelta(minutes=10)
 
 # A mapping of values of TAP's FORMAT parameter to our formats.format codes,
 # IANA mimes and user-readable labels.
@@ -196,165 +201,6 @@ def getAccessibleTables():
 	return res
 
 
-########################## The TAP UWS job
-
-
-@utils.memoized
-def getUploadGrammar():
-	from pyparsing import (Word, ZeroOrMore, Suppress, StringEnd,
-		alphas, alphanums, CharsNotIn)
-	# Should we allow more tableNames?
-	with utils.pyparsingWhitechars(" \t"):
-		tableName = Word( alphas+"_", alphanums+"_" )
-		# What should we allow/forbid in terms of URIs?
-		uri = CharsNotIn(" ;,")
-		uploadSpec = tableName("name") + "," + uri("uri")
-		uploads = uploadSpec + ZeroOrMore(
-			Suppress(";") + uploadSpec) + StringEnd()
-		uploadSpec.addParseAction(lambda s,p,t: (t["name"], t["uri"]))
-		return uploads
-
-
-def parseUploadString(uploadString):
-	"""iterates over pairs of tableName, uploadSource from a TAP upload string.
-	"""
-	try:
-		res = getUploadGrammar().parseString(uploadString).asList()
-		return res
-	except ParseException, ex:
-		raise base.ValidationError(
-			"Syntax error in UPLOAD parameter (near %s)"%(ex.loc), "UPLOAD",
-			hint="Note that we only allow regular SQL identifiers as table names,"
-				" i.e., basically only alphanumerics are allowed.")
-
-
-class LangParameter(uws.ProtocolParameter):
-	name = "LANG"
-
-	@classmethod
-	def addParam(cls, value, job):
-		if value not in SUPPORTED_LANGUAGES:
-			raise base.ValidationError("This service does not support the"
-				" query language %s"%value, "LANG")
-		job.parameters["LANG"] = value
-
-
-class QueryParameter(uws.ProtocolParameter):
-	name = "QUERY"
-
-
-class FormatParameter(uws.ProtocolParameter):
-	name = "FORMAT"
-
-
-class MaxrecParameter(uws.ProtocolParameter):
-	name = "MAXREC"
-	_serialize, _deserialize = str, int
-
-
-class LocalFile(object):
-	"""A sentinel class representing a file within a job work directory
-	(as resulting from an upload).
-	"""
-	def __init__(self, jobId, wd, fileName):
-		self.jobId, self.fileName = jobId, fileName
-		self.fullPath = os.path.join(wd, fileName)
-
-	def __str__(self):
-		# stringify to a URL for easy UPLOAD string generation.
-		# This smells of a bad idea.  If you change it, change UPLOAD.getParam.
-		return self.getURL()
-
-	def getURL(self):
-		"""returns the URL the file is retrievable under for the life time of
-		the job.
-		"""
-		return base.caches.getRD(RD_ID).getById("run").getURL("tap",
-			absolute=True)+"/async/%s/results/%s"%(
-				self.jobId,
-				self.fileName)
-
-
-class _FakeUploadedFile(object):
-# File uploads without filenames are scalars containing a string.
-# This class lets them work as uploaded files in _saveUpload.
-	def __init__(self, name, content):
-		self.filename = name
-		self.file = StringIO(content)
-
-
-class UploadParameter(uws.ProtocolParameter):
-# the way this is specified, inline uploads are quite tricky. 
-# To obtain the data, we must access the request, which we don't have
-# here.  Since I happen to think this is a major wart in the spec,
-# I solve this through a major wart: I get the request from some
-# frame upstack.
-	name = "UPLOAD"
-	@classmethod
-	def addParam(cls, value, job):
-		if not value.strip():
-			return
-		newUploads = []
-		for tableName, upload in parseUploadString(value):
-			if upload.startswith("param:"):
-				newUploads.append(
-					(tableName, cls._saveUpload(job, upload[6:])))
-			else:
-				newUploads.append((tableName, upload))
-		job.parameters["UPLOAD"] = job.parameters.get("UPLOAD", []
-			)+newUploads
-
-	@classmethod
-	def getParam(cls, job):
-		return ";".join("%s,%s"%p for p in job.parameters["UPLOAD"])
-
-	@classmethod
-	def _cleanName(cls, rawName):
-		# returns a name hopefully suitable for the file system
-		return rawName.encode("quoted-printable").replace('/', "=2F")
-
-	@classmethod
-	def _saveUpload(cls, job, uploadName):
-		# I deeply detest this UPLOAD spec...  To express this, I'm stealing
-		# the server request object from a higher stack frame.  This must
-		# be a request that has been processed by taprender.reparseRequestArgs.
-		# This function returns a LocalFile instance.
-		try:
-			uploadData = codetricks.stealVar("request").files[uploadName]
-		except KeyError:
-			# if no file name has been passed, the upload will end up in
-			# scalars; I should probably do away with the whole files vs.
-			# scalars business and the reparseRequestArgs nonsense.
-			# Think about it.
-			try:
-				uploadData = _FakeUploadedFile(uploadName,
-					codetricks.stealVar("request").scalars[uploadName])
-			except KeyError:
-				raise base.ui.logOldExc(
-					base.ValidationError("No upload '%s' found"%uploadName, "UPLOAD"))
-		destFName = cls._cleanName(uploadData.filename)
-		with job.openFile(destFName, "w") as f:
-			f.write(uploadData.file.read())
-		return LocalFile(job.jobId, job.getWD(), destFName)
-
-
-class _TAPJobMixin(object):
-	protocolParameters = uws.UWSParameters(uws.UWSJob.protocolParameters,
-		*utils.iterDerivedClasses(uws.ProtocolParameter, globals().values()))
-
-
-class ROTAPJob(_TAPJobMixin, uws.ROUWSJob):
-	"""an ROUWSJob with TAP protocol parameters.
-	"""
-	def getWritable(self, timeout=10):
-		return TAPJob.makeFromId(self.jobId, timeout=timeout)
-
-
-class TAPJob(_TAPJobMixin, uws.UWSJob):
-	"""a UWSJob with TAP protocol parameters.
-	"""
-
-
 ########################## Maintaining TAP jobs
 
 
@@ -393,18 +239,17 @@ class _TAPBackendProtocol(protocol.ProcessProtocol):
 		"""tries to ensure the job is in an admitted end state.
 		"""
 		try:
-			with uws.UWSJob.makeFromId(self.jobId) as job:
-			
-				if job.phase==uws.QUEUED or job.phase==uws.EXECUTING:
-					try:
-						raise uws.UWSError("Job hung in %s"%job.phase, job.jobId)
-					except uws.UWSError, ex:
-						job.changeToPhase(uws.ERROR, ex)
+			job = workerSystem.getJob(self.jobId)
+			if job.phase==uws.QUEUED or job.phase==uws.EXECUTING:
+				try:
+					raise uws.UWSError("Job hung in %s"%job.phase, job.jobId)
+				except uws.UWSError, ex:
+					tap.workerSystem.changeToPhase(self.jobId, uws.ERROR, ex)
 		except uws.JobNotFound: # job already deleted
 			pass
 
 
-class TAPActions(uws.UWSActions):
+class TAPTransitions(uws.UWSTransitions):
 	"""The transition function for TAP jobs.
 
 	There's a hack here: After each transition, when you've released
@@ -412,145 +257,67 @@ class TAPActions(uws.UWSActions):
 	PhaseAction does this).
 	"""
 	def __init__(self):
-		uws.UWSActions.__init__(self, "TAP", [
+		uws.UWSTransitions.__init__(self, "TAP", [
 			(uws.PENDING, uws.QUEUED, "queueJob"),
 			(uws.PENDING, uws.ABORTED, "markAborted"),
 			(uws.QUEUED, uws.ABORTED, "markAborted"),
+			(uws.QUEUED, uws.EXECUTING, "startJob"),
 			(uws.EXECUTING, uws.COMPLETED, "completeJob"),
 			(uws.EXECUTING, uws.ABORTED, "killJob"),
 			(uws.EXECUTING, uws.ERROR, "errorOutJob"),
 			(uws.COMPLETED, uws.ERROR, "ignoreAndLog"),
 			])
-		# _processQueueDirty is set if the QUEUED jobs are expected
-		# to have a chance to get run; this is set by action
-		self._processQueueDirty = False
 
-	def _startJobTwisted(self, job):
-		"""starts a job when we're running within a twisted reactor.
+	def _startJobTwisted(self, wjob):
+		"""starts a job by forking a new process when we're running 
+		within a twisted reactor.
 		"""
-		pt = reactor.spawnProcess(_TAPBackendProtocol(job.jobId),
-			"gavo", args=["gavo", "tap", "--", str(job.jobId)],
+		pt = reactor.spawnProcess(_TAPBackendProtocol(wjob.jobId),
+			"gavo", args=["gavo", "tap", "--", str(wjob.jobId)],
 				env=os.environ)
-		job.pid = pt.pid
-		job.phase = uws.EXECUTING
+		wjob.change(pid=pt.pid, phase=uws.EXECUTING)
 
-	def _startJobNonTwisted(self, job):
-		"""forks off a new job when (hopefully) a manual child reaper is in place.
+	def _startJobNonTwisted(self, wjob):
+		"""forks off a new process when (hopefully) a manual child reaper 
+		is in place.
 		"""
-		try:
-			pid = os.fork()
-			if pid==0:
-				_replaceFDs("/dev/zero", "/dev/null")
-				os.execlp("gavo", "gavo", "--disable-spew", 
-					"tap", "--", job.jobId)
-			elif pid>0:
-				job.pid = pid
-				job.phase = uws.EXECUTING
-			else:
-				raise Exception("Could not fork")
-		except Exception, ex:
-			job.changeToPhase(uws.ERROR, ex)
+		pid = os.fork()
+		if pid==0:
+			_replaceFDs("/dev/zero", "/dev/null")
+			os.execlp("gavo", "gavo", "--disable-spew", 
+				"tap", "--", wjob.jobId)
+		elif pid>0:
+			wjob.change(pid=pid, phase=uws.EXECUTING)
+		else:
+			raise Exception("Could not fork")
 	
-	def _startJob(self, job):
+	def startJob(self, newState, wjob, ignored):
 		"""causes a process to be started that executes job.
 
 		This dispatches according to whether or not we are within a twisted
 		event loop, mostly for testing support.
 		"""
 		if reactor.running:
-			return self._startJobTwisted(job)
+			return self._startJobTwisted(wjob)
 		else:
-			return self._startJobNonTwisted(job)
+			return self._startJobNonTwisted(wjob)
 
-	def _manuallyErrorOutJob(self, writableJobsTable, jobId, errMsg):
-		job = ROTAPJob(jobId)
-		with job.getWritable() as wj:
-			wj.setError(errMsg)
-			base.ui.notifyError("Stale/dead taprunner: '%s'"%errmsg)
-			wj.changeToPhase(uws.ERROR)
-
-	def _ensureJobsAreRunning(self):
-		"""pushes all executing jobs that silently died to ERROR.
+	def queueJob(self, newState, wjob, ignored):
+		"""puts a job on the queue.
 		"""
-		jt = uws.getROJobsTable()
-		for jobId, pid in  jt.iterquery([
-					jt.tableDef.getColumnByName("jobId"),
-					jt.tableDef.getColumnByName("pid")],
-				"phase='EXECUTING'"):
+		wjob.change(phase=uws.QUEUED)
+		wjob.uws.scheduleProcessQueueCheck()
 
-			if pid is None:
-				self._manuallyErrorOutJob(jobId,
-					"EXECUTING job %s had no pid."%jobId)
-			else:
-				try:
-					os.waitpid(pid, os.WNOHANG)
-				except os.error: # child presumably is dead
-					self._manuallyErrorOutJob(jobId,
-						"EXECUTING job %s has silently died."%jobId)
+	def errorOutJob(self, newPhase, wjob, ignored):
+		wjob.change(phase=newPhase, endTime=datetime.datetime.utcnow())
+		self.flagError(newPhase, wjob, ignored)
+		wjob.uws.scheduleProcessQueueCheck()
 
-	def _processQueue(self):
-		"""tries to take jobs from the queue.
+	def completeJob(self, newPhase, wjob, ignored):
+		wjob.change(phase=newPhase, endTime=datetime.datetime.utcnow())
+		wjob.uws.scheduleProcessQueueCheck()
 
-		This function is called whenever a job is queued and on transitions
-		from EXECUTING so somewhere else.
-
-		Currently, the jobs with the earliest destructionTime are processed
-		first.  That's, of course, completely ad-hoc.
-
-		job is the job that initiated the action.  We need it since it's
-		likely it is being manipulated, and so we need to commit all its
-		changes.  Also, it needs updating at the end of this function.
-		"""
-		if uws.countQueuedJobs()==0:
-			return
-		runcountGoal = base.getConfig("async", "maxTAPRunning")
-
-		jobsTable = uws.getROJobsTable()
-		try:
-			started = 0
-			for row in  list(jobsTable.iterQuery(
-					[jobsTable.tableDef.getColumnByName("jobId")],
-					"phase=%(phase)s", {"phase": uws.QUEUED},
-					limits=('ORDER BY destructionTime ASC', {}))):
-				if uws.countRunningJobs()>=runcountGoal:
-					break
-				self._startJob(TAPJob(row["jobId"]))
-				started += 1
-			
-			if started==0:
-				# No jobs could be started.  This may be fine when long-runnning
-				# jobs  block job submission, but for catastrophic taprunner
-				# failures we want to make sure all jobs we think are executing
-				# actually are.  If they've silently died, we log that and
-				# push them to error.
-				self._ensureJobsAreRunning()
-		except Exception, ex:
-			base.ui.notifyError("Error during queue processing, TAP"
-				" is probably botched now.")
-
-	def checkProcessQueue(self):
-		if self._processQueueDirty:
-			self._processQueueDirty = False
-			self._processQueue()
-
-	def queueJob(self, newState, job, ignored):
-		"""starts a job.
-
-		The method will venture a guess whether there is a twisted reactor
-		and dispatch to _startReactorX methods based on this guess.
-		"""
-		job.phase = uws.QUEUED
-		self._processQueueDirty = True
-
-	def errorOutJob(self, newPhase, job, ignored):
-		self.flagError(newPhase, job, ignored)
-		self._processQueueDirty = True
-
-	def completeJob(self, newPhase, job, ignored):
-		job.phase = newPhase
-		self._processQueueDirty = True
-
-	def killJob(self, newState, job, ignored):
+	def killJob(self, newState, wjob, ignored):
 		"""tries to kill/abort job.
 
 		Actually, there are two different scenarios here: Either the job as
@@ -564,15 +331,14 @@ class TAPActions(uws.UWSActions):
 		"""
 		try:
 			try:
-				pid = job.pid
+				pid = wjob.pid
 				if pid is None:
 					raise TAPError("Job is not running")
-				if job.startTime is None:
+				if wjob.startTime is None:
 					# the taprunner is not up yet, kill it brutally and manage
 					# state ourselves
 					os.kill(pid, signal.SIGTERM)
-					job.endTime = datetime.datetime.utcnow()
-					job.phase = uws.ABORTED
+					self.markAborted(uws.ABORTED, wjob, ignored)
 				else:
 					# taprunner is up, can manage state itself
 					os.kill(pid, signal.SIGINT)
@@ -581,18 +347,396 @@ class TAPActions(uws.UWSActions):
 			except Exception, ex:
 				raise TAPError(None, ex)
 		finally:
-			self._processQueueDirty = True
+			wjob.uws.scheduleProcessQueueCheck()
 
-	def markAborted(self, newState, job, ignored):
+	def markAborted(self, newState, wjob, ignored):
 		"""simply marks job as aborted.
 
 		This is what happens if you abort a job from QUEUED or
 		PENDING.
 		"""
-		job.phase = uws.ABORTED
-		job.endTime = datetime.datetime.utcnow()
+		wjob.change(phase=uws.ABORTED,
+			endTime=datetime.datetime.utcnow())
 
-	def ignoreAndLog(self, newState, job, exc):
+	def ignoreAndLog(self, newState, wjob, exc):
 		base.ui.logErrorOccurred("Request to push COMPLETED job to ERROR: %s"%
 			str(exc))
-uws.registerActions(TAPActions)
+
+
+########################## The TAP UWS job
+
+
+@utils.memoized
+def getUploadGrammar():
+	from pyparsing import (Word, ZeroOrMore, Suppress, StringEnd,
+		alphas, alphanums, CharsNotIn)
+	# Should we allow more tableNames?
+	with utils.pyparsingWhitechars(" \t"):
+		tableName = Word( alphas+"_", alphanums+"_" )
+		# What should we allow/forbid in terms of URIs?
+		uri = CharsNotIn(" ;,")
+		uploadSpec = tableName("name") + "," + uri("uri")
+		uploads = uploadSpec + ZeroOrMore(
+			Suppress(";") + uploadSpec) + StringEnd()
+		uploadSpec.addParseAction(lambda s,p,t: (t["name"], t["uri"]))
+		return uploads
+
+
+def parseUploadString(uploadString):
+	"""iterates over pairs of tableName, uploadSource from a TAP upload string.
+	"""
+	try:
+		res = getUploadGrammar().parseString(uploadString).asList()
+		return res
+	except ParseException, ex:
+		raise base.ValidationError(
+			"Syntax error in UPLOAD parameter (near %s)"%(ex.loc), "UPLOAD",
+			hint="Note that we only allow regular SQL identifiers as table names,"
+				" i.e., basically only alphanumerics are allowed.")
+
+
+class LangParameter(uws.JobParameter):
+	@classmethod
+	def addPar(cls, name, value, job):
+		if value not in SUPPORTED_LANGUAGES:
+			raise base.ValidationError("This service does not support the"
+				" query language %s"%value, "LANG")
+		uws.JobParameter.updateParameter(name, value, job)
+
+
+class MaxrecParameter(uws.JobParameter):
+	name = "MAXREC"
+	_serialize, _deserialize = str, int
+
+
+class LocalFile(object):
+	"""A sentinel class representing a file within a job work directory
+	(as resulting from an upload).
+	"""
+	def __init__(self, jobId, wd, fileName):
+		self.jobId, self.fileName = jobId, fileName
+		self.fullPath = os.path.join(wd, fileName)
+
+	def __str__(self):
+		# stringify to a URL for easy UPLOAD string generation.
+		# This smells of a bad idea.  If you change it, change UPLOAD.getParam.
+		return self.getURL()
+
+	def getURL(self):
+		"""returns the URL the file is retrievable under for the life time of
+		the job.
+		"""
+		return base.caches.getRD(RD_ID).getById("run").getURL("tap",
+			absolute=True)+"/async/%s/results/%s"%(
+				self.jobId,
+				self.fileName)
+
+
+class UploadParameter(uws.JobParameter):
+# the way this is specified, inline uploads are quite tricky. 
+# To obtain the data, we must access the request, which we don't have
+# here.  So, I just grab in from upstack (which of course is bound
+# to fail if we're not being called from within a proper web request).
+# It's not pretty, but then this kind of interdependency between
+# HTTP parameters sucks whatever you do.
+#
+# We assume uploads come in the request's special files dictionary.
+# This is created in taprender.TAPRenderer.gatherUploadFiles.
+
+	_deserialize, _serialize = utils.identity, utils.identity
+
+	@classmethod
+	def addPar(cls, name, value, job):
+		if not value.strip():
+			return
+		newUploads = []
+		for tableName, upload in parseUploadString(value):
+			if upload.startswith("param:"):
+				newUploads.append(
+					(tableName, cls._saveUpload(job, upload[6:])))
+			else:
+				newUploads.append((tableName, upload))
+		newVal = job.parameters.get(name, [])+newUploads
+		uws.JobParameter.updateParameter(name, newVal, job)
+
+	@classmethod
+	def getPar(cls, name, job):
+		return ";".join("%s,%s"%p for p in job.parameters["upload"])
+
+	@classmethod
+	def _cleanName(cls, rawName):
+		# returns a name hopefully suitable for the file system
+		return rawName.encode("quoted-printable").replace('/', "=2F")
+
+	@classmethod
+	def _saveUpload(cls, job, uploadName):
+		try:
+			uploadData = codetricks.stealVar("request").files[uploadName]
+		except KeyError:
+			raise base.ui.logOldExc(
+				base.ValidationError("No upload '%s' found"%uploadName, "UPLOAD"))
+
+		destFName = cls._cleanName(uploadData.filename)
+		with job.openFile(destFName, "w") as f:
+			f.write(uploadData.file.read())
+		return LocalFile(job.jobId, job.getWD(), destFName)
+
+
+class TAPJob(uws.BaseUWSJob):
+	_jobsTDId = "//tap#tapjobs"
+	_transitions = TAPTransitions()
+
+	_parameter_maxrec = MaxrecParameter
+	_parameter_lang = LangParameter
+	_parameter_upload = UploadParameter
+
+	@classmethod
+	def getNewId(self, uws, conn):
+		# our id is the base name of the jobs's temporary directory.
+		uwsWD = base.getConfig("uwsWD")
+		utils.ensureDir(uwsWD, mode=0775, setGroupTo=base.getGroupId())
+		jobDir = tempfile.mkdtemp("", "", dir=uwsWD)
+		return os.path.basename(jobDir)
+
+	@property
+	def quote(self):
+		"""returns an estimation of the job completion.
+
+		This currently is very naive: we give each job that's going to run
+		before this one 10 minutes.
+
+		This method needs to be changed when the dequeueing algorithm
+		is changed.
+		"""
+		with base.getTableConn() as conn:
+			nBefore = self.uws.runCanned('countQueuedBefore',
+				{'dt': self.destructionTime}, conn)[0]["count"]
+		return datetime.datetime.utcnow()+nBefore*EST_TIME_PER_JOB
+
+	def getWD(self):
+		return os.path.join(base.getConfig("uwsWD"), self.jobId)
+
+	def prepareForDestruction(self):
+		shutil.rmtree(self.getWD())
+
+	# results management: We use a pickled list in the jobs dir to manage 
+	# the results.  I once had a table of those in the DB and it just
+	# wasn't worth it.  One issue, though: this potentially races
+	# if two different processes/threads were to update the results
+	# at the same time.  This could be worked around by writing
+	# the results pickle only from within changeableJobs.
+	# 
+	# The list contains dictionaries having resultName and resultType keys.
+	@property
+	def _resultsDirName(self):
+		return os.path.join(self.getWD(), "__RESULTS__")
+
+	def _loadResults(self):
+		try:
+			with open(self._resultsDirName) as f:
+				return pickle.load(f)
+		except IOError:
+			return []
+
+	def _saveResults(self, results):
+		handle, srcName = tempfile.mkstemp(dir=self.getWD())
+		with os.fdopen(handle, "w") as f:
+			pickle.dump(results, f)
+		# The following operation will bomb on windows when the second
+		# result is saved.  Tough luck.
+		os.rename(srcName, self._resultsDirName)
+
+	def _addResultInJobDir(self, mimeType, name):
+		resTable = self._loadResults()
+		resTable.append(
+			{'resultName': name, 'resultType': mimeType})
+		self._saveResults(resTable)
+
+	def addResult(self, source, mimeType, name=None):
+		"""adds a result, with data taken from source.
+
+		source may be a file-like object or a byte string.
+
+		If no name is passed, a name is auto-generated.
+		"""
+		if name is None:
+			name = utils.intToFunnyName(id(source))
+		with open(os.path.join(self.getWD(), name), "w") as destF:
+			if isinstance(source, baseString):
+				destF.write(source)
+			else:
+				utils.cat(source, destF)
+		self._addResultInJobDir(mimeType, name)
+
+	def openResult(self, mimeType, name):
+		"""returns a writable file that adds a result.
+		"""
+		self._addResultInJobDir(mimeType, name)
+		return open(os.path.join(self.getWD(), name), "w")
+
+	def getResult(self, resName):
+		"""returns a pair of file name and mime type for a named job result.
+
+		If the result does not exist, a NotFoundError is raised.
+		"""
+		res = [r for r in self._loadResults() if resName==r["resultName"]]
+		if not res:
+			raise base.NotFoundError(resName, "job result",
+				"uws job %s"%self.jobId)
+		res = res[0]
+		return os.path.join(self.getWD(), res["resultName"]), res["resultType"]
+
+	def getResults(self):
+		"""returns a list of this service's results.
+
+		The list contains dictionaries having at least resultName and resultType
+		keys.
+		"""
+		return self._loadResults()
+
+	def openFile(self, name, mode="r"):
+		"""returns an open file object for a file within the job's work directory.
+
+		No path parts are allowed on name.
+		"""
+		if "/" in name:
+			raise ValueError("No path components allowed on job files.")
+		return open(os.path.join(self.getWD(), name), mode)
+
+
+#################### The TAP worker system
+
+class TAPUWS(uws.UWS):
+	# processQueueDirty is set by TAPTransitions whenever it's likely
+	# QUEUED jobs could be promoted to executing.
+	_processQueueDirty = False
+
+
+	def __init__(self):
+		uws.UWS.__init__(self, TAPJob)
+
+	def _makeMoreStatements(self, statements, jobsTable):
+		td = jobsTable.tableDef
+
+		countField = base.makeStruct(
+			svcs.OutputField, name="count", type="integer", select="count(*)")
+
+		statements["countQueuedBefore"] = jobsTable.getQuery(
+			[countField],
+			"phase='QUEUED' and destructionTime<=%(dt)s",
+			{"dt": None})
+
+		statements["getIdsScheduledNext"] = jobsTable.getQuery(
+			[jobsTable.tableDef.getColumnByName("jobId")],
+			"phase='QUEUED'",
+			limits=('ORDER BY destructionTime ASC', {}))
+
+		statements["getHungCandidates"] = jobsTable.getQuery([
+			td.getColumnByName("jobId"),
+			td.getColumnByName("pid")],
+			"phase='EXECUTING'")
+
+	def scheduleProcessQueueCheck(self):
+		"""tells the TAP UWS to try and dequeue jobs next time checkProcessQueue
+		is called.
+
+		This function exists since during the TAPTransistions there's
+		a writable job and processing the queue might deadlock.  So, rather
+		than processing right away, we just note something may need to be
+		done.
+		"""
+		self._processQueueDirty = True
+
+	def checkProcessQueue(self):
+		"""sees if any QUEUED process can be made EXECUTING.
+
+		This must be called while you're not holding any changeableJob.
+		"""
+		if self._processQueueDirty:
+			self._processQueueDirty = False
+			self._processQueue()
+
+	def _processQueue(self):
+		"""tries to take jobs from the queue.
+
+		This function is called from checkProcessQueue when we think
+		from EXECUTING so somewhere else.
+
+		Currently, the jobs with the earliest destructionTime are processed
+		first.  That's, of course, completely ad-hoc.
+		"""
+		if self.countQueuedJobs()==0:
+			return
+		runcountGoal = base.getConfig("async", "maxTAPRunning")
+
+		try:
+			started = 0
+			with base.getTableConn() as conn:
+				toStart = [row["jobId"] for row in
+					self.runCanned('getIdsScheduledNext', {}, conn)]
+			while toStart:
+				if self.countRunningJobs()>=runcountGoal:
+					break
+				self.changeToPhase(toStart.pop(0), uws.EXECUTING)
+				started += 1
+			
+			if started==0:
+				# No jobs could be started.  This may be fine when long-runnning
+				# jobs  block job submission, but for catastrophic taprunner
+				# failures we want to make sure all jobs we think are executing
+				# actually are.  If they've silently died, we log that and
+				# push them to error.
+				self._ensureJobsAreRunning()
+		except Exception, ex:
+			base.ui.notifyError("Error during queue processing, TAP"
+				" is probably botched now.")
+
+	def _ensureJobsAreRunning(self):
+		"""pushes all executing jobs that silently died to ERROR.
+		"""
+		with base.getTableConn() as conn:
+			for row in self.runCanned("getHungCandidates", {}, conn):
+				jobId, pid = row["jobId"], row["pid"]
+
+				if pid is None:
+					self.changeToPhase(jobId, "ERROR",
+						uws.UWSError("EXECUTING job %s had no pid."%jobId))
+					base.ui.notifyError("Stillborn taprunner: '%s'"%errMsg)
+				else:
+					try:
+						os.waitpid(pid, os.WNOHANG)
+					except os.error: # child presumably is dead
+						self.changeToPhase(jobId, "ERROR",
+							uws.UWSError("EXECUTING job %s has silently died."%jobId))
+					base.ui.notifyError("Zombie taprunner: '%s'"%errMsg)
+	
+	def changeToPhase(self, jobId, newPhase, input=None, timeout=10):
+		"""overridden here to hook in queue management.
+		"""
+		uws.UWS.changeToPhase(self, jobId, newPhase, input, timeout)
+		self.checkProcessQueue()
+
+	def getNewIdFromRequest(self, request):
+		"""returns the id of a new TAP job created from request.
+
+		Request has to be a newow request or similar, with request arguments in
+		request.args.
+
+		We assume uwsactions.lowercaseProtocolArgs has already been applied
+		to request.args.
+
+		getNewIdFromRequest picks out UWS parameters feeds them to the new
+		job.  Everything else is passed as a parameter (for when we get
+		PQL runners).
+		"""
+		# actually, for now everything in args is stuffed into parameters;
+		# the only real UWS parameter we may want to look at is PHASE
+		# for when the job is to be queued immediately.
+		jobId = self.getNewJobId()
+		with self.changeableJob(jobId) as wjob:
+			for key, valueList in request.args.iteritems():
+				for value in valueList:
+					wjob.setSerializedPar(key, valueList[0])
+		return jobId
+
+workerSystem = TAPUWS()

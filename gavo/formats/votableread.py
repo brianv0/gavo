@@ -274,7 +274,7 @@ def uploadVOTable(tableId, srcFile, connection, gunzip=False,
 	args.update(tableArgs)
 	td = makeTableDefForVOTable(tableId, rows.tableDefinition, 
 		rd=rd, **args)
-	table = rsc.TableForDef(td, connection=connection)
+	table = rsc.TableForDef(td, connection=connection, create=True)
 	addTuple = _getTupleAdder(table)
 	for row in rows:
 		addTuple(tuple(row))

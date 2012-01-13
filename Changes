@@ -6,3 +6,11 @@ Version 0.7 (2011-XX-XX)
 	  	gavo imp --system //services upgrade_0.6.3_0.7
 
 	 after the update.
+
+  * UWS job representation in the database changed.  You must remove all
+    UWS jobs before upgrading.  After upgrading, run
+
+      gavo imp //uws upgrade_0.6.3_0.7
+      gavo imp --system //tap jobstable
+
+    You can ignore error messages during the first of those commands.

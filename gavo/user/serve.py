@@ -18,6 +18,7 @@ from nevow import appserver
 from nevow import inevow
 from nevow import rend
 from twisted.internet import reactor
+from twisted.internet.error import CannotListenError
 from twisted.python import log
 from twisted.python import logfile
 
@@ -73,7 +74,7 @@ class _PIDManager(object):
 		except IOError: # Cannot write PID.  This would suggest that much else
 		                # is broken as well, so we bail out
 			base.ui.notifyError("Cannot write PID file %s. Assuming all is"
-				" broken, bailing out."%self.file)
+				" broken, bailing out."%self.path)
 			sys.exit(1)
 
 	def clearPID(self):

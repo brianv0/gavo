@@ -41,6 +41,65 @@ class ProfileTest(testhelpers.VerboseTest):
 			("test2", "internal", "database=gavo\nhsot=bar\n"))
 
 
+class ConnectionsTest(testhelpers.VerboseTest):
+	resources = [("conn", tresc.dbConnection)]
+	
+	def testConnectionConfiguration(self):
+		cursor = self.conn.cursor()
+		cursor.execute("SELECT current_setting('statement_timeout')")
+		prevVal = list(cursor)[0][0]
+		with base.connectionConfiguration(self.conn, statement_timeout=34):
+			cursor.execute("SELECT current_setting('statement_timeout')")
+			self.assertEqual(list(cursor)[0][0], "34ms")
+		cursor.execute("SELECT current_setting('statement_timeout')")
+		self.assertEqual(list(cursor)[0][0], prevVal)
+		cursor.close()
+
+	def testConnectionConfigurationErrorReset(self):
+		cursor = self.conn.cursor()
+		cursor.execute("SELECT current_setting('statement_timeout')")
+		prevVal = list(cursor)[0][0]
+		try:
+			with base.connectionConfiguration(self.conn, statement_timeout=34):
+				raise ValueError("expected")
+		except ValueError:
+			pass # expected
+		cursor.execute("SELECT current_setting('statement_timeout')")
+		self.assertEqual(list(cursor)[0][0], prevVal)
+		cursor.close()
+
+
+	def testConnectionConfigurationAutocommitted(self):
+		with base.getTableConn() as conn:
+			cursor = conn.cursor()
+			cursor.execute("SELECT current_setting('statement_timeout')")
+			prevVal = list(cursor)[0][0]
+			with base.connectionConfiguration(conn, statement_timeout=34,
+					isLocal=False):
+				cursor.execute("SELECT current_setting('statement_timeout')")
+				self.assertEqual(list(cursor)[0][0], "34ms")
+			cursor.execute("SELECT current_setting('statement_timeout')")
+			self.assertEqual(list(cursor)[0][0], prevVal)
+			cursor.close()
+
+	def testConnectionConfigurationDBErrorReset(self):
+		with base.getTableConn() as conn:
+			cursor = conn.cursor()
+			cursor.execute("SELECT current_setting('statement_timeout')")
+			prevVal = list(cursor)[0][0]
+			try:
+				with base.connectionConfiguration(conn, statement_timeout=34,
+						isLocal=False):
+					cursor.execute("totally whacky ")
+			except sqlsupport.DBError:
+				pass # expected error
+			else:
+				self.fail("DB server is whacky")
+			cursor.execute("SELECT current_setting('statement_timeout')")
+			self.assertEqual(list(cursor)[0][0], prevVal)
+			cursor.close()
+
+
 class TestTypes(testhelpers.VerboseTest):
 	"""Tests for some special adapters we provide.
 	"""
@@ -54,7 +113,7 @@ class TestTypes(testhelpers.VerboseTest):
 		self.table = self.data.tables["misctypes"]
 
 	def tearDown(self):
-		self.data.dropTables()
+		self.data.dropTables(rsc.parseNonValidating)
 		testhelpers.VerboseTest.tearDown(self)
 
 	def testBoxUnpack(self):
@@ -90,7 +149,7 @@ class TestWithTableCreation(testhelpers.VerboseTest):
 		self.querier = base.SimpleQuerier(connection=self.conn)
 		self.tableDef = testhelpers.getTestTable(self.tableName, self.rdId)
 		self.table = rsc.TableForDef(self.tableDef, rows=self.rows,
-			connection=self.conn)
+			connection=self.conn, create=True)
 		self.conn.commit()
 
 	def tearDown(self):

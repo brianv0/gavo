@@ -243,14 +243,17 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 		self._addForeignKeys()
 		return self
 
+	def getDeleteQuery(self,  matchCondition, pars={}):
+		return "DELETE FROM %s WHERE %s"%(
+			self.tableName, matchCondition), pars
+
 	def deleteMatching(self, matchCondition, pars={}):
 		"""deletes all rows matching matchCondition.
 
 		For now, matchCondition a boolean SQL expression.  All rows matching
 		it will be deleted.
 		"""
-		self.query("DELETE FROM %s WHERE %s"%(
-			self.tableName, matchCondition), pars)
+		self.query(*self.getDeleteQuery(matchCondition, pars))
 	
 	def copyIn(self, inFile):
 		cursor = self.connection.cursor()
@@ -318,7 +321,7 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 		self.nometa = (kwargs.get("nometa", False) 
 			or self.tableDef.temporary or tableDef.rd.schema=="dc")
 
-		if kwargs.get("create", True):
+		if kwargs.get("create", False):
 			self.createIfNecessary()
 		if not self.tableUpdates:
 			self.addCommand = ("INSERT INTO %s (%s) VALUES (%s)"%(
@@ -530,22 +533,12 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 			query = self.tableDef.expand(query)
 		return DBMethodsMixin.query(self, query, data)
 
-	def iterQuery(self, resultTableDef, fragment, pars=None, 
+	def getQuery(self, resultTableDef, fragment, pars=None,
 			distinct=False, limits=None, groupBy=None):
-		"""returns an iterator over rows for a table defined
-		by resultTableDef giving the results for a query for
-		fragment and pars.
+		"""returns a result table definition, query string and a parameters
+		dictionary for a query against this table.
 
-		resultTableDef is a TableDef with svc.OutputField columns
-		(rscdef.Column instances will do), or possibly just a list
-		of Columns, fragment is empty or an SQL where-clause with
-		dictionary placeholders, pars is the dictionary filling
-		fragment, distinct, if True, adds a distinct clause,
-		and limits, if given, is a pair of an SQL string to be
-		appended to the SELECT clause and parameters filling it.
-		queryMeta.asSQL returns what you need here.
-
-		pars may be mutated in the process.
+		See iterQuery for the meaning of the arguments.
 		"""
 		if pars is None:
 			pars = {}
@@ -567,7 +560,29 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 			pars.update(limits[1])
 		if self.exclusive:
 			query.append("FOR UPDATE ")
-		for tupRow in self.query("".join(query), pars):
+		return resultTableDef, "".join(query), pars
+
+	def iterQuery(self, resultTableDef, fragment, pars=None, 
+			distinct=False, limits=None, groupBy=None):
+		"""returns an iterator over rows for a table defined
+		by resultTableDef giving the results for a query for
+		fragment and pars.
+
+		resultTableDef is a TableDef with svc.OutputField columns
+		(rscdef.Column instances will do), or possibly just a list
+		of Columns, fragment is empty or an SQL where-clause with
+		dictionary placeholders, pars is the dictionary filling
+		fragment, distinct, if True, adds a distinct clause,
+		and limits, if given, is a pair of an SQL string to be
+		appended to the SELECT clause and parameters filling it.
+		queryMeta.asSQL returns what you need here.
+
+		pars may be mutated in the process.
+		"""
+		resultTableDef, query, pars = self.getQuery(
+			resultTableDef, fragment, pars=pars,
+			distinct=distinct, limits=limits, groupBy=groupBy)
+		for tupRow in self.query(query, pars):
 			yield resultTableDef.makeRowFromTuple(tupRow)
 
 

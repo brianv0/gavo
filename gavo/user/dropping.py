@@ -55,6 +55,7 @@ def _do_dropRD(opts, rdId, ddIds=None):
 		rd = api.getRD(os.path.join(os.getcwd(), rdId))
 	except api.RDNotFound:
 		rd = api.getRD(rdId, forImport=True)
+
 	connection = api.getDBConnection("admin")
 	for dd in rd.dds:
 		if ddIds is not None and dd.id not in ddIds:

@@ -200,6 +200,9 @@ class CleanedupTest(testhelpers.VerboseTest):
 	"""
 	resources = [("conn", tresc.dbConnection)]
 
+	def tearDown(self):
+		self.conn.rollback()
+
 	def testNotInProducts(self):
 		assertRowset(self,
 			list(sqlsupport.SimpleQuerier(connection=self.conn

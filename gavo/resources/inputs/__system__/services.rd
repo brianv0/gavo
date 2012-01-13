@@ -318,17 +318,4 @@
 		</customRF>
 	</service>
 
-
-
-	<!-- stuff to drop old (rev. around 1700) service tables.  Remove
-	around rev. 2000. -->
-	<data id="dropOld" auto="False">
-		<LOOP listItems="services srv_sets srv_interfaces srv_subjs">
-			<events>
-				<make>
-					<table id="\item" onDisk="True"/>
-				</make>
-			</events>
-		</LOOP>
-	</data>
 </resource>

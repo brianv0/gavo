@@ -221,9 +221,26 @@ class _QuoteParser(utils.StartEndHandler):
 		return self.quote
 
 
+class _CaselessDictionary(dict):
+	"""A dictionary that only has lower-case keys but treats keys in any
+	capitalization as equivalent.
+	"""
+	def __contains__(self, key):
+		dict.__contains__(self, key.lower())
+	
+	def __getitem__(self, key):
+		return dict.__getitem__(self, key.lower())
+	
+	def __setitem__(self, key, value):
+		dict.__setitem__(self, key.lower(), value)
+	
+	def __delitem__(self, key):
+		dict.__delitem__(self, key.lower())
+	
+
 class _ParametersParser(utils.StartEndHandler):
 	def _initialize(self):
-		self.parameters = {}
+		self.parameters = _CaselessDictionary()
 
 	def _end_parameter(self, name, attrs, content):
 		self.parameters[attrs["id"]] = content
