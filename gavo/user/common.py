@@ -16,6 +16,7 @@ admin.py for an example.
 
 import sys
 
+from gavo import base
 from gavo.imp import argparse
 
 
@@ -88,4 +89,56 @@ def getMatchingFunction(funcSelector, functions, parser):
 		sys.stderr.write("No match for function %s.\n\n"%funcSelector)
 	parser.print_help(file=sys.stderr)
 	sys.exit(1)
+
+
+def _getAutoDDIds(rd):
+	"""helps getPertainingDDs
+	"""
+	res = []
+	for dd in rd.dds:
+		if dd.auto:
+			res.append(dd)
+	return res
+
+
+def _getSelectedDDIds(rd, selectedIds):
+	"""helps getPertainingDDs
+	"""
+	res = []
+	ddDict = dict((dd.id, dd) for dd in rd.dds)
+	for ddId in selectedIds:
+		if ddId not in ddDict:
+			raise base.ReportableError(
+				"The DD '%s' you are trying to import is not defined within"
+				" the RD '%s'."%(ddId, rd.sourceId),
+				hint="Data elements available in %s include %s"%(rd.sourceId,
+					", ".join(ddDict) or '(None)'))
+		res.append(ddDict[ddId])
+	return res
+
+
+def getPertainingDDs(rd, selectedIds):
+	"""returns a list of dds on which imp or drop should operate.
+
+	By default, that's the "auto" dds of rd.  If ddIds is not empty,
+	it is validated that all ids mentioned actually exist.
+
+	Finally, if no DDs are selected but DDs are available, an error is raised.
+	"""
+	if selectedIds:
+		dds = _getSelectedDDIds(rd, selectedIds)
+	else:
+		dds = _getAutoDDIds(rd)
+	if not dds:
+		if not rd.dds:
+			hint = ("There is no data element in your RD.  This is almost"
+			 " never what you want (see the tutorial)")
+		else:
+			hint = ("All data elements have auto=False.  You have to"
+				" explicitely name one or more data to import (names"
+				" available: %s)"%(", ".join(dd.id or "(anon)" for dd in rd.dds)))
+		raise base.ReportableError(
+			"Neither automatic not manual data selected from RD %s "%rd.sourceId,
+			hint=hint)
+	return dds
 

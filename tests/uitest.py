@@ -196,21 +196,18 @@ class ImportTest(testhelpers.VerboseTest):
 					' or more data to import (names available: x, y)\n')
 
 
-class SystemImportTest(testhelpers.VerboseTest):
-	resources = [("conn", tresc.dbConnection)]
-
-	systemRDText = 	"""<resource schema="test">
+class _SysRDResource(tresc.FileResource):
+	path = "inputs/sysrd.rd"
+	content = """<resource schema="test">
 			<table onDisk="True" id="fromclitest" system="True">
 				<column name="x" type="integer"/></table>
 			<data id="y"><make table="fromclitest"/></data>
 		</resource>"""
 
-	@contextlib.contextmanager
-	def _sysrd(self):
-		with testtricks.testFile(
-				os.path.join(base.getConfig("inputsDir"), "sysrd.rd"),
-				self.systemRDText):
-			yield
+
+class SystemImportTest(testhelpers.VerboseTest):
+	resources = [("conn", tresc.dbConnection),
+		("sysrdFile", _SysRDResource())]
 
 	def _fillTable(self):
 		rd = api.getRD("sysrd")
@@ -219,37 +216,78 @@ class SystemImportTest(testhelpers.VerboseTest):
 		self.conn.commit()
 
 	def testNoSystemImportDefault(self):
-		with self._sysrd():
-			self.assertOutput(cli.main, argList=["imp", "--system", "sysrd"],
-				expectedRetcode=0, expectedStderr="")
-			# Write a 2 into the table that must survive the next imp
-			self._fillTable()
+		self.assertOutput(cli.main, argList=["imp", "--system", "sysrd"],
+			expectedRetcode=0, expectedStderr="")
+		# Write a 2 into the table that must survive the next imp
+		self._fillTable()
 
-			self.assertOutput(cli.main, argList=["imp", "sysrd"],
-				expectedRetcode=0, expectedStderr="")
+		self.assertOutput(cli.main, argList=["imp", "sysrd"],
+			expectedRetcode=0, expectedStderr="")
 		with base.AdhocQuerier() as q:
 			self.assertEqual(list(q.query("select * from test.fromclitest")),
 				[(2,)])
 			
 	def testSystemImport(self):
-		with self._sysrd():
-			self.assertOutput(cli.main, argList=["imp", "--system", "sysrd"],
-				expectedRetcode=0, expectedStderr="")
-			# Write a 2 into the table that must survive the next imp
-			self._fillTable()
+		self.assertOutput(cli.main, argList=["imp", "--system", "sysrd"],
+			expectedRetcode=0, expectedStderr="")
+		# Write a 2 into the table that must survive the next imp
+		self._fillTable()
 
-			self.assertOutput(cli.main, argList=["imp", "--system", "sysrd"],
-				expectedRetcode=0, expectedStderr="")
+		self.assertOutput(cli.main, argList=["imp", "--system", "sysrd"],
+			expectedRetcode=0, expectedStderr="")
 		with base.AdhocQuerier() as q:
 			self.assertEqual(list(q.query("select * from test.fromclitest")),
 				[])
 
 	def testSystemDropDrops(self):
-		with self._sysrd():
-			self.assertOutput(cli.main, argList=["drop", "--system", "sysrd"],
-				expectedRetcode=0, expectedStderr="", expectedStdout="")
+		self.assertOutput(cli.main, argList=["drop", "--system", "sysrd"],
+			expectedRetcode=0, expectedStderr="", expectedStdout="")
 		with base.AdhocQuerier() as q:
 			self.failIf(q.tableExists("test.fromclitest"))
 
+
+class _MyRDResource(tresc.FileResource):
+	path = "inputs/myrd.rd"
+	content = """<resource schema="test">
+			<table onDisk="True" id="autotable">
+				<column name="x" type="integer"/></table>
+			<table onDisk="True" id="noautotable">
+				<column name="x" type="integer"/></table>
+			<data id="y"><make table="autotable"/></data>
+			<data id="z" auto="False"><make table="noautotable"/></data>
+		</resource>"""
+
+
+class DropTest(testhelpers.VerboseTest):
+	resources = [("myrdFile", _MyRDResource())]
+
+	def testAutoDropping(self):
+		self.assertOutput(cli.main, argList=["imp", "myrd", "y", "z"],
+			expectedRetcode=0, expectedStderr="")
+		self.assertOutput(cli.main, argList=["drop", "myrd"],
+			expectedRetcode=0, expectedStderr="")
+		with base.AdhocQuerier() as q:
+			self.failIf(q.tableExists("test.autotable"))
+			self.failUnless(q.tableExists("test.noautotable"))
+
+	def testAllDropping(self):
+		self.assertOutput(cli.main, argList=["imp", "myrd", "y", "z"],
+			expectedRetcode=0, expectedStderr="")
+		self.assertOutput(cli.main, argList=["drop", "myrd", "--all"],
+			expectedRetcode=0, expectedStderr="")
+		with base.AdhocQuerier() as q:
+			self.failIf(q.tableExists("test.autotable"))
+			self.failIf(q.tableExists("test.noautotable"))
+
+	def testNamedDropping(self):
+		self.assertOutput(cli.main, argList=["imp", "myrd", "y", "z"],
+			expectedRetcode=0, expectedStderr="")
+		self.assertOutput(cli.main, argList=["drop", "myrd", "z"],
+			expectedRetcode=0, expectedStderr="")
+		with base.AdhocQuerier() as q:
+			self.failUnless(q.tableExists("test.autotable"))
+			self.failIf(q.tableExists("test.noautotable"))
+
+
 if __name__=="__main__":
-	testhelpers.main(SystemImportTest)
+	testhelpers.main(DropTest)

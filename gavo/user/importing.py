@@ -11,36 +11,8 @@ from gavo import base
 from gavo import rscdesc
 from gavo import rsc
 from gavo.protocols import tap
-from gavo import user
-
-
-def getDDsToImportDefault(rd):
-	"""returns all "auto"-DDs in rd.
-
-	This is used to obtain the list of dds to process when the user has
-	not passed an explicit list of ids.
-	"""
-	res = []
-	for dd in rd.dds:
-		if dd.auto:
-			res.append(dd)
-	return res
-
-
-def getDDsToImportManual(rd, ddsToImport):
-	"""returns the dds from RD selected by the list of ids in ddsToImport.
-	"""
-	res = []
-	ddDict = dict((dd.id, dd) for dd in rd.dds)
-	for ddId in ddsToImport:
-		if ddId not in ddDict:
-			raise base.ReportableError(
-				"The DD '%s' you are trying to import is not defined within"
-				" the RD '%s'."%(ddId, rd.sourceId),
-				hint="Data elements available in %s include %s"%(rd.sourceId,
-					", ".join(ddDict) or '(None)'))
-		res.append(ddDict[ddId])
-	return res
+from gavo import user  # oops -- we should keep interfaces somewhere else.
+from gavo.user import common
 
 
 def process(opts, args):
@@ -56,7 +28,7 @@ def process(opts, args):
 	# process manages its dependencies itself
 	opts.buildDependencies = False
 
-	src, ddIds = args[0], set(args[1:])
+	src, selectedIds = args[0], set(args[1:])
 	rd = rscdesc.openRD(src)
 	if rd.sourceId.startswith("/"):
 		raise base.ReportableError(
@@ -64,22 +36,7 @@ def process(opts, args):
 			hint="Your current configuration (from /etc/gavo.rc or ~/.gavorc)"
 			" makes %s the inputsDir"%base.getConfig("inputsDir"))
 
-	if ddIds:
-		dds = getDDsToImportManual(rd, ddIds)
-	else:
-		dds = getDDsToImportDefault(rd)
-	if not dds:
-		if not rd.dds:
-			hint = ("There is no data element in your RD.  This is almost"
-			 " never what you want (see the tutorial)")
-		else:
-			hint = ("All data elements have auto=False.  You have to"
-				" explicitely name one or more data to import (names"
-				" available: %s)"%(", ".join(dd.id or "(anon)" for dd in rd.dds)))
-		raise base.ReportableError(
-			"Neither automatic not manual data selected from RD %s "%rd.sourceId,
-			hint=hint)
-
+	dds = common.getPertainingDDs(rd, selectedIds)
 	connection = base.getDBConnection("admin")
 	tap.unpublishFromTAP(rd, connection)
 	tap.publishToTAP(rd, connection)

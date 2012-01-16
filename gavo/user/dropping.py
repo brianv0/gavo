@@ -8,6 +8,7 @@ import sys
 from gavo import api
 from gavo import base
 from gavo.protocols import tap
+from gavo.user import common
 
 
 def _do_dropTable(tableName):
@@ -48,7 +49,7 @@ def dropTable():
 	_do_dropTable(opts.tablename)
 
 
-def _do_dropRD(opts, rdId, ddIds=None):
+def _do_dropRD(opts, rdId, selectedIds=()):
 	"""drops the data and services defined in the RD selected by rdId.
 	"""
 	try:
@@ -56,14 +57,17 @@ def _do_dropRD(opts, rdId, ddIds=None):
 	except api.RDNotFound:
 		rd = api.getRD(rdId, forImport=True)
 	
-	parseOptions = api.getParseOptions(systemImport=opts.systemImport)
+	
+	if opts.dropAll:
+		dds = rd.dds
+	else:
+		dds = common.getPertainingDDs(rd, selectedIds)
 
+	parseOptions = api.getParseOptions(systemImport=opts.systemImport)
 	connection = api.getDBConnection("admin")
-	for dd in rd.dds:
-		if ddIds is not None and dd.id not in ddIds:
-			continue
+	for dd in dds:
 		res = api.Data.drop(dd, connection=connection, parseOptions=parseOptions)
-	if ddIds is None:
+	if not selectedIds or opts.dropAll:
 		from gavo.registry import servicelist
 		servicelist.cleanServiceTablesFor(rd, connection)
 		tap.unpublishFromTAP(rd, connection)
@@ -92,9 +96,12 @@ def dropRD():
 		parser.add_argument("ddids", help="Optional dd id(s) if you"
 			" do not want to drop the entire RD.  Note that no service"
 			" publications will be undone if you give DD ids.", nargs="*")
-		parser.add_argument("-s", "--system", help="drop system tables, too",
+		parser.add_argument("-s", "--system", help="drop tables even if they"
+			" are system tables",
 			dest="systemImport", action="store_true")
-
+		parser.add_argument("--all", help="drop all DDs in the RD,"
+			" not only the auto ones (overrides manual selection)",
+			dest="dropAll", action="store_true")
 		return parser.parse_args()
 
 	opts = parseCmdline()
