@@ -26,7 +26,7 @@ from gavo.formats.votablewrite import (writeAsVOTable, getAsVOTable,
 	VOTableContext)
 
 from gavo.rsc import (TableForDef, DBTable, makeData, parseValidating,
-	parseNonValidating, Data)
+	parseNonValidating, getParseOptions, Data)
 
 from gavo.rscdef import TableDef
 

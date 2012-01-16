@@ -131,7 +131,7 @@ def main():
 		parser.add_option("-p", "--profile", help="use PROFILE to access db",
 			dest="dbProfile", action="store", type="str", 
 			default="admin", metavar="PROFILE")
-		parser.add_option("-s", "--system", help="create shared tables",
+		parser.add_option("-s", "--system", help="(re-)create system tables, too",
 			dest="systemImport", action="store_true")
 		parser.add_option("-v", "--verbose", help="talk a lot while working",
 			dest="verbose", action="store_true")

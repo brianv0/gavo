@@ -55,12 +55,14 @@ def _do_dropRD(opts, rdId, ddIds=None):
 		rd = api.getRD(os.path.join(os.getcwd(), rdId))
 	except api.RDNotFound:
 		rd = api.getRD(rdId, forImport=True)
+	
+	parseOptions = api.getParseOptions(systemImport=opts.systemImport)
 
 	connection = api.getDBConnection("admin")
 	for dd in rd.dds:
 		if ddIds is not None and dd.id not in ddIds:
 			continue
-		res = api.Data.drop(dd, connection=connection)
+		res = api.Data.drop(dd, connection=connection, parseOptions=parseOptions)
 	if ddIds is None:
 		from gavo.registry import servicelist
 		servicelist.cleanServiceTablesFor(rd, connection)
@@ -90,6 +92,9 @@ def dropRD():
 		parser.add_argument("ddids", help="Optional dd id(s) if you"
 			" do not want to drop the entire RD.  Note that no service"
 			" publications will be undone if you give DD ids.", nargs="*")
+		parser.add_argument("-s", "--system", help="drop system tables, too",
+			dest="systemImport", action="store_true")
+
 		return parser.parse_args()
 
 	opts = parseCmdline()

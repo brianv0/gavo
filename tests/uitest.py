@@ -2,6 +2,7 @@
 Tests for event propagation and user interaction.
 """
 
+import contextlib
 import os
 import sys
 import traceback
@@ -9,10 +10,13 @@ import traceback
 from gavo.helpers import testhelpers
 
 from gavo import base
+from gavo import api
+from gavo import rsc
 from gavo.base import events
 from gavo.helpers import testtricks
 from gavo.user import cli
 
+import tresc
 
 
 class Tell(Exception):
@@ -69,9 +73,7 @@ class EventDispatcherTest(testhelpers.VerboseTest):
 		self.assertEqual(ex.args[0], '[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 1')
 
 
-class CLITest(testhelpers.VerboseTest):
-	"""tests for the CLI.
-	"""
+class MiscCLITest(testhelpers.VerboseTest):
 	def testUnhandledException(self):
 		self.assertOutput(cli.main, argList=["raise"], 
 			expectedStderr=lambda msg: "Unhandled exception" in msg,
@@ -102,6 +104,8 @@ class CLITest(testhelpers.VerboseTest):
 			expectedStdout=lambda msg: 
 				"AstroCoordSystem.SpaceFrame.CoordRefFrame" in msg)
 
+
+class ImportTest(testhelpers.VerboseTest):
 	def testLifecycle(self):
 		querier = base.SimpleQuerier()
 		try:
@@ -192,5 +196,60 @@ class CLITest(testhelpers.VerboseTest):
 					' or more data to import (names available: x, y)\n')
 
 
+class SystemImportTest(testhelpers.VerboseTest):
+	resources = [("conn", tresc.dbConnection)]
+
+	systemRDText = 	"""<resource schema="test">
+			<table onDisk="True" id="fromclitest" system="True">
+				<column name="x" type="integer"/></table>
+			<data id="y"><make table="fromclitest"/></data>
+		</resource>"""
+
+	@contextlib.contextmanager
+	def _sysrd(self):
+		with testtricks.testFile(
+				os.path.join(base.getConfig("inputsDir"), "sysrd.rd"),
+				self.systemRDText):
+			yield
+
+	def _fillTable(self):
+		rd = api.getRD("sysrd")
+		t = rsc.TableForDef(rd.getById("fromclitest"), connection=self.conn)
+		t.addRow({'x': 2})
+		self.conn.commit()
+
+	def testNoSystemImportDefault(self):
+		with self._sysrd():
+			self.assertOutput(cli.main, argList=["imp", "--system", "sysrd"],
+				expectedRetcode=0, expectedStderr="")
+			# Write a 2 into the table that must survive the next imp
+			self._fillTable()
+
+			self.assertOutput(cli.main, argList=["imp", "sysrd"],
+				expectedRetcode=0, expectedStderr="")
+		with base.AdhocQuerier() as q:
+			self.assertEqual(list(q.query("select * from test.fromclitest")),
+				[(2,)])
+			
+	def testSystemImport(self):
+		with self._sysrd():
+			self.assertOutput(cli.main, argList=["imp", "--system", "sysrd"],
+				expectedRetcode=0, expectedStderr="")
+			# Write a 2 into the table that must survive the next imp
+			self._fillTable()
+
+			self.assertOutput(cli.main, argList=["imp", "--system", "sysrd"],
+				expectedRetcode=0, expectedStderr="")
+		with base.AdhocQuerier() as q:
+			self.assertEqual(list(q.query("select * from test.fromclitest")),
+				[])
+
+	def testSystemDropDrops(self):
+		with self._sysrd():
+			self.assertOutput(cli.main, argList=["drop", "--system", "sysrd"],
+				expectedRetcode=0, expectedStderr="", expectedStdout="")
+		with base.AdhocQuerier() as q:
+			self.failIf(q.tableExists("test.fromclitest"))
+
 if __name__=="__main__":
-	testhelpers.main(CLITest)
+	testhelpers.main(SystemImportTest)

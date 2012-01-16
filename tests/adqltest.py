@@ -923,6 +923,7 @@ class ColResTest(ColumnTest):
 		self.assertRaises(adql.ColumnNotFound, self._getColSeq,
 			"select gnurks from spatial")
 
+
 class DelimitedColResTest(ColumnTest):
 	"""tests for column resolution with delimited identifiers.
 	"""
@@ -1505,7 +1506,6 @@ class PQMorphTest(unittest.TestCase):
 		self._testMorph(
 			"select * from foo where x is null",
 			"SELECT * FROM foo WHERE x IS NULL")
-
 
 
 class PGSMorphTest(testhelpers.VerboseTest):

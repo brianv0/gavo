@@ -249,6 +249,12 @@ class VerboseTest(testresources.ResourcedTestCase):
 		process is forked and the function is called, with sys.argv according to
 		argList.  This helps to save startup time for python main functions.
 		"""
+		for name in ["output.stderr", "output.stdout"]:
+			try:
+				os.unlink(name)
+			except os.error:
+				pass
+
 		if isinstance(toExec, basestring):
 			p = subprocess.Popen([toExec]+argList, executable=toExec, 
 				stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
