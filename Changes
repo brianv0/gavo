@@ -11,6 +11,6 @@ Version 0.7 (2011-XX-XX)
     UWS jobs before upgrading.  After upgrading, run
 
       gavo imp //uws upgrade_0.6.3_0.7
-      gavo imp --system //tap jobstable
+      gavo imp --system //tap createJobTable
 
     You can ignore error messages during the first of those commands.

@@ -77,3 +77,4 @@ from gavo.base.unitconv import (
 from gavo.base.xmlstruct import parseFromString, parseFromStream, feedTo
 
 DEBUG = False
+IS_DACHS_SERVER = False

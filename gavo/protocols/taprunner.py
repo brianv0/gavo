@@ -37,6 +37,10 @@ from gavo.protocols import tap
 from gavo.protocols import uws
 
 
+# set to true by the signal handler
+EXIT_PLEASE = False
+
+
 # The following would point to executors for other languages at some point.
 SUPPORTED_LANGS = {
 	'ADQL': None,
@@ -265,38 +269,51 @@ def setINTHandler(jobId):
 	import signal
 
 	def handler(signo, frame):
-		# Let's be reckless for now and kill from the signal handler.
-		with tap.workerSystem.changeableJob(jobId) as wjob:
-			wjob.change(phase=uws.ABORTED)
-
-		if _WORKER_PID:
-			base.ui.notifyInfo("Trying to abort %s, wpid %s"%(
-				jobId, _WORKER_PID))
-			killConn = base.getDBConnection("admin")
-			curs = killConn.cursor()
-			curs.execute("SELECT pg_cancel_backend(%d)"%_WORKER_PID)
-			curs.close()
-			killConn.close()
-		sys.exit(2)
+		global EXIT_PLEASE
+		EXIT_PLEASE = True
 
 	signal.signal(signal.SIGINT, handler)
 
 
-def joinInterruptibly(t):
+def _killWorker(jobId):
+	"""tries to kill the postgres worker for this job.
+	"""
+	with tap.workerSystem.changeableJob(jobId) as wjob:
+		wjob.change(phase=uws.ABORTED)
+
+	if _WORKER_PID:
+		base.ui.notifyInfo("Trying to abort %s, wpid %s"%(
+			jobId, _WORKER_PID))
+		with base.getAdminConn() as conn:
+			curs = conn.cursor()
+			curs.execute("SELECT pg_cancel_backend(%d)"%_WORKER_PID)
+			curs.close()
+
+
+def joinInterruptibly(t, jobId):
 	while True: 
 		t.join(timeout=0.5)
 		if not t.isAlive():
 			return
+		if EXIT_PLEASE:
+			_killWorker(jobId)
+			sys.exit(2)
 
 
-def _runInThread(target):
+
+def _runInThread(target, jobId):
 	# The standalone tap runner must run the query in a thread since
 	# it must be able to react to a SIGINT.
 	import threading
 	t = threading.Thread(target=target)
 	t.setDaemon(True)
 	t.start()
-	joinInterruptibly(t)
+	try:
+		joinInterruptibly(t, jobId)
+	except (SystemExit, Exception):
+		# give us the thread a chance to quit cleanly
+		t.join(1)
+		raise
 
 
 def parseCommandLine():
@@ -317,20 +334,23 @@ def main():
 	# main, a job that may have been created will remain QUEUED forever.
 	# There's little we can do about that, though, since we cannot put
 	# a job into ERROR when we don't know its id or cannot get it from the DB.
-	base.DEBUG = False
-	opts, jobId = parseCommandLine()
-	setINTHandler(jobId)
 	try:
-		_runInThread(lambda: runTAPJob(jobId))
-		base.ui.notifyInfo("taprunner for %s finished"%jobId)
-	except SystemExit:
+		base.DEBUG = False
+		opts, jobId = parseCommandLine()
+		setINTHandler(jobId)
+		try:
+			_runInThread(lambda: runTAPJob(jobId), jobId)
+			base.ui.notifyInfo("taprunner for %s finished"%jobId)
+		except SystemExit:
+			pass
+		except uws.JobNotFound: # someone destroyed the job before I was done
+			base.ui.notifyInfo("giving up non-existing TAP job %s."%jobId)
+		except Exception, ex:
+			base.ui.notifyError("taprunner %s major failure"%jobId)
+			# try to push job into the error state -- this may well fail given
+			# that we're quite hosed, but it's worth the try
+			with tap.workerSystem.changeableJob(jobId) as wjob:
+				wjob.changeToPhase(uws.ERROR, ex)
+			raise
+	finally:
 		pass
-	except uws.JobNotFound: # someone destroyed the job before I was done
-		base.ui.notifyInfo("giving up non-existing TAP job %s."%jobId)
-	except Exception, ex:
-		base.ui.notifyError("taprunner %s major failure"%jobId)
-		# try to push job into the error state -- this may well fail given
-		# that we're quite hosed, but it's worth the try
-		with tap.workerSystem.changeableJob(jobId) as wjob:
-			wjob.changeToPhase(uws.ERROR, ex)
-		raise

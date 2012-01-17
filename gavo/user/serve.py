@@ -269,6 +269,7 @@ def debug(args):
 
 
 def main():
+	base.IS_DACHS_SERVER = True
 	args = makeParser(globals()).parse_args()
 	args.subAction(args)
 
