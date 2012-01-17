@@ -233,8 +233,12 @@ class UWS(object):
 		This calls the job's prepareForDestruction method while the job is writable.
 		"""
 		try:
-			with self.changeableJob(jobId) as job:
-				job.prepareForDestruction()
+			try:
+				with self.changeableJob(jobId) as job:
+					job.prepareForDestruction()
+			except Exception, exc:
+				base.ui.notifyWarning(
+					"Ignored error while destroying UWS job %s: %s"%(jobId, exc))
 		finally:
 			with base.getWritableAdminConn() as conn:
 				self.runCanned("deleteByIdEx", locals(), conn)

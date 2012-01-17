@@ -115,8 +115,9 @@ def listusers(querier, args):
 		" unfriendly.  Don't do this on public UWSes).", action="store_true",
 		dest="includeCompleted"),],
 	help="remove expired UWS jobs")
-def cleanuws(querier, args):
-	uws.cleanupJobsTable(includeFailed=args.includeFailed,
+def cleantap(querier, args):
+	from gavo.protocols import tap
+	tap.workerSystem.cleanupJobsTable(includeFailed=args.includeFailed,
 		includeCompleted=args.includeCompleted,
 		includeAll=args.includeAll,
 		includeForgotten=args.includeForgotten)

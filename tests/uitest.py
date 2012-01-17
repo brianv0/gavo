@@ -104,6 +104,15 @@ class MiscCLITest(testhelpers.VerboseTest):
 			expectedStdout=lambda msg: 
 				"AstroCoordSystem.SpaceFrame.CoordRefFrame" in msg)
 
+	def testCleanTAP(self):
+		self.assertOutput(cli.main, argList=["admin", "cleantap"],
+			expectedRetcode=0)
+
+	def testCleanTAPPending(self):
+		self.assertOutput(cli.main, argList=["admin", "cleantap", "-p"],
+			expectedRetcode=0)
+
+
 
 class ImportTest(testhelpers.VerboseTest):
 	def testLifecycle(self):

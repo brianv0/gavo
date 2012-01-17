@@ -198,4 +198,3 @@ class FileResource(testhelpers.TestResource):
 	
 	def clean(self, rsc):
 		os.unlink(self.absPath)
-
