@@ -700,15 +700,15 @@ class TAPUWS(uws.UWS):
 
 				if pid is None:
 					self.changeToPhase(jobId, "ERROR",
-						uws.UWSError("EXECUTING job %s had no pid."%jobId))
-					base.ui.notifyError("Stillborn taprunner: '%s'"%errMsg)
+						uws.UWSError("EXECUTING job %s had no pid."%jobId, jobId))
+					base.ui.notifyError("Stillborn taprunner %s"%jobId)
 				else:
 					try:
 						os.waitpid(pid, os.WNOHANG)
 					except os.error: # child presumably is dead
 						self.changeToPhase(jobId, "ERROR",
-							uws.UWSError("EXECUTING job %s has silently died."%jobId))
-					base.ui.notifyError("Zombie taprunner: '%s'"%errMsg)
+							uws.UWSError("EXECUTING job %s has silently died."%jobId, jobId))
+					base.ui.notifyError("Zombie taprunner: %s"%jobId)
 	
 	def changeToPhase(self, jobId, newPhase, input=None, timeout=10):
 		"""overridden here to hook in queue management.
