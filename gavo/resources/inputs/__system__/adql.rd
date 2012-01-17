@@ -46,21 +46,22 @@ ADQL is the Astronomical Data Query Language, an extension of a subset of
 the Standard Query Language `SQL <http://en.wikipedia.org/wiki/SQL>`_.  Its purpose is to give you a formal
 language to specify what data you are interested in.
 
-To get started using ADQL, 
-`an article by Ray Plante 
-<http://www.aspbooks.org/a/volumes/article_details/?paper_id=27959>`_ 
-might be a good read.  However, the ADQL specification has
-moved quite a bit since then.  If you are serious about learning ADQL,
-you should read an introduction to SQL, ignoring everything about DDL,
-and then try to figure out the 
-`ADQL specification <http://www.ivoa.net/Documents/latest/ADQL.html>`_.
+To get started using ADQL, try `our ADQL course`_ first.  There are plenty
+of introductions SQL itself, which are perfectly useful for learning ADQL.
+Check your local bookstore.  Online, `A Gentle Introduction to SQL`_ or chapter
+three of `Practical PostgreSQL`_ might be useful; for the purposes
+of learning ADQL, you can skip everything talking about "DDL" in general
+introductions.
 
-As to SQL introductions, every bookstore and library has quite a few of them.
-Online, `A Gentle Introduction to SQL <http://sqlzoo.net/>`_ or chapter
-three of `Practical PostgreSQL <http://www.faqs.org/docs/ppbook/book1.htm>`_
-might be useful.
+Finally, if you're serious about using ADQL, you should at least
+briefly skim over the `ADQL specification`_.
 
 Also have a look at the Examples_ below.
+
+.. _our ADQL course: http://docs.g-vo.org/adql
+.. _Practical PostgreSQL: http://www.faqs.org/docs/ppbook/book1.htm
+.. _A Gentle Introduction to SQL: http://sqlzoo.net/
+.. _ADQL specification: http://www.ivoa.net/Documents/latest/ADQL.html
 
 Local guide
 ===========
