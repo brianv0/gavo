@@ -29,7 +29,7 @@ SETUP_ARGS = {
 			'gavo = gavo.user.cli:main',
 		]
 	},
-	"version": "0.6.3",
+	"version": "0.7",
 }
 
 if __name__=="__main__":
