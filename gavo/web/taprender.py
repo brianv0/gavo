@@ -5,6 +5,7 @@ A renderer for TAP, both sync and async.
 from __future__ import with_statement
 
 import os
+import re
 import traceback
 from cStringIO import StringIO
 
@@ -226,7 +227,7 @@ class _TAPEx(rend.DataFactory):
 		self.original = tableRow
 	
 	def data_id(self, ctx, data):
-		return self.original["name"] # TODO: replace...
+		return re.sub("\W", "", self.original["name"])
 	
 	def data_renderedDescription(self, ctx, data):
 		if "renderedDescription" not in self.original:
@@ -234,6 +235,32 @@ class _TAPEx(rend.DataFactory):
 				self.original["description"])
 		return self.original["renderedDescription"]
 	
+
+# To allow for easy inclusion of table references in TAP example
+# descriptions, we add a custom interpreted text role, taptable.
+# Since this module has to be imported before the renderer can
+# be used, this is not a bad place to put it.
+
+def _registerDocutilsExtension():
+	from docutils.parsers.rst import roles
+	from docutils import nodes
+
+	def _docutils_taptableRuleFunc(name, rawText, text, lineno, inliner,
+			options={}, content=[]):
+		node = nodes.reference(rawText, text,
+			refuri="/tableinfo/%s"%text) 
+		node["classes"].append("ivo_tap_exampletable")
+		return [node], []
+
+	roles.register_local_role("taptable", _docutils_taptableRuleFunc)
+
+try:
+	_registerDocutilsExtension()
+except:
+	base.ui.notifyWarning("Could not register taptable RST extension."
+		"  TAP examples might be less pretty.")
+
+
 
 class TAPExamples(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 	"""A page with query examples.

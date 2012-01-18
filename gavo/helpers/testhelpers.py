@@ -49,10 +49,13 @@ if not os.path.exists(base.getConfig("rootDir")):
 	try:
 		subprocess.call(["createdb", "--encoding=UTF-8", dbname])
 		initdachs.createFSHierarchy(dbname, "test")
-		base.setDBProfile("admin")
-		initdachs.initDB(dbname)
 		os.symlink(os.path.join(TEST_BASE, "test_data"),
 			os.path.join(base.getConfig("inputsDir"), "data"))
+		os.rmdir(os.path.join(base.getConfig("inputsDir"), "__system"))
+		os.symlink(os.path.join(TEST_BASE, "test_data", "__system"),
+			os.path.join(base.getConfig("inputsDir"), "__system"))
+		base.setDBProfile("admin")
+		initdachs.initDB(dbname)
 	except:
 		import traceback
 		traceback.print_exc()
@@ -434,5 +437,5 @@ def main(testClass, methodPrefix=None):
 		errhandle.raiseAndCatch(base)
 
 
-# remaining setup for tests
+# remaining setup for tests (should go soon)
 base.setDBProfile("admin")

@@ -94,6 +94,14 @@ class SyncMetaTest(TAPRenderTest):
 				'<capability standardID="ivo://ivoa.net/std/TAP', 
 				'ParamHTTP">'])
 
+	def testExamples(self):
+		return self.assertGETHasStrings("/examples", {}, [
+			'<div class="ivo_tap_examples" id="kamatschhorribundus">',
+			'<h2 class="ivo_tap_examplename">kamatsch horribundus</h2>',
+			'<a class="ivo_tap_exampletable reference external"'
+			' href="/tableinfo/foo.bar">foo.bar',
+			'<pre class="ivo_tap_examplequery">select something'])
+			
 
 class SyncQueryTest(TAPRenderTest):
 	"""tests for querying sync queries.

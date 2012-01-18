@@ -156,7 +156,7 @@
 	</table>
 
 	<table id="examples" onDisk="True" adql="True">
-		<meta name="description">Site-local sample queries"</meta>
+		<meta name="description">Site-local example queries"</meta>
 		<column name="name" type="text"
 			description="A short name for the query"/>
 		<column name="query" type="text"
@@ -346,14 +346,14 @@
 	</data>
 
 	<data id="import_examples">
-		<sources pattern="adqlsamples/*.sample"/>
+		<sources pattern="adqlexamples/*.sample"/>
 		<freeREGrammar 
 			enc="utf-8"
 			rowProduction="(?s).*\.\."
 			stripTokens="True">
 			<parseRE><![CDATA[(?xsm)^name::(?P<name>.*)
 				^query::(?P<query>.*)
-				^description::(?P<description>.*)\.\.
+				^description::(?P<description>.*)\.\.\s*$
 			]]></parseRE>
 		</freeREGrammar>
 		<make table="examples"/>
