@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+		"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!-- used by taprender.TAPExamples -->
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:n="http://nevow.com/ns/nevow/0.1">
+<head n:render="commonhead">
+	<title n:render="meta">title</title>
+</head>
+
+<body n:render="withsidebar">
+	<h1>Example Queries for our TAP Service</h1>
+
+	<n:invisible n:render="sequence" n:data="examples">
+		<div class="ivo_tap_examples" n:pattern="item">
+			<n:attr name="id" n:render="string" n:data="id"/>
+			<h2 n:render="string" n:data="name"/>
+			<n:invisible n:data="renderedDescription" n:render="xml"/>
+			<p>Try the following query:</p>
+			<pre class="ivo_tap_examplequery" n:render="string" n:data="query">
+			</pre>
+		</div>
+	</n:invisible>
+</body>
+</html>
+

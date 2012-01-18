@@ -12,6 +12,8 @@ import threading
 import time
 import urllib2
 
+from docutils import core as rstcore
+
 from gavo.utils import excs
 
 
@@ -281,6 +283,30 @@ except ImportError, ex:  # no pyparsing, let clients bomb if they need it.
 		raise ex
 		yield
 
+
+def rstxToHTML(source, **userOverrides):
+	"""returns HTML for a piece of ReStructured text.
+
+	source can be a unicode string or a byte string in utf-8.
+
+	userOverrides will be added to the overrides argument of docutils'
+	core.publish_parts.
+	"""
+	sourcePath, destinationPath = None, None
+	doctitle = False
+	if not isinstance(source, unicode):
+		source = source.decode("utf-8")
+	
+	overrides = {'input_encoding': 'unicode',
+		'doctitle_xform': None,
+		'initial_header_level': 4}
+	overrides.update(userOverrides)
+
+	parts = rstcore.publish_parts(
+		source=source+"\n", source_path=sourcePath,
+		destination_path=destinationPath,
+		writer_name='html', settings_overrides=overrides)
+	return parts["fragment"]
 
 
 def _test():

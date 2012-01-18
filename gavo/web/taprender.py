@@ -17,6 +17,7 @@ from twisted.python import log
 
 from gavo import base
 from gavo import formats
+from gavo import rsc
 from gavo import svcs
 from gavo import utils
 from gavo.protocols import tap
@@ -215,6 +216,46 @@ def getAsyncResource(ctx, service, segments):
 		return JoblistResource(service)
 
 
+class _TAPEx(rend.DataFactory):
+	"""A TAP example object.
+
+	These get constructed with rowdicts from the tap_schema.examples
+	table and mainly serve as a facade to the nevow rendering system.
+	"""
+	def __init__(self, tableRow):
+		self.original = tableRow
+	
+	def data_id(self, ctx, data):
+		return self.original["name"] # TODO: replace...
+	
+	def data_renderedDescription(self, ctx, data):
+		if "renderedDescription" not in self.original:
+			self.original["renderedDescription"] = 	utils.rstxToHTML(
+				self.original["description"])
+		return self.original["renderedDescription"]
+	
+
+class TAPExamples(grend.CustomTemplateMixin, grend.ServiceBasedPage):
+	"""A page with query examples.
+	"""
+	checkedRenderer = False
+	customTemplate = svcs.loadSystemTemplate("tapexamples.html")
+
+	def data_examples(self, ctx, data):
+		"""returns _TAPEx instances from the database.
+		"""
+		# we cache the query in the RD.  This way, we don't need to do
+		# the querying over and over, but after a reload of the RD,
+		# the example queries still get updated.
+		if not hasattr(self.service.rd, "examplesCache"):
+			with base.getTableConn() as conn:
+				td = self.service.rd.getById("examples")
+				t = rsc.TableForDef(td, connection=conn)
+				self.service.rd.examplesCache = [
+					_TAPEx(r) for r in t.iterQuery(td, "")]
+		return self.service.rd.examplesCache
+
+
 class _FakeUploadedFile(object):
 # File uploads without filenames are args containing a string.
 # This class lets them work as uploaded files in _saveUpload.
@@ -295,6 +336,8 @@ class TAPRenderer(grend.ServiceBasedPage):
 					res = vosi.VOSICapabilityRenderer(ctx, self.service)
 				elif segments[0]=='tables':
 					res = vosi.VOSITablesetRenderer(ctx, self.service)
+				elif segments[0]=='examples':
+					res = TAPExamples(ctx, self.service)
 				else:
 					raise svcs.UnknownURI("Bad TAP path %s"%"/".join(segments))
 				return res, ()

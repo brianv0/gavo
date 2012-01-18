@@ -32,11 +32,6 @@ import urllib
 import warnings
 import weakref
 
-try:
-	from docutils import core
-except ImportError:
-	pass
-
 from gavo import utils
 from gavo.base import attrdef
 from gavo.base import common
@@ -81,19 +76,7 @@ class MetaValueError(MetaError):
 
 
 def metaRstToHtml(inputString):
-	sourcePath, destinationPath = None, None
-	doctitle = False
-	overrides = {'input_encoding': 'unicode',
-		'doctitle_xform': None,
-		'initial_header_level': 4}
-	if not isinstance(inputString, unicode):
-		inputString = inputString.decode("utf-8")
-	parts = core.publish_parts(
-		source=inputString+"\n", source_path=sourcePath,
-		destination_path=destinationPath,
-		writer_name='html', settings_overrides=overrides)
-	return parts["fragment"]
-
+	return utils.rstxToHTML(inputString)
 
 
 _metaPat = re.compile(r"([a-zA-Z_-]+)(?:\.([a-zA-Z_-]+))*$")
