@@ -256,7 +256,7 @@
 		<meta>
 			resType: organization
 			creationDate: \metaString{authority.creationDate}{UNCONFIGURED}
-			title: \metaString{contact.name}
+			title: \metaString{organization.title}{UNCONFIGURED}
 			subject: Organization
 			description: \metaString{organization.description}{UNCONFIGURED}
 			referenceURL: \metaString{organization.referenceURL}{UNCONFIGURED}
