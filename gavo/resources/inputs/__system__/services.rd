@@ -253,6 +253,7 @@
 			subject: Organization
 			description: \metaString{authority.description}
 			referenceURL: \metaString{authority.referenceURL}
+			identifier: ivo://\getConfig{ivoa}{authority}/org
 		</meta>
 	</resRec>
 
