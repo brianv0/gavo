@@ -43,6 +43,7 @@ def makeBaseRecord(res):
 	ignored = builders.getVOResourceElement(res)
 
 	rec = {}
+	rec["ivoid"] = base.getMetaText(res, "identifier")
 	rec["shortName"] = base.getMetaText(res, "shortName")
 	rec["sourceRD"] = res.rd.sourceId
 	rec["resId"] = res.id

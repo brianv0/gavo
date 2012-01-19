@@ -18,6 +18,7 @@ from gavo.base import attrdef
 from gavo.base import common
 from gavo.base import complexattrs
 from gavo.base import config
+from gavo.base import meta
 from gavo.base import structure
 
 
@@ -211,12 +212,18 @@ class StandardMacroMixin(MacroPackage):
 			section, name = "general", section
 		return str(config.get(section, name))
 
-	def macro_metaString(self, metaKey):
+	def macro_metaString(self, metaKey, default=None):
 		"""the value of metaKey on the macro expander.
 
-		This will raise an error when the meta Key is not available.
+		This will raise an error when the meta Key is not available unless
+		you give a default.
 		"""
-		val = self.getMeta(metaKey, raiseOnFail=True)
+		try:
+			val = self.getMeta(metaKey, raiseOnFail=True)
+		except meta.NoMetaKey:
+			if default is not None:
+				return default
+			raise
 		return val.getContent().replace("\n", " ") # undo default line breaking
 
 	def macro_test(self, *args):

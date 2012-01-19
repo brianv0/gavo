@@ -1,14 +1,25 @@
 Version 0.7.1 (2012-XX-XX)
 
+  * The format of the service list has changed again, and the changes
+    require a republication of all services.  After the update, run
+
+      gavo imp --system //services
+      gavo pub -a
+  
+  * The organization running the dc is now configurable.  If you are
+    runnin the registry interface, you must now give authority.managingOrg,
+    organization.description, and organization.referenceURL in defaultmeta.txt.
+    authority.managingOrg usually is ivo://<your authority>/org.
+
 
 Version 0.7 (2012-01-12)
 
-	* Automatic dependency management for published resources (register and
-	  adql).  You must run 
-	  
-	  	gavo imp --system //services upgrade_0.6.3_0.7
+  * Automatic dependency management for published resources (register and
+    adql).  You must run 
+    
+      gavo imp --system //services upgrade_0.6.3_0.7
 
-	 after the update.
+   after the update.
 
   * UWS job representation in the database changed.  You must remove all
     UWS jobs before upgrading.  After upgrading, run

@@ -120,7 +120,11 @@ def makeDefaultMeta():
 		authority.description: This should be a relatively terse\
 			description of your data center.  You must give sensible values\
 			for all authority.* things before publishing your registry endpoint.
-		authority.referenceURL: (your DC's "contact" page, presumable)
+		authority.referenceURL: (your DC's "contact" page, presumably)
+		authority.managingOrg: ivo://x-unregistred/org
+		organization.description: Briefly describe the organization you're\
+			running the dc for here.
+		organization.referenceURL: http://your.institution/home
 		"""%(datetime.datetime.utcnow())
 	with open(destPath, "w") as f:
 		f.write(unindentString(rawData))

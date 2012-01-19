@@ -34,6 +34,10 @@
 		<column name="recTimestamp" type="timestamp"
 			description="UTC of gavopublish run on the source RD"/>
 		<column name="deleted" type="boolean"/>
+		<column name="ivoid" type="text" description="The full ivo-id of
+			the resource.  This is usually ivo://auth/rdid/frag but may
+			be overridden (you should probably not create records for
+			which you are not authority, but we do not enforce that any more)."/>
 	</table>
 
 	<table system="True" id="interfaces" forceUnique="True" onDisk="True"
@@ -139,7 +143,7 @@
 		</make>
 	</data>
 
-	<data id="upgrade_0.6.3_0.7">
+	<data id="upgrade_0.6.3_0.7" auto="False">
 		<make table="res_dependencies">
 			<script original="deleteByRDId"/>
 		</make>
@@ -159,6 +163,7 @@
 		<column original="interfaces.browseable"/>
 		<column original="interfaces.renderer"/>
 		<column original="sets.setName"/>
+		<column original="ivoid"/>
 
 		<viewStatement>
 			CREATE OR REPLACE VIEW dc.resources_join AS (
@@ -181,6 +186,7 @@
 		<column original="interfaces.referenceURL"/>
 		<column original="interfaces.browseable"/>
 		<column original="sets.setName"/>
+		<column original="ivoid"/>
 
 		<viewStatement>
 			CREATE OR REPLACE VIEW dc.subjects_join AS (
@@ -235,25 +241,27 @@
 			nonservice.NonServiceResource -->
 		<meta>
 			resType: authority
-			creationDate: \metaString{authority.creationDate}
-			title: \metaString{authority.title}
+			creationDate: \metaString{authority.creationDate}{UNCONFIGURED}
+			title: \metaString{authority.title}{UNCONFIGURED}
 			subject: Authority
-			managingOrg:ivo://\getConfig{ivoa}{authority}/org
-			description: \metaString{authority.description}
-			referenceURL: \metaString{authority.referenceURL}
+			managingOrg: \metaString{authority.managingOrg}{UNCONFIGURED}
+			description: \metaString{authority.description}{UNCONFIGURED}
+			referenceURL: \metaString{authority.referenceURL}{UNCONFIGURED}
 			identifier: ivo://\getConfig{ivoa}{authority}
+			sets: ivo_managed
 		</meta>
 	</resRec>
 
 	<resRec id="manager"> <!-- the organisation running this registry -->
 		<meta>
 			resType: organization
-			creationDate: \metaString{authority.creationDate}
+			creationDate: \metaString{authority.creationDate}{UNCONFIGURED}
 			title: \metaString{contact.name}
 			subject: Organization
-			description: \metaString{authority.description}
-			referenceURL: \metaString{authority.referenceURL}
+			description: \metaString{organization.description}{UNCONFIGURED}
+			referenceURL: \metaString{organization.referenceURL}{UNCONFIGURED}
 			identifier: ivo://\getConfig{ivoa}{authority}/org
+			sets: ivo_managed
 		</meta>
 	</resRec>
 

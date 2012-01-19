@@ -1,5 +1,11 @@
 """
 Parsing identifiers, getting res tuples and resobs from them.
+
+The DC-internal identifiers are, by default, formed as
+ivo://<authority-from-config>/<sourceRD path>/<id within path>.
+
+Thus, all renderers of a given service have the same ivo-id, which is
+to say, they are all just capabilities on the same record.
 """
 
 import re
@@ -48,20 +54,8 @@ def parseIdentifier(identifier):
 def getRestupFromIdentifier(identifier):
 	"""returns the record for identifier in the services table.
 	"""
-	authority, resKey = parseIdentifier(identifier)
-	if authority!=base.getConfig("ivoa", "authority"):
-		raise IdDoesNotExist(identifier)
-
-	if resKey=="":  # special case: The authority itself
-		resId = "authority"
-		sourceRD = "__system__/services"
-	else:
-		parts = resKey.split("/")
-		sourceRD = "/".join(parts[:-1])
-		resId = parts[-1]
-
 	matches = servicelist.queryServicesList(
-		"sourceRD=%(sourceRD)s AND resId=%(resId)s",
+		"ivoid=%(identifier)s",
 		locals(), tableName="resources")
 	if len(matches)!=1:
 		raise IdDoesNotExist(identifier)

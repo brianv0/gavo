@@ -609,5 +609,33 @@ class RelatedTest(testhelpers.VerboseTest):
 			base.caches.clearForName("//adql")
 
 
+class IdResolutionTest(testhelpers.VerboseTest):
+	auth = base.getConfig("ivoa", "authority")
+
+	def testNormal(self):
+		# (id is rdid/id)
+		svc = registry.getResobFromIdentifier(
+			"ivo://%s/__system__/services/overview"%self.auth)
+		self.assertEqual(svc.outputTable.columns[0].name, "sourceRD")
+
+	def testAuthority(self):
+		rec = registry.getResobFromIdentifier("ivo://%s"%self.auth)
+		self.failUnless(isinstance(rec, registry.nonservice.ResRec))
+		self.assertEqual(registry.getResType(rec), "authority")
+		self.failUnless(base.getMetaText(rec, "description").startswith(
+			"This should be"))
+	
+	def testOrganization(self):
+		rec = registry.getResobFromIdentifier("ivo://%s/org"%self.auth)
+		self.failUnless(isinstance(rec, registry.nonservice.ResRec))
+		self.assertEqual(registry.getResType(rec), "organization")
+		self.failUnless(base.getMetaText(rec, "description").startswith(
+			"Briefly describe"))
+
+	def testBadId(self):
+		self.assertRaises(registry.IdDoesNotExist,
+			registry.getResobFromIdentifier,
+			"ivo://junk/blastes")
+
 if __name__=="__main__":
 	testhelpers.main(StandardsTest)
