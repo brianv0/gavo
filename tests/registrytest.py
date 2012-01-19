@@ -2,8 +2,6 @@
 Tests having to do with the registry code.
 """
 
-# This is really hard to sensibly work out.  Sigh
-
 import datetime
 import os
 
@@ -21,10 +19,22 @@ from gavo.registry import builders
 from gavo.registry import capabilities
 from gavo.registry import nonservice
 from gavo.registry import oaiinter
+from gavo.registry.model import OAI
 from gavo.registry import publication
 from gavo.utils import ElementTree
 
 import tresc
+
+
+def getGetRecordResponse(resob):
+	"""returns XML and parsedXML as returned from an OAI getRecord 
+	call that retrieves resob.
+	"""
+	pars = {"verb": "GetRecord", "metadataPrefix": "ivo_vor"}
+	source = OAI.PMH[
+		oaiinter.getResponseHeaders(pars),
+		builders.getVOGetRecordElement(resob)].render()
+	return source, testhelpers.getXMLTree(source, debug=False)
 
 
 class RegistryModelTest(testhelpers.VerboseTest):
@@ -236,6 +246,67 @@ class AuthorityTest(testhelpers.VerboseTest):
 		self.failUnless('created="' in resrec)
 
 
+class _StandardsRec(testhelpers.TestResource):
+	def make(self, ignored):
+		class Container(meta.MetaMixin):
+			resType = "standard"
+			rd = base.caches.getRD("//services")
+		container = Container()
+		container.setMetaParent(container.rd)
+
+		meta.parseMetaStream(container, """
+			recTimestamp: 2010-10-10T10:10:10Z
+			sets: ivo_managed
+			status: active
+			title: a test standard
+			subject: testing
+			referenceURL: http://bar
+			identifier: ivo://foo.bar
+			endorsedVersion: 1.1
+			endorsedVersion.status: wd
+			endorsedVersion.use: preferred
+			endorsedVersion: 1.0
+			endorsedVersion.status: rec
+			endorsedVersion.use: deprecated
+			deprecated: rather use something else
+			key:
+			key.name: bar1
+			key.description: This one's open
+			key:
+			key.name: bar2
+			key.description: This one's closed
+			""")
+		return getGetRecordResponse(container)
+	
+
+class StandardsTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
+	resources = [("srcAndTree", _StandardsRec())]
+	
+	def testIsValid(self):
+		self.assertValidates(self.srcAndTree[0])
+
+	def testTwoEndorsedVersions(self):
+		self.assertEqual(len(self.srcAndTree[1].xpath("//endorsedVersion")), 2)
+	
+	def testEndorsedVersionMetaPresent(self):
+		el = self.srcAndTree[1].xpath("//endorsedVersion")[0]
+		self.assertEqual(el.get("status"), "wd")
+		self.assertEqual(el.get("use"), "preferred")
+		self.assertEqual(el.text, "1.1")
+	
+	def testDeprecated(self):
+		self.assertEqual(self.srcAndTree[1].xpath("//deprecated")[0].text,
+			"rather use something else")
+
+	def testTwoKeys(self):
+		self.assertEqual(len(self.srcAndTree[1].xpath("//key")), 2)
+
+	def testKeyStructure(self):
+		el = self.srcAndTree[1].xpath("//key")[0]
+		self.assertEqual(el[0].tag, "name")
+		self.assertEqual(el[0].text, "bar1")
+		self.assertEqual(el[1].tag, "description")
+		self.assertEqual(el[1].text, "This one's open")
 
 class DataPublicationMetaTest(testhelpers.VerboseTest):
 # Tests concerning metadata handling with the table data registry interface
@@ -454,16 +525,7 @@ class _DataGetRecordRes(testhelpers.TestResource):
 				<make table="funk"/>
 			</data></resource>""")
 		rd.sourceId = "funky/town"
-		dd = rd.dds[0]
-
-		from gavo.registry import oaiinter
-		from gavo.registry.model import OAI
-		pars = {"verb": "GetRecord", "metadataPrefix": "ivo_vor"}
-		source = OAI.PMH[
-			oaiinter.getResponseHeaders(pars),
-			builders.getVOGetRecordElement(dd)].render()
-		tree = testhelpers.getXMLTree(source, debug=False)
-		return source, tree
+		return getGetRecordResponse(rd.dds[0])
 
 _dataGetRecordRes = _DataGetRecordRes()
 
@@ -548,4 +610,4 @@ class RelatedTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(DataGetRecordTest)
+	testhelpers.main(StandardsTest)

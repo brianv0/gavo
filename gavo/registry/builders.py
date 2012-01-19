@@ -23,7 +23,7 @@ from gavo.registry import tableset
 from gavo.registry import servicelist
 from gavo.registry.common import *
 from gavo.registry.model import (
-	OAI, VOR, VOG, DC, RI, VS, VS1, SIA, SCS, OAIDC)
+	OAI, VOR, VOG, DC, RI, VS, VS1, SIA, SCS, OAIDC, VSTD)
 
 
 SF = meta.stanFactory
@@ -111,6 +111,16 @@ _orgMetaBuilder = meta.ModelBasedBuilder([
 	('facility', SF(VOR.facility)),# XXX TODO: look up ivo-ids?
 	('instrument', SF(VOR.instrument)),
 ])
+
+
+_standardsMetaBuilder = meta.ModelBasedBuilder([
+	('endorsedVersion', SF(VSTD.endorsedVersion), (), {
+			'status': 'status',
+			'use': 'use'}),
+	('deprecated', SF(VSTD.deprecated), ()),
+	('key', SF(VSTD.key), [
+		('name', SF(VSTD.name), []),
+		('description', SF(VSTD.description), [])])])
 
 
 def _stcResourceProfile(metaValue, localattrs=None):
@@ -409,10 +419,19 @@ class AuthResourceMaker(ResourceMaker):
 			VOG.managingOrg[registry.getMeta("managingOrg")]]
 
 
+class StandardsResourceMaker(ResourceMaker):
+	resourceClass = VSTD.Standard
+	resType = "standard"
+	def _makeResource(self, registry, setNames):
+		return ResourceMaker._makeResource(self, registry, setNames) [
+			_standardsMetaBuilder.build(registry)]
+
+
 class DeletedResourceMaker(ResourceMaker):
 	resType = "deleted"
 	def _makeResource(self, res, setNames):
 		return []
+
 
 _dataMetaBuilder = meta.ModelBasedBuilder([
 	('rights', SF(VOR.rights)),

@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema targetNamespace="http://www.ivoa.net/xml/StandardsRegExt/v1.0" 
+           xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+           xmlns:vr="http://www.ivoa.net/xml/VOResource/v1.0" 
+           xmlns:vstd="http://www.ivoa.net/xml/StandardsRegExt/v1.0" 
+           xmlns:vm="http://www.ivoa.net/xml/VOMetadata/v0.1"
+           elementFormDefault="unqualified" attributeFormDefault="unqualified"
+           version="1.0wd0" >
+
+   <xs:annotation>
+      <xs:appinfo>
+        <vm:schemaName>StandardsRegExt</vm:schemaName>
+        <vm:schemaPrefix>xs</vm:schemaPrefix>
+        <vm:targetPrefix>vstd</vm:targetPrefix>
+      </xs:appinfo>
+      <xs:documentation>
+        This is a core schema for describing IVOA Standards themselves
+      </xs:documentation>
+   </xs:annotation>
+
+   <xs:import namespace="http://www.ivoa.net/xml/VOResource/v1.0" 
+              schemaLocation="http://www.ivoa.net/xml/VOResource/v1.0"/>
+
+   <xs:complexType name="Standard">
+      <xs:annotation>
+         <xs:documentation>
+           a description of a standard specification.
+         </xs:documentation>
+         <xs:documentation>
+           This typically refers to an IVOA standard but is not
+           limited to such.  
+         </xs:documentation>
+      </xs:annotation>
+
+      <xs:complexContent>
+         <xs:extension base="vr:Resource">
+            <xs:sequence>
+ 
+              <xs:element name="endorsedVersion" type="vstd:EndorsedVersion" 
+                          maxOccurs="unbounded">
+                <xs:annotation>
+                   <xs:documentation>
+                     the version of the standard that is recommended for use.
+                   </xs:documentation>
+                   <xs:documentation>
+                     More than one version can be listed, indicating
+                     that any of these versions are recognized as
+                     acceptable for use.  
+                   </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+
+              <xs:element name="deprecated" type="xs:token" minOccurs="0">
+                <xs:annotation>
+                   <xs:documentation>
+                     when present, this element indicates that all
+                     versions of the standard are considered
+                     deprecated by the publisher.  The value is a 
+                     human-readable explanation for the designation.
+                   </xs:documentation>
+                   <xs:documentation>
+                     The explanation should indicate if another
+                     standard should be preferred.  
+                   </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+
+              <xs:element name="key" type="vstd:StandardKey" 
+                          minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                   <xs:documentation>
+                     a defined key associated with this standard.
+                   </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+
+            </xs:sequence>
+         </xs:extension>
+      </xs:complexContent>
+   </xs:complexType>
+
+   <xs:complexType name="EndorsedVersion">
+      <xs:simpleContent>
+         <xs:extension base="xs:string">
+           <xs:attribute name="status" default="n/a">
+             <xs:annotation>
+               <xs:documentation>
+                 the IVOA status level of this verison of the standard.
+               </xs:documentation>
+             </xs:annotation>
+
+             <xs:simpleType>
+                <xs:restriction base="xs:string">
+                   <xs:enumeration value="rec">
+                      <xs:annotation>
+                         <xs:documentation>
+                            an IVOA Recommendation
+                         </xs:documentation>
+                      </xs:annotation>
+                   </xs:enumeration>
+                   <xs:enumeration value="prop">
+                      <xs:annotation>
+                         <xs:documentation>
+                            an IVOA Proposed Recommendation
+                         </xs:documentation>
+                      </xs:annotation>
+                   </xs:enumeration>
+                   <xs:enumeration value="wd">
+                      <xs:annotation>
+                         <xs:documentation>
+                            an IVOA Working Draft
+                         </xs:documentation>
+                      </xs:annotation>
+                   </xs:enumeration>
+                   <xs:enumeration value="n/a">
+                      <xs:annotation>
+                         <xs:documentation>
+                            not an IVOA standard or protostandard at
+                            this time. 
+                         </xs:documentation>
+                      </xs:annotation>
+                   </xs:enumeration>
+                </xs:restriction>
+             </xs:simpleType>
+           </xs:attribute>
+
+           <xs:attribute name="use">
+             <xs:annotation>
+               <xs:documentation>
+                 A designation of preference for the version compared
+                 to other versions in use.
+               </xs:documentation>
+             </xs:annotation>
+
+             <xs:simpleType>
+                <xs:restriction base="xs:string">
+                   <xs:enumeration value="preferred">
+                      <xs:annotation>
+                         <xs:documentation>
+                            the most preferred version.
+                         </xs:documentation>
+                         <xs:documentation>
+                            Only one version should have this designation.
+                         </xs:documentation>
+                      </xs:annotation>
+                   </xs:enumeration>
+                   <xs:enumeration value="deprecated">
+                      <xs:annotation>
+                         <xs:documentation>
+                            a versions whose use is now discouraged
+                            because a newer version is preferred.  
+                         </xs:documentation>
+                      </xs:annotation>
+                   </xs:enumeration>
+                </xs:restriction>
+             </xs:simpleType>
+           </xs:attribute>
+
+         </xs:extension>
+      </xs:simpleContent>
+   </xs:complexType>
+
+<!-- I am not sure if this can really be used with the interface defined as below, as the that element has an accessURL, which can really only refer to a particular instance of a service
+Paul Harrison -->
+<!-- See the 4th comment to the interface element in the documentation below
+Ray Plante -->
+   <xs:complexType name="ServiceStandard">
+      <xs:annotation>
+         <xs:documentation>
+           a description of a standard service protocol.
+         </xs:documentation>
+         <xs:documentation>
+           This typically refers to an IVOA standard but is not
+           limited to such.  
+         </xs:documentation>
+      </xs:annotation>
+
+      <xs:complexContent>
+         <xs:extension base="vstd:Standard">
+            <xs:sequence>
+               <xs:element name="interface" type="vr:Interface"
+                           minOccurs="0" maxOccurs="unbounded">
+                  <xs:annotation>
+                    <xs:documentation>
+                      an abstract description of one of the interfaces defined 
+                      by this service standard.  
+                    </xs:documentation>
+                    <xs:documentation>
+                      This element can provide details about the interface 
+                      that apply to all implementations.  Each interface 
+                      element should specify a role with a value starting 
+                      with "std:" or, if there is only one standard interface,
+                      is equal to "std".  
+                    </xs:documentation>
+                    <xs:documentation>
+                      Applications that, for example, wish to build a GUI
+                      to the service on-the-fly would first access this generic 
+                      description.  Site-specific variations, such
+                      as supported optional arguments or site specific 
+                      arguments, would be given in the actual implemented 
+                      service description and overrides any common information 
+                      found in this generic description.  This generic interface
+                      description can be matched with the site-specific one 
+                      using the role attribute.  
+                    </xs:documentation>
+                    <xs:documentation>
+                      Even though the Interface type requires an
+                      accessURL child element, this element is
+                      intended to describe a service in the
+                      abstract--i.e. without reference to a particular 
+                      installation of the service.  Consequently,
+                      the accessURL may contain a bogus URL;
+                      applications should not expect it to be resolvable.  
+                    </xs:documentation>
+                  </xs:annotation>
+               </xs:element>
+            </xs:sequence>
+         </xs:extension>
+      </xs:complexContent>
+   </xs:complexType>
+
+   <xs:complexType name="StandardKeyEnumeration">
+      <xs:annotation>
+         <xs:documentation>
+            A registered set of related keys.  Each key can be
+            uniquely identified by combining the IVOA identifier of
+            this resource with the key name separated by the URI
+            fragment delimiter, #, as in: ivoa-identifiery#key-name
+         </xs:documentation>
+      </xs:annotation>
+      <xs:complexContent>
+         <xs:extension base="vr:Resource">
+            <xs:sequence>
+               <xs:element name="key" type="vstd:StandardKey"
+                           maxOccurs="unbounded" minOccurs="1">
+                 <xs:annotation>
+                    <xs:documentation>
+                      the name and definition of a key--a named concept, 
+                      feature, or property.
+                    </xs:documentation>
+                 </xs:annotation>
+               </xs:element>
+            </xs:sequence>
+         </xs:extension>
+      </xs:complexContent>
+   </xs:complexType>
+
+   <xs:complexType name="StandardKey">
+      <xs:annotation>
+         <xs:documentation>
+            The name and definition of a key--a named concept, 
+            feature, or property.
+         </xs:documentation>
+         <xs:documentation>
+            This key can be identified via an IVOA identifier
+            of the form ivo://authority/resource#name where name is
+            the value of the child name element.
+         </xs:documentation>
+         <xs:documentation>
+            This type can be extended if the key has
+            other metadata associated with it. 
+         </xs:documentation>
+      </xs:annotation>
+
+      <xs:sequence>
+         <xs:element name="name" type="vstd:fragment">
+            <xs:annotation>
+               <xs:documentation>
+                  The property identifier which would appear as the
+                  fragment (string after the pound sign, #) in an IVOA
+                  identifier.  
+               </xs:documentation>
+            </xs:annotation>
+         </xs:element>
+         <xs:element name="description" type="xs:token">
+            <xs:annotation>
+               <xs:documentation>
+                  A human-readable definition of this property.  
+               </xs:documentation>
+            </xs:annotation>
+         </xs:element>
+      </xs:sequence>
+   </xs:complexType>
+
+   <xs:simpleType name="StandardKeyURI">
+      <xs:annotation>
+         <xs:documentation>
+            reference that forces an IVOA ID with a # fragment part
+            appended to match the standard pattern for registering
+            enumeration values with a vstd:StandardKeyList
+         </xs:documentation>
+      </xs:annotation>
+      <xs:restriction base="xs:anyURI">
+         <xs:pattern value="ivo://[\w\d][\w\d\-_\.!~\*'\(\)\+=]{2,}(/[\w\d\-_\.!~\*'\(\)\+=]+(/[\w\d\-_\.!~\*'\(\)\+=]+)*)?(#([A-Za-z0-9;/\?:@&amp;=\+$,\-_\.!~\*'\(\)]|%[A-Fa-f0-9]{2})+)?"/>
+      </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="fragment">
+       <xs:annotation>
+          <xs:documentation>
+             the allowed characters for a fragment identifier taken
+             from rfc2396
+          </xs:documentation>
+       </xs:annotation>
+       <xs:restriction base="xs:string">
+          <xs:pattern
+              value="([A-Za-z0-9;/\?:@&amp;=\+$,\-_\.!~\*'\(\)]|%[A-Fa-f0-9]{2})+"/>
+       </xs:restriction>
+    </xs:simpleType>
+</xs:schema>

@@ -38,6 +38,9 @@ registerPrefix("ssap", "http://www.ivoa.net/xml/SSA/v1.0",
 	schemaURL("SSA-v1.0.xsd"))
 registerPrefix("tr", "http://www.ivoa.net/xml/TAPRegExt/v1.0",
 	schemaURL("TAPRegExt-v1.0.xsd"))
+registerPrefix("vstd", "http://www.ivoa.net/xml/StandardsRegExt/v1.0",
+	schemaURL("StandardsRegExt-1.0.xsd"))
+
 
 
 
@@ -700,3 +703,23 @@ class TR(object):
 	class uploadLimit(TRElement): pass
 	class feature(TRElement): pass
 
+
+class VSTD(object):
+	"""A container for elements from StandardsRegExt.
+	"""
+	class VSTDElement(Element):
+		_prefix = "vstd"
+		_local = True
+
+	class endorsedVersion(VSTDElement):
+		_a_status = "n/a"
+		_a_use = "preferred"
+	
+	class Standard(RI.Resource):
+		_a_xsi_type = "vstd:Standard"
+		_additionalPrefixes = frozenset(["vstd", "xsi"])
+
+	class deprecated(VSTDElement): pass
+	class key(VSTDElement): pass
+	class description(VSTDElement): pass
+	class name(VSTDElement): pass

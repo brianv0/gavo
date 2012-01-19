@@ -249,7 +249,7 @@ def _registerDocutilsExtension():
 			options={}, content=[]):
 		node = nodes.reference(rawText, text,
 			refuri="/tableinfo/%s"%text) 
-		node["classes"].append("ivo_tap_exampletable")
+		node["classes"] = ["ivo_tap_exampletable"]
 		return [node], []
 
 	roles.register_local_role("taptable", _docutils_taptableRuleFunc)
