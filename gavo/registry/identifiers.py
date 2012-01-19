@@ -19,20 +19,7 @@ from gavo.registry.common import *
 def computeIdentifierFromRestup(restup):
 	"""returns an identifier from a res tuple.
 	"""
-	# special handling for authority id
-	if (restup["sourceRD"]==SERVICELIST_ID
-			and restup["resId"]=="authority"):
-		return "ivo://%s"%base.getConfig("ivoa", "authority")
-
-	# XXX TODO: remove the if-clause when all deletions of STATICRSC_ID are done
-	if (restup["sourceRD"]=="<static resource>" or 
-			restup["sourceRD"]=="__system__/staticrsc"):
-		return "ivo://%s/%s"%(base.getConfig("ivoa", "authority"), 
-			"static/%s"%restup["resId"])
-
-	return "ivo://%s/%s"%(
-		base.getConfig("ivoa", "authority"), 
-		"%s/%s"%(restup["sourceRD"], restup["resId"]))
+	return restup["ivoid"]
 
 
 _idPattern = re.compile("ivo://(\w[^!;:@%$,/]+)(/[^?#]*)?")

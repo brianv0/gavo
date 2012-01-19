@@ -100,7 +100,7 @@ class OAIBasicTest(_OAITest):
 			for id in [
 				"ivo://x-unregistred/__system__/services/registry",
 				'ivo://x-unregistred',
-				'ivo://x-unregistred/__system__/services/manager']:
+				'ivo://x-unregistred/org']:
 				self.failUnless(id in ids)
 			self.assertEqual(len(ids), len(res), "Duplicate records with resumption")
 				

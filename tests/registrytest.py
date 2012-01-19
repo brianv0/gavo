@@ -637,5 +637,19 @@ class IdResolutionTest(testhelpers.VerboseTest):
 			registry.getResobFromIdentifier,
 			"ivo://junk/blastes")
 
+
+class ListRecordsTest(testhelpers.VerboseTest):
+	def testRecords(self):
+		tree = testhelpers.getXMLTree(
+			oaiinter.run_ListIdentifiers(
+				{"verb": "listIdentifiers", "metadataPrefix": "ivo_vor"}).render())
+		res = set(el.text for el in tree.xpath("//identifier"))
+		expected = set([
+			"ivo://x-unregistred/__system__/services/registry",
+			"ivo://x-unregistred",
+			"ivo://x-unregistred/org"])
+		self.assertEqual(res&expected, expected)
+
+
 if __name__=="__main__":
-	testhelpers.main(StandardsTest)
+	testhelpers.main(ListRecordsTest)
