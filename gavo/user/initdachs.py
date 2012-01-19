@@ -122,6 +122,7 @@ def makeDefaultMeta():
 			for all authority.* things before publishing your registry endpoint.
 		authority.referenceURL: (your DC's "contact" page, presumably)
 		authority.managingOrg: ivo://x-unregistred/org
+		organization.title: Unconfigured organization
 		organization.description: Briefly describe the organization you're\
 			running the dc for here.
 		organization.referenceURL: http://your.institution/home

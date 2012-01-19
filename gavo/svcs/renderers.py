@@ -31,6 +31,7 @@ RENDERER_REGISTRY = {
 	'qp': ("web.qprenderer", "QPRenderer"),
 	'soap': ("web.soaprender", "SOAPRenderer"),
 	'tap': ("web.taprender", "TAPRenderer"),
+	'tapexamples': ("web.taprender", "TAPExamples"),
 	'upload': ("web.uploadservice", "Uploader"),
 	'mupload': ("web.uploadservice", "MachineUploader"),
 	'scs.xml': ("web.vodal", "SCSRenderer"),

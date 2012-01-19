@@ -140,6 +140,10 @@ class TAPInterface(InterfaceMaker):
 	renderer = "tap"
 	interfaceClass = TR.interface
 
+class TAPExamplesInterface(InterfaceMaker):
+	renderer = "tapexamples"
+	interfaceClass = VOR.WebBrowser
+
 
 class SOAPInterface(InterfaceMaker):
 	renderer = "soap"
@@ -372,6 +376,14 @@ class TAPCapabilityMaker(CapabilityMaker):
 		
 		return res
 
+
+class TAPExCapabilityMaker(CapabilityMaker):
+	renderer = "tapexamples"
+	capabilityClass = VOG.capability
+	def _makeCapability(self, publication):
+		return CapabilityMaker._makeCapability(self, publication)(
+			standardID="ivo://org.gavo.dc/misc/tapexamples")
+			
 
 class RegistryCapabilityMaker(CapabilityMaker):
 	renderer = "pubreg.xml"

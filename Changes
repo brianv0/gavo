@@ -8,7 +8,8 @@ Version 0.7.1 (2012-XX-XX)
   
   * The organization running the dc is now configurable.  If you are
     runnin the registry interface, you must now give authority.managingOrg,
-    organization.description, and organization.referenceURL in defaultmeta.txt.
+    organization.title, organization.description, and 
+    organization.referenceURL in defaultmeta.txt.
     authority.managingOrg usually is ivo://<your authority>/org.
 
 

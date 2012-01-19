@@ -423,6 +423,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		"""
 		res = [pub for pub in self.publications if pub.sets & names]
 		vosiSet = set(["ivo_managed"])
+
 		if res and "ivo_managed" in names:
 			res.extend((
 				base.makeStruct(Publication, render="availability", sets=vosiSet,
@@ -432,6 +433,12 @@ class Service(base.Structure, base.ComputedMetaMixin,
 				base.makeStruct(Publication, render="tableMetadata", sets=vosiSet,
 					parent_=self),
 			))
+			# Special "automatic" renderer for TAP; if there are more cases
+			# like this, add some attribute to the renderer classes
+			if "tap" in self.allowed:
+				res.append(
+					base.makeStruct(Publication, render="tapexamples", sets=vosiSet,
+						parent_=self))
 		return res
 
 	def getURL(self, rendName, absolute=True):

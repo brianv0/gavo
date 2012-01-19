@@ -264,7 +264,11 @@ except:
 
 class TAPExamples(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 	"""A page with query examples.
+
+	This will only run on services with the TAP rd (or one that has
+	an examples tables structured in the same way).
 	"""
+	name = "tapexamples"
 	checkedRenderer = False
 	customTemplate = svcs.loadSystemTemplate("tapexamples.html")
 
