@@ -11,6 +11,15 @@
 <body n:render="withsidebar">
 	<h1>Example Queries for our TAP Service</h1>
 
+	<ul id="toc" n:render="sequence" n:data="examples">
+		<li n:pattern="item">
+			<a>
+				<n:attr name="href">#<n:invisible n:render="string" n:data="id"/></n:attr>
+				<n:invisible n:render="string" n:data="name"/>
+			</a>
+		</li>
+	</ul>
+
 	<n:invisible n:render="sequence" n:data="examples">
 		<div class="ivo_tap_examples" n:pattern="item">
 			<n:attr name="id" n:render="string" n:data="id"/>
