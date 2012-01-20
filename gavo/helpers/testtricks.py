@@ -5,6 +5,7 @@ helper functions and classes for unit tests and similar.
 from __future__ import with_statement
 
 import contextlib
+import gzip
 import os
 import subprocess
 import tempfile
@@ -52,14 +53,25 @@ class XSDTestMixin(object):
 
 
 @contextlib.contextmanager
-def testFile(destPath, content):
-	"""a context manager that provides and deletes content in a file a destPath.
+def testFile(name, content, writeGz=False):
+	"""a context manager that creates a file name with content in tempDir.
 
-	As usual, you should not use fixed, predictable file names in tmp.
+	The full path name is returned.
+
+	With writeGz=True, content is gzipped on the fly (don't do this if
+	the data already is gzipped).
 	"""
-	with open(destPath, "w") as f:
-		f.write(content)
+	destName = os.path.join(base.getConfig("tempDir"), name)
+	if writeGz:
+		f = gzip.GzipFile(destName, mode="wb")
+	else:
+		f = open(destName, "w")
+	f.write(content)
+	f.close()
 	try:
-		yield
+		yield destName
 	finally:
-		os.unlink(destPath)
+		try:
+			os.unlink(destName)
+		except os.error:
+			pass

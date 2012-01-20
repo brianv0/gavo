@@ -13,6 +13,7 @@ Some utility functions to deal with FITS files.
 
 from __future__ import with_statement
 
+import contextlib
 import datetime
 import gzip
 import os
@@ -50,15 +51,20 @@ else:
 		_TempHDU = pyfits._TempHDU
 
 
-FITS_BLOCK_SIZE = 2880
 
+
+CARD_SIZE = 80
+
+END_CARD = 'END'+' '*(CARD_SIZE-3)
+
+FITS_BLOCK_SIZE = CARD_SIZE*36
 
 
 class FITSError(Exception):
 	pass
 
 
-def padCard(input, length=80):
+def padCard(input, length=CARD_SIZE):
 	"""pads input (a string) with blanks until len(result)%80=0
 
 	The length keyword argument lets you adjust the "card size".  Use
@@ -81,6 +87,30 @@ def padCard(input, length=80):
 	return input+' '*(length-l%length)
 
 
+def readHeaderBytes(f, maxHeaderBlocks=30):
+	"""returns the bytes beloning to a FITS header starting at the current
+	position within the file f.
+
+	If the header is not complete after reading maxHeaderBlocks blocks,
+	a FITSError is raised.
+	"""
+	parts = []
+
+	while True:
+		block = f.read(FITS_BLOCK_SIZE)
+		if not block:
+			raise EOFError('Premature end of file while reading header')
+
+		parts.append(block)
+		endCardPos = block.find(END_CARD)
+		if not endCardPos%CARD_SIZE:
+			break
+
+		if len(parts)>=maxHeaderBlocks:
+			raise FITSError("No end card found within %d blocks"%maxHeaderBlocks)
+	return "".join(parts)
+
+
 def readPrimaryHeaderQuick(f):
 	"""returns a pyfits header for the primary hdu of the opened file f.
 
@@ -91,28 +121,9 @@ def readPrimaryHeaderQuick(f):
 
 	This function is adapted from pyfits.
 	"""
-	end_RE = re.compile('END'+' '*77)
-	block = f.read(FITS_BLOCK_SIZE)
-	if block == '':
-		raise EOFError
-
 	hdu = _TempHDU()
-	hdu._raw = ''
-
-	# continue reading header blocks until END card is reached
-	while 1:
-		mo = end_RE.search(block)
-		if mo is None:
-			hdu._raw += block
-			block = f.read(FITS_BLOCK_SIZE)
-			if block == '' or len(hdu._raw)>40000:
-				break
-		else:
-			break
-	hdu._raw += block
-
+	hdu._raw = readHeaderBytes(f)
 	_size, hdu.name = hdu._getsize(hdu._raw)
-
 	hdu._extver = 1  # We only do PRIMARY
 
 	hdu._new = 0
@@ -129,15 +140,13 @@ def parseCards(aString):
 	Empty (i.e., all-whitespace) cards are ignored.  If an END card is
 	encoundered processing is aborted.
 	"""
-	cardSize = 80
-	endCardRaw = "%-*s"%(cardSize, 'END')
 	cards = []
-	if len(aString)%cardSize:
+	if len(aString)%CARD_SIZE:
 		raise ValueError("parseCards argument has impossible length %s"%(
 			len(aString)))
-	for offset in range(0, len(aString), cardSize):
-		rawCard = aString[offset:offset+cardSize]
-		if rawCard==endCardRaw:
+	for offset in range(0, len(aString), CARD_SIZE):
+		rawCard = aString[offset:offset+CARD_SIZE]
+		if rawCard==END_CARD:
 			break
 		if not rawCard.strip():
 			continue
@@ -182,14 +191,37 @@ def replacePrimaryHeaderInPlace(fitsName, newHeader):
 	this case, only overwriting the old entry when the new data is safely
 	on disk.
 
-	For gzipped inputs (recognized by the extension .gz), we always copy.
+	gzipped inputs used to be supported here, but they aren't any more.
 	"""
-	inputFile = open(fitsName)
-	with ostricks.safeReplaced(fitsName) as targetFile:
-		if fitsName.endswith(".gz"):
-			targetFile = gzip.GzipFile(mode="wb", fileobj=targetFile)
-			inputFile = gzip.GzipFile(fileobj=inputFile)
-		replacePrimaryHeader(inputFile, newHeader, targetFile)
+	if fitsName.endswith(".gz"):
+		raise NotImplementedError("replacePrimaryHeaderInPlace no longer"
+			" supports gzipped files.")
+
+	serializedNew = serializeHeader(newHeader)
+	with open(fitsName) as inputFile:
+		serializedOld = readHeaderBytes(inputFile)
+		inputFile.seek(0)
+
+		if len(serializedNew)<len(serializedOld):
+			# the new header is shorter than the old one; pad it with empty
+			# cards, then make sure the end card is in the last block
+			serializedNew = serializedNew+(
+				len(serializedOld)-len(serializedNew))*" "
+			serializedNew = serializedNew.replace(END_CARD, " "*len(END_CARD))
+			serializedNew = serializedNew[:-len(END_CARD)]+END_CARD
+			assert len(serializedNew)==len(serializedOld)
+
+		if len(serializedNew)==len(serializedOld):
+			# header lengths match (after possible padding); just write
+			# the new header and be done
+			with open(fitsName, "r+") as targetFile:
+				targetFile.seek(0)
+				targetFile.write(serializedNew)
+
+		else:
+			# New header is longer than the old one, write the whole mess.
+			with ostricks.safeReplaced(fitsName) as targetFile:
+				replacePrimaryHeader(inputFile, newHeader, targetFile)
 
 
 # enforced sequence of well-known keywords, and whether they are mandatory

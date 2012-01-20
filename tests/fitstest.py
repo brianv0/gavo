@@ -15,32 +15,13 @@ from gavo.utils import fitstools
 from gavo.utils import pyfits
 
 
-_fitsgz1 = \
+_fitsData = \
 """eJzt0b0KwjAUhmH/f+7i3IFWZwfFCgEthXboGm0LHZpIUofevaeIuCRIwUm+B76teTnQRFzic0i0
 I4eUVnTTqtSmttRoOok0IdtIlUuTux4QHUQai8zd2264J42RLeWykdS098Jd+Yj2mUjIc1/XU4/6
 WhjS5btc1YWylVbW3wvcvWD97RpPb+O9r7cwS8Po6P0f/XtdDAAAAAB+ZvAy5I14Y96EN+XNeHPe
 grfs+R0AAAAAwF96ApwhgT4=
-""".decode("base64")
+""".decode("base64").decode("zlib")
 
-
-class TempFits(object):
-	name = "temp.fits"
-	def __init__(self, data, name=None):
-		if name:
-			self.name = name
-		self.dir = tempfile.mkdtemp()
-		self.path = os.path.join(self.dir, self.name)
-		f = open(self.path, "w")
-		f.write(data)
-		f.close()
-
-	def cleanup(self):
-		self.__del__()
-
-	def __del__(self):
-		if self.dir:
-			shutil.rmtree(self.dir, ignore_errors=True)
-		self.dir = None
 
 
 class SortHeadersTest(unittest.TestCase):
@@ -53,35 +34,28 @@ class SortHeadersTest(unittest.TestCase):
 	def testHeadersPreserved(self):
 		"""tests for sortHeaders preserving the incoming headers by default.
 		"""
-		tf = TempFits(_fitsgz1.decode("zlib"))
-		try:
-			hdr = fitstools.sortHeaders(pyfits.open(tf.path)[0].header)
+		with testhelpers.testFile("test.fits", _fitsData) as ff:
+			hdr = fitstools.sortHeaders(pyfits.open(ff)[0].header)
 			self.assertHeaderSequence(hdr, ["SIMPLE", "BITPIX", "NAXIS", "NAXIS1", 
 					"NAXIS2", "EXTEND",])
-		finally:
-			tf.cleanup()
 	
 	def testWithCommentsAndHistory(self):
 		"""tests for sortHeaders sorting comment and history cards.
 		"""
-		tf = TempFits(_fitsgz1.decode("zlib"))
-		try:
-			hdr = pyfits.open(tf.path)[0].header
+		with testhelpers.testFile("test.fits", _fitsData) as ff:
+			hdr = pyfits.open(ff)[0].header
 			hdr.add_comment("Foo1")
 			hdr.add_history("this header added for testing")
 			hdr.add_comment("This is at the end.")
 			hdr = fitstools.sortHeaders(hdr)
 			self.assertHeaderSequence(hdr, ["SIMPLE", "BITPIX", "NAXIS", "NAXIS1", 
 					"NAXIS2", "EXTEND", "", "HISTORY", "", "COMMENT", "COMMENT"])
-		finally:
-			tf.cleanup()
 
 	def testCommentFilter(self):
 		"""tests for deletion of unwanted comment cards.
 		"""
-		tf = TempFits(_fitsgz1.decode("zlib"))
-		try:
-			hdr = pyfits.open(tf.path)[0].header
+		with testhelpers.testFile("test.fits", _fitsData) as ff:
+			hdr = pyfits.open(ff)[0].header
 			hdr.add_comment("to delete")
 			hdr.add_comment("keep this one")
 			hdr.add_comment("and delete this")
@@ -91,8 +65,6 @@ class SortHeadersTest(unittest.TestCase):
 				lambda arg: "delete" in arg)
 			self.assertHeaderSequence(hdr, ["SIMPLE", "BITPIX", "NAXIS", "NAXIS1", 
 					"NAXIS2", "EXTEND", "", "COMMENT", "COMMENT"])
-		finally:
-			tf.cleanup()
 	
 	def testOrder(self):
 		"""tests for ordering of critical keywords.
@@ -115,25 +87,65 @@ class SortHeadersTest(unittest.TestCase):
 			"EXTEND", "FLOB"])
 
 
-class FITSWriteTest(unittest.TestCase):
+class FITSWriteTest(testhelpers.VerboseTest):
 	"""tests for correct FITS writing.
 	"""
-	def test(self):
-		"""tests for in-place operation of header replacement.
-		"""
-		tf = TempFits(_fitsgz1.decode("zlib"), "input.fits")
-		try:
-			hdr = pyfits.open(tf.path)[0].header
-			hdr.update("TELESCOP", "Python Telescope")
-			hdr.update("APERTURE", 23)
-			fitstools.replacePrimaryHeaderInPlace(tf.path, hdr)
-			hdu = pyfits.open(tf.path)[0]
-			self.assertEqual(hdu.header["TELESCOP"], "Python Telescope")
-			self.assertEqual(hdu.header["BITPIX"], 32)
+	def _assertOverwriteWorks(self, inFileName):
+		hdr = pyfits.open(inFileName)[0].header
+		hdr.update("TELESCOP", "Python Telescope")
+		hdr.update("APERTURE", 23)
+		fitstools.replacePrimaryHeaderInPlace(inFileName, hdr)
+		hdu = pyfits.open(inFileName)[0]
+		self.assertEqual(hdu.header["TELESCOP"], "Python Telescope")
+		self.assertEqual(hdu.header["BITPIX"], 32)
+		self.assertEqual(hdu.header["NAXIS1"], 10)
+		self.assertEqual(hdu.data[1][4], 4)
+
+	def testInPlaceSameSize(self):
+		with testhelpers.testFile("test.fits", _fitsData) as ff:
+			self._assertOverwriteWorks(ff)
+
+	def testInPlaceGZ(self):
+		with testhelpers.testFile("test.fits.gz", _fitsData, writeGz=True) as ff:
+			self.assertRaisesWithMsg(NotImplementedError,
+				"replacePrimaryHeaderInPlace no longer supports gzipped files.",
+				fitstools.replacePrimaryHeaderInPlace,
+				(ff, None))
+
+	def testInPlaceLonger(self):
+		with testhelpers.testFile("test.fits", _fitsData) as ff:
+			hdr = pyfits.open(ff)[0].header
+			for num in range(50):
+				hdr.update("KEY%d"%num, num)
+			fitstools.replacePrimaryHeaderInPlace(ff, hdr)
+			hdu = pyfits.open(ff)[0]
+			self.assertEqual(hdu.header["NAXIS1"], 10)
+			self.assertEqual(hdu.header["KEY48"], 48)
+			self.assertEqual(hdu.data[1][4], 4)
+
+	def testInPlaceShorter(self):
+		with testhelpers.testFile("test.fits", _fitsData) as ff:
+			hdr = pyfits.open(ff)[0].header
+			oldhdr = hdr.copy()
+			for num in range(50):
+				hdr.update("KEY%d"%num, num)
+			fitstools.replacePrimaryHeaderInPlace(ff, hdr)
+			fitstools.replacePrimaryHeaderInPlace(ff, oldhdr)
+			
+			# if things have worked, there's now >= 50 cards of padding
+			# in the header, and the end card is in the second after
+			# all the padding
+			with open(ff) as f:
+				firstBlock = f.read(fitstools.FITS_BLOCK_SIZE)
+				self.failIf(fitstools.END_CARD in firstBlock)
+				secondBlock = f.read(fitstools.FITS_BLOCK_SIZE)
+				self.failUnless(fitstools.END_CARD in secondBlock)
+				self.failUnless(secondBlock.startswith(" "*2000))
+
+			hdu = pyfits.open(ff)[0]
 			self.assertEqual(hdu.header["NAXIS1"], 10)
 			self.assertEqual(hdu.data[1][4], 4)
-		finally:
-			tf.cleanup()
+			self.assertRaises(KeyError, lambda: hdu.header["KEY48"])
 
 
 class ParseCardsTest(testhelpers.VerboseTest):
@@ -200,6 +212,21 @@ class ScalingTest(testhelpers.VerboseTest):
 		self.assertEqual(int(pixelRows[0][-1]), 8621)
 
 
-if __name__=="__main__":
-	testhelpers.main(ScalingTest)
+class ReadHeaderTest(testhelpers.VerboseTest):
+	def testMaxBlocks(self):
+		with testhelpers.testFile("bad.fits", " "*8000) as inName:
+			self.assertRaisesWithMsg(fitstools.FITSError,
+				'No end card found within 2 blocks',
+				fitstools.readHeaderBytes,
+				(open(inName), 2))
 
+	def testPrematureEOF(self):
+		with testhelpers.testFile("bad.fits", " "*80) as inName:
+			self.assertRaisesWithMsg(EOFError,
+				'Premature end of file while reading header',
+				fitstools.readHeaderBytes,
+				(open(inName),))
+
+
+if __name__=="__main__":
+	testhelpers.main(ReadHeaderTest)
