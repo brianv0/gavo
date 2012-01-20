@@ -6,7 +6,9 @@ OS abstractions and related.
 #c
 #c This program is free software, covered by the GNU GPL.  See COPYING.
 
+import contextlib
 import os
+import tempfile
 import urllib2
 
 from gavo.utils import codetricks
@@ -22,6 +24,38 @@ def safeclose(f):
 	f.flush()
 	os.fsync(f.fileno())
 	f.close()
+
+
+@contextlib.contextmanager
+def safeReplaced(fName):
+	"""opens fName for "safe replacement".
+
+	Safe replacement means that you can write to the object returned, and
+	when everything works out all right, what you have written replaces
+	the old content of fName, where the old mode is preserved if possible.  
+	When there are errors, however, the old content remains.
+	"""
+	targetDir = os.path.abspath(os.path.dirname(fName))
+	oldMode = os.stat(fName)[0]
+	handle, tempName = tempfile.mkstemp(".temp", "", dir=targetDir)
+	targetFile = os.fdopen(handle, "w")
+
+	try:
+		yield targetFile
+	except:
+		try:
+			os.unlink(tempName)
+		except os.error:
+			pass
+		raise
+
+	else:
+		safeclose(targetFile)
+		os.rename(tempName, fName)
+		try:
+			os.chmod(fName, oldMode)
+		except os.error:
+			pass
 
 
 class _UrlopenRemotePasswordMgr(urllib2.HTTPPasswordMgr):
@@ -103,6 +137,7 @@ def cat(srcF, destF, chunkSize=1<<20):
 		if not data:
 			break
 		destF.write(data)
+
 
 def ensureDir(dirPath, mode=None, setGroupTo=None):
 	"""makes sure that dirPath exists and is a directory.

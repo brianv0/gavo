@@ -25,7 +25,9 @@
 	The queries this service executes are written an a dialect of SQL called
 	ADQL.  You need to learn it to use this service.  See `our ADQL tutorial`_ or
 	check the `service doc of our ADQL form service`_ for some other resources
-	for doing that.  By the way, for quick ad-hoc queries from within a browser,
+	for doing that.  Also do not miss our `local examples`_
+	
+	By the way, for quick ad-hoc queries from within a browser,
 	this local `ADQL form`_ may be more convenient than ADQL.
 
 	Also see the `table metadata`_ of the tables exposed here.
@@ -33,10 +35,11 @@
 	.. _TOPCAT: http://www.star.bris.ac.uk/~mbt/topcat/
 	.. _GAVO VOTable library: http://vo.ari.uni-heidelberg.de/soft/subpkgs
 	.. _TAP shell: http://vo.ari.uni-heidelberg.de/soft/tapsh
-	.. _table metadata: /__system__/tap/run/tableMetadata
+	.. _table metadata: \internallink{__system__/tap/run/tableMetadata}
 	.. _ADQL form: \internallink{__system__/adql/query/form}
 	.. _service doc of our ADQL form service: \internallink{__system__/adql/query/info}
 	.. _our ADQL tutorial: http://docs.g-vo.org/adql
+	.. _local examples: \internallink{__system__/tap/run/tap/examples}
 
 
 	Issues

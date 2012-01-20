@@ -160,8 +160,8 @@ def replacePrimaryHeader(inputFile, newHeader, targetFile, bufSize=100000):
 	inputFile must be a file freshly opened for reading, targetFile one 
 	freshly opened for writing.
 
-	This function is a workaround for pyfits' misfeature of unscaling
-	scaled data in images when extending a header.
+	This function is (among other things) a workaround for pyfits' misfeature of
+	unscaling scaled data in images when extending a header.
 	"""
 	readPrimaryHeaderQuick(inputFile)
 	targetFile.write(serializeHeader(newHeader))
@@ -170,6 +170,26 @@ def replacePrimaryHeader(inputFile, newHeader, targetFile, bufSize=100000):
 		if not buf:
 			break
 		targetFile.write(buf)
+
+
+def replacePrimaryHeaderInPlace(fitsName, newHeader):
+	"""replaces the primary header of fitsName with newHeader.
+
+	Doing this, it tries to minimize the amout of writing necessary; if
+	fitsName has enough space for newHeader, just the header is written,
+	and newHeader is extended if necessary.  Only if newHeader is longer than
+	the existing header is fitsName actually copied.  We try to be safe in
+	this case, only overwriting the old entry when the new data is safely
+	on disk.
+
+	For gzipped inputs (recognized by the extension .gz), we always copy.
+	"""
+	inputFile = open(fitsName)
+	with ostricks.safeReplaced(fitsName) as targetFile:
+		if fitsName.endswith(".gz"):
+			targetFile = gzip.GzipFile(mode="wb", fileobj=targetFile)
+			inputFile = gzip.GzipFile(fileobj=inputFile)
+		replacePrimaryHeader(inputFile, newHeader, targetFile)
 
 
 # enforced sequence of well-known keywords, and whether they are mandatory
@@ -249,30 +269,6 @@ def sortHeaders(header, commentFilter=None, historyFilter=None):
 		if commentFilter is None or commentFilter(card.value):
 			newCards.append(card)
 	return _enforceHeaderConstraints(newCards)
-
-
-def replacePrimaryHeaderInPlace(fitsName, newHeader):
-	"""is a convenience wrapper around replacePrimaryHeader.
-	"""
-	targetDir = os.path.abspath(os.path.dirname(fitsName))
-	oldMode = os.stat(fitsName)[0]
-	handle, tempName = tempfile.mkstemp(".temp", "", dir=targetDir)
-	try:
-		targetFile = os.fdopen(handle, "w")
-		inputFile = open(fitsName)
-		if fitsName.endswith(".gz"):
-			targetFile = gzip.GzipFile(mode="wb", fileobj=targetFile)
-			inputFile = gzip.GzipFile(fileobj=inputFile)
-		replacePrimaryHeader(inputFile, newHeader, targetFile)
-		inputFile.close()
-		ostricks.safeclose(targetFile)
-		os.rename(tempName, fitsName)
-		os.chmod(fitsName, oldMode)
-	finally:
-		try:
-			os.unlink(tempName)
-		except os.error:
-			pass
 
 
 def openGz(fitsName):

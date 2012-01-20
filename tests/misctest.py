@@ -17,7 +17,6 @@ import unittest
 
 import numpy
 
-from gavo.helpers import processing
 from gavo.helpers import testhelpers
 
 from gavo import base
@@ -28,6 +27,7 @@ from gavo import stc
 from gavo import utils
 from gavo.base import valuemappers
 from gavo.helpers import filestuff
+from gavo.helpers import processing
 from gavo.protocols import creds
 from gavo.utils import DEG
 from gavo.utils import pyfits
@@ -285,25 +285,6 @@ class ProcessorTest(testhelpers.VerboseTest):
 		self._testApplyCaches()
 		self._testForcedRecompute()
 		self._testBugfix()
-
-
-class RemoteURLTest(testhelpers.VerboseTest):
-	"""tests for urlopenRemote rejecting unwanted URLs.
-	"""
-	def testNoFile(self):
-		self.assertRaises(IOError,
-			utils.urlopenRemote, "file:///etc/passwd")
-	
-	def testHTTPConnect(self):
-		# this assumes nothing actually listens on 57388
-		self.assertRaisesWithMsg(IOError,
-			"Could not open URL http://localhost:57388: Connection refused",
-			utils.urlopenRemote, ("http://localhost:57388",))
-
-	def testMalformedURL(self):
-		self.assertRaisesWithMsg(IOError, 
-			'Could not open URL /etc/passwd: unknown url type: /etc/passwd',
-			utils.urlopenRemote, ("/etc/passwd",))
 
 
 class StanXMLTest(testhelpers.VerboseTest):
@@ -585,18 +566,6 @@ class TapquerySyncTest(testhelpers.VerboseTest):
 			job.setParameter("MAXREC", 0)
 			job.start()
 			self.assertEqual(cgi.parse_qs(fakeInfo.lastData)["MAXREC"], ["0"])
-
-
-class MatrixTest(testhelpers.VerboseTest):
-	def testVecMul(self):
-		mat = utils.Matrix3([1, 0, 1], [-1, 1, 0], [0, -1, -1])
-		self.assertEqual(mat.vecMul((3, 8, -1)), (2, 5, -7))
-	
-	def testMatMul(self):
-		mat1 = utils.Matrix3([1, 0, 1], [-1, 1, 0], [0, -1, -1])
-		mat2 = utils.Matrix3(*mat1.getColumns())
-		self.assertEqual(mat1.matMul(mat2), utils.Matrix3(
-			(2, -1, -1), (-1, 2, -1), (-1, -1, 2)))
 
 
 class PgSphereDryTest(testhelpers.VerboseTest):
