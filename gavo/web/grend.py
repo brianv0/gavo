@@ -581,7 +581,7 @@ class ServiceBasedPage(ResourceBasedPage):
 		if segments==("",):
 			raise svcs.WebRedirect(url.URL.fromContext(ctx))
 		else:
-			return ResourceBasedPage.locateChild(self, segments)
+			return ResourceBasedPage.locateChild(self, ctx, segments)
 
 if __name__=="__main__":
 	import doctest, grend
