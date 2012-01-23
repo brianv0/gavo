@@ -246,7 +246,7 @@ def getUnitGrammar():
 
 def parseUnit(unitStr, unitGrammar=getUnitGrammar()):
 	try:
-		return unitGrammar.parseString(unitStr)[0]
+		return utils.pyparseString(unitGrammar, unitStr)[0]
 	except ParseException, msg:
 		raise utils.logOldExc(
 			BadUnit("%s at col. %d"%(repr(unitStr), msg.column)))

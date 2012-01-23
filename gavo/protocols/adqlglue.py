@@ -372,8 +372,11 @@ def _makeSimbadRegion(regionSpec):
 	except KeyError:
 		raise base.ui.logOldExc(
 			adql.RegionError("No simbad position for '%s'"%object))
-	return adql.getSymbols()["point"].parseString("POINT('ICRS',"
-		"%.10f, %.10f)"%(alpha, delta))
+# XXX TODO: there's a locking problem here since this needs to be
+# protected by the the lock on ADQL's root.  Think about a good way to
+# solve this.
+	return utils.pyparseString(adql.getSymbols()["point"],
+		"POINT('ICRS'," "%.10f, %.10f)"%(alpha, delta))
 adql.registerRegionMaker(_makeSimbadRegion)
 
 

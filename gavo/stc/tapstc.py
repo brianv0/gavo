@@ -248,7 +248,7 @@ def getSimpleSTCSParser():
 		if s is None or not s.strip(): # special service: Null values
 			return None
 		try:
-			res = region.parseString(s, parseAll=True)[0]
+			res = utils.pyparseString(region, s, parseAll=True)[0]
 			if not res.cooSys or res.cooSys.lower()=='unknownframe':  # Sigh.
 				res.cooSys = "UNKNOWN"
 			return res

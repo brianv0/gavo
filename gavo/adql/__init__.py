@@ -39,7 +39,7 @@ def parseToTree(adqlStatement):
 
 	It contains no annotations, so you'll usually not want to use this.
 	"""
-	return getGrammar().parseString(adqlStatement)[0]
+	return utils.pyparseString(getGrammar(), adqlStatement)[0]
 
 def parseAnnotating(adqlStatement, fieldInfoGetter):
 	"""returns a tuple of context, parsedTree for parsing and annotating

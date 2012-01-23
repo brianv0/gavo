@@ -388,7 +388,7 @@ def parseUploadString(uploadString):
 	"""iterates over pairs of tableName, uploadSource from a TAP upload string.
 	"""
 	try:
-		res = getUploadGrammar().parseString(uploadString).asList()
+		res = utils.pyparseString(getUploadGrammar(), uploadString).asList()
 		return res
 	except ParseException, ex:
 		raise base.ValidationError(

@@ -35,7 +35,7 @@ from gavo.utils.mathtricks import *
 
 from gavo.utils.misctricks import (Undefined, QuotedName, getfirst,
 	logOldExc, sendUIEvent, pyparsingWhitechars, getWithCache,
-	rstxToHTML)
+	rstxToHTML, pyparseString, pyparseTransform)
 
 from gavo.utils.ostricks import (safeclose, urlopenRemote, 
 	fgetmtime, cat, ensureDir, safeReplaced)

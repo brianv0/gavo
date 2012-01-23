@@ -5,7 +5,6 @@ A macro mechanism primarily for string replacement in resource descriptors.
 from __future__ import with_statement
 
 import datetime
-import threading
 import time
 
 from pyparsing import Word, OneOrMore, ZeroOrMore, QuotedString, Forward,\
@@ -69,7 +68,6 @@ class MacroExpander(object):
 	def __init__(self, package):
 		self.package = package
 		self._macroGrammar = self._getMacroGrammar()
-		self._macroGrammarLock = threading.Lock()
 
 	def _execMacro(self, s, loc, toks):
 		toks = toks.asList()
@@ -77,8 +75,7 @@ class MacroExpander(object):
 		return self.package.execMacro(macName, args)
 
 	def expand(self, aString):
-		with self._macroGrammarLock:
-			return self._macroGrammar.transformString(aString)
+		return utils.pyparseTransform(self._macroGrammar, aString)
 
 	def _getMacroGrammar(self, debug=False):
 		with utils.pyparsingWhitechars(" \t"):

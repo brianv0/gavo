@@ -289,7 +289,7 @@ def parseNumericExpr(str, baseSymbol=getComplexGrammar(floatLiteral,
 		_makePmNode)):
 	"""returns a parse tree for vizier-like expressions over floats.
 	"""
-	return baseSymbol.parseString(str)[0]
+	return utils.pyparseString(baseSymbol, str)[0]
 
 
 def parseDateExpr(str, baseSymbol=getComplexGrammar(dateLiteral,
@@ -299,7 +299,7 @@ def parseDateExpr(str, baseSymbol=getComplexGrammar(dateLiteral,
 	Note that the semantic validity of the date (like, month<13) is not
 	checked by the grammar.
 	"""
-	return baseSymbol.parseString(str)[0]
+	return utils.pyparseString(baseSymbol, str)[0]
 
 
 def _makeOpNode(s, loc, toks):
@@ -373,7 +373,7 @@ def getStringGrammar():
 
 
 def parseStringExpr(str, baseSymbol=getStringGrammar()):
-	return baseSymbol.parseString(str)[0]
+	return utils.pyparseString(baseSymbol, str)[0]
 
 
 def _makeFactory(parser):

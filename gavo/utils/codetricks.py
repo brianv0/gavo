@@ -20,6 +20,7 @@ import shutil
 import string
 import sys
 import tempfile
+import threading
 import weakref
 from cStringIO import StringIO
 
@@ -41,18 +42,27 @@ class CachedGetter(object):
 
 	You can also leave out the getter argument and add an argumentless method 
 	impl computing the value to cache.
+
+	Using a CachedGetter also serializes generation, so you can also use
+	it when getter isn't thread-safe.
 	"""
 	def __init__(self, getter, *args, **kwargs):
 		if getter is None:
 			getter = self.impl
 		self.cache, self.getter = None, getter
 		self.args, self.kwargs = args, kwargs
+		self.lock = threading.Lock()
 	
 	def __call__(self):
 		if self.cache is None:
-			self.cache = self.getter(*self.args, **self.kwargs)
-			del self.args
-			del self.kwargs
+			with self.lock:
+				# Second and following in already have the cache set and return here
+				if self.cache is not None:
+					return self.cache
+				self.cache = self.getter(*self.args, **self.kwargs)
+				del self.args
+				del self.kwargs
+				del self.lock
 		return self.cache
 
 

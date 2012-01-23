@@ -109,7 +109,8 @@ class SQLScriptRunner(ScriptRunner):
 	Keyword arguments to run are ignored.
 	"""
 	def _prepare(self, script):
-		self.statements = getSQLScriptGrammar().parseString(script.getSource())
+		self.statements = utils.pyparseString(getSQLScriptGrammar(), 
+			script.getSource())
 	
 	def run(self, dbTable, **kwargs):
 		for statement in self.statements:

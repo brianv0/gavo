@@ -237,10 +237,47 @@ def getWithCache(url, cacheDir, extraHeaders={}):
 		return doc
 
 
+def rstxToHTML(source, **userOverrides):
+	"""returns HTML for a piece of ReStructured text.
+
+	source can be a unicode string or a byte string in utf-8.
+
+	userOverrides will be added to the overrides argument of docutils'
+	core.publish_parts.
+	"""
+	sourcePath, destinationPath = None, None
+	doctitle = False
+	if not isinstance(source, unicode):
+		source = source.decode("utf-8")
+	
+	overrides = {'input_encoding': 'unicode',
+		'doctitle_xform': None,
+		'initial_header_level': 4}
+	overrides.update(userOverrides)
+
+	parts = rstcore.publish_parts(
+		source=source+"\n", source_path=sourcePath,
+		destination_path=destinationPath,
+		writer_name='html', settings_overrides=overrides)
+	return parts["fragment"]
+
+
 ####################### Pyparsing hacks
 # This may not be the best place to put this, but I don't really have a
 # better one at this point.  We need some configuration of pyparsing, and
 # this is probably imported by all modules doing pyparsing.
+#
+# (1) When building grammars, always do so using the pyparsingWhitechars
+# context manager.  Building grammars is thread-safe, but different
+# grammars here use different whitespace conventions, so without
+# the c.m., you might get those messed up.
+#
+# (2) When parsing strings, *always* go through pyparseString(grammar,
+# string) and fellow functions whenever your code could run from within
+# the server (i.e., basically always outside of tests).
+# pyparsing is not thread-safe, and thus we'll need to shoehorn some
+# locking on top of it; I don't want to change the pyparsing methods
+# themselves since they may be called very frequently.
 
 try:
 	from pyparsing import ParserElement, ParseException
@@ -277,6 +314,29 @@ try:
 		finally:
 			ParserElement.setDefaultWhitespaceChars(" \t")
 			_PYPARSE_LOCK.release()
+
+	def ensurePyparsingLock(grammar):
+		"""adds a parseLock attribute to grammar if necessary.
+		"""
+		with _PYPARSE_LOCK:
+			if not hasattr(grammar, "parseLock"):
+				grammar.parseLock = threading.Lock()
+
+	def pyparseString(grammar, string, **kwargs):
+		"""parses a string using a pyparsing grammar thread-safely.
+		"""
+		ensurePyparsingLock(grammar)
+		with grammar.parseLock:
+			return grammar.parseString(string, **kwargs)
+
+	def pyparseTransform(grammar, string, **kwargs):
+		"""calls grammar's transformString method thread-safely.
+		"""
+		ensurePyparsingLock(grammar)
+		with grammar.parseLock:
+			return grammar.transformString(string, **kwargs)
+
+
 except ImportError, ex:  # no pyparsing, let clients bomb if they need it.
 	@contextlib.contextmanager
 	def pyparsingWhitechars(arg):
@@ -284,29 +344,6 @@ except ImportError, ex:  # no pyparsing, let clients bomb if they need it.
 		yield
 
 
-def rstxToHTML(source, **userOverrides):
-	"""returns HTML for a piece of ReStructured text.
-
-	source can be a unicode string or a byte string in utf-8.
-
-	userOverrides will be added to the overrides argument of docutils'
-	core.publish_parts.
-	"""
-	sourcePath, destinationPath = None, None
-	doctitle = False
-	if not isinstance(source, unicode):
-		source = source.decode("utf-8")
-	
-	overrides = {'input_encoding': 'unicode',
-		'doctitle_xform': None,
-		'initial_header_level': 4}
-	overrides.update(userOverrides)
-
-	parts = rstcore.publish_parts(
-		source=source+"\n", source_path=sourcePath,
-		destination_path=destinationPath,
-		writer_name='html', settings_overrides=overrides)
-	return parts["fragment"]
 
 
 def _test():

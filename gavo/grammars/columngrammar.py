@@ -126,7 +126,8 @@ class ColumnGrammar(Grammar):
 	def _parseColDefs(self, ctx):
 		# the handler for colDefs -- parse shortcut colDefs
 		try:
-			for key, range in self._getColDefGrammar().parseString(self.colDefs):
+			for key, range in utils.pyparseString(self._getColDefGrammar(), 
+					self.colDefs):
 				self.colRanges[key] = self._cols.itemAttD.parse(range)
 		except pyparsing.ParseException, ex:
 			raise base.LiteralParseError("colDefs", self.colDefs,

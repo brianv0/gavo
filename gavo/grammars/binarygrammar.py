@@ -99,7 +99,7 @@ class BinaryRecordDef(base.Structure):
 
 	def completeElement(self, ctx):
 		try:
-			parsedFields = self._fieldsGrammar.parseString(self.content_)
+			parsedFields = utils.pyparseString(self._fieldsGrammar, self.content_)
 		except pyparsing.ParseBaseException, ex:
 			raise base.ui.logOldExc(base.LiteralParseError("binaryRecordDef", 
 				re.sub("\s+", " ", self.content_),

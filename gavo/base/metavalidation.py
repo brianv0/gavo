@@ -146,7 +146,7 @@ def parseModel(modelDescr):
 
 	model descriptions are covered in the module docstring.
 	"""
-	return _getModelGrammar().parseString(modelDescr)[0]
+	return utils.pyparseString(_getModelGrammar(), modelDescr)[0]
 
 
 def _validateStructNode(aStruct):
