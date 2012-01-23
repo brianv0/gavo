@@ -2,6 +2,8 @@
 Definition of DC config options and their management including I/O.
 """
 
+from __future__ import with_statement
+
 import ConfigParser
 import cStringIO
 import grp
@@ -486,9 +488,8 @@ def makeFallbackMeta(reload=False):
 		warnings.warn("%s does not exist, registry interface  will be broken"%
 			srcPath)
 		return
-	f = open(srcPath)
-	content = f.read()
-	f.close()
+	with open(srcPath) as f:
+		content = f.read().decode("utf-8", "ignore")
 	meta.parseMetaStream(meta.configMeta, content, clearItems=reload)
 
 makeFallbackMeta()

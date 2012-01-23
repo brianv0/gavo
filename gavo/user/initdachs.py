@@ -117,13 +117,13 @@ def makeDefaultMeta():
 		authority.creationDate: %s
 		authority.title: Untitled data center
 		authority.shortname: DaCHS standin
-		authority.description: This should be a relatively terse\
-			description of your data center.  You must give sensible values\
+		authority.description: This should be a relatively terse \
+			description of your data center.  You must give sensible values \
 			for all authority.* things before publishing your registry endpoint.
 		authority.referenceURL: (your DC's "contact" page, presumably)
 		authority.managingOrg: ivo://x-unregistred/org
 		organization.title: Unconfigured organization
-		organization.description: Briefly describe the organization you're\
+		organization.description: Briefly describe the organization you're \
 			running the dc for here.
 		organization.referenceURL: http://your.institution/home
 		"""%(datetime.datetime.utcnow())

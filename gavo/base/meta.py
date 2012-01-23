@@ -114,6 +114,8 @@ def parseMetaStream(metaContainer, metaStream, expand=None,
 	 - comments are lines like (ws*)# anything
 	 - empty lines are no-ops
 	 - all other lines are (ws*)<key>(ws*):(ws*)value(ws*)
+	 - if a key starts with !, any meta info for the key is cleared before 
+	   setting
 	"""
 	if metaStream is None:
 		return
@@ -136,6 +138,10 @@ def parseMetaStream(metaContainer, metaStream, expand=None,
 				" meta value; see also the documentation.")
 
 		key = key.strip()
+		if key.startswith("!"):
+			key = key[1:]
+			metaContainer.delMeta(key)
+
 		if expand is not None and '\\' in value:
 			value = expand(value)
 		

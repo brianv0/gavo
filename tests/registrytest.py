@@ -629,8 +629,8 @@ class IdResolutionTest(testhelpers.VerboseTest):
 		rec = registry.getResobFromIdentifier("ivo://%s/org"%self.auth)
 		self.failUnless(isinstance(rec, registry.nonservice.ResRec))
 		self.assertEqual(registry.getResType(rec), "organization")
-		self.failUnless(base.getMetaText(rec, "description").startswith(
-			"Briefly describe"))
+		self.assertEqual(base.getMetaText(rec, "referenceURL"),
+			"http://your.institution/home")
 
 	def testBadId(self):
 		self.assertRaises(registry.IdDoesNotExist,

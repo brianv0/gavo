@@ -589,6 +589,13 @@ class XMLTest(testhelpers.VerboseTest):
 			parseMetaXML,
 			("<meta>just junk</meta>",))
 
+	def testInlineClearing(self):
+		mc = parseMetaXML("<meta>creator.name:A. Author\n!creator.name:B. Berta\n"
+			"</meta>")
+		t = meta.TextBuilder()
+		self.assertEqual(mc.buildRepr("creator", t),
+			[(u'creator.name', u'B. Berta')])
+
 
 class ModelValidationTest(testhelpers.VerboseTest):
 	def setUp(self):
@@ -704,6 +711,15 @@ class StructureValidationTest(testhelpers.VerboseTest):
 		s.addMeta("publisher", "United Leeches, Inc.")
 		s.addMeta("publisher", "Greedy University Press")
 		self.assertRuns(base.validateStructure, (s,))
+
+
+class DefaultMetaTest(testhelpers.VerboseTest):
+	def testDecoded(self):
+		# the meta checked here is set up in testhelpers
+		mc = parseMetaXML("<meta/>")
+		self.assertEqual(base.getMetaText(mc, "organization.description"
+				).encode("iso-8859-1"),
+			"Mein w\xfcster Club")
 
 
 if __name__=="__main__":

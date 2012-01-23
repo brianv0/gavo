@@ -49,6 +49,13 @@ if not os.path.exists(base.getConfig("rootDir")):
 	try:
 		subprocess.call(["createdb", "--encoding=UTF-8", dbname])
 		initdachs.createFSHierarchy(dbname, "test")
+
+		with open(os.path.join(base.getConfig("configDir"), "defaultmeta.txt"),
+				"a") as f:
+			f.write("!organization.description: Mein w\xc3\xbcster Club\n")
+		from gavo.base import config
+		config.makeFallbackMeta(reload=True)
+
 		os.symlink(os.path.join(TEST_BASE, "test_data"),
 			os.path.join(base.getConfig("inputsDir"), "data"))
 		os.rmdir(os.path.join(base.getConfig("inputsDir"), "__system"))
