@@ -157,8 +157,12 @@ def parseCards(aString):
 def serializeHeader(hdr):
 	"""returns the FITS serialization of a FITS header hdr.
 	"""
-	serForm = "".join(map(repr, hdr.ascardlist()))
-	serForm = serForm+padCard('END')
+	parts = []
+	for card in hdr.ascardlist():
+		r = repr(card)
+		assert not len(r)%CARD_SIZE
+		parts.append(r)
+	serForm = "".join(parts)+padCard('END')
 	return padCard(serForm, length=FITS_BLOCK_SIZE)
 
 

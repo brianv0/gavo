@@ -5,6 +5,8 @@ Currently, I assume a plain text interface for those.  It might be
 a good idea to use the event mechanism here.
 """
 
+from __future__ import with_statement
+
 import os
 import shutil
 import sys
@@ -186,11 +188,20 @@ class HeaderProcessor(FileProcessor):
 		return srcName+self.headerExt
 
 	def _writeCache(self, srcName, hdr):
-		hdu = pyfits.PrimaryHDU(header=hdr)
 		dest = self._makeCacheName(srcName)
-		if os.path.exists(dest):
-			os.unlink(dest)
-		hdu.writeto(dest)
+
+		# nuke info on sizes that may still lurk; we don't want that in the
+		# cache
+		hdr = hdr.copy()
+		hdr["BITPIX"] = 8
+		hdr["NAXES"] = 0
+		if hdr.has_key("NAXIS1"):
+			del hdr["NAXIS1"]
+		if hdr.has_key("NAXIS2"):
+			del hdr["NAXIS2"]
+
+		with open(dest, "w") as f:
+			f.write(fitstools.serializeHeader(hdr))
 
 	def _readCache(self, srcName):
 		"""returns a pyfits header object for the cached result in srcName.
@@ -199,10 +210,9 @@ class HeaderProcessor(FileProcessor):
 		"""
 		src = self._makeCacheName(srcName)
 		if os.path.exists(src):
-			hdus = pyfits.open(src)
-			hdr = hdus[0].header
-			hdus.close()
-			return hdr
+			with open(src) as f:
+				hdr = fitstools.readPrimaryHeaderQuick(f)
+		return hdr
 
 	def _makeCache(self, srcName):
 		if self.opts.compute:
@@ -355,7 +365,7 @@ class AnetHeaderProcessor(HeaderProcessor):
 			if oldCards is None:
 				raise CannotComputeHeader("No cached headers and you asked"
 					" not to run astrometry.net")
-			return oldCards
+			return oldCards.ascard
 
 	def _getHeader(self, srcName):
 		hdr = self._mungeHeader(srcName, self.getPrimaryHeader(srcName))

@@ -91,11 +91,12 @@ NULL.
 
 SELECT and SELECT ALL are not exactly the same thing.  The latter will add
 an OFFSET 0 to the resulting postgresql query.  Use this when the query
-planner messes up; see the `Story I: Guide Star`_ below.
+planner messes up; see the `guide star example </tap/examples#Crossmatchforaguidestar>`_.
 
 Date literals can be specified `as for Postgresql <http://www.postgresql.org/docs/8.3/static/datatype-datetime.html#DATATYPE-DATETIME-INPUT>`_;
 you always need to use strings.  So, ``'2000-12-31'`` or ``'J2416642.5'``
-are both valid date specifications.  See also `Story II: Historic Lights`_
+are both valid date specifications.  See also the
+`historic plates example <http://dc.g-vo.org/tap/examples#findingplatesbytimeandplace>`_.
 
 The ADQL (unfortunately) does not allow boolean columns.  Within the data
 center, we do have boolean columns here and there, and it would be shame to
