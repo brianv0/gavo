@@ -511,7 +511,6 @@ def getCST(literal, grammarFactory=None):
 	if grammarFactory is None:
 		grammarFactory = getGrammar
 	try:
-		# XXX TODO: see if this will use the right lock
 		tree = makeTree(utils.pyparseString(
 			grammarFactory()["stcsPhrase"], literal))
 	except (ParseException, ParseSyntaxException), ex:

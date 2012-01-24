@@ -362,6 +362,7 @@ def _getRegionId(regionSpec, pat=re.compile("[A-Za-z_]+")):
 # the cache
 from gavo.protocols import simbadinterface
 
+
 def _makeSimbadRegion(regionSpec):
 	if not _getRegionId(regionSpec)=="simbad":
 		return
@@ -372,11 +373,7 @@ def _makeSimbadRegion(regionSpec):
 	except KeyError:
 		raise base.ui.logOldExc(
 			adql.RegionError("No simbad position for '%s'"%object))
-# XXX TODO: there's a locking problem here since this needs to be
-# protected by the the lock on ADQL's root.  Think about a good way to
-# solve this.
-	return utils.pyparseString(adql.getSymbols()["point"],
-		"POINT('ICRS'," "%.10f, %.10f)"%(alpha, delta))
+	return nodes.Point(x=repr(alpha), y=repr(delta), cooSys="ICRS")
 adql.registerRegionMaker(_makeSimbadRegion)
 
 
