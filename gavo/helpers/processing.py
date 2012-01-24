@@ -193,8 +193,8 @@ class HeaderProcessor(FileProcessor):
 		# nuke info on sizes that may still lurk; we don't want that in the
 		# cache
 		hdr = hdr.copy()
-		hdr["BITPIX"] = 8
-		hdr["NAXES"] = 0
+		hdr.update("BITPIX", 8)
+		hdr.update("NAXIS", 0)
 		if hdr.has_key("NAXIS1"):
 			del hdr["NAXIS1"]
 		if hdr.has_key("NAXIS2"):
@@ -212,7 +212,7 @@ class HeaderProcessor(FileProcessor):
 		if os.path.exists(src):
 			with open(src) as f:
 				hdr = fitstools.readPrimaryHeaderQuick(f)
-		return hdr
+			return hdr
 
 	def _makeCache(self, srcName):
 		if self.opts.compute:

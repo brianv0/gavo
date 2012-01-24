@@ -22,6 +22,15 @@ WhjS5btc1YWylVbW3wvcvWD97RpPb+O9r7cwS8Po6P0f/XtdDAAAAAB+ZvAy5I14Y96EN+XNeHPe
 grfs+R0AAAAAwF96ApwhgT4=
 """.decode("base64").decode("zlib")
 
+_nastyHeaderData = \
+"""
+eJztkjFvwjAQhf/Km8pSVR27dKAUVZFCQCKtWE1yJEbOmcYOEf31PUNQWYqqitGfvET2vffuLstk
+tkinwDNy3IKXJF8kq6D3dBO9bLxKlgh6jzfRS+fZ28c4Fb1RXmsHOQrGcoW9Mh3B18qj18agpc9O
+tyTXhWWvWS4L1ZbQLI8IG+0d7kaTeZYn2btMcFSTKql9AMaF75Qxh/vwUBQsFwTaE6NXwW7dVScf
+y+YAV9ueSnQ7UQMu9PpaKnxvB3/ltWUYzeTQB1lVblVB7EPZr0zms9k0y0/9hqpjqddNUDkaSC+F
+bdZnA7sJn43oQnH50/vgcpEvTOMcBbvWrg01V7Ncy3dchic3DL+2O9p0MkOUWlVsv8SDD7KTqiXn
+JKcb9uDCJshIkBPT7PU/v0UkEolEIpHIn/kGwPbCBw==
+""".decode("base64").decode("zlib")
 
 
 class SortHeadersTest(unittest.TestCase):
@@ -146,6 +155,33 @@ class FITSWriteTest(testhelpers.VerboseTest):
 			self.assertEqual(hdu.header["NAXIS1"], 10)
 			self.assertEqual(hdu.data[1][4], 4)
 			self.assertRaises(KeyError, lambda: hdu.header["KEY48"])
+
+	def testWithContinueCards(self):
+		hdr = pyfits.Header()
+		hdr.update("LONGVAL", "This is a long value that will require a"
+			" continue card in the fits header.  Actually, there once even"
+			" was a bug that only showed up when two contination lines"
+			" were adjacent")
+		hdr.add_comment("There were times when the combination of comment"
+			" and continue cards were a problem")
+		hdr.add_comment("This test will hopefully diagnoze any regressions"
+			" in these fields")
+		serialized = fitstools.serializeHeader(hdr)
+		self.assertEqual(len(serialized), fitstools.FITS_BLOCK_SIZE)
+		self.assertEqual(serialized[:9], "LONGVAL =")
+		self.assertEqual(serialized[80:89], "CONTINUE ")
+		self.assertEqual(serialized[160:169], "CONTINUE ")
+		self.assertEqual(serialized[240:249], "COMMENT =")
+		self.assertEqual(serialized[320:329], "CONTINUE ")
+		self.assertEqual(serialized[400:409], "COMMENT T")
+		self.assertEqual(serialized[480:489], "END      ")
+
+	def testRoundtrip(self):
+		with testhelpers.testFile("test.fits", _nastyHeaderData) as ff:
+			with open(ff) as f:
+				hdr = fitstools.readPrimaryHeaderQuick(f)
+			self.assertEqual(fitstools.serializeHeader(hdr),
+				_nastyHeaderData)
 
 
 class ParseCardsTest(testhelpers.VerboseTest):

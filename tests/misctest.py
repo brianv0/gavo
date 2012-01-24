@@ -188,7 +188,7 @@ class ProcessorTest(testhelpers.VerboseTest):
 
 	def _testPlainRun(self):
 		# procmain reads argv, don't confuse it
-		sys.argv = ["test"]
+		sys.argv = ["test", "--bail"]
 		# Normal run, no headers present yet
 		proc, stdout, _ = testhelpers.captureOutput(processing.procmain,
 			(self.SimpleProcessor, "filetest/filetest", "import"))
