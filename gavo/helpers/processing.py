@@ -368,13 +368,13 @@ class AnetHeaderProcessor(HeaderProcessor):
 			return oldCards.ascard
 
 	def _getHeader(self, srcName):
-		hdr = self._mungeHeader(srcName, self.getPrimaryHeader(srcName))
+		hdr = self.getPrimaryHeader(srcName)
 		wcsCards = self._solveAnet(srcName)
 		if not wcsCards:
 			raise CannotComputeHeader("astrometry.net did not"
 				" find a solution")
 		fitstricks.copyFields(hdr, wcsCards, self.noCopyHeaders)
-		return hdr
+		return self._mungeHeader(srcName, hdr)
 
 	def commentFilter(self, value):
 		return ( "Index name" in value or
