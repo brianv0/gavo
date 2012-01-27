@@ -240,7 +240,9 @@ class Make(base.Structure, scripting.ScriptingMixin):
 		newTable = tableFactory(self.table,
 			parseOptions=parseOptions, connection=connection, role=self.role,
 			create=True)
-		newTable._runScripts = self.getRunner()
+		if (not parseOptions.updateMode 
+				and not getattr(self.parent, "updating", False)):
+			newTable._runScripts = self.getRunner()
 		return newTable
 	
 	def runParmakerFor(self, grammarParameters, destTable):

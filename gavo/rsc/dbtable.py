@@ -468,10 +468,8 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 			raise base.DataError("Invalid dupePolicy: %s"%self.tableDef.dupePolicy)
 
 	def configureTable(self):
-		if self.tableDef.temporary:
-			self.createUniquenessRules()
-			return
-		self.updateMeta()
+		if not self.tableDef.temporary:
+			self.updateMeta()
 		self.createUniquenessRules()
 		return self
 

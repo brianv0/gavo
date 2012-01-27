@@ -1,5 +1,5 @@
 """
-Services and cores to upload things into databases.
+Renderers supporting upload cores.
 """
 
 from nevow import inevow
@@ -14,7 +14,7 @@ from gavo.web import formrender
 class Uploader(formrender.Form):
 	"""A renderer allowing for updates to individual records using file upload.
 
-	This renderer exposes a form with a file widget.  It is likely that
+	This renderer exposes a form with a file widget.	It is likely that
 	the interface will change.
 	"""
 
@@ -64,11 +64,25 @@ class MachineUploader(Uploader):
 		base.ui.notifyFailure(failure)
 		return ""
 
+	def _notifyNonModified(self, data, ctx):
+		request = inevow.IRequest(ctx)
+		request.setResponseCode(400)
+		request.setHeader("content-type", "text/plain;charset=utf-8")
+		request.write(("Uploading %s did not change data database.\nThis"
+			" usually happens when the file already existed for an insert"
+			" or did not exist for an update.\n"%(
+			data.inputTable.getParamDict()["File"][0],
+			)).encode("utf-8"))
+		return ""
+
 	def _formatOutput(self, data, ctx):
+		numAffected = data.original.getPrimaryTable().rows[0]["nAffected"]
+		if numAffected==0:
+			return self._notifyNonModified(data, ctx)
 		request = inevow.IRequest(ctx)
 		request.setResponseCode(200)
 		request.setHeader("content-type", "text/plain;charset=utf-8")
 		request.write(("%s uploaded, %d records modified\n"%(
 			data.inputTable.getParamDict()["File"][0],
-			data.original.getPrimaryTable().rows[0]["nAffected"])).encode("utf-8"))
+			numAffected)).encode("utf-8"))
 		return ""

@@ -98,8 +98,9 @@ class UploadCore(core.Core):
 		try:
 			parseOptions = rsc.getParseOptions(validateRows=True, 
 				updateMode=True, doTableUpdates=mode=="u")
-			res = rsc.makeData(self.destDD, parseOptions=parseOptions, 
-				forceSource=sourcePath, connection=base.getDBConnection('admin'))
+			with base.getWritableAdminConn() as conn:
+				res = rsc.makeData(self.destDD, parseOptions=parseOptions, 
+					forceSource=sourcePath, connection=conn)
 		except Exception, msg:
 			raise base.ui.logOldExc(base.ValidationError("Cannot enter %s in"
 				" database: %s"%(os.path.basename(sourcePath), str(msg)), "File"))
