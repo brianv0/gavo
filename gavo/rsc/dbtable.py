@@ -321,6 +321,7 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 		self.nometa = (kwargs.get("nometa", False) 
 			or self.tableDef.temporary or tableDef.rd.schema=="dc")
 
+		self.newlyCreated = False
 		if kwargs.get("create", False):
 			self.createIfNecessary()
 		if not self.tableUpdates:
@@ -362,9 +363,10 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 		return Feeder(self, self.addCommand, **kwargs)
 
 	def importFinished(self):
-		self.runScripts("preIndex")
-		self.makeIndices()
-		self.runScripts("postCreation")
+		if self.newlyCreated:
+			self.runScripts("preIndex")
+			self.makeIndices()
+			self.runScripts("postCreation")
 		self.query("ANALYZE %s"%self.tableName)
 		if self.ownedConnection:
 			self.connection.commit()
@@ -484,6 +486,7 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 			self.tableName,
 			", ".join([column.getDDL()
 				for column in self.tableDef.columns])))
+		self.newlyCreated = True
 		return self.configureTable()
 
 	def updateMeta(self):

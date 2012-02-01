@@ -14,9 +14,10 @@ getRD = base.caches.getRD
 RD = rscdesc.RD
 
 from gavo.base import (getConfig, setConfig,
-	getDBConnection, getDefaultDBConnection, setDBProfile, 
+	getDBConnection, getDefaultDBConnection, setDBProfile, #deprecated
 	SimpleQuerier,  # deprecated
 	AdhocQuerier, getTableConn, getAdminConn,
+	getWritableAdminConn,
 	NoMetaKey, Error, StructureError, ValidationError, LiteralParseError, 
 	ReportableError, NotFoundError, RDNotFound, 
 	parseFromString,

@@ -318,6 +318,9 @@ renderers -- include:
 * coverage -- see the special section to be written
 * service-specific metadata (for SIA, SCS, etc.) -- see the
   documentation of the respective cores.
+* utype – tables (and possibly other items) can have utypes to signify
+  their role in specific data models.  For tables, this utype gets
+  exported to the tap_schema.
 
 While you can set any of these in etc/defaultmeta.txt, the following items
 are usually set there:

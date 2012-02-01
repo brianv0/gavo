@@ -95,7 +95,7 @@ class DataFeeder(table.Feeder):
 			except ValueError:
 				# assume we only got a row, broadcast it
 				for adder in itertools.chain(*parAddersDict.values()):
-					adder(row)
+					adder(roleRow)
 			else:
 				for adder in parAddersDict[role]:
 					adder(row)
@@ -312,7 +312,8 @@ def _processSourceReal(data, source, feeder, opts):
 		except Exception, msg:
 			raise base.ui.logOldExc(
 				base.SourceParseError(str(msg), 
-					source=utils.makeEllipsis(unicode(source), 80)))
+					source=utils.makeEllipsis(unicode(source), 80),
+					location=srcIter.getLocator()))
 	else:  # magic grammars (like those of boosters) return a callable
 		srcIter(data)
 

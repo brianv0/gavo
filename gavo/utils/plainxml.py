@@ -207,3 +207,6 @@ class StartEndHandler(ContentHandler):
 		the attribute names.  Any prefixes on attrs remain, though.
 		"""
 		return dict((k.split(":")[-1], v) for k, v in attrs.items())
+	
+	def setDocumentLocator(self, locator):
+		self.locator = locator
