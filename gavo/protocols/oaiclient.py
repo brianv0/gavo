@@ -39,7 +39,10 @@ class IdParser(utils.StartEndHandler):
 		self.recs[-1]["id"] = content
 	
 	def _end_datestamp(self, name, attrs, content):
-		self.recs[-1]["date"] = utils.parseISODT(content)
+		try:
+			self.recs[-1]["date"] = utils.parseISODT(content)
+		except ValueError:  # don't fail just because of a broken date
+			self.recs[-1]["date"] = None
 	
 	def _start_header(self, name, attrs):
 		self.recs.append({})
@@ -92,6 +95,11 @@ class RecordParser(IdParser):
 
 class OAIQuery(object):
 	"""A container for queries to OAI interfaces.
+
+	Construct it with the oai endpoint and the OAI verb, plus some optional
+	query attributes.  If you want to retain or access the raw responses
+	of the server, pass a contentCallback function -- it will be called
+	with a byte string containing the payload of the server response.
 	"""
 	startDate = None
 	endDate = None
@@ -99,16 +107,19 @@ class OAIQuery(object):
 	registry = None
 	metadataPrefix = None
 
+	quirkNakedResumptionToken = True
+
 	# maxRecords is mainly used in test_oai; that's why there's no
 	# constructor parameter for it
 	maxRecords = None
 
 	def __init__(self, registry, verb, startDate=None, endDate=None, set=None,
-			metadataPrefix="ivo_vor"):
+			metadataPrefix="ivo_vor", contentCallback=None):
 		self.registry = registry
 		self.verb, self.set = verb, set
 		self.startDate, self.endDate = startDate, endDate
 		self.metadataPrefix = metadataPrefix
+		self.contentCallback = contentCallback
 
 	def getKWs(self, **moreArgs):
 		"""returns a dictionary containing query keywords for OAI interfaces
@@ -125,6 +136,11 @@ class OAIQuery(object):
 			kws["set"] = self.set
 		if self.maxRecords:
 			kws["maxRecords"] = str(self.maxRecords)
+
+		if "resumptionToken" in kws and self.quirkNakedResumptionToken:
+			kws = {"resumptionToken": kws["resumptionToken"],
+				"verb": kws["verb"]}
+
 		return kws
 
 	def doHTTP(self, **moreArgs):
@@ -137,6 +153,8 @@ class OAIQuery(object):
 			self.registry+"?"+self._getOpQS(**self.getKWs(**moreArgs)))
 		res = f.read()
 		f.close()
+		if self.contentCallback:
+			self.contentCallback(res)
 		return res
 
 	def _getOpQS(self, **args):
@@ -148,7 +166,8 @@ class OAIQuery(object):
 		return "%s"%(qString)
 
 	def talkOAI(self, parserClass):
-		"""processes an OAI dialogue for verb using the IdParser-derived parserClass.
+		"""processes an OAI dialogue for verb using the IdParser-derived 
+		parserClass.
 		"""
 		res = self.doHTTP(metadataPrefix="ivo_vor", verb=self.verb)
 		handler = parserClass()

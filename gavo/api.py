@@ -19,7 +19,7 @@ from gavo.base import (getConfig, setConfig,
 	AdhocQuerier, getTableConn, getAdminConn,
 	getWritableAdminConn,
 	NoMetaKey, Error, StructureError, ValidationError, LiteralParseError, 
-	ReportableError, NotFoundError, RDNotFound, 
+	ReportableError, NotFoundError, RDNotFound, SourceParseError,
 	parseFromString,
 	ui)
 

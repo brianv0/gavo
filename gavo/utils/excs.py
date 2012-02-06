@@ -163,7 +163,7 @@ class SourceParseError(Error):
 	def __str__(self):
 		if self.offending:
 			return "At %s: %s, offending %s"%(self.location, self.msg, 
-				repr(self.offending))
+				self.offending)
 		else:
 			return "At %s: %s"%(self.location, self.msg)
 

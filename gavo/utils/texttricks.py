@@ -421,6 +421,8 @@ def parseISODT(literal):
 	Traceback (most recent call last):
 	ValueError: Bad ISO datetime literal: junk
 	"""
+	# temporary hack while ESAVO registry is broken:
+	literal = literal.rstrip("Z")
 	mat = _isoDTRE.match(literal.strip())
 	if not mat:
 		raise ValueError("Bad ISO datetime literal: %s"%literal)

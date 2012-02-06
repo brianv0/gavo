@@ -101,7 +101,7 @@ def raiseAndCatch(opts=None, output=outputError):
 			msg.source, msg.location))
 		messages.append((msg.msg+"\n").decode("iso-8859-1", "ignore"))
 		if msg.offending:
-			messages.append("Offending literal: %s\n"%repr(offending))
+			messages.append("Offending literal: %s\n"%repr(msg.offending))
 
 	except base.BadCode, msg:
 		messages.append("Bad user %s:\n"%msg.codeType)

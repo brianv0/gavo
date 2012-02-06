@@ -28,7 +28,7 @@ def process(opts, args):
 	# process manages its dependencies itself
 	opts.buildDependencies = False
 
-	src, selectedIds = args[0], set(args[1:])
+	src, selectedIds = args[0], args[1:]
 	rd = rscdesc.openRD(src)
 	if rd.sourceId.startswith("/"):
 		raise base.ReportableError(
