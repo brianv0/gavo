@@ -426,6 +426,7 @@ class _TableVORRecord(testhelpers.TestResource):
 				<column name="oink" utype="noises:animal.pig"/>
 				<column name="where" type="spoint" ucd="pos.eq;source"/>
 			<register sets="ivo_managed,local"/>
+			<meta name="utype">testing.table.name</meta>
 			<meta name="description">Some silly test data</meta>
 			<meta name="subject">testing</meta>
 			<meta name="subject">regressions</meta>
@@ -444,7 +445,6 @@ class _TableVORRecord(testhelpers.TestResource):
 		return tree.xpath("metadata/Resource")[0]
 
 _tableVORRecord = _TableVORRecord()
-
 
 
 class TablePublicationRecordTest(testhelpers.VerboseTest):
@@ -499,7 +499,9 @@ class TablePublicationRecordTest(testhelpers.VerboseTest):
 		self.assertEqual(par.xpath("relatedResource")[1].attrib["ivo-id"],
 			"ivo://org.g-vo.junk/adql")
 
-
+	def testUtype(self):
+		self.assertEqual(self.tree.xpath("tableset/schema/table/utype")[0].text,
+			"testing.table.name")
 
 class _DataGetRecordRes(testhelpers.TestResource):
 	def make(self, ignored):
