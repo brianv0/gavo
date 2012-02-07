@@ -308,6 +308,7 @@ class StandardsTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 		self.assertEqual(el[1].tag, "description")
 		self.assertEqual(el[1].text, "This one's open")
 
+
 class DataPublicationMetaTest(testhelpers.VerboseTest):
 # Tests concerning metadata handling with the table data registry interface
 	resources = [("conn", tresc.dbConnection)]
@@ -376,11 +377,16 @@ class DataPublicationMetaTest(testhelpers.VerboseTest):
 			publication.getDependencies("__system__/services", connection=self.conn),
 			[],
 			"registrytest._PublishedData.clean failed?")
-	
 
-class _PublishedData(testhelpers.TestResource):
+
+
+class _PublishedRD(testhelpers.TestResource):
+	"""A resource that publishes all the stuff from an RD for while the
+	resource exists.
+
+	The RD to be published is given in the rdId class attribute.
+	"""
 	resources = [("conn", tresc.dbConnection)]
-	rdId = "data/testdata"
 
 	def make(self, deps):
 		self.conn = deps["conn"]
@@ -391,6 +397,10 @@ class _PublishedData(testhelpers.TestResource):
 	def clean(self, res):
 		publication._purgeFromServiceTables(self.rdId, self.conn)
 		self.conn.commit()
+
+
+class _PublishedData(_PublishedRD):
+	rdId = "data/testdata"
 
 
 class DataPublicationTest(testhelpers.VerboseTest):
@@ -415,6 +425,36 @@ class DataPublicationTest(testhelpers.VerboseTest):
 		self.assertEqual(
 			registry.getDependencies("__system__/services", connection=self.conn),
 			["data/testdata"])
+
+
+class _ServiceVORRecord(testhelpers.TestResource):
+	def make(self, ignored):
+		rd = base.parseFromString(rscdesc.RD, """<resource schema="data">
+			<meta name="creationDate">2011-03-04T11:00:00</meta>
+			<meta name="title">A sensless service</meta>
+			<meta name="source">1989AGAb....2...33W</meta>
+			<service id="glonk">
+				<nullCore/>
+				<outputTable>
+					<column name="score"/>
+				</outputTable>
+				<publish render="form" sets="ivo_managed,local"/>
+			</service></resource>""")
+		rd.sourceId = "funky/town"
+		base.caches.getRD.cacheCopy["funky/town"] = rd
+		tree = testhelpers.getXMLTree(
+			builders.getVOResourceElement(rd.services[0]).render(), debug=False)
+		return tree.xpath("metadata/Resource")[0]
+
+_serviceVORRecord = _ServiceVORRecord()
+
+
+class ServiceRecordTest(testhelpers.VerboseTest):
+	resources = [("rec", _serviceVORRecord)]
+
+	def testSourceFormatInferred(self):
+		self.assertEqual(self.rec.xpath("content/source")[0].get("format"),
+			"bibcode")
 
 
 class _TableVORRecord(testhelpers.TestResource):
@@ -502,6 +542,7 @@ class TablePublicationRecordTest(testhelpers.VerboseTest):
 	def testUtype(self):
 		self.assertEqual(self.tree.xpath("tableset/schema/table/utype")[0].text,
 			"testing.table.name")
+
 
 class _DataGetRecordRes(testhelpers.TestResource):
 	def make(self, ignored):

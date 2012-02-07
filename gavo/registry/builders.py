@@ -36,6 +36,16 @@ VALIDATING = False
 
 ################## ModelBasedBuilders for simple metadata handling
 
+def _build_source(children, localattrs=None):
+# in source, we try to recognize bibcodes automatically, hence we have
+# this manual builder.
+	src = str(children[0])
+	attrs = {}
+	if meta.BibcodeMeta.bibcodePat.match(src):
+		attrs["format"] = "bibcode"
+	return VOR.source(**attrs)[src]
+
+
 _vrResourceBuilder = meta.ModelBasedBuilder([
 	('title', SF(VOR.title)),
 	('shortName', SF(VOR.shortName)),
@@ -65,7 +75,7 @@ _vrResourceBuilder = meta.ModelBasedBuilder([
 	(None, SF(VOR.content), [
 		('subject', SF(VOR.subject)),
 		('description', SF(VOR.description)),
-		('source', SF(VOR.source)),
+		('source', _build_source),
 		('referenceURL', SF(VOR.referenceURL)),
 		('type', SF(VOR.type)),
 		('contentLevel', SF(VOR.contentLevel)),
@@ -367,8 +377,7 @@ class TabularServiceResourceMaker(DataServiceResourceMaker):
 			VS.table(role="out")[
 				[capabilities.getTableParamFromColumn(f)
 					for f in service.getAllOutputFields()]],
-			tableset.getVS1_0TablesetForService(service)]
-# when we have VS version 1.1: tableset.getTablesetForService(service)]
+			tableset.getTablesetForService(service)]
 
 
 class CatalogServiceResourceMaker(TabularServiceResourceMaker):

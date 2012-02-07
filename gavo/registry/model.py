@@ -210,7 +210,8 @@ class VOR:
 	
 	class description(VORElement): pass
 	
-	class source(VORElement): pass
+	class source(VORElement):
+		_a_format = None
 	
 	class referenceURL(VORElement): pass
 	

@@ -508,7 +508,8 @@ def _makeRDCache():
 				return cachedOb
 		except KeyError:
 			return _loadRDIntoCache(srcId, rdCache)
-	
+
+	getRDCached.cacheCopy = rdCache
 	base.caches.registerCache("getRD", rdCache, getRDCached)
 
 _makeRDCache()
@@ -524,5 +525,3 @@ def openRD(relPath):
 		return base.caches.getRD(os.path.join(os.getcwd(), relPath), forImport=True)
 	except base.RDNotFound:
 		return base.caches.getRD(relPath, forImport=True)
-
-

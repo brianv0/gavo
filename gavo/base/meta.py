@@ -894,7 +894,7 @@ class BibcodeMeta(MetaValue):
 	"""A MetaItem that may contain bibcodes, which are rendered as links
 	into ADS.
 	"""
-	bibcodePat = re.compile("\d\d\d\d\w[^ ]{14}")
+	bibcodePat = re.compile("\d\d\d\d\w[^ ]{14}$")
 
 	def _makeADSLink(self, matOb):
 		# local import of config to avoid circular import.
