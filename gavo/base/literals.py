@@ -114,7 +114,7 @@ def parseDefaultDatetime(literal):
 				*time.strptime(literal, format)[:6])
 		except ValueError:
 			pass
-	raise ValueError("Datetime literal could not be parsed: %s"%literal)
+	return utils.parseISODT(literal)
 
 
 def parseDefaultTime(literal):

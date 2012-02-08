@@ -2,7 +2,7 @@
 Instantiated resources (tables, etc), plus data mangling.
 """
 
-from gavo.rsc.common import DBTableError
+from gavo.rsc.common import DBTableError, FLUSH
 from gavo.rsc.dbtable import DBTable
 from gavo.rsc.qtable import QueryTable
 from gavo.rsc.table import BaseTable

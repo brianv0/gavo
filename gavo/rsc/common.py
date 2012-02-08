@@ -19,6 +19,14 @@ class DBTableError(base.Error):
 		self.args = [msg, qName]
 
 
+class FLUSH(object):
+	"""A sentinel that grammars can yield to flush out records to the
+	Database.
+
+	This probably is only necessary in updating dispatched grammars to
+	enforce dropping of rows dependent on some table.
+	"""
+
 class ParamMixin(object):
 	"""A mixin providing param processing.
 
@@ -75,7 +83,6 @@ class ParamMixin(object):
 
 	def getParamDict(self):
 		return dict((p.name, p.value) for p in self.iterParams())
-
 
 
 class ParseOptions(object):

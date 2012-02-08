@@ -399,13 +399,14 @@ def formatRFC2616Date(secs=None):
 
 _isoDTRE = re.compile(r"(?P<year>\d\d\d\d)-?(?P<month>\d\d)-?(?P<day>\d\d)"
 		r"(?:[T ](?P<hour>\d\d):?(?P<minute>\d\d):?"
-		r"(?P<seconds>\d\d)(?P<secFracs>\.\d*)?Z?)?$")
+		r"(?P<seconds>\d\d)(?P<secFracs>\.\d*)?(Z|\+00:00)?)?$")
 
 
 def parseISODT(literal):
 	"""returns a datetime object for a ISO time literal.
 
-	There's no timezone support yet.
+	There's no real timezone support yet, but we accept and ignore various
+	ways of specifying UTC.
 
 	>>> parseISODT("1998-12-14")
 	datetime.datetime(1998, 12, 14, 0, 0)
@@ -416,6 +417,8 @@ def parseISODT(literal):
 	>>> parseISODT("1998-12-14T13:30:12.224Z")
 	datetime.datetime(1998, 12, 14, 13, 30, 12, 224000)
 	>>> parseISODT("19981214T133012Z")
+	datetime.datetime(1998, 12, 14, 13, 30, 12)
+	>>> parseISODT("19981214T133012+00:00")
 	datetime.datetime(1998, 12, 14, 13, 30, 12)
 	>>> parseISODT("junk")
 	Traceback (most recent call last):

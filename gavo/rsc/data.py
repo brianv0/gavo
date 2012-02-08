@@ -285,10 +285,16 @@ class _EnoughRows(base.ExecutiveAction):
 def _pipeRows(srcIter, feeder, opts):
 	feeder.addParameters(srcIter.getParameters())
 	for srcRow in srcIter:
+
+		if srcRow is common.FLUSH:
+			feeder.flush()
+			continue
+
 		if srcIter.notify:
 			base.ui.notifyIncomingRow(srcRow)
 		if opts.dumpRows:
 			print srcRow
+
 		feeder.add(srcRow)
 		if opts.maxRows:
 			if base.ui.totalRead>opts.maxRows:
