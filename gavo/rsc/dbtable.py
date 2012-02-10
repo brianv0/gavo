@@ -445,6 +445,7 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 				" EXISTS(SELECT * FROM %s WHERE %s)"
 				" DO INSTEAD NOTHING"%(self.tableName, self.tableName, 
 					getMatchCondition()))
+
 		elif self.tableDef.dupePolicy=="check":
 			# This one is tricky: if the inserted column is *different*,
 			# the rule does not fire and we get a pkey violation.
@@ -456,6 +457,23 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 				" DO INSTEAD NOTHING"%(self.tableName, self.tableName, 
 					" AND ".join("(new.%s IS NULL OR %s IS NULL OR %s=new.%s)"%(
 						c.name, c.name, c.name,c.name) for c in self.tableDef)))
+
+		elif self.tableDef.dupePolicy=="dropOld":
+			args = {
+				"table": self.tableName, 
+				"matchCond": getMatchCondition()}
+			self.query('CREATE OR REPLACE FUNCTION "dropOld_%(table)s"()'
+				' RETURNS trigger AS $body$\n'
+				" BEGIN\n"
+				" IF (EXISTS(SELECT 1 FROM %(table)s WHERE %(matchCond)s)) THEN\n"
+				"   DELETE FROM %(table)s WHERE %(matchCond)s;\n"
+				" END IF;\n"
+				" RETURN NEW;\nEND\n$body$ LANGUAGE plpgsql"%args)
+			self.query(
+				'CREATE TRIGGER "dropOld_%(table)s" BEFORE INSERT OR UPDATE'
+				' ON %(table)s FOR EACH ROW EXECUTE PROCEDURE "dropOld_%(table)s"()'%
+				args)
+
 		elif self.tableDef.dupePolicy=="overwrite":
 			self.query("CREATE OR REPLACE RULE updatePolicy AS"
 				" ON INSERT TO %s WHERE"

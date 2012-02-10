@@ -65,8 +65,6 @@ class SOAPRenderer(grend.ServiceBasedPage):
 	name="soap"
 	preferredMethod = "POST"
 	urlUse = "full"
-# XXX TODO: With the next VODataService, uncomment:
-	#urlUse = "post"
 
 	@classmethod
 	def makeAccessURL(cls, baseURL):

@@ -256,6 +256,7 @@ class UniqueForcedTable(InMemoryIndexedTable):
 				"check": self._ensureRowIdentity,
 				"drop": self._dropNew,
 				"overwrite": self._overwriteOld,
+				"dropOld": self._overwriteOld,
 			}[self.tableDef.dupePolicy]
 		except KeyError, msg:
 			raise base.ui.logOldExc(

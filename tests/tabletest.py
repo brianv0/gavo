@@ -87,6 +87,18 @@ class UniqueForcedTest(tresc.TestWithDBConnection):
 		t.addRow({"x": "aba", "y": "bax"})
 		self.assertEqual(t.getRow("aba"), {"x": "aba", "y": "bab"})
 
+	def testDropOld(self):
+# in memory, that's actually the same thing as overwrite, but never mind
+		td = self._makeTD('forceUnique="True">'
+			'<dupePolicy>overwrite</dupePolicy><column name="x" type='
+			'"text"/><column name="y" type="text"/><primary>x</primary></table>')
+		t = rsc.TableForDef(td, nometa=True, rows=
+			[{"x": "aba", "y": "bab"}, {"x": "xyx", "y": "yxy"}],
+			connection=self.conn, create=True)
+		self.assertEqual(t.getRow("aba"), {"x": "aba", "y": "bab"})
+		t.addRow({"x": "aba", "y": "bax"})
+		self.assertEqual(t.getRow("aba"), {"x": "aba", "y": "bax"})
+
 	def testOverwrite(self):
 		td = self._makeTD('forceUnique="True">'
 			'<dupePolicy>overwrite</dupePolicy><column name="x" type='
@@ -160,6 +172,52 @@ class DBUniqueForcedTest(UniqueForcedTest):
 			connection=self.conn, create=True)
 		self.assertRaises(base.ValidationError, 
 			t.addRow, {"x": "aba", "y": "bax"},)
+
+	def testDropOld(self):
+# this test is quite complex because the difference between overwrite
+# and dropOld is only exibited when there's a foreign key relationship
+		rd = base.parseFromString(rscdesc.RD, """<resource schema="test">
+			<table onDisk="True" id="a" forceUnique="True" dupePolicy="dropOld"
+					primary="x">
+				<column name="x" type="text"/>
+			</table>
+			<table onDisk="True" id="b">
+				<foreignKey source="x" table="test.a"/>
+				<column original="a.x"/><column name="y" type="text"/>
+			</table>
+			<data id="bla">
+				<sources items="x"/>
+				<embeddedGrammar isDispatching="True"><iterator>
+					<code>
+						yield ('a', {'x': 'old'})
+						yield ('b', {'x': 'old', 'y': 'fromold'})
+					</code>
+				</iterator></embeddedGrammar>
+				<make table="a" role="a"/><make table="b" role="b"/>
+			</data></resource>""")
+		rd.sourceId = "test/internal"
+		try:
+			data = rsc.makeData(rd.getById("bla"), connection=self.conn)
+
+			tdb = rd.getById("b")
+			tb = rsc.TableForDef(tdb, connection=self.conn)
+			self.assertEqual(list(tb.iterQuery(tdb, "")), 
+				[{'x': 'old', 'y': 'fromold'}])
+
+			tda = rd.getById("a")
+			ta = rsc.TableForDef(tda, connection=self.conn)
+			ta.addRow({'x': 'old'})
+			self.assertEqual(list(ta.iterQuery(tda, "")), [{'x': 'old'}])
+
+			# and this is the kicker: the row in b has been dropped
+			self.assertEqual(list(tb.iterQuery(tdb, "")), [])
+
+			data.drop(data.dd, connection=self.conn)
+		except:
+			self.conn.rollback()
+			raise
+		finally:
+			self.conn.commit()
 
 
 class DBTableTest(tresc.TestWithDBConnection):

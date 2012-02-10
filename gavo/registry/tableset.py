@@ -11,38 +11,38 @@ from gavo import base
 from gavo import svcs
 from gavo.base import typesystems
 from gavo.registry import capabilities
-from gavo.registry.model import VS1, VS
+from gavo.registry.model import VS0, VS
 
 
 def getSchemaForRD(rd):
-	"""returns a VS1.schema instance for an rd.
+	"""returns a VS.schema instance for an rd.
 
 	No tables are added.  You need to pick and choose them yourself.
 	"""
-	return VS1.schema[
-		VS1.name[rd.schema.lower()],
-		VS1.title[rd.getMeta("title")],
-		VS1.description[rd.getMeta("description")],
+	return VS.schema[
+		VS.name[rd.schema.lower()],
+		VS.title[rd.getMeta("title")],
+		VS.description[rd.getMeta("description")],
 	]
 
 
 def getForeignKeyForForeignKey(fk):
-	"""returns a VS1.foreignKey for a rscdef.ForeignKey.
+	"""returns a VS.foreignKey for a rscdef.ForeignKey.
 	"""
-	return VS1.foreignKey[
-		VS1.targetTable[fk.parent.expand(fk.table).lower()], [
-			VS1.fkColumn[
-				VS1.fromColumn[fromColName.lower()],
-				VS1.targetColumn[toColName.lower()]]
+	return VS.foreignKey[
+		VS.targetTable[fk.parent.expand(fk.table).lower()], [
+			VS.fkColumn[
+				VS.fromColumn[fromColName.lower()],
+				VS.targetColumn[toColName.lower()]]
 			for fromColName,toColName in zip(fk.source, fk.dest)]]
 
 
 def getTableColumnFromColumn(column, typeElement):
-	"""returns a VS1.column instance for an rscdef.Column instance.
+	"""returns a VS.column instance for an rscdef.Column instance.
 
 	typeElement is a factory for types that has to accept an internal (SQL)
 	type as child and generate whatever is necessary from that.
-	VS1.dataType children should be able to do that.
+	VS.voTableDataType is an example for such a factory.
 	"""
 	flags = []
 	if column.isIndexed():
@@ -51,52 +51,63 @@ def getTableColumnFromColumn(column, typeElement):
 		flags.append("primary")
 	elif not column.required:
 		flags.append("nullable")
-	return VS1.column[
-		VS1.name[column.name.lower()],
-		VS1.description[column.description],
-		VS1.unit[column.unit],
-		VS1.ucd[column.ucd],
-		VS1.utype[column.utype],
+	return VS.column[
+		VS.name[column.name.lower()],
+		VS.description[column.description],
+		VS.unit[column.unit],
+		VS.ucd[column.ucd],
+		VS.utype[column.utype],
 		typeElement[column.type],
-		[VS1.flag[f] for f in flags]]
+		[VS.flag[f] for f in flags]]
 
 
 def getTableForTableDef(tableDef):
-	"""returns a VS1.table instance for a rscdef.TableDef.
+	"""returns a VS.table instance for a rscdef.TableDef.
 	"""
-	return VS1.table[
-		VS1.name[tableDef.getQName().lower()],
-		VS1.title[tableDef.getMeta("title", propagate=False)],
-		VS1.description[tableDef.getMeta("description", propagate=True)],
-		VS1.utype[tableDef.getMeta("utype")], [
-			getTableColumnFromColumn(col, VS1.voTableDataType)
+	return VS.table[
+		VS.name[tableDef.getQName().lower()],
+		VS.title[tableDef.getMeta("title", propagate=False)],
+		VS.description[tableDef.getMeta("description", propagate=True)],
+		VS.utype[tableDef.getMeta("utype")], [
+			getTableColumnFromColumn(col, VS.voTableDataType)
 				for col in tableDef], [
 			getForeignKeyForForeignKey(fk)
 				for fk in tableDef.foreignKeys]]
 
 
 def getTablesetForService(service):
-	"""returns a VS1.tableset for a dbCore-based service.
+	"""returns a VS.tableset for a dbCore-based service.
 
 	This is for VOSI queries.  It uses the service's getTableset
 	method to find out the service's table set.
 	"""
 	tables = service.getTableSet()
-	byRD = {}
+	# it's possible that multiple RDs define the same schema (don't do
+	# that, it's going to cause all kinds of pain).  To avoid
+	# generating bad tablesets in that case, we have the separate
+	# account of schema names; the schema meta is random when
+	# more than one RD exists for the schema.
+	bySchema, rdForSchema = {}, {}
 	for t in tables:
-		byRD.setdefault(t.rd.sourceId, []).append(t)
+		bySchema.setdefault(t.rd.schema, []).append(t)
+		rdForSchema[t.rd.schema] = t.rd
+	
 	if tables:
-		return VS1.tableset[[ 
-				getSchemaForRD(base.caches.getRD(rdId))[[
+		return VS.tableset[[ 
+				getSchemaForRD(rdForSchema[schema])[[
 					getTableForTableDef(t) for t in tables]]
-			for rdId, tables in byRD.iteritems()]]
+			for schema, tables in bySchema.iteritems()]]
 	else:
-		return VS1.tableset[
-			VS1.schema[
-				VS1.name["default"]]]
+		return VS.tableset[
+			VS.schema[
+				VS.name["default"]]]
 
 
-def getVS1type(col):
+def getVS1_0type(col):
+	"""returns a VODataSet 1.0 type for col.
+
+	This should go away with VS1.0 support.
+	"""
 	dt, arrsize = typesystems.sqltypeToVOTable(col.type)
 	if arrsize==1:
 		arrsize = None
@@ -106,17 +117,19 @@ def getVS1type(col):
 def getVS1_0TablesetForService(service):
 	"""returns a sequence of VS.Table elements for tables related to service.
 
-	This is for VODataService 1.0.  Let's hope we can soon kill it.
+	This is for VODataService 1.0.  It's not used any more and should be
+	removed as soon as we're sure we can really get away with supporting
+	1.1 exclusively.
 	"""
 	return [
-		VS.table[
-			VS.name[td.getQName()],
-			VS.description[base.getMetaText(td, "description")], [
-				VS.column[
-					VS.name[col.name],
-					VS.description[col.description],
-					VS.unit[col.unit],
-					VS.ucd[col.ucd],
-					getVS1type(col)]
+		VS0.table[
+			VS0.name[td.getQName()],
+			VS0.description[base.getMetaText(td, "description")], [
+				VS0.column[
+					VS0.name[col.name],
+					VS0.description[col.description],
+					VS0.unit[col.unit],
+					VS0.ucd[col.ucd],
+					getVS1_0type(col)]
 				for col in td]]
 		for td in service.getTableSet()]

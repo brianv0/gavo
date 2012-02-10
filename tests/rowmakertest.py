@@ -187,6 +187,12 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 			('<column name="foo" type="integer"/>',
 				'<map dest="foo" nullExpr="22-">parseInt(@bar)+22</map>'))
 
+	def testNullExcAutoTimestamp(self):
+		dd, td = makeDD('<column name="foo" type="timestamp"/>',
+			'<map dest="foo" src="foo" nullExcs="ValueError"/>')
+		mapper = dd.rowmakers[0].compileForTableDef(td)
+		self.assertEqual(mapper({'foo': "x3"}, None), {'foo': None})
+
 
 class ApplyTest(testhelpers.VerboseTest):
 	"""Tests for mapping procedures.
@@ -386,6 +392,7 @@ class ToParameterTest(testhelpers.VerboseTest):
 			"While building u in None: Key 'bar' not found in a mapping.",
 			rsc.makeData,
 			(dd, rsc.parseNonValidating, []))
+
 
 if __name__=="__main__":
 	testhelpers.main(ToParameterTest)

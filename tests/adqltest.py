@@ -1055,7 +1055,7 @@ class JoinColResTest(ColumnTest):
 	
 	def testNaturalJoin(self):
 		cols = self._getColSeq("SELECT * FROM"
-			" spatial JOIN spatial2")
+			" spatial JOIN spatial2 WHERE dist<2")
 		self._assertColumns(cols, [
 			("real", "m", "phys.distance", False),
 			("real", "m", "phys.dim", False),

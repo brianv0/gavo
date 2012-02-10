@@ -278,10 +278,11 @@ class TableDef(base.Structure, base.ComputedMetaMixin, common.RolesMixin,
 
 	_dupePolicy = base.EnumeratedUnicodeAttribute("dupePolicy",
 		default="check", 
-		validValues=["check", "drop", "overwrite"], 
+		validValues=["check", "drop", "overwrite", "dropOld"], 
 		description= "Handle duplicate rows with identical primary keys manually"
 		" by raising an error if existing and new rows are not identical (check),"
-		" dropping the new one (drop), or overwriting the old one (overwrite)?")
+		" dropping the new one (drop), updating the old one (overwrite), or"
+		" dropping the old one and inserting the new one (dropOld)?")
 
 	_primary = ColumnTupleAttribute("primary", 
 		default=(),

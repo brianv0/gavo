@@ -26,9 +26,9 @@ registerPrefix("vr", "http://www.ivoa.net/xml/VOResource/v1.0",
 	schemaURL("VOResource-v1.0.xsd"))
 registerPrefix("dc", "http://purl.org/dc/elements/1.1/",
 	schemaURL("simpledc20021212.xsd"))
-registerPrefix("vs", "http://www.ivoa.net/xml/VODataService/v1.0",
+registerPrefix("vs0", "http://www.ivoa.net/xml/VODataService/v1.0",
 	schemaURL("VODataService-v1.0.xsd"))
-registerPrefix("vs1", "http://www.ivoa.net/xml/VODataService/v1.1",
+registerPrefix("vs", "http://www.ivoa.net/xml/VODataService/v1.1",
 	schemaURL("VODataService-v1.1.xsd"))
 registerPrefix("cs", "http://www.ivoa.net/xml/ConeSearch/v1.0",
 	schemaURL("ConeSearch-v1.0.xsd"))
@@ -432,9 +432,6 @@ def addBasicVSElements(baseNS, VSElement):
 			_a_ivoId = None
 			_name_a_ivoId = "ivo-id"
 
-		class table(VSElement):
-			_a_role = None
-
 		class column(VSElement): pass
 	
 		class dataType(VSElement):
@@ -472,7 +469,7 @@ def addBasicVSElements(baseNS, VSElement):
 				self.text_ = self.typeMap.get(type, type)
 		
 		class voTableDataType(dataType):
-			_a_xsi_type = "vs1:VOTableType"
+			_a_xsi_type = "vs:VOTableType"
 
 			def _defineType(self, type):
 				typeName, arrLen = typesystems.toVOTableConverter.convert(type)
@@ -488,21 +485,26 @@ class _VS1_0Stub(object):
 	"""The stub for VODataService 1.0.
 	"""
 	class VSElement(Element):
-		_prefix = "vs"
+		_prefix = "vs0"
 		_local = True
 
-VS = addBasicVSElements(_VS1_0Stub, _VS1_0Stub.VSElement)
+	class table(VSElement):
+		_a_role = None
+
+
+
+VS0 = addBasicVSElements(_VS1_0Stub, _VS1_0Stub.VSElement)
 
 class _VS1_1Stub:
 	"""The stub for VODataService 1.1.
 	"""
 	class VSElement(Element):
-		_prefix = "vs1"
+		_prefix = "vs"
 		_local = True
 
 	class DataCollection(RI.Resource):
-		_a_xsi_type = "vs1:DataCollection"
-		_additionalPrefixes = frozenset(["vs1", "xsi"])
+		_a_xsi_type = "vs:DataCollection"
+		_additionalPrefixes = frozenset(["vs", "xsi"])
 
 	class tableset(VSElement):
 		_additionalPrefixes = xsiPrefix
@@ -517,6 +519,7 @@ class _VS1_1Stub:
 	class utype(VSElement): pass
 	
 	class table(VSElement):
+		_a_type = None
 		_childSequence = ["name", "title", "description", "utype",
 			"column", "foreignKey"]
 
@@ -532,7 +535,7 @@ class _VS1_1Stub:
 	class targetColumn(VSElement): pass
 	class flag(VSElement): pass
 
-VS1 = addBasicVSElements(_VS1_1Stub, _VS1_1Stub.VSElement)
+VS = addBasicVSElements(_VS1_1Stub, _VS1_1Stub.VSElement)
 
 
 class SIA(object):

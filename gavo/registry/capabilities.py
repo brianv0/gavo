@@ -7,8 +7,6 @@ Thus, in the module we mostly deal with publication objects.  If you
 need the service object, use publication.parent.
 """
 
-# XXX TODO: On the move to VODataService 1.1, don't forget regionOfRegard for USNO2X corrections and Magellanic Cloud.
-
 _TMP_TAPREGEXT_HACK = True
 
 from gavo import base
@@ -21,7 +19,7 @@ from gavo.registry.model import (OAI, OAIDC, VOR, VOG, DC, RI, VS,
 	SIA, SCS, SSAP, TR)
 
 
-###################### Helpers
+###################### Helpers (TODO: Move to tableset, I guess)
 
 def _getParamFromColumn(column, rootElement, typeFactory):
 	"""helper for get[Table|Input]ParamFromColumn.
@@ -33,13 +31,6 @@ def _getParamFromColumn(column, rootElement, typeFactory):
 			VS.unit[column.unit],
 			VS.ucd[column.ucd],
 			typeFactory(type, length)]
-
-
-def getTableParamFromColumn(column, rootElement=VS.column):
-	"""returns a VS.Column for a rscdef.Column.
-	"""
-	return _getParamFromColumn(column, rootElement,
-		lambda type, length: VS.dataType(arraysize=length)[type])
 
 
 def getInputParamFromColumn(column, rootElement=VS.param):

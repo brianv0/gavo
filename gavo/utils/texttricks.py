@@ -399,7 +399,7 @@ def formatRFC2616Date(secs=None):
 
 _isoDTRE = re.compile(r"(?P<year>\d\d\d\d)-?(?P<month>\d\d)-?(?P<day>\d\d)"
 		r"(?:[T ](?P<hour>\d\d):?(?P<minute>\d\d):?"
-		r"(?P<seconds>\d\d)(?P<secFracs>\.\d*)?(Z|\+00:00)?)?$")
+		r"(?P<seconds>\d\d)(?P<secFracs>\.\d*)?Z?(\+00:00)?)?$")
 
 
 def parseISODT(literal):

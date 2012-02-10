@@ -23,7 +23,7 @@ from gavo.registry import tableset
 from gavo.registry import servicelist
 from gavo.registry.common import *
 from gavo.registry.model import (
-	OAI, VOR, VOG, DC, RI, VS, VS1, SIA, SCS, OAIDC, VSTD)
+	OAI, VOR, VOG, DC, RI, VS, SIA, SCS, OAIDC, VSTD)
 
 
 SF = meta.stanFactory
@@ -39,7 +39,7 @@ VALIDATING = False
 def _build_source(children, localattrs=None):
 # in source, we try to recognize bibcodes automatically, hence we have
 # this manual builder.
-	src = str(children[0])
+	src = unicode(children[0])
 	attrs = {}
 	if meta.BibcodeMeta.bibcodePat.match(src):
 		attrs["format"] = "bibcode"
@@ -374,10 +374,13 @@ class TabularServiceResourceMaker(DataServiceResourceMaker):
 	"""
 	def _makeResource(self, service, setNames):
 		return DataServiceResourceMaker._makeResource(self, service, setNames)[
-			VS.table(role="out")[
-				[capabilities.getTableParamFromColumn(f)
-					for f in service.getAllOutputFields()]],
-			tableset.getTablesetForService(service)]
+			tableset.getTablesetForService(service)[
+				VS.schema[
+					VS.name["default"],
+					VS.table(type="output")[
+						VS.name["output"],
+						[tableset.getTableColumnFromColumn(f, VS.voTableDataType)
+							for f in service.getAllOutputFields()]]]]]
 
 
 class CatalogServiceResourceMaker(TabularServiceResourceMaker):
@@ -445,24 +448,24 @@ class DeletedResourceMaker(ResourceMaker):
 _dataMetaBuilder = meta.ModelBasedBuilder([
 	('rights', SF(VOR.rights)),
 	# format is a mime type if we're registering a single piece of data
-	('format', SF(VS1.format)),  
+	('format', SF(VS.format)),  
 ])
 
 
 class DataCollectionResourceMaker(ResourceMaker):
 	"""A base class for Table- and DataResourceMaker.
 	"""
-	resourceClass = VS1.DataCollection
+	resourceClass = VS.DataCollection
 
 	def _makeTableset(self, schemas):
 		"""see _makeDCResource.
 		"""
-		res = VS1.tableset()
+		res = VS.tableset()
 		for rd, tables in schemas:
-			res[VS1.schema[
-				VS1.name[rd.schema],
-				VS1.title[base.getMetaText(rd, "title")],
-				VS1.description[base.getMetaText(rd, "description")],
+			res[VS.schema[
+				VS.name[rd.schema],
+				VS.title[base.getMetaText(rd, "title")],
+				VS.description[base.getMetaText(rd, "description")],
 				[tableset.getTableForTableDef(td)
 					for td in tables]]]
 		return res
@@ -495,7 +498,7 @@ class TableResourceMaker(DataCollectionResourceMaker):
 class DataResourceMaker(DataCollectionResourceMaker):
 	"""A ResourceMaker for rscdef.DataDescriptor items (yielding DataCollections)
 	"""
-	resourceClass = VS1.DataCollection
+	resourceClass = VS.DataCollection
 	resType = "data"
 
 	def _makeResource(self, dd, setNames):

@@ -40,20 +40,20 @@ def getGetRecordResponse(resob):
 class RegistryModelTest(testhelpers.VerboseTest):
 	def testVSNamespaces(self):
 		from gavo.registry import model
+		self.assertEqual(model.VS0.ucd()._prefix, "vs0")
 		self.assertEqual(model.VS.ucd()._prefix, "vs")
-		self.assertEqual(model.VS1.ucd()._prefix, "vs1")
 
 	def testVOTableDataType(self):
 		from gavo.registry import model
 		self.assertEqual(
-			testhelpers.cleanXML(model.VS1.voTableDataType["char"].render()),
-			'<dataType arraysize="1" xsi:type="vs1:VOTableType">char</dataType>')
+			testhelpers.cleanXML(model.VS.voTableDataType["char"].render()),
+			'<dataType arraysize="1" xsi:type="vs:VOTableType">char</dataType>')
 		self.assertEqual(
-			testhelpers.cleanXML(model.VS1.voTableDataType["text"].render()),
-			'<dataType arraysize="*" xsi:type="vs1:VOTableType">char</dataType>')
+			testhelpers.cleanXML(model.VS.voTableDataType["text"].render()),
+			'<dataType arraysize="*" xsi:type="vs:VOTableType">char</dataType>')
 		self.assertEqual(
-			testhelpers.cleanXML(model.VS1.voTableDataType["integer[20]"].render()),
-			'<dataType arraysize="20" xsi:type="vs1:VOTableType">int</dataType>')
+			testhelpers.cleanXML(model.VS.voTableDataType["integer[20]"].render()),
+			'<dataType arraysize="20" xsi:type="vs:VOTableType">int</dataType>')
 
 
 class DeletedTest(testhelpers.VerboseTest):
