@@ -107,8 +107,6 @@ class OAIQuery(object):
 	registry = None
 	metadataPrefix = None
 
-	quirkNakedResumptionToken = True
-
 	# maxRecords is mainly used in test_oai; that's why there's no
 	# constructor parameter for it
 	maxRecords = None
@@ -137,7 +135,7 @@ class OAIQuery(object):
 		if self.maxRecords:
 			kws["maxRecords"] = str(self.maxRecords)
 
-		if "resumptionToken" in kws and self.quirkNakedResumptionToken:
+		if "resumptionToken" in kws:
 			kws = {"resumptionToken": kws["resumptionToken"],
 				"verb": kws["verb"]}
 

@@ -5,6 +5,7 @@ server here, which is a bit pointless -- but only a bit.
 
 import datetime
 import re
+import time
 
 from twisted.internet import reactor
 from twisted.internet import threads
@@ -124,12 +125,13 @@ class OAIBasicTest(_OAITest):
 		q.maxRecords = 1
 
 		def assertErrorsOut(stuff):
-			self.failUnless('code="badResumptionToken">Service table has changed'
+			return self.failUnless(
+				'code="badResumptionToken">Service table has changed'
 				in stuff)
 
 		def resumeNext(stuff):
 			resumptionToken = re.search("resumptionToken>([^<]*)<", stuff).group(1)
-			base.caches.clearForName(base.caches.getRD("//services").sourceId)
+			base.caches.getRD("//services").loadedAt = time.time()+2
 			return threads.deferToThread(q.doHTTP, resumptionToken=resumptionToken
 			).addCallback(assertErrorsOut)
 
@@ -199,4 +201,3 @@ class OAIParameterTest(_OAITest):
 			self.registry,
 			set="local",
 		).addCallback(assertInLocal)
-

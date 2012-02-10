@@ -11,6 +11,8 @@ is web-callable.
 import datetime
 import re
 import time
+import urllib
+import urlparse
 
 from gavo import base
 from gavo import rsc
@@ -123,26 +125,53 @@ def run_ListMetadataFormats(pars):
 		None,
 		makeArgs)
 
+########################### parsing and generating resumption tokens
+# In our implementation, the resumptionToken is a base64-encoded
+# zlibbed query string made from the parameters, plus information
+# on the offset and the time the resumption token was issued.
+
+def makeResumptionToken(pars, nextOffset):
+	"""return a resumptionToken element for resuming the query in
+	pars at nextOffset.
+	"""
+	toEncode = pars.copy()
+	toEncode["nextOffset"] = str(nextOffset)
+	toEncode["queryDate"] = time.time()
+	return urllib.urlencode(toEncode).encode("zlib").encode("base64"
+		).replace("\n", "")
+
+
+def parseResumptionToken(pars):
+	"""returns a a dict realPars for an OAI-PMH parameter
+	dictionary pars.
+
+	If we believe that the registry has changed since rawToken's
+	timestamp, we raise a BadResumptionToken exception.  This is
+	based on gavo pub reloading the //services RD after publication.
+	Not perfect, but probably adequate.
+
+	Note that newPars will contain resumptionToken again, but as an
+	offset to the query executed.
+	"""
+	try:
+		newPars = dict(urlparse.parse_qsl(
+			pars["resumptionToken"].decode("base64").decode("zlib")))
+		queryDate = float(newPars.pop("queryDate"))
+		offset = int(newPars.pop("nextOffset"))
+	except KeyError, item:
+		raise base.ui.logOldExc(BadResumptionToken("Incomplete resumption token"))
+	except Exception, msg:
+		raise base.ui.logOldExc(BadResumptionToken(str(msg)))
+
+	if newPars.get("verb", 1)!=pars.get("verb", 2):
+		raise BadResumptionToken("Trying to resume with a different verb")
+	if int(queryDate)<int(base.caches.getRD("//services").loadedAt):
+		raise BadResumptionToken("Service table has changed")
+
+	newPars["resumptionToken"] = offset
+	return newPars
 
 ########################### Helpers for OAI handlers
-
-def parseResumptionToken(rawToken):
-	"""returns the offset encoded in the resumptionToken rawToken.
-
-	See model.OAI.resumptionToken for rawToken's format.  If we believe
-	that the registry has changed since rawToken's timestamp, we raise
-	a BadResumptionToken exception.  This is based on gavo pub reloading
-	the //services RD after publication.  Not perfect, but probably
-	adequate.
-	"""
-	mat = re.match("(\d+);(\d+)$", rawToken)
-	if not mat:
-		raise BadResumptionToken("Bad syntax of resumption token")
-	tokenGeneratedAt = int(mat.group(1))
-	if tokenGeneratedAt<=base.caches.getRD("//services").loadedAt:
-		raise BadResumptionToken("Service table has changed")
-	return int(mat.group(2))
-
 
 def checkPars(pars, required, optional=[], 
 		ignored=set(["verb", "maxRecords"])):
@@ -226,33 +255,29 @@ def getMatchingRestups(pars, connection=None):
 		- from
 		- until -- these give a range for which changed records are being returned
 		- set -- maps to a sequence of set names to be matched.
-		- resumptionToken -- an integer literal that specifies an offset
-		  into the service list
+		- resumptionToken -- some magic value (see OAI.resumptionToken)
 		- maxRecords -- an integer literal that specifies the maximum number
 		  of records returned, defaulting to 10000
 	
 	maxRecords is not part of OAI-PMH; it is used internally to
 	turn paging on when we think it's a good idea, and for testing.
 	"""
+	maxRecords = int(pars.get("maxRecords", 10000))
+	offset = pars.get("resumptionToken", 0)
 	frag, fillers = _parseOAIPars(pars)
 
-	maxRecords = int(pars.get("maxRecords", 10000))
-	resumptionToken = 0
-	if "resumptionToken" in pars:
-		resumptionToken = parseResumptionToken(pars["resumptionToken"])
-
 	try:
-		srvTable = rsc.TableForDef(getServicesRD().getById("resources"),
-			connection=connection) 
-		res = list(srvTable.iterQuery(srvTable.tableDef, frag, fillers,
-			limits=(
-				"LIMIT %(maxRecords)s OFFSET %(resumptionToken)s", locals())))
-		srvTable.close()
+		with base.getTableConn() as conn:
+			srvTable = rsc.TableForDef(getServicesRD().getById("resources"),
+				connection=conn) 
+			res = list(srvTable.iterQuery(srvTable.tableDef, frag, fillers,
+				limits=(
+					"LIMIT %(maxRecords)s OFFSET %(offset)s", locals())))
 		
 		if len(res)==maxRecords:
 			# there's probably more data, request a resumption token
-			res.append(OAI.resumptionToken["%d;%d"%(
-				int(time.time()), maxRecords+resumptionToken)])
+			res.append(OAI.resumptionToken[
+				makeResumptionToken(pars, offset+len(res))])
 	except base.DBError:
 		raise base.ui.logOldExc(BadArgument("Bad syntax in some parameter value"))
 	except KeyError, msg:
@@ -310,6 +335,11 @@ class RegistryCore(svcs.Core, base.RestrictionMixin):
 				raise BadArgument(argName)
 			else:
 				pars[argName] = argVal[0]
+		
+		offset = 0
+		if "resumptionToken" in pars:
+			pars = parseResumptionToken(pars)
+
 		try:
 			verb = pars["verb"]
 		except KeyError:

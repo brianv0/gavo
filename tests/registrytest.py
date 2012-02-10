@@ -694,5 +694,30 @@ class ListRecordsTest(testhelpers.VerboseTest):
 		self.assertEqual(res&expected, expected)
 
 
+class ResumptionTokenTest(testhelpers.VerboseTest):
+	def testBasic(self):
+		pars = {"verb": "listSets"}
+		pars["resumptionToken"] = oaiinter.makeResumptionToken(pars, 20)
+		newPars = oaiinter.parseResumptionToken(pars)
+		self.assertEqual(pars["verb"], newPars["verb"])
+		self.assertEqual(newPars["resumptionToken"], 20)
+		
+
+	def testBadTokenFailsProperly(self):
+		self.assertRaisesWithMsg(oaiinter.BadResumptionToken,
+			"Incorrect padding",
+			oaiinter.parseResumptionToken,
+			({"resumptionToken": "xyz"},))
+
+	def testFailsWithDifferingVerb(self):
+		self.assertRaisesWithMsg(oaiinter.BadResumptionToken,
+			"Trying to resume with a different verb",
+			oaiinter.parseResumptionToken,
+			({"verb": "ListSets", "resumptionToken": "eJzLS60o8U9LK04tsTUyUCss"
+				"TS2qdEksSbU1NDaysDA3NTc01DM3UitLLUqy9cksLglKTc4vSilWy00tSUxJLEk"
+				"MKEpNy6ywzSzLjy/LLwIA+dsbFQ=="},))
+
+
+	
 if __name__=="__main__":
 	testhelpers.main(ListRecordsTest)

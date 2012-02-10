@@ -121,9 +121,7 @@ class OAI(object):
 
 	class resumptionToken(OAIElement): pass
 		# optional attributes not supported here
-		# In our implementation, the resumptionToken has the format
-		# <seconds since epoch>;offset, and you get a BadResumptionToken
-		# exception when the repository has changed between two queries.
+		# The string value in here has a structure; see oaiinter.
 
 
 class OAIDC:
