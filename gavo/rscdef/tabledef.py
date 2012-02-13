@@ -45,8 +45,10 @@ class DBIndex(base.Structure):
 		" indexed for.  If not given, the expression will be generated from"
 		" columns (which is what you usually want).")
 	_method = base.UnicodeAttribute("method", default=None,
-		description="The indexing method, like an index type.  If you don't"
-			" know what to say here, you don't need it.", copyable=True)
+		description="The indexing method, like an index type.  In the 8.x,"
+			" series of postgres, you need to set method=GIST for indices"
+			" over pgsphere columns; otherwise, you should not need to"
+			" worry about this.", copyable=True)
 
 	def completeElement(self, ctx):
 		if self.content_ and getattr(ctx, "restricted", False):

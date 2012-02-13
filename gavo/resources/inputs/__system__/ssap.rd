@@ -451,6 +451,9 @@
 
 		<FEED source="//products#hackProductsData"/>
 		<events>
+			<index columns="ssa_creatorDID"/>
+			<index columns="ssa_targname"/>
+			<index columns="ssa_targetpos" method="GIST"/>
 			<LFEED source="//ssap#hcd_fields"/>
 			<LFEED source="//ssap#hcd_outpars"/>
 		</events>
