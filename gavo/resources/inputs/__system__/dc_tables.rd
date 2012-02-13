@@ -84,15 +84,6 @@ tables and the RDs the tables come from. -->
 		<make table="tablemeta"/>
 	</data>
 
-	<data id="setupdb">
-		<make>
-			<table id="dummy" onDisk="True" temporary="True"/>
-			<script lang="AC_SQL" name="setup postgres database" type="postCreation">
-				CREATE LANGUAGE plpgsql;
-			</script>
-		</make>
-	</data>
-
 	<outputTable id="metaRowdef" namePath="columnmeta">
 		<meta name="description">The definition of the input to
 		column.fromMetaTableRow</meta>

@@ -102,7 +102,6 @@ def printTableInfo(td):
 	print utils.formatSimpleTable(propTable)
 
 
-
 def parseCmdline():
 	parser = ArgumentParser(
 		description="Displays various stats about the table referred to in"

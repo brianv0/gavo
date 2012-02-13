@@ -294,6 +294,25 @@ def _readDBScript(conn, scriptPath, sourceName, procName):
 		conn.commit()
 
 
+def _doLocalSetup(dbname):
+	"""executes some commands that need to be executed with superuser
+	privileges.
+	"""
+# When adding stuff here, fix docs/install.rstx, "Owner-only db setup"
+	conn = psycopg2.connect("dbname=%s"%dbname)
+	for statement in [
+			"CREATE LANGUAGE plpgsql"]:
+		cursor = conn.cursor()
+		try:
+			cursor.execute(statement)
+		except psycopg2.DatabaseError, msg:
+			warnings.warn("SQL statement '%s' failed (%s); continuing."%(
+				statement, msg))
+			conn.rollback()
+		else:
+			conn.commit()
+
+
 def _readDBScripts(dbname):
 	"""loads definitions of pgsphere, q3c and similar into the DB.
 
@@ -332,6 +351,7 @@ def initDB(dbname):
 	The current user must be superuser on dbname.
 	"""
 	_createRoles(dbname)
+	_doLocalSetup(dbname)
 	_readDBScripts(dbname)
 	_importBasicResources()
 

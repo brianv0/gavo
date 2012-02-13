@@ -35,6 +35,7 @@ functions = [
 	("raise", ("user.errhandle", "bailOut")),
 	("serve", ("user.serve", "main")),
 	("stc", ("stc.cli", "main")),
+	("show", ("user.show", "main")),
 	("taprun", ("protocols.taprunner", "main")),
 	("validate", ("user.validation", "main")),
 ]

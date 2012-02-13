@@ -112,6 +112,15 @@ class MiscCLITest(testhelpers.VerboseTest):
 		self.assertOutput(cli.main, argList=["admin", "cleantap", "-p"],
 			expectedRetcode=0)
 
+	def testShowDD(self):
+		self.assertOutput(cli.main, argList=["show", "dds", "//tap"],
+			expectedStdout="createSchema*\nimport_examples*\ncreateJobTable*\n")
+
+	def testShowDDBad(self):
+		self.assertOutput(cli.main, argList=["show", "dds", "//dc_tables", "bla"],
+			expectedRetcode=1,
+			expectedStderr=lambda msg: 
+				"The DD 'bla' you are trying to import" in msg)
 
 
 class ImportTest(testhelpers.VerboseTest):
