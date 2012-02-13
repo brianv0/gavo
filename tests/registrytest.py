@@ -465,18 +465,18 @@ class _TableVORRecord(testhelpers.TestResource):
 			<table id="punk">
 				<column name="oink" utype="noises:animal.pig"/>
 				<column name="where" type="spoint" ucd="pos.eq;source"/>
-			<register sets="ivo_managed,local"/>
-			<meta name="utype">testing.table.name</meta>
-			<meta name="description">Some silly test data</meta>
-			<meta name="subject">testing</meta>
-			<meta name="subject">regressions</meta>
-			<meta name="coverage.profile">Box ICRS 12 13 2 3</meta>
-			<meta name="format">audio/vorbis</meta>
-			<meta name="referenceURL">http://junk.g-vo.org</meta>
-			<meta name="servedBy" ivoId="ivo://org.g-vo.junk/tap"
-				>GAVO TAP service</meta>
-			<meta name="servedBy" ivoId="ivo://org.g-vo.junk/adql"
-				>GAVO ADQL Web</meta>
+				<register sets="ivo_managed,local"/>
+				<meta name="utype">testing.table.name</meta>
+				<meta name="description">Some silly test data</meta>
+				<meta name="subject">testing</meta>
+				<meta name="subject">regressions</meta>
+				<meta name="coverage.profile">Box ICRS 12 13 2 3</meta>
+				<meta name="format">audio/vorbis</meta>
+				<meta name="referenceURL">http://junk.g-vo.org</meta>
+				<meta name="servedBy" ivoId="ivo://org.g-vo.junk/tap"
+					>GAVO TAP service</meta>
+				<meta name="servedBy" ivoId="ivo://org.g-vo.junk/adql"
+					>GAVO ADQL Web</meta>
 			</table></resource>""")
 		rd.sourceId = "funky/town"
 		td = rd.tables[0]
@@ -716,7 +716,6 @@ class ResumptionTokenTest(testhelpers.VerboseTest):
 			({"verb": "ListSets", "resumptionToken": "eJzLS60o8U9LK04tsTUyUCss"
 				"TS2qdEksSbU1NDaysDA3NTc01DM3UitLLUqy9cksLglKTc4vSilWy00tSUxJLEk"
 				"MKEpNy6ywzSzLjy/LLwIA+dsbFQ=="},))
-
 
 	
 if __name__=="__main__":

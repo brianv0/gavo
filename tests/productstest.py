@@ -183,6 +183,15 @@ class ProductsCoreTest(_TestWithProductsTable):
 			"junk/kotter",
 			res.renderHTTP,
 			(None,))
+	
+	def testRemovedProduct(self):
+		srcPath = os.path.join(base.getConfig("inputsDir"), "data", "b.imp")
+		os.rename(srcPath, srcPath+".bak")
+		try:
+			res = self._getProductFor("data/b.imp")
+			self.failUnless(isinstance(res, products.InvalidProduct))
+		finally:
+			os.rename(srcPath+".bak", srcPath)
 
 	def testProtectedProductUnauth(self):
 		res = self._getProductFor("data/a.imp")

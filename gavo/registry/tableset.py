@@ -7,6 +7,8 @@ want to use these names quoted.  Quoted identifiers match regular identifiers
 only if case-normalized (i.e., all-lower in DaCHS).
 """
 
+import operator
+
 from gavo import base
 from gavo import svcs
 from gavo.base import typesystems
@@ -95,8 +97,9 @@ def getTablesetForService(service):
 	if tables:
 		return VS.tableset[[ 
 				getSchemaForRD(rdForSchema[schema])[[
-					getTableForTableDef(t) for t in tables]]
-			for schema, tables in bySchema.iteritems()]]
+					getTableForTableDef(t) 
+						for t in sorted(tables, key=operator.attrgetter("id"))]]
+			for schema, tables in sorted(bySchema.iteritems())]]
 	else:
 		return VS.tableset[
 			VS.schema[
