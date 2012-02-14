@@ -495,11 +495,19 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		This is for VOSI-type queries.  Usually, that's just the core's
 		queried table, except when there is a TAP renderer on the service.
 		"""
-		baseTD = getattr(self.core, "queriedTable", None)
-		if baseTD is None and self.outputTable and self.outputTable.columns:
-			baseTD = self.outputTable
-		tables = [baseTD]
+		tables = []
+		
+		# output our own outputTable if it sounds reasonable; if so,
+		# add the core's queried table, too, if it has one.
+		if self.outputTable and self.outputTable.columns:
+			tables.append(self.outputTable)
+			tables.append(getattr(self.core, "queriedTable", None))
+		# if our outputTable is no good, just use the one of the core
+		else:
+			tables.append(getattr(self.core, "outputTable", None))
 
+		# XXX TODO: this type of stuff should probably be done in the
+		# core or the renderer...
 		if "tap" in self.allowed:
 			mth = base.caches.getMTH(None)
 			for row in mth.queryTablesTable("adql"):
@@ -508,6 +516,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 				except:
 					base.ui.notifyError("Failure trying to retrieve table definition"
 						" for table %s.  Please fix RD."%row["tableName"])
+
 		return [t for t in tables if t is not None and t.rd is not None]
 
 	def declareServes(self, data):

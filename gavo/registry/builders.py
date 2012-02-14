@@ -374,14 +374,8 @@ class TabularServiceResourceMaker(DataServiceResourceMaker):
 	"""
 	def _makeResource(self, service, setNames):
 		return DataServiceResourceMaker._makeResource(self, service, setNames)[
-			tableset.getTablesetForService(service)[
-				VS.schema[
-					VS.name["default"],
-					VS.table(type="output")[
-						VS.name["output"],
-						[tableset.getTableColumnFromColumn(f, VS.voTableDataType)
-							for f in service.getAllOutputFields()]]]]]
-
+			tableset.getTablesetForService(service)]
+			
 
 class CatalogServiceResourceMaker(TabularServiceResourceMaker):
 	resourceClass = VS.CatalogService

@@ -66,8 +66,15 @@ def getTableColumnFromColumn(column, typeElement):
 def getTableForTableDef(tableDef):
 	"""returns a VS.table instance for a rscdef.TableDef.
 	"""
-	return VS.table[
-		VS.name[tableDef.getQName().lower()],
+	# we fudge the names of the output tables since, by default, they're
+	# ugly (and meaningless on top of that)
+	if isinstance(tableDef, svcs.OutputTableDef):
+		type = name = "output"
+	else:
+		name = tableDef.getQName().lower()
+		type = None
+	res = VS.table(type=type)[
+		VS.name[name],
 		VS.title[tableDef.getMeta("title", propagate=False)],
 		VS.description[tableDef.getMeta("description", propagate=True)],
 		VS.utype[tableDef.getMeta("utype")], [
@@ -75,6 +82,7 @@ def getTableForTableDef(tableDef):
 				for col in tableDef], [
 			getForeignKeyForForeignKey(fk)
 				for fk in tableDef.foreignKeys]]
+	return res
 
 
 def getTablesetForService(service):
