@@ -573,8 +573,6 @@ class ColrefTest(testhelpers.VerboseTest):
 
 
 class SyslibTest(testhelpers.VerboseTest):
-	"""tests for syslib definitions ok.
-	"""
 	__metaclass__ = testhelpers.SamplesBasedAutoTest
 
 	samples = syslib.SYSDEFS
@@ -582,6 +580,22 @@ class SyslibTest(testhelpers.VerboseTest):
 	def _runTest(self, sysId):
 		self.assertRuns(syslib.getLibrarySystem, (sysId,),
 			"Cannot build system %s"%sysId)
+
+
+class SpatialSystemTest(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		stcsInput, expected = sample
+		ast = stc.parseSTCS(stcsInput)
+		self.assertEqual(stc.getSpatialSystem(ast), expected)
+
+	samples = [
+		("Position ICRS", "ICRS"),
+		("Position FK4 B1875.0", "FK4 B1875.0"),
+		("Time TT 2000-01-01 Circle GALACTIC GEOCENTER 10 10 2", 
+			"GALACTIC GEOCENTER"),
+	]
 
 
 if __name__=="__main__":

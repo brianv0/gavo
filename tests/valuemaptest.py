@@ -1,7 +1,7 @@
 """
 Tests for value mapping
 
-[The stuff tested here will be changed significantly soon]
+[The stuff tested here will be changed significantly RSN]
 """
 
 import datetime
@@ -10,6 +10,7 @@ import urllib
 from gavo.helpers import testhelpers
 
 from gavo import base
+from gavo import rsc
 from gavo import rscdef
 from gavo.base import valuemappers
 from gavo.protocols import products
@@ -79,7 +80,7 @@ class StandardMapperTest(MapperTest):
 			None, None),
 		('name= "b" type= "sbox">', pgsphere.SBox(
 			pgsphere.SPoint(0.2, -0.1), pgsphere.SPoint(0.5, 0.2)),
-			"PositionInterval ICRS 11.4591559026 -5.7295779513"
+			"PositionInterval UNKNOWN 11.4591559026 -5.7295779513"
 			" 28.6478897565 11.4591559026"),
 	]
 
@@ -105,6 +106,16 @@ class ProductMapperTest(MapperTest):
 			"wierdo+name/goes somewhere&is/bad",
 			"wierdo%2Bname/goes%20somewhere%26is/bad"),
 		]
+
+
+class STCMappingTest(MapperTest):
+	def testSimple(self):
+		td = base.parseFromString(rscdef.TableDef, """<table>
+			<stc>Position FK5 TOPOCENTER [pos]</stc>
+			<column name="pos" type="spoint"/></table>""")
+		table = rsc.TableForDef(td, rows=[{"pos": pgsphere.SPoint(0.2, 0.6)}])
+		res = list(valuemappers.SerManager(table).getMappedValues())[0]
+		self.failUnless(res["pos"].startswith("Position FK5 TOPOCENTER"))
 
 
 if __name__=="__main__":

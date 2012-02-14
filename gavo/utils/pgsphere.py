@@ -7,8 +7,6 @@ and you're done.
 All native representation is in rad.
 """
 
-# XXX TODO: handle remaining pgsphere types.
-
 import math
 import re
 

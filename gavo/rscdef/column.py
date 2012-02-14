@@ -64,7 +64,7 @@ class ColumnNameAttribute(UnicodeAttribute):
 
 
 class TableheadAttribute(UnicodeAttribute):
-	"""is an attribute defaulting to the parent's name attribute.
+	"""An attribute defaulting to the parent's name attribute.
 	"""
 	typeDesc = "table head, defaulting to parent's name"
 
@@ -80,6 +80,48 @@ class TableheadAttribute(UnicodeAttribute):
 			if value is not attDefault:
 				setattr(self, realName, value)
 		yield self.name_, property(getValue, setValue)
+
+
+class _AttBox(object):
+	"""A helper for TableManagedAttribute.
+
+	When a TableManagedAttribute ships off its value into an event
+	it packs its value into an _AttBox.  That way, the receiver
+	can tell whether the value comes from another TableManagedAttribute
+	(which is ok) or comes from an XML parser (which is forbidden).
+	"""
+	def __init__(self, payload):
+		self.payload = payload
+
+
+class TableManagedAttribute(AttributeDef):
+	"""An attribute not settable from XML for holding information
+	managed by the parent table.
+	
+	That's stc and stcUtype here, currently.
+	"""
+	typeDesc_ = "non-settable internally used value"
+
+	def feed(self, ctx, instance, value):
+		if isinstance(value, _AttBox):
+			# synthetic event during object copying, accept
+			self.feedObject(instance, value.payload)
+		else:
+			# do not let people set that stuff directly
+			raise base.StructureError("Cannot set %s attributes from XML"%self.name_)
+	
+	def feedObject(self, instance, value):
+		setattr(instance, self.name_, value)
+
+	def iterEvents(self, instance):
+		val = getattr(instance, self.name_)
+		if val!=self.default_:
+			yield ("value", self.name_, _AttBox(val))
+
+	def getCopy(self, instance, newParent):
+		# these never get copied; the values are potentially shared 
+		# between many objects, so the must not be changed anyway.
+		return getattr(instance, self.name_)
 
 
 class RoEmptyDict(dict):
@@ -324,13 +366,14 @@ class Column(base.Structure):
 		copyable=True)
 	_xtype = UnicodeAttribute("xtype", description="VOTable xtype giving"
 		" the serialization form", default=None, copyable=True)
+	_stc = TableManagedAttribute("stc", description="Internally used"
+		" STC information for this column (do not assign to)",
+		default=None, copyable=True)
+	_stcUtype = TableManagedAttribute("stcUtype", description="Internally used"
+		" STC information for this column (do not assign to)",
+		default=None, copyable=True)
 	_properties = base.PropertyAttribute(copyable=True)
 	_original = base.OriginalAttribute()
-
-	# The stc* attributes is not managed but set by a parent from
-	# their attributes; we copy them explictely, though.
-	stc = None
-	stcUtype = None
 
 	restrictedMode = False
 
@@ -448,11 +491,6 @@ class Column(base.Structure):
 
 	def getDisplayHintAsString(self):
 		return self._displayHint.unparse(self.displayHint)
-
-	def copy(self, parent):
-		new = base.Structure.copy(self, parent)
-		new.stc, new.stcUtype = self.stc, self.stcUtype
-		return new
 
 	def getLabel(self):
 		"""returns a short label for this column.

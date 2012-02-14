@@ -209,7 +209,6 @@ class InputKeyTest(testhelpers.VerboseTest):
 		self.assertEqual(rendered.attributes["rows"], 15)
 
 
-
 class InputFieldSelectionTest(testhelpers.VerboseTest):
 	# Tests for renderer-dependent selection and adaptation of db core 
 	# input fields.
@@ -300,7 +299,8 @@ class GroupingTest(testhelpers.VerboseTest):
 class OutputTableTest(testhelpers.VerboseTest):
 	def testResolution(self):
 		base.parseFromString(rscdesc.RD,
-			"""<resource schema="test"><table id="foo"><column name="bar"/></table>
+			"""<resource schema="test"><table id="foo">
+			<column name="bar"/></table>
 			<service id="quux"><dbCore queriedTable="foo"/>
 			<outputTable autoCols="bar"/>
 			</service></resource>""")
@@ -338,6 +338,31 @@ class OutputTableTest(testhelpers.VerboseTest):
 		self.assertEqual(len(pars), 2)
 		self.assertEqual(pars[0].name, "quux")
 		self.assertEqual(pars[1].name, "bar")
+
+	def testSTCPreserved(self):
+		rd = base.parseFromString(rscdesc.RD,
+			"""<resource schema="test"><table id="foo">
+			<stc>Position ECLIPTIC Epoch J2200.0 "bar" "bar"</stc>
+			<column name="bar"/></table>
+			<service id="quux"><dbCore queriedTable="foo"/>
+			<outputTable autoCols="bar"/>
+			</service></resource>""")
+		self.assertEqual("ECLIPTIC",
+			rd.services[0].outputTable.columns[0].stc.place.frame.refFrame)
+
+	def testSTCPreservedOriginal(self):
+		rd = base.parseFromString(rscdesc.RD,
+			"""<resource schema="test"><table id="foo">
+			<stc>Position ECLIPTIC Epoch J2200.0 "bar" "bar"</stc>
+			<column name="bar"/></table>
+			<service id="quux"><dbCore queriedTable="foo"/>
+			<outputTable><outputField original="bar"/></outputTable>
+			</service></resource>""")
+		self.assertEqual("ECLIPTIC",
+			rd.services[0].outputTable.columns[0].stc.place.frame.refFrame)
+
+
+
 
 
 class TableSetTest(testhelpers.VerboseTest):

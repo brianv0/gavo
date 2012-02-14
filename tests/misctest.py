@@ -25,7 +25,6 @@ from gavo import rscdesc
 from gavo import votable
 from gavo import stc
 from gavo import utils
-from gavo.base import valuemappers
 from gavo.helpers import filestuff
 from gavo.helpers import processing
 from gavo.protocols import creds

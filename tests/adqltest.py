@@ -1168,7 +1168,6 @@ class STCTest(ColumnTest):
 		self.assertEqual(cs[0][1].stc.astroSystem.spaceFrame.refFrame, 'ICRS')
 		self.assertEqual(ctx.errors, [])
 
-
 	def testPointBadCoo(self):
 		cs, ctx = self._getColSeqAndCtx(
 			"select point('ICRS', ra2, 2) from spatial")
@@ -1199,7 +1198,6 @@ class STCTest(ColumnTest):
 				"select * from spatial where 1=intersects("
 				"region('Position' || alphaName || deltaName),"
 				" circle('icrs', 1, 1, 0.1))",))
-
 
 	def testSTCSRegion(self):
 		cs, ctx = self._getColSeqAndCtx(

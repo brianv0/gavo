@@ -103,6 +103,12 @@ class ColumnTest(testhelpers.VerboseTest):
 			(rscdef.Column, '<column name="x" type="smallint"><values nullLiteral='
 				'"."/></column>'))
 
+	def testNoManualSTC(self):
+		self.assertRaisesWithMsg(base.StructureError,
+			"At (1, 0): Cannot set stcUtype attributes from XML",
+			base.parseFromString,
+			(rscdef.Column, '<column name="x" stcUtype="ICRS"/>'))
+
 
 class ValuesTest(testhelpers.VerboseTest):
 	"""tests for the rscdef.Values class and its interaction with Column.
@@ -253,6 +259,7 @@ class TableDefTest(testhelpers.VerboseTest):
 		t = t0.copy(None)
 		self.failUnless(t.getColumnByName("a").stc is
 			t0.getColumnByName("a").stc)
+
 
 
 class _QuotedNamesTable(testhelpers.TestResource):

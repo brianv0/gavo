@@ -168,15 +168,19 @@ def _pgSphereMapperFactory(colDesc):
 			colDesc["dbtype"] in _pgTypes
 			or colDesc["xtype"]=="adql:POINT"):
 		return
+
+	if colDesc.get("stc"):
+		systemString = stc.getSpatialSystem(colDesc["stc"])
+	else:
+		systemString = "UNKNOWN"
+
 	def mapper(val):
 		if val is None:
 			return None
 		elif isinstance(val, basestring):  # allow preformatted stuff
 			return val
 		else:
-#	XXX TODO: When we've scrapped colDesc and used column annotations,
-# take the system from the column's STC info
-			return val.asSTCS("ICRS")
+			return val.asSTCS(systemString)
 
 	if not colDesc["xtype"]:
 		if colDesc["dbtype"]=='spoint':
@@ -194,11 +198,17 @@ def _boxMapperFactory(colDesc):
 	"""
 	if colDesc["dbtype"]!="box":
 		return
+
+	if colDesc.get("stc"):
+		systemString = stc.getSpatialSystem(colDesc["stc"])
+	else:
+		systemString = "UNKNOWN"
+
 	def mapper(val):
 		if val is None:
 			return ""
 		else:
-			return "Box ICRS %s %s %s %s"%(val[0]+val[1])
+			return "Box %s %s %s %s %s"%((systemString,)+val[0]+val[1])
 	colDesc["datatype"], colDesc["arraysize"] = "char", "*"
 	return mapper
 _registerDefaultMF(_boxMapperFactory)
@@ -438,11 +448,13 @@ class SerManager(utils.IdManagerMixin):
 			self.colDescs.append(
 				VColDesc(column, self.table.votCasts.get(column.name)))
 			colId = self.makeIdFor(column, column.id or column.key)
+
 			# Do not generate an id if the field is already defined somewhere else.
 			# (if that happens, STC definitions could be in trouble, so try
 			# to avoid it, all right?)
 			if colId is not None:
 				self.colDescs[-1]["ID"] = colId
+
 			# if column refers to a note, remember the note
 			if column.note:
 				try:
@@ -450,6 +462,9 @@ class SerManager(utils.IdManagerMixin):
 					self.colDescs[-1]["note"] = column.note
 				except (ValueError, utils.NotFoundError): 
 					pass # don't worry about missing notes
+
+			# memorize stc info if necessary
+			self.colDescs[-1]["stc"] = column.stc
 
 	def _indexColDescs(self):
 		self.colDescIndex = dict((d["name"], d) for d in self.colDescs)

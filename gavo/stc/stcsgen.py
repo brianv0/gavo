@@ -538,3 +538,11 @@ def getSTCS(astRoot):
 		"libSystem": _sysIdToCST(astRoot),
 	})
 	return _flattenCST(cst)
+
+
+def getSpatialSystem(astRoot):
+	"""returns a phrase for the spatial system (for manual STC-S generation).
+	"""
+	cst = stcs.removeDefaults({"space": _spatialToCST(astRoot)})
+	return _joinKeysWithNull(cst["space"], ["frame", 
+			"equinox", "refpos", "flavor", "epoch"], _commonFlatteners)
