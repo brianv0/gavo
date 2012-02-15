@@ -21,11 +21,11 @@ class Error(base.Error):
 	pass
 
 
-class Feeder(object):
-	"""is a feeder for a table.
+class _Feeder(object):
+	"""A device for getting data into a table.
 
-	A feeder becomes active with construction with a table and provides 
-	the methods
+	A feeder is a context manager that rejects all action from without
+	the controlled section.  Within the controlled section, you can use:
 
 		- add(row) -> None -- add row to table.  This may raise all kinds
 			of crazy exceptions.
@@ -33,46 +33,63 @@ class Feeder(object):
 		  (this is done automatically on a successful exit)
 		- reset() -> None -- discard any data that may still wait to be 
 		  flushed to the table
-		- exit(excType=None, excVal=None, excTb=None) -> None -- must
-			be called when all rows are added.  If an exception happened,
-			pass sys.exc_info() here; see below on what the method really does.
 
-	The default implementation of exit calls importFinished and importFailed of
-	the parent table if an exception happens.  In importFinished raises and
+	At the end of the controlled block, the importFinished or importFailed 
+	methods or the parent table are called depending on whether all is
+	well or an exception happened.  If importFinished raises and
 	exception, it is handed on to importFailed and re-raised if importFailed
 	returns False.
 
-	This should become a context manager when we can require python 2.5.
-
 	The batch size constructor argument is for the benefit of DBTables.
 
-	The flush and reset methods are necessary when you do explicit
-	transaction management; you will need to call flush before committing
-	a transaction and reset before rolling one back.
+	The flush and reset methods are necessary when you do explicit buffering and
+	connection management; you will need to call flush before committing a
+	transaction and reset before rolling one back.
 	"""
 	def __init__(self, table, batchSize=1024):
 		self.table = table
 		self.nAffected = 0
+		self.active = False
+
+	def _assertActive(self):
+		if not self.active:
+			raise base.DataError("Trying to feed a dormant feeder.")
 
 	def getAffected(self):
 		return self.nAffected
 
 	def add(self, row):
+		self._assertActive()
 		if self.table.validateRows:
 			self.table.tableDef.validateRow(row)
 		self.table.addRow(row)
 		self.nAffected += 1
-	
-	def exit(self, excType=None, excVal=None, excTb=None):
-		if excType is None: # all ok
-			try:
-				self.table.importFinished()
-			except:
-				if not self.table.importFailed(*sys.exc_info()):
-					raise
-		else:           # exception occurred during processing
-			if not self.table.importFailed(excType, excVal, excTb):
-				raise
+
+	def flush(self):
+		self._assertActive()
+		# no-op for ram feeder
+
+	def reset(self):
+		self._assertActive()
+		# no-op for ram feeder
+
+	def __enter__(self):
+		self.active = True
+		return self
+
+	def __exit__(self, excType=None, excVal=None, excTb=None):
+		try:
+			if excType is None: # all ok
+				try:
+					self.table.importFinished()
+				except:
+					if not self.table.importFailed(*sys.exc_info()):
+						raise
+			else:           # exception occurred in controlled block
+				self.table.importFailed(excType, excVal, excTb)
+		finally:
+			self.active = False
+		return False
 	
 
 def _makeFailIncomplete(name):
@@ -203,7 +220,7 @@ class InMemoryTable(BaseTable):
 		raise ValueError("Cannot use getRow in index-less table")
 
 	def getFeeder(self, **kwargs):
-		return Feeder(self, **kwargs)
+		return _Feeder(self, **kwargs)
 
 
 class InMemoryIndexedTable(InMemoryTable):

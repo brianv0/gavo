@@ -15,18 +15,24 @@ from gavo.rsc import common
 from gavo.rsc import table
 
 
-class Feeder(table.Feeder):
-	"""is a callable used for feeding data into a table.
+class _Feeder(table._Feeder):
+	"""A context manager for feeding data into a table.
 
 	This feeder hands through batchSize items at a time to the database.
 
 	After an exit, the instances have an nAffected attribute that says
 	how many rows were processed by the database through this feeder.
+
+	A feeder is constructed with a parent table (that also provides
+	the connection), an insert command, and potentially some options.
+
+	Note that the table feeder does *not* do any connection management.
+	You have to commit or rollback yourself (or do it properly and go
+	through data, which can do connection management).
 	"""
 	def __init__(self, parent, insertCommand, batchSize=2000, notify=True):
 		self.nAffected, self.notify = 0, notify
-		table.Feeder.__init__(self, parent)
-		self.cursor = parent.connection.cursor()
+		table._Feeder.__init__(self, parent)
 		self.feedCommand, self.batchSize = insertCommand, batchSize
 		self.batchCache = []
 
@@ -53,6 +59,7 @@ class Feeder(table.Feeder):
 			self.batchCache = []
 
 	def add(self, data):
+		self._assertActive()
 		if self.table.validateRows:
 			try:
 				self.table.tableDef.validateRow(data)
@@ -63,12 +70,18 @@ class Feeder(table.Feeder):
 			self.shipout()
 
 	def flush(self):
+		self._assertActive()
 		self.shipout()
 	
 	def reset(self):
+		self._assertActive()
 		self.batchCache = []
 
-	def exit(self, *args):
+	def __enter__(self):
+		self.cursor = self.table.connection.cursor()
+		return table._Feeder.__enter__(self)
+
+	def __exit__(self, *args):
 		if not args or args[0] is None: # regular exit, ship out
 			try:
 				self.shipout()
@@ -80,14 +93,18 @@ class Feeder(table.Feeder):
 					self.nAffected = 0
 				self.cursor.close()
 			except:
-				return table.Feeder.exit(self, *sys.exc_info())
-		return table.Feeder.exit(self, *args)
+				del self.cursor
+				table._Feeder.__exit__(self, *sys.exc_info())
+				raise
+		del self.cursor
+		table._Feeder.__exit__(self, *args)
+		return False
 
 	def getAffected(self):
 		return self.nAffected
 
 
-class RaisingFeeder(Feeder):
+class _RaisingFeeder(_Feeder):
 	"""is a feeder that will bomb on any attempt to feed data to it.
 
 	It is useful for tables that can't be written, specifically, views.
@@ -138,11 +155,10 @@ class MetaTableMixin(object):
 			connection=self.connection)
 		makeRow = rd.getById("fromColumnList").compileForTableDef(
 			t.tableDef)
-		feeder = t.getFeeder(notify=False)
-		for colInd, column in enumerate(self.tableDef):
-			items = {"tableName": tableName, "colInd": colInd, "column": column}
-			feeder.add(makeRow(items, t))
-		feeder.exit()
+		with t.getFeeder(notify=False) as feeder:
+			for colInd, column in enumerate(self.tableDef):
+				items = {"tableName": tableName, "colInd": colInd, "column": column}
+				feeder.add(makeRow(items, t))
 
 	def addToMeta(self):
 		self.cleanFromMeta()  # Don't force people to clean first on meta updates
@@ -360,7 +376,7 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 	def getFeeder(self, **kwargs):
 		if "notify" not in kwargs:
 			kwargs["notify"] = not self.tableDef.system
-		return Feeder(self, self.addCommand, **kwargs)
+		return _Feeder(self, self.addCommand, **kwargs)
 
 	def importFinished(self):
 		if self.newlyCreated:
@@ -385,14 +401,9 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 		The method returns the number of rows affected.  Exceptions are
 		handed through upstream, but the connection is rolled back.
 		"""
-		feeder = self.getFeeder()
-		try:
+		with self.getFeeder() as feeder:
 			for r in rows:
 				feeder.add(r)
-		except:
-			feeder.exit(*sys.exc_info())
-		else:
-			feeder.exit(None, None, None)
 		return feeder.nAffected
 
 	def addRow(self, row):
@@ -636,7 +647,7 @@ class View(DBTable):
 	def getFeeder(self, **kwargs):
 		# all kwargs ignored since the feeder will raise an exception on any
 		# attempts to feed anyway.
-		return RaisingFeeder(self, None)
+		return _RaisingFeeder(self, None)
 	
 	def create(self):
 		base.ui.notifyDebug("Create DB View %s"%self.tableName)

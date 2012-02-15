@@ -200,7 +200,7 @@ class DBUniqueForcedTest(UniqueForcedTest):
 			data = rsc.makeData(rd.getById("bla"), connection=self.conn)
 
 			tdb = rd.getById("b")
-			tb = rsc.TableForDef(tdb, connection=self.conn)
+			tb = rsc.TableForDef(tdb, connection=self.conn, create=True)
 			self.assertEqual(list(tb.iterQuery(tdb, "")), 
 				[{'x': 'old', 'y': 'fromold'}])
 
@@ -499,6 +499,86 @@ class QueryTableTest(testhelpers.VerboseTest):
 			(None, ""),
 			rows=[])
 
+
+class RAMFeedingTest(testhelpers.VerboseTest):
+	def testWorks(self):
+		td = base.parseFromString(rscdef.TableDef, 
+			'<table><column name="x" type="integer"/></table>')
+		instance = rsc.TableForDef(td)
+		with instance.getFeeder() as f:
+			f.add({'x': 1})
+			f.add({'x': 2})
+		self.assertEqual(len(instance.rows), 2)
+		self.assertEqual(instance.rows[1]['x'], 2)
+
+	def testExceptionRaised(self):
+		td = base.parseFromString(rscdef.TableDef, 
+			'<table><column name="x" type="integer"/></table>')
+		instance = rsc.TableForDef(td)
+
+		def failInFeed():
+			with instance.getFeeder() as f:
+				raise OverflowError()
+
+		self.assertRaises(OverflowError, failInFeed)
+
+	def testInactiveRaises(self):
+		td = base.parseFromString(rscdef.TableDef, 
+			'<table><column name="x" type="integer"/></table>')
+		instance = rsc.TableForDef(td)
+		f = instance.getFeeder()
+		with f:
+			f.add({'x': 1})
+		self.assertRaises(base.DataError, f.add, {'x': 1})
+
+
+class DBFeedingTest(tresc.TestWithDBConnection):
+	def testInactiveRaises(self):
+		td = base.parseFromString(rscdef.TableDef, 
+			'<table id="bla" temporary="true" onDisk="true">'
+				'<column name="x" type="integer"/></table>')
+		instance = rsc.TableForDef(td, connection=self.conn, create=True)
+		try:
+			f = instance.getFeeder()
+			with f:
+				f.add({'x': 1})
+			self.assertRaises(base.DataError, f.add, {'x': 1})
+		finally:
+			self.conn.rollback()
+
+	def testFlushWorks(self):
+		td = base.parseFromString(rscdef.TableDef, 
+			'<table id="bla" temporary="true" onDisk="true">'
+				'<column name="x" type="integer"/></table>')
+		instance = rsc.TableForDef(td, connection=self.conn, create=True)
+		try:
+			f = instance.getFeeder()
+			with f:
+				f.add({'x': 1})
+				self.assertEqual(len(f.batchCache), 1)
+				self.assertEqual(list(instance.iterQuery(td, "")), [])
+			self.assertEqual(list(instance.iterQuery(td, "")), [{'x': 1}])
+			with f:
+				f.add({'x': 2})
+				f.flush()
+				self.assertEqual(list(instance.iterQuery(td, "")), 
+					[{'x': 1}, {'x': 2}])
+		finally:
+			self.conn.rollback()
+
+	def testResetWorks(self):
+		td = base.parseFromString(rscdef.TableDef, 
+			'<table id="bla" temporary="true" onDisk="true">'
+				'<column name="x" type="integer"/></table>')
+		instance = rsc.TableForDef(td, connection=self.conn, create=True)
+		try:
+			f = instance.getFeeder()
+			with f:
+				f.add({'x': 1})
+				f.reset()
+			self.assertEqual(list(instance.iterQuery(td, "")), [])
+		finally:
+			self.conn.rollback()
 
 if __name__=="__main__":
 	testhelpers.main(STCTest)

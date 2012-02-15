@@ -19,8 +19,8 @@ from gavo.rsc import tables
 MS = base.makeStruct
 
 
-class DataFeeder(table.Feeder):
-	"""is a feeder for data.
+class _DataFeeder(table._Feeder):
+	"""is a feeder for data (i.e., table collections).
 
 	This is basically a collection of all feeders of the tables belonging
 	to data, except it will also call the table's mappers, i.e., add
@@ -29,10 +29,15 @@ class DataFeeder(table.Feeder):
 	Feeders can be dispatched; this only works if the grammar returns
 	pairs of role and row rather than only the row.  Dispatched
 	feeders only pass rows to the makes corresponding to the role.
+
+	If you pass in a connection, the data feeder will manage it (i.e.
+	commit if all went well, rollback otherwise).
 	"""
-	def __init__(self, data, batchSize=1024, dispatched=False):
+	def __init__(self, data, batchSize=1024, dispatched=False,
+			connection=None):
 		self.data, self.batchSize = data, batchSize
 		self.nAffected = 0
+		self.connection = connection
 		if dispatched:
 			makeAdders = self._makeFeedsDispatched
 		else:
@@ -109,14 +114,60 @@ class DataFeeder(table.Feeder):
 	def reset(self):
 		for feeder in self.feeders:
 			feeder.reset()
+
+	def __enter__(self):
+		for feeder in self.feeders:
+			feeder.__enter__()
+		return self
+
+	def _exitFailing(self, *excInfo):
+		"""calls all subordinate exit methods when there was an error in
+		the controlled block.
+
+		This ignores any additional exceptions that might come out of
+		the exit methods.
+
+		The condition is rolled back, and we unconditionally propagate
+		the exception.
+		"""
+		for feeder in self.feeders:
+			try:
+				feeder.__exit__(*excInfo)
+			except:
+				base.ui.notifyError("Ignored exception while exiting data feeder"
+					" on error.")
+		if self.connection:
+			self.connection.rollback()
 	
-	def exit(self, *excInfo):
+	def _exitSuccess(self):
+		"""calls all subordinate exit methods when the controlled block
+		exited successfully.
+
+		If one of the exit methods fails, we run _exitFailing and re-raise
+		the exception.
+
+		If all went well and we control a connection, we commit it.
+		"""
 		affected = []
 		for feeder in self.feeders:
-			feeder.exit(*excInfo)
+			try:
+				feeder.__exit__(None, None, None)
+			except:
+				self._exitFailing(*sys.exc_info())
+				raise
 			affected.append(feeder.getAffected())
+
+		if self.connection:
+			self.connection.commit()
+
 		if affected:
 			self.nAffected = max(affected)
+
+	def __exit__(self, *excInfo):
+		if excInfo and excInfo[0]:
+			return self._exitFailing(*excInfo)
+		else:
+			self._exitSuccess()
 	
 	def getAffected(self):
 		return self.nAffected
@@ -269,7 +320,7 @@ class Data(base.MetaMixin, common.ParamMixin):
 			m.runParmakerFor(grammarParameters, self.tables[m.table.id])
 
 	def getFeeder(self, **kwargs):
-		return DataFeeder(self, **kwargs)
+		return _DataFeeder(self, **kwargs)
 
 	def runScripts(self, phase, **kwargs):
 		for t in self:
@@ -369,7 +420,6 @@ def makeData(dd, parseOptions=common.parseNonValidating,
 	You can pass in a data instance created by yourself in data.  This
 	makes sense if you want to, e.g., add some meta information up front.
 	"""
-# this will become much prettier once we can use context managers
 	if data is None:
 		res = Data.create(dd, parseOptions, connection=connection)
 	else:
@@ -380,8 +430,7 @@ def makeData(dd, parseOptions=common.parseNonValidating,
 	if getattr(dd.grammar, "isDispatching", False):
 		feederOpts["dispatched"] = True
 
-	feeder = res.getFeeder(**feederOpts)
-	try:
+	with res.getFeeder(connection=connection, **feederOpts) as feeder:
 		if forceSource is None:
 			for source in dd.iterSources(connection):
 				try:
@@ -392,18 +441,9 @@ def makeData(dd, parseOptions=common.parseNonValidating,
 					continue
 		else:
 			processSource(res, forceSource, feeder, parseOptions, connection)
-	except:
-		if connection:
-			connection.rollback()
-		excHandled = feeder.exit(*sys.exc_info())
-		if not excHandled:
-			raise
-	else:
-		feeder.exit(None, None, None)
-		if connection:
-			connection.commit()
-		else:
-			res.commitAll()
+
+	if connection is None:
+		res.commitAll()
 	res.nAffected = feeder.getAffected()
 
 	if parseOptions.buildDependencies:

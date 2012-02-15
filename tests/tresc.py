@@ -69,6 +69,7 @@ class ProdtestTable(testhelpers.TestResource):
 		return self.conn
 
 	def clean(self, ignore):
+		self.conn.rollback()
 		t = self.data.tables["prodtest"].drop()
 		self.conn.commit()
 
@@ -154,7 +155,9 @@ class RDDataResource(testhelpers.TestResource):
 		return self.dataCreated.getPrimaryTable()
 	
 	def clean(self, table):
+		self.conn.rollback()
 		self.dataCreated.dropTables(rsc.parseNonValidating)
+		self.conn.commit()
 
 
 class CSTestTable(RDDataResource):
