@@ -415,19 +415,23 @@ class PostgresQueryMixin(object):
 		return dict(res)
 
 
-	def getACLFromRes(self, thingWithRoles):
-		"""returns a dict of (role, ACL) as it is defined in tableDef or RD
-		thingWithRoles, in our internal notation.
+	def getACLFromRes(self, thingWithPrivileges):
+		"""returns a dict of (role, ACL) as it is defined in thingWithPrivileges.
+
+		thingWithPrivileges is something mixing in rscdef.common.PrivilegesMixin.
+		(or has readProfiles and allProfiles attributes containing
+		sequences of profile names).
 		"""
 		res = []
-		if hasattr(thingWithRoles, "schema"): # it's an RD
+		if hasattr(thingWithPrivileges, "schema"): # it's an RD
 			readRight = "USAGE"
 		else:
 			readRight = "SELECT"
-		for role in thingWithRoles.readRoles:
-			res.append((role, readRight))
-		for role in thingWithRoles.allRoles:
-			res.append((role, "ALL"))
+
+		for profile in thingWithPrivileges.readProfiles:
+			res.append((config.getDBProfileByName(profile).roleName, readRight))
+		for profile in thingWithPrivileges.allProfiles:
+			res.append((config.getDBProfileByName(profile).roleName, "ALL"))
 		return dict(res)
 
 

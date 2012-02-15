@@ -5,6 +5,7 @@ This only works with psycopg2.
 """
 
 import datetime
+import os
 import sys
 import unittest
 
@@ -188,6 +189,15 @@ class TestRoleSetting(TestPrivs):
 				querier.query("create user testadmin")
 		except base.DBError: # probably left over from a previous crash
 			sys.stderr.write("Test roles already present?  Rats.\n")
+		
+		self.profDir = base.getConfig("configDir") 
+		with open(os.path.join(self.profDir, "privtest"), "w") as f:
+			f.write("include dsn\nuser=privtestuser\n")
+		with open(os.path.join(self.profDir, "testadmin"), "w") as f:
+			f.write("include dsn\nuser=testadmin\n")
+		base.setConfig("profiles", "privtest", "privtest")
+		base.setConfig("profiles", "testadmin", "testadmin")
+	
 		TestPrivs.setUp(self)
 	
 	def tearDown(self):
@@ -196,6 +206,8 @@ class TestRoleSetting(TestPrivs):
 		self.querier.query("drop user privtestuser")
 		self.querier.query("drop user testadmin")
 		self.querier.commit()
+		os.unlink(os.path.join(self.profDir, "privtest"))
+		os.unlink(os.path.join(self.profDir, "testadmin"))
 
 
 class SimpleQuerierTest(TestWithTableCreation):

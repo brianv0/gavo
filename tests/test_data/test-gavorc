@@ -9,9 +9,6 @@ logDir:~/gavo/logs
 
 [db]
 profilePath: $configDir
-maintainers: testgavoadmin
-queryRoles: testgavo
-adqlRoles: testuntrusted
 
 [web]
 enableTests: True

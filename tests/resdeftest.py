@@ -173,28 +173,28 @@ class TableDefTest(testhelpers.VerboseTest):
 	
 	def testRoles(self):
 		t = base.parseFromString(rscdef.TableDef, '<table id="t"></table>')
-		self.assertEqual(t.readRoles, base.getConfig("db", "queryRoles"))
-		self.assertEqual(t.allRoles, base.getConfig("db", "maintainers"))
-		self.assert_(t.readRoles is not base.getConfig("db", "queryRoles"))
-		self.assert_(t.allRoles is not base.getConfig("db", "maintainers"))
+		self.assertEqual(t.readProfiles, base.getConfig("db", "queryProfiles"))
+		self.assertEqual(t.allProfiles, base.getConfig("db", "maintainers"))
+		self.assert_(t.readProfiles is not base.getConfig("db", "queryProfiles"))
+		self.assert_(t.allProfiles is not base.getConfig("db", "maintainers"))
 		t = base.parseFromString(rscdef.TableDef, 
-			'<table readRoles="" id="test"></table>')
-		self.assertEqual(t.readRoles, set())
+			'<table readProfiles="" id="test"></table>')
+		self.assertEqual(t.readProfiles, set())
 		t = base.parseFromString(rscdef.TableDef, 
-			'<table allRoles="x" id="test"></table>')
-		self.assertEqual(t.allRoles, set(["x"]))
-		self.assertEqual(t.readRoles, base.getConfig("db", "queryRoles"))
+			'<table allProfiles="x" id="test"></table>')
+		self.assertEqual(t.allProfiles, set(["x"]))
+		self.assertEqual(t.readProfiles, base.getConfig("db", "queryProfiles"))
 		t = base.parseFromString(rscdef.TableDef, 
-			'<table id="test" allRoles="x" readRoles="y,z"></table>')
-		self.assertEqual(t.allRoles, set(["x"]))
-		self.assertEqual(t.readRoles, set(["y", "z"]))
+			'<table id="test" allProfiles="x" readProfiles="y,z"></table>')
+		self.assertEqual(t.allProfiles, set(["x"]))
+		self.assertEqual(t.readProfiles, set(["y", "z"]))
 
 	def testADQL(self):
 		t = base.parseFromString(rscdef.TableDef, '<table adql="Yes" id="t">'
 			'</table>')
 		self.assertEqual(t.adql, True)
-		for role in base.getConfig("db", "adqlRoles"):
-			self.assert_(role in t.readRoles)
+		for pName in base.getConfig("db", "adqlProfiles"):
+			self.assert_(pName in t.readProfiles)
 
 	def testReservedWordBails(self):
 		self.assertRaisesWithMsg(base.StructureError, 

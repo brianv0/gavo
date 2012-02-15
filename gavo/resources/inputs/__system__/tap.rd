@@ -67,7 +67,7 @@
 
 	<table id="schemas" onDisk="True" system="True"
 			forceUnique="True" dupePolicy="drop" primary="schema_name"
-			readRoles="defaults,untrusted" adql="True">
+			readProfiles="defaults,untrustedquery" adql="True">
 		<meta name="description">Schmemas containing tables available for ADQL
 			querying.</meta>
 	<!-- since schemata may be shared between RDs, nothing will ever
@@ -81,7 +81,7 @@
 	</table>
 	
 	<table id="tables" onDisk="True" system="True" primary="table_name"
-			readRoles="defaults,untrusted" adql="True">
+			readProfiles="defaults,untrustedquery" adql="True">
 		<meta name="description">Tables available for ADQL querying.</meta>
 		<column name="schema_name" type="text" 
 			description="Fully qualified schema name"/>
@@ -97,7 +97,7 @@
 	</table>
 
 	<table id="columns" onDisk="True" system="True"
-			primary="table_name,column_name" readRoles="defaults,untrusted"
+			primary="table_name,column_name" readProfiles="defaults,untrustedquery"
 			adql="True">
 		<meta name="description">Columns in tables available for ADQL querying.
 		</meta>
@@ -127,7 +127,7 @@
 	</table>
 
 	<table id="keys" onDisk="True" system="True"
-			primary="key_id" readRoles="defaults,untrusted" adql="True">
+			primary="key_id" readProfiles="defaults,untrustedquery" adql="True">
 		<meta name="description">Foreign key relationships between tables 
 			available for ADQL querying.
 		</meta>
@@ -145,7 +145,7 @@
 	</table>
 
 	<table id="key_columns" onDisk="True" system="True"
-			readRoles="defaults,untrusted" adql="True">
+			readProfiles="defaults,untrustedquery" adql="True">
 		<meta name="description">Columns participating in foreign key 
 			relationships between tables available for ADQL querying.
 		</meta>

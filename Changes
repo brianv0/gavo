@@ -12,6 +12,11 @@ Version 0.7.1 (2012-XX-XX)
     organization.referenceURL in defaultmeta.txt.
     authority.managingOrg usually is ivo://<your authority>/org.
 
+  * The former readRoles and allRoles attribute of table and resource
+    elements are now called readProfiles and allProfiles and contain
+    profile names rather than DB roles.  In the unlikely case you're
+    using this feature, you'd have to change the RDs.
+
 
 Version 0.7 (2012-01-12)
 

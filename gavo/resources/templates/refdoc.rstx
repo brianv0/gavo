@@ -389,13 +389,15 @@ try to get it right.
 
 Within DaCHS, coverage metadata uses the following keys:
 
-* coverage.profile – an STC-S string giving the coverage of the service
+* coverage.profile – an STC-S string giving the coverage of the service.
+  These can become rather complex.  We implement several extensions to
+  STC-S.  See also the `documentation for GAVO STC`_
 * coverage.waveband – One of Radio, Millimeter, Infrared, Optical, UV,
   EUV, X-ray, Gamma-ray, and you can have multiple waveband
   specifications.  Note that you can provide much more detailed
   information on the covered spectral range as part of coverage.profile
   (but it's also much less likely that there is proper support for data
-  there).
+  there in registries and clients).
 * coverage.regionOfRegard – in essence, the "pixel size" of the service in
   degrees.  If, for example, your service gives data on a lattice of
   sampling points, the typical distance of such points should be given
@@ -404,6 +406,21 @@ Within DaCHS, coverage metadata uses the following keys:
   automatically by the software once we have a footprint standard and
   DaCHS implements it.
 
+Here's an example for a service covering the large and small magellanic
+clouds::
+
+  <meta name="coverage">
+    <meta name="profile">
+      Union ICRS (
+        Box 81 69.75 14 3.25
+        Box 13 -73 9 2)</meta>
+    <meta name="waveband">Optical</meta>
+    <meta name="waveband">Infrared</meta>
+    <meta name="regionOfRegard">0.02</meta>
+  </meta>
+
+
+.. _Documentation for GAVO STC: http://docs.g-vo.org/DaCHS/stc.html
 
 Meta Stream Format
 ''''''''''''''''''
@@ -665,7 +682,7 @@ with a message and the name of an input key.  At least for the form
 renderer, this causes a sensible error message with some hint as the the
 originating input field::
 
-	raise base.ValidationError("Invalid file name", "rdsrc")
+  raise base.ValidationError("Invalid file name", "rdsrc")
 
 
 Database Options
@@ -687,11 +704,11 @@ So, if you order a table widget, you should do something like::
 In general, you should warn people if the query limit was reached; a
 simple way to do that is::
 
-	if len(res)==queryLimit:
-		res.addMeta("_warning", "The query limit was reached.  Increase it"
-			" to retrieve more matches.  Note that unsorted truncated queries"
-			" are not reproducible (i.e., might return a different result set"
-			" at a later time).")
+  if len(res)==queryLimit:
+    res.addMeta("_warning", "The query limit was reached.  Increase it"
+      " to retrieve more matches.  Note that unsorted truncated queries"
+      " are not reproducible (i.e., might return a different result set"
+      " at a later time).")
 
 where res would be your result table.  _warning metadata is displayed in
 both HTML and VOTable output, though of course VOTable tools will not
@@ -865,11 +882,11 @@ Examples
 This snippet sets a flag when importing some source (in this case,
 that's an RD, so we can access sourceToken.sourceId::
 
-			<script type="newSource" lang="python" id="markDeleted">
-				table.query("UPDATE %s SET deleted=True"
-					" WHERE sourceRD=%%(sourceRD)s"%id, 
-					{"sourceRD": sourceToken.sourceId})
-			</script>
+      <script type="newSource" lang="python" id="markDeleted">
+        table.query("UPDATE %s SET deleted=True"
+          " WHERE sourceRD=%%(sourceRD)s"%id, 
+          {"sourceRD": sourceToken.sourceId})
+      </script>
 
 
 This is a hacked way of ensuring some sort of referential integrity:
@@ -888,7 +905,7 @@ housekeeping.  Rules are typically set in postCreation scripts::
   <script type="postCreation" lang="SQL">
     CREATE OR REPLACE RULE cleanupProducts AS 
       ON DELETE TO \curtable DO ALSO
-			DELETE FROM products WHERE key=OLD.accref
+      DELETE FROM products WHERE key=OLD.accref
   </script>
 
 The decision if such arrangements are make before the import, before the
@@ -897,35 +914,35 @@ script's purpose.
 
 Another use for scripts is SQL function definition::
 
-			<script type="postCreation" lang="SQL" name="Define USNOB matcher">
-				CREATE OR REPLACE FUNCTION usnob_getmatch(alpha double precision, 
-					delta double precision, windowSecs float
-				) RETURNS SETOF usnob.data AS $$
-				DECLARE
-					rec RECORD;
-				BEGIN
-					FOR rec IN (SELECT * FROM usnob.data WHERE 
-						q3c_join(alpha, delta, raj2000, dej2000, windowSecs/3600.)) 
-					LOOP
-						RETURN NEXT rec;
-					END LOOP;
-				END;
-				$$ LANGUAGE plpgsql;
-			</script>
+      <script type="postCreation" lang="SQL" name="Define USNOB matcher">
+        CREATE OR REPLACE FUNCTION usnob_getmatch(alpha double precision, 
+          delta double precision, windowSecs float
+        ) RETURNS SETOF usnob.data AS $$
+        DECLARE
+          rec RECORD;
+        BEGIN
+          FOR rec IN (SELECT * FROM usnob.data WHERE 
+            q3c_join(alpha, delta, raj2000, dej2000, windowSecs/3600.)) 
+          LOOP
+            RETURN NEXT rec;
+          END LOOP;
+        END;
+        $$ LANGUAGE plpgsql;
+      </script>
 
 You can also load data, most usefully in preIndex scripts (although
 beforeImport would work as well here)::
 
-		<script type="preIndex" lang="SQL" name="create USNOB-PPMX crossmatch">
-				SET work_mem=1000000;
-				INSERT INTO usnob.ppmxcross (
-					SELECT q3c_ang2ipix(raj2000, dej2000) AS ipix, p.localid 
-					FROM 
-						ppmx.data AS p, 
-						usnob.data AS u 
-					WHERE q3c_join(p.alphaFloat, p.deltaFloat, 
-						u.raj2000, u.dej2000, 1.5/3600.))
-			</script>
+    <script type="preIndex" lang="SQL" name="create USNOB-PPMX crossmatch">
+        SET work_mem=1000000;
+        INSERT INTO usnob.ppmxcross (
+          SELECT q3c_ang2ipix(raj2000, dej2000) AS ipix, p.localid 
+          FROM 
+            ppmx.data AS p, 
+            usnob.data AS u 
+          WHERE q3c_join(p.alphaFloat, p.deltaFloat, 
+            u.raj2000, u.dej2000, 1.5/3600.))
+    </script>
 
 
 

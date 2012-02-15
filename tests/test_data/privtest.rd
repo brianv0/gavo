@@ -8,8 +8,8 @@ warnings when created, so we don't want it in the main test.rd -->
 	<schema>test</schema>
 
 	<table id="privtable" onDisk="True">
-		<readRoles>defaults,privtestuser</readRoles>
-		<allRoles>testadmin</allRoles>
+		<readProfiles>defaults,privtest</readProfiles>
+		<allProfiles>testadmin</allProfiles>
 		<column name="foo"/>
 	</table>
 </resource>

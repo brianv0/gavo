@@ -6,7 +6,7 @@
 -->
 	<table id="users" primary="username" onDisk="True">
 <!-- prevent "normal" (e.g., ADQL) users from accessing this table -->
-		<readRoles></readRoles>
+		<readProfiles/>
 		<column name="username" type="text" tablehead="Username"/>
 		<column name="password" type="text" displayHint="type=suppress"/>
 		<!-- This is a plain text password.  We could store md5s, but
@@ -18,7 +18,7 @@
 	</table>
 
 	<table id="groups" onDisk="True">
-		<readRoles></readRoles>
+		<readProfiles/>
 		<foreignKey table="dc.users" source="username"/>
 		<column name="username" type="text"/>
 		<column name="groupname" type="text"/>

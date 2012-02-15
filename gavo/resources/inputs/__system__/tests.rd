@@ -8,7 +8,7 @@
 		<sources pattern="upload/[a-z]*"/>
 		<keyValueGrammar/>
 		
-		<table id="files" primary="name" onDisk="True" allRoles="default,gavo">
+		<table id="files" primary="name" onDisk="True" allProfiles="default,gavo">
 			<column name="name" type="text"/>
 			<column name="a"/>
 			<column name="b"/>

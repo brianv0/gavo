@@ -219,7 +219,7 @@ class STCDef(base.Structure):
 		return self._origFields.iteritems()
 
 
-class TableDef(base.Structure, base.ComputedMetaMixin, common.RolesMixin,
+class TableDef(base.Structure, base.ComputedMetaMixin, common.PrivilegesMixin,
 		common.IVOMetaMixin, base.StandardMacroMixin):
 	"""A definition of a table, both on-disk and internal.
 
@@ -387,7 +387,8 @@ class TableDef(base.Structure, base.ComputedMetaMixin, common.RolesMixin,
 
 	def onElementComplete(self):
 		if self.adql:
-			self.readRoles = self.readRoles | base.getConfig("db", "adqlRoles")
+			self.readProfiles = (self.readProfiles | 
+				base.getConfig("db", "adqlProfiles"))
 		self.dictKeys = [c.key for c in self]
 
 		self.indexedColumns = set()

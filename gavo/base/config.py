@@ -152,6 +152,18 @@ class DBProfile(structure.Structure):
 				self.profileName)))
 		return res
 
+	@property
+	def roleName(self):
+		"""returns the database role used by this profile.
+
+		This normally is user, but in the special case of the empty user,
+		we return the logged users' name.
+		"""
+		if self.user:
+			return self.user
+		else:
+			return os.getlogin()
+
 
 class ProfileParser(object):
 	r"""is a parser for DB profiles.
@@ -431,11 +443,11 @@ _config = Configuration(
 			"Path for locating DB profiles"),
 		StringConfigItem("msgEncoding", "utf-8", "Encoding of the"
 			" messages coming from the database"),
-		SetConfigItem("maintainers", "gavoadmin", "Name(s) of DB roles"
+		SetConfigItem("maintainers", "admin", "Name(s) of profiles"
 			" that should have full access to gavoimp-created tables by default"),
-		SetConfigItem("queryRoles", "gavo", "Name(s) of DB roles that"
+		SetConfigItem("queryProfiles", "trustedquery", "Name(s) of profiles that"
 			" should be able to read gavoimp-created tables by default"),
-		SetConfigItem("adqlRoles", "untrusted", "Name(s) of DB roles that"
+		SetConfigItem("adqlProfiles", "untrustedquery", "Name(s) of profiles that"
 			" get access to tables opened for ADQL"),
 		IntConfigItem("defaultLimit", "100", "Default match limit for DB queries"),
 	),

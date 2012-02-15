@@ -67,13 +67,13 @@ class ResdirRelativeAttribute(base.FunctionRelativePathAttribute):
 			default=default, description=description, **kwargs)
 
 
-class RoleListAttribute(base.AtomicAttribute):
-	"""is an attribute containing a comma separated list of role names.
+class ProfileListAttribute(base.AtomicAttribute):
+	"""An attribute containing a comma separated list of profile names.
 
-	There's the special role name "defaults" for whatever default this role 
-	list was constructed with.
+	There's the special role name "defaults" for whatever default this 
+	profile list was constructed with.
 	"""
-	typeDesc_ = "Comma separated list of db roles"
+	typeDesc_ = "Comma separated list of profile names."
 
 	def __init__(self, name, default, description):
 		base.AtomicAttribute.__init__(self, name, base.Computed, description)
@@ -84,16 +84,16 @@ class RoleListAttribute(base.AtomicAttribute):
 		return self.realDefault.copy()
 
 	def parse(self, value):
-		roles = set()
-		for role in value.split(","):
-			role = role.strip()
-			if not role:
+		pNames = set()
+		for pName in value.split(","):
+			pName = pName.strip()
+			if not pName:
 				continue
-			if role=="defaults":
-				roles = roles|self.default_
+			if pName=="defaults":
+				pNames = pNames|self.default_
 			else:
-				roles.add(role)
-		return roles
+				pNames.add(pName)
+		return pNames
 	
 	def unparse(self, value):
 # It would be nice to reconstruct "defaults" here, but right now it's 
@@ -101,19 +101,25 @@ class RoleListAttribute(base.AtomicAttribute):
 		return ", ".join(value)
 
 
-class RolesMixin(object):
-	"""is a mixin for structures defining database roles.
+class PrivilegesMixin(object):
+	"""A mixin for structures declaring access to database objects (tables,
+	schemas).
 
-	We have two types of roles: "All" roles, having all privileges, and "Read"
-	roles that have r/o access to objects.  These are kept in two attributes
-	given here.
+	Access is managed on the level of database profiles.  Thus, the names
+	here are not directly role names in the database.
+	
+	We have two types of privileges: "All" means at least read  and write, 
+	and "Read" meaning at least read and lookup.
 	"""
-	_readRoles = RoleListAttribute("readRoles", 
-		default=base.getConfig("db", "queryRoles"),
-		description="DB roles that can read data stored here.")
-	_allRoles = RoleListAttribute("allRoles", 
+	_readProfiles = ProfileListAttribute("readProfiles", 
+		default=base.getConfig("db", "queryProfiles"),
+		description="A (comma separated) list of profile names through"
+			" which the object can be read.")
+	_allProfiles = ProfileListAttribute("allProfiles", 
 		default=base.getConfig("db", "maintainers"),
-		description="DB roles that can read and write data stored here.")
+		description="A (comma separated) list of profile names through"
+			" which the object can be written or administred.")
+
 
 
 class IVOMetaMixin(object):

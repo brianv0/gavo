@@ -28,7 +28,7 @@ from gavo.rscdef import scripting
 
 
 class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
-		base.StandardMacroMixin, common.RolesMixin, registry.DateUpdatedMixin):
+		base.StandardMacroMixin, common.PrivilegesMixin, registry.DateUpdatedMixin):
 	"""A resource descriptor (RD); the root for all elements described here.
 	
 	RDs collect all information about how to parse a particular source (like a
@@ -173,7 +173,7 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 
 	def onElementComplete(self):
 		for table in self.tables:
-			self.readRoles = self.readRoles|table.readRoles
+			self.readProfiles = self.readProfiles | table.readProfiles
 			table.setMetaParent(self)
 
 		self.serviceIndex = {}
