@@ -471,6 +471,9 @@ class _TableVORRecord(testhelpers.TestResource):
 				<meta name="subject">testing</meta>
 				<meta name="subject">regressions</meta>
 				<meta name="coverage.profile">Box ICRS 12 13 2 3</meta>
+				<meta name="coverage.waveband">X-Ray</meta>
+				<meta name="coverage.waveband">Radio</meta>
+				<meta name="coverage.regionOfRegard">3</meta>
 				<meta name="format">audio/vorbis</meta>
 				<meta name="referenceURL">http://junk.g-vo.org</meta>
 				<meta name="servedBy" ivoId="ivo://org.g-vo.junk/tap"
@@ -514,11 +517,20 @@ class TablePublicationRecordTest(testhelpers.VerboseTest):
 	def testDataMetaRendered(self):
 		self.assertEqual(self.tree.xpath("format")[0].text, "audio/vorbis")
 	
-	def testCoverageMetaRendered(self):
+	def testCoverageProfileRendered(self):
 		self.assertEqual(self.tree.xpath(
 			"coverage/STCResourceProfile/AstroCoordArea/Box/Size/C1")[0].text, 
 			"2.0")
-	
+
+	def testWavebandsPresent(self):
+		bands = self.tree.xpath("coverage/waveband")
+		self.assertEqual(len(bands), 2)
+		self.assertEqual(bands[0].text, "X-Ray")
+
+	def testRegionOfRegardPresent(self):
+		self.assertEqual(self.tree.xpath("coverage/regionOfRegard")[0].text,
+			"3")
+
 	def testTablesetRendered(self):
 		self.assertEqual(self.tree.xpath("tableset/schema/table/name")[0].text,
 			"data.punk")
@@ -717,6 +729,6 @@ class ResumptionTokenTest(testhelpers.VerboseTest):
 				"TS2qdEksSbU1NDaysDA3NTc01DM3UitLLUqy9cksLglKTc4vSilWy00tSUxJLEk"
 				"MKEpNy6ywzSzLjy/LLwIA+dsbFQ=="},))
 
-	
+
 if __name__=="__main__":
 	testhelpers.main(ListRecordsTest)

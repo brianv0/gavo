@@ -153,7 +153,9 @@ def _stcResourceProfile(metaValue, localattrs=None):
 _coverageMetaBuilder = meta.ModelBasedBuilder([
 	('coverage', SF(VS.coverage), [
 		('profile', _stcResourceProfile),
-		('waveband', SF(VS.waveband)),])])
+		('waveband', SF(VS.waveband)),
+		('regionOfRegard', SF(VS.regionOfRegard)),
+	])])
 
 
 def getResourceArgs(resob):

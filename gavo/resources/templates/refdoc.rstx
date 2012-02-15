@@ -315,7 +315,7 @@ renderers -- include:
   it's optional and we doubt its usefulness.
 * facility -- no IVOA ids are supported here yet, but probably this
   should change.
-* coverage -- see the special section to be written
+* coverage -- see the special section
 * service-specific metadata (for SIA, SCS, etc.) -- see the
   documentation of the respective cores.
 * utype – tables (and possibly other items) can have utypes to signify
@@ -377,6 +377,32 @@ In DC resources, it's better to be explicit about the tree structure
 However, for creator.name specifically, it's highly likely that people
 accept things like "Arthur; Berta" anyway, and so here it might be
 better to disregard the tree structure issues entirely.
+
+
+Coverage Metadata
+'''''''''''''''''
+
+Coverage metadata probably is the most complex piece of metadata, but
+also potentially the most useful, since it would allow clients to
+restrict querying to services known to contain relevant material.  So,
+try to get it right.
+
+Within DaCHS, coverage metadata uses the following keys:
+
+* coverage.profile – an STC-S string giving the coverage of the service
+* coverage.waveband – One of Radio, Millimeter, Infrared, Optical, UV,
+  EUV, X-ray, Gamma-ray, and you can have multiple waveband
+  specifications.  Note that you can provide much more detailed
+  information on the covered spectral range as part of coverage.profile
+  (but it's also much less likely that there is proper support for data
+  there).
+* coverage.regionOfRegard – in essence, the "pixel size" of the service in
+  degrees.  If, for example, your service gives data on a lattice of
+  sampling points, the typical distance of such points should be given
+  here.  Leave out if this doesn't apply to your service.
+* coverage.footprint – reserved; this will probably be filled in
+  automatically by the software once we have a footprint standard and
+  DaCHS implements it.
 
 
 Meta Stream Format

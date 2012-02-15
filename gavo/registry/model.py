@@ -532,6 +532,7 @@ class _VS1_1Stub:
 	class fromColumn(VSElement): pass
 	class targetColumn(VSElement): pass
 	class flag(VSElement): pass
+	class regionOfRegard(VSElement): pass
 
 VS = addBasicVSElements(_VS1_1Stub, _VS1_1Stub.VSElement)
 
