@@ -19,7 +19,9 @@ def _do_dropTable(tableName):
 		for metaTableName, columnName in [
 				("dc.columnmeta", "tableName"),
 				("dc.tablemeta", "tableName"),
-				("ivoa._obscoresources", "tableName"),]:
+				("ivoa._obscoresources", "tableName"),
+				("tap_schema.tables", "table_name"),
+				("tap_schema.columns", "table_name")]:
 			if q.tableExists(metaTableName):
 				q.query("delete from %s where %s=%%(tableName)s"%(
 					metaTableName, columnName),
@@ -42,11 +44,12 @@ def dropTable():
 		parser = ArgumentParser(
 			description="Removes all traces of the named table within the DC.")
 		parser.add_argument("tablename", help="The name of the table to drop,"
-		 	" including the schema name.")
+		 	" including the schema name.", nargs="+")
 		return parser.parse_args()
 	
 	opts = parseCmdline()
-	_do_dropTable(opts.tablename)
+	for tableName in opts.tablename:
+		_do_dropTable(tableName)
 
 
 def _do_dropRD(opts, rdId, selectedIds=()):
