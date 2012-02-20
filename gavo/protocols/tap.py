@@ -174,7 +174,7 @@ def publishToTAP(rd, connection):
 		return
 	tapRD = base.caches.getRD(RD_ID)
 	for ddId in ["importTablesFromRD", "importColumnsFromRD", 
-			"importFkeysFromRD"]:
+			"importFkeysFromRD", "importGroupsFromRD"]:
 		dd = tapRD.getById(ddId)
 		rsc.makeData(dd, forceSource=rd, parseOptions=rsc.parseValidating,
 			connection=connection)

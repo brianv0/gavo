@@ -158,6 +158,25 @@
 		<column name="sourceRD" type="text" description="Id of the originating rd"/>
 	</table>
 
+	<table id="groups" onDisk="True" system="True"
+		readProfiles="defaults,untrustedquery" adql="True">
+		<meta name="description">Columns that are part of groups
+			within tables available for ADQL querying.
+		</meta>
+		<foreignKey source="table_name" table="tap_schema.tables"/>
+		<!-- this is slightly denormalized, but normalizing it by introducing
+		two new tables IMHO isn't worth it at all -->
+		<column original="columns.table_name"/>
+		<column original="columns.column_name" 
+			description="Name of a column belonging to the group"/>
+		<column original="columns.utype" name="column_utype"
+			description="utype the column withing the group"/>
+		<column name="group_name" type="text"
+			description="Name of the group"/>
+		<column name="group_utype" type="text"
+			description="utype of the group"/>
+	</table>
+
 	<table id="examples" onDisk="True" adql="True">
 		<meta name="description">Site-local example queries"</meta>
 		<column name="name" type="text"
@@ -270,6 +289,31 @@
 		</make>
 	</data>
 
+	<data id="importGroupsFromRD" auto="False">
+		<embeddedGrammar>
+			<iterator>
+				<code>
+					rd = self.sourceToken
+					if rd.getProperty("moribund", False):
+						return
+					for table in rd.tables:
+						if not table.adql:
+							continue
+						for group in table.groups:
+							for colRef in group.columnRefs:
+								yield {
+									"table_name": table.getQName().lower(),
+									"column_name": colRef.resolve(table).name.lower(),
+									"column_utype": colRef.utype,
+									"group_name": group.name,
+									"group_utype": group.utype,
+								}
+				</code>
+			</iterator>
+		</embeddedGrammar>
+		<make table="groups"/>
+	</data>
+
 	<data id="importFkeysFromRD" auto="False">
 		<embeddedGrammar>
 			<iterator>
@@ -330,6 +374,7 @@
 		<make table="tables"/>
 		<make table="columns"/>
 		<make table="keys"/>
+		<make table="groups"/>
 		<make table="key_columns">
 			<!-- this script is for bootstrapping.  Since TAP_SCHEMA isn't
 			finished when the tables are created, they cannot be added
@@ -341,7 +386,7 @@
 					name="Add TAP_SCHEMA to TAP_SCHEMA">
 				from gavo.protocols import tap
 				rd = table.tableDef.rd
-				for id in "schemas tables columns keys key_columns".split():
+				for id in "schemas tables columns keys key_columns groups".split():
 					rd.getById(id).adql = True
 				tap.publishToTAP(rd, table.connection)
 			</script>

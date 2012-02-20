@@ -96,7 +96,8 @@ class _Feeder(table._Feeder):
 				del self.cursor
 				table._Feeder.__exit__(self, *sys.exc_info())
 				raise
-		del self.cursor
+		if hasattr(self, "cursor"):
+			del self.cursor
 		table._Feeder.__exit__(self, *args)
 		return False
 

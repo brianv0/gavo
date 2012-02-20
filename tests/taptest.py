@@ -266,8 +266,6 @@ class CapabilitiesTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 
 
 class TAPSchemaTest(testhelpers.VerboseTest):
-	"""tests for accessability of TAP_SCHEMA from ADQL.
-	"""
 	def setUp(self):
 		self.jobId = tap.workerSystem.getNewJobId(parameters={
 				"query": "SELECT TOP 1 * FROM TAP_SCHEMA.tables",
@@ -451,6 +449,45 @@ class JobMetaTest(testhelpers.VerboseTest):
 		res = uwsactions.doJobAction(tap.workerSystem, TAPFakeRequest(),
 			segments=(self.jobId, "owner"))
 		self.assertEqual(res, "")
+
+
+class _TAPPublishedADQLTable(tresc.CSTestTable):
+	def make(self, deps):
+		res = tresc.CSTestTable.make(self, deps)
+		tap.publishToTAP(res.tableDef.rd, self.conn)
+		self.conn.commit()
+		return res
+	
+	def clean(self, table):
+		try:
+			tresc.CSTestTable.clean(self, table)
+			tap.unpublishFromTAP(res.tableDef.rd, self.conn)
+			self.conn.commit()
+		except:
+			self.conn.rollback()
+
+
+class TAPPublicationTest(testhelpers.VerboseTest):
+	resources = [("table", _TAPPublishedADQLTable())]
+
+	def testColumnsPublished(self):
+		with base.AdhocQuerier() as q:
+			res = list(q.query(
+				"select column_name, unit, datatype"
+				" from tap_schema.columns where table_name='test.adql'"))
+			self.failUnless(("alpha", "deg", "adql:REAL") in res)
+	
+	def testSTCGroupPresent(self):
+		with base.AdhocQuerier() as q:
+			res = set(list(q.query(
+				"select * from tap_schema.groups")))
+			self.failUnless(
+				('test.adql', 'alpha', 'col:weird.reason', 
+					'weird_columns', 'col:weird.name') in res)
+			self.failUnless(
+				('test.adql', 'rv', None, 'nice_columns', 'col:nice.name')
+					in res)
+
 
 if __name__=="__main__":
 	testhelpers.main(JobMetaTest)

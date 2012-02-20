@@ -102,6 +102,14 @@
 		<stc>
 			Position ICRS GEOCENTER "alpha" "delta" Redshift VELOCITY "rV"
 		</stc>
+		<group name="weird_columns" utype="col:weird.name">
+			<columnRef dest="alpha" utype="col:weird.reason"/>
+			<columnRef dest="mag"/>
+		</group>
+		<group name="nice_columns" utype="col:nice.name">
+			<columnRef dest="alpha"/>
+			<columnRef dest="rV"/>
+		</group>
 		<column name="alpha" unit="deg" ucd="pos.eq.ra;meta.main"
 			description="A sample RA" tablehead="Raw RA" verbLevel="1"/>
 		<column name="delta" unit="deg" ucd="pos.eq.dec;meta.main"

@@ -17,6 +17,13 @@ Version 0.7.1 (2012-XX-XX)
     profile names rather than DB roles.  In the unlikely case you're
     using this feature, you'd have to change the RDs.
 
+  * There's now a table tap_schema.groups.  To create it, say:
+
+      gavo imp //tap createSchema 
+
+    Do not give --system here; if you do, the existing tables will be
+    re-created and you will have to say gavo pub -ma to re-fill them.
+
 
 Version 0.7 (2012-01-12)
 

@@ -674,14 +674,9 @@
 
 		<mixinPar key="ssaTable" description="The SSAP (HCD) instance table
 			 to take the params from"/>
-		<mixinPar key="spectralDescription" description="Description
-			for the spectral column">The independent variable of this spectrum 
-			(see its ucd to figure out whether it's a wavelength, frequency, or
-			energy)</mixinPar>
+		<mixinPar key="spectralDescription" description="Description for the spectral column">The independent variable of this spectrum (see its ucd to figure out whether it's a wavelength, frequency, or energy)</mixinPar>
 		<mixinPar key="fluxDescription" description="Description
-			for the flux column">The dependent variable of this spectrum (see the
-			ucd for its physical meaning</mixinPar>
-
+			for the flux column">The dependent variable of this spectrum (see the ucd for its physical meaning</mixinPar> 
 		<events>
 			<FEED source="makeSpecGroup" 
 				groupUtype="spec:Target"
