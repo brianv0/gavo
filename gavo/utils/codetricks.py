@@ -481,15 +481,25 @@ def loadPythonModule(fqName):
 	to prevent multiple imports of the same module.
 
 	fqName is a fully qualified path to the module without the .py.
+
+	The python path is temporarily amended with the path part of the
+	source module.
 	"""
 	moduleName = os.path.basename(fqName)
 	modpath = os.path.dirname(fqName)
+	sys.path.append(modpath)
+
 	moddesc = imp.find_module(moduleName, [modpath])
 	try:
 		imp.acquire_lock()
 		modNs = imp.load_module(moduleName, *moddesc)
 	finally:
 		imp.release_lock()
+
+	try:
+		sys.path.append(modpath)
+	except IndexError: # don't fail just because someone fudged the path
+		pass
 	return modNs, moddesc
 
 
