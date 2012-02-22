@@ -203,7 +203,7 @@ class FormatDataTest(testhelpers.VerboseTest):
 		self.assertOutputContains("html", [
 			'<table class="results">',
 			'Real</th><th ',
-			'td>-0.5</td><td>zw\xc3\xb6i</td><td>2013-10-10</td>'])
+			'td>-0.5</td><td>zw\xc3\xb6i</td><td>2456575.5</td>'])
 
 	def testCSV(self):
 		self.assertOutputContains("csv", ["2,-0.5,zw\xc3\xb6i,2456575.5"])
@@ -216,11 +216,13 @@ class _NullTestTable(testhelpers.TestResource):
 		td = base.parseFromString(rscdef.TableDef,
 			"""
 			<table id="nulls">
-				<column name="anint" type="integer"/>
+				<column name="anint" type="integer">
+					<values nullLiteral="-2147483648"/>
+				</column>
 				<column name="afloat"/>
 				<column name="adouble" type="double precision"/>
 				<column name="atext" type="text"/>
-				<column name="adate" type="date"/>
+				<column name="adate" type="date" displayHint="format=humanDate"/>
 				<column name="aPos" type="spoint"/>
 			</table>
 			""")

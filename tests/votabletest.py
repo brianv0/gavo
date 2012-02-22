@@ -55,7 +55,9 @@ class _TestVOTable(testhelpers.TestResource):
 				<meta name="note" tag="2">Note 2</meta>
 				<column name="anInt" type="integer"
 					description="This is a first data field" note="1"
-					xtype="test:junk"/>
+					xtype="test:junk">
+					<values nullLiteral="-32923"/>
+				</column>
 				<column name="aFloat"
 					description="This ain't &amp;alpha; for sure." note="1"/>
 				<column name="bla" type="text" note="2"/>
@@ -149,24 +151,6 @@ class VOTableTest(testhelpers.VerboseTest, testhelpers.XSDTestMixin):
 	def testArrayNullvalue(self):
 		tbldata = self.testData[1].find(".//%s"%votable.voTag("TABLEDATA"))
 		self.assertEqual(tbldata[0][3].text, None)
-
-	def testRanges(self):
-		"""tests for ranges given in VALUES.
-		"""
-		tree = self.testData[1]
-		fields = tree.findall(".//%s"%votable.voTag("FIELD"))
-		f0 = fields[0].find(str(votable.voTag("VALUES")))
-		self.assertEqual(f0.find(str(votable.voTag("MIN"))).get("value"), "-33",
-			"integer minimum bad")
-		self.assertEqual(f0.find(str(votable.voTag("MAX"))).get("value"), "23829",
-			"integer maximum bad")
-		f1 = fields[1].find(str(votable.voTag("VALUES")))
-		self.assertEqual(f1.find(str(votable.voTag("MIN"))).get("value"), "-3400.0",
-			"float minimum bad")
-		self.assertEqual(f1.find(str(votable.voTag("MAX"))).get("value"), "328.9",
-			"float maximum bad")
-		self.assertEqual(fields[2].find(str(votable.voTag("VALUES"))), None,
-			"VALUES element given for string data")
 
 	def testNotes(self):
 		tree = self.testData[1]
@@ -490,11 +474,6 @@ class ParamNullValueTest(VOTableRenderTest):
 
 
 class TabledataNullValueTest(VOTableRenderTest):
-	def testIntNullAuto(self):
-		self._assertVOTContains('<column name="x" type="integer"/>', [
-			'<VALUES null="-2147483648">',
-			'<TR><TD>-2147483648</TD></TR>'])
-
 	def testIntNullRaising(self):
 		table = self._getTable('<column name="x" type="integer"/>')
 		self.assertRaisesWithMsg(votable.BadVOTableData,
@@ -514,11 +493,6 @@ class TabledataNullValueTest(VOTableRenderTest):
 			'<VALUES null="x">',
 			'<TR><TD>x</TD></TR>'])
 
-	def testCharNullAuto(self):
-		self._assertVOTContains('<column name="x" type="char"/>', [
-			'<VALUES null=" ">',
-			'<TR><TD> </TD></TR>'])
-	
 	def testTextNullGiven(self):
 		self._assertVOTContains('<column name="x" type="text">'
 				'<values nullLiteral="&quot;not given&quot;"/></column>', [

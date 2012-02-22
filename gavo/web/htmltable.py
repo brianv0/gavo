@@ -143,7 +143,7 @@ def humanDatesFactory(colDesc):
 	format, unit = {"humanDatetime": ("%Y-%m-%d %H:%M:%S", "Y-M-D h:m:s"),
 		"humanDate": ("%Y-%m-%d", "Y-M-D"), }.get(
 			colDesc["displayHint"].get("type"), (None, None))
-	if format:
+	if format and colDesc["dbtype"] in ("date", "timestamp"):
 		colDesc["unit"] = unit
 		def coder(val):
 			if val is None:
@@ -314,7 +314,7 @@ class HeadCellsMixin(object):
 		return self.serManager.table.tableDef.columns
 
 	def render_headCell(self, ctx, colDef):
-		cd = self.serManager.colDescIndex[colDef.key]
+		cd = self.serManager.getColumnByName(colDef.key)
 		cont = colDef.getLabel()
 		desc = cd["description"]
 		if not desc:

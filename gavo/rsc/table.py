@@ -118,7 +118,7 @@ class BaseTable(base.MetaMixin, common.ParamMixin):
 			will raise an error on these).
 		- connection -- a database connection to use for accessing DbTables.
 		- votCasts -- a dictionary mapping column names to dictionaries overriding
-			keys of valuemappers.VColDescs.
+			keys of valuemappers.AnnontatedColumn.
 		- params -- a dictionary mapping param keys to values, where python
 		  values and literals allowed.
 

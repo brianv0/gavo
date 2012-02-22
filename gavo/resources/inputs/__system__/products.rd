@@ -53,7 +53,9 @@ machinery -->
 		<FEED source="//products#basicColumns"/>
 		<column name="accsize" ucd="VOX:Image_FileSize"
 			tablehead="File size" description="Size of the data in bytes"
-			type="integer" verbLevel="11" unit="byte" utype="Access.Size"/>
+			type="integer" verbLevel="11" unit="byte" utype="Access.Size">
+			<values nullLiteral="-1"/>
+		</column>
 	</STREAM>
 
 	<table id="instance">

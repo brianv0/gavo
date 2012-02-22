@@ -76,7 +76,10 @@ class InputStreamTest(testhelpers.VerboseTest):
 	def testUserOverriding(self):
 		inpDir = base.getConfig("inputsDir")
 		dirName = os.path.join(inpDir, "__system__")
-		os.mkdir(dirName)
+		try:
+			os.mkdir(dirName)
+		except os.error: # don't worry if someone left the dir
+			pass
 		try:
 			testName = os.path.join(dirName, "users")
 			open(testName, "w").close()

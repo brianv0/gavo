@@ -526,11 +526,10 @@ type
     display a numeric value as a bar of length value pixels.
 
   bibcode
-   display the value as a link to an ADS bibcode query.
+    display the value as a link to an ADS bibcode query.
 
-  feedbackSelect
-    used by the feedback machinery to designate the column containing
-    the feedback key (will be rendered as a checkbox in HTML).
+  humanDate
+    display a timestamp value as an ISO string.
 
   keephtml
     lets you include raw HTML.  In VOTables, tags are removed.

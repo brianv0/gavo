@@ -122,9 +122,9 @@ def _makeValuesForColDesc(colDesc):
 	so for anything fancy pass in byte strings to begin with.
 	"""
 	valEl = V.VALUES()
-	if colDesc["min"] is not valuemappers._Supremum:
+	if colDesc.get("min", valuemappers._Supremum) is not valuemappers._Supremum:
 		valEl[V.MIN(value=str(colDesc["min"]))]
-	if colDesc["max"] is not valuemappers._Infimum:
+	if colDesc.get("max", valuemappers._Infimum) is not valuemappers._Infimum:
 		valEl[V.MAX(value=str(colDesc["max"]))]
 	if colDesc["nullvalue"] is not None:
 		valEl(null=colDesc["nullvalue"])
@@ -132,7 +132,7 @@ def _makeValuesForColDesc(colDesc):
 
 
 # keys copied from colDescs to FIELDs in _getFieldFor
-_voFieldCopyKeys = ["name", "ID", "datatype", "ucd", "utype", "xtype"]
+_voFieldCopyKeys = ["name", "datatype", "ucd", "utype", "xtype"]
 
 def defineField(element, colDesc):
 	"""adds attributes and children to element from colDesc.
@@ -153,6 +153,7 @@ def defineField(element, colDesc):
 		element(arraysize='1')
 	if colDesc["unit"]:
 		element(unit=colDesc["unit"])
+	element(ID=colDesc["id"])
 	element(**dict((key, colDesc.get(key)) for key in _voFieldCopyKeys))[
 		_makeValuesForColDesc(colDesc),
 		V.DESCRIPTION[colDesc["description"]]]
@@ -165,7 +166,7 @@ def makeFieldFromColumn(colType, rscCol):
 	column or param instances.
 	"""
 	instance = colType()
-	defineField(instance, valuemappers.VColDesc(rscCol))
+	defineField(instance, valuemappers.AnnotatedColumn(rscCol))
 	return instance
 
 
@@ -215,7 +216,7 @@ def _makeVOTParam(ctx, param):
 		content = param.content_
 
 	el = V.PARAM()
-	defineField(el, valuemappers.VColDesc(param))
+	defineField(el, valuemappers.AnnotatedColumn(param))
 	if content is None:
 		# Null value generation -- tactics: If we have a nullLiteral, use it
 		# otherwise use some type-dependent default
@@ -257,7 +258,7 @@ def _iterParams(ctx, dataSet):
 		values = parTable.rows[0]
 
 	for item in parTable.tableDef:
-		colDesc = valuemappers.VColDesc(item)
+		colDesc = valuemappers.AnnotatedColumn(item)
 		el = V.PARAM()
 		el(value=ctx.mfRegistry.getMapper(colDesc)(values.get(item.name)))
 		defineField(el, colDesc)
@@ -273,7 +274,7 @@ def _iterSTC(tableDef, serManager):
 	tableDef.
 	"""
 	def getIdFor(colRef):
-		return serManager.getColDescByName(colRef.dest)["ID"]
+		return serManager.getColumnByName(colRef.dest)["id"]
 	for ast in tableDef.getSTCDefs():
 		yield modelgroups.marshal_STC(ast, getIdFor)
 
@@ -291,7 +292,7 @@ def _iterNotes(serManager):
 			V.DESCRIPTION[note.getContent(targetFormat="text")]]
 		for col in serManager:
 			if col["note"] is note:
-				noteGroup[V.FIELDref(ref=col["ID"])]
+				noteGroup[V.FIELDref(ref=col["id"])]
 		yield noteGroup
 
 

@@ -17,34 +17,31 @@ from gavo.protocols import products
 from gavo.utils import pgsphere
 
 
-class MapperTest(testhelpers.VerboseTest):
-	def assertMapsTo(self, colDef, inValue, expectedValue):
-		dataField = base.parseFromString(rscdef.Column, 
-			"<column %s</column>"%colDef)
-		cp = valuemappers.VColDesc(dataField)
-		cp["sample"] = inValue
-		res = valuemappers.defaultMFRegistry.getMapper(cp)(inValue)
-		if isinstance(expectedValue, float):
-			self.assertAlmostEqual(expectedValue, res, places=3)
-		else:
-			self.assertEqual(expectedValue, res)
+class AnnotationTest(testhelpers.VerboseTest):
+	def testBasic(self):
+		col = valuemappers.AnnotatedColumn(base.parseFromString(rscdef.Column,
+			'<column name="abc" type="integer" displayHint="sf=2"/>'))
+		self.assertEqual(col.original.name, "abc")
+		self.assertEqual(col["name"], "abc")
+		self.failUnless(col["displayHint"] is col.original.displayHint)
+		self.assertEqual(col["datatype"], "int")
+		self.assertEqual(col["arraysize"], '1')
+		self.failUnless(col["id"] is None)
+
+	def testSetting(self):
+		col = valuemappers.AnnotatedColumn(base.parseFromString(rscdef.Column,
+			'<column name="abc" type="integer" displayHint="sf=2"/>'))
+		col["name"] = "changed"
+		self.assertEqual(col.original.name, "abc")
+		self.assertEqual(col["name"], "changed")
+
+	def testWrapping(self):
+		col = valuemappers.AnnotatedColumn(testhelpers.getTestRD(
+			).getById("bbox_siaptable").getColumnByName("dateObs"))
+		self.assertEqual(col["ucd"], "VOX:Image_MJDateObs")
 
 
-class MapperMiscTest(testhelpers.VerboseTest):
-# TODO: Rationalize, split up...
-	def testJdMap(self):
-		colDesc = {"sample": datetime.datetime(2005, 6, 4, 23, 12, 21),
-			"unit": "d", "ucd": None}
-		mapper = valuemappers.datetimeMapperFactory(colDesc)
-		self.assertAlmostEqual(2453526.4669097224,
-			mapper(datetime.datetime(2005, 6, 4, 23, 12, 21)))
-		self.assertAlmostEqual(2434014.6659837961,
-			mapper(datetime.datetime(1952, 1, 3, 3, 59, 1)))
-		self.assertAlmostEqual(2451910.0,
-			mapper(datetime.datetime(2000, 12, 31, 12, 00, 00)))
-		self.assertAlmostEqual(2451909.999988426,
-			mapper(datetime.datetime(2000, 12, 31, 11, 59, 59)))
-
+class MapperBasicTest(testhelpers.VerboseTest):
 	def testFactorySequence(self):
 		m1 = lambda cp: lambda val: "First"
 		m2 = lambda cp: lambda val: "Second"
@@ -55,15 +52,32 @@ class MapperMiscTest(testhelpers.VerboseTest):
 		mf.registerFactory(m2)
 		self.assertEqual(mf.getMapper({})(0), "Second", 
 			"Factories registred later are not tried first")
-	
 
-class StandardMapperTest(MapperTest):
+
+class _MapperTestBase(testhelpers.VerboseTest):
+	def assertMapsTo(self, colDef, inValue, expectedValue):
+		column = base.parseFromString(rscdef.Column, 
+			"<column %s</column>"%colDef)
+		annCol = valuemappers.AnnotatedColumn(column)
+		res = valuemappers.defaultMFRegistry.getMapper(annCol)(inValue)
+		if isinstance(expectedValue, float):
+			self.assertAlmostEqual(expectedValue, res, places=3)
+		else:
+			self.assertEqual(expectedValue, res)
+
+
+class _EnumeratedMapperTest(_MapperTestBase):
 	__metaclass__ = testhelpers.SamplesBasedAutoTest
 
 	def _runTest(self, sample):
 		self.assertMapsTo(*sample)
 
+	samples = []
+
+
+class StandardMapperTest(_EnumeratedMapperTest):
 	samples = [
+# 0
 		('name="d" type="date" unit="Y-M-D">',
 			datetime.date(2003, 5, 4), "2003-05-04"),
 		('name="d" type="date" unit="yr">',
@@ -74,6 +88,7 @@ class StandardMapperTest(MapperTest):
 			datetime.datetime(2003, 5, 4, 20, 23), 2452764.34931),
 		('name="d" type="date" unit="d" ucd="VOX:Image_MJDateObs">',
 			datetime.date(2003, 5, 4), 52763.0),
+# 5
 		('name="d" type="date" unit="yr">',
 			None, None),
 		('name="d" type="integer">',
@@ -82,10 +97,23 @@ class StandardMapperTest(MapperTest):
 			pgsphere.SPoint(0.2, -0.1), pgsphere.SPoint(0.5, 0.2)),
 			"PositionInterval UNKNOWN 11.4591559026 -5.7295779513"
 			" 28.6478897565 11.4591559026"),
+		('name="d" unit="d" type="timestamp">', 
+			datetime.datetime(2005, 6, 4, 23, 12, 21),
+			2453526.4669097224),
+		('name="d" unit="d" type="timestamp">', 
+			datetime.datetime(1952, 1, 3, 3, 59, 1),
+			2434014.6659837961),
+# 10
+		('name="d" unit="d" type="timestamp">', 
+			datetime.datetime(2000, 12, 31, 12, 00, 00),
+			2451910.0),
+		('name="d" unit="d" type="timestamp">', 
+			datetime.datetime(2000, 12, 31, 11, 59, 59),
+			2451909.999988426),
 	]
 
 
-class ProductMapperTest(MapperTest):
+class ProductMapperTest(_MapperTestBase):
 	__metaclass__ = testhelpers.SamplesBasedAutoTest
 
 	def _runTest(self, sample):
@@ -108,7 +136,7 @@ class ProductMapperTest(MapperTest):
 		]
 
 
-class STCMappingTest(MapperTest):
+class STCMappingTest(_MapperTestBase):
 	def testSimple(self):
 		td = base.parseFromString(rscdef.TableDef, """<table>
 			<stc>Position FK5 TOPOCENTER [pos]</stc>

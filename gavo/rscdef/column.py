@@ -75,7 +75,8 @@ class TableheadAttribute(UnicodeAttribute):
 			if hasattr(self, realName):
 				return getattr(self, realName)
 			else:
-				return self.name
+				if self.name is not base.Undefined:
+					return self.name
 		def setValue(self, value):
 			if value is not attDefault:
 				setattr(self, realName, value)
@@ -333,7 +334,7 @@ class Column(base.Structure):
 	_description = NWUnicodeAttribute("description", 
 		default="", copyable=True,
 		description="A short (one-line) description of the values in this column.")
-	_tablehead = TableheadAttribute("tablehead",
+	_tablehead = TableheadAttribute("tablehead", default=base.NotGiven,
 		description="Terse phrase to put into table headers for this"
 			" column", copyable=True)
 	_utype = UnicodeAttribute("utype", default=None, description=

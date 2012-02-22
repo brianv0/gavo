@@ -60,7 +60,7 @@ def _makeValueArray(values, colInd, colDesc):
 	"""returns a pyfits-capable column array for non-string values
 	stored in the colInd-th column of values.
 	"""
-	if colDesc["hasNulls"]:
+	if colDesc["nullvalue"] is not None:
 		nullValue = colDesc["nullvalue"]
 		def mkval(v):
 			if v is None:

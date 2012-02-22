@@ -858,7 +858,6 @@ def makeProductLink(key, withHost=True):
 rscdef.addProcDefObject("makeProductLink", makeProductLink)
 
 
-# Sigh -- the whole value mapping business needs to be cleaned up.
 def _productMapperFactory(colDesc):
 	"""A factory for accrefs.
 

@@ -297,13 +297,9 @@ _registerMF = _wsdlMFRegistry.registerFactory
 def datetimeMapperFactory(colProps):
 	"""returns mapper for datetime objects to python time tuples.
 	"""
-	if isinstance(colProps["sample"], (datetime.date, datetime.datetime)):
+	if colProps["dbtype"] in ("date", "datetime"):
 		def mapper(val):
 			return val.timetuple()
-		return mapper
-	if isinstance(colProps["sample"], datetime.timedelta):
-		def mapper(val):
-			return (0, 0, 0, 0, 0, 0, 0, 0, 0) # FIX!!!
 		return mapper
 _registerMF(datetimeMapperFactory)
 

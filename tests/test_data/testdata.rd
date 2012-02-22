@@ -7,16 +7,20 @@
 
 
 	<table id="data">
-		<column name="anint" tablehead="An Integer" type="integer"/>
+		<column name="anint" tablehead="An Integer" type="integer">
+			<values nullLiteral="-2147483648"/>
+		</column>
 		<column name="afloat" tablehead="Some Real"/>
 		<column name="atext" type="text"
 			tablehead="A string must be in here as well"/>
-		<column name="adate" tablehead="When" type="date"/>
+		<column name="adate" tablehead="When" type="date" unit="d"/>
 	</table>
 	
 	<table id="barsobal">
 		<register services="//services#overview" sets="ignore"/>
-		<column name="anint" type="integer"/>
+		<column name="anint" type="integer">
+			<values nullLiteral="-2147483648"/>
+		</column>
 		<column name="adouble" tablehead="And a Double"
 			type="double precision"/>
 	</table>
