@@ -198,7 +198,7 @@ class VOTable(object):
 		_name_a_content_type = "content-type"
 		_a_gref = None
 		_a_href = None
-		_a_title = None
+		_a_name = None
 		_a_value = None
 		_childSequence = []
 		_mayBeEmpty = True

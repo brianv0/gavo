@@ -912,6 +912,33 @@ class BibcodeMeta(MetaValue):
 			# Yikes.  We should really quote such raw HTML properly...
 
 
+class VotLinkMeta(MetaValue):
+	"""A MetaItem serialized into VOTable links (or, ideally,
+	analoguous constructs).
+
+	This exposes the various attributes of VOTable LINKs as href
+	linkname, contentType, and role.  You cannot set ID here; if this ever
+	needs referencing, we'll need to think about it again.	
+	The href attribute is simply the content of our meta (since
+	there's no link without href), and there's never any content
+	in VOTable LINKs).
+
+	You could thus say::
+
+		votlink: http://docs.g-vo.org/DaCHS
+		votlink.role: doc
+		votlink.contentType: text/html
+		votlink.linkname: GAVO DaCHS documentation
+	"""
+	def __init__(self, href, format="plain", linkname=None, contentType=None,
+			role=None):
+		MetaValue.__init__(self, href, format)
+		for key in ["linkname", "contentType", "role"]:
+			val = locals()[key]
+			if val is not None:
+				self._addMeta([key], MetaValue(val))
+	
+
 _metaTypeRegistry = {
 	"link": MetaURL,
 	"relResource": RelatedResourceMeta,
@@ -920,6 +947,7 @@ _metaTypeRegistry = {
 	"bibcodes": BibcodeMeta,
 	"news": NewsMeta,
 	"note": NoteMeta,
+	"votlink": VotLinkMeta,
 }
 
 _typesForKeys = {
@@ -935,6 +963,7 @@ _typesForKeys = {
 	"logo": "logo",
 	"source": "bibcodes",
 	"note": "note",
+	"votlink": "votlink",
 }
 
 
@@ -1150,6 +1179,7 @@ class ModelBasedBuilder(object):
 		else:
 			def processContent(childContent, metaItem):
 				return childContent
+
 		if key is None:
 			return [factory(self._build(children, metaContainer))]
 		else:

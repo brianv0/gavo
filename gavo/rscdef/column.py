@@ -297,7 +297,7 @@ class Values(base.Structure):
 		return True
 
 
-class Column(base.Structure):
+class Column(base.Structure, base.MetaMixin):
 	"""A database column.
 	
 	Columns contain almost all metadata to describe a column in a database

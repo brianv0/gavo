@@ -19,6 +19,7 @@ from gavo import rscdef
 from gavo import stc
 from gavo import utils
 from gavo import votable
+from gavo.base import meta
 from gavo.base import valuemappers
 from gavo.formats import common
 from gavo.votable import V
@@ -113,6 +114,23 @@ def _iterToplevelMeta(ctx, dataSet):
 		yield V.INFO(name="legal", value=infoItem.getContent())
 
 
+# link elements may be defined using the votlink meta on RESOURCE, TABLE,
+# GROUP, FIELD, or PARAM; within in the DC, GROUPs have no meta structure,
+# so we don't run _linkBuilder on them.
+
+def _makeLinkForMeta(args, localattrs=None):
+	localattrs.update({"href": args[0]})
+	return V.LINK(**localattrs)
+
+
+_linkBuilder = meta.ModelBasedBuilder([
+	('votlink', _makeLinkForMeta, (), {
+			"href": "href",
+			"content_role": "role",
+			"content_type": "contentType",
+			"name": "linkname",})])
+
+
 ################# Generating FIELD and PARAM elements.
 
 def _makeValuesForColDesc(colDesc):
@@ -146,17 +164,22 @@ def defineField(element, colDesc):
 	# Element, things would appear to work, but changes are lost when
 	# this function ends.
 	assert not isinstance(element, type)
+
 	if colDesc["arraysize"]!='1':
 		element(arraysize=colDesc["arraysize"])
 	# (for char, keep arraysize='1' to keep topcat happy)
 	if colDesc["datatype"]=='char' and colDesc["arraysize"]=='1':
 		element(arraysize='1')
+
 	if colDesc["unit"]:
 		element(unit=colDesc["unit"])
 	element(ID=colDesc["id"])
+
 	element(**dict((key, colDesc.get(key)) for key in _voFieldCopyKeys))[
+		V.DESCRIPTION[colDesc["description"]],
 		_makeValuesForColDesc(colDesc),
-		V.DESCRIPTION[colDesc["description"]]]
+		_linkBuilder.build(colDesc.original)
+	]
 
 
 def makeFieldFromColumn(colType, rscCol):
@@ -346,11 +369,16 @@ def makeTable(ctx, table):
 	result = V.TABLE(
 			name=table.tableDef.id,
 			utype=base.getMetaText(table, "utype"))[
+		# _iterGroups must run before _iterFields and _iterParams since it
+		# may need to add ids to the respective items.  XSD-correct ordering of 
+		# the elements is done by xmlstan.
 		V.DESCRIPTION[base.getMetaText(table, "description")],
-		_iterNotes(sm),
 		_iterGroups(table.tableDef, sm),
+		_iterFields(sm),
 		_iterTableParams(sm),
-		_iterFields(sm)]
+		_iterNotes(sm),
+		_linkBuilder.build(table.tableDef),
+		]
 
 	if ctx.version>(1,1):
 		result[_iterSTC(table.tableDef, sm)]
@@ -370,6 +398,7 @@ def _makeResource(ctx, data):
 		_iterResourceMeta(ctx, data),
 		_iterParams(ctx, data), [
 			_makeVOTParam(ctx, param) for param in data.iterParams()],
+		_linkBuilder.build(data.dd),
 		]
 	for table in data:
 		if table.role!="parameters":

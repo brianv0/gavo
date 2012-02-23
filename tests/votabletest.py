@@ -815,5 +815,54 @@ class HackMetaTest(testhelpers.VerboseTest):
 		self.assertEqual(info.text, "Info from meta")
 
 
+class LinkTest(testhelpers.VerboseTest):
+	def _getAsTree(self, tableXML):
+		if tableXML.startswith("<data"):
+			rootType = rscdef.DataDescriptor
+			makeThing = rsc.makeData
+		else:
+			rootType = rscdef.TableDef
+			makeThing = rsc.TableForDef
+
+		t = makeThing(base.parseFromString(rootType, tableXML))
+		return testhelpers.getXMLTree(
+			votablewrite.getAsVOTable(t,
+				votablewrite.VOTableContext(suppressNamespace=True)), debug=False)
+
+	def testColumnLink(self):
+		tree = self._getAsTree("""<table id="u">
+			<column name="z"><meta name="votlink" role="check">ivo://ranz/k
+			</meta></column></table>""")
+		self.assertEqual(tree.xpath("RESOURCE/TABLE/FIELD/LINK/@href")[0], 
+			"ivo://ranz/k")
+		self.assertEqual(tree.xpath("RESOURCE/TABLE/FIELD/LINK/@content-role")[0], 
+			"check")
+
+	def testTableLink(self):
+		tree = self._getAsTree("""<table id="u">
+			<meta name="votlink" contentType="inode/fifo">ivo://ranz/k</meta>
+			<column name="z"></column></table>""")
+		self.assertEqual(tree.xpath("RESOURCE/TABLE/LINK/@href")[0], 
+			"ivo://ranz/k")
+		self.assertEqual(tree.xpath("RESOURCE/TABLE/LINK/@content-type")[0], 
+			"inode/fifo")
+
+	def testDataLink(self):
+		tree = self._getAsTree("""<data id="a">
+			<meta name="votlink" linkname="onlink">http://server/on</meta>
+			<meta name="votlink" linkname="offlink">http://server/off</meta>
+			<table id="u">
+			<column name="z"></column></table><make table="u"/></data>""")
+		self.assertEqual(tree.xpath("RESOURCE/TABLE/LINK/@href")[0], 
+			"http://server/on")
+		self.assertEqual(tree.xpath("RESOURCE/TABLE/LINK/@name")[0], 
+			"onlink")
+		self.assertEqual(tree.xpath("RESOURCE/TABLE/LINK/@href")[1], 
+			"http://server/off")
+		self.assertEqual(tree.xpath("RESOURCE/TABLE/LINK/@name")[1], 
+			"offlink")
+
+	
+
 if __name__=="__main__":
-	testhelpers.main(ParamNullValueTest)
+	testhelpers.main(LinkTest)

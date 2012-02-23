@@ -390,6 +390,7 @@ class AnnotatedColumn(object):
 			"utype": self.original.utype,
 			"unit": self.original.unit, 
 			"description": self.original.description,
+			# id is managed by SerManager
 			"id": None,
 		}
 
