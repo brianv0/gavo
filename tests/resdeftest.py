@@ -41,10 +41,10 @@ class ColumnTest(testhelpers.VerboseTest):
 #XXX TODO: Add test when the migration is ready
 #		self.assertEqual(col.getMetaRow(), {})
 
-	def testWeirdDefaults(self):
+	def testGetLabel(self):
 		col = base.parseFromString(rscdef.Column,
 			'<column name="foo"/>')
-		self.assertEqual(col.tablehead, "foo")
+		self.assertEqual(col.getLabel(), "Foo")
 
 	def testRealizesIndex(self):
 		table = base.parseFromString(rscdef.TableDef, """

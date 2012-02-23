@@ -273,7 +273,7 @@ def buildSource(td, opts):
 	print "#define QUERY_N_PARS %d\n"%len(list(td))
 	print 'enum outputFields {'
 	for item in td:
-		desc = item.tablehead
+		desc = item.getLabel()
 		if not desc:
 			desc = item.description
 		print "\t%-15s  /* %s, %s */"%(getNameForItem(item)+",",

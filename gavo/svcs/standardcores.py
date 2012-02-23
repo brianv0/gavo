@@ -243,7 +243,7 @@ class CondDesc(base.Structure):
 		# we're optional, but a value was given and others are missing
 		if not self.combining:
 			raise base.ValidationError("When you give a value for %s,"
-				" you must give value(s) for %s, too"%(keysFound[0].tablehead, 
+				" you must give value(s) for %s, too"%(keysFound[0].getLabel(), 
 						", ".join(k.name for k in keysMissing)),
 					colName=keysMissing[0].name)
 		return True

@@ -401,7 +401,7 @@ class HTMLRenderTest(testhelpers.VerboseTest):
 		self.assertEqual(els[0].text, value)
 
 	def testTitleFallbackOnName(self):
-		self._assertXpathText("table/thead/tr[1]/th[1]", "i")
+		self._assertXpathText("table/thead/tr[1]/th[1]", "I")
 
 	def testTitleIsTablehead(self):
 		self._assertXpathText("table/thead/tr[1]/th[4]", "Ja")

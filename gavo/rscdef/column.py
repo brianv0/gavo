@@ -63,26 +63,6 @@ class ColumnNameAttribute(UnicodeAttribute):
 			return value
 
 
-class TableheadAttribute(UnicodeAttribute):
-	"""An attribute defaulting to the parent's name attribute.
-	"""
-	typeDesc = "table head, defaulting to parent's name"
-
-	def iterParentMethods(self):
-		realName = "_real"+self.name_
-		attDefault = self.default_
-		def getValue(self):
-			if hasattr(self, realName):
-				return getattr(self, realName)
-			else:
-				if self.name is not base.Undefined:
-					return self.name
-		def setValue(self, value):
-			if value is not attDefault:
-				setattr(self, realName, value)
-		yield self.name_, property(getValue, setValue)
-
-
 class _AttBox(object):
 	"""A helper for TableManagedAttribute.
 
@@ -334,7 +314,7 @@ class Column(base.Structure, base.MetaMixin):
 	_description = NWUnicodeAttribute("description", 
 		default="", copyable=True,
 		description="A short (one-line) description of the values in this column.")
-	_tablehead = TableheadAttribute("tablehead", default=base.NotGiven,
+	_tablehead = UnicodeAttribute("tablehead", default=None,
 		description="Terse phrase to put into table headers for this"
 			" column", copyable=True)
 	_utype = UnicodeAttribute("utype", default=None, description=
@@ -473,7 +453,7 @@ class Column(base.Structure, base.MetaMixin):
 		return {
 			"name": self.name,
 			"description": self.description or "N/A",
-			"tablehead": self.tablehead,
+			"tablehead": self.getLabel(),
 			"unit": self.unit or "N/A",
 			"ucd": self.ucd or "N/A",
 			"verbLevel": self.verbLevel,

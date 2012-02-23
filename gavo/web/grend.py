@@ -299,7 +299,7 @@ class HTMLResultRenderMixin(object):
 	def _makeParPair(self, key, value, fieldDict):
 		title = key
 		if key in fieldDict:
-			title = fieldDict[key].tablehead
+			title = fieldDict[key].getLabel()
 			if fieldDict[key].type=="file":
 				value = "File upload '%s'"%value[0]
 			else:

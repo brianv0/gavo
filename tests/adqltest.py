@@ -1631,7 +1631,7 @@ class QueryTest(testhelpers.VerboseTest):
 			("tablehead", "Raw RA")])
 		self._assertFieldProperties(deField, [("ucd", 'pos.eq.dec;meta.main'),
 			("description", 'A sample Dec'), ("unit", 'deg'), 
-			("tablehead", 'delta')])
+			("tablehead", None)])
 
 	def testStarSelect(self):
 		res = self.runQuery("select * from %s where mag<-10"%
@@ -1644,7 +1644,7 @@ class QueryTest(testhelpers.VerboseTest):
 			("tablehead", "Raw RA")])
 		self._assertFieldProperties(fields[1], [("ucd", 'pos.eq.dec;meta.main'),
 			("description", 'A sample Dec'), ("unit", 'deg'), 
-			("tablehead", 'delta')])
+			("tablehead", None)])
 		self._assertFieldProperties(fields[3], [
 			("ucd", 'phys.veloc;pos.heliocentric'),
 			("description", 'A sample radial velocity'), ("unit", 'km/s')])

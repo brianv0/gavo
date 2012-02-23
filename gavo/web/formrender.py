@@ -186,7 +186,7 @@ def getFieldArgsForInputKey(inputKey):
 		unit = inputKey.inputUnit or inputKey.unit or ""
 		if unit:
 			unit = " [%s]"%unit
-	label = inputKey.tablehead
+	label = inputKey.getLabel()
 
 	res = {
 		"label": label,

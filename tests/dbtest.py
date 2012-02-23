@@ -288,7 +288,7 @@ class TestMetaTable(TestWithTableCreation):
 	def testColInfo(self):
 		mh = rsc.MetaTableHandler()
 		res = mh.getColumnsForTable(self.tableDef.getQName())
-		self.assertEqual([(f.name, f.type, f.tablehead)
+		self.assertEqual([(f.name, f.type, f.getLabel())
 				for f in res], [
 			(u'anint', 'integer', u'An Integer'), 
 			(u'afloat', 'real', u'Some Real'), 
@@ -312,9 +312,9 @@ class TestMetaTableADQL(TestWithTableCreation):
 	def testColInfo(self):
 		mh = rsc.MetaTableHandler()
 		res = mh.getColumnsForTable(self.tableDef.getQName())
-		self.assertEqual([(f.name, f.type, f.tablehead) 
+		self.assertEqual([(f.name, f.type, f.getLabel()) 
 				for f in res], [
-			(u'foo', 'double precision', 'foo'), ])
+			(u'foo', 'double precision', 'Foo'), ])
 		mh.close()
 
 
