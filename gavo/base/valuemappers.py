@@ -165,6 +165,32 @@ def datetimeMapperFactory(colDesc):
 _registerDefaultMF(datetimeMapperFactory)
 
 
+def _timeMapperFactory(annCol):
+# XXX TODO: Unify with analogous code in web.htmltable
+	if (annCol["dbtype"]=="time"
+			or annCol["displayHint"].get("type")=="humanTime"):
+		sf = int(annCol["displayHint"].get("sf", 0))
+		fmtStr = "%%02d:%%02d:%%0%d.%df"%(sf+3, sf)
+
+		def mapper(val):
+			if val is None:
+				return val
+			elif isinstance(val, (datetime.time, datetime.datetime)):
+				res = fmtStr%(val.hours, val.minutes, val.second)
+			elif isinstance(val, datetime.timedelta):
+				hours = val.seconds//3600
+				minutes = (val.seconds-hours*3600)//60
+				seconds = (val.seconds-hours*3600-minutes*60)+val.microseconds/1e6
+				res = fmtStr%(hours, minutes, seconds)
+			else:
+				return val
+			annCol["datatype"], annCol["arraysize"] = "char", "*"
+			return res
+
+		return mapper
+_registerDefaultMF(_timeMapperFactory)
+
+
 _pgTypes = set(["spoint", "spoly", "scircle", "sbox"])
 
 def _pgSphereMapperFactory(colDesc):

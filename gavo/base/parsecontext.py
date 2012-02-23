@@ -56,14 +56,19 @@ def resolveNameBased(container, id, forceType=None):
 	"""
 	if hasattr(container, "getElementForName"):
 		return container.getElementForName(id)
-
+	
+	ob = None
 	try:
 		for ob in container:
 			if hasattr(ob, "name") and ob.name==id:
 				return assertType(id, ob, forceType)
 	except TypeError:
-		raise utils.logOldExc(common.StructureError("Element %s is of type %s"
-			" and thus unsuitable for name path"%(pId, type(ob))))
+		if ob is None:
+			raise utils.logOldExc(common.StructureError("Cannot access %s"
+				" name-based since it is not iterable"%repr(container)))
+		else:
+			raise utils.logOldExc(common.StructureError("Element %s is of type %s"
+				" and thus unsuitable for name path"%(ob.name, type(ob))))
 	raise common.StructureError("Element %s has no child with name %s"%(
 		container.id, id))
 
