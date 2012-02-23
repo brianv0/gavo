@@ -192,11 +192,10 @@ def getIdentifyElement(registryService):
 	__system__/services#registry
 	"""
 	return OAI.Identify[
-		OAI.repositoryName["%s publishing registry"%base.getConfig("web",
-			"sitename")],
+		OAI.repositoryName[registryService.getMeta("title")],
 		OAI.baseURL[registryService.getURL("pubreg.xml")],
 		OAI.protocolVersion["2.0"],
-		OAI.adminEmail[base.getConfig("operator")],
+		OAI.adminEmail[registryService.getMeta("contact.email")],
 		OAI.earliestDatestamp["1970-01-01T00:00:00Z"],
 		OAI.deletedRecord["transient"],
 		OAI.granularity["YYYY-MM-DDThh:mm:ssZ"],

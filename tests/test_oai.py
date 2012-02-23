@@ -136,7 +136,22 @@ class OAIBasicTest(_OAITest):
 			).addCallback(assertErrorsOut)
 
 		return threads.deferToThread(q.doHTTP).addCallback(resumeNext)
-	
+
+	def testIdentify(self):
+		def assertParsed(serverProperties):
+			self.assertEqual(serverProperties.granularity, "YYYY-MM-DDThh:mm:ssZ")
+			self.assertEqual(serverProperties.repositoryName, 
+				"GAVO Data Center Registry")
+			self.assertEqual(serverProperties.baseURL, 
+				"http://localhost:8080/oai.xml")
+			self.assertEqual(serverProperties.protocolVersion, "2.0")
+			self.assertEqual(serverProperties.deletedRecord, "transient")
+			self.assertEqual(serverProperties.adminEmails, 
+				["gavo@ari.uni-heidelberg.de"])
+
+		return threads.deferToThread(oaiclient.getServerProperties,
+			self.registry).addCallback(assertParsed)
+
 
 class OAIParameterTest(_OAITest):
 	def testFromUntil(self):
