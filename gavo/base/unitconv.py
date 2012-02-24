@@ -273,7 +273,7 @@ def computeConversionFactor(unitStr1, unitStr2):
 def computeColumnConversions(newColumns, oldColumns):
 	"""returns a dict of conversion factors between newColumns and oldColumns.
 	
-	Both arguments are rscdef.ColumnLists.
+	Both arguments are iterables of columns.
 
 	For every column in newColumn, the function sees if the units of
 	newColumn and oldColumn match.  If they don't, compute a conversion

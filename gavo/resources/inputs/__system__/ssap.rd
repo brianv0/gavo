@@ -502,7 +502,7 @@
 		</condDesc>
 
 		<condDesc id="timeCond">
-			<inputKey original="//ssap#instance.ssa_dateObs" name="TIME" unit="Y-M-D"
+			<inputKey original="//ssap#instance.ssa_dateObs" name="TIME" unit=""
 				type="text" std="True"/>
 			<phraseMaker procDef="//pql#dateParameter">
 				<bind name="consCol">"ssa_dateObs"</bind>

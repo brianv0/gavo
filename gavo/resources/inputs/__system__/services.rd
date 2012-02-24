@@ -30,7 +30,7 @@
 		<column name="title" type="text" required="True"/>
 		<column name="description" type="text"/>
 		<column name="owner" type="text"/>
-		<column name="dateUpdated" type="timestamp"/>
+		<column name="dateUpdated" type="timestamp" unit="a"/>
 		<column name="recTimestamp" type="timestamp"
 			description="UTC of gavopublish run on the source RD"/>
 		<column name="deleted" type="boolean"/>
@@ -230,7 +230,7 @@
 			<outputField original="resId"/>
 			<outputField original="title"/>
 			<outputField original="owner"/>
-			<outputField original="dateUpdated" unit="Y-M-D"/>
+			<outputField original="dateUpdated" displayHint="type=humanDatetime"/>
 			<outputField original="renderer"/>
 			<outputField original="setName"/>
 			<outputField original="deleted"/>

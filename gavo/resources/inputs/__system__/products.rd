@@ -12,9 +12,12 @@ machinery -->
 			utype="Access.Reference"/>
 		<column name="owner" type="text" tablehead="Owner"
 			verbLevel="25" description="Owner of the data"/>
-		<column name="embargo" type="date" tablehead="Embargo ends" 
-			verbLevel="25" unit="Y-M-D" description=
-			"Date the data will become/became public"/>
+		<column name="embargo" type="date" 
+			unit="a"
+			tablehead="Embargo ends" 
+			verbLevel="25" 
+			description="Date the data will become/became public"
+			displayHint="type=humanDate"/>
 		<column name="mime" type="text" verbLevel="20"
 			tablehead="Type"
 			description="MIME type of the file served"
