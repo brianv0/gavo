@@ -115,6 +115,11 @@ class ColumnTest(testhelpers.VerboseTest):
 			base.parseFromString,
 			(rscdef.Column, '<column unit="d"/>'))
 
+	def testNoMetaParent(self):
+		t = testhelpers.getTestRD().getById("noname")
+		self.assertRaises(base.StructureError, 
+			t.getColumnByName("alpha").setMetaParent,
+			(t,))
 
 class ValuesTest(testhelpers.VerboseTest):
 	"""tests for the rscdef.Values class and its interaction with Column.

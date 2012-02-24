@@ -361,6 +361,17 @@ class Column(base.Structure, base.MetaMixin):
 	def __repr__(self):
 		return "<Column %s>"%repr(self.name)
 
+	def setMetaParent(self, parent):
+		# columns should *not* take part in meta inheritance.  The reason is
+		# that there are usually many columns to a table, and there's no
+		# way I can see that any piece of metadata should be repeated in
+		# all of them.  On the other hand, for votlinks (no name an example),
+		# meta inheritance would have disastrous consequences.
+		# So, we bend the rules a bit.
+		raise base.StructureError("Columns may not have meta parents.",
+			hint="The rationale for this is explained in rscdef/column.py,"
+			" look for setMetaParent.")
+
 	def onParentComplete(self):
 		# we need to resolve note on construction since columns are routinely
 		# copied to other tables and  meta info does not necessarily follow.
