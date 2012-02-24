@@ -416,7 +416,7 @@ function output_itemSelector(pars) {
 	root.bind("click", output_popupAddSel);
 	// show nowhere unless there actually are items to show
 	var showFor = new Array();
-	if (document.getElementById("#genForm-_ADDITEMS")) {
+	if (document.getElementById("genForm-_ADDITEMS")) {
 		showFor.push('HTML');
 	}
 	res = output_BussedElement(root, "op_additem", showFor);

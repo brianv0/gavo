@@ -1,5 +1,6 @@
 """
-Widgets used by the DC (e.g., definition of output formats).
+Nevow formal custom widgets used by the DC (enumerations, table options,
+etc)
 """
 
 import urllib
