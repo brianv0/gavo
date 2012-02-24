@@ -287,7 +287,7 @@ try:
 	if not hasattr(ParserElement, "addParseAction"):
 		ParserElement.addParseAction = ParserElement.setParseAction
 
-	_PYPARSE_LOCK = threading.Lock()
+	_PYPARSE_LOCK = threading.RLock()
 
 	@contextlib.contextmanager
 	def pyparsingWhitechars(whiteChars):
@@ -315,25 +315,16 @@ try:
 			ParserElement.setDefaultWhitespaceChars(" \t")
 			_PYPARSE_LOCK.release()
 
-	def ensurePyparsingLock(grammar):
-		"""adds a parseLock attribute to grammar if necessary.
-		"""
-		with _PYPARSE_LOCK:
-			if not hasattr(grammar, "parseLock"):
-				grammar.parseLock = threading.Lock()
-
 	def pyparseString(grammar, string, **kwargs):
 		"""parses a string using a pyparsing grammar thread-safely.
 		"""
-		ensurePyparsingLock(grammar)
-		with grammar.parseLock:
+		with _PYPARSE_LOCK:
 			return grammar.parseString(string, **kwargs)
 
 	def pyparseTransform(grammar, string, **kwargs):
 		"""calls grammar's transformString method thread-safely.
 		"""
-		ensurePyparsingLock(grammar)
-		with grammar.parseLock:
+		with _PYPARSE_LOCK:
 			return grammar.transformString(string, **kwargs)
 
 
