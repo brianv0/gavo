@@ -62,7 +62,7 @@ Also have a look at the `TAP examples`_
 .. _Practical PostgreSQL: http://www.faqs.org/docs/ppbook/book1.htm
 .. _A Gentle Introduction to SQL: http://sqlzoo.net/
 .. _ADQL specification: http://www.ivoa.net/Documents/latest/ADQL.html
-.. _TAP examples: \internallink{tap/run/examples}
+.. _TAP examples: \internallink{tap/examples}
 
 Local guide
 ===========
