@@ -94,7 +94,7 @@ class DBIndex(base.Structure):
 		"""
 		iName = self.parent.expand(self.dbname)
 		if querier.hasIndex(self.parent.getQName(), iName):
-			querier.query("DROP INDEX %s.%s"%(self.tableDef.rd.schema, iName))
+			querier.query("DROP INDEX %s.%s"%(self.parent.rd.schema, iName))
 
 	@property
 	def dbname(self):

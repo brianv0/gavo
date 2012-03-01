@@ -184,7 +184,7 @@ class OAIQuery(object):
 		self.metadataPrefix = metadataPrefix
 		self.contentCallback = contentCallback
 		self.granularity = granularity
-		if self.granularity:
+		if not self.granularity:
 			self.granularity = "YYYY-MM-DD"
 
 	def getKWs(self, **moreArgs):
@@ -199,7 +199,7 @@ class OAIQuery(object):
 		if self.granularity=='YY-MM-DD':
 			dateFormat = "%Y-%m-%d"
 		else:
-			dateFormat = "%Y-%m-%dT%H:%M:%S"
+			dateFormat = "%Y-%m-%dT%H:%M:%SZ"
 		if self.startDate:
 			kws["from"] = self.startDate.strftime(dateFormat)
 		if self.endDate:
@@ -221,8 +221,9 @@ class OAIQuery(object):
 
 		The result is returned as a string.
 		"""
-		f = utils.urlopenRemote(
-			self.registry+"?"+self._getOpQS(**self.getKWs(**moreArgs)))
+		srcURL = self.registry+"?"+self._getOpQS(**self.getKWs(**moreArgs))
+		base.ui.notifyInfo("OAI query %s"%srcURL)
+		f = utils.urlopenRemote(srcURL)
 		res = f.read()
 		f.close()
 		if self.contentCallback:
