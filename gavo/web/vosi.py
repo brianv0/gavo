@@ -143,6 +143,6 @@ class VOSITablesetRenderer(VOSIRenderer):
 	name = "tableMetadata"
 
 	def _getTree(self, request):
-		root = registry.getTablesetForService(self.service)
+		root = registry.getTablesetForService(self.service, physical=True)
 		root.addAttribute("xsi:type", "vs:TableSet")
 		return root

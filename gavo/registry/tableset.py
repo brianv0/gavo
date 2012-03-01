@@ -85,13 +85,16 @@ def getTableForTableDef(tableDef):
 	return res
 
 
-def getTablesetForService(service):
+def getTablesetForService(service, physical=False):
 	"""returns a VS.tableset for a dbCore-based service.
 
 	This is for VOSI queries.  It uses the service's getTableset
 	method to find out the service's table set.
+
+	If you pass physical=True, only acutal database tables will be returned,
+	not output tables or similar (this is mainly for TAP).
 	"""
-	tables = service.getTableSet()
+	tables = service.getTableSet(physical=physical)
 	# it's possible that multiple RDs define the same schema (don't do
 	# that, it's going to cause all kinds of pain).  To avoid
 	# generating bad tablesets in that case, we have the separate
