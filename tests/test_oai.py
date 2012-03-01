@@ -216,3 +216,36 @@ class OAIParameterTest(_OAITest):
 			self.registry,
 			set="local",
 		).addCallback(assertInLocal)
+
+
+class OAIContentCallbackTest(_OAITest):
+	def testSavesResult(self):
+		savedContent = []
+		def save(stuff):
+			savedContent.append(stuff)
+
+		def assertSaved(svcResult):
+			self.failUnless("<oai:repositoryName>GAVO" in savedContent[0])
+
+		q = oaiclient.OAIQuery(self.registry, verb="Identify",
+			metadataPrefix=None, contentCallback=save)
+		return threads.deferToThread(q.talkOAI, oaiclient.IdentifyParser
+			).addCallback(assertSaved)
+
+	def testErrorIsNotSaved(self):
+		savedContent = []
+		def save(stuff):
+			savedContent.append(stuff)
+
+		def assertNotSaved(failure):
+			self.failIf(savedContent)
+		def failIfRan(whatever):
+			self.fail("This should not have worked")
+
+		q = oaiclient.OAIQuery(self.registry, verb="Schwumbel",
+			contentCallback=save)
+		return threads.deferToThread(q.talkOAI, oaiclient.IdentifyParser
+			).addCallback(failIfRan
+			).addErrback(assertNotSaved)
+
+

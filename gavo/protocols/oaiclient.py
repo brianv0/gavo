@@ -158,7 +158,9 @@ class OAIQuery(object):
 	Construct it with the oai endpoint and the OAI verb, plus some optional
 	query attributes.  If you want to retain or access the raw responses
 	of the server, pass a contentCallback function -- it will be called
-	with a byte string containing the payload of the server response.
+	with a byte string containing the payload of the server response if
+	it was parsed successfully.  Error responses cannot be obtained in
+	this way.
 
 	The OAIQuery is constructed with OAI-PMH parameters (verb, startDate,
 	endDate, set, metadataPrefix; see the OAI-PMH docs for what they mean,
@@ -226,8 +228,6 @@ class OAIQuery(object):
 		f = utils.urlopenRemote(srcURL)
 		res = f.read()
 		f.close()
-		if self.contentCallback:
-			self.contentCallback(res)
 		return res
 
 	def _getOpQS(self, **args):
@@ -246,6 +246,8 @@ class OAIQuery(object):
 		handler = parserClass()
 		try:
 			sax.parseString(res, handler)
+			if self.contentCallback:
+				self.contentCallback(res)
 		except NoRecordsMatch:
 			return []
 		oaiResult = handler.getResult()
@@ -254,9 +256,11 @@ class OAIQuery(object):
 			resumptionToken = handler.resumptionToken
 			handler = parserClass(oaiResult)
 			try:
-				sax.parseString(self.doHTTP(metadataPrefix="ivo_vor", verb=self.verb,
-					resumptionToken=resumptionToken),
-					handler)
+				res = self.doHTTP(metadataPrefix="ivo_vor", verb=self.verb,
+					resumptionToken=resumptionToken)
+				sax.parseString(res, handler)
+				if self.contentCallback:
+					self.contentCallback(res)
 			except NoRecordsMatch:
 				break
 
