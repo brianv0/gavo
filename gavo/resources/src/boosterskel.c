@@ -16,19 +16,14 @@
 #include <time.h>
 #include <endian.h> 
 #include <stdlib.h>
-#include <setjmp.h>
 #include <errno.h>
 #include <arpa/inet.h>
 #include "boosterskel.h"
 
-#define USAGE "Usage: don't."
-
-#define INPUT_LINE_MAX 2000
-
 /* The following items should probably be collected in a parseContext */
-static char *context=NULL;  // handleInvalidRecord() looks here to give 
+char *context=NULL;  // handleInvalidRecord() looks here to give 
 // more informative error messages
-static jmp_buf ignoreRecord; // longjmp target for non-letal bad records
+jmp_buf ignoreRecord; // longjmp target for non-letal bad records
 
 
 /* Epoch of pq dumps.  Let's hope they don't change that frequently */
@@ -56,7 +51,7 @@ void die(char *format, ...)
 	exit(1);
 }
 
-static void handleBadRecord(char *format, ...)
+void handleBadRecord(char *format, ...)
 {
 	va_list ap;
 	va_start(ap, format);
@@ -590,61 +585,6 @@ void writeTuple(Field *fields, int numFields, void *destination)
 	}
 }
 
-void createDumpfile(int argc, char **argv)
-{
-	FILE *inF;
-	FILE *destination=stdout;
-	char inputLine[INPUT_LINE_MAX];
-	int lncount = 0;
-	int bytesRead = 0;
-
-	if (argc>2) {
-		die(USAGE);
-	}
-	if (argc==2) {
-		if (!(inF = fopen(argv[1], "r"))) {
-			die(strerror(errno));
-		}
-	} else {
-		inF = stdin;
-	}
-	
-//	fprintf(stderr, "\nBooster importing %s:\n", argv[1]);
-	writeHeader(destination);
-#ifdef FIXED_RECORD_SIZE
-	while (1) {
-		bytesRead = fread(inputLine, 1, FIXED_RECORD_SIZE, inF);
-		if (bytesRead==0) {
-			break;
-		} else if (bytesRead!=FIXED_RECORD_SIZE) {
-			die("Short record: Only %d bytes read.", bytesRead);
-		}
-#else
-	while (fgets(inputLine, INPUT_LINE_MAX, inF)) {
-#endif
-		Field *tuple;
-		context = inputLine;
-		if (!setjmp(ignoreRecord)) {
-			tuple = getTuple(inputLine);
-			if (!tuple) {
-#ifdef FIXED_RECORD_SIZE
-			handleBadRecord("Bad input line at record %d", lncount);
-#else
-			handleBadRecord("Bad input line");
-#endif
-			}
-			writeTuple(tuple, QUERY_N_PARS, destination);
-			context = NULL;
-			lncount ++;
-			if (!(lncount%1000)) {
-				fprintf(stderr, "%08d\r", lncount);
-				fflush(stderr);
-			}
-		}
-	}
-	writeEndMarker(destination);
-	fprintf(stderr, "%08d records done.\n", lncount);
-}
 
 int degToHms(double deg,
 	int *hours_out, int *minutes_out, double *seconds_out)

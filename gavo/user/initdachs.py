@@ -134,6 +134,7 @@ def makeDefaultMeta():
 	from gavo.base import config
 	config.makeFallbackMeta()
 
+
 def prepareWeb():
 	makeDirVerbose(os.path.join(base.getConfig("webDir"), "nv_static"))
 

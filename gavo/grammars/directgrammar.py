@@ -25,6 +25,7 @@ class Error(base.Error):
 	pass
 
 
+
 class CBooster:
 	"""is a wrapper for an import booster written in C using the DC booster
 	infrastructure.
@@ -67,7 +68,7 @@ class CBooster:
 		query_n_pars = mat.group(1)
 		f = open(os.path.join(wd, "Makefile"), "w")
 		f.write("LDFLAGS += -lm\n"
-			"CFLAGS += -DQUERY_N_PARS=%s\n"%query_n_pars)
+			"CFLAGS += -Wall -DQUERY_N_PARS=%s\n"%query_n_pars)
 		if self.recordSize:
 			f.write("CFLAGS += -DFIXED_RECORD_SIZE=%s\n"%self.recordSize)
 		if self.autoNull:
@@ -171,6 +172,70 @@ def getNameForItem(item):
 	return "fi_"+item.name.lower()
 
 
+
+# XXX TODO: evaluate ifdefs in here at generation time (will also fix
+# compile warnings)
+STATIC_FOOT = """
+
+
+void createDumpfile(int argc, char **argv)
+{
+	FILE *inF;
+	FILE *destination=stdout;
+	char inputLine[INPUT_LINE_MAX];
+	int lncount = 0;
+	int bytesRead = 0;
+
+	if (argc>2) {
+		die(USAGE);
+	}
+	if (argc==2) {
+		if (!(inF = fopen(argv[1], "r"))) {
+			die(strerror(errno));
+		}
+	} else {
+		inF = stdin;
+	}
+	
+//	fprintf(stderr, "\\nBooster importing %s:\\n", argv[1]);
+	writeHeader(destination);
+#ifdef FIXED_RECORD_SIZE
+	while (1) {
+		bytesRead = fread(inputLine, 1, FIXED_RECORD_SIZE, inF);
+		if (bytesRead==0) {
+			break;
+		} else if (bytesRead!=FIXED_RECORD_SIZE) {
+			die("Short record: Only %d bytes read.", bytesRead);
+		}
+#else
+	while (fgets(inputLine, INPUT_LINE_MAX, inF)) {
+#endif
+		Field *tuple;
+		context = inputLine;
+		if (!setjmp(ignoreRecord)) {
+			tuple = getTuple(inputLine);
+			if (!tuple) {
+#ifdef FIXED_RECORD_SIZE
+			handleBadRecord("Bad input line at record %d", lncount);
+#else
+			handleBadRecord("Bad input line");
+#endif
+			}
+			writeTuple(tuple, QUERY_N_PARS, destination);
+			context = NULL;
+			lncount ++;
+			if (!(lncount%1000)) {
+				fprintf(stderr, "%08d\\r", lncount);
+				fflush(stderr);
+			}
+		}
+	}
+	writeEndMarker(destination);
+	fprintf(stderr, "%08d records done.\\n", lncount);
+}
+"""
+
+
 class _CodeGenerator(object):
 	def __init__(self, options):
 		pass
@@ -255,38 +320,61 @@ class SplitCodeGenerator(_CodeGenerator):
 
 
 def getCodeGen(opts):
-	if opts.binParser:
+	if getattr(opts, "binParser", None):
 		return BinCodeGenerator(opts)
-	if getattr(opts, "split", None):
+	elif getattr(opts, "split", None):
 		return SplitCodeGenerator(opts)
 	else:
 		return ColCodeGenerator(opts)
 
 
-def printIndented(stringList, indentChar):
-	print indentChar+('\n'+indentChar).join(stringList)
-
-
-def buildSource(td, opts):
-	codeGen = getCodeGen(opts)
-	print '#include <math.h>\n#include <string.h>\n#include "boosterskel.h"\n'
-	print "#define QUERY_N_PARS %d\n"%len(list(td))
-	print 'enum outputFields {'
+def getEnum(td, opts):
+	code = [
+		"#define QUERY_N_PARS %d\n"%len(list(td)),
+		'enum outputFields {']
 	for item in td:
 		desc = item.getLabel()
 		if not desc:
 			desc = item.description
-		print "\t%-15s  /* %s, %s */"%(getNameForItem(item)+",",
-			desc, item.type)
-	print '};\n'
-	print "Field *getTuple(char *inputLine)\n{"
-	print "\tstatic Field vals[QUERY_N_PARS];\n"
-	printIndented(codeGen.getSetupCode(), "\t")
-	for item in td:
-		printIndented(codeGen.getItemParser(item), "\t")
-	print "\treturn vals;"
-	print "}"
+		code.append("\t%-15s  /* %s, %s */"%(getNameForItem(item)+",",
+			desc, item.type))
+	code.append('};\n')
+	return code
 
+
+def getGetTuple(td, opts):
+	codeGen = getCodeGen(opts)
+	code = [
+		"Field *getTuple(char *inputLine)\n{",
+		"\tstatic Field vals[QUERY_N_PARS];"]
+	code.extend(indent(codeGen.getSetupCode(), "\t"))
+	for item in td:
+		code.extend(indent(codeGen.getItemParser(item), "\t"))
+	code.extend([
+		"\treturn vals;",
+		"}"])
+	return code
+
+
+def indent(stringList, indentChar):
+	return [indentChar+s for s in stringList]
+
+
+def buildSource(td, opts):
+	code = [
+		'#include <stdio.h>',
+		'#include <math.h>',
+		'#include <string.h>',
+		'#include <errno.h>',
+		'#include "boosterskel.h"',
+		'',
+		'#define USAGE "Usage: don\'t."\n#define INPUT_LINE_MAX 2000']
+	
+	code.extend(getEnum(td, opts))
+	code.extend(getGetTuple(td,opts))
+	code.append(STATIC_FOOT)
+	return "\n".join(code)
+	
 
 def getTableDef(rdName, tdId):
 	try:
@@ -319,5 +407,6 @@ def main():
 		opts, (rdName, tdId) = parseCmdLine()
 		td = getTableDef(rdName, tdId)
 		src = buildSource(td, opts)
+		print src
 	except SystemExit, msg:
 		sys.exit(msg.code)

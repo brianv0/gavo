@@ -169,7 +169,7 @@ class IVOMetaMixin(object):
 				'sets': ['unpublished'],
 				'recTimestamp': base.makeMetaItem(
 					datetime.datetime.utcnow().strftime(
-					utils.isoTimestampFmt), name="recTimestamp"),
+						utils.isoTimestampFmt), name="recTimestamp"),
 				}
 		return self.__getFromDB(metaKey)
 	

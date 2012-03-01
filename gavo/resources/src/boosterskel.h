@@ -1,6 +1,10 @@
+#ifndef BOOSTERSKEL_H
+#define BOOSTERSKEL_H
+
 #define _XOPEN_SOURCE
 #include <time.h>
 #include <stdint.h>  /* for typedefs */
+#include <setjmp.h>
 
 #define DEGTORAD(x) ((x)/360.*2*M_PI)
 #define F(x) (vals+x)
@@ -94,3 +98,17 @@ int degToDms(double deg, char *sign_out,
 int degToHms(double deg, 
 	int *hours_out, int *minutes_out, double *seconds_out);
 double jYearToJDN(double jYear);
+
+// functions for creating dump files
+void writeHeader(void *destination);
+void handleBadRecord(char *format, ...);
+void createDumpfile(int argc, char **argv);
+void writeTuple(Field *fields, int numFields, void *destination);
+void writeEndMarker(void *destination);
+
+extern char *context; // handleInvalidRecord() looks here to give 
+// more informative error messages
+
+extern jmp_buf ignoreRecord; // longjmp target for non-letal bad records
+
+#endif
