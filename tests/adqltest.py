@@ -497,16 +497,16 @@ class ParseErrorTest(testhelpers.VerboseTest):
 		("SELECT TOP foo FROM x", 'Expected unsigned integer (at char 11)'),
 		("SELECT FROM x", 'Expected "*" (at char 7)'),
 		("SELECT x, FROM y", 'Reserved word not allowed here (at char 10)'),
-		("SELECT * FROM distinct", 'Reserved word not allowed here (at char 14)'),
 #5
+		("SELECT * FROM distinct", 'Reserved word not allowed here (at char 14)'),
 		("SELECT DISTINCT FROM y", 'Expected "*" (at char 16)'),
 		("SELECT *", 'Expected "FROM" (at char 8)'),
 		("SELECT * FROM y WHERE", 'Expected boolean expression (at char 21)'),
 		("SELECT * FROM y WHERE y u 2", 
 			'Expected comparison operator (at char 24)'),
+# 10
 		("SELECT * FROM y WHERE y < 2 AND", 
 			'Expected boolean expression (at char 31)'),
-# 10
 		("SELECT * FROM y WHERE y < 2 OR", 
 			'Expected boolean expression (at char 30)'),
 		("SELECT * FROM y WHERE y IS 3", 'Expected "NULL" (at char 27)'),
@@ -515,8 +515,8 @@ class ParseErrorTest(testhelpers.VerboseTest):
 		("SELECT * FROM y WHERE 1=CONTAINS(POINT('ICRS',x,'sy')"
 			" ,CIRCLE('ICRS',x,y,z))", 
 			'Expected numeric expression (at char 48)'),
-		("SELECT * FROM (SELECT * FROM x)", 'Expected "AS" (at char 31)'),
 # 15
+		("SELECT * FROM (SELECT * FROM x)", 'Expected "AS" (at char 31)'),
 		("SELECT * FROM x WHERE EXISTS z", 'Expected subquery (at char 29)'),
 		("SELECT POINT(3,4) FROM z", 
 			'Expected coordinate system literal (ICRS, GALACTIC,...) (at char 13)'),

@@ -91,7 +91,7 @@ class STC(object):
 	class T_coordinate(T_double2):
 		_a_frame_id = None
 
-	# !!! Addition to 1.30 STC model
+	# !!! Addition wrt 1.30 STC model
 	class Epoch(OptionalSTCElement):
 		_a_yearDef = None
 

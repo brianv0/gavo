@@ -45,7 +45,7 @@ if sys.version_info[0]>=2 and sys.version_info[1]>4:
 
 	from gavo.stc.stcx import STC
 
-	from gavo.stc.stcxast import parseSTCX
+	from gavo.stc.stcxast import parseSTCX, parseFromETree
 
 	from gavo.stc.stcxgen import astToStan, getSTCXProfile, nodeToStan
 

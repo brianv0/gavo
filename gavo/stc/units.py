@@ -236,6 +236,11 @@ def getVectorConverter(fromUnits, toUnits, reverse=False):
 	additional attributes fromUnit and toUnit giving what transformation
 	they implement.
 	"""
+	if not fromUnits:  # no base unit given, we give up
+		def convert(val):
+			return val
+		return convert
+
 	toUnits = _expandUnits(fromUnits, toUnits)
 	convs = []
 	convs.append(getBasicConverter(fromUnits[0], toUnits[0], reverse))

@@ -17,26 +17,17 @@ def _unwrapSample(samp):
 	return bz2.decompress(samp.decode("base64"))
 
 
-class XMLSrcTestBase(testhelpers.VerboseTest):
-	"""A base class for tests on XML data input.
+class STCXForestResource(testhelpers.TestResource):
+	"""An abstract base for resources unpacking and parsing a base64-encoded
+	bzipped STC-X to a list of abstract syntax trees.
 
-	The input comes as base64-encoded bzip2ed XML in the data attribute.
-	The AST resulting from the parse is in the ast attribute.
-
-	You can generate these strings by calling this module with an absolute
-	path (the leading slash is important).
+	The input is defined in the data attribute
 	"""
-	def __init__(self, *args, **kwargs):
-		testhelpers.VerboseTest.__init__(self, *args, **kwargs)
-		if hasattr(self, "data"):
-			self.asf = stc.parseSTCX(_unwrapSample(self.data))
+	def make(self, ignored):
+		return stc.parseSTCX(_unwrapSample(self.data))
 
 
-class M81EventHrefTest(XMLSrcTestBase):
-	"""The M81 event example with hrefs.
-	
-	Make this an XMLSrcTestBased test when we grow hrefs.
-	"""
+class _M81EventHrefDoc(STCXForestResource):
 	data = (
     'QlpoOTFBWSZTWR0wcQMAAUJfgFVQeAP/968v30C/79/gQAKarDXOnRhJKnpoFH5U'
     '/SQ9JpoGj0gaANNBpoBoJQkyamFNHqepo9Q0GjQDNT1DQNDTagEik1T2pH6SHqHq'
@@ -52,7 +43,11 @@ class M81EventHrefTest(XMLSrcTestBase):
     'BIjGajRMVqd5WULkNXipxksrE2hWhEZIKALZjLIhkUq+U0SAv44E6kRKG4MKFFVV'
     'CepRZDaq8ycJHLJNKIhaWlTK4jPWShlUhSuBBOA6iGGAYVKIkYENovlY6kJ1aCEE'
     'bUZhkWIiAzwq8HMycp0016msgGQgf4u5IpwoSA6YOIGA')
-	
+
+
+class M81EventHrefTest(testhelpers.VerboseTest):
+	resources = [('asf', _M81EventHrefDoc())]
+
 	def testRefPresent(self):
 		sys = self.asf[1][1].astroSystem
 		self.assertEqual(sys.libraryId, "ivo://STClib/CoordSys#TT-ICRS-TOPO")
@@ -62,9 +57,7 @@ class M81EventHrefTest(XMLSrcTestBase):
 		self.assertEqual(sys.spaceFrame.refFrame, "ICRS")
 
 
-class M81ImageTest(XMLSrcTestBase):
-	"""The M81 without references sample.
-	"""
+class _M81ImageDoc(STCXForestResource):
 	data = (
 	  'QlpoOTFBWSZTWeE9tcIAA5nfgHgwcPf//7//38C////wYAh8wMb5xndy7oYURCip'
     'AoEJIpMhGj0MQCaD0hpoNDQGQAAAA00Q0JomIp6T1PU0ANGmjQAABoeppoAcAwjC'
@@ -106,6 +99,10 @@ class M81ImageTest(XMLSrcTestBase):
     'tdROFOBsKtFGTQoEoVcUJRZFpzTQsCwWMpDTGDjgFQxJFA5UQKeKFxvRaid84Me9'
     'B/xxRMWaZhsuJHLYlxq8FNoLCLFlHlR3EGxyRzIsACxSvB20szNUTFaejh2nDiyq'
     '4PXco3d+IxDaT/xdyRThQkOE9tcI')
+
+
+class M81EventHrefTest(testhelpers.VerboseTest):
+	resources = [('asf', _M81ImageDoc())]
 
 	def testRootTag(self):
 		self.failUnless(self.asf[0][0].endswith("ObservatoryLocation"))
@@ -185,9 +182,7 @@ class M81ImageTest(XMLSrcTestBase):
 			"Wrong frame on space interval.")
 
 
-class ChandraResTest(XMLSrcTestBase):
-	"""tests on the Chandra resource profile example.
-	"""
+class _ChandraResDoc(STCXForestResource):
 	data = (    
     'QlpoOTFBWSZTWXXPk0MAAhHfgGAicuf//69332C/79/xUAV+dhrEm1baakVq00Ek'
     'gImNTTKaGnqp+mUn6mTGomm0A1Gj9KP1T1PUNDjJk00wmRkDAjE0YIwg0aYABBKa'
@@ -217,6 +212,10 @@ class ChandraResTest(XMLSrcTestBase):
     'gKEB7qZ9owRJszRmQRhQHnJ0WgSLVJFMhMdwxxADmrEEbupKYFhZlvpYBZd968yK'
     'ypXBpiku1cs1LACYOHuGs7UurQFIkEq8zIwPBxEqNDJ2WcvWvCj92JE53jGo51pB'
     'Z//F3JFOFCQdc+TQwA==')
+
+
+class ChandraResDocTest(testhelpers.VerboseTest):
+	resources = [('asf', _ChandraResDoc())]
 
 	def testTimeCoord(self):
 		p = self.asf[0][1].time
@@ -268,6 +267,26 @@ class ChandraResTest(XMLSrcTestBase):
 		self.assertAlmostEqual(p.upperLimit, 10)
 
 
+class _RegistryLibsysAllskyDoc(STCXForestResource):
+	data = (
+'QlpoOTFBWSZTWbsA/ikAAF1fgCoUWAP5tywm3kC/79/wMAFaTQGiFAyPKAGTQ9Q/UIAA2oA0oyIy'
+'ZGaBoJkBoYIGIMEkk0majJlDYmpggZDRiabKNMkaVQEjnKlyUTCUiQyPS5/u306M28PJ7Jt2hBDU'
+'BQBb4yS+2ZwoMeBGL/3n3fG1CCySEzkcnxQs+gbSwCu8nI0KqgUgBaZjMaknn3KWw1MpoKWKKFVP'
+'JuVewMNex8WyYZHJHAGVZKysN4cb+QSBwDCTm0VwTPGucbqS8OIUBd+KF6rTEpbRFW7TniThL55m'
+'PWTpnSSwJpQZIHDqYxgcnGy/JGx10KaBiTCdZONoQOQOcDLSY3ku+seDWS2WNn6h0wKpkyiSjrNk'
+'3V4Yk19qG6JxEThaMYQIFGsyFSzdvfSQAyGhxIiBphlTo6y1xlI/DoMwwwzNqgp0aiSzuEDFCcil'
+'S4JjTIXqwZThUSucuajfvzLH4lBiP8XckU4UJC7AP4pA')
+
+
+class RegistryLibsysTest(testhelpers.VerboseTest):
+	resources = [('asf', _RegistryLibsysAllskyDoc())]
+
+	def testAllWell(self):
+		self.assertEqual(stc.getSTCS(self.asf[0][1]),
+			"AllSky ICRS TOPOCENTER Size 0.0166666666667\n"
+			"System UTC-ICRS-TOPO")
+
+	
 class GeometriesTest(testhelpers.VerboseTest):
 	def _getAST(self, geo):
 		return stc.parseSTCX(('<ObservationLocation xmlns="%s">'%stc.STCNamespace)+
@@ -362,9 +381,7 @@ class MiscSrcTest(SimpleSTCXSrcTest):
 		self.assertEqual(ast.place.yearDef, "B")
 
 
-class CompoundParseTest(XMLSrcTestBase):
-	"""tests for various aspects of parsing compound geometries.
-	"""
+class _CompoundSTCX(STCXForestResource):
 	data = (    
 		'QlpoOTFBWSZTWcPIAfcAAYhfgFVVUAP4N79v38C//9/wQALbbrG2wBgkkEmp+lG9'
     'U2poNGgaMaQAaD1GIAGmQiSaAND0I00AaAANGgACSVDQGgAA0AAAAAAAKokI0npM'
@@ -382,25 +399,29 @@ class CompoundParseTest(XMLSrcTestBase):
     'PIvpUiJCfNminMshWlcDpSfYbxYK8UhjT6x5QihSqHoiikmKF4ILb9HFSkDQ9ecw'
     'lcz/F3JFOFCQw8gB9w==')
 
-	def __init__(self, *args, **kwargs):
-		XMLSrcTestBase.__init__(self, *args, **kwargs)
-		self.area = self.asf[0][1].areas[0]
+
+class CompoundParseTest(testhelpers.VerboseTest):
+	resources = [("asf", _CompoundSTCX())]
+
 
 	def testAreasPresent(self):
 		self.assertEqual(len(self.asf[0][1].areas), 1)
 	
 	def testDifferenceShape(self):
-		self.failUnless(isinstance(self.area, dm.Difference))
-		self.failUnless(isinstance(self.area.children[0], dm.AllSky))
-		self.failUnless(isinstance(self.area.children[1], dm.Union))
+		area = self.asf[0][1].areas[0]
+		self.failUnless(isinstance(area, dm.Difference))
+		self.failUnless(isinstance(area.children[0], dm.AllSky))
+		self.failUnless(isinstance(area.children[1], dm.Union))
 	
 	def testCircle(self):
-		circ = self.area.children[1].children[0]
+		area = self.asf[0][1].areas[0]
+		circ = area.children[1].children[0]
 		self.assertEqual(circ.center, (10., 10.))
 		self.assertEqual(circ.radius, 2.)
 	
 	def testNegation(self):
-		innerDiff = self.area.children[1].children[1].children[2]
+		area = self.asf[0][1].areas[0]
+		innerDiff = area.children[1].children[1].children[2]
 		self.failUnless(isinstance(innerDiff, dm.Not))
 
 

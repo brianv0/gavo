@@ -188,5 +188,24 @@ class CompoundTest(STCMappingTest):
 			'<V ><AstroCoordSystem ><SpaceFrame ><ICRS /><UNKNOWNRefPos /><SPHERICAL coord_naxes="2" /></SpaceFrame></AstroCoordSystem><AstroCoordArea ><Difference><AllSky unit="deg" /><Union2><Circle unit="deg"><Center><C1>10.0</C1><C2>10.0</C2></Center><Radius>2.0</Radius></Circle><Intersection><Polygon unit="deg"><Vertex><Position><C1>10.0</C1><C2>2.0</C2></Position></Vertex><Vertex><Position><C1>2.0</C1><C2>10.0</C2></Position></Vertex><Vertex><Position><C1>10.0</C1><C2>10.0</C2></Position></Vertex></Polygon><Ellipse unit="deg"><Center><C1>11.0</C1><C2>11.0</C2></Center><SemiMajorAxis>2.0</SemiMajorAxis><SemiMinorAxis>3.0</SemiMinorAxis><PosAngle>30.0</PosAngle></Ellipse><Negation><Difference><Circle unit="deg"><Center><C1>12.0</C1><C2>12.0</C2></Center><Radius>3.0</Radius></Circle><Box2 unit="deg"><Center><C1>11.0</C1><C2>11.0</C2></Center><Size><C1>2.0</C1><C2>3.0</C2></Size></Box2></Difference></Negation></Intersection></Union2></Difference></AstroCoordArea></V>')
 
 
+class STCSRoundtripTest(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		src, expected = sample
+		if expected is None:
+			expected = src
+		ast = stc.parseSTCS(src)
+		xml = stc.getSTCXProfile(ast)
+		ast2 = stc.parseSTCX(xml)[0][1]
+		stcs = stc.getSTCS(ast2)
+		self.assertEqual(stcs, expected)
+	
+	samples = [
+		("AllSky ICRS", None),
+		("Box ICRS 12 1 15 3", 'Box ICRS 12.0 1.0 15.0 3.0'),
+	]
+
+
 if __name__=="__main__":
-	testhelpers.main(TimeFrameTest)
+	testhelpers.main(STCSRoundtripTest)

@@ -143,6 +143,10 @@ class StartEndHandler(ContentHandler):
 	Rather than overriding __init__, you probably want to override
 	the _initialize() method to create the data structures you want
 	to fill from XML.
+
+	StartEndHandlers clean element names from namespace prefixes, and
+	they ignore them in every other way.  If you need namespaces, use
+	a different interface.
 	"""
 	def __init__(self):
 		ContentHandler.__init__(self)
@@ -210,3 +214,12 @@ class StartEndHandler(ContentHandler):
 	
 	def setDocumentLocator(self, locator):
 		self.locator = locator
+
+
+def traverseETree(eTree):
+	"""iterates the elements of an elementTree in postorder.
+	"""
+	for child in eTree:
+		for gc in traverseETree(child):
+			yield gc
+	yield eTree

@@ -335,9 +335,17 @@ def _fixWiggles(buildArgs):
 	for wiggleType in ["error", "resolution", "size", "pixSize"]:
 		localArgs = {}
 		wigClass = None
+
+		# pop any units destined for us from buildArgs -- boy, this whole
+		# units stuff is messy.  How the heck was that meant to work?
+		velTimeUnit = buildArgs.pop(wiggleType+"vel_time_unit", None)
 		if wiggleType+"unit" in buildArgs:
 			localArgs["origUnit"] = (buildArgs.pop(wiggleType+"unit", None),
-				buildArgs.pop(wiggleType+"vel_time_unit", None))
+				velTimeUnit)
+		if wiggleType+"pos_unit" in buildArgs:
+			localArgs["origUnit"] = (buildArgs.pop(wiggleType+"pos_unit", None),
+				velTimeUnit)
+
 		if wiggleType in buildArgs:
 			localArgs["values"] = tuple(buildArgs.pop(wiggleType))
 			wigClass = dm.CooWiggle

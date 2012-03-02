@@ -40,7 +40,7 @@ from gavo.utils.misctricks import (Undefined, QuotedName, getfirst,
 from gavo.utils.ostricks import (safeclose, urlopenRemote, 
 	fgetmtime, cat, ensureDir, safeReplaced)
 
-from gavo.utils.plainxml import StartEndHandler, iterparse
+from gavo.utils.plainxml import StartEndHandler, iterparse, traverseETree
 
 from gavo.utils.stanxml import ElementTree, xmlrender
 
