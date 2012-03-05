@@ -398,11 +398,20 @@ _xlinkHref = utils.ElementTree.QName(XlinkNamespace, "href")
 
 def _buildAstroCoordSystem(node, buildArgs, context):
 	buildArgs["id"] = node.get("id", None)
+	# allow non-qnamed href, too, mainly for accomodating our
+	# namespace-eating relational resource importer
 	if _xlinkHref in node.attrib:
-		newEl = syslib.getLibrarySystem(node.attrib[_xlinkHref]
-			).change(**buildArgs)
+		hrefVal = node.attrib[_xlinkHref]
+	elif "xlink:href" in node.attrib:
+		hrefVal = node.attrib["xlink:href"]
 	else:
+		hrefVal = None
+
+	if hrefVal is None:
 		newEl = dm.CoordSys(**buildArgs)
+	else:
+		newEl = syslib.getLibrarySystem(hrefVal).change(**buildArgs)
+
 	# Hack -- make sure we have a good id here, even when this means
 	# a violation of our non-mutability ideology.
 	if newEl.id is None:
