@@ -66,6 +66,9 @@ _frameTrans = {
 }
 
 def _spaceFrameToCST(node):
+	if node is None:
+		return {"frame": "UNKNOWNFrame"}
+
 	frame = node.refFrame
 	frame = _frameTrans.get(frame, frame)
 	return _combine({
@@ -75,14 +78,20 @@ def _spaceFrameToCST(node):
 		refPosToCST(node.refPos))
 
 def _timeFrameToCST(node):
+	if node is None:
+		return {}
 	return _combine({
 		"timescale": node.timeScale,},
 		refPosToCST(node.refPos))
 
 def _spectralFrameToCST(node):
+	if node is None:
+		return {}
 	return refPosToCST(node.refPos)
 
 def _redshiftFrameToCST(node):
+	if node is None:
+		return {}
 	return _combine({
 		"redshiftType": node.type,
 		"dopplerdef": node.dopplerDef,},

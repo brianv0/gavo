@@ -408,9 +408,6 @@ def _buildAstroCoordSystem(node, buildArgs, context):
 		hrefVal = None
 
 	if hrefVal is None:
-		# make sure there's at least a rudimentary space frame no matter what
-		if "spaceFrame" not in buildArgs:
-			buildArgs["spaceFrame"] = dm.SpaceFrame()
 		newEl = dm.CoordSys(**buildArgs)
 	else:
 		newEl = syslib.getLibrarySystem(hrefVal).change(**buildArgs)
@@ -419,7 +416,6 @@ def _buildAstroCoordSystem(node, buildArgs, context):
 	# a violation of our non-mutability ideology.
 	if newEl.id is None:
 		newEl.id = utils.intToFunnyWord(id(newEl))
-
 	yield "astroSystem", newEl
 
 
