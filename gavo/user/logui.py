@@ -13,13 +13,15 @@ from gavo.protocols.gavolog import RotatingFileHandler
 
 
 class LoggingUI(ObserverBase):
+	logLineFormat = "%(asctime)s [%(levelname)s %(process)s] %(message)s"
+
 	def __init__(self, eh):
 		ObserverBase.__init__(self, eh)
 		errH = RotatingFileHandler(
 			os.path.join(base.getConfig("logDir"), "dcErrors"),
 			maxBytes=500000, backupCount=3, mode=0664)
 		errH.setFormatter(
-			logging.Formatter("[%(process)s] %(message)s"))
+			logging.Formatter(self.logLineFormat))
 		self.errorLogger = logging.getLogger("dcErrors")
 		self.errorLogger.addHandler(errH)
 		self.errorLogger.propagate = False
@@ -27,8 +29,7 @@ class LoggingUI(ObserverBase):
 		infoH = RotatingFileHandler(
 			os.path.join(base.getConfig("logDir"), "dcInfos"),
 			maxBytes=500000, backupCount=1, mode=0664)
-		infoH.setFormatter(
-			logging.Formatter("%(levelname)s [%(process)s] %(message)s"))
+		infoH.setFormatter(logging.Formatter(self.logLineFormat))
 		self.infoLogger = logging.getLogger("dcInfos")
 		self.infoLogger.propagate = False
 		self.infoLogger.addHandler(infoH)

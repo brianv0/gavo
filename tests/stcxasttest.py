@@ -286,7 +286,24 @@ class RegistryLibsysTest(testhelpers.VerboseTest):
 			"AllSky ICRS TOPOCENTER Size 0.0166666666667\n"
 			"System UTC-ICRS-TOPO")
 
-	
+
+class _RegistryNullsysAllskyDoc(STCXForestResource):
+	data = (
+    'QlpoOTFBWSZTWRE+RJAAABffgAAQUAPoFywAXACvb9/gMADMbDSmgANMjTTIAGQE'
+    'qEAARgA2oJpgJSUw0am1NpoT1GE000bRKgStWchqCad81qfj8LwCnL9zDHIBPYCM'
+    'oUJOaBaYwpPaRRhMaFpSsup1RZ5MuCZxEsF1qrPpubmICzU2XEkCg6DxpUTFJmZn'
+    'EhsTijJtTxxpeHiFjyMkDkonuS5QZp3tCBewrJQaSo85IUGI5gwb+FrFpySqkgiF'
+    'DSZikcHgoPIDBEHxk4mSNn/F3JFOFCQET5EkAA==')
+
+
+class NullSystemTest(testhelpers.VerboseTest):
+	resources = [('asf', _RegistryNullsysAllskyDoc())]
+
+	def testAllWell(self):
+		self.assertEqual(stc.getSTCS(self.asf[0][1]),
+			"AllSky UNKNOWNFrame")
+
+
 class GeometriesTest(testhelpers.VerboseTest):
 	def _getAST(self, geo):
 		return stc.parseSTCX(('<ObservationLocation xmlns="%s">'%stc.STCNamespace)+

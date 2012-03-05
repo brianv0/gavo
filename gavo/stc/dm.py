@@ -68,7 +68,7 @@ class TimeFrame(_CoordFrame):
 
 
 class SpaceFrame(_CoordFrame):
-	_a_flavor = "SPHERICAL"   # default shouldn't be kicking in
+	_a_flavor = "SPHERICAL"
 	_a_nDim = None
 	_a_refFrame = None
 	_a_equinox = None  # if non-null, it has to match [BJ][0-9]+[.][0-9]+

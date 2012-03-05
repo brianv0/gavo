@@ -306,8 +306,11 @@ def _spatialToCST(astRoot):
 	if velocityArgs:
 		args = {"velocity": velocityArgs}
 	node = (astRoot.areas and astRoot.areas[0]) or astRoot.place
+
 	if not node:
-		if args:  # provide frame if no position is given
+		# This means we have neither a place nor a geometry but still
+		# want a frame (e.g., velocity only)
+		if args:
 			args.update(_spaceFrameToCST(astRoot.astroSystem.spaceFrame))
 			args["type"] = "Position"
 	elif isinstance(node, (dm.SpaceCoo, dm.SpaceInterval)):
