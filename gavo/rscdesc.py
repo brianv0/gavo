@@ -435,6 +435,37 @@ _currentlyParsingLock = threading.Lock()
 _currentlyParsing = {}
 import threading
 
+
+class CachedException(object):
+	"""An exception that occurred while parsing an RD.
+
+	This will remain in the cache until the underlying RD is changed.
+	"""
+	def __init__(self, exception, sourcePath):
+		self.exception = exception
+		self.sourcePath = sourcePath
+		# this can race a bit in that we won't catch saves done between
+		# we started parsing and we came up with the exception, but
+		# these are easy to fix by saving again, so we won't bother.
+		if self.sourcePath is not None:
+			self.timestamp = os.path.getmtime(self.sourcePath)
+		else:
+			# Failure was raised before we even had a file, make it so any #
+			# file is newer.
+			self.timestamp = 0
+	
+	def isDirty(self):
+		if self.sourcePath is None:
+			# something went seriously wrong while parsing, just try again no
+			# matter what
+			return True
+		return os.path.getmtime(self.sourcePath)>self.timestamp
+	
+	def raiseAgain(self):
+		# XXX TODO: do we want to fix the traceback here?
+		raise self.exception
+
+
 def _loadRDIntoCache(canonicalRDId, cacheDict):
 	"""helps _makeRDCache.
 
@@ -466,7 +497,8 @@ def _loadRDIntoCache(canonicalRDId, cacheDict):
 		except Exception, ex:
 			# Importing failed, invalidate the RD (in case other threads still
 			# see it from _currentlyParsing)
-			cacheDict[canonicalRDId] = ex
+			cacheDict[canonicalRDId] = CachedException(ex, 
+				getattr(rd, "srcPath", None))
 			rd.invalidate()
 			raise
 	finally:
@@ -503,8 +535,8 @@ def _makeRDCache():
 
 		try:
 			cachedOb = rdCache[srcId]
-			if isinstance(cachedOb, Exception):
-				raise  cachedOb
+			if isinstance(cachedOb, CachedException):
+				cachedOb.raiseAgain()
 			else:
 				return cachedOb
 		except KeyError:

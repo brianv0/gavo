@@ -321,6 +321,7 @@ class _TempRDFile(tresc.FileResource):
 	path = "inputs/temp.rd"
 	content = "<resource schema='temptemp'/>"
 
+
 class _TempBadRDFile(tresc.FileResource):
 	path = "inputs/tempbad.rd"
 	content = "<resource schema='temptemp'>junk</resource>"
@@ -374,6 +375,21 @@ class CachesTest(testhelpers.VerboseTest):
 		except base.StructureError, ex:
 			ex2 = ex
 		self.failUnless(ex1 is ex2)
+
+	def testBadRDsAreReloaded(self):
+		base.caches.clearForName("tempbad")
+		try:
+			rd = base.caches.getRD("tempbad")
+		except base.StructureError, ex:
+			ex1 = ex
+		os.utime(os.path.join(base.getConfig("inputsDir"), "tempbad.rd"), 
+			(time.time()+1, time.time()+1))
+		try:
+			rd = base.caches.getRD("tempbad")
+		except base.StructureError, ex:
+			self.failIf(ex is ex1)
+		else:
+			self.fail("This should have raised?")
 
 
 class RecreateAfterTest(testhelpers.VerboseTest):
