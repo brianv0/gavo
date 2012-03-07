@@ -358,7 +358,8 @@ class DataPublicationMetaTest(testhelpers.VerboseTest):
 
 	def testRejectedWithoutId(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			"At (3, 3): Published tables need an assigned id.",
+			'At [<resource schema="data">\\n\\...], (3, 3):'
+			" Published tables need an assigned id.",
 			base.parseFromString,
 			(rscdesc.RD, """<resource schema="data">
 			<table><register sets="ivo_managed,local"/>

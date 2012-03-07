@@ -21,7 +21,8 @@ class BasicTest(testhelpers.VerboseTest):
 		self.assertEqual(parsedEvents[4][:3], 
 			("value", "name", "x"))
 		self.assertEqual(parsedEvents[-1][:2], ("end", "table"))
-		self.assertEqual(str(parsedEvents[3][-1]), "(2, 48)")
+		self.assertEqual(str(parsedEvents[3][-1]), 
+			'[<table id="bar">\\n\\t\\t\\t<ST...], (2, 48)')
 
 	def testBasicReplay(self):
 		res = base.parseFromString(rscdef.DataDescriptor, """<data id="bar">
@@ -32,7 +33,8 @@ class BasicTest(testhelpers.VerboseTest):
 
 	def testPlainError(self):
 		self.assertRaisesWithMsg(base.StructureError, 
-			"At (3, 40) (replaying, real error position (2, 48)):"
+			'At [<data id="bar">\\n\\t\\t\\t<STR...], (3, 40) (replaying,'
+			' real error position [<data id="bar">\\n\\t\\t\\t<STR...], (2, 48)):'
 			" table elements have no honk attributes or children.",
 			base.parseFromString, (rscdef.DataDescriptor, """<data id="bar">
 			<STREAM id="foo"><table id="u" onDisk="True"><honk name="x"/>
@@ -74,7 +76,8 @@ class ReplayMacroTest(testhelpers.VerboseTest):
 
 	def testMissingSource(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			"At (3, 24): Need exactly one of source and events on FEED elements",
+			"At [<data><STREAM id=\"foo\"><tab...], (3, 24):"
+			" Need exactly one of source and events on FEED elements",
 			base.parseFromString, (rscdef.DataDescriptor, 
 			"""<data><STREAM id="foo"><table id="\\tabname" onDisk="True">
 			<column name="x"/></table></STREAM>
@@ -327,7 +330,8 @@ class LoopTest(testhelpers.VerboseTest):
 
 	def testNoTwoRowSources(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			"At (5, 4): Must give exactly one data source in LOOP",
+			'At [<data>\\n\\t\\t\\t<table id="go...], (5, 4):'
+			" Must give exactly one data source in LOOP",
 			base.parseFromString, (rscdef.DataDescriptor,
 			r"""<data>
 			<table id="gook">
@@ -423,21 +427,24 @@ class MixinTest(testhelpers.VerboseTest):
 
 	def testNotFilledMacro(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			"At (9, 35): Mixin parameter nd mandatory",
+			'At [<resource schema="test">\\n\\...], (9, 35):'
+			" Mixin parameter nd mandatory",
 			base.parseFromString,
 			(rscdesc.RD,
 			self.baseRDLit%'<table><mixin xy="zq">bla</mixin></table>'))
 
 	def testBadFillingRaises(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			"At (9, 20): nd elements cannot have a children in mixins.",
+			'At [<resource schema="test">\\n\\...], (9, 20):'
+			" nd elements cannot have a children in mixins.",
 			base.parseFromString,
 			(rscdesc.RD,
 			self.baseRDLit%'<table><mixin><nd><a>uu</a></nd>bla</mixin></table>'))
 	
 	def testUnknownMacroRaises(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			'At (9, 43): The attribute(s) a is/are not allowed on this mixin',
+			'At [<resource schema="test">\\n\\...], (9, 43):'
+			' The attribute(s) a is/are not allowed on this mixin',
 			base.parseFromString,
 			(rscdesc.RD,
 			self.baseRDLit%'<table><mixin nd="u"><a>uu</a>bla</mixin></table>'))

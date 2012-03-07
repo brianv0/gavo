@@ -26,9 +26,11 @@
 				<option>UNKNOWN</option>
 			</values>
 		</column>
-		<column name="executionDuration" type="integer" 
+		<column name="executionDuration" type="integer"
 			unit="s"
-			description="Job time limit"/>
+			description="Job time limit">
+			<values nullLiteral="-1"/>
+		</column>
 		<column name="destructionTime" type="timestamp"
 			description="Time at which the job, including ancillary 
 			data, will be deleted"/>

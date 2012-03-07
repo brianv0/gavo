@@ -75,14 +75,16 @@ class MacDefTest(testhelpers.VerboseTest):
 
 	def testMinLength(self):
 		self.assertRaisesWithMsg(base.StructureError, 
-			"At (2, 25): 'x' is not a valid value for name",
+			'At [<resource schema="test">\\n\\...], (2, 25):'
+			" 'x' is not a valid value for name",
 			base.parseFromString,
 			(rscdesc.RD, """<resource schema="test">
 				<macDef name="x">gurk</macDef></resource>"""))
 
 	def testNoJunk(self):
 		self.assertRaisesWithMsg(base.StructureError, 
-			"At (2, 22): macDef elements have no column attributes or children.",
+			'At [<resource schema="test">\\n\\...], (2, 22):'
+			" macDef elements have no column attributes or children.",
 			base.parseFromString,
 			(rscdesc.RD, """<resource schema="test">
 				<macDef name="yx"><column name="u"/></macDef></resource>"""))

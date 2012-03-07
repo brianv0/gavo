@@ -216,20 +216,20 @@ class XMLParseTest(testhelpers.VerboseTest):
 
 	def testWrongRootElement(self):
 		self.assertRaisesWithMsg(base.StructureError, 
-			"At (1, 0):"
+			'At [<foo name="red">\\n\\t\\t\\t<co...], (1, 0):'
 			" Expected root element color, found foo",
 			xmlstruct.parseFromStream, (Color, StringIO("""<foo name="red">
 			<color g="0" b="0"/></foo>""")))
 
 	def testMsgBadAtt(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			"At (1, 0):"
+			'At [<color noAtt="30"/>], (1, 0):'
 			" color elements have no noAtt attributes or children.",
 			xmlstruct.parseFromString, (Color, '<color noAtt="30"/>'))
 
 	def testMsgBadChild(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			"At (1, 7):"
+			'At [<color><noAtt>30</noAtt></c...], (1, 7):'
 			" color elements have no noAtt attributes or children.",
 			xmlstruct.parseFromString, (Color, '<color><noAtt>30</noAtt></color>'))
 
@@ -242,7 +242,7 @@ class XMLParseTest(testhelpers.VerboseTest):
 		f = xmlstruct.parseFromString(Foo, '<foo name="xy">Some content</foo>')
 		self.assertEqual(f.content_, "Some content")
 		self.assertRaisesWithMsg(base.StructureError,
-			"At (1, 19): "
+			"At [<color>Some content</color>], (1, 19): "
 			"color elements must not have character data content.",
 			xmlstruct.parseFromString, (Color, '<color>Some content</color>'))
 
@@ -284,21 +284,21 @@ class CopyTest(testhelpers.VerboseTest):
 
 	def testTypecheck(self):
 		self.assertRaisesWithMsg(base.StructureError, 
-			"At (1, 19):"
+			'At [<pal><foo id="xy"/><color o...], (1, 19):'
 			" Reference to 'xy' yielded object of type Foo, expected Color", 
 			xmlstruct.parseFromString, (Palette, '<pal><foo id="xy"/>'
 			'<color original="xy"/></pal>'))
 
 	def testElementRefusal(self):
 		self.assertRaisesWithMsg(base.StructureError, 
-			"At (1, 46):"
+			'At [<pal><color id="xy"/><color...], (1, 46):'
 			" Original must be applied before modifying the destination structure.",
 			xmlstruct.parseFromString, (Palette, '<pal><color id="xy"/>'
 			'<color r="2"><original>xy</original></color></pal>'))
 
 	def testBadId(self):
 		self.assertRaisesWithMsg(base.StructureError, 
-			"At (1, 5):"
+			'At [<pal><color original="xy"/>...], (1, 5):'
 			" Reference to unknown item 'xy'.",
 			xmlstruct.parseFromString, (Palette, '<pal><color original="xy"/>'
 			'</pal>'))

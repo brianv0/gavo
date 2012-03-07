@@ -368,7 +368,8 @@ class ObscoreTest(testhelpers.VerboseTest):
 
 	def testTypeRequired(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			"At (4, 3): Mixin parameter productType mandatory",
+			'At [<resource schema="test" res...], (4, 3):'
+			" Mixin parameter productType mandatory",
 			base.parseFromString,
 			(rscdesc.RD, _obscoreRDTrunk%""))
 

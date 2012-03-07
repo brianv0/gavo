@@ -21,7 +21,7 @@ MS = base.makeStruct
 
 uploadOutputDef = """<outputTable>
 					<column name="nAffected" type="integer" 
-						tablehead="Number touched"/>
+						tablehead="Number touched" required="True"/>
 				</outputTable>"""
 
 

@@ -27,12 +27,14 @@ tables and the RDs the tables come from. -->
 		<column name="tablehead" type="text" 
 			description="A string suitable as a table heading for the values"/>
 		<column name="utype" type="text" description="The utype for the column"/>
-		<column name="colInd" type="integer" 
+		<column name="colInd" type="integer" required="True"
 			description="Index of the column within the table"/>
 		<column name="type" type="text" 
 			description="SQL type of this column"/>
 		<column name="verbLevel" type="integer" 
-			description="Level of verbosity at which to include this column"/>
+			description="Level of verbosity at which to include this column">
+			<values nullLiteral="9999"/>
+		</column>
 		<column name="displayHint" type="text"
 			description="Hints how to display that item for human consumption"/>
 		<primary>tableName,fieldName</primary>
@@ -73,7 +75,7 @@ tables and the RDs the tables come from. -->
 		<column name="resDesc" type="text"
 			description="Description of the resource this table is part of"
 			tablehead="Res desc." verbLevel="15"/>
-		<column name="adql" type="boolean"
+		<column name="adql" type="boolean" required="True"
 			description="True if this table may be accessed using ADQL"
 			verbLevel="30"/>
 		<primary>tableName, sourceRD</primary>

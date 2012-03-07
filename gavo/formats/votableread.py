@@ -225,8 +225,8 @@ _xtypeParsers = {
 def _getTupleAdder(table):
 	"""returns a function adding a row to table.
 
-	This is necessary for xtype handling (for everything else, the VOTable
-	library returns the right types).
+	This currently is necessary only for xtype handling (for everything else, the
+	VOTable library returns the right types).
 	"""
 	from gavo.base.literals import parseDefaultDatetime
 	from gavo.stc import parseSimpleSTCS, simpleSTCSToPolygon

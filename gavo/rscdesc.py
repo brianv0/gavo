@@ -447,18 +447,17 @@ class CachedException(object):
 		# this can race a bit in that we won't catch saves done between
 		# we started parsing and we came up with the exception, but
 		# these are easy to fix by saving again, so we won't bother.
-		if self.sourcePath is not None:
+		try:
 			self.timestamp = os.path.getmtime(self.sourcePath)
-		else:
-			# Failure was raised before we even had a file, make it so any #
-			# file is newer.
-			self.timestamp = 0
+		except (TypeError, os.error):
+			# If there's no file at all, or the file doesn't exist, never
+			# dirty the exception
+			self.sourcePath = None
 	
 	def isDirty(self):
 		if self.sourcePath is None:
-			# something went seriously wrong while parsing, just try again no
-			# matter what
-			return True
+			# see above
+			return False
 		return os.path.getmtime(self.sourcePath)>self.timestamp
 	
 	def raiseAgain(self):

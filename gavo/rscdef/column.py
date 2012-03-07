@@ -10,6 +10,14 @@ from gavo import utils
 from gavo.base import literals
 from gavo.base import typesystems
 from gavo.base.attrdef import *
+from gavo.utils import codetricks
+
+
+# A set of database type names that need explicit null values when
+# they are serialized into VOTables.  We don't check array types
+# here at all, since that's another can of worms entirely.
+EXPLICIT_NULL_TYPES = set([
+	"smallint", "integer", "bigint", "char", "boolean", "bytea"])
 
 
 class TypeNameAttribute(AtomicAttribute):
@@ -277,30 +285,16 @@ class Values(base.Structure):
 		return True
 
 
-class Column(base.Structure, base.MetaMixin):
-	"""A database column.
-	
-	Columns contain almost all metadata to describe a column in a database
-	table or a VOTable (the exceptions are for column properties that may
-	span several columns, most notably indices).
+class ColumnBase(base.Structure, base.MetaMixin):
+	"""A base class for columns, parameters, output fields, etc.
 
-	Note that the type system adopted by the DC software is a subset
-	of postgres' type system.  Thus when defining types, you have to
-	specify basically SQL types.  Types for other type systems (like
-	VOTable, XSD, or the software-internal representation in python values)
-	are inferred from them.
+	Actually, right now there's far too much cruft in here that 
+	should go into Column proper or still somewhere else.  Hence:
+	XXX TODO: Refactor.
 
-	Columns can have delimited identifiers as names.  Don't do this, it's
-	no end of trouble.  For this reason, however, you should not use name
-	but rather key to programmatially obtain field's values from rows.
-
-	Properties evaluated:
-
-	- std -- set to 1 to tell the tap schema importer to have the column's
-	  std column in TAP_SCHEMA 1 (it's 0 otherwise).
+	See also Column for a docstring that still applies to all we've in
+	here.
 	"""
-	name_ = "column"
-
 	_name = ColumnNameAttribute("name", default=base.Undefined,
 		description="Name of the column",
 		copyable=True, before="type")
@@ -393,15 +387,16 @@ class Column(base.Structure, base.MetaMixin):
 				self.key = self.key.replace(')', "__").replace('(', "__")
 		else:
 			self.key = self.name
-		self._completeElementNext(Column, ctx)
+		self._completeElementNext(ColumnBase, ctx)
 
 	def isEnumerated(self):
 		return self.values and self.values.options
 
 	def validate(self):
-		self._validateNext(Column)
+		self._validateNext(ColumnBase)
 		if self.restrictedMode and self.fixup:
 			raise base.RestrictedElement("fixup")
+
 
 	def validateValue(self, value):
 		"""raises a ValidationError if value does not match the constraints
@@ -508,7 +503,50 @@ class Column(base.Structure, base.MetaMixin):
 		return col
 
 
-class ParamBase(Column):
+class Column(ColumnBase):
+	name_ = "column"
+	"""A database column.
+	
+	Columns contain almost all metadata to describe a column in a database
+	table or a VOTable (the exceptions are for column properties that may
+	span several columns, most notably indices).
+
+	Note that the type system adopted by the DC software is a subset
+	of postgres' type system.  Thus when defining types, you have to
+	specify basically SQL types.  Types for other type systems (like
+	VOTable, XSD, or the software-internal representation in python values)
+	are inferred from them.
+
+	Columns can have delimited identifiers as names.  Don't do this, it's
+	no end of trouble.  For this reason, however, you should not use name
+	but rather key to programmatially obtain field's values from rows.
+
+	Properties evaluated:
+
+	- std -- set to 1 to tell the tap schema importer to have the column's
+	  std column in TAP_SCHEMA 1 (it's 0 otherwise).
+	"""
+	def validate(self):
+		self._validateNext(Column)
+		# Now check if we can serialize the column safely in VOTables.
+		# I only want to hear about this when the column may end up in
+		# a VOTable; 
+		if self.type in EXPLICIT_NULL_TYPES:
+			if not self.required and not (
+					self.values and self.values.nullLiteral):
+				try:
+					pos = codetricks.stealVar("context").pos
+					base.ui.notifyWarning("Somwhere near %s: "
+						" Column %s may be null but has no explicit"
+						" null value."%(pos, self.name))
+				except ValueError:
+					# This is stealVar's ValueError, we have no context in stack.
+					# Seems we're not parsing from a file, so the user probably
+					# can't help it anyway.  Don't complain.
+					pass
+
+
+class ParamBase(ColumnBase):
 	"""A basic parameter.
 
 	This is the base for both Param and InputKey.

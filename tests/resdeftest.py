@@ -78,40 +78,43 @@ class ColumnTest(testhelpers.VerboseTest):
 
 	def testBadTypeRejected(self):
 		self.assertRaisesWithMsg(base.LiteralParseError, 
-			"At (1, 0): 'zucki' is not a"
+			"At [<column name=\"foo\" type=\"zu...], (1, 0): 'zucki' is not a"
 			" valid value for type",
 			base.parseFromString, (rscdef.Column,
 				'<column name="foo" type="zucki"/>'))
 	
 	def testBadDisplayHintRejected(self):
 		self.assertRaisesWithMsg(base.LiteralParseError, 
-			"At (1, 0): 'xxyyz'"
+			"At [<column name=\"foo\" displayH...], (1, 0): 'xxyyz'"
 			" is not a valid value for displayHint",
 			base.parseFromString, (rscdef.Column,
 				'<column name="foo" displayHint="xxyyz"/>'))
 	
 	def testBadColumnNameRejected(self):
 		self.assertRaisesWithMsg(base.StructureError, 
-			'At (1, 0):'
+			'At [<column name="foo x"/>], (1, 0):'
 			" 'foo x' is not a valid column name" , 
 			base.parseFromString, (rscdef.Column, '<column name="foo x"/>'))
 
 	def testBadNullRejected(self):
 		self.assertRaisesWithMsg(base.LiteralParseError,
-			"At (1, 58): '.' is not a valid value for nullLiteral",
+			"At [<column name=\"x\" type=\"smal...], (1, 58): '.'"
+			" is not a valid value for nullLiteral",
 			base.parseFromString,
 			(rscdef.Column, '<column name="x" type="smallint"><values nullLiteral='
 				'"."/></column>'))
 
 	def testNoManualSTC(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			"At (1, 0): Cannot set stcUtype attributes from XML",
+			"At [<column name=\"x\" stcUtype=\"...], (1, 0):"
+			" Cannot set stcUtype attributes from XML",
 			base.parseFromString,
 			(rscdef.Column, '<column name="x" stcUtype="ICRS"/>'))
 
 	def testNoNameFailsSensibly(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			"At (1, 18): You must set name on column elements",
+			"At [<column unit=\"d\"/>], (1, 18):"
+			" You must set name on column elements",
 			base.parseFromString,
 			(rscdef.Column, '<column unit="d"/>'))
 
@@ -209,7 +212,7 @@ class TableDefTest(testhelpers.VerboseTest):
 
 	def testReservedWordBails(self):
 		self.assertRaisesWithMsg(base.StructureError, 
-			'At (1, 17): Reserved word'
+			'At [<table id=\"abs\"/>], (1, 17): Reserved word'
 			' abs is not allowed as a table name',
 			base.parseFromString, (rscdef.TableDef, '<table id="abs"/>'))
 
@@ -230,7 +233,7 @@ class TableDefTest(testhelpers.VerboseTest):
 			'<column name="a"/><column name="b"/></table>')
 		self.assertEqual(t.primary, ["a", "b"])
 		self.assertRaisesWithMsg(base.LiteralParseError,
-			"At (1, 72):"
+			"At [<table id =\"t\" primary=\"a, ...], (1, 72):"
 			" 'quatsch' is not a valid value for primary",
 			base.parseFromString, (rscdef.TableDef, 
 				'<table id ="t" primary="a, quatsch">'
@@ -418,7 +421,8 @@ class ParamTest(testhelpers.VerboseTest):
 	
 	def testEmptyReq(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			"At (1, 50): Required value not given for param u",
+			"At [<param name=\"u\" type=\"times...], (1, 50):"
+			" Required value not given for param u",
 			base.parseFromString,
 			(rscdef.Param,
 			'<param name="u" type="timestamp" required="True"/>'))
@@ -489,7 +493,8 @@ class GroupTest(testhelpers.VerboseTest):
 	
 	def testBadReference(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			"At (1, 117): No param or field column in found in table u",
+			"At [<table id='u'><column name=...], (1, 117): No param"
+			" or field column in found in table u",
 			base.parseFromString,
 			(rscdef.TableDef,
 			"<table id='u'><column name='x'/><column name='y'/><column name='z'/>"

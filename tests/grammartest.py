@@ -206,7 +206,7 @@ class KVGrammarTest(testhelpers.VerboseTest):
 
 	def testError(self):
 		self.assertRaisesWithMsg(base.LiteralParseError,
-			"At (1, 0):"
+			"At [<keyValueGrammar commentPat...], (1, 0):"
 			" '**' is not a valid value for commentPattern",
 			base.parseFromString, 
 			(rscdef.getGrammar("keyValueGrammar"),
@@ -250,7 +250,8 @@ class ColDefTest(testhelpers.VerboseTest):
 
 	def testErrorBadChar(self):
 		self.assertRaisesWithMsg(base.LiteralParseError,
-			"At (1, 34): 'a:5-% B:-5' is not a valid value for colDefs",
+			"At [<columnGrammar><colDefs>a:5...], (1, 34):"
+			" 'a:5-% B:-5' is not a valid value for colDefs",
 			base.parseFromString, (columngrammar.ColumnGrammar,
 			'<columnGrammar><colDefs>a:5-% B:-5</colDefs></columnGrammar>'))
 	

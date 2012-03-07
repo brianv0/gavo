@@ -33,7 +33,7 @@
 		<column name="dateUpdated" type="timestamp" unit="a"/>
 		<column name="recTimestamp" type="timestamp"
 			description="UTC of gavopublish run on the source RD"/>
-		<column name="deleted" type="boolean"/>
+		<column name="deleted" type="boolean" required="True"/>
 		<column name="ivoid" type="text" description="The full ivo-id of
 			the resource.  This is usually ivo://auth/rdid/frag but may
 			be overridden (you should probably not create records for
@@ -46,7 +46,7 @@
 		<column original="resId"/>
 		<column name="accessURL" type="text"/>
 		<column name="referenceURL" type="text"/>
-		<column name="browseable" type="boolean"/>
+		<column name="browseable" type="boolean" required="True"/>
 		<column name="renderer" type="text"/>
 	</table>
 
@@ -60,7 +60,7 @@
 			description="Name of an OAI set.  Here, probably only 'local' 
 				and 'ivo_managed' will yield anything."/>
 		<column name="renderer" type="text"/>
-		<column name="deleted" type="boolean"/>
+		<column name="deleted" type="boolean" required="True"/>
 	</table>
 			
 	<table system="True" id="subjects" forceUnique="True" onDisk="True"

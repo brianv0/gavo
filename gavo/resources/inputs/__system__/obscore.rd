@@ -114,6 +114,7 @@
 			unit="kbyte" utype="obscore:access.size" ucd="phys.size;meta.file"
 			verbLevel="5">
 			<property name="std">1</property>
+			<values nullLiteral="-1"/>
 		</column>
 
 		<column name="target_name" type="text" 

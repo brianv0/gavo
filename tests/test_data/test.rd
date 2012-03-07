@@ -81,7 +81,8 @@
 	</table>
 
 	<table id="typesTable" onDisk="True">
-		<column name="anint" tablehead="An Integer" type="integer"/>
+		<column name="anint" tablehead="An Integer" type="integer">
+			<values nullLiteral="-8888"/></column>
 		<column name="afloat" tablehead="Some Real"/>
 		<column name="adouble" tablehead="And a Double"
 			type="double precision"/>
@@ -188,9 +189,15 @@
 
 	<table id="abcd">
 		<column name="a" type="text" verbLevel="1"/>
-		<column name="b" type="integer" verbLevel="5"/>
-		<column name="c" type="integer" verbLevel="15"/>
-		<column name="d" type="integer" verbLevel="20" unit="km"/>
+		<column name="b" type="integer" verbLevel="5">
+			<values nullLiteral="-8888"/>
+		</column>
+		<column name="c" type="integer" verbLevel="15">
+			<values nullLiteral="-8888"/>
+		</column>
+		<column name="d" type="integer" verbLevel="20" unit="km">
+			<values nullLiteral="-8888"/>
+		</column>
 		<column name="e" type="timestamp" verbLevel="25"/>
 	</table>
 
@@ -322,7 +329,7 @@
 	</data>
 
 	<table id="sqlscript" onDisk="True">
-		<column name="counter" type="integer"/>
+		<column name="counter" type="integer" required="True"/>
 	</table>
 
 	<data id="import_sqlscript">
@@ -336,7 +343,7 @@
 	</data>
 
 	<table id="pythonscript" onDisk="True">
-		<column name="counter" type="integer"/>
+		<column name="counter" type="integer" required="True"/>
 	</table>
 
 	<data id="import_pythonscript">

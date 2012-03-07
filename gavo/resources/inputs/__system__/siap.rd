@@ -23,9 +23,11 @@
 			type="timestamp" unit="d" tablehead="Obs. date"
 			verbLevel="0" description="Epoch at midpoint of observation"
 			displayHint="type=humanDate"/>
-		<column name="nAxes"  ucd="VOX:Image_Naxes" 
+		<column name="nAxes"  ucd="VOX:Image_Naxes"
 			type="integer" verbLevel="20" tablehead="#axes"
-			description="Number of axes in data"/>
+			description="Number of axes in data">
+			<values nullLiteral="-1"/>
+		</column>
 		<column name="pixelSize"  ucd="VOX:Image_Naxis"
 			type="integer[]" verbLevel="15" tablehead="Axes Lengths"
 			description="Number of pixels along each of the axes"

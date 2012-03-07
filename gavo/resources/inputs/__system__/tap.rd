@@ -115,12 +115,14 @@
 		<column name="datatype" type="text" 
 			description="ADQL datatype"/>
 		<column name="size" type="integer" 
-			description="Length of variable length datatypes"/>
-		<column name="principal" type="integer" 
+				description="Length of variable length datatypes">
+			<values nullLiteral="1"/>
+		</column>
+		<column name="principal" type="integer" required="True"
 			description="Is column principal?"/>
-		<column name="indexed" type="integer" 
+		<column name="indexed" type="integer" required="True"
 			description="Is there an index on this column?"/>
-		<column name="std" type="integer" 
+		<column name="std" type="integer" required="True"
 			description="Is this a standard column?"/>
 		<column name="sourceRD" type="text" 
 			description="Id of the originating rd"/>
@@ -413,7 +415,9 @@
 <table id="tapjobs" system="True">
 	<FEED source="//uws#uwsfields"/>
 	<column name="pid" type="integer" 
-		description="A unix pid to kill to make the job stop"/>
+			description="A unix pid to kill to make the job stop">
+		<values nullLiteral="-1"/>
+	</column>
 </table>
 
 <data id="createJobTable">

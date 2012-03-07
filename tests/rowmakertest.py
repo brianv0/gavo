@@ -38,22 +38,28 @@ class RowmakerDefTest(testhelpers.VerboseTest):
 		map = base.parseFromString(rscdef.MapRule,'<map dest="bar"/>')
 		self.assertEqual(map.src, "bar")
 
-	def testRaises(self):
+	def testNoDestRaises(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			'At (1, 8): '
+			'At [<map>bar</map>], (1, 8): '
 			"You must set dest on map elements",
 			base.parseFromString, (rscdef.MapRule, '<map>bar</map>'))
+
+	def testStatementRaises(self):
 		self.assertRaisesWithMsg(base.BadCode,
-			"At (1, 89):"
+			'At [<data><table id="foo"><colu...], (1, 89):'
 			" Bad source code in expression (Not an expression)",
 			makeDD, ('<column name="x"/>',
 				'<map dest="x">c = a+b</map>'))
+
+	def testBadSourceRaises(self):
 		self.assertRaisesWithMsg(base.BadCode,
-			"At (1, 83): Bad source"
+			'At [<data><table id="foo"><colu...], (1, 83): Bad source'
 			" code in expression (unexpected EOF while parsing (line 1))",
 			makeDD, ('<column name="x"/>', '<map dest="x">-</map>'))
+	
+	def testPleonasticRaises(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			'At (1, 29):'
+			'At [<map dest="bar" src="foo">b...], (1, 29):'
 			' Map must have exactly one of src attribute or element content',
 			base.parseFromString, 
 			(rscdef.MapRule,'<map dest="bar" src="foo">bar</map>'))
@@ -76,7 +82,8 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 
 	def testBadBasicMap(self):
 		self.assertRaisesWithMsg(base.LiteralParseError,
-			"At (1, 109): '@src' is not a valid value for src",
+			'At [<data><table id="foo"><colu...], (1, 109):'
+			" '@src' is not a valid value for src",
 			makeDD, ('<column name="x" type="integer"/>',
 			'<map dest="x" src="@src"/>'))
 
@@ -181,7 +188,8 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 
 	def testBadNullExpr(self):
 		self.assertRaisesWithMsg(base.BadCode,
-			"At (1, 133): Bad source code in expression (unexpected EOF"
+			'At [<data><table id="foo"><colu...], (1, 133):'
+			" Bad source code in expression (unexpected EOF"
 			" while parsing (line 1))",
 			makeDD,
 			('<column name="foo" type="integer"/>',
@@ -223,7 +231,7 @@ class ApplyTest(testhelpers.VerboseTest):
 	
 	def testRaising(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			"At (1, 50):"
+			'At [<data><table id="foo"></tab...], (1, 50):'
 			" Reference to unknown item 'quatsch'.",
 			makeDD, ('', '<apply name="xy" procDef="quatsch"/>'))
 
@@ -264,13 +272,15 @@ class ApplyTest(testhelpers.VerboseTest):
 class VarTest(testhelpers.VerboseTest):
 	"""tests for rowmaker variables.
 	"""
-	def testRaising(self):
+	def testBadNameRaises(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			"At (1, 67):"
+			'At [<data><table id="foo"></tab...], (1, 67):'
 			" '77x' is not a valid value for name",
 			makeDD, ('', '<var name="77x">a</var>'))
+
+	def testBadSourceRaises(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			'At (1, 69): Bad source code in'
+			'At [<data><table id="foo"></tab...], (1, 69): Bad source code in'
 			' expression (Not an expression)',
 			makeDD, ('', '<var name="x77">a=b</var>'))
 

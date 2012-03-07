@@ -16,6 +16,7 @@ from xml.sax.handler import ContentHandler
 
 from gavo.utils import excs
 from gavo.utils import misctricks
+from gavo.utils import texttricks
 
 class ErrorPosition(object):
 	"""A wrapper for an error position.
@@ -61,7 +62,15 @@ class iterparse(object):
 	def __init__(self, source, parseErrorClass=excs.StructureError):
 		self.source = source
 		self.parseErrorClass = parseErrorClass
-		self.inputName = getattr(source, "name", None)
+
+		if hasattr(source, "name"):
+			self.inputName = source.name
+		elif hasattr(source, "getvalue"):
+			self.inputName = "[%s]"%(
+				texttricks.makeEllipsis(repr(source.getvalue())[1:-1], 30))
+		else:
+			self.inputName = repr(source)[:34]
+
 		self.parser = expat.ParserCreate()
 		self.parser.buffer_text = True
 		self.lastLine, self.lastColumn = 1, 0
