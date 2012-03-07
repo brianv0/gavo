@@ -143,7 +143,7 @@ class TextOutputTest(unittest.TestCase):
 		data = rsc.makeData(self.dd, forceSource=[
 			(None, None, None, None, None)])
 		self.assertEqual(texttable.getAsText(data),
-			'None\tnan\tnan\tNone\tNone\n')
+			'None\tNone\tNone\tNone\tNone\n')
 	
 	def testWithNastyString(self):
 		data = rsc.makeData(self.dd, forceSource=[
@@ -275,12 +275,12 @@ class NullValueTest(testhelpers.VerboseTest):
 
 	def testCSV(self):
 		def assertion(data):
-			self.assertEqual(",nan,nan,,,", data.strip())
+			self.assertEqual(",,,,,", data.strip())
 		self._runTestForFormat("csv", assertion)
 
 	def testTSV(self):
 		def assertion(data):
-			self.assertEqual('None\tnan\tnan\tNone\tNone\tNone', data.strip())
+			self.assertEqual('None\tNone\tNone\tNone\tNone\tNone', data.strip())
 		self._runTestForFormat("tsv", assertion)
 
 

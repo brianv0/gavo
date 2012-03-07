@@ -32,9 +32,6 @@ from gavo import utils
 from gavo.base import typesystems
 
 
-naN = float("NaN")
-
-
 class ValueMapperFactoryRegistry(object):
 	"""An object clients can ask for functions fixing up values
 	for encoding.
@@ -94,27 +91,6 @@ class ValueMapperFactoryRegistry(object):
 
 defaultMFRegistry = ValueMapperFactoryRegistry()
 _registerDefaultMF = defaultMFRegistry.registerFactory
-
-
-def _booleanMapperFactory(colDesc):
-	if colDesc["dbtype"]=="boolean":
-		def coder(val):
-			if val:
-				return "1"
-			else:
-				return "0"
-		return coder
-_registerDefaultMF(_booleanMapperFactory)
-
-
-def _floatMapperFactory(colDesc):
-	if colDesc["dbtype"]=="real" or colDesc["dbtype"]=="double precision":
-		def coder(val):
-			if val is None:
-				return naN
-			return val
-		return coder
-_registerDefaultMF(_floatMapperFactory)
 
 
 def _timeMapperFactory(annCol):

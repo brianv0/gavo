@@ -488,7 +488,8 @@ def _makeRDCache():
 	The messiest part is the support for getting RDs in the presence of
 	threads while still supporting recursive references, though.
 	"""
-# TODO: Maybe unify this again with caches._makeCache?
+# TODO: Maybe unify this again with caches._makeCache?  That stuff could
+# do with a facility to invalidate cached entries, too.
 	rdCache = {}
 
 	def getRDCached(srcId, **kwargs):
