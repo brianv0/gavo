@@ -80,6 +80,8 @@ class InputKey(column.ParamBase):
 		instance.feedObject("original", column)
 		for k,v in kwargs.iteritems():
 			instance.feed(k, v)
+		if not "required" in kwargs:
+			instance.feedObject("required", False)
 		return instance.finishElement(None)
 
 
