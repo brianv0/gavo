@@ -4,7 +4,7 @@
 
 <!-- This has to match whatever is done in gavo.web.creds.
 -->
-	<table id="users" primary="username" onDisk="True">
+	<table id="users" primary="username" onDisk="True" system="True">
 <!-- prevent "normal" (e.g., ADQL) users from accessing this table -->
 		<readProfiles/>
 		<column name="username" type="text" tablehead="Username"/>
@@ -17,7 +17,7 @@
 		<column name="remarks" type="text"/>
 	</table>
 
-	<table id="groups" onDisk="True">
+	<table id="groups" onDisk="True" system="True">
 		<readProfiles/>
 		<foreignKey table="dc.users" source="username"/>
 		<column name="username" type="text"/>
