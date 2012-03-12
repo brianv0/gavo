@@ -47,8 +47,9 @@ dbname = "dachstest"
 if not os.path.exists(base.getConfig("rootDir")):
 	from gavo.user import initdachs
 	try:
+		dsn = initdachs.DSN(dbname)
 		subprocess.call(["createdb", "--encoding=UTF-8", dbname])
-		initdachs.createFSHierarchy(dbname, "test")
+		initdachs.createFSHierarchy(dsn, "test")
 
 		with open(os.path.join(base.getConfig("configDir"), "defaultmeta.txt"),
 				"a") as f:
@@ -62,7 +63,7 @@ if not os.path.exists(base.getConfig("rootDir")):
 		os.symlink(os.path.join(TEST_BASE, "test_data", "__system"),
 			os.path.join(base.getConfig("inputsDir"), "__system"))
 		base.setDBProfile("admin")
-		initdachs.initDB(dbname)
+		initdachs.initDB(dsn)
 	except:
 		import traceback
 		traceback.print_exc()

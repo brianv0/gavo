@@ -614,5 +614,81 @@ class PgSphereDryTest(testhelpers.VerboseTest):
 			pgsphere.SPoly([pgsphere.SPoint(*p) for p in
 			((-0.1, -0.5), (-0.1, 0.1), (2, 0.1), (2, -0.5))]))
 
+
+class KVLParseTest(testhelpers.VerboseTest):
+# Tests for our key-value line format (as in postgres)
+	def testNoQuote(self):
+		self.assertEqual(utils.parseKVLine("anz=29"), {"anz": "29"})
+
+	def testWhitespaceAroundEqual(self):
+		self.assertEqual(utils.parseKVLine("a =29 bo= orz Unt = Lopt"), 
+			{"a": "29", "bo": "orz", "Unt": "Lopt"})
+
+	def testQuotedString(self):
+		self.assertEqual(utils.parseKVLine(
+			"simp='abc' a ='29' bo= 'orz' Unt = 'Lopt'"), 
+			{"simp": "abc", "a": "29", "bo": "orz", "Unt": "Lopt"})
+
+	def testWithBlanks(self):
+		self.assertEqual(utils.parseKVLine(
+			"name='Virtual Astrophysical' a=' 29'"),
+			{"name": 'Virtual Astrophysical', "a": ' 29'})
+
+	def testEscaping(self):
+		self.assertEqual(utils.parseKVLine(
+			r"form='f\'(x) = 2x^3' escChar='\\'"),
+			{"form": "f'(x) = 2x^3", "escChar": '\\'})
+
+	def testEmpty(self):
+		self.assertEqual(utils.parseKVLine(
+			"kram='' prokto=logic"),
+			{"kram": "", "prokto": 'logic'})
+
+	def testBadKey(self):
+		self.assertRaisesWithMsg(utils.ParseException,
+			"Expected Keyword (at char 0), (line:1, col:1)",
+			utils.parseKVLine,
+			("7ana=kram",))
+
+	def testMissingEqual(self):
+		self.assertRaisesWithMsg(utils.ParseException,
+			'Expected "=" (at char 7), (line:1, col:8)',
+			utils.parseKVLine,
+			("yvakram",))
+
+	def testBadValue(self):
+		self.assertRaisesWithMsg(utils.ParseException,
+			"Expected end of text (at char 7), (line:1, col:8)",
+			utils.parseKVLine,
+			("borken='novalue",))
+
+	def testTooManyEquals(self):
+		self.assertRaisesWithMsg(utils.ParseException,
+			'Expected end of text (at char 14), (line:1, col:15)',
+			utils.parseKVLine,
+			("borken=novalue=ab",))
+
+
+class KVLMakeTest(testhelpers.VerboseTest):
+	def testWithKeywords(self):
+		self.assertEqual(utils.makeKVLine({"ab": "cd", "honk": "foo"}),
+			"ab=cd honk=foo")
+	
+	def testWithWeird(self):
+		self.assertEqual(utils.makeKVLine({"ab": "c d", "honk": "foo=?"}),
+			"ab='c d' honk='foo=?'")
+	
+	def testWithEscaping(self):
+		self.assertEqual(
+			utils.makeKVLine({"form": "f'(x) = 2x^3", "escChar": '\\'}),
+			"escChar='\\\\' form='f\\'(x) = 2x^3'")
+	
+	def testFailsWithBadKey(self):
+		self.assertRaisesWithMsg(ValueError,
+			"'a form' not allowed as a key in key-value lines",
+			utils.makeKVLine,
+			({"a form": "f'(x) = 2x^3"},))
+
+
 if __name__=="__main__":
-	testhelpers.main(PgSphereDryTest)
+	testhelpers.main(KVLMakeTest)

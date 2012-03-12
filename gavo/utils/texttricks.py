@@ -523,6 +523,7 @@ def getRandomString(length):
 	return "".join(
 		random.choice(_RANDOM_STRING_OK_CHARS) for c in range(length))
 
+
 def _test():
 	import doctest, texttricks
 	doctest.testmod(texttricks)

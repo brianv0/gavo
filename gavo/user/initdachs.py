@@ -18,6 +18,7 @@ import warnings
 import psycopg2
 
 from gavo import base
+from gavo import utils
 
 
 def bailOut(msg, hint=None):
@@ -149,7 +150,7 @@ def _genPW():
 	return os.urandom(10).encode("hex")
 
 
-def makeProfiles(dbname, userPrefix=""):
+def makeProfiles(dsn, userPrefix=""):
 	"""writes profiles with made-up passwords to DaCHS' config dir.
 
 	This will mess everything up when the users already exist.  We
@@ -158,9 +159,18 @@ def makeProfiles(dbname, userPrefix=""):
 	userPrefix is mainly for the test infrastructure.
 	"""
 	profilePath = base.getConfig("configDir")
+	dsnContent = ["database = %s"%(dsn.parsed["dbname"])]
+	if "host" in dsn.parsed:
+		dsnContent.append("host = %s"%dsn.parsed["host"])
+	else:
+		dsnContent.append("#host = computer.doma.in")
+	if "port" in dsn.parsed:
+		dsnContent.append("port = %s"%dsn.parsed["port"])
+	else:
+		dsnContent.append("port = 5432")
+
 	for fName, content in [
-			("dsn", "#host = computer.doma.in\n#port = 5432\ndatabase = %s\n"%(
-				dbname)),
+			("dsn", "\n".join(dsnContent)+"\n"),
 			("feed", "include dsn\nuser = %sgavoadmin\npassword = %s\n"%(
 				userPrefix, _genPW())),
 			("trustedquery", "include dsn\nuser = %sgavo\npassword = %s\n"%(
@@ -173,7 +183,7 @@ def makeProfiles(dbname, userPrefix=""):
 				f.write(content)
 
 
-def createFSHierarchy(dbname, userPrefix=""):
+def createFSHierarchy(dsn, userPrefix=""):
 	"""creates the directories required by DaCHS.
 
 	userPrefix is for use of the test infrastructure.
@@ -185,13 +195,37 @@ def createFSHierarchy(dbname, userPrefix=""):
 		makeDirForConfig(configKey, grpId)
 	makeDirVerbose(os.path.join(base.getConfig("inputsDir"), "__system"))
 	makeDefaultMeta()
-	makeProfiles(dbname, userPrefix)
+	makeProfiles(dsn, userPrefix)
 	prepareWeb()
 
 
 ###################### DB interface
 # This doesn't use much of sqlsupport since the roles are just being
 # created and some of the operations may not be available for non-supervisors.
+
+class DSN(object):
+	"""a psycopg-style DSN, both parsed and unparsed.
+	"""
+	def __init__(self, dsn):
+		self.full = dsn
+		self._parse()
+		self._validate()
+
+	_knownKeys = set(["dbname", "user", "password", "host", "port"])
+
+	def _validate(self):
+		for key in self.parsed:
+			if key not in self._knownKeys:
+				sys.stderr.write("Unknown DSN key %s will get lost in profiles."%(
+					key))
+	
+	def _parse(self):
+		if "=" in self.full:
+			self.parsed = utils.parseKVLine(self.full)
+		else:
+			self.parsed = {"dbname": self.full}
+			self.full = utils.makeKVLine(self.parsed)
+
 
 def _execDB(conn, query, args={}):
 	"""returns the result of running query with args through conn.
@@ -226,13 +260,13 @@ def _createRoleFromProfile(conn, profile, privileges):
 		conn.rollback()
 		
 
-def _createRoles(dbname):
+def _createRoles(dsn):
 	"""creates the roles for the DaCHS profiles admin, trustedquery
 	and untrustedquery.
 	"""
 	from gavo.base import config
 
-	conn = psycopg2.connect("dbname=%s"%dbname)
+	conn = psycopg2.connect(dsn.full)
 	for profileName, privileges in [
 			("admin", "CREATEROLE"),
 			("trustedquery", ""),
@@ -243,7 +277,8 @@ def _createRoles(dbname):
 
 	adminProfile = config.getDBProfileByName("admin")
 	cursor = conn.cursor()
-	cursor.execute("GRANT ALL ON DATABASE %s TO %s"%(dbname, adminProfile.user))
+	cursor.execute("GRANT ALL ON DATABASE %s TO %s"%(dsn.parsed["dbname"], 
+		adminProfile.user))
 	conn.commit()
 
 
@@ -295,12 +330,12 @@ def _readDBScript(conn, scriptPath, sourceName, procName):
 		conn.commit()
 
 
-def _doLocalSetup(dbname):
+def _doLocalSetup(dsn):
 	"""executes some commands that need to be executed with superuser
 	privileges.
 	"""
 # When adding stuff here, fix docs/install.rstx, "Owner-only db setup"
-	conn = psycopg2.connect("dbname=%s"%dbname)
+	conn = psycopg2.connect(dsn.full)
 	for statement in [
 			"CREATE LANGUAGE plpgsql"]:
 		cursor = conn.cursor()
@@ -314,13 +349,13 @@ def _doLocalSetup(dbname):
 			conn.commit()
 
 
-def _readDBScripts(dbname):
+def _readDBScripts(dsn):
 	"""loads definitions of pgsphere, q3c and similar into the DB.
 
 	This only works for local installations, and the script location
 	is more or less hardcoded for Debian.
 	"""
-	conn = psycopg2.connect("dbname=%s"%dbname)
+	conn = psycopg2.connect(dsn.full)
 	scriptPath = _getServerScriptPath(conn)
 	for extScript, pkgName, procName in [
 			("pg_sphere.sql", "pgSphere", "spoint_in"),
@@ -346,14 +381,15 @@ def _importBasicResources():
 	publication.updateServiceList([base.caches.getRD("//services")])
 
 
-def initDB(dbname):
-	"""creates users and tables expected by DaCHS in dbname.
+def initDB(dsn):
+	"""creates users and tables expected by DaCHS in the database described
+	by the DSN dsn.
 
-	The current user must be superuser on dbname.
+	Connecting with dsn must give you superuser privileges.
 	"""
-	_createRoles(dbname)
-	_doLocalSetup(dbname)
-	_readDBScripts(dbname)
+	_createRoles(dsn)
+	_doLocalSetup(dsn)
+	_readDBScripts(dsn)
 	_importBasicResources()
 
 
@@ -361,17 +397,21 @@ def parseCommandLine():
 	from gavo.imp import argparse
 	parser = argparse.ArgumentParser(description="Create or update DaCHS'"
 		" file system and database environment.")
-	parser.add_argument("-d", "--dbname", help="Name of the database"
-		" holding DaCHS' tables (the current user must be superuser on it.",
-		action="store", type=str, dest="dbname", default="gavo")
+	parser.add_argument("-d", "--dsn", help="DSN to use to connect to"
+		" the future DaCHS database.  The DSN must let DaCHS connect"
+		" to the DB as an administrator.  dbname, host, and port"
+		" get copied to the profile, if given.  If you followed the"
+		" installation instructions, you don't need this option.",
+		action="store", type=str, dest="dsn", default="gavo")
 	parser.add_argument("--nodb", help="Inhibit initialization of the"
-		" database.  This may be necessary if your database server is"
-		" remote.", action="store_false", dest="initDB")
+		" database (you may want to use this when refreshing the file system"
+		" hierarchcy)", action="store_false", dest="initDB")
 	return parser.parse_args()
 
 
 def main():
 	opts = parseCommandLine()
-	createFSHierarchy(opts.dbname)
+	dsn = DSN(opts.dsn)
+	createFSHierarchy(dsn)
 	if opts.initDB:
-		initDB(opts.dbname)
+		initDB(dsn)

@@ -280,7 +280,7 @@ def rstxToHTML(source, **userOverrides):
 # themselves since they may be called very frequently.
 
 try:
-	from pyparsing import ParserElement, ParseException
+	from pyparsing import ParserElement
 	ParserElement.enablePackrat()
 	# Hack to get around behaviour swings of setParseAction; we use
 	# addParseAction throughout and retrofit it to pyparsings that don't have it.
@@ -327,6 +327,55 @@ try:
 		with _PYPARSE_LOCK:
 			return grammar.transformString(string, **kwargs)
 
+
+	######################### pyparsing-based key-value lines.  
+
+	def _makeKVLGrammar():
+		from pyparsing import Word,alphas, QuotedString, Regex, OneOrMore, Empty
+
+		with pyparsingWhitechars(" \t"):
+			keyword = Word(alphas+"_")("key")
+			keyword.setName("Keyword")
+			value = (QuotedString(quoteChar="'", escChar='\\')
+				| Regex("[^'= \t]*"))("value")
+			value.setName("Simple value or quoted string")
+			pair = keyword - "=" - value
+			pair.setParseAction(lambda s,p,t: (t["key"], t["value"]))
+			line = OneOrMore(pair)
+			line.setParseAction(lambda s,p,t: dict(list(t)))
+
+		return line
+
+	_KVL_GRAMMAR = _makeKVLGrammar()
+
+	def parseKVLine(aString):
+		"""returns a dictionary for a "key-value line".
+
+		key-value lines represent string-valued dictionaries
+		following postgres libpq/dsn (see PQconnectdb docs;
+		it's keyword=value, whitespace-separated, with
+		whitespace allowed in values through single quoting,
+		and backslash-escaping
+		"""
+		return pyparseString(_KVL_GRAMMAR, aString, parseAll=True)[0]
+
+	_IDENTIFIER_PATTERN = re.compile("[A-Za-z_]+$")
+
+	def makeKVLine(aDict):
+		"""serialized a dictionary to a key-value line.
+
+		See parseKVLine for details.
+		"""
+		parts = []
+		for key, value in aDict.iteritems():
+			if not _IDENTIFIER_PATTERN.match(key):
+				raise ValueError("'%s' not allowed as a key in key-value lines"%key)
+			value = str(value)
+			if not _IDENTIFIER_PATTERN.match(value):
+				value = "'%s'"%value.replace("\\", "\\\\"
+					).replace("'", "\\'")
+			parts.append("%s=%s"%(key, value))
+		return " ".join(sorted(parts))
 
 except ImportError, ex:  # no pyparsing, let clients bomb if they need it.
 	@contextlib.contextmanager
