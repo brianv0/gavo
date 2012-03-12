@@ -106,7 +106,7 @@ def _makeFITSTableNOLOCK(dataSet, acquireSamples=True):
 	return pyfits.HDUList([primary]+extensions)
 
 
-def makeFITSTable(dataSet, acquireSamples=True):
+def makeFITSTable(dataSet, acquireSamples=False):
 	"""returns a hdulist containing extensions for the tables in dataSet.
 
 	This function may block basically forever.  Never call this from

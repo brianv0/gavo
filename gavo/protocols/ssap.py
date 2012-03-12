@@ -192,7 +192,7 @@ class SDMCore(svcs.Core):
 		with base.getTableConn() as conn:
 			ssaTable = rsc.TableForDef(self.queriedTable, connection=conn)
 			try:
-				# XXX TODO: Figure why the unquote here is required.
+				# XXX TODO: Figure out why the unquote here is required.
 				accref = urllib.unquote(inputTable.getParam("accref"))
 				res = list(ssaTable.iterQuery(ssaTable.tableDef, 
 					"accref=%(accref)s", {"accref": accref}))
