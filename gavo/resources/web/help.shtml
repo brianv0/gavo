@@ -4,15 +4,15 @@
 <html xmlns:n='http://nevow.com/ns/nevow/0.1'
 	xmlns="http://www.w3.org/1999/xhtml">
 <head n:render="commonhead">
-<title>GAVO Data Center -- Interface Documentation</title>
+<title n:render="prependsite"> Site Help</title>
 </head>
 <body n:render="withsidebar">
-<h1>The GAVO Data Center</h1>
-<p>This document is the main documentation index for users of the
-GAVO Data Center (GDC).</p>
-<p>The GDC archives  and provides access to astromical data of all kinds,
-offering both web-based
-and <a href="http://www.ivoa.net">VO</a>-enabled services.</p>
+<h1 n:render="prependsite"> Site Help</h1>
+<p>This document is intended to help you discover the web interface
+features on the <span n:render="prependsite"/>.  Note that the site also 
+offers <a href="http://www.ivoa.net/">VO</a>-enabled services.  See,
+for example <a href="http://www.g-vo.org/pmwiki/About/GettingStarted">Getting
+Started on GAVO's web page</a> for more information on how to use them.</p>
 
 <p>Though most of the services should work even in text-based browsers, we
 recommend a web browser with CSS and Javascript enabled to access the
@@ -25,7 +25,8 @@ services available through web browsers.  A "[P]" in the service
 listing means that the service is password protected, either because it is
 too rough for public consumption or because the data providers want
 exclusive access.  In either case, you can contact 
-<a href="mailto:gavo@ari.uni-heidelberg.de">the site operators</a> to inquire
+<a href="mailto:gavo@ari.uni-heidelberg.de">
+<n:attr name="href">mailto:<n:invisible n:render="meta">contact.email</n:invisible></n:attr>the site operators</a> to inquire
 about access.</p>
 
 <p>In addition to web-based services, the data center also
@@ -124,7 +125,7 @@ kind), you can download all matching items in a tar file.</li>
 "[Result link]" reflects your current query as a copyable URL.  You could use
 this to send a query result to colleagues, but it is particularly useful with
 the VOTable output format -- you can drag and drop that link into Topcat's
-"Open" dialogue or use it together with S&eacute;bastien Derriere's <a href="http://astro.u-strasbg.fr/~derriere/PLASTIC/">PLASTIC extension for firefox</a>.</p>
+"Open" dialogue, for example.</p>
 
 <p>The star (<img src="/static/img/bookmark.png"/>) lets you
 bookmark the current form -- it is basically like the result link but
@@ -151,11 +152,11 @@ of the version of the underlying data.</p>
 
 <h2>Timeouts</h2>
 
-<p>The GAVO data center contains some large data sets, and it is trivial to
-construct queries that will run for days or weeks.  Ususally, this is not 
-intended by the users, and thus by default relatively short timeouts are
-imposed on the run time of the queries on the server (of the order 10 
-seconds).</p>
+<p>With ADQL, it is not hard to construct queries that will run for days or
+weeks, and even normal web-based queries can select so much data that excessive
+runtimes and possibly huge data volumes result.  Ususally, this is not intended
+by the users, and thus by default relatively short timeouts are imposed on the
+run time of the queries on the server (of the order 10 seconds).</p>
 
 <p>You can usually increase the timeout by generating a link to your query
 (see "Result link" above) and appending <tt>"&amp;_TIMEOUT=100</tt> (or whatever
@@ -182,19 +183,13 @@ products from open services.  You will note that in such cases, the system
 will deny access to the protected products without asking your credentials.
 If you can provide those, log in and try again.</p>
 
-<p>To obtain usernames and passwords, contact gavo@ari.uni-heidelberg.de</p>
+<p>To obtain usernames and passwords, contact 
+<n:invisible n:render="meta">contact.email</n:invisible>.</p>
 
-
-<h2>Your data</h2>
-
-<p>The GAVO Data Center would be pleased to assist you in publishing your data
-to the web and the VO.  If you consider putting a dataset, great or small, on
-the web and want VO exposure, you are invited to talk to 
-<a href="mailto:gavo@ari.uni-heidelberg.de">us</a>.</p>
 
 <h2>Software availability</h2>
 
-<p>The software driving the GAVO data center is not really finished
+<p>The software driving this site is not really finished
 enough for a "real" release.  If that does not scare you, you are
 welcome to a
 <a href="http://vo.ari.uni-heidelberg.de/soft">download</a>.  All our

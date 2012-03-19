@@ -596,6 +596,11 @@ class XMLTest(testhelpers.VerboseTest):
 		self.assertEqual(mc.buildRepr("creator", t),
 			[(u'creator.name', u'B. Berta')])
 
+	def testLFStripped(self):
+		mc = parseMetaXML("<meta>!contact.email: invalid@whereever.else\n</meta>")
+		self.assertEqual(base.getMetaText(mc, "contact.email"), 
+			'invalid@whereever.else')
+
 
 class ModelValidationTest(testhelpers.VerboseTest):
 	def setUp(self):

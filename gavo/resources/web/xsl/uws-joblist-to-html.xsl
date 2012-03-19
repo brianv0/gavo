@@ -33,9 +33,28 @@
 						<xsl:apply-templates/>
 					</ul>
 					<form action="async" method="POST">
+						<h2>Create a new async job</h2>
 						<input type="submit" value="New job..."/>
 						<input type="hidden" name="LANG" value="ADQL"/>
 						<input type="hidden" name="REQUEST" value="doQuery"/>
+					</form>
+
+					<form action="sync" method="GET">
+						<h2>Run a sync job</h2>
+						<input type="hidden" name="LANG" value="ADQL"/>
+						<input type="hidden" name="REQUEST" value="doQuery"/>
+						<textarea name="QUERY" style="width:100%"/>
+						<p>
+						<label for="formatbutton">Output Format: </label>
+						<select name="FORMAT" id="formatbutton">
+							<option value="application/x-votable+xml">VOTable</option>
+							<option value="text/html">HTML</option>
+							<option value="application/fits">FITS</option>
+							<option value="text/csv">CSV</option>
+							<option value="text/plain">Tab separated</option>
+						</select>
+						</p>
+						<p><input type="submit" value="Run"/></p>
 					</form>
 				</body>
 			</html>

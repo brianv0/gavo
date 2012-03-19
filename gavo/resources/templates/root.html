@@ -4,9 +4,7 @@
 <html xmlns:n="http://nevow.com/ns/nevow/0.1" 
 		xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <title>
-			The GAVO Data Center
-		</title>
+    <title n:render="prependsite"> Home</title>
     <n:invisible n:render="commonhead"/>
 
 		<style type="text/css">
@@ -58,9 +56,9 @@
   </head>
   <body>
 		<div id="header">
-			<img src="/static/img/logo_medium.png" alt="[GAVO logo]" 
+			<img src="/static/img/logo_medium.png" alt="[operator logo]" 
 				n:render="rootlink" class="logo"/>
-			<h1 id="pagehead">The GAVO Data Center</h1>
+			<h1 id="pagehead" n:render="prependsite"/>
 		</div>
 		<p>Welcome to the GAVO data center, provided by 
 		<a href="http://www.zah.uni-hd.de">Zentrum für Astronomie

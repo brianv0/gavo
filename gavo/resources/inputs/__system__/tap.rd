@@ -444,4 +444,5 @@
 			</meta>
 		<publish render="tap" sets="ivo_managed,local"/>
 	</service>
+
 </resource>

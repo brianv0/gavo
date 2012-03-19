@@ -200,7 +200,7 @@ def _hangIfMagic(jobId, parameters, timeout):
 
 
 _preservedMIMEs = set([ # Spec, 2.7.1
-	"text/xml", "application/x-votable+xml"])
+	"text/xml", "application/x-votable+xml", "text/plain"])
 
 def _getResultType(formatProduced, formatOrdered):
 	"""returns the mime type for a TAP result.

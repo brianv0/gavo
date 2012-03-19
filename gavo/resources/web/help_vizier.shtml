@@ -7,7 +7,8 @@
 </head>
 <body n:render="withsidebar">
 <h1>Help on Vizier-like expressions</h1>
-<p>The GAVO archive supports search expressions modelled after <a href="http://vizier.u-strasbg.fr/cgi-bin/Help?VizieR/syntax">what 
+<p>The <span n:render="prependsite"/>
+supports search expressions modelled after <a href="http://vizier.u-strasbg.fr/cgi-bin/Help?VizieR/syntax">what 
 CDS' Vizier service provides</a>.  Our implementation is not yet complete. 
 If you need a given feature, please let us know.</p>
 

@@ -48,7 +48,7 @@ class ResRec(rscdef.IVOMetaMixin, NonServiceResource):
 	   - creationDate
 	
 	Additional meta keys (e.g., accessURL for a registry) may be required 
-	depending on resType.  See the tutorial chapter on registry support.
+	depending on resType.  See the registry session in the operator's guide.
 	"""
 	name_ = "resRec"
 	_rd = rscdef.RDAttribute()

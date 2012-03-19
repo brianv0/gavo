@@ -347,9 +347,9 @@ _config = Configuration(
 			description="Directory to keep uws jobs in.  This may need lots"
 				" of space if your users do large queries"),
 		EnumeratedConfigItem("logLevel", options=["info", "warning",
-			"debug", "error"], description="Verboseness of importer"),
+			"debug", "error"], description="How much should be logged?"),
 		StringConfigItem("operator", description=
-			"Mail address of the DC's operator(s)."),
+			"Deprecated and ignored.  Use contact.email in defaultmeta.txt instead."),
 		StringConfigItem("platform", description="Platform string (can be"
 			" empty if inputsDir is only accessed by identical machines)"),
 		StringConfigItem("gavoGroup", description="Name of the unix group that"

@@ -67,6 +67,9 @@ FORMAT_CODES = {
 	"tsv": 
 		("tsv", "text/tab-separated-values", 
 			"Tab separated values", None),
+	"text/plain": 
+		("tsv", "text/plain",
+			"Tab separated values", None),
 	"application/fits": 
 		("fits", "application/fits", "FITS binary table", None),
 	"fits":

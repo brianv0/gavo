@@ -2,6 +2,8 @@
 GAVO DC Software Reference Documentation
 ========================================
 
+:Author: Markus Demleitner
+:Email: gavo@ari.uni-heidelberg.de
 
 .. contents:: 
   :depth: 2
@@ -113,6 +115,8 @@ Procedures available for grammar rowfilters
 '''''''''''''''''''''''''''''''''''''''''''
 
 .. replaceWithResult makeRowfilterDocs(docStructure)
+
+
 
 
 Metadata

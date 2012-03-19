@@ -231,6 +231,15 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 		return ctx.tag[T.a(href=str(targetURL))[
 			anchorText]]
 
+	def render_prependsite(self, ctx, data):
+		"""prepends a site id to the body.
+
+		This is intended for titles and similar; it puts the string in
+		[web]sitename in front of anything that already is in ctx.tag.
+		"""
+		ctx.tag.children = [base.getConfig("web", "sitename")]+ctx.tag.children
+		return ctx.tag
+		
 	def render_withsidebar(self, ctx, data):
 		oldChildren = ctx.tag.children
 		ctx.tag.children = []

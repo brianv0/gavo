@@ -1,4 +1,4 @@
-<!-- a template for the sidebar on the GAVO DC.  
+<!-- a template for a DaCHS sidebar.
 Use renderers from grend.GavoRenderMixin here -->
 <n:invisible 
 	xmlns:n="http://nevow.com/ns/nevow/0.1" 
@@ -7,7 +7,7 @@ Use renderers from grend.GavoRenderMixin here -->
 	<div class="sidebaritem">
 		<a href="/" n:render="rootlink">
 			<img src="/static/img/logo_medium.png" class="silentlink"
-					n:render="rootlink" alt="[Gavo logo]"/></a>
+					n:render="rootlink" alt="[Operator logo]"/></a>
 		<a href="#body" class="invisible">Skip Header</a></div>
 	<div class="sidebaritem">
 		<div class="navimainitem" onclick="followEmbeddedLink(this)">
@@ -33,8 +33,10 @@ Use renderers from grend.GavoRenderMixin here -->
 	<div class="sidebarnote">
 		<a href="/adql">Try ADQL</a> to query our data.</div>
 	<div class="sidebarmicro">
-		<p class="breakable">Please report errors and problems to 
-			<a href="mailto:gavo@ari.uni-heidelberg.de">GAVO staff</a>.
+		<p class="breakable">Please report errors and problems to the
+			<a
+				><n:attr name="href">mailto:<n:invisible n:render="meta"
+					>contact.email</n:invisible></n:attr>site operators</a>.
 			Thanks.</p>
 		<p><a href="/static/doc/privpol.shtml" n:render="rootlink">Privacy</a> | 
 			<a href="/static/doc/disclaimer.shtml" 

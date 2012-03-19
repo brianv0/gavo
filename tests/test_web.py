@@ -73,7 +73,7 @@ class AdminTest(trialhelpers.RenderTest):
 
 		def checkBlocked(ignored):
 			return self.assertGETHasStrings("/seffe/__system__/adql", {},
-				["currently is blocked"], self._makeAdmin
+				["currently is blocked", "invalid@whereever.else"], self._makeAdmin
 			).addCallback(reload)
 
 		return trialhelpers.runQuery(self.renderer,
@@ -81,6 +81,16 @@ class AdminTest(trialhelpers.RenderTest):
 			{"__nevow_form__": "adminOps", "block": "Block"}, 
 			self._makeAdmin
 		).addCallback(checkBlocked)
+
+
+class TemplateFillingTest(trialhelpers.RenderTest):
+	renderer = root.ArchiveService()
+
+	def testSidebarRendered(self):
+		return self.assertGETHasStrings("/data/test/basicprod/form", {}, [
+			'<a href="mailto:invalid@whereever.else">site operators</a>',
+			'<div class="exploBody"><span class="plainmeta">ivo://'
+				'x-unregistred/data/test/basicprod</span>'])
 
 
 class FormTest(trialhelpers.RenderTest):
