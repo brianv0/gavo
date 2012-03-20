@@ -459,7 +459,7 @@ class TableNoteRenderer(MetaRenderer):
 
 	docFactory = common.doctypedStan(T.html[
 		T.head[
-			T.title["GAVO DC -- Note for table ",
+			T.title["%s -- Note for table "%base.getConfig("web", "sitename"),
 				T.invisible(render=rend.data, data=T.directive("tableName"))],
 			T.invisible(render=T.directive("commonhead")),
 			T.style["span.target {font-size: 180%;font-weight:bold}"],

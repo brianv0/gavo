@@ -268,7 +268,7 @@ _JobActions.addAction(ErrorAction)
 
 class StartTimeAction(JobAction):
 # This an extension over plain UWS allowing users to retrieve when
-# their job started.  In the GAVO DC's TAP implementation, this lets 
+# their job started.  In the DaCHS' TAP implementation, this lets 
 # you discern whether the taprunner is already processing an EXECUTING
 # job (startTime!=NULL) or whether it's still coming up (else)
 	name = "startTime"

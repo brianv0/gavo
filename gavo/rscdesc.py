@@ -6,7 +6,7 @@ that is) or in the Dublin Core sense, but simply stuff held together
 by common metadata.  If it's got the same creator, the same base title,
 the same keywords, etc., it's described by one RD.
 
-In the GAVO DC, a resource descriptor in general sets up a schema in
+In the DaCHS, a resource descriptor typically sets up a schema in
 the database.
 """
 
@@ -46,7 +46,11 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 
 	_schema = base.UnicodeAttribute("schema", 
 		default=base.Undefined,
-		description="Database schema for tables defined here.", 
+		description="Database schema for tables defined here.  Follow the rule"
+		" 'one schema, one RD' if at all possible.  If two RDs share the same"
+		" schema, the must generate exactly the same permissions for that"
+		" schema; this means, in particular, that if one has an ADQL-published"
+		" table, so must the other.  In a nutshell: one schema, one RD.",
 		copyable=True,
 		callbacks=["_inferResdir"])
 

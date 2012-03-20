@@ -89,7 +89,7 @@ def getRelativePath(fullPath, rootPath, liberalChars=True):
 	res = fullPath[len(rootPath):].lstrip("/")
 	if not liberalChars and not _SAFE_FILENAME.match(res):
 		raise ValueError("File path '%s' contains characters known to"
-			" the GAVO staff to be hazardous in URLs.  Please defuse the name"
+			" the DaCHS authors to be hazardous in URLs.  Please defuse the name"
 			" before using it for published names (or see howDoI)."%res)
 	return res
 

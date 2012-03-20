@@ -2,8 +2,8 @@
 # 
 
 """
-GAVO's code; most of this isn support code for running a data center within the
-Virtual Observatory (VO), but some packages are interesting for the VO client
+DaCHS code; most of this is support code for running a data center within the
+Virtual Observatory (VO), but some packages are interesting for VO clients
 as well. 
 """
 

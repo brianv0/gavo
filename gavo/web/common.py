@@ -103,7 +103,7 @@ class CommonRenderers(object):
 	"""A base for renderer (python) mixins within the DC.
 
 	Including standard stylesheets/js/whatever:
-	<head>...<n:invisible n:render="commonhead"/>...</head>
+	<head n:render="commonhead">...</head>
 	"""
 
 	def render_commonhead(self, ctx, data):

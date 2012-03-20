@@ -147,7 +147,7 @@ def sendUIEvent(eventName, *args):
 
 	If no event dispatcher is available, do nothing.
 
-	The base.ui object that the GAVO DC software uses for event dispatching
+	The base.ui object that DaCHS uses for event dispatching
 	is only available to sub-packages above base.  Other code should not
 	use or need it under normal circumstances, but if it does, it can
 	use this.

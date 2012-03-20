@@ -23,6 +23,7 @@ from zope.interface import implements
 from gavo import base
 from gavo import svcs
 from gavo import utils
+from gavo.base import config
 from gavo.web import common
 
 
@@ -43,6 +44,13 @@ class ErrorPage(rend.Page, common.CommonRenderers):
 	"""
 	handles = None
 	status = 500
+	titleMessage = "Unspecified Error"
+
+	_footer = [
+		T.hr,
+		T.address[T.a(href="mailto:%s"%config.getMeta(
+				"contact.email").getContent())[
+			config.getMeta("contact.email").getContent()]]]
 
 	def __init__(self, error):
 		self.failure = error
@@ -64,6 +72,10 @@ class ErrorPage(rend.Page, common.CommonRenderers):
 				T.a(href=rdURL)["resources provided by this RD"],
 				"."]
 		return ""
+	
+	def render_titlemessage(self, ctx, data):
+		return ctx.tag["%s -- %s"%(
+			base.getConfig("web", "sitename"), self.titleMessage)]
 
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
@@ -74,14 +86,14 @@ class ErrorPage(rend.Page, common.CommonRenderers):
 class NotFoundPage(ErrorPage):
 	handles = svcs.UnknownURI
 	status = 404
+	titleMessage = "Not Found"
 
 	def renderHTTP_notFound(self, ctx):
 		return self.renderHTTP(ctx)
 
 	docFactory = common.doctypedStan(T.html[
-			T.head[T.title["GAVO DC -- Not found"],
-			T.invisible(render=T.directive("commonhead")),
-		],
+		T.head(render=T.directive("commonhead"))[
+			T.title(render=T.directive("titlemessage"))],
 		T.body[
 			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
 				"right:0pt"),
@@ -102,9 +114,7 @@ class NotFoundPage(ErrorPage):
 				" for by inspecting our ",
 				T.a(href="/")["list of published services"], "."],
 			T.p(render=T.directive("rdlink")),
-			T.hr,
-			T.address[T.a(href="mailto:gavo@ari.uni-heidelberg.de")[
-				"gavo@ari.uni-heidelberg.de"]],
+			ErrorPage._footer
 		]])
 
 
@@ -119,11 +129,11 @@ class RDNotFoundPage(NotFoundPage):
 class ForbiddenPage(ErrorPage):
 	handles = svcs.ForbiddenURI
 	status = 403
+	titleMessage = "Forbidden"
 
 	docFactory = common.doctypedStan(T.html[
-			T.head[T.title["GAVO DC -- Forbidden"],
-			T.invisible(render=T.directive("commonhead")),
-		],
+		T.head(render=T.directive("commonhead"))[
+			T.title(render=T.directive("titlemessage"))],
 		T.body[
 			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
 				"right:0pt"),
@@ -132,17 +142,17 @@ class ForbiddenPage(ErrorPage):
 			T.p(render=T.directive("message")),
 			T.p["This usually means you tried to use a renderer on a service"
 				" that does not support it.  If you did not come up with the"
-				" URL in question yourself, complain fiercely to the GAVO staff."],
+				" URL in question yourself, complain fiercely to the %s staff."%
+					base.getConfig("web", "sitename")],
 			T.p(render=T.directive("rdlink")),
-			T.hr,
-			T.address[T.a(href="mailto:gavo@ari.uni-heidelberg.de")[
-				"gavo@ari.uni-heidelberg.de"]],
+			ErrorPage._footer,
 		]])
 
 
 class RedirectPage(ErrorPage):
 	handles = svcs.WebRedirect
 	status = 301
+	titleMessage = "Redirect"
 
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
@@ -160,9 +170,8 @@ class RedirectPage(ErrorPage):
 		return ctx.tag(href=self.destURL)
 	
 	docFactory = common.doctypedStan(T.html[
-			T.head[T.title["GAVO DC -- Redirect"],
-			T.invisible(render=T.directive("commonhead")),
-		],
+		T.head(render=T.directive("commonhead"))[
+			T.title(render=T.directive("titlemessage"))],
 		T.body[
 			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
 				"right:0pt"),
@@ -173,15 +182,14 @@ class RedirectPage(ErrorPage):
 				"."],
 			T.p["You should not see this page -- either your browser or"
 				" our site is broken.  Complain."],
-			T.hr,
-			T.address[T.a(href="mailto:gavo@ari.uni-heidelberg.de")[
-				"gavo@ari.uni-heidelberg.de"]],
+			ErrorPage._footer,
 		]])
 
 
 class AuthenticatePage(ErrorPage):
 	handles = svcs.Authenticate
 	status = 401
+	titleMessage = "Authentication Required"
 
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
@@ -190,10 +198,8 @@ class AuthenticatePage(ErrorPage):
 		return ErrorPage.renderHTTP(self, ctx)
 	
 	docFactory = common.doctypedStan(T.html[
-		T.head[
-			T.title["GAVO DC -- Authentication requried"],
-			T.invisible(render=T.directive("commonhead")),
-		],
+		T.head(render=T.directive("commonhead"))[
+			T.title(render=T.directive("titlemessage"))],
 		T.body[
 			T.p["The resource you are trying to access is protected."
 				"  Please enter your credentials or contact"
@@ -203,11 +209,11 @@ class AuthenticatePage(ErrorPage):
 class BadMethodPage(ErrorPage):
 	handles = svcs.BadMethod
 	status = 405
+	titleMessage = "Bad Method"
 
 	docFactory = common.doctypedStan(T.html[
-			T.head[T.title["GAVO DC -- Bad Method"],
-			T.invisible(render=T.directive("commonhead")),
-		],
+		T.head(render=T.directive("commonhead"))[
+			T.title(render=T.directive("titlemessage"))],
 		T.body[
 			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
 				"right:0pt"),
@@ -219,20 +225,18 @@ class BadMethodPage(ErrorPage):
 				" for by inspecting our ",
 				T.a(href="/")["list of published services"],
 				"."],
-			T.hr,
-			T.address[T.a(href="mailto:gavo@ari.uni-heidelberg.de")[
-				"gavo@ari.uni-heidelberg.de"]],
+			ErrorPage._footer,
 		]])
 
 
 class NotAcceptable(ErrorPage):
 	handles = base.DataError
 	status = 406
+	titleMessage = "Not Acceptable"
 
 	docFactory = common.doctypedStan(T.html[
-			T.head[T.title["GAVO DC -- Not Acceptable"],
-			T.invisible(render=T.directive("commonhead")),
-		],
+		T.head(render=T.directive("commonhead"))[
+			T.title(render=T.directive("titlemessage"))],
 		T.body[
 			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
 				"right:0pt"),
@@ -240,20 +244,18 @@ class NotAcceptable(ErrorPage):
 			T.p["The server cannot generate the data you requested."
 				"  The associated message is:"],
 			T.p(render=T.directive("message")),
-			T.hr,
-			T.address[T.a(href="mailto:gavo@ari.uni-heidelberg.de")[
-				"gavo@ari.uni-heidelberg.de"]],
+			ErrorPage._footer,
 		]])
 
 
 class ErrorDisplay(ErrorPage):
 	handles = base.ReportableError
 	status = 500
+	titleMessage = "Error"
 
 	docFactory = common.doctypedStan(T.html[
-			T.head[T.title["GAVO DC -- Error"],
-			T.invisible(render=T.directive("commonhead")),
-		],
+		T.head(render=T.directive("commonhead"))[
+			T.title(render=T.directive("titlemessage"))],
 		T.body[
 			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
 				"right:0pt"),
@@ -263,9 +265,7 @@ class ErrorDisplay(ErrorPage):
 				" telling whether we've realized that already.  So, chances are"
 				" we'd be grateful if you told us at the address given below."
 				" Thanks."],
-			T.hr,
-			T.address[T.a(href="mailto:gavo@ari.uni-heidelberg.de")[
-				"gavo@ari.uni-heidelberg.de"]],
+			ErrorPage._footer,
 		]])
 # HTML mess for last-resort type error handling.
 errorTemplate = (
@@ -285,8 +285,9 @@ def _formatFailure(failure):
 		"<p>If you are seeing this, it is always a bug in our code"
 		" or the data descriptions, and we would be extremely grateful"
 		" for a report at"
-		" gavo@ari.uni-heidelberg.de</p>"%(failure.value.__class__.__name__,
-			common.escapeForHTML(failure.getErrorMessage())))
+		" %s</p>"%(failure.value.__class__.__name__,
+			common.escapeForHTML(failure.getErrorMessage()),
+			config.getMeta("contact.email").getContent()))
 
 
 class InternalServerErrorPage(ErrorPage):
@@ -294,6 +295,7 @@ class InternalServerErrorPage(ErrorPage):
 	"""
 	handles = base.Error  # meaningless, no isinstance done here
 	status = 500
+	titleMessage = "Uncaught Exception"
 
 	def data_excname(self, ctx, data):
 		log.err(self.failure, _why="Uncaught exception")
@@ -325,9 +327,8 @@ class InternalServerErrorPage(ErrorPage):
 			return ErrorPage.renderHTTP(self, ctx)
 
 	docFactory = common.doctypedStan(T.html[
-			T.head[T.title["GAVO DC -- Uncaught Exception"],
-			T.invisible(render=T.directive("commonhead")),
-		],
+		T.head(render=T.directive("commonhead"))[
+			T.title(render=T.directive("titlemessage"))],
 		T.body[
 			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
 				"right:0pt"),
@@ -341,9 +342,7 @@ class InternalServerErrorPage(ErrorPage):
 				" be grateful for a report to the contact address below,"
 				" preferably with a description of what you were trying to do,"
 				" including any data pieces if applicable.  Thanks."],
-			T.hr,
-			T.address[T.a(href="mailto:gavo@ari.uni-heidelberg.de")[
-				"gavo@ari.uni-heidelberg.de"]],
+			ErrorPage._footer,
 		]])
 
 

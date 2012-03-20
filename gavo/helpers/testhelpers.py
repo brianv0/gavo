@@ -1,5 +1,5 @@
 """
-Helper classes for the GAVO's unit tests.
+Helper classes for the DaCHS' unit tests.
 
 WARNING: This messes up some global state.  DO NOT import into modules
 doing regular work.  testtricks is the module for that kind for stuff.
