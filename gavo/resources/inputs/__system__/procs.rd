@@ -1,5 +1,7 @@
 <resource schema="dc" resdir="__system">
-<meta name="description">Predefined procedures in the GAVO DC.</meta>
+<meta name="description">DaCHS predefined procedures.  Whatever is in here 
+will also end up in the reference documentation, so that's where you
+should look if you just want to use this.</meta>
 
 <procDef type="apply" id="printRow">
 	<doc>

@@ -221,7 +221,8 @@ class StandardMacroMixin(MacroPackage):
 			if default is not None:
 				return default
 			raise
-		return val.getContent().replace("\n", " ") # undo default line breaking
+		return val.getContent(macroPackage=self
+			).replace("\n", " ") # undo default line breaking
 
 	def macro_test(self, *args):
 		"""always "test macro expansion".

@@ -108,7 +108,7 @@ class AdminRenderer(formal.ResourceMixin,
 		
 		data must be an item returned from data_services.
 		"""
-		return ctx.tag(href=data.getURL("info"))[unicode(data.getMeta("title"))]
+		return ctx.tag(href=data.getURL("info"))[base.getMetaText(data, "title")]
 
 	def render_rdId(self, ctx, data):
 		return ctx.tag[self.clientRD.sourceId]

@@ -416,7 +416,8 @@ class HTMLDataRenderer(rend.Fragment):
 		if self.serManager.notes:
 			yield T.hr(class_="footsep")
 			yield T.dl(class_="footnotes")[[
-				T.xml(note.getContent(targetFormat="html"))
+				T.xml(note.getContent(targetFormat="html", 
+					macroPackage=self.serManager.table.tableDef))
 				for tag, note in sorted(self.serManager.notes.items())]]
 
 	def render_useformatter(self, ctx, data):

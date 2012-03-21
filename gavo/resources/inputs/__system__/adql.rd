@@ -130,7 +130,7 @@ of where we messed up, and we'll try to improve.
 				tablehead="Timeout after" 
 				description="Seconds until the query is aborted.  If you find 
 					yourself having to raise this beyond 200 or so, please contact 
-					the GAVO staff for hints on how to optimize your query">
+					the site operators for hints on how to optimize your query">
 				<values default="5"/>
 			</inputKey>
 		</inputTable>

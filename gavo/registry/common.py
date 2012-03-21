@@ -45,10 +45,10 @@ def getRegistryService():
 
 
 def getResType(resob):
-	resType = resob.getMeta("resType", None)
-	if resType is None:
-		resType = resob.resType
-	return str(resType)
+	res = base.getMetaText(resob, "resType", default=None)
+	if res is None:
+		res = resob.resType
+	return res
 
 
 def getDependencies(rdId, connection=None):

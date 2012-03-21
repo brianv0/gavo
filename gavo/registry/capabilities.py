@@ -68,9 +68,10 @@ class InterfaceMaker(object):
 
 	def _makeInterface(self, publication):
 		return self.interfaceClass[
-			VOR.accessURL(use=publication.getMeta("urlUse"))[
-				publication.getMeta("accessURL")],
-			VOR.securityMethod(standardId=publication.getMeta("securityId")),
+			VOR.accessURL(use=base.getMetaText(publication, "urlUse"))[
+				base.getMetaText(publication, "accessURL")],
+			VOR.securityMethod(
+				standardId=base.getMetaText(publication, "securityId")),
 		]
 
 	def __call__(self, publication):
@@ -99,8 +100,8 @@ class InterfaceWithParams(InterfaceMaker):
 
 	def _makeInterface(self, publication):
 		return InterfaceMaker._makeInterface(self, publication)[
-			VS.queryType[publication.getMeta("requestMethod")],
-			VS.resultType[publication.getMeta("resultType")],
+			VS.queryType[base.getMetaText(publication, "requestMethod")],
+			VS.resultType[base.getMetaText(publication, "resultType")],
 			getInputParams(publication, publication.parent),
 		]
 
@@ -142,7 +143,7 @@ class SOAPInterface(InterfaceMaker):
 
 	def _makeInterface(self, publication):
 		return InterfaceMaker._makeInterface(self, publication)[
-			VOR.wsdlURL[str(publication.getMeta("accessURL"))+"?wsdl"],
+			VOR.wsdlURL[base.getMetaText(publication, "accessURL")+"?wsdl"],
 		]
 
 
@@ -213,7 +214,8 @@ class CapabilityMaker(object):
 
 	def _makeCapability(self, publication):
 		return self.capabilityClass[
-			VOR.description[publication.getMeta("description", propagate=False)],
+			VOR.description[base.getMetaText(publication, "description", 
+				propagate=False, macroPackage=publication.parent)],
 			getInterfaceElement(publication)]
 
 	def __call__(self, publication):
@@ -377,7 +379,7 @@ class RegistryCapabilityMaker(CapabilityMaker):
 	capabilityClass = VOG.Harvest
 	def _makeCapability(self, publication):
 		return CapabilityMaker._makeCapability(self, publication)[
-			VOG.maxRecords[publication.parent.getMeta("maxRecords")]]
+			VOG.maxRecords[base.getMetaText(publication.parent, "maxRecords")]]
 
 
 class VOSICapabilityMaker(CapabilityMaker):

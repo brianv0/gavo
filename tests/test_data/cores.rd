@@ -2,9 +2,15 @@
 	<meta name="description">Helpers for tests for cores.</meta>
 	<table id="abcd">
 		<column name="a" type="text" verbLevel="1"/>
-		<column name="b" type="integer" verbLevel="5"/>
-		<column name="c" type="integer" verbLevel="15"/>
-		<column name="d" type="integer" verbLevel="20" unit="km"/>
+		<column name="b" type="integer" verbLevel="5">
+			<values nullLiteral="-1"/>
+		</column>
+		<column name="c" type="integer" verbLevel="15">
+			<values nullLiteral="-1"/>
+		</column>
+		<column name="d" type="integer" verbLevel="20" unit="km">
+			<values nullLiteral="-1"/>
+		</column>
 		<column name="e" type="timestamp" verbLevel="25"/>
 	</table>
 

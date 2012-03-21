@@ -141,13 +141,13 @@ class OAIBasicTest(_OAITest):
 		def assertParsed(serverProperties):
 			self.assertEqual(serverProperties.granularity, "YYYY-MM-DDThh:mm:ssZ")
 			self.assertEqual(serverProperties.repositoryName, 
-				"GAVO Data Center Registry")
+				"Unittest Suite Registry")
 			self.assertEqual(serverProperties.baseURL, 
 				"http://localhost:8080/oai.xml")
 			self.assertEqual(serverProperties.protocolVersion, "2.0")
 			self.assertEqual(serverProperties.deletedRecord, "transient")
 			self.assertEqual(serverProperties.adminEmails, 
-				["gavo@ari.uni-heidelberg.de"])
+				["invalid@whereever.else"])
 
 		return threads.deferToThread(oaiclient.getServerProperties,
 			self.registry).addCallback(assertParsed)
@@ -225,7 +225,7 @@ class OAIContentCallbackTest(_OAITest):
 			savedContent.append(stuff)
 
 		def assertSaved(svcResult):
-			self.failUnless("<oai:repositoryName>GAVO" in savedContent[0])
+			self.failUnless("<oai:repositoryName>Unittest" in savedContent[0])
 
 		q = oaiclient.OAIQuery(self.registry, verb="Identify",
 			metadataPrefix=None, contentCallback=save)

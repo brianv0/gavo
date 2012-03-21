@@ -44,7 +44,7 @@ class MetaRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 		for svc in self.describingRD.services:
 			if svc is not self.service:
 				res.append({"infoURL": svc.getURL("info"),
-					"title": unicode(svc.getMeta("title"))})
+					"title": base.getMetaText(svc, "title")})
 		return res
 
 	def render_sortOrder(self, ctx, data):
@@ -275,8 +275,8 @@ class ServiceInfoRenderer(MetaRenderer, utils.IdManagerMixin):
 		self.footnotes = set()
 
 	def render_title(self, ctx, data):
-		return ctx.tag["Information on Service '%s'"%unicode(
-			self.service.getMeta("title"))]
+		return ctx.tag["Information on Service '%s'"%
+			base.getMetaText(self.service, "title")]
 
 	def render_notebubble(self, ctx, data):
 		if not data["note"]:
@@ -431,7 +431,7 @@ class TableNoteRenderer(MetaRenderer):
 			table = registry.getTableDef(tableName)
 			self.setMetaParent(table)
 			self.noteHTML = table.getNote(noteTag
-				).getContent(targetFormat="html")
+				).getContent(targetFormat="html", macroPackage=table)
 		except base.NotFoundError, msg:
 			raise base.ui.logOldExc(svcs.UnknownURI(msg))
 		self.noteTag = noteTag
@@ -494,7 +494,8 @@ class ExternalRenderer(grend.ServiceBasedPage):
 				break
 		else: # no publication, 404
 			raise svcs.UnknownURI()
-		raise svcs.WebRedirect(str(pub.getMeta("accessURL")))
+		raise svcs.WebRedirect(base.getMetaText(pub, "accessURL",
+			macroPackage=self.service))
 
 
 class RDInfoPage(grend.CustomTemplateMixin, grend.ResourceBasedPage):
@@ -525,7 +526,7 @@ class RDInfoPage(grend.CustomTemplateMixin, grend.ResourceBasedPage):
 			return ""
 		else:
 			return T.div(class_="lidescription")[
-				T.xml(iDesc.getContent("blockhtml", descItem))]
+				T.xml(iDesc.getContent("blockhtml", macroPackage=self.rd))]
 
 	def render_rdsvc(self, ctx, service):
 		return ctx.tag[

@@ -405,6 +405,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 			self.resType = "catalogService"
 			return
 # XXX end NVO brain damage fixing hack
+
 			if (self.outputTable.getColumnsByUCDs("pos.eq.ra", 
 						"pos.eq.ra;meta.main", "POS_EQ_RA_MAIN")
 					or self.getMeta("coverage", default=None) is not None):

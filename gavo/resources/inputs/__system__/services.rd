@@ -2,9 +2,7 @@
 
 <resource resdir="__system" schema="dc">
 	<meta name="creationDate">2007-11-22T13:02:00Z</meta>
-	<meta name="description">The GAVO data center is a collection of
-		services providing astronomical and related data on behalf of
-		the German Astronomical Observatory.</meta>
+	<meta name="description">\metaString{site.description}</meta>
 
 	<!-- Tables related to resources (this used to be for services exclusively,
 	hence the names.) 
@@ -32,7 +30,7 @@
 		<column name="owner" type="text"/>
 		<column name="dateUpdated" type="timestamp" unit="a"/>
 		<column name="recTimestamp" type="timestamp"
-			description="UTC of gavopublish run on the source RD"/>
+			description="UTC of gavo publish run on the source RD"/>
 		<column name="deleted" type="boolean" required="True"/>
 		<column name="ivoid" type="text" description="The full ivo-id of
 			the resource.  This is usually ivo://auth/rdid/frag but may
@@ -214,7 +212,8 @@
 		<meta name="shortName">_cs_srv</meta>
 		<meta name="title">Published Services</meta>
 		<meta name="description">A list of all services published on the
-			GAVO Data Center, with links to information pages about them</meta>
+			\getConfig{web}{sitename}, with links to information pages 
+			about them</meta>
 		<meta name="subject">Virtual Observatory</meta>
 		<meta name="_related" title="Validate registry">http://rofr.ivoa.net/regvalidate/HarvestValidater?endpoint=http%3A//dc.zah.uni-heidelberg.de/oai.xml</meta>
 		<meta name="_related" title="Stats">/logs/logs/stats/form</meta>
@@ -243,6 +242,7 @@
 			resType: authority
 			creationDate: \metaString{authority.creationDate}{UNCONFIGURED}
 			title: \metaString{authority.title}{UNCONFIGURED}
+			shortName: \metaString{authority.shortName}{UNCONFIGURED}
 			subject: Authority
 			managingOrg: \metaString{authority.managingOrg}{UNCONFIGURED}
 			description: \metaString{authority.description}{UNCONFIGURED}
@@ -270,49 +270,28 @@
 	<service id="registry" core="registrycore" allowed="pubreg.xml">
 		<publish render="pubreg.xml" sets="ivo_managed"/>
 		<meta name="resType">registry</meta>
-		<meta name="title">GAVO Data Center Registry</meta>
+		<meta name="title">\getConfig{web}{sitename} Registry</meta>
 		<meta name="creationDate">2008-05-07T11:33:00</meta>
-		<meta name="description">The publishing registry for GAVO's data center
-		and other interested parties.</meta>
+		<meta name="description">
+			The publishing registry for the \getConfig{web}{sitename}.
+		</meta>
 		<meta name="subject">Registry</meta>
-		<meta name="shortName">GAVO DC registry</meta>
+		<meta name="shortName">\metaString{authority.shortName} Reg</meta>
 		<meta name="content.type">Archive</meta>
 		<meta name="rights">public</meta>
-		<meta name="harvest.description">The harvesting interface for GAVO's data
-			center registry</meta>
-		<meta name="full">false</meta>
+		<meta name="harvest.description">The harvesting interface for 
+			the publishing registry of the \getConfig{web}{sitename}</meta>
 		<meta name="maxRecords">10000</meta>
-		<meta name="managedAuthority">org.gavo.dc</meta>
+		<meta name="managedAuthority">\getConfig{ivoa}{authority}</meta>
 		<meta name="referenceURL">http://vo.uni-hd.de/static/help.shtml</meta>
-		<meta name="publisher">GAVO Data Center Team</meta>
-		<meta name="contact.name">GAVO Data Center Team</meta>
-		<meta name="contact.email">gavo@ari.uni-heidelberg.de</meta>
+		<meta name="publisher">The staff at the \getConfig{web}{sitename}</meta>
 	</service>
 
 	<nullCore id="null"/>
 
 	<service id="root" core="null" allowed="fixed">
 		<template key="fixed">//root.html</template>
-		<meta name="title">The GAVO Data Center</meta>
-		<customDF name="chunkedServiceList">
-			return base.caches.getChunkedServiceList("\RDid")
-		</customDF>
-		<customDF name="subjectServiceList">
-			return base.caches.getSubjectsList("\RDid")
-		</customDF>
-		<customRF name="ifprotected">
-			if data["owner"]:
-				return ctx.tag
-			else:
-				return ""
-		</customRF>
-	</service>
-
-
-	<!-- Temporary thing to experiment with root sidebar, remove later -->
-	<service id="sroot" core="null" allowed="fixed">
-		<template key="fixed">//root-sidebar.html</template>
-		<meta name="title">The GAVO Data Center</meta>
+		<meta name="title">\getConfig{web}{sitename}</meta>
 		<customDF name="chunkedServiceList">
 			return base.caches.getChunkedServiceList("\RDid")
 		</customDF>

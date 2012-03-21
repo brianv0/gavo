@@ -309,7 +309,10 @@ class InternalServerErrorPage(ErrorPage):
 		"""
 		request = inevow.IRequest(ctx)
 		request.setResponseCode(500)  # probably too late, but log still profits.
-		request.write(_formatFailure(self.failure))
+		data = _formatFailure(self.failure)
+		if isinstance(data, unicode):
+			data = data.encode("utf-8", "ignore")
+		request.write(data)
 		request.finishRequest(False)
 		return ""
 

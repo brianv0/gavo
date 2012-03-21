@@ -33,8 +33,8 @@
 	Also see the `table metadata`_ of the tables exposed here.
 
 	.. _TOPCAT: http://www.star.bris.ac.uk/~mbt/topcat/
-	.. _GAVO VOTable library: http://vo.ari.uni-heidelberg.de/soft/subpkgs
-	.. _TAP shell: http://vo.ari.uni-heidelberg.de/soft/tapsh
+	.. _GAVO VOTable library: http://soft.g-vo.org/subpkgs
+	.. _TAP shell: http://soft.g-vo.org/tapsh
 	.. _table metadata: \internallink{__system__/tap/run/tableMetadata}
 	.. _ADQL form: \internallink{__system__/adql/query/form}
 	.. _service doc of our ADQL form service: \internallink{__system__/adql/query/info}
@@ -429,12 +429,12 @@
 	<nullCore id="null"/>
 
 	<service id="run" core="null" allowed="tap">
-		<meta name="shortName">GAVO DC TAP</meta>
-		<meta name="title">GAVO Data Center TAP service</meta>
+		<meta name="shortName">\metaString{authority.shortName} TAP</meta>
+		<meta name="title">\getConfig{web}{sitename} TAP service</meta>
 		<meta name="supportsModel">ObsCore 1.0</meta>
 		<meta name="supportsModel.ivoId">ivo://ivoa.net/std/ObsCore-1.0</meta>
 
-		<meta name="description">The GAVO data center's TAP end point.  The
+		<meta name="description">The \getConfig{web}{sitename}'s TAP end point.  The
 			Table Access Protocol (TAP) lets you execute queries against our
 			database tables, inspect various metadata, and upload your own
 			data.  It is thus the VO's premier way to access public data

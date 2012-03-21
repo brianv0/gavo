@@ -13,3 +13,4 @@ profilePath: $configDir
 [web]
 enableTests: True
 adminpasswd: loser
+sitename: Unittest Suite

@@ -23,8 +23,8 @@ def getSchemaForRD(rd):
 	"""
 	return VS.schema[
 		VS.name[rd.schema.lower()],
-		VS.title[rd.getMeta("title")],
-		VS.description[rd.getMeta("description")],
+		VS.title[base.getMetaText(rd, "title")],
+		VS.description[base.getMetaText(rd, "description")],
 	]
 
 
@@ -75,9 +75,9 @@ def getTableForTableDef(tableDef):
 		type = None
 	res = VS.table(type=type)[
 		VS.name[name],
-		VS.title[tableDef.getMeta("title", propagate=False)],
-		VS.description[tableDef.getMeta("description", propagate=True)],
-		VS.utype[tableDef.getMeta("utype")], [
+		VS.title[base.getMetaText(tableDef, "title", propagate=False)],
+		VS.description[base.getMetaText(tableDef, "description", propagate=True)],
+		VS.utype[base.getMetaText(tableDef, "utype")], [
 			getTableColumnFromColumn(col, VS.voTableDataType)
 				for col in tableDef], [
 			getForeignKeyForForeignKey(fk)

@@ -96,12 +96,9 @@ def parseKey(metaKey):
 	return metaKey.split(".")
 
 
-def parseMetaStream(metaContainer, metaStream, expand=None, 
-		clearItems=False):
+def parseMetaStream(metaContainer, metaStream, clearItems=False):
 	"""parser meta key/value pairs from metaStream and adds them to
 	metaContainer.
-
-	If expand is given, it must be a function expanding macros.
 
 	If clearItems is true, for each key found in the metaStream there's
 	first a delMeta for that key executed.  This is for re-parsing 
@@ -142,9 +139,6 @@ def parseMetaStream(metaContainer, metaStream, expand=None,
 			key = key[1:]
 			metaContainer.delMeta(key)
 
-		if expand is not None and '\\' in value:
-			value = expand(value)
-		
 		if key not in keysSeen and clearItems:
 			metaContainer.delMeta(key)
 		keysSeen.add(key)
@@ -186,8 +180,7 @@ class MetaParser(common.Parser):
 	def _getMetaValue(self):
 		content = self.attrs.pop("content_", "")
 		if not self.attrs: # content only, parse this as a meta stream
-			parseMetaStream(self.container, content,
-				getattr(self.container, "expand", None))
+			parseMetaStream(self.container, content)
 			return None, None
 		else:
 			try:
@@ -671,7 +664,7 @@ class MetaValue(MetaMixin):
 
 	def getContent(self, targetFormat="text", macroPackage=None):
 		content = self.content
-		if macroPackage and "\\" in self.content:
+		if hasattr(macroPackage, "expand") and "\\" in self.content:
 			content = macroPackage.expand(content)
 		if targetFormat=="text":
 			return self._getContentAsText(content)
@@ -1047,11 +1040,23 @@ def getMetaText(ob, key, default=None, **kwargs):
 	otherwise.
 
 	You can pass getMeta keyword arguments (except default).
+
+	ob will be used as a macro package if it has an expand method; to
+	use something else as the macro package, pass a macroPackage keyword
+	argument.
 	"""
+	if "macroPackage" in kwargs:
+		macroPackage = kwargs.pop("macroPackage")
+	else:
+		macroPackage = ob
+
 	m = ob.getMeta(key, default=None, **kwargs)
 	if m is None:
 		return default
-	return m.getContent()
+	try:
+		return m.getContent(macroPackage=macroPackage)
+	except MetaCardError:
+		print ">>>>>>>>>>>", key
 
 
 class MetaBuilder(object):
@@ -1150,50 +1155,54 @@ class ModelBasedBuilder(object):
 	def __init__(self, constructors, format="text"):
 		self.constructors, self.format = constructors, format
 
-	def _buildNode(self, processContent, metaItem, children=()):
+	def _buildNode(self, processContent, metaItem, children=(),
+			macroPackage=None):
 		if not metaItem:
 			return []
 		result = []
 		for child in metaItem.children:
 			content = []
-			c = child.getContent(self.format)
+			c = child.getContent(self.format, macroPackage=macroPackage)
 			if c:
 				content.append(c)
-			childContent = self._build(children, child)
+			childContent = self._build(children, child, macroPackage)
 			if childContent:
 				content.append(childContent)
 			if content:
 				result.append(processContent(content, child))
 		return result
 
-	def _getItemsForConstructor(self, metaContainer, key, factory, 
-			children=(), attrs={}):
+	def _getItemsForConstructor(self, metaContainer, macroPackage,
+			key, factory, children=(), attrs={}):
 		if factory:
 			def processContent(childContent, metaItem):
 				moreAttrs = {}
 				for argName, metaKey in attrs.iteritems():
 					val = metaItem.getMeta(metaKey)
 					if val:
-						moreAttrs[argName] = unicode(val)
+						moreAttrs[argName] = val.getContent("text", 
+							macroPackage=macroPackage)
 				return [factory(childContent, localattrs=moreAttrs)]
 		else:
 			def processContent(childContent, metaItem):
 				return childContent
 
 		if key is None:
-			return [factory(self._build(children, metaContainer))]
+			return [factory(self._build(children, metaContainer, macroPackage))]
 		else:
 			return self._buildNode(processContent, 
-				metaContainer.getMeta(key, raiseOnFail=False), children)
+				metaContainer.getMeta(key, raiseOnFail=False), children,
+				macroPackage=macroPackage)
 
-	def _build(self, constructors, metaContainer):
+	def _build(self, constructors, metaContainer, macroPackage):
 		result = []
 		for item in constructors:
 			if isinstance(item, basestring):
 				result.append(item)
 			else:
 				try:
-					result.extend(self._getItemsForConstructor(metaContainer, *item))
+					result.extend(self._getItemsForConstructor(metaContainer, 
+						macroPackage, *item))
 				except utils.Error:
 					raise
 				except:
@@ -1202,5 +1211,7 @@ class ModelBasedBuilder(object):
 							repr(item), repr(metaContainer))))
 		return result
 
-	def build(self, metaContainer):
-		return self._build(self.constructors, metaContainer)
+	def build(self, metaContainer, macroPackage=None):
+		if macroPackage is None:
+			macroPackage = metaContainer
+		return self._build(self.constructors, metaContainer, macroPackage)

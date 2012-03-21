@@ -83,7 +83,7 @@ class AdminTest(trialhelpers.RenderTest):
 		).addCallback(checkBlocked)
 
 
-class TemplateFillingTest(trialhelpers.RenderTest):
+class CustomizationTest(trialhelpers.RenderTest):
 	renderer = root.ArchiveService()
 
 	def testSidebarRendered(self):
@@ -91,6 +91,21 @@ class TemplateFillingTest(trialhelpers.RenderTest):
 			'<a href="mailto:invalid@whereever.else">site operators</a>',
 			'<div class="exploBody"><span class="plainmeta">ivo://'
 				'x-unregistred/data/test/basicprod</span>'])
+	
+	def testMacrosExpanded(self):
+		return self.assertGETHasStrings("/__system__/dc_tables/list/info", {}, [
+			"Information on Service 'Unittest Suite Public Tables'",
+			"tables available for ADQL querying within the\nUnittest Suite",
+			"Unittest Suite Table Infos</a>",])
+
+	def testExpandedInXML(self):
+		return self.assertGETHasStrings("/oai.xml", {
+			"verb": "GetRecord",
+			"metadataPrefix": "ivo_vor",
+			"identifier": "ivo://x-unregistred/__system__/services/registry"
+		}, [
+			"<title>Unittest Suite Registry</title>",
+			"<managedAuthority>x-unregistred</managedAuthority>"])
 
 
 class FormTest(trialhelpers.RenderTest):

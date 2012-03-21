@@ -111,17 +111,17 @@ tables and the RDs the tables come from. -->
 	</fixedQueryCore>
 
 	<service id="show" allowed="tableinfo" core="queryList">
-		<meta name="shortName">GAVO tab infos</meta>
-		<meta name="description">Information on tables within the GAVO data
-			center</meta>
-		<meta name="title">Table Infos</meta>
+		<meta name="shortName">Table infos</meta>
+		<meta name="description">Information on tables within the 
+			\getConfig{web}{sitename}</meta>
+		<meta name="title">\getConfig{web}{sitename} Table Infos</meta>
 	</service>
 
 	<service id="list" core="queryList">
-		<meta name="shortName">gavo ADQL tabs</meta>
+		<meta name="shortName">ADQL tables</meta>
 		<meta name="description">An overview over the tables available for ADQL 
-			querying in the GAVO data center.</meta>
-		<meta name="title">GAVO ADQL tables</meta>
+			querying within the \getConfig{web}{sitename}</meta>
+		<meta name="title">\getConfig{web}{sitename} Public Tables</meta>
 		<outputTable namePath="tablemeta">
 			<outputField original="tableName"/>
 			<outputField name="tableinfo" type="text" tablehead="Info">

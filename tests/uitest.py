@@ -218,7 +218,8 @@ class _SysRDResource(tresc.FileResource):
 	path = "inputs/sysrd.rd"
 	content = """<resource schema="test">
 			<table onDisk="True" id="fromclitest" system="True">
-				<column name="x" type="integer"/></table>
+				<column name="x" type="integer"><values nullLiteral="0"/></column>
+			</table>
 			<data id="y"><make table="fromclitest"/></data>
 		</resource>"""
 

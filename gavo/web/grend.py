@@ -81,8 +81,8 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 			metaKey = ctx.tag.children[0]
 			if plain:
 				ctx.tag.clear()
-				return ctx.tag[self.getMeta(metaKey, raiseOnFail=True
-					).getContent("text")]
+				return ctx.tag[base.getMetaText(self, metaKey, raiseOnFail=True,
+					macroPackage=self.macroPackage)]
 			else:
 				ctx.tag.clear()
 				return ctx.tag[T.xml(self.buildRepr(metaKey, htmlBuilder,
@@ -96,11 +96,11 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 			base.ui.notifyError(msg)
 			return T.comment[msg]
 
-	def data_meta(self, metaName):
+	def data_meta(self, metaKey):
 		"""returns the value for the meta key metaName on this service.
 		"""
 		def get(ctx, data):
-			return self.getMeta(metaName)
+			return self.getMeta(metaKey)
 		return get
 		
 	def render_meta(self, ctx, data):

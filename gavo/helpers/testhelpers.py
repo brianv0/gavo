@@ -65,6 +65,11 @@ if not os.path.exists(base.getConfig("rootDir")):
 			os.path.join(base.getConfig("inputsDir"), "__system"))
 		base.setDBProfile("admin")
 		initdachs.initDB(dsn)
+
+		from gavo.registry import publication
+		from gavo import rscdesc
+		from gavo import base
+		publication.updateServiceList([base.caches.getRD("//services")])
 	except:
 		import traceback
 		traceback.print_exc()

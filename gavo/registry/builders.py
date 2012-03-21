@@ -192,10 +192,10 @@ def getIdentifyElement(registryService):
 	__system__/services#registry
 	"""
 	return OAI.Identify[
-		OAI.repositoryName[registryService.getMeta("title")],
+		OAI.repositoryName[base.getMetaText(registryService, "title")],
 		OAI.baseURL[registryService.getURL("pubreg.xml")],
 		OAI.protocolVersion["2.0"],
-		OAI.adminEmail[registryService.getMeta("contact.email")],
+		OAI.adminEmail[base.getMetaText(registryService, "contact.email")],
 		OAI.earliestDatestamp["1970-01-01T00:00:00Z"],
 		OAI.deletedRecord["transient"],
 		OAI.granularity["YYYY-MM-DDThh:mm:ssZ"],
@@ -348,7 +348,7 @@ class ServiceResourceMaker(ResourceMaker):
 
 	def _makeResource(self, service, setNames):
 		return ResourceMaker._makeResource(self, service, setNames)[
-			VOR.rights[service.getMeta("rights")], [
+			VOR.rights[base.getMetaText(service, "rights")], [
 				capabilities.getCapabilityElement(pub)
 				for pub in service.getPublicationsForSet(setNames)]]
 
@@ -399,13 +399,13 @@ class RegistryResourceMaker(ResourceMaker):
 	def _makeResource(self, registry, setNames):
 		return ResourceMaker._makeResource(self, registry, setNames) [
 				VOG.Harvest[
-					VOR.description[registry.getMeta("harvest.description")],
+					VOR.description[base.getMetaText(registry, "harvest.description")],
 					VOG.OAIHTTP(role="std", version="1.0")[
 						VOR.accessURL[registry.getURL("pubreg.xml")],
 					],
-					VOG.maxRecords[registry.getMeta("maxRecords")],
+					VOG.maxRecords[base.getMetaText(registry, "maxRecords")],
 				],
-				VOG.full[registry.getMeta("full")],
+				VOG.full["false"],
 				VOG.managedAuthority[base.getConfig("ivoa", "authority")],
 			]
 
@@ -423,7 +423,7 @@ class AuthResourceMaker(ResourceMaker):
 	resType = "authority"
 	def _makeResource(self, registry, setNames):
 		return ResourceMaker._makeResource(self, registry, setNames) [
-			VOG.managingOrg[registry.getMeta("managingOrg")]]
+			VOG.managingOrg[base.getMetaText(registry, "managingOrg")]]
 
 
 class StandardsResourceMaker(ResourceMaker):
