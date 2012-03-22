@@ -309,8 +309,12 @@ class ContentTest(testhelpers.VerboseTest):
 			'<p><a class="reference external" href="http://foo.org">foo</a></p>\n')
 
 
-class _MetaCarrier(base.Structure, base.MetaMixin):
+class _MetaCarrier(base.Structure, base.MetaMixin, base.StandardMacroMixin):
 	name_ = "m"
+
+	def macro_wicked(self):
+		return "\\wicked"
+
 
 def parseMetaXML(src):
 	return base.parseFromString(_MetaCarrier, "<m>"+src+"</m>")
@@ -600,6 +604,55 @@ class XMLTest(testhelpers.VerboseTest):
 		mc = parseMetaXML("<meta>!contact.email: invalid@whereever.else\n</meta>")
 		self.assertEqual(base.getMetaText(mc, "contact.email"), 
 			'invalid@whereever.else')
+
+
+class MacroExpansionText(testhelpers.VerboseTest):
+	def testUnexpanded(self):
+		self.assertEqual(
+			parseMetaXML(r'<meta name="test">\test</meta>'
+				).getMeta("test").getContent(),
+			"\\test")
+
+	def testWithPackage(self):
+		mc = parseMetaXML(r'<meta name="test">\test</meta>')
+		self.assertEqual(mc.getMeta("test").getContent(macroPackage=mc),
+			"test macro expansion")
+	
+	def testGetMetaTextExpands(self):
+		self.assertEqual(
+			base.getMetaText(parseMetaXML(r'<meta name="test">\test</meta>'),
+				"test"),
+			"test macro expansion")
+	
+	def testGetMetaTextDoesntNeedExpander(self):
+		class _NECarrier(base.Structure, base.MetaMixin):
+			name_ = "m"
+		mc = base.parseFromString(_NECarrier, 
+			r'<m><meta name="test">\test</meta></m>')
+		self.assertEqual(base.getMetaText(mc, "test"),
+			"\\test")
+
+	def testExternalMetaWorks(self):
+		self.assertEqual(
+			base.getMetaText(parseMetaXML(r'<meta name="test">\rdIdDotted</meta>'),
+				"test", macroPackage=testhelpers.getTestRD()),
+			"data.test")
+
+	def testModelBuilderExpands(self):
+		t = meta.ModelBasedBuilder([
+			("a", meta.stanFactory(T.img), (), {
+					"src": "b"}),])
+		mc = parseMetaXML('<meta>a:\\test\na.b:\\RSTservicelink{svc}</meta>')
+		res = flat.flatten(T.div[t.build(mc)])
+		self.assertEqual(res,
+			'<div><img src="`svc &lt;/svc&gt;`_">test macro expansion</img></div>')
+
+	def testNoDoubleExpansion(self):
+		t = meta.ModelBasedBuilder([
+			("a", meta.stanFactory(T.img), (),)])
+		mc = parseMetaXML('<meta>a:\\wicked</meta>')
+		res = flat.flatten(t.build(mc))
+		self.assertEqual(res, '<img>\\wicked</img>')
 
 
 class ModelValidationTest(testhelpers.VerboseTest):
