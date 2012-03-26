@@ -232,6 +232,13 @@ class SCSRenderer(DALRenderer):
 		if idCol.type in set(["integer", "bigint", "smallint"]):
 			realCasts[idCol.name]["castFunction"] = str
 		table.votCasts = realCasts
+
+		# as an extension, allow people to select different output formats
+		# (this is a bit of a hack and should be revised after a while)
+		if "FORMAT" in data.queryMeta.ctxArgs:
+			from gavo.web import serviceresults
+			return serviceresults.getFormat(
+				data.queryMeta.ctxArgs["FORMAT"])._formatOutput(data, ctx)
 		return DALRenderer._formatOutput(self, data, ctx)
 
 
