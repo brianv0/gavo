@@ -21,11 +21,6 @@ from gavo import rsc
 from gavo import rscdef
 
 
-class Error(base.Error):
-	pass
-
-
-
 class CBooster:
 	"""is a wrapper for an import booster written in C using the DC booster
 	infrastructure.
@@ -64,7 +59,7 @@ class CBooster:
 		mat = re.search("(?m)^#define QUERY_N_PARS\s+(\d+)", 
 			open(self.srcName).read())
 		if not mat:
-			raise Error("Booster function doesn't define QUERY_N_PARS")
+			raise base.ReportableError("Booster function doesn't define QUERY_N_PARS")
 		query_n_pars = mat.group(1)
 		f = open(os.path.join(wd, "Makefile"), "w")
 		f.write("LDFLAGS += -lm\n"
@@ -83,7 +78,7 @@ class CBooster:
 	
 	def _build(self):
 		if subprocess.call("make"):
-			raise Error("Booster build failed")
+			raise base.ReportableError("Booster build failed, messages above.")
 	
 	def _retrieveBinary(self, od):
 		shutil.copyfile("booster", self.binaryName)
@@ -160,10 +155,13 @@ class DirectGrammar(base.Structure):
 		def copyIn(data):
 			data.tables.values()[0].copyIn(booster.getOutput(sourceToken))
 			if booster.getStatus():
-				raise Error("Booster returned error signature while processing %s."%
-					sourceToken)
+				raise base.SourceParseError(
+					"Booster returned error signature",
+					source=sourceToken)
 		return copyIn
 
+
+###################################################
 # booster source code generating functions
 
 import sys
@@ -296,27 +294,33 @@ class SplitCodeGenerator(_CodeGenerator):
 
 	def getItemParser(self, item):
 		t = item.type
-		if t=="smallint":
-			cType = "VAL_SHORT"
-		elif t=="bigint":
-			cType = "VAL_BIGINT"
-		elif "int" in t:
-			cType = "VAL_INT"
-		elif t in ["real", "float"]:
-			cType = "VAL_FLOAT"
-		elif "double" in t:
-			cType = "VAL_DOUBLE"
-		elif "char"==t:
-			cType = "VAL_CHAR"
-		elif "char" in t:
-			cType = "VAL_TEXT"
-		elif "bool" in t:
-			cType = "VAL_BOOL"
+		fi = getNameForItem(item)
+		if t=="text":
+			parse = ["F(%s)->type = VAL_TEXT;"%fi,
+				"F(%s)->length = strlen(curCont);"%fi,
+				"F(%s)->val.c_ptr = curCont;"%fi,]
 		else:
-			cType = "###No appropriate type###"
-		return ["fieldscanf(curCont, %s, %s);"%(getNameForItem(item),
-			cType), 
-			'curCont = strtok(NULL, "%s");'%self.splitChar]
+			if t=="smallint":
+				cType = "VAL_SHORT"
+			elif t=="bigint":
+				cType = "VAL_BIGINT"
+			elif "int" in t:
+				cType = "VAL_INT"
+			elif t in ["real", "float"]:
+				cType = "VAL_FLOAT"
+			elif "double" in t:
+				cType = "VAL_DOUBLE"
+			elif "char"==t:
+				cType = "VAL_CHAR"
+			elif "char" in t:
+				cType = "VAL_TEXT"
+			elif "bool" in t:
+				cType = "VAL_BOOL"
+			else:
+				cType = "###No appropriate type###"
+			parse = ["fieldscanf(curCont, %s, %s);"%(fi, cType)]
+		parse.append('curCont = strtok(NULL, "%s");'%self.splitChar)
+		return parse
 
 
 def getCodeGen(opts):
