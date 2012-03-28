@@ -62,9 +62,29 @@ class SSAPCore(svcs.DBCore):
 		return "application/x-votable+xml", votablewrite.getAsVOTable(data)
 
 	def run(self, service, inputTable, queryMeta):
-		if inputTable.getParam("REQUEST")!="queryData":
+		requestType = (inputTable.getParam("REQUEST") or "").upper()
+		if requestType=="QUERYDATA":
+			return self._runQueryData(service, inputTable, queryMeta)
+		elif requestType=="GETTARGETNAMES":
+			return self._runGetTargetNames(service, inputTable, queryMeta)
+		else:
 			raise base.ValidationError("Only queryData operation supported so"
 				" far for SSAP.", "REQUEST")
+
+	def _runGetTargetNames(self, service, inputTable, queryMeta):
+		with base.getTableConn()  as conn:
+			table = rsc.TableForDef(self.queriedTable, create=False,
+				role="primary", connection=conn)
+			destTD = base.makeStruct(outputdef.OutputTableDef, 
+				parent_=self.queriedTable.parent,
+				id="result", onDisk=False,
+				columns=[self.queriedTable.getColumnByName("ssa_targname")])
+			res = rsc.TableForDef(destTD, rows=table.iterQuery(destTD, "",
+				distinct=True))
+			res.noPostprocess = True
+			return res
+
+	def _runQueryData(self, service, inputTable, queryMeta):
 		format = inputTable.getParam("FORMAT") or ""
 		if format.lower()=="metadata":
 			return self._makeMetadata(service)
