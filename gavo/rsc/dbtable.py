@@ -536,7 +536,7 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 		if not self.nometa:
 			self.addToMeta()
 			if self.commitAfterMeta:
-				self.conn.commit()
+				self.connection.commit()
 		return self
 
 	def createIfNecessary(self):
