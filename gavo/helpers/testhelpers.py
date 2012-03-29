@@ -63,6 +63,7 @@ if not os.path.exists(base.getConfig("rootDir")):
 		os.rmdir(os.path.join(base.getConfig("inputsDir"), "__system"))
 		os.symlink(os.path.join(TEST_BASE, "test_data", "__system"),
 			os.path.join(base.getConfig("inputsDir"), "__system"))
+		os.mkdir(os.path.join(base.getConfig("inputsDir"), "test"))
 		base.setDBProfile("admin")
 		initdachs.initDB(dsn)
 

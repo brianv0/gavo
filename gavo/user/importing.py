@@ -107,6 +107,12 @@ def main():
 			default=5000, metavar="N")
 		parser.add_option("-c", "--continue-bad", help="go on if processing a"
 			" source.", dest="keepGoing", action="store_true", default=False)
+		parser.add_option("-L", "--commit-after-meta", help="commit the importing"
+			" transaction after updating the meta tables.  Use this when loading"
+			" large (hence -L) data sets to avoid keeping a lock on the meta tables"
+			" for the duration of the input, i.e., potentially days.  The price"
+			" is that users will see empty tables during the import.",
+			dest="commitAfterMeta", action="store_true", default=False)
 
 		(opts, args) = parser.parse_args()
 

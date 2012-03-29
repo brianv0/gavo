@@ -30,7 +30,8 @@ def TableForDef(tableDef, suppressIndex=False,
 		else:
 			cls = dbtable.DBTable
 		return cls(tableDef, suppressIndex=suppressIndex, 
-			validateRows=parseOptions.validateRows, 
+			validateRows=parseOptions.validateRows,
+			commitAfterMeta=parseOptions.commitAfterMeta,
 			tableUpdates=parseOptions.doTableUpdates, **kwargs)
 	elif tableDef.forceUnique:
 		return table.UniqueForcedTable(tableDef, 

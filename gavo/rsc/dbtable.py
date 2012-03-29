@@ -327,6 +327,7 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 		self.suppressIndex = kwargs.pop("suppressIndex", False)
 		self.tableUpdates = kwargs.pop("tableUpdates", False)
 		self.exclusive = kwargs.pop("exclusive", False)
+		self.commitAfterMeta = kwargs.pop("commitAfterMeta", False)
 		table.BaseTable.__init__(self, tableDef, **kwargs)
 
 		self._makeConnection(kwargs)
@@ -356,7 +357,7 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 			self.feedRows(kwargs["rows"])
 
 	def __iter__(self):
-# XXXX TODO: fix psycopg timeout patch to allow named cursors
+		# Do we want named cursors by default here?
 		cursor = self.connection.cursor()
 		cursor.execute("SELECT * FROM %s"%self.tableName)
 		for row in cursor:
@@ -534,6 +535,8 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 			scripting.PythonScriptRunner(script).run(self)
 		if not self.nometa:
 			self.addToMeta()
+			if self.commitAfterMeta:
+				self.conn.commit()
 		return self
 
 	def createIfNecessary(self):
