@@ -591,7 +591,8 @@ crazyFields = [
 		values=MS(rscdef.Values, nullLiteral="-1")),
 	MS(rscdef.Column, name="wotb", type="bytea", 
 		values=MS(rscdef.Values, nullLiteral="255")),
-	MS(rscdef.Column, name="mass", ucd="event;using.incense")]
+	MS(rscdef.Column, name="mass", ucd="event;using.incense"),
+	MS(rscdef.Column, name="name", type="unicode"),]
 geoFields = [
 	MS(rscdef.Column, name="pt", type="spoint"),
 ]
@@ -650,7 +651,7 @@ class TypecalcTest(testhelpers.VerboseTest):
 		(["double precision", "integer", "bigint"], 'double precision'),
 		(["date", "timestamp", "timestamp"], 'timestamp'),
 		(["date", "boolean", "smallint"], 'text'),
-		(["box", "raw"], 'text'),
+		(["box", "raw"], 'raw'),
 		(["date", "time"], 'timestamp'),
 # 5
 		(["char(3)", "integer"], "text"),
@@ -666,7 +667,7 @@ class TypecalcTest(testhelpers.VerboseTest):
 		(["boolean", "smallint"], "smallint"),
 		(["sbox", "spoint"], "text"),
 		(["sbox", "spoly"], "spoly"),
-		(["sbox", "whacko"], "text"),
+		(["sbox", "whacko"], "raw"),
 	]
 
 
@@ -923,6 +924,11 @@ class ColResTest(ColumnTest):
 		self.assertRaises(adql.ColumnNotFound, self._getColSeq,
 			"select gnurks from spatial")
 
+	def testExpressionWithUnicode(self):
+		cols = self._getColSeq("select crazy.name||geo.pt from crazy, geo")
+		self._assertColumns(cols, [
+			("unicode", '', '', False)])
+
 
 class DelimitedColResTest(ColumnTest):
 	"""tests for column resolution with delimited identifiers.
@@ -1022,7 +1028,7 @@ class JoinColResTest(ColumnTest):
 		self.assertEqual(physMass[0], "mass")
 		self.assertEqual(physMass[1].ucd, "phys.mass")
 		crazyMass = cols[-1]
-		self.assertEqual(crazyMass[0], "mass")
+		self.assertEqual(crazyMass[0], "name")
 		self.assertEqual(crazyMass[1].ucd, "event;using.incense")
 
 	def testSelfUsingJoin(self):

@@ -147,8 +147,7 @@ class BrowsableTest(testhelpers.VerboseTest):
 	
 
 class InputKeyTest(testhelpers.VerboseTest):
-	"""tests for type/widget inference with input keys.
-	"""
+	# tests for type/widget inference with input keys.
 	def _getKeyProps(self, src):
 		cd = base.parseFromString(svcs.CondDesc, src
 			).adaptForRenderer(svcs.getRenderer("form"))
@@ -176,6 +175,11 @@ class InputKeyTest(testhelpers.VerboseTest):
 		ftype, fwid, rendered = self._getKeyProps(
 			'<condDesc required="True"><inputKey name="foo" type="text"/></condDesc>')
 		self.assertEqual(ftype.required, True)
+
+	def testUnicodeCondDesc(self):
+		ftype, fwid, rendered = self._getKeyProps(
+			'<condDesc><inputKey name="foo" type="unicode"/></condDesc>')
+		self.assertEqual(ftype.__class__.__name__, "String")
 
 	def testNotRequiredCondDesc(self):
 		ftype, fwid, rendered = self._getKeyProps(
@@ -360,9 +364,6 @@ class OutputTableTest(testhelpers.VerboseTest):
 			</service></resource>""")
 		self.assertEqual("ECLIPTIC",
 			rd.services[0].outputTable.columns[0].stc.place.frame.refFrame)
-
-
-
 
 
 class TableSetTest(testhelpers.VerboseTest):

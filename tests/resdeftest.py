@@ -124,6 +124,7 @@ class ColumnTest(testhelpers.VerboseTest):
 			t.getColumnByName("alpha").setMetaParent,
 			(t,))
 
+
 class ValuesTest(testhelpers.VerboseTest):
 	"""tests for the rscdef.Values class and its interaction with Column.
 	"""
@@ -273,6 +274,18 @@ class TableDefTest(testhelpers.VerboseTest):
 		t = t0.copy(None)
 		self.failUnless(t.getColumnByName("a").stc is
 			t0.getColumnByName("a").stc)
+
+	def testUnicodeDDL(self):
+		t = base.parseFromString(rscdef.TableDef, '<table id="test">'
+			'<column name="a" type="unicode"/></table>')
+		testhelpers.getTestRD().adopt(t)
+		self.assertEqual(t.getDDL(), "CREATE TABLE test.test (a TEXT)")
+
+	def testTempDDL(self):
+		t = base.parseFromString(rscdef.TableDef, '<table id="test"'
+			' temporary="True"><column name="a"/></table>')
+		testhelpers.getTestRD().adopt(t)
+		self.assertEqual(t.getDDL(), "CREATE TEMP TABLE test (a real)")
 
 
 class _QuotedNamesTable(testhelpers.TestResource):

@@ -582,6 +582,18 @@ class TableDef(base.Structure, base.ComputedMetaMixin, common.PrivilegesMixin,
 			basePath = base.getConfig("web", "serverURL")+basePath
 		return basePath
 
+	def getDDL(self):
+		"""returns an SQL statement that creates the table.
+		"""
+		preTable = ""
+		if self.temporary:
+			preTable = "TEMP "
+		statement = "CREATE %sTABLE %s (%s)"%(
+			preTable,
+			self.getQName(),
+			", ".join(column.getDDL() for column in self))
+		return statement
+
 	def macro_colNames(self):
 		"""returns an SQL-ready list of column names of this table.
 		"""

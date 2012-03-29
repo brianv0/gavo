@@ -395,14 +395,15 @@ class MetaTest(testhelpers.VerboseTest):
 
 
 class VOTableRenderTest(testhelpers.VerboseTest):
-	def _getTable(self, colDef):
+	def _getTable(self, colDef, rows=[{'x': None}]):
 		return rsc.TableForDef(base.parseFromString(rscdef.TableDef,
-				'<table>%s</table>'%colDef), rows=[{"x": None}])
+				'<table>%s</table>'%colDef), rows=rows)
 
 	def _getAsVOTable(self, colDef, **contextArgs):
+		rows = contextArgs.pop("rows", [{"x": None}])
 		contextArgs["tablecoding"] = contextArgs.get("tablecoding", "td")
 		return votablewrite.getAsVOTable(
-			self._getTable(colDef),
+			self._getTable(colDef, rows),
 			votablewrite.VOTableContext(**contextArgs))
 
 	def _assertVOTContains(self, colDef, literals, **contextArgs):
@@ -537,6 +538,13 @@ class GeoXtypeTest(VOTableRenderTest):
 			"adql:POINT")
 
 
+class TypesSerializationTest(VOTableRenderTest):
+	def testUnicode(self):
+		data, metadata = votable.load(
+			StringIO(self._getAsVOTable('<column name="x" type="unicode"/>', 
+				rows=[{"x": u"f\u00fcr"}])))
+		self.assertEqual(data[0][0], u"f\u00fcr")
+	
 
 class ValuesParsedTest(testhelpers.VerboseTest):
 	def testNull(self):

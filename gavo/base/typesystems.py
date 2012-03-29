@@ -24,6 +24,9 @@ In fact, we use a couple of extensions:
 		the web.  These are always strings.
 	- raw -- handed right through, whatever it is.  For target formats that
 		can't do this, usually strings are used.
+	- unicode -- this is TEXT in the database, but while normal text will
+	  be rendered as byte strings in VOTables (with non-ASCII-characters
+	  replaced by ?), unicode will become an array of unicodeChars.
 
 We should move all type conversion code here, and probably figure out
 a sane way to concentrate value conversion here as well (though that's
@@ -107,6 +110,7 @@ class ToVOTableConverter(FromSQLConverter):
 		"scircle": ("char", "*"),
 		"sbox": ("char", "*"),
 		"spoly": ("char", "*"),
+		"unicode": ("unicodeChar", "*"),
 	}
 
 	def mapComplex(self, type, length):
@@ -157,6 +161,8 @@ class FromVOTableConverter(object):
 			arraysize = ""
 		if type=="char":
 			return "text"
+		if type=="unicodeChar":
+			return "unicode"
 		if type=="unsignedByte" and arraysize!="1":
 			return "bytea[]"
 		if (type, '1') in self.simpleMap:
@@ -175,6 +181,7 @@ class ToXSDConverter(FromSQLConverter):
 		"boolean": "boolean",
 		"double precision": "double",
 		"text": "string",
+		"unicode": "string",
 		"char": "string",
 		"date": "date",
 		"timestamp": "dateTime",
@@ -201,6 +208,7 @@ class ToNumpyConverter(FromSQLConverter):
 		"boolean": numpy.bool,
 		"double precision": numpy.float64,
 		"text": numpy.str,
+		"unicode": numpy.unicode,
 		"char": numpy.str,
 		"date": numpy.float32,
 		"timestamp": numpy.float64,
@@ -223,6 +231,7 @@ class ToADQLConverter(FromSQLConverter):
 		"boolean": ("adql:INTEGER", None),
 		"double precision": ("adql:DOUBLE", None),
 		"text": ("adql:VARCHAR(*)", None),
+		"unicode": ("adql:VARCHAR(*)", None),
 		"char": ("adql:CHAR", 1),
 		"date": ("adql:VARCHAR(*)", None),
 		"timestamp": ("adql:TIMESTAMP", None),
@@ -242,10 +251,6 @@ class ToADQLConverter(FromSQLConverter):
 			return ("BINARY(*)", None)
 		if type in self.simpleMap:
 			return self.simpleMap[type][0], length
-
-
-########## End Helpers for conversion to python values
-
 
 
 class ToPythonBase(FromSQLConverter):
@@ -270,6 +275,7 @@ class ToPythonBase(FromSQLConverter):
 		"double precision": "parseFloat",
 		"text": "parseUnicode",
 		"char": "parseUnicode",
+		"unicode": "parseUnicode",
 		"date": "parseDefaultDate",
 		"timestamp": "parseDefaultDatetime",
 		"time": "parseDefaultTime",
@@ -349,6 +355,7 @@ class ToLiteralConverter(object):
 		"double precision": str,
 		"text": str,
 		"char": str,
+		"unicode": unicode,
 		"date": lambda v: v.isoformat(),
 		"timestamp": lambda v: utils.formatISODT(v),
 		"time": lambda v: v.isoformat(),

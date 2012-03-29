@@ -407,6 +407,7 @@ class ToVexprConverter(typesystems.FromSQLConverter):
 		"double precision": "vexpr-float",
 		"double": "vexpr-float",
 		"text": "vexpr-string",
+		"unicode": "vexpr-string",
 		"char": "vexpr-string",
 		"date": "vexpr-date",
 		"timestamp": "vexpr-date",

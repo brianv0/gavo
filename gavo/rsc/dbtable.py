@@ -509,14 +509,7 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 	def create(self):
 		base.ui.notifyDebug("Create DB Table %s"%self.tableName)
 		self.ensureSchema()
-		preTable = ""
-		if self.tableDef.temporary:
-			preTable = "TEMP "
-		self.query("CREATE %sTABLE %s (%s)"%(
-			preTable,
-			self.tableName,
-			", ".join([column.getDDL()
-				for column in self.tableDef.columns])))
+		self.query(self.tableDef.getDDL())
 		self.newlyCreated = True
 		return self.configureTable()
 

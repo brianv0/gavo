@@ -137,6 +137,7 @@ class ToFormalConverter(typesystems.FromSQLConverter):
 		"double precision": (formal.Float, formal.TextInput),
 		"double": (formal.Float, formal.TextInput),
 		"text": (formal.String, formal.TextInput),
+		"unicode": (formal.String, formal.TextInput),
 		"char": (formal.String, formal.TextInput),
 		"date": (formal.Date, formal.widgetFactory(formal.DatePartsInput,
 			twoCharCutoffYear=50, dayFirst=True)),

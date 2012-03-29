@@ -468,10 +468,17 @@ class ColumnBase(base.Structure, base.MetaMixin):
 		}
 	
 	def getDDL(self):
-		"""returns SQL describing this column ready for inclusion in a 
-		DDL statement.
+		"""returns an SQL fragment describing this column ready for 
+		inclusion in a DDL statement.
 		"""
-		items = [str(self.name), self.type]
+		type = self.type
+		# we have one "artificial" type, and it shouldn't become more than
+		# one; so, a simple hack should do it.
+		if type.upper()=="UNICODE":
+			type = "TEXT"
+
+		# The "str" does magic for delimited identifiers, so it's important.
+		items = [str(self.name), type]
 		if self.required:
 			items.append("NOT NULL")
 		return " ".join(items)

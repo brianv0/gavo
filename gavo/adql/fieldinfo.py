@@ -78,7 +78,7 @@ class Coercions(object):
 		"""
 		try:
 			startNodes = [self.typesIndex[t] for t in typeSeq]
-		except KeyError: # don't know at least one type
+		except KeyError, ex: # don't know at least one type
 			return self.root.name
 		try:
 			return reduce(self._unify, startNodes).name
@@ -88,24 +88,26 @@ class Coercions(object):
 
 N = _CoercNode
 _coercions = Coercions(
-	N('text', (
-		N("double precision", aliases=("double",), children=(
-			N("real", aliases=("float",), children=(
-				N("bigint", (
-					N("integer", aliases=("int",), children=(
-						N("smallint", (
-							N('bytea'),
-							N('boolean'),)),)),)),)),)),
-		N('timestamp', (
-			N('date'),
-			N('time'),)),
-		N('file'),
-		N('box'),
-		N('spoint'),
-		N('scircle'),
-		N('spoly', (
-			N('sbox'),)),
-		),))
+	N('raw', (
+		N('unicode', (
+			N('text', (
+				N("double precision", aliases=("double",), children=(
+					N("real", aliases=("float",), children=(
+						N("bigint", (
+							N("integer", aliases=("int",), children=(
+								N("smallint", (
+									N('bytea'),
+									N('boolean'),)),)),)),)),)),
+				N('timestamp', (
+					N('date'),
+					N('time'),)),
+				N('file'),
+				N('box'),
+				N('spoint'),
+				N('scircle'),
+				N('spoly', (
+					N('sbox'),)),
+				),),),),)))
 del N
 
 
