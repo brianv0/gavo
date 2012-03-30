@@ -60,11 +60,13 @@ void handleBadRecord(char *format, ...)
 		(void)fprintf(stderr, "Bad Record: '%s'\n", context);
 	}
 #ifndef IGNORE_BAD_RECORDS
-		die(format, ap);
-#else
-		longjmp(ignoreRecord, 1);
-#endif
+	(void)vfprintf(stderr, format, ap);
+	(void)fprintf(stderr, "\n");
 	va_end(ap);
+#else
+	va_end(ap);
+	longjmp(ignoreRecord, 1);
+#endif
 }
 
 
@@ -365,7 +367,8 @@ void real_fieldscanf(char *str, Field *f, valType type, char *fieldName, ...)
 	}
 	va_end(ap);
 	if (itemsMatched!=1) {
-		handleBadRecord("fieldscanf: Can't parse value '%s' for %s", str, fieldName);
+		handleBadRecord("fieldscanf: Can't parse field %s (value '%s')", 
+			fieldName, str);
 	}
 }
 

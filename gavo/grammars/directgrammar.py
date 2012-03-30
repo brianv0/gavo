@@ -411,6 +411,6 @@ def main():
 		opts, (rdName, tdId) = parseCmdLine()
 		td = getTableDef(rdName, tdId)
 		src = buildSource(td, opts)
-		print src
+		print src.encode("ascii", "ignore")
 	except SystemExit, msg:
 		sys.exit(msg.code)
