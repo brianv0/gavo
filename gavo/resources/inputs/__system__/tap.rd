@@ -5,62 +5,13 @@
 	<meta name="subject">Virtual observatory</meta>
 	<meta name="subject">Catalogs</meta>
 
+	<meta name="description">
+		\getConfig{web}{sitename}'s Table Access Protocol
+		(TAP) service with table metadata.
+	</meta>
 
 	<property name="TAP_VERSION">1.0</property>
 
-	<meta name="_longdoc" format="rst"><![CDATA[
-	This service speaks TAP, a protocol designed to allow the exchange of
-	queries and data between clients (that's you or a program you operate)
-	and servers (e.g., us).
-
-	You will usually want to use some sort of client to query TAP services;
-	TOPCAT_ contains one, the `GAVO VOTable library`_ another,
-	and there's the `TAP shell`_.
-	You can, however, use our service in an XML-enabled browser (see below under
-	`Overview <#overview>`_), too: click on "New job..." in the job list,
-	enter your query, click "Set query", then "Execute query".  Reload the
-	page you are redirected to now and then to see when your job is finished,
-	then retrieve the result.
-
-	The queries this service executes are written an a dialect of SQL called
-	ADQL.  You need to learn it to use this service.  See `our ADQL tutorial`_ or
-	check the `service doc of our ADQL form service`_ for some other resources
-	for doing that.  Also do not miss our `local examples`_
-	
-	By the way, for quick ad-hoc queries from within a browser,
-	this local `ADQL form`_ may be more convenient than ADQL.
-
-	Also see the `table metadata`_ of the tables exposed here.
-
-	.. _TOPCAT: http://www.star.bris.ac.uk/~mbt/topcat/
-	.. _GAVO VOTable library: http://soft.g-vo.org/subpkgs
-	.. _TAP shell: http://soft.g-vo.org/tapsh
-	.. _table metadata: \internallink{__system__/tap/run/tableMetadata}
-	.. _ADQL form: \internallink{__system__/adql/query/form}
-	.. _service doc of our ADQL form service: \internallink{__system__/adql/query/info}
-	.. _our ADQL tutorial: http://docs.g-vo.org/adql
-	.. _local examples: \internallink{__system__/tap/run/tap/examples}
-
-
-	Issues
-	======
-
-	For information on our ADQL implementation, see the
-	\RSTservicelink{__system__/adql/query/info}{ADQL service info}.
-
-	While columns with xtype adql:POINT are correctly ingested into the
-	database, adql:REGION columns are left alone (i.e., they are
-	strings in the database).  The reason for this behaviour is that
-	in order to infer a column type, one would have to inspect the
-	entire table up front.
-
-	If multiple output columns in a query would end up having the same name,
-	in the output VOTable they are disambiguated by appending underscores.
-	This is in violation of the specification, but since fixing it would
-	require rather intrusive changes into our software and it is not
-	clear why one should want to use names when they are not unique to begin
-	with, this will probably not be fixed.]]>
-	</meta>
 
 
 <!--**************************** the TAP schema *********************-->
@@ -434,6 +385,60 @@
 		<meta name="supportsModel">ObsCore 1.0</meta>
 		<meta name="supportsModel.ivoId">ivo://ivoa.net/std/ObsCore-1.0</meta>
 
+		<meta name="_longdoc" format="rst"><![CDATA[
+		This service speaks TAP, a protocol designed to allow the exchange of
+		queries and data between clients (that's you or a program you operate)
+		and servers (e.g., us).
+
+		You will usually want to use some sort of client to query TAP services;
+		TOPCAT_ contains one, the `GAVO VOTable library`_ another,
+		and there's the `TAP shell`_.
+		You can, however, use our service in an XML-enabled browser (see below under
+		`Overview <#overview>`_), too: click on "New job..." in the job list,
+		enter your query, click "Set query", then "Execute query".  Reload the
+		page you are redirected to now and then to see when your job is finished,
+		then retrieve the result.
+
+		The queries this service executes are written an a dialect of SQL called
+		ADQL.  You need to learn it to use this service.  See `our ADQL tutorial`_ or
+		check the `service doc of our ADQL form service`_ for some other resources
+		for doing that.  Also do not miss our `local examples`_
+		
+		By the way, for quick ad-hoc queries from within a browser,
+		this local `ADQL form`_ may be more convenient than ADQL.
+
+		Also see the `table metadata`_ of the tables exposed here.
+
+		.. _TOPCAT: http://www.star.bris.ac.uk/~mbt/topcat/
+		.. _GAVO VOTable library: http://soft.g-vo.org/subpkgs
+		.. _TAP shell: http://soft.g-vo.org/tapsh
+		.. _table metadata: \internallink{__system__/tap/run/tableMetadata}
+		.. _ADQL form: \internallink{__system__/adql/query/form}
+		.. _service doc of our ADQL form service: \internallink{__system__/adql/query/info}
+		.. _our ADQL tutorial: http://docs.g-vo.org/adql
+		.. _local examples: \internallink{__system__/tap/run/tap/examples}
+
+
+		Issues
+		======
+
+		For information on our ADQL implementation, see the
+		\RSTservicelink{__system__/adql/query/info}{ADQL service info}.
+
+		While columns with xtype adql:POINT are correctly ingested into the
+		database, adql:REGION columns are left alone (i.e., they are
+		strings in the database).  The reason for this behaviour is that
+		in order to infer a column type, one would have to inspect the
+		entire table up front.
+
+		If multiple output columns in a query would end up having the same name,
+		in the output VOTable they are disambiguated by appending underscores.
+		This is in violation of the specification, but since fixing it would
+		require rather intrusive changes into our software and it is not
+		clear why one should want to use names when they are not unique to begin
+		with, this will probably not be fixed.]]>
+		</meta>
+
 		<meta name="description">The \getConfig{web}{sitename}'s TAP end point.  The
 			Table Access Protocol (TAP) lets you execute queries against our
 			database tables, inspect various metadata, and upload your own
@@ -441,7 +446,7 @@
 			holdings.
 
 			Tables exposed through this endpoint include: \tablesForTAP.
-			</meta>
+		</meta>
 		<publish render="tap" sets="ivo_managed,local"/>
 	</service>
 
