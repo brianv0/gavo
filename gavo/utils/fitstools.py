@@ -453,13 +453,17 @@ def shrinkWCSHeader(oldHeader, factor):
 	newHeader["NAXIS2"] = oldHeader["NAXIS2"]//factor
 	newHeader["BITPIX"] = -32
 
-	ffac = float(factor)
-	newHeader["CRPIX1"] = oldHeader["CRPIX1"]/ffac+0.5
-	newHeader["CRPIX2"] = oldHeader["CRPIX2"]/ffac+0.5
-	for key in ("CDELT1", "CDELT2",
-			"CD1_1", "CD2_1", "CD1_2", "CD2_2"):
-		if key in oldHeader:
-			newHeader[key] = oldHeader[key]*ffac
+	try:
+		ffac = float(factor)
+		newHeader["CRPIX1"] = oldHeader["CRPIX1"]/ffac+0.5
+		newHeader["CRPIX2"] = oldHeader["CRPIX2"]/ffac+0.5
+		for key in ("CDELT1", "CDELT2",
+				"CD1_1", "CD2_1", "CD1_2", "CD2_2"):
+			if key in oldHeader:
+				newHeader[key] = oldHeader[key]*ffac
+	except KeyError: # no WCS, we're fine either way
+		pass
+
 	newHeader.update("IMSHRINK", "Image scaled down %s-fold by DaCHS"%factor)
 
 	for hField in ["BZERO", "BSCALE"]:
