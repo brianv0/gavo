@@ -416,6 +416,7 @@ class ResourceBasedPage(rend.Page, GavoRenderMixin):
 		rend.Page.__init__(self)
 		self.rd = rd
 		self.setMetaParent(rd)
+		self.macroPackage = rd
 		if hasattr(self.rd, "currently_blocked"):
 			raise RDBlocked()
 		self._initGavoRender()

@@ -266,3 +266,13 @@ class ConstantRenderTest(trialhelpers.RenderTest):
 		return self.assertGETHasStrings("/__system__/run/voplot/fixed",
 			{"source": "http%3A%3A%2Ffoo%3Asentinel"}, 
 			['<object archive="http://']) # XXX TODO: votablepath is url-encoded -- that can't be right?
+
+
+class MetaRenderTest(trialhelpers.RenderTest):
+	renderer = root.ArchiveService()
+
+	def testMacroExpanded(self):
+		return self.assertGETHasStrings("/browse/__system__/tap", {},
+			['<div class="rddesc"><span class="plainmeta"> Unittest'
+				" Suite's Table Access"])
+	

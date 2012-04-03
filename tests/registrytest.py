@@ -380,7 +380,6 @@ class DataPublicationMetaTest(testhelpers.VerboseTest):
 			"registrytest._PublishedData.clean failed?")
 
 
-
 class _PublishedRD(testhelpers.TestResource):
 	"""A resource that publishes all the stuff from an RD for while the
 	resource exists.
@@ -730,6 +729,14 @@ class ResumptionTokenTest(testhelpers.VerboseTest):
 				"TS2qdEksSbU1NDaysDA3NTc01DM3UitLLUqy9cksLglKTc4vSilWy00tSUxJLEk"
 				"MKEpNy6ywzSzLjy/LLwIA+dsbFQ=="},))
 
+
+class MetaExpandedTest(testhelpers.VerboseTest):
+	def testWithTAPRecord(self):
+		rd = base.caches.getRD("//tap")
+		rec = publication.iterSvcRecs(rd.services[0]).next()
+		self.failUnless(rec["description"].startswith(
+			"The Unittest Suite's TAP end point. The Table Access"))
+		self.assertEqual(rec["shortName"], "DaCHS standin TAP")
 
 if __name__=="__main__":
 	testhelpers.main(ListRecordsTest)

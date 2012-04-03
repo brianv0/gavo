@@ -50,8 +50,7 @@ def makeBaseRecord(res):
 	rec["title"] = base.getMetaText(res, "title", propagate=True)
 	rec["deleted"] = False
 	rec["recTimestamp"] = datetime.datetime.utcnow()
-	rec["description"] = unicode(res.getMeta("description"
-		) or unicode(res.getMeta("_description")))
+	rec["description"] = base.getMetaText(res, "description")
 	dateUpdated = res.getMeta("datetimeUpdated")
 	if dateUpdated is None:
 		rec["dateUpdated"] = datetime.datetime.utcnow()

@@ -254,7 +254,6 @@ def _getTupleAdder(table):
 			locals())
 
 
-
 def uploadVOTable(tableId, srcFile, connection, gunzip=False, 
 		rd=None, **tableArgs):
 	"""creates a temporary table with tableId containing the first
@@ -270,10 +269,12 @@ def uploadVOTable(tableId, srcFile, connection, gunzip=False,
 		rows = votable.parse(srcFile).next()
 	except StopIteration: # no table contained, not our problem
 		return
+
 	args = {"onDisk": True, "temporary": True}
 	args.update(tableArgs)
 	td = makeTableDefForVOTable(tableId, rows.tableDefinition, 
 		rd=rd, **args)
+
 	table = rsc.TableForDef(td, connection=connection, create=True)
 	addTuple = _getTupleAdder(table)
 	for row in rows:

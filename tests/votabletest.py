@@ -185,19 +185,22 @@ class VOTableTest(testhelpers.VerboseTest, testhelpers.XSDTestMixin):
 
 
 class _ImportTestData(testhelpers.TestResource):
-	resources = [("conn", tresc.dbConnection)]
-
 	def __init__(self, fName, nameMaker=None):
 		self.fName, self.nameMaker = fName, nameMaker
 		testhelpers.TestResource.__init__(self)
 
 	def make(self, deps):
-		conn = deps["conn"]
+		# we need a connection of our own so the temp table gets torn down
+		# immediately
+		self.conn = base.getDBConnection("untrustedquery")
 		tableDef = votableread.uploadVOTable("votabletest", 
-			open(self.fName), connection=conn, nameMaker=self.nameMaker).tableDef
-		querier = base.UnmanagedQuerier(connection=conn)
+			open(self.fName), connection=self.conn, nameMaker=self.nameMaker).tableDef
+		querier = base.UnmanagedQuerier(connection=self.conn)
 		data = list(querier.query("select * from votabletest"))
 		return tableDef, data
+	
+	def clean(self, ignored):
+		self.conn.close()
 
 
 class ImportTest(testhelpers.VerboseTest):
