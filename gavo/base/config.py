@@ -362,8 +362,9 @@ _config = Configuration(
 		EnsureTrailingSlashesItem("nevowRoot", default="/",
 			description="Path fragment to the server's root for operation off the"
 				" server's root"),
-		StringConfigItem("realm", default="Gavo", description="Authentication"
-			" realm to be used (currently, only one, server-wide, is supported)"),
+		StringConfigItem("realm", default="X-Unconfigured", 
+			description="Authentication realm to be used (currently,"
+			" only one, server-wide, is supported)"),
 		WebRelativeConfigItem("templateDir", default="templates",
 			description="webDir-relative location of global nevow templates"),
 		StringConfigItem("adminpasswd", default="",

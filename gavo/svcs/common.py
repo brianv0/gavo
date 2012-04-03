@@ -51,6 +51,7 @@ class Authenticate(Error):
 		self.realm = realm
 		Error.__init__(self, "This is a request to authenticate against %s"%realm)
 
+
 class WebRedirect(Error):
 	"""is raised when the user agent should look somwhere else.
 
