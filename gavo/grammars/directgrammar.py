@@ -405,8 +405,6 @@ def parseCmdLine():
 
 def main():
 	from gavo import rscdesc
-# Some rds need db connectivity
-	base.setDBProfile("trustedquery")
 	try:
 		opts, (rdName, tdId) = parseCmdLine()
 		td = getTableDef(rdName, tdId)

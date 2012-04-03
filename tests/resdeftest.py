@@ -407,7 +407,7 @@ class DataDescTest(testhelpers.VerboseTest):
 		dd = base.parseFromString(rscdef.DataDescriptor,
 			'<data><sources pattern="*"><ignoreSources pattern="*foo*"/></sources>'
 			'<nullGrammar/></data>')
-		dd.sources.ignoredSources.prepare()
+		dd.sources.ignoredSources.prepare(None)
 		self.failUnless(dd.sources.ignoredSources.isIgnored("kafoobar"))
 		self.failIf(dd.sources.ignoredSources.isIgnored("kafobar"))
 		self.failIf(dd.sources.ignoredSources.isIgnored("/baf/ooga/kafobar"))

@@ -420,6 +420,8 @@ def makeData(dd, parseOptions=common.parseNonValidating,
 	You can pass in a data instance created by yourself in data.  This
 	makes sense if you want to, e.g., add some meta information up front.
 	"""
+	if connection is None:
+		connection = base.getDBConnection("admin")
 	if data is None:
 		res = Data.create(dd, parseOptions, connection=connection)
 	else:
@@ -442,8 +444,7 @@ def makeData(dd, parseOptions=common.parseNonValidating,
 		else:
 			processSource(res, forceSource, feeder, parseOptions, connection)
 
-	if connection is None:
-		res.commitAll()
+	res.commitAll()
 	res.nAffected = feeder.getAffected()
 
 	if parseOptions.buildDependencies:

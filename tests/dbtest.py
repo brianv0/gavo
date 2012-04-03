@@ -135,7 +135,7 @@ class TestWithTableCreation(testhelpers.VerboseTest):
 
 	def _assertPrivileges(self, foundPrivs, expPrivs):
 		# profile user might not be mentioned in table acl, so retrofit it
-		profileUser = base.getDBProfile().user
+		profileUser = base.getDBProfile("admin").user
 		expPrivs[profileUser] = foundPrivs[profileUser]
 		self.assertEqual(set(foundPrivs), set(expPrivs))
 		for role in foundPrivs:
@@ -147,7 +147,7 @@ class TestWithTableCreation(testhelpers.VerboseTest):
 		testhelpers.VerboseTest.setUp(self)
 		if self.tableName is None:
 			return
-		self.querier = base.SimpleQuerier(connection=self.conn)
+		self.querier = base.UnmanagedQuerier(connection=self.conn)
 		self.tableDef = testhelpers.getTestTable(self.tableName, self.rdId)
 		self.table = rsc.TableForDef(self.tableDef, rows=self.rows,
 			connection=self.conn, create=True)
@@ -205,28 +205,9 @@ class TestRoleSetting(TestPrivs):
 		self.querier.query("drop schema test cascade")
 		self.querier.query("drop user privtestuser")
 		self.querier.query("drop user testadmin")
-		self.querier.commit()
+		self.querier.connection.commit()
 		os.unlink(os.path.join(self.profDir, "privtest"))
 		os.unlink(os.path.join(self.profDir, "testadmin"))
-
-
-class SimpleQuerierTest(TestWithTableCreation):
-	tableName = "typesTable"
-	rows = [{"anint": 3, "afloat": 3.25, "adouble": 7.5,
-			"atext": "foo", "adate": datetime.date(2003, 11, 13)}]
-	
-	def testPlainQuery(self):
-		q = base.SimpleQuerier(connection=self.conn)
-		self.assertEqual(q.runIsolatedQuery(
-				"select * from %s"%self.tableDef.getQName()),
-			[(3, 3.25, 7.5, u'foo', datetime.date(2003, 11, 13))])
-
-	def testDictQuery(self):
-		q = base.SimpleQuerier(connection=self.conn)
-		self.assertEqual(q.runIsolatedQuery(
-				"select * from %s"%self.tableDef.getQName(), asDict=True),
-			[{'anint': 3, 'afloat': 3.25, 'adouble': 7.5, 'atext': u'foo', 
-				'adate': datetime.date(2003, 11, 13)}])
 
 
 class AdhocQuerierTest(testhelpers.VerboseTest):
@@ -267,7 +248,7 @@ class AdhocQuerierTest(testhelpers.VerboseTest):
 
 	def testTimeoutReset(self):
 		with base.AdhocQuerier() as q:
-			q.setTimeout(0)
+			q.setTimeout(-12)
 			self.assertEqual(1, len(list(q.query(
 				"select * from %s limit 1"%self.table.tableDef.getQName(), timeout=2))))
 			self.assertEqual(q.getTimeout(), 0)
@@ -301,7 +282,7 @@ class TestMetaTableADQL(TestWithTableCreation):
 	tableName = "adqltable"
 
 	def testDcTablesEntry(self):
-		q = base.SimpleQuerier(connection=self.conn)
+		q = base.UnmanagedQuerier(connection=self.conn)
 		res = q.query("select * from dc.tablemeta where tableName=%(n)s",
 			{"n": self.tableDef.getQName()}).fetchall()
 		qName, srcRd, td, rd, adql = res[0]
@@ -374,7 +355,7 @@ class TestPreIndexSQLRunning(TestWithDataImport):
 	ddId = "import_sqlscript"
 
 	def testScriptRan(self):
-		q = base.SimpleQuerier(connection=self.connection)
+		q = base.UnmanagedQuerier(connection=self.connection)
 		ct = list(q.query("select count(*) from test.sqlscript"))[0][0]
 		self.assertEqual(ct, 3)
 
@@ -385,7 +366,7 @@ class TestPreIndexPythonRunning(TestWithDataImport):
 	ddId = "import_pythonscript"
 
 	def testScriptRan(self):
-		q = base.SimpleQuerier(connection=self.connection)
+		q = base.UnmanagedQuerier(connection=self.connection)
 		ct = list(q.query("select * from test.pythonscript"))[0][0]
 		self.assertEqual(ct, 123)
 

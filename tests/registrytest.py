@@ -369,7 +369,7 @@ class DataPublicationMetaTest(testhelpers.VerboseTest):
 		# this is actually a companion to DataPublicationTest making sure
 		# that _PublishedData's clean method has worked, possibly last time.
 		# Sorry 'bout that funkyness, but this is tricky to do sanely.
-		q = base.SimpleQuerier(connection=self.conn)
+		q = base.UnmanagedQuerier(connection=self.conn)
 		self.assertEqual(len(list(
 			q.query("SELECT * FROM dc.resources where sourcerd=%(rdId)s",
 				{"rdId": _PublishedData.rdId}))), 0, 
@@ -411,7 +411,7 @@ class DataPublicationTest(testhelpers.VerboseTest):
 		("pubDataRD", _PublishedData())]
 
 	def testPublication(self):
-		q = base.SimpleQuerier(connection=self.conn)
+		q = base.UnmanagedQuerier(connection=self.conn)
 		self.assertEqual(len(list(
 			q.query("SELECT * FROM dc.resources where sourcerd=%(rdId)s",
 				{"rdId": self.pubDataRD.sourceId}))), 1)

@@ -23,8 +23,7 @@ class DBConnection(testhelpers.TestResource):
 	setUpCost = 0.1
 
 	def make(self, ignored):
-		res = base.getDefaultDBConnection()
-		return res
+		return base.getDBConnection("admin")
 	
 	def clean(self, conn):
 		if not conn.closed:
@@ -115,24 +114,35 @@ class TestUsers(testhelpers.TestResource):
 	tearDownCost = 2
 
 	def make(self, deps):
+		self.conn = deps["conn"]
 		self.users = [
 			_NS(user="X_test", password="megapass", remarks=""),
 			_NS(user="Y_test", password="megapass", remarks="second test user"),
 		]
 		try:
-			with base.SimpleQuerier(connection=deps["conn"]) as self.querier:
-				for u in self.users:
-					admin.adduser(self.querier, u)
-				admin.addtogroup(self.querier, _NS(user="X_test", group="Y_test"))
+			querier = base.UnmanagedQuerier(connection=self.conn)
+			for u in self.users:
+				admin.adduser(querier, u)
+			admin.addtogroup(querier, _NS(user="X_test", group="Y_test"))
+			self.conn.commit()
 		except admin.ArgError:  # stale users?  try again.
+			self.conn.rollback()
 			self.clean(None)
-			self.make(deps)
+			for u in self.users:
+				admin.adduser(querier, u)
+			admin.addtogroup(querier, _NS(user="X_test", group="Y_test"))
+			self.conn.commit()
 		return self.users
 
 	def clean(self, ignore):
-		with self.querier:
-			for u in self.users:
-				admin.deluser(self.querier, u)
+		querier = base.UnmanagedQuerier(connection=self.conn)
+		for u in self.users:
+			try:
+				admin.deluser(querier, u)
+			except admin.ArgError: # user hasn't been created, go on
+				pass
+		self.conn.commit()
+		
 
 testUsers = TestUsers()
 

@@ -151,7 +151,7 @@ class EditCore(standardcores.TableBasedCore):
 		self._completeElementNext(EditCore, ctx)
 
 	def run(self, service, inputTable, queryMeta):
-		conn = base.getDBConnection(base.getDBProfileByName("admin"))
+		conn = base.getDBConnection(base.getDBProfile("admin"))
 		table = rsc.TableForDef(self.queriedTable, 
 			connection=conn)
 		table.addRow(inputTable.getParamDict())

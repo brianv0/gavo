@@ -228,7 +228,6 @@ def indexStatements(querier, args):
 
 
 def main():
-	base.setDBProfile("admin")
 	with base.AdhocQuerier(base.getAdminConn) as querier:
 		args = makeParser(globals()).parse_args()
 		args.subAction(querier, args)

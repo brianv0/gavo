@@ -72,8 +72,8 @@ class PlainJobCreationTest(testhelpers.VerboseTest):
 		return tap.workerSystem.destroy(jobId)
 
 	def _assertJobCreated(self, jobId):
-		with base.SimpleQuerier(connection=self.conn) as querier:
-			res = list(querier.query("SELECT jobId FROM tap_schema.tapjobs WHERE"
+		res = list(base.UnmanagedQuerier(self.conn).query(
+			"SELECT jobId FROM tap_schema.tapjobs WHERE"
 				" jobId=%(jobId)s", locals()))
 		self.assertEqual(len(res), 1)
 		job = tap.workerSystem.getJob(jobId)
@@ -81,10 +81,9 @@ class PlainJobCreationTest(testhelpers.VerboseTest):
 		self.failUnless(os.path.exists(job.getWD()))
 
 	def _assertJobDeleted(self, jobId):
-		with  base.SimpleQuerier(connection=self.conn) as querier:
-			res = list(querier.query(
-				"SELECT destructiontime FROM tap_schema.tapjobs"
-				" WHERE jobId=%(jobId)s", locals()))
+		res = list(base.UnmanagedQuerier(self.conn).query(
+			"SELECT destructiontime FROM tap_schema.tapjobs"
+			" WHERE jobId=%(jobId)s", locals()))
 		self.assertEqual(len(res), 0)
 		self.assertRaises(base.NotFoundError, tap.workerSystem.getJob, jobId)
 		self.failIf(os.path.exists(os.path.join(base.getConfig("uwsWD"), jobId)))

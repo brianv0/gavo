@@ -232,7 +232,7 @@ class DBTableTest(tresc.TestWithDBConnection):
 
 	def testCreation(self):
 		td = self._getRD().getTableDefById("xy")
-		querier = base.SimpleQuerier(connection=self.conn)
+		querier = base.UnmanagedQuerier(connection=self.conn)
 		table = rsc.TableForDef(td, connection=self.conn, nometa=True)
 		self.assert_(querier.tableExists(td.getQName()))
 		table.drop()

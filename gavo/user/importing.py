@@ -85,9 +85,6 @@ def main():
 		parser.add_option("-u", "--update", help="update mode -- don't drop"
 			" tables before writing.", dest="updateMode", 
 			action="store_true", default=False)
-		parser.add_option("-p", "--profile", help="use PROFILE to access db",
-			dest="dbProfile", action="store", type="str", 
-			default="admin", metavar="PROFILE")
 		parser.add_option("-s", "--system", help="(re-)create system tables, too",
 			dest="systemImport", action="store_true")
 		parser.add_option("-v", "--verbose", help="talk a lot while working",
@@ -116,7 +113,6 @@ def main():
 
 		(opts, args) = parser.parse_args()
 
-		base.setDBProfile(opts.dbProfile)
 		if opts.uiName:
 			if opts.uiName not in user.interfaces:
 				raise base.ReportableError("UI %s does not exist.  Choose one of"

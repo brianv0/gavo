@@ -31,34 +31,27 @@ class MetaTableHandler(object):
 	Though you can construct MetaTableHandlers of your own, you should
 	use base.caches.getMTH(None) when reading.
 	"""
-	def __init__(self, overrideProfile=None):
-		self.profile = overrideProfile or "admin"
+	def __init__(self):
 		self.rd = base.caches.getRD("__system__/dc_tables")
-		self.readQuerier = self._getQuerier()
-		if not self.readQuerier.tableExists("dc.columnmeta"):
+	
+		self.readerConnection = base.getDBConnection("trustedquery",
+			autocommitted=True)
+		querier = base.UnmanagedQuerier(self.readerConnection)
+		if not querier.tableExists("dc.columnmeta"):
 			# this is for bootstrapping: the first gavo imp dc_tables doesn't have
 			# dc tables yet but it doesn't need them either.
 			return
 		self.metaTable = dbtable.DBTable(
 			self.rd.getTableDefById("columnmeta"), 
-			connection=self.readQuerier.connection)
+			connection=self.readerConnection)
 		self.tablesTable = dbtable.DBTable(
 			self.rd.getTableDefById("tablemeta"),
-			connection=self.readQuerier.connection)
+			connection=self.readerConnection)
 		self.metaRowdef = self.rd.getTableDefById("metaRowdef")
 		self.tablesRowdef = self.rd.getTableDefById("tablemeta")
-		self.conn.rollback()
-
-	def _getQuerier(self):
-		"""returns the read-only querier for the meta table.
-
-		Do not use this querier to write information.
-		"""
-		self.conn = base.getDBConnection(self.profile, autocommitted=True)
-		return base.SimpleQuerier(connection=self.conn)
 
 	def close(self):
-		self.conn.close()
+		self.readerConnection.close()
 
 	def queryTablesTable(self, fragment, pars={}):
 		return self.tablesTable.iterQuery(self.tablesTable.tableDef, 
@@ -75,27 +68,25 @@ class MetaTableHandler(object):
 		Table names are opaque to MetaTableHandler but will
 		usually include a schema.
 		"""
+		resDict = {}
+		parts = colName.split(".")
+		if len(parts)==2:
+			tableName, colName = parts
+		elif len(parts)==3:
+			tableName = ".".join(parts[:2])
+			colName = parts[2]
+		elif len(parts)!=1:
+			raise ColumnError("Invalid column specification: %s"%colName)
+
 		try:
-			resDict = {}
-			parts = colName.split(".")
-			if len(parts)==2:
-				tableName, colName = parts
-			elif len(parts)==3:
-				tableName = ".".join(parts[:2])
-				colName = parts[2]
-			elif len(parts)!=1:
-				raise ColumnError("Invalid column specification: %s"%colName)
-			try:
-				match = self.metaTable.iterQuery(self.metaRowdef,
-						" tableName=%%(tableName)s AND colName=%%(colName)s", { 
-					"tableName": tableName,
-					"fieldName": colName,}).next()
-			except OperationalError:
-				raise base.ui.logOldExc(
-					ColumnError("No info for %s in %s"%(colName, tableName)))
-			return rscdef.Column.fromMetaTableRow(match)
-		finally:
-			self.conn.rollback()
+			match = self.metaTable.iterQuery(self.metaRowdef,
+					" tableName=%%(tableName)s AND colName=%%(colName)s", { 
+				"tableName": tableName,
+				"fieldName": colName,}).next()
+		except OperationalError:
+			raise base.ui.logOldExc(
+				ColumnError("No info for %s in %s"%(colName, tableName)))
+		return rscdef.Column.fromMetaTableRow(match)
 	
 	def getColumnsForTable(self, tableName):
 		"""returns a field definition list for tableName.
@@ -106,36 +97,30 @@ class MetaTableHandler(object):
 		Consider using the getTableDefForTable method for 
 		RD-correct columns.
 		"""
-		try:
-			if not "." in tableName:
-				tableName = "public."+tableName
-			res = self.metaTable.iterQuery(self.metaRowdef, 
-				" tableName=%(tableName)s", {"tableName": tableName},
-				limits=("ORDER BY colInd", {}))
-			return [rscdef.Column.fromMetaTableRow(row)
-				for row in res]
-		finally:
-			self.conn.rollback()
+		if not "." in tableName:
+			tableName = "public."+tableName
+		res = self.metaTable.iterQuery(self.metaRowdef, 
+			" tableName=%(tableName)s", {"tableName": tableName},
+			limits=("ORDER BY colInd", {}))
+		return [rscdef.Column.fromMetaTableRow(row)
+			for row in res]
 	
 	def getTableDefForTable(self, tableName):
+		if not "." in tableName:
+			tableName = "public."+tableName
 		try:
-			if not "." in tableName:
-				tableName = "public."+tableName
-			try:
-				tableRec = list(self.tablesTable.iterQuery(
-					self.tablesRowdef, 
-					"lower(tableName)=lower(%(tableName)s)", {
-							"tableName": tableName}))[0]
-			except IndexError:
-				raise base.ui.logOldExc(
-					base.NotFoundError(tableName, "Table", "dc_tables"))
-			return base.caches.getRD(tableRec["sourceRD"]
-				).getById(tableRec["tableName"].split(".")[-1])
-		finally:
-			self.conn.rollback()
+			tableRec = list(self.tablesTable.iterQuery(
+				self.tablesRowdef, 
+				"lower(tableName)=lower(%(tableName)s)", {
+						"tableName": tableName}))[0]
+		except IndexError:
+			raise base.ui.logOldExc(
+				base.NotFoundError(tableName, "Table", "dc_tables"))
+		return base.caches.getRD(tableRec["sourceRD"]
+			).getById(tableRec["tableName"].split(".")[-1])
 
 
-def _getMetaTable(profile):
-	return MetaTableHandler(profile)
+def _getMetaTable(ignored):
+	return MetaTableHandler()
 
 base.caches.makeCache("getMTH", _getMetaTable)

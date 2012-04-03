@@ -308,7 +308,6 @@ def main():
 	from gavo import web
 	from gavo.user import plainui
 	plainui.SemiStingyPlainUI(base.ui)
-	base.setDBProfile("admin")
 	opts, args = parseCommandLine()
 	getServicesRD().touchTimestamp()
 	if opts.all:

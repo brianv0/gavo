@@ -133,16 +133,19 @@ def runTAPQuery(query, timeout, connection, tdsForUploads, maxrec):
 	try:
 		pgQuery, tableTrunk = adqlglue.morphADQL(query,
 			tdsForUploads=tdsForUploads, externalLimit=maxrec)
-
 		base.ui.notifyInfo("Sending to postgres: %s"%pgQuery)
-		querier = base.SimpleQuerier(connection=connection)
 
-		querier.setTimeout(timeout)
+		querier = base.UnmanagedQuerier(connection)
 		# XXX Hack: this is a lousy fix for postgres' seqscan love with
 		# limit.  See if we still want this with newer postgres...
 		querier.configureConnection([("enable_seqscan", False)])
-		result = rsc.QueryTable(tableTrunk.tableDef, pgQuery,
-			connection=querier.connection)
+		prevTimeout = querier.getTimeout()
+		querier.setTimeout(timeout)
+		try:
+			result = rsc.QueryTable(tableTrunk.tableDef, pgQuery,
+				connection=querier.connection)
+		finally:
+			querier.setTimeout(prevTimeout)
 	except:
 		adqlglue.mapADQLErrors(*sys.exc_info())
 

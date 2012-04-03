@@ -35,10 +35,10 @@ class Error(Exception):
 # XXX TODO: move them to tresc
 class _ADQLQuerier(testhelpers.TestResource):
 	def make(self, deps):
-		return base.SimpleQuerier()
+		return base.UnmanagedQuerier(base.getDBConnection("admin"))
 	
 	def clean(self, querier):
-		querier.close()
+		querier.connection.close()
 adqlQuerier = _ADQLQuerier()
 
 
@@ -1027,8 +1027,8 @@ class JoinColResTest(ColumnTest):
 		physMass = cols[0]
 		self.assertEqual(physMass[0], "mass")
 		self.assertEqual(physMass[1].ucd, "phys.mass")
-		crazyMass = cols[-1]
-		self.assertEqual(crazyMass[0], "name")
+		crazyMass = cols[6]
+		self.assertEqual(crazyMass[0], "mass")
 		self.assertEqual(crazyMass[1].ucd, "event;using.incense")
 
 	def testSelfUsingJoin(self):

@@ -1056,7 +1056,7 @@ def getMetaText(ob, key, default=None, **kwargs):
 	try:
 		return m.getContent(macroPackage=macroPackage)
 	except MetaCardError:
-		print ">>>>>>>>>>>", key
+		raise
 
 
 class MetaBuilder(object):

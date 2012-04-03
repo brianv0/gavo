@@ -275,10 +275,10 @@ def _createRoles(dsn):
 			("trustedquery", ""),
 			("untrustedquery", "")]:
 		_createRoleFromProfile(conn, 
-			config.getDBProfileByName(profileName),
+			config.getDBProfile(profileName),
 			privileges)
 
-	adminProfile = config.getDBProfileByName("admin")
+	adminProfile = config.getDBProfile("admin")
 	cursor = conn.cursor()
 	cursor.execute("GRANT ALL ON DATABASE %s TO %s"%(dsn.parsed["dbname"], 
 		adminProfile.user))

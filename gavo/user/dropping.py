@@ -67,22 +67,24 @@ def _do_dropRD(opts, rdId, selectedIds=()):
 		dds = common.getPertainingDDs(rd, selectedIds)
 
 	parseOptions = api.getParseOptions(systemImport=opts.systemImport)
-	connection = api.getDBConnection("admin")
-	for dd in dds:
-		res = api.Data.drop(dd, connection=connection, parseOptions=parseOptions)
-	if not selectedIds or opts.dropAll:
-		from gavo.registry import servicelist
-		servicelist.cleanServiceTablesFor(rd, connection)
-		tap.unpublishFromTAP(rd, connection)
-	
-	# purge from system tables that have sourceRD
-	# all traces that may have been left from this RD
-	with base.SimpleQuerier(connection=connection) as querier:
-		for tableName in ["dc.tablemeta", "tap_schema.tables", 
-				"tap_schema.columns", "tap_schema.keys", "tap_schema.key_columns"]:
-			if querier.tableExists(tableName):
-				querier.query("delete from %s where sourceRd=%%(sourceRD)s"%tableName,
-					{"sourceRD": rd.sourceId})
+	with base.AdhocQuerier(base.getWritableAdminConn) as querier:
+
+		for dd in dds:
+			res = api.Data.drop(dd, connection=querier.connection, 
+				parseOptions=parseOptions)
+
+		if not selectedIds or opts.dropAll:
+			from gavo.registry import servicelist
+			servicelist.cleanServiceTablesFor(rd, querier.connection)
+			tap.unpublishFromTAP(rd, querier.connection)
+		
+		# purge from system tables that have sourceRD
+		# all traces that may have been left from this RD
+			for tableName in ["dc.tablemeta", "tap_schema.tables", 
+					"tap_schema.columns", "tap_schema.keys", "tap_schema.key_columns"]:
+				if querier.tableExists(tableName):
+					querier.query("delete from %s where sourceRd=%%(sourceRD)s"%tableName,
+						{"sourceRD": rd.sourceId})
 
 
 def dropRD():

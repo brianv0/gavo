@@ -194,10 +194,9 @@ class _ImportTestData(testhelpers.TestResource):
 	def make(self, deps):
 		conn = deps["conn"]
 		tableDef = votableread.uploadVOTable("votabletest", 
-			open(self.fName), conn, nameMaker=self.nameMaker).tableDef
-		querier = base.SimpleQuerier(connection=conn)
+			open(self.fName), connection=conn, nameMaker=self.nameMaker).tableDef
+		querier = base.UnmanagedQuerier(connection=conn)
 		data = list(querier.query("select * from votabletest"))
-		querier.rollback()
 		return tableDef, data
 
 

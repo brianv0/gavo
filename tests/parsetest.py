@@ -85,14 +85,18 @@ class SimpleParseTest(testhelpers.VerboseTest):
 			(dd,))
 
 
-def assertRowset(self, found, expected):
-	self.assertEqual(len(found), len(expected), 
-		"Rowset length didn't match: %s"%str(found))
-	for f, e in itertools.izip(sorted(found), sorted(expected)):
-		self.assertEqual(f, e, "Rows don't match: %s vs. %s"%(f, e))
+class RowsetTest(testhelpers.VerboseTest):
+	def assertQueryReturns(self, query, expected):
+		cursor = self.conn.cursor()
+		cursor.execute(query)
+		found = list(cursor)
+		self.assertEqual(len(found), len(expected), 
+			"Rowset length didn't match: %s"%str(found))
+		for f, e in itertools.izip(sorted(found), sorted(expected)):
+			self.assertEqual(f, e, "Rows don't match: %s vs. %s"%(f, e))
 
 
-class TestProductsImport(testhelpers.VerboseTest):
+class TestProductsImport(RowsetTest):
 	"""tests for operational import of real data.
 
 	This is more of an integration test, but never mind that.
@@ -100,25 +104,22 @@ class TestProductsImport(testhelpers.VerboseTest):
 	resources = [("conn", tresc.prodtestTable)]
 
 	def testWorkingImport(self):
-		assertRowset(self,
-			list(sqlsupport.SimpleQuerier(connection=self.conn).query(
-				"select object from test.prodtest")),
+		self.assertQueryReturns("select object from test.prodtest",
 			[("gabriel",), ("michael",)])
 	
 	def testInProducts(self):
-		assertRowset(self,
-			list(sqlsupport.SimpleQuerier(connection=self.conn).query(
-				"select * from dc.products where sourceTable='test.prodtest'")),
+		self.assertQueryReturns(
+				"select * from dc.products where sourceTable='test.prodtest'",
 			[(u'data/a.imp', u'X_test', datetime.date(2030, 12, 31), 
 					'text/plain', u'data/a.imp', u'test.prodtest'),
 			 (u'data/b.imp', u'X_test', datetime.date(2003, 12, 31), 
 					'text/plain', u'data/b.imp', u'test.prodtest'),])
 
 	def testInMetatable(self):
-		fields = sorted([(r[7], r[1], r[4]) for r in
-			sqlsupport.SimpleQuerier(connection=self.conn).query(
-				"select * from dc.columnmeta where tableName='test.prodtest'")])
-		assertRowset(self, fields, [
+		self.assertQueryReturns(
+			"select colInd, fieldName, description"
+			" from dc.columnmeta where tableName='test.prodtest'"
+			" order by colInd", [
 			(0, u'object', u''),
 			(1, u'alpha', u''),
 			(2, u'delta', u''),
@@ -195,7 +196,7 @@ class ProductsBadNameTest(testhelpers.VerboseTest):
 		("don't want quotes", False),]
 
 
-class CleanedupTest(testhelpers.VerboseTest):
+class CleanedupTest(RowsetTest):
 	"""tests for cleanup after table drop (may fail if other tests failed).
 	"""
 	resources = [("conn", tresc.dbConnection)]
@@ -204,22 +205,18 @@ class CleanedupTest(testhelpers.VerboseTest):
 		self.conn.rollback()
 
 	def testNotInProducts(self):
-		assertRowset(self,
-			list(sqlsupport.SimpleQuerier(connection=self.conn
-				).query(
-				"select * from dc.products where sourceTable='test.prodtest'")),
+		self.assertQueryReturns(
+			"select * from dc.products where sourceTable='test.prodtest'",
 			[])
 
 	def testNotInMetatable(self):
-		assertRowset(self,
-			list(sqlsupport.SimpleQuerier(connection=self.conn).query(
-			"select * from dc.columnmeta where tableName='test.prodtest'")),
+		self.assertQueryReturns(
+			"select * from dc.columnmeta where tableName='test.prodtest'",
 			[])
 
 	def testNotInDc_tables(self):
-		assertRowset(self,
-			list(sqlsupport.SimpleQuerier(connection=self.conn).query(
-				"select * from dc.tablemeta where tableName='test.prodtest'")),
+		self.assertQueryReturns(
+			"select * from dc.tablemeta where tableName='test.prodtest'",
 			[])
 
 

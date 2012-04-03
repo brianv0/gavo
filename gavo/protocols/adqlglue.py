@@ -171,7 +171,7 @@ def _getTupleAdder(table):
 
 
 def getFieldInfoGetter(accessProfile=None, tdsForUploads=[]):
-	mth = base.caches.getMTH(accessProfile)
+	mth = base.caches.getMTH(None)
 	tap_uploadSchema = dict((td.id, td) for td in tdsForUploads)
 	@utils.memoized
 	def getFieldInfos(tableName):
@@ -272,6 +272,7 @@ def query(querier, query, timeout=15, metaProfile=None, tdsForUploads=[],
 	query, table = morphADQL(query, metaProfile, tdsForUploads, externalLimit,
 		hardLimit=hardLimit)
 	addTuple = _getTupleAdder(table)
+	oldTimeout = querier.getTimeout()
 	try:
 		querier.setTimeout(timeout)
 		# XXX Hack: this is a lousy fix for postgres' seqscan love with
@@ -281,7 +282,7 @@ def query(querier, query, timeout=15, metaProfile=None, tdsForUploads=[],
 		for tuple in querier.query(query):
 			addTuple(tuple)
 	finally:
-		querier.rollback()
+		querier.setTimeout(oldTimeout)
 	if len(table)==int(table.tableDef.setLimit):
 		table.addMeta("_warning", "Your result is probably incomplete due"
 			" to your match limit of %s kicking in"%table.tableDef.setLimit)
@@ -313,11 +314,6 @@ class ADQLCore(svcs.Core, base.RestrictionMixin):
 	"""
 	name_ = "adqlCore"
 
-	_querier = None
-
-	def _getQuerier(self):
-		return base.SimpleQuerier(useProfile="untrustedquery")
-
 	def wantsTableWidget(self):
 		return False
 
@@ -326,8 +322,18 @@ class ADQLCore(svcs.Core, base.RestrictionMixin):
 		queryString = inRow["query"]
 		base.ui.notifyInfo("Incoming ADQL query: %s"%queryString)
 		try:
-			res = query(self._getQuerier(), queryString, 
-				timeout=queryMeta["timeout"], hardLimit=100000)
+			with base.AdhocQuerier(base.getUntrustedConn) as querier:
+				res = query(querier, queryString, 
+					timeout=queryMeta["timeout"], hardLimit=100000)
+# XXX Warning: We're returning the db connection to the connection
+# pool here while we still have a named cursor on it.  This is
+# risky because someone might fuzz with our connection later.
+# However, postponing the return of the connection isn't nice
+# either because then the renderer would have to manage the core's
+# connections, which is ugly, too.
+# I'm a bit at a loss for a good solution here.  Let's see how
+# well the "don't care" scheme works out.  Maybe we need a "renderer closes
+# connection" plan for this kind of streaming?
 			res.noPostprocess = True
 			queryMeta["Matched"] = len(res.rows)
 			if len(res.rows)==base.getConfig("adql", "webDefaultLimit"):
@@ -386,7 +392,6 @@ def localquery():
 	from gavo import formats
 
 	q = sys.argv[1]
-	base.setDBProfile("trustedquery")
-	with base.SimpleQuerier() as querier:
+	with base.AdhocQuerier() as querier:
 		table = query(querier, q, timeout=1000)
 		formats.formatData("votable", table, sys.stdout)

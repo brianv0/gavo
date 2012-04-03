@@ -455,7 +455,7 @@ class ObscorePublishedTest(testhelpers.VerboseTest):
 	def testAccessibleThroughADQL(self):
 		from gavo.protocols import adqlglue
 		from gavo.formats import votablewrite
-		querier = base.SimpleQuerier(
+		querier = base.UnmanagedQuerier(
 			connection=self.data.tables["glob"].connection)
 		res = adqlglue.query(querier, "select * from ivoa.ObsCore where"
 			" obs_collection='testing detritus'")

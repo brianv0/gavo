@@ -175,7 +175,6 @@ def parseCommandLine():
 
 
 def main():
-	base.setDBProfile("admin")
 	args = parseCommandLine()
 	if len(args.rd)==1 and args.rd[0]=="ALL":
 		validateAll(args)

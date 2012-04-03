@@ -18,7 +18,7 @@ from gavo.base.complexattrs import *
 
 from gavo.base.config import(
 	get as getConfig, set as setConfig,
-	setDBProfile, getDBProfile, getDBProfileByName,
+	getDBProfile,
 	makeSitePath, makeAbsoluteURL, getBinaryName,
 	openDistFile, getGroupId)
 
@@ -52,11 +52,13 @@ from gavo.base.parsecontext import (
 	IdAttribute, OriginalAttribute, ReferenceAttribute, ParseContext,
 	ReferenceListAttribute, resolveId, resolveCrossId)
 
-from gavo.base.sqlsupport import (getDBConnection, getDefaultDBConnection,
+from gavo.base.sqlsupport import (getDBConnection, 
 	DBError, QueryCanceledError, IntegrityError,
-	SimpleQuerier, AdhocQuerier, 
+	AdhocQuerier, UnmanagedQuerier,
 	connectionConfiguration,
-	getTableConn, getAdminConn, getWritableTableConn, getWritableAdminConn)
+	getUntrustedConn,
+	getTableConn, getAdminConn, getUntrustedConn,
+	getWritableTableConn, getWritableAdminConn, getWritableUntrustedConn)
 
 from gavo.base.structure import (Structure, ParseableStructure, 
 	DataContent, makeStruct, RestrictionMixin)

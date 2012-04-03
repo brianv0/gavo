@@ -125,8 +125,7 @@ class MiscCLITest(testhelpers.VerboseTest):
 
 class ImportTest(testhelpers.VerboseTest):
 	def testLifecycle(self):
-		querier = base.SimpleQuerier()
-		try:
+		with base.AdhocQuerier() as querier:
 			self.assertOutput(cli.main, 
 				argList=["--suppress-log",
 					"imp", "data/test", "productimport"],
@@ -148,8 +147,6 @@ class ImportTest(testhelpers.VerboseTest):
 			self.failIf(list(querier.query("SELECT * FROM dc.subjects"
 				" WHERE subject=%(s)s", {'s': "Problems, somebody else's"})))
 			self.failIf(querier.tableExists("test.prodtest"))
-		finally:
-			querier.close()
 
 	def testImportDeniedForOffInputs(self):
 		destName = os.path.expanduser("~/foobar.rd")
@@ -162,12 +159,11 @@ class ImportTest(testhelpers.VerboseTest):
 	def testMetaImportAndPurge(self):
 		self.assertOutput(cli.main, argList=["purge", "test.adql"])
 		try:
-			with base.SimpleQuerier(useProfile="admin") as querier:
+			with base.AdhocQuerier(base.getWritableAdminConn) as querier:
 				querier.query("CREATE TABLE test.adql (erratic INTEGER)")
 				querier.query("INSERT INTO test.adql VALUES (1)")
 
-			with base.getTableConn() as conn:
-				querier = base.SimpleQuerier(connection=conn)
+			with base.AdhocQuerier() as querier:
 				self.assertOutput(cli.main, argList=
 					["imp", "-m", "data/test", "ADQLTest"],
 					expectedStdout="Updating meta for ADQLTest\n")

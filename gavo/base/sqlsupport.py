@@ -153,10 +153,10 @@ def getDBConnection(profile, debug=debug, autocommitted=False):
 
 	For the standard table connection, there's a pool of those below.
 	"""
+	if profile is None:
+		profile = "trustedquery"
 	if isinstance(profile, basestring):
-		profile = config.getDBProfileByName(profile)
-	elif profile is None:
-		profile = config.getDBProfile()
+		profile = config.getDBProfile(profile)
 
 	if debug:
 		conn = psycopg2.connect(connection_factory=DebugConnection,
@@ -188,10 +188,6 @@ def getDBConnection(profile, debug=debug, autocommitted=False):
 		"debug": debug,
 		"autocommitted": autocommitted}
 	return conn
-
-
-def getDefaultDBConnection(debug=debug):
-	return getDBConnection(config.getDBProfile(), debug=debug)
 
 
 def _parseTableName(tableName, schema=None):
@@ -429,9 +425,9 @@ class PostgresQueryMixin(object):
 			readRight = "SELECT"
 
 		for profile in thingWithPrivileges.readProfiles:
-			res.append((config.getDBProfileByName(profile).roleName, readRight))
+			res.append((config.getDBProfile(profile).roleName, readRight))
 		for profile in thingWithPrivileges.allProfiles:
-			res.append((config.getDBProfileByName(profile).roleName, "ALL"))
+			res.append((config.getDBProfile(profile).roleName, "ALL"))
 		return dict(res)
 
 
@@ -492,12 +488,13 @@ class StandardQueryMixin(object):
 	def setTimeout(self, timeout):
 		"""sets a timeout on queries.
 
-		timeout is in seconds.
+		timeout is in seconds; timeout=0 disables timeouts (this is what
+		postgres does, too)
 		"""
 		# don't use query here since query may call setTimeout
 		cursor = self.connection.cursor()
 		try:
-			if timeout==0: # Special instrumentation for testing
+			if timeout==-12: # Special instrumentation for testing
 				cursor.execute("SET statement_timeout TO 1")
 			elif timeout is not None:
 				cursor.execute(
@@ -656,71 +653,15 @@ class QuerierMixin(PostgresQueryMixin, StandardQueryMixin):
 		self.connection.close()
 
 
-class SimpleQuerier(QuerierMixin):
-	"""A facade to dbapi2 and system catalog queries.
+class UnmanagedQuerier(QuerierMixin):
+	"""A simple interface to querying the database through a connection
+	managed by someone else.
 
-	This was a design mistake.  It's deprecated and slated to go when we've
-	converted all dependent code.  Use AdhocQuerier instead.
-
-	You can query (which makes raises normal exceptions and renders
-	the connection unusable after an error), runIsolatedQuery (which
-	may catch exceptions and in any case uses a connection of its own
-	so your own connection remains usable; however, you'll have race
-	conditions with it).
-
-	You have to close() manually; you also have to commit() when you
-	change something, finish() does 'em both.
-
-	You can also use the SimpleQuerier as a context manager; in that case,
-	the connection gets commited if everything worked out, and rolled
-	back otherwise.  In either case, a connection allocated by the 
-	SimpleQuerier gets closed, a connection passed in is left alone.
+	You have to pass in the connection, and any committing or rollback
+	is your responsibility.
 	"""
-	def __init__(self, connection=None, useProfile=None):
-		self.defaultProfile = useProfile
-		if connection:
-			self.ownedConnection = False
-			self.connection = connection
-		else:
-			self.ownedConnection = True
-			self.connection = getDBConnection(useProfile or config.getDBProfile())
-
-	def __enter__(self):
-		return self
-	
-	def __exit__(self, *exc_info):
-		if exc_info==(None, None, None):
-			if not self.connection.closed:
-				self.commit()
-		else:
-			if not self.connection.closed:
-				self.rollback()
-		if self.ownedConnection:
-			self.connection.close()
-
-	def rollback(self):
-		self.connection.rollback()
-
-	def commit(self):
-		self.connection.commit()
-
-	def close(self):
-		try:
-			self.connection.close()
-			self.connection = None
-		except (DBError, AttributeError):
-			# Let's assume that is because the connection is alredy gone
-			pass
-
-	def finish(self):
-		self.commit()
-		if self.ownedConnection:
-			self.close()
-
-	def __del__(self):
-		if self.ownedConnection and self.connection:
-			if not self.connection.closed:
-				self.close()
+	def __init__(self, connection):
+		self.connection = connection
 
 
 class AdhocQuerier(QuerierMixin):
@@ -816,9 +757,6 @@ def _initPsycopg(conn):
 
 class CustomConnectionPool(psycopg2.pool.ThreadedConnectionPool):
 	"""A threaded connection pool that returns trustedquery connections.
-
-	For now, all connections managed here are autocommitted;
-	there's code that does this in _connect.
 	"""
 	def __init__(self, minconn, maxconn, profileName, autocommitted=True):
 # make sure no additional arguments come in, since we don't
@@ -911,9 +849,12 @@ def _makeConnectionManager(profileName, minConn=3, maxConn=20,
 	return contextlib.contextmanager(getConnFromPool)
 
 
+getUntrustedConn = _makeConnectionManager("untrustedquery")
 getTableConn = _makeConnectionManager("trustedquery")
 getAdminConn = _makeConnectionManager("admin")
 
+getWritableUntrustedConn = _makeConnectionManager("untrustedquery", 
+	autocommitted=False)
 getWritableTableConn = _makeConnectionManager("trustedquery", 
 	autocommitted=False)
 getWritableAdminConn = _makeConnectionManager("admin", 

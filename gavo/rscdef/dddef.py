@@ -50,14 +50,15 @@ class IgnoreSpec(base.Structure):
 		copyable=True)
 	_rd = common.RDAttribute()
 
-	def prepare(self, connection=None):
+	def prepare(self, connection):
 		"""sets attributes to speed up isIgnored()
 		"""
 		self.inputsDir = base.getConfig("inputsDir")
 		self.ignoredSet = set()
 
 		if self.fromdb:
-			with base.SimpleQuerier(connection=connection) as q:
+			assert connection is not None
+			with base.UnmanagedQuerier(connection) as q:
 				try:
 					self.ignoredSet |= set(r[0] 
 						for r in q.query(self.fromdb))

@@ -192,7 +192,7 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 		self.ownedConnection = False
 		connection = kwargs.pop("connection", None)
 		if connection is None:
-			self.connection = base.getDefaultDBConnection()
+			self.connection = base.getDBConnection("trustedquery")
 			self.ownedConnection = True
 		else:
 			self.connection = connection

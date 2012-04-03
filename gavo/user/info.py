@@ -111,7 +111,6 @@ def parseCmdline():
 
 
 def main():
-	base.setDBProfile("trustedquery")
 	args = parseCmdline()
 	td = base.resolveCrossId(args.tableId, rscdef.TableDef)
 	printTableInfo(td)

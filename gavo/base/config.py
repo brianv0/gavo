@@ -298,7 +298,7 @@ class Configuration(fancyconfig.Configuration):
 				self.get("db", "profilePath"))
 		return self.__profileParser
 
-	def getDBProfileByName(self, profileName):
+	def getDBProfile(self, profileName):
 		if profileName is None:
 			return self.getDBProfile()
 		if not self._dbProfileCache.has_key(profileName):
@@ -308,19 +308,6 @@ class Configuration(fancyconfig.Configuration):
 			except utils.NoConfigItem:
 				raise ProfileParseError("Undefined DB profile: %s"%profileName)
 		return self._dbProfileCache[profileName]
-
-	def setDBProfile(self, profileName):
-		"""is the same as config.set("defaultProfileName", ...)
-		"""
-		self.getDBProfileByName(profileName)
-		self.set("defaultProfileName", profileName)
-
-	def getDBProfile(self):
-		"""returns the current db profile.
-		"""
-		if not self.get("defaultProfileName"):
-			raise ProfileParseError("Empty default profile name")
-		return self.getDBProfileByName(self.get("defaultProfileName"))
 
 
 _config = Configuration(
@@ -354,8 +341,8 @@ _config = Configuration(
 			" empty if inputsDir is only accessed by identical machines)"),
 		StringConfigItem("gavoGroup", description="Name of the unix group that"
 			" administers the DC", default="gavo"),
-		StringConfigItem("defaultProfileName", description="Default profile name"
-			" (used to construct system entities)", default="admin"),
+		StringConfigItem("defaultProfileName", description="Deprecated"
+			" and ignored.", default=""),
 		StringConfigItem("group", description="Name of the group that may write"
 			" into the log directory", default="gavo"),
 		PathConfigItem("xsdclasspath", description="Classpath necessary"
@@ -485,9 +472,7 @@ if os.environ.has_key("GAVO_INPUTSDIR"):
 
 get = _config.get
 set = _config.set
-setDBProfile = _config.setDBProfile
 getDBProfile = _config.getDBProfile
-getDBProfileByName = _config.getDBProfileByName
 
 
 def makeFallbackMeta(reload=False):

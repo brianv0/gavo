@@ -241,7 +241,7 @@ class TAP_SchemaTest(testhelpers.VerboseTest):
 		testhelpers.VerboseTest.tearDown(self)
 
 	def _checkPublished(self):
-		q = base.SimpleQuerier(connection=self.conn)
+		q = base.UnmanagedQuerier(connection=self.conn)
 		tables = set(r[0] for r in
 			(q.query("select table_name from TAP_SCHEMA.tables where sourcerd"
 			" = %(rdid)s", {"rdid": self.rd.sourceId})))
@@ -263,7 +263,7 @@ class TAP_SchemaTest(testhelpers.VerboseTest):
 		self.assertEqual(fkcols, set([(u'foo', u'rv')]))
 
 	def _checkUnpublished(self):
-		q = base.SimpleQuerier(connection=self.conn)
+		q = base.UnmanagedQuerier(connection=self.conn)
 		tables = set(r[0] for r in
 			(q.query("select table_name from TAP_SCHEMA.tables where sourcerd"
 			" = %(rdid)s", {"rdid": self.rd.sourceId})))
@@ -396,7 +396,7 @@ class RecreateAfterTest(testhelpers.VerboseTest):
 	resources = [("conn", tresc.dbConnection)]
 
 	def testRecreateAfter(self):
-		q = base.SimpleQuerier(connection=self.conn)
+		q = base.UnmanagedQuerier(connection=self.conn)
 		rd = testhelpers.getTestRD()
 		t0 = rsc.TableForDef(rd.getById("pythonscript"), connection=self.conn,
 			create=False)

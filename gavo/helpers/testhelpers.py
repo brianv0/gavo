@@ -64,7 +64,6 @@ if not os.path.exists(base.getConfig("rootDir")):
 		os.symlink(os.path.join(TEST_BASE, "test_data", "__system"),
 			os.path.join(base.getConfig("inputsDir"), "__system"))
 		os.mkdir(os.path.join(base.getConfig("inputsDir"), "test"))
-		base.setDBProfile("admin")
 		initdachs.initDB(dsn)
 
 		from gavo.registry import publication
@@ -450,7 +449,3 @@ def main(testClass, methodPrefix=None):
 		from gavo.user import errhandle
 		traceback.print_exc()
 		errhandle.raiseAndCatch(base)
-
-
-# remaining setup for tests (should go soon)
-base.setDBProfile("admin")
