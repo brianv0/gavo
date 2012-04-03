@@ -473,7 +473,7 @@ class QueryTableTest(testhelpers.VerboseTest):
 	def testBasic(self):
 		table = rsc.QueryTable(self.basetable.tableDef, 
 			"SELECT * FROM %s"%self.basetable.tableDef.getQName(),
-			connection=self.basetable.connection)
+			base.getDBConnection("trustedquery"))
 		rows = list(table)
 		self.failUnless(isinstance(rows[0], dict))
 
@@ -482,21 +482,23 @@ class QueryTableTest(testhelpers.VerboseTest):
 			[self.basetable.tableDef.getColumnByName("alpha"),
 				{"name": "mag2", "ucd": "phot.mag;times.two"}],
 			"SELECT alpha, mag*2 FROM %s"%self.basetable.tableDef.getQName(),
-			connection=self.basetable.connection)
+			connection=base.getDBConnection("trustedquery"))
 
 	def testRepeatedIteration(self):
 		table = rsc.QueryTable(self.basetable.tableDef, 
 			"SELECT * FROM %s"%self.basetable.tableDef.getQName(),
-			connection=self.basetable.connection)
+			connection=base.getDBConnection("trustedquery"))
 		rows = list(table)
-		rows = list(table)
-		self.failUnless(isinstance(rows[0], dict))
+		self.assertRaisesWithMsg(base.ReportableError,
+			"QueryTable already exhausted.",
+			list,
+			(table,))
 
 	def testRefusesRows(self):
 		self.assertRaisesWithMsg(base.Error,
-			"QueryTables cannot be constructed with rows",
+			"QueryTables cannot be constructed with rows.",
 			rsc.QueryTable,
-			(None, ""),
+			(None, "", None),
 			rows=[])
 
 

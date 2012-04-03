@@ -16,40 +16,30 @@ class QueryTable(table.BaseTable, dbtable.DBMethodsMixin):
 	"""QueryTables are constructed with a table definition and a DB query
 	feeding this table definition.
 
-	As with plain DB tables, you can pass in a connection; if you don't
-	a new connection will be opened.
+	*Warning, funky stuff*: QueryTables must be constructed with a connection,
+	and they will devour them (i.e. close them when they're done).  Do
+	*not* pass in any connection you want to re-use.
+
+	This funky semantics is for the benefit of taprunner; it needs a
+	connection up front for uploads.  Any solutions that prevent this
+	kind of devouring of parameters is welcome.
 
 	There's an alternative constructor allowing "quick" construction of
 	the result table (fromColumns).
 	"""
-	def __init__(self, tableDef, query, **kwargs):
+	connection = None
+
+	def __init__(self, tableDef, query, connection, **kwargs):
+		self.connection = connection
 		if "rows" in kwargs:
-			raise base.Error("QueryTables cannot be constructed with rows")
+			raise base.ReportableError("QueryTables cannot be constructed"
+				" with rows.")
 		self.query = query
-		table.BaseTable.__init__(self, tableDef, **kwargs)
-		self._makeConnection(kwargs)
-	
-	def __iter__(self):
-		"""actually runs the query and returns rows (dictionaries).
-
-		Warning: You must exhaust the iterator before iterating anew.
-		"""
-		cursor = self.connection.cursor("cursor"+hex(id(self)))
-		cursor.execute(self.query)
-		while True:
-			nextRows = cursor.fetchmany(1000)
-			if not nextRows:
-				break
-			for row in nextRows:
-				yield self.tableDef.makeRowFromTuple(row)
-		cursor.close()
-
-	def __len__(self):
-		# Avoid unnecessary failures when doing list(QueryTable())
-		raise AttributeError()
+		table.BaseTable.__init__(self, tableDef, connection=connection,
+			**kwargs)
 
 	@classmethod
-	def fromColumns(cls, colSpec, query, **kwargs):
+	def fromColumns(cls, colSpec, query, connection, **kwargs):
 		"""returns a QueryTable object for query, where the result table is
 		inferred from colSpec.
 
@@ -64,4 +54,40 @@ class QueryTable(table.BaseTable, dbtable.DBMethodsMixin):
 			else:
 				columns.append(c)
 		return cls(base.makeStruct(rscdef.TableDef, columns=columns),
-			query, **kwargs)
+			query, connection=connection, **kwargs)
+
+	def __iter__(self):
+		"""actually runs the query and returns rows (dictionaries).
+
+		You can only iterate once.  At exhaustion, the connection will
+		be closed.
+		"""
+		if self.connection is None:
+			raise base.ReportableError("QueryTable already exhausted.")
+
+		cursor = self.connection.cursor("cursor"+hex(id(self)))
+		cursor.execute(self.query)
+		while True:
+			nextRows = cursor.fetchmany(1000)
+			if not nextRows:
+				break
+			for row in nextRows:
+				yield self.tableDef.makeRowFromTuple(row)
+		cursor.close()
+		self.cleanup()
+
+	def __len__(self):
+		# Avoid unnecessary failures when doing list(QueryTable())
+		raise AttributeError()
+
+	def cleanup(self):
+		if self.connection is not None:
+			try:
+				self.connection.close()
+			except base.DBError:  
+				# Connection already closed or similarly ignorable
+				pass
+			self.connection = None
+
+	def __del__(self):
+		self.cleanup()
