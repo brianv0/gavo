@@ -113,16 +113,12 @@ should look if you just want to use this.</meta>
 	<doc><![CDATA[
 	is an apply proc that translates values via a utils.NameMap
 	
-	If an object cannot be resolved, a null value is entered (i.e., you
-	shouldn't get an exception out of this proc but can weed out "bad"
-	records through notnull-conditions later if you wish).
-
 	Destination may of course be the source field (though that messes
 	up idempotency of macro expansion, which shouldn't usually hurt).
 
-	The format of the mapping file is
+	The format of the mapping file is::
 
-	<target key><tab><source keys>
+		<target key><tab><source keys>
 
 	where source keys is a whitespace-seperated list of values that should
 	be mapped to target key (sorry the sequence's a bit unusual).
@@ -130,13 +126,33 @@ should look if you just want to use this.</meta>
 	A source key must be encoded quoted-printable.  This usually doesn't
 	matter except when it contains whitespace (a blank becomes =20) or equal
 	signs (which become =3D).
+
+	Here's an example application for a filter that's supposed to translate
+	some botched object names::
+
+		<apply name="cleanObject" procDef="//procs#mapValue">
+			<bind name="destination">"cleanedObject"</bind>
+			<bind name="failuresMapThrough">True</bind>
+			<bind name="value">@preObject</bind>
+			<bind name="sourceName">"flashheros/res/namefixes.txt"</bind>
+		</apply>
+
+	The input could look like this, with a Tab char written as " <TAB> "
+	for clarity::
+
+		alp Cyg <TAB> aCyg alphaCyg
+		Nova Cygni 1992 <TAB> Nova=20Cygni=20'92 Nova=20Cygni
 ]]></doc>
 	<setup>
 		<par key="destination" description="name of the field the mapped 
 			value should be written into"/>
 		<par key="logFailures" description="Log non-resolved names?">False</par>
 		<par key="failuresAreNone" description="Rather than raise an error,
-			assign NULL to values not found">False</par>
+			yield NULL for values not in the mapping">False</par>
+		<par key="failuresMapThrough" description="Rather than raise an error,
+			yield the input value if it is not in the mapping (this is for
+			'fix some'-like functions and only works when failureAreNone is False)"
+			>False</par>
 		<par key="sourceName" description="An inputsDir-relative path to 
 			the NameMap source file."/>
 		<par key="value" late="True" description="The value to be mapped."/>
@@ -153,6 +169,8 @@ should look if you just want to use this.</meta>
 				base.ui.notifyWarning("Name %s could not be mapped\n"%value)
 			if failuresAreNone:
 				vars[destination] = None
+			elif failuresMapThrough:
+				vars[destination] = value
 			else:
 				raise base.LiteralParseError("Name %s could not be mapped"%value,
 					destination, value)
