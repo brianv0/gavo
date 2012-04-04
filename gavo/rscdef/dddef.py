@@ -58,13 +58,13 @@ class IgnoreSpec(base.Structure):
 
 		if self.fromdb:
 			assert connection is not None
-			with base.UnmanagedQuerier(connection) as q:
-				try:
-					self.ignoredSet |= set(r[0] 
-						for r in q.query(self.fromdb))
-				except base.DBError: # table probably doesn't exist yet.
-					if base.DEBUG:
-						base.ui.logError()
+			q = base.UnmanagedQuerier(connection)
+			try:
+				self.ignoredSet |= set(r[0] 
+					for r in q.query(self.fromdb))
+			except base.DBError: # table probably doesn't exist yet.
+				if base.DEBUG:
+					base.ui.logError()
 
 		if self.fromfile:
 			for ln in open(self.fromfile):

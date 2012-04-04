@@ -11,7 +11,9 @@ from gavo import utils
 from gavo.imp.argparse import ArgumentParser
 
 NUMERIC_TYPES = frozenset(["smallint", "integer", "bigint", "real",
-	"double precision", "timestamp"])
+	"double precision"])
+
+ORDERED_TYPES = frozenset(["timestamp", "text", "unicode"]) | NUMERIC_TYPES
 
 
 class AnnotationMaker(object):
@@ -67,11 +69,12 @@ def annotateDBTable(td):
 	nameMaker = base.VOTNameMaker()
 	for col in td:
 		annotator = AnnotationMaker(col)
-		if col.type in NUMERIC_TYPES:
+		if col.type in ORDERED_TYPES:
 			outputFields.append(annotator.getOutputFieldFor("max",
 				"MAX(%(name)s)", nameMaker))
 			outputFields.append(annotator.getOutputFieldFor("min",
 				"MIN(%(name)s)", nameMaker))
+		if col.type in NUMERIC_TYPES:
 			outputFields.append(annotator.getOutputFieldFor("avg",
 				"AVG(%(name)s)", nameMaker))
 		outputFields.append(annotator.getOutputFieldFor("hasnulls",
@@ -95,7 +98,8 @@ def printTableInfo(td):
 		row = [col.name]
 		for prop in _PROP_SEQ:
 			if prop in col.annotations:
-				row.append(col.annotations[prop])
+				row.append(utils.makeEllipsis(
+					str(col.annotations[prop]), 30))
 			else:
 				row.append("-")
 		propTable.append(tuple(row))
