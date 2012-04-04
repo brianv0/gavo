@@ -116,11 +116,11 @@ def getTableDef(tableName):
 	If no such table is known to the system, a NotFoundError is raised.
 	"""
 	with base.AdhocQuerier(base.getTableConn) as q:
-		res = list(q.query("SELECT sourceRD FROM dc.tablemeta WHERE"
-				" tableName=%(tableName)s", {"tableName": tableName}))
+		res = list(q.query("SELECT tableName, sourceRD FROM dc.tablemeta WHERE"
+				" LOWER(tableName)=LOWER(%(tableName)s)", {"tableName": tableName}))
 	if len(res)!=1:
 		raise base.NotFoundError(tableName, what="Table",
 			within="data center table listing.", hint="The table is missing from"
 			" the dc.tablemeta table.  This gets filled at gavoimp time.")
-	rdId = res[0][0]
+	tableName, rdId = res[0]
 	return base.caches.getRD(rdId).getById(basename(tableName))

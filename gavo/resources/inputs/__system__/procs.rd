@@ -93,7 +93,7 @@ should look if you just want to use this.</meta>
 		cacheDir.  To avoid flooding simbad with repetetive requests, it
 		raises an error if this directory is not writable.
 
-		It leaves J2000.0 positions as floats  in the simbadAlpha and 
+		It leaves J2000.0 positions as floats in the simbadAlpha and 
 		simbadDelta variables.
 	</doc>
 	<code>

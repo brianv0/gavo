@@ -738,5 +738,12 @@ class MetaExpandedTest(testhelpers.VerboseTest):
 			"The Unittest Suite's TAP end point. The Table Access"))
 		self.assertEqual(rec["shortName"], "DaCHS standin TAP")
 
+
+class ResourceLocationTest(testhelpers.VerboseTest):
+	def testCaseyTableNamesOk(self):
+		self.assertEqual(registry.getTableDef("ivoa.obsCore").getQName(), 
+			"ivoa.ObsCore")
+
+
 if __name__=="__main__":
 	testhelpers.main(ListRecordsTest)
