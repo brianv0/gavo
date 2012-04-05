@@ -395,24 +395,10 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		This method ventures a guess.  You can override this decision by setting
 		the resType meta item.
 		"""
-		if "tap" in self.allowed:
+		if (self.outputTable.columns 
+			or self.outputTable.verbLevel
+			or "tap" in self.allowed):
 			self.resType = "catalogService"
-		elif self.outputTable.columns or self.outputTable.verbLevel:
-			# need to check for verbLevel since at that point the outputTable
-			# has not onParentCompleted and thus columns is empty with verbLevel.
-# XXX the NVO registry can't cope with tableService, so we declare
-# everything as a catalogService for now
-			self.resType = "catalogService"
-			return
-# XXX end NVO brain damage fixing hack
-
-			if (self.outputTable.getColumnsByUCDs("pos.eq.ra", 
-						"pos.eq.ra;meta.main", "POS_EQ_RA_MAIN")
-					or self.getMeta("coverage", default=None) is not None):
-				# There's either coverage or a position: A CatalogService
-				self.resType = "catalogService"
-			else: # We have an output table, but no discernible positions
-				self.resType = "tableService"
 		else: # no output table defined, we're a plain service
 			self.resType = "nonTabularService"
 

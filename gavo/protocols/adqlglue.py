@@ -43,6 +43,8 @@ class TDContext(object):
 # we make up some when we don't have any yet.  This is governed by
 # the following dictionary (plus, there's special handling for
 # bytea in _makeColumnFromFieldInfo: single byteas get promoted to shorts)
+# All this is in particular for columns that came into being from
+# expressions.
 #
 # This largely follows what Mark Taylor does in topcat.
 _artificialNULLs = {
