@@ -24,7 +24,6 @@ from gavo import base
 from gavo import rsc
 from gavo import svcs
 from gavo import utils
-from gavo.protocols import tap
 from gavo.protocols import uws
 from gavo.utils import stanxml
 from gavo.utils import ElementTree
@@ -132,19 +131,11 @@ class UWS(object):
 		_mayBeEmpty = True
 
 
-def getJobURL(jobId):
-	"""returns a URL to access jobId's job info.
-	"""
-	return "%s/async/%s"%(
-		base.caches.getRD(tap.RD_ID).getById("run").getURL("tap"),
-		jobId)
-
-
 def getJobList(workerSystem):
 	result = UWS.jobs()
 	for jobId, phase in workerSystem.getIdsAndPhases():
 		result[
-			UWS.jobref(id=jobId, href=getJobURL(jobId))[
+			UWS.jobref(id=jobId, href=workerSystem.getURLForId(jobId))[
 				UWS.phase[phase]]]
 	return stanxml.xmlrender(result, "<?xml-stylesheet "
 		"href='/static/xsl/uws-joblist-to-html.xsl' type='text/xsl'?>")
@@ -393,7 +384,7 @@ _JobActions.addAction(OwnerAction)
 
 
 def _getResultsElement(job):
-	baseURL = getJobURL(job.jobId)+"/results/"
+	baseURL = job.getURL()+"/results/"
 	return UWS.results[[
 			UWS.result(id=res["resultName"], href=baseURL+res["resultName"])
 		for res in job.getResults()]]
@@ -473,8 +464,6 @@ class RootAction(JobAction):
 _JobActions.addAction(RootAction)
 
 
-
-
 def doJobAction(workerSystem, request, segments):
 	"""handles the async UI of UWS.
 
@@ -488,7 +477,5 @@ def doJobAction(workerSystem, request, segments):
 		action = ""
 	else:
 		action, segments = segments[0], segments[1:]
-# XXX TODO: We need some parametrization of what UWSJob subclass gets
-# used here and in subclasses
 	return _JobActions.dispatch(action, 
 		workerSystem.getJob(jobId), request, segments)

@@ -61,6 +61,9 @@ class UWS(object):
 
 	If you want more canned queries, use the 
 	_makeMoreStatements(statements, jobsTable) hook.
+
+	You must override the getURLForId(jobId) method in your concrete
+	implementation.
 	"""
 	# how often should we check for jobs that wait for destruction?
 	cleanupInterval = 3600*12
@@ -309,6 +312,13 @@ class UWS(object):
 				except JobNotFound:
 					# Someone else has cleaned up -- that's ok
 					pass
+
+	def getURLForId(self, jobId):
+		"""returns the handling URL for the job with jobId.
+
+		You must override this in deriving classes.
+		"""
+		raise NotImplementedError("Incomplete UWS (getURLForId not overridden).")
 
 
 class ParameterRef(object):
@@ -665,6 +675,11 @@ class BaseUWSJob(object):
 
 		Self is writable at this point.
 		"""
+
+	def getURL(self):
+		"""returns the UWS URL for this job.
+		"""
+		return self.uws.getURLForId(self.jobId)
 
 	@contextlib.contextmanager
 	def getWritable(self):

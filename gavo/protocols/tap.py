@@ -615,6 +615,8 @@ class TAPUWS(uws.UWS):
 	# processQueueDirty is set by TAPTransitions whenever it's likely
 	# QUEUED jobs could be promoted to executing.
 	_processQueueDirty = False
+	
+	_baseURLCache = None
 
 	def __init__(self):
 		# processQueue shouldn't need a lock, but it's wasteful to
@@ -763,5 +765,17 @@ class TAPUWS(uws.UWS):
 				for value in valueList:
 					wjob.setSerializedPar(key, valueList[0])
 		return jobId
+
+	@property
+	def baseURL(self):
+		if self._baseURLCache is None:
+			self._baseURLCache = base.caches.getRD(
+				RD_ID).getById("run").getURL("tap")
+		return self._baseURLCache
+
+	def getURLForId(self, jobId):
+		"""returns a fully qualified URL for the job with jobId.
+		"""
+		return "%s/%s/%s"%(self.baseURL, "async", jobId)
 
 workerSystem = TAPUWS()
