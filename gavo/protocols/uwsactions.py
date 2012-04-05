@@ -166,24 +166,30 @@ def getParametersElement(job):
 	return res
 
 
-class _JobActions(object):
+class JobActions(object):
 	"""A collection of "actions" performed on UWS jobs.
 
-	These correspond to the resources specified in the UWS spec.
-
-	It is basically a dispatcher to JobAction instances which are added
-	through the addAction method.
+	Their names are the names of the child resources of UWS jobs.  The basic UWS
+	actions are built in.  When constructing those, you can pass in as many
+	additional JobAction subclasses as you want.  Set their names to
+	one of UWS standard actions to override UWS behaviour if you think
+	that's wise.
 	"""
-	actions = {}
+	_standardActions = {}
+
+	def __init__(self, *additionalActions):
+		self.actions = {}
+		self.actions.update(self._standardActions)
+		for actionClass in additionalActions:
+			self.actions[actionClass.name] = actionClass()
 
 	@classmethod
-	def addAction(cls, actionClass):
-		cls.actions[actionClass.name] = actionClass()
+	def addStandardAction(cls, actionClass):
+		cls._standardActions[actionClass.name] = actionClass()
 
-	@classmethod
-	def dispatch(cls, action, job, request, segments):
+	def dispatch(self, action, job, request, segments):
 		try:
-			resFactory = cls.actions[action]
+			resFactory = self.actions[action]
 		except KeyError:
 			raise base.ui.logOldExc(
 				svcs.UnknownURI("Invalid UWS action '%s'"%action))
@@ -254,7 +260,7 @@ class ErrorAction(JobAction):
 		return ErrorResource(job.error, httpStatus=200)
 
 	doPOST = doGET
-_JobActions.addAction(ErrorAction)
+JobActions.addStandardAction(ErrorAction)
 
 
 class StartTimeAction(JobAction):
@@ -272,7 +278,7 @@ class StartTimeAction(JobAction):
 			return utils.formatISODT(job.startTime)
 
 	doPOST = doGET
-_JobActions.addAction(StartTimeAction)
+JobActions.addStandardAction(StartTimeAction)
 
 
 class ParameterAction(JobAction):
@@ -288,7 +294,7 @@ class ParameterAction(JobAction):
 				wjob.setSerializedPar(key, utils.getfirst(request.args, key, None))
 		raise svcs.WebRedirect("async/"+job.jobId)
 
-_JobActions.addAction(ParameterAction)
+JobActions.addStandardAction(ParameterAction)
 
 class PhaseAction(JobAction):
 	name = "phase"
@@ -309,7 +315,7 @@ class PhaseAction(JobAction):
 		job.uws.checkProcessQueue()
 		request.setHeader("content-type", "text/plain")
 		return job.phase
-_JobActions.addAction(PhaseAction)
+JobActions.addStandardAction(PhaseAction)
 
 
 class _SettableAction(JobAction):
@@ -341,7 +347,7 @@ class ExecDAction(_SettableAction):
 	attName = 'executionDuration'
 	serializeValue = str
 	deserializeValue = float
-_JobActions.addAction(ExecDAction)
+JobActions.addStandardAction(ExecDAction)
 
 
 class DestructionAction(_SettableAction):
@@ -349,7 +355,7 @@ class DestructionAction(_SettableAction):
 	attName = "destructionTime"
 	serializeValue = staticmethod(utils.formatISODT)
 	deserializeValue = staticmethod(utils.parseISODT)
-_JobActions.addAction(DestructionAction)
+JobActions.addStandardAction(DestructionAction)
 
 
 class QuoteAction(JobAction):
@@ -364,7 +370,7 @@ class QuoteAction(JobAction):
 			quote = str(job.quote)
 		return quote
 	
-_JobActions.addAction(QuoteAction)
+JobActions.addStandardAction(QuoteAction)
 
 
 class OwnerAction(JobAction):
@@ -380,7 +386,7 @@ class OwnerAction(JobAction):
 			request.write(job.owner)
 		return ""
 
-_JobActions.addAction(OwnerAction)
+JobActions.addStandardAction(OwnerAction)
 
 
 def _getResultsElement(job):
@@ -420,7 +426,7 @@ class ResultsAction(JobAction):
 	def doGET(self, job, request):
 		return _getResultsElement(job)
 
-_JobActions.addAction(ResultsAction)
+JobActions.addStandardAction(ResultsAction)
 
 
 def _serializeTime(element, dt):
@@ -461,7 +467,7 @@ class RootAction(JobAction):
 			"<?xml-stylesheet href='%s' type='text/xsl'?>"%
 				"/static/xsl/uws-job-to-html.xsl")
 
-_JobActions.addAction(RootAction)
+JobActions.addStandardAction(RootAction)
 
 
 def doJobAction(workerSystem, request, segments):
@@ -477,5 +483,5 @@ def doJobAction(workerSystem, request, segments):
 		action = ""
 	else:
 		action, segments = segments[0], segments[1:]
-	return _JobActions.dispatch(action, 
+	return workerSystem.jobActions.dispatch(action, 
 		workerSystem.getJob(jobId), request, segments)

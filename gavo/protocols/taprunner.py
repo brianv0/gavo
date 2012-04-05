@@ -213,10 +213,14 @@ def _getResultType(formatProduced, formatOrdered):
 	return formats.getMIMEFor(formatProduced)
 
 
-def _runTAPJob(parameters, jobId, queryProfile, timeout):
+def runTAPJobNoState(parameters, jobId, queryProfile, timeout, 
+		getPlan=False):
 	"""executes a TAP job defined by parameters.  
 	
 	This does not do state management.  Use runTAPJob if you need it.
+
+	If you set getPlan to True, you'll get back a cursor you can
+	use with utils.pgexplain.
 	"""
 	_hangIfMagic(jobId, parameters, timeout)
 	query, format, maxrec = _parseTAPParameters(jobId, parameters)
@@ -238,6 +242,7 @@ def _runTAPJob(parameters, jobId, queryProfile, timeout):
 		_getResultType(format, job.parameters.get("format")), "result")
 	writeResultTo(format, res, destF)
 	destF.close()
+	# connectionForQuery closed by QueryTable
 
 
 def runTAPJob(jobId, queryProfile="untrustedquery"):
@@ -251,7 +256,7 @@ def runTAPJob(jobId, queryProfile="untrustedquery"):
 		timeout = job.executionDuration
 		parameters = job.parameters
 	try:
-		_runTAPJob(parameters, jobId, queryProfile, timeout)
+		runTAPJobNoState(parameters, jobId, queryProfile, timeout)
 	except Exception, ex:
 		tap.workerSystem.changeToPhase(jobId, uws.ERROR, ex)
 		base.ui.notifyError("While executing TAP job %s: %s"%(jobId, ex))

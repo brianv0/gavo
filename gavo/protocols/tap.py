@@ -25,6 +25,7 @@ from gavo import rsc
 from gavo import svcs
 from gavo import utils
 from gavo.protocols import uws
+from gavo.protocols import uwsactions
 from gavo.utils import codetricks
 
 
@@ -615,14 +616,13 @@ class TAPUWS(uws.UWS):
 	# processQueueDirty is set by TAPTransitions whenever it's likely
 	# QUEUED jobs could be promoted to executing.
 	_processQueueDirty = False
-	
 	_baseURLCache = None
 
 	def __init__(self):
 		# processQueue shouldn't need a lock, but it's wasteful to
 		# run more unqueuers, so we only run one at a time.
 		self._processQueueLock = threading.Lock()
-		uws.UWS.__init__(self, TAPJob)
+		uws.UWS.__init__(self, TAPJob, uwsactions.JobActions())
 
 	def _makeMoreStatements(self, statements, jobsTable):
 		td = jobsTable.tableDef

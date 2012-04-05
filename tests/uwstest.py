@@ -13,6 +13,7 @@ from gavo.helpers import testhelpers
 from gavo import base
 from gavo import rscdesc # for base.caches registration
 from gavo.protocols import uws
+from gavo.protocols import uwsactions
 
 import tresc
 
@@ -47,7 +48,7 @@ class UWSTestJob(uws.BaseUWSJob):
 	_parameter_somenumber = IntegerParameter
 	_parameter_nocase = IntegerParameter
 
-_TEST_UWS = uws.UWS(UWSTestJob)
+_TEST_UWS = uws.UWS(UWSTestJob, uwsactions.JobActions())
 
 
 class _TestUWSTable(tresc.RDDataResource):

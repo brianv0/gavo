@@ -54,7 +54,8 @@ class JobNotFound(base.NotFoundError, UWSError):
 class UWS(object):
 	"""a UWS facade.
 
-	You must construct it with the job class (see UWSJob).
+	You must construct it with the job class (see UWSJob) and a 
+	uwsactions.JobActions instance
 
 	The UWS then provides methods to access the jobs table,
 	create jobs and and deserialize jobs from the jobs table.
@@ -68,8 +69,9 @@ class UWS(object):
 	# how often should we check for jobs that wait for destruction?
 	cleanupInterval = 3600*12
 
-	def __init__(self, jobClass):
+	def __init__(self, jobClass, jobActions):
 		self.jobClass = jobClass
+		self.jobActions = jobActions
 		self._statementsCache = None
 		cron.every(self.cleanupInterval, self.cleanupJobsTable)
 	
