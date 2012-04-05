@@ -184,9 +184,9 @@ class RendExplainer(object):
 				("BAND", ""),
 				("FORMAT", "ALL")]:
 			opts.append("%s=%s"%(standardKey, 
-				urllib.quote(tqKeys.pop(standardKey, default))))
+				urllib.quote(tqKeys.pop(standardKey, [default])[0])))
 		opts.append("addparams="+urllib.quote("\n".join(
-			"%s=%s"%(k,urllib.quote(v)) for k,v in tqKeys.iteritems())))
+			"%s=%s"%(k,urllib.quote(v[0])) for k,v in tqKeys.iteritems())))
 		optStr = "&".join(opts)
 		if optStr:
 			optStr = optStr+"&"

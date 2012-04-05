@@ -214,6 +214,10 @@ class SSAPCapabilityTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 		self.assertEqual(int(self._getSSAPCapTree().find("maxRecords").text),
 			base.getConfig("ivoa", "dalHardLimit"))
 
+	def testTestQuery(self):
+		self.assertEqual(self._getSSAPCapTree().find("queryDataCmd").text,
+			"TARGETNAME=alpha%20Boo&amp;REQUEST=queryData")
+
 	def testRecordCreationFailsOnMissingMeta(self):
 		publication = testhelpers.getTestRD("ssatest"
 			).getById("s").publications[0]

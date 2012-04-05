@@ -74,6 +74,6 @@
 		<publish render="ssap.xml" sets="local"/>
 		<meta name="ssap.dataSource">artificial</meta>
 		<meta name="ssap.creationType">archival</meta>
-		<meta name="ssap.testQuery">MAXREC=1</meta>
+		<meta name="ssap.testQuery">TARGETNAME=alpha%20Boo</meta>
 	</service>
 </resource>
