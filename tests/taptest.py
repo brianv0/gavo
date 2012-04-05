@@ -282,6 +282,30 @@ class TAPSchemaTest(testhelpers.VerboseTest):
 		self.failUnless('<RESOURCE type="results">' in res)
 
 
+def _getUnparsedQueryResult(query):
+	jobId = tap.workerSystem.getNewJobId(parameters={
+			"query": query,
+			"request": "doQuery",
+			"lang": "ADQL"})
+	try:
+		taprunner.runTAPJob(jobId)
+		job = tap.workerSystem.getJob(jobId)
+		if job.phase==uws.ERROR:
+			raise Exception("Job died with msg %s"%job.error)
+		name, mime = job.getResult("result")
+		with open(name) as f:
+			res = f.read()
+	finally:
+		tap.workerSystem.destroy(jobId)
+	return res
+
+def _getQueryResult(query):
+	# returns a votable.simple result for query.
+	vot = _getUnparsedQueryResult(query)
+	res = votable.load(StringIO(vot))
+	return res
+
+
 class SimpleRunnerTest(testhelpers.VerboseTest):
 	"""tests various taprunner scenarios.
 	"""
@@ -290,29 +314,6 @@ class SimpleRunnerTest(testhelpers.VerboseTest):
 	def setUp(self):
 		testhelpers.VerboseTest.setUp(self)
 		self.tableName = self.ds.tables["adql"].tableDef.getQName()
-
-	def _getUnparsedQueryResult(self, query):
-		jobId = tap.workerSystem.getNewJobId(parameters={
-				"query": query,
-				"request": "doQuery",
-				"lang": "ADQL"})
-		try:
-			taprunner.runTAPJob(jobId)
-			job = tap.workerSystem.getJob(jobId)
-			if job.phase==uws.ERROR:
-				self.fail("Job died with msg %s"%job.error)
-			name, mime = job.getResult("result")
-			with open(name) as f:
-				res = f.read()
-		finally:
-			tap.workerSystem.destroy(jobId)
-		return res
-
-	def _getQueryResult(self, query):
-		# returns a votable.simple result for query.
-		vot = self._getUnparsedQueryResult(query)
-		res = votable.load(StringIO(vot))
-		return res
 
 	def testSimpleJob(self):
 		jobId = tap.workerSystem.getNewJobId(parameters={
@@ -344,7 +345,7 @@ class SimpleRunnerTest(testhelpers.VerboseTest):
 		self.failUnless('xmlns="http://www.ivoa.net/xml/VOTable/' in result)
 
 	def testColumnNames(self):
-		table, meta = self._getQueryResult(
+		table, meta = _getQueryResult(
 			'SELECT cos(delta) as frob, alpha as "AlPhA", delta, "delta",'
 			' 20+30, 20+30 AS constant, rv as "AS"'
 			' from %s'%self.tableName)
@@ -362,7 +363,7 @@ class SimpleRunnerTest(testhelpers.VerboseTest):
 		self.assertEqual(fields[6].name, "AS")
 
 	def testColumnTypes(self):
-		table, meta = self._getQueryResult(
+		table, meta = _getQueryResult(
 			"SELECT rv, point('icrs', alpha, delta), PI() from %s"%self.tableName)
 		fields = meta.getFields()
 		self.assertEqual(fields[0].datatype, "double")
@@ -370,20 +371,41 @@ class SimpleRunnerTest(testhelpers.VerboseTest):
 		self.assertEqual(fields[1].xtype, "adql:POINT")
 		self.assertEqual(fields[2].datatype, "double")
 
-	def testInfoMetasSimple(self):
-		tree = testhelpers.getXMLTree(
-			self._getUnparsedQueryResult(
-				"SELECT rv, PI() from %s"%self.tableName))
-		self.assertEqual(tree.xpath("//INFO[@name='query']")[0].get("value"),
+
+class _TAPResultTable(testhelpers.TestResource):
+	resources = [("ds", adqltest.adqlTestTable)]
+
+	def make(self, deps):
+		return testhelpers.getXMLTree(
+			_getUnparsedQueryResult(
+				"SELECT rv, PI() from %s"%
+					deps["ds"].tables["adql"].tableDef.getQName()), debug=False)
+
+
+class VOTableMetaTest(testhelpers.VerboseTest):
+	resources = [("tree", _TAPResultTable())]
+
+	def testQueryPresent(self):
+		self.assertEqual(self.tree.xpath("//INFO[@name='query']")[0].get("value"),
 			"SELECT rv, PI() FROM test.adql LIMIT 2000")
-		self.assertEqual(tree.xpath("//INFO[@name='src_res']")[0].get("value"),
+	
+	def testJoinedTablesMentioned(self):
+		self.assertEqual(self.tree.xpath("//INFO[@name='src_res']")[0].get("value"),
 			"Contains traces from resource data/test")
-		self.assertEqual(tree.xpath("//INFO[@name='src_table']")[0].get("value"),
+		self.assertEqual(self.tree.xpath(
+			"//INFO[@name='src_table']")[0].get("value"),
 			"Contains traces from table test.adql")
-		self.assertEqual(tree.xpath("//INFO[@name='copyright']")[0].get("value"),
+	
+	def testCopyrightsMentioned(self):
+		self.assertEqual(self.tree.xpath(
+			"//INFO[@name='copyright']")[0].get("value"),
 			"Content from data/test has rights note (see INFO content)")
-		self.assertEqual(tree.xpath("//INFO[@name='copyright']")[0].text,
+		self.assertEqual(self.tree.xpath("//INFO[@name='copyright']")[0].text,
 			"Everything in here is pure fantasy (distributed under the GNU GPL)")
+
+	def testSourcesMentioned(self):
+		self.assertEqual(self.tree.xpath("//INFO[@name='source']")[0].get("value"),
+			"1635QB41.G135......")
 
 
 class JobMetaTest(testhelpers.VerboseTest):

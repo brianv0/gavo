@@ -395,6 +395,12 @@ class MetaTest(testhelpers.VerboseTest):
 		self._assertVOTableContains(setupData, [
 			'<INFO name="legal" value="Please reference someone else"'])
 
+	def testSource(self):
+		def setupData(data):
+			data.getPrimaryTable().addMeta("source", "1543droc.book.....C")
+		self._assertVOTableContains(setupData, [
+			'<INFO name="source" value="1543droc.book.....C"'])
+
 
 class VOTableRenderTest(testhelpers.VerboseTest):
 	def _getTable(self, colDef, rows=[{'x': None}]):

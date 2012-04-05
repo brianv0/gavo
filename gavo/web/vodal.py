@@ -234,7 +234,8 @@ class SCSRenderer(DALRenderer):
 		table.votCasts = realCasts
 
 		# as an extension, allow people to select different output formats
-		# (this is a bit of a hack and should be revised after a while)
+		# (this is a bit of a hack and should be revised after a while; this
+		# currently is completely undocumented)
 		if "FORMAT" in data.queryMeta.ctxArgs:
 			from gavo.web import serviceresults
 			return serviceresults.getFormat(

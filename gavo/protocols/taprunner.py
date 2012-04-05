@@ -147,6 +147,7 @@ def runTAPQuery(query, timeout, connection, tdsForUploads, maxrec):
 	# metas later that will then obscure infos from tableTrunk)
 	for infoMeta in tableTrunk.iterMeta("info"):
 		result.addMeta("info", infoMeta)
+	result.setMetaParent(tableTrunk)
 
 	return result
 

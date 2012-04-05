@@ -165,35 +165,34 @@ class CapabilityTest(testhelpers.VerboseTest):
 		capabilities._TMP_TAPREGEXT_HACK = False
 
 
-class SSAPCapabilityTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
-	@utils.memoizedMethod
-	def _getSSAPCapEl(self):
+class _SSACapabilityElement(testhelpers.TestResource):
+	def make(self, deps):
 		publication = testhelpers.getTestRD("ssatest"
 			).getById("s").publications[0]
 		res = capabilities.getCapabilityElement(publication).render()
 		#os.popen("xmlstarlet fo", "w").write(res)
-		return res
+		return res, ElementTree.fromstring(res)
 
-	@utils.memoizedMethod
-	def _getSSAPCapTree(self):
-		return ElementTree.fromstring(self._getSSAPCapEl())
+
+class SSAPCapabilityTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
+	resources = [("textAndTree", _SSACapabilityElement())]
 
 	def testValid(self):
-		self.assertValidates(self._getSSAPCapEl())
+		self.assertValidates(self.textAndTree[0])
 	
 	def testCapabilityAttributes(self):
-		tree = self._getSSAPCapTree()
+		tree = self.textAndTree[1]
 		self.assertEqual(tree.attrib["standardID"], 'ivo://ivoa.net/std/SSA')
 		self.assertEqual(
 			tree.attrib['{http://www.w3.org/2001/XMLSchema-instance}type'],
 			'ssap:SimpleSpectralAccess')
 	
 	def testInterfaceIsStandard(self):
-		intf = self._getSSAPCapTree().find("interface")
+		intf = self.textAndTree[1].find("interface")
 		self.assertEqual(intf.attrib["role"], "std")
 	
 	def testInterfaceHasStandardParam(self):
-		for paramEl in self._getSSAPCapTree().findall("interface/param"):
+		for paramEl in self.textAndTree[1].findall("interface/param"):
 			if paramEl.find("name").text=="BAND":
 				break
 		else:
@@ -202,7 +201,7 @@ class SSAPCapabilityTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 		self.assertEqual(paramEl.find("unit").text, "m")
 	
 	def testInterfaceHasLocalParam(self):
-		for paramEl in self._getSSAPCapTree().findall("interface/param"):
+		for paramEl in self.textAndTree[1].findall("interface/param"):
 			if paramEl.find("name").text=="excellence":
 				break
 		else:
@@ -211,12 +210,12 @@ class SSAPCapabilityTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 		self.assertEqual(paramEl.find("description").text, "random number")
 
 	def testMaxRecordsReflectsConfig(self):
-		self.assertEqual(int(self._getSSAPCapTree().find("maxRecords").text),
+		self.assertEqual(int(self.textAndTree[1].find("maxRecords").text),
 			base.getConfig("ivoa", "dalHardLimit"))
 
 	def testTestQuery(self):
-		self.assertEqual(self._getSSAPCapTree().find("queryDataCmd").text,
-			"TARGETNAME=alpha%20Boo&amp;REQUEST=queryData")
+		self.assertEqual(self.textAndTree[1].find("testQuery/queryDataCmd").text,
+			"TARGETNAME=alpha%20Boo&REQUEST=queryData")
 
 	def testRecordCreationFailsOnMissingMeta(self):
 		publication = testhelpers.getTestRD("ssatest"

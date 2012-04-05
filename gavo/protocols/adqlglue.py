@@ -197,6 +197,7 @@ def _addTableMeta(query, tree, table):
 			infoName="query", infoValue=query))
 
 	copyrights = set()
+	sources = set()
 	mth = base.caches.getMTH(None)
 	for tableName in tree.getContributingNames():
 		try:
@@ -214,9 +215,14 @@ def _addTableMeta(query, tree, table):
 					sourceTD.getQName())))
 			copyrights.add(
 				(sourceTD.rd.sourceId, base.getMetaText(sourceTD, "copyright")))
+			sources.add(base.getMetaText(sourceTD, "source"))
 		except base.Error:
 			# don't fail just because of funny metadata or tables not found
 			pass
+
+	for src in sources:
+		if src:
+			table.addMeta("source", src)
 
 	for rdId, rightsText in copyrights:
 		if rightsText:

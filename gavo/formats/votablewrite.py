@@ -291,6 +291,10 @@ def _iterParams(ctx, dataSet):
 
 ####################### Tables and Resources
 
+_tableMetaBuilder = meta.ModelBasedBuilder([
+	('source', lambda content, localattrs: [V.INFO(name="source",
+			value=item, **localattrs) for item in content])])
+
 
 def _iterSTC(tableDef, serManager):
 	"""adds STC groups for the systems to votTable fetching data from 
@@ -366,6 +370,7 @@ def makeTable(ctx, table):
 	"""
 	sm = valuemappers.SerManager(table, mfRegistry=ctx.mfRegistry,
 		idManager=ctx, acquireSamples=ctx.acquireSamples)
+
 	result = V.TABLE(
 			name=table.tableDef.id,
 			utype=base.getMetaText(table, "utype"))[
@@ -373,6 +378,7 @@ def makeTable(ctx, table):
 		# may need to add ids to the respective items.  XSD-correct ordering of 
 		# the elements is done by xmlstan.
 		V.DESCRIPTION[base.getMetaText(table, "description")],
+		_tableMetaBuilder.build(table),
 		_iterGroups(table.tableDef, sm),
 		_iterFields(sm),
 		_iterTableParams(sm),
