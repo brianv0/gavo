@@ -221,37 +221,28 @@ _xtypeParsers = {
 }
 
 
-# XXX TODO: quite parallel code in adqlglue: can we abstract a bit?
-def _getTupleAdder(table):
-	"""returns a function adding a row to table.
+def _getRowMaker(table):
+	"""returns a function turning a VOTable tuple to a database row
+	for table.
 
-	This currently is necessary only for xtype handling (for everything else, the
-	VOTable library returns the right types).
+	This is mainly just building a row dictionary, except we also
+	parse xtyped columns.
 	"""
 	from gavo.base.literals import parseDefaultDatetime
 	from gavo.stc import parseSimpleSTCS, simpleSTCSToPolygon
 
-	xtypeCols = []
+	parts = []
 	for colInd, col in enumerate(table.tableDef):
 		if _xtypeParsers.get(col.xtype):
-			xtypeCols.append((colInd, col))
+			valCode = "%s(row[%d])"%(_xtypeParsers[col.xtype], colInd)
+		else:
+			valCode = "row[%d]"%colInd
+		parts.append("%s: %s"%(repr(col.key), valCode))
 
-	if not xtypeCols:
-		return table.addTuple
-	else:
-		parts, lastInd = [], 0 
-		for index, col in xtypeCols:
-			if lastInd!=index:
-				parts.append("row[%s:%s]"%(lastInd, index))
-			parts.append("(%s(row[%s]),)"%(_xtypeParsers[col.xtype], index))
-			lastInd = index+1
-		if lastInd!=index:
-			parts.append("row[%s:%s]"%(lastInd, len(table.tableDef.columns)))
-
-		return utils.compileFunction(
-			"def addTuple(row): table.addTuple(%s)"%("+".join(parts)), 
-			"addTuple",
-			locals())
+	return utils.compileFunction(
+		"def makeRow(row):\n  return {%s}"%(", ".join(parts)), 
+		"makeRow",
+		locals())
 
 
 def uploadVOTable(tableId, srcFile, connection, gunzip=False, 
@@ -266,17 +257,18 @@ def uploadVOTable(tableId, srcFile, connection, gunzip=False,
 	if gunzip:
 		srcFile = gzip.GzipFile(fileobj=srcFile, mode="r")
 	try:
-		rows = votable.parse(srcFile).next()
+		tuples = votable.parse(srcFile).next()
 	except StopIteration: # no table contained, not our problem
 		return
 
 	args = {"onDisk": True, "temporary": True}
 	args.update(tableArgs)
-	td = makeTableDefForVOTable(tableId, rows.tableDefinition, 
+	td = makeTableDefForVOTable(tableId, tuples.tableDefinition, 
 		rd=rd, **args)
 
 	table = rsc.TableForDef(td, connection=connection, create=True)
-	addTuple = _getTupleAdder(table)
-	for row in rows:
-		addTuple(tuple(row))
+	makeRow = _getRowMaker(table)
+	with table.getFeeder() as feeder:
+		for tuple in tuples:
+			feeder.add(makeRow(tuple))
 	return table

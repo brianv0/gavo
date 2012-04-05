@@ -272,11 +272,19 @@ class VizierImportTest(testhelpers.VerboseTest):
 	resources = [("testData", _ImportTestData("test_data/vizier_votable.vot",
 		nameMaker=votableread.AutoQuotedNameMaker()))]
 
-	def testWorked(self):
+	def testNames(self):
 		td, data = self.testData
+		self.assertEqual(len(data), 50)
 		self.assertEqual(td.columns[4].name.name, "RA(ICRS)")
 		self.assertEqual(td.columns[4].key, 'RA__ICRS__')
-		self.assertEqual(data[0][4], "04 26 20.741")
+	
+	def testData(self):
+		td, data = self.testData
+		for tuple in data:
+			if tuple[4]=="04 26 20.741":
+				break
+		else:
+			self.fail("04 26 20.741 not found in any row.")
 
 
 class NastyImportTest(tresc.TestWithDBConnection):
