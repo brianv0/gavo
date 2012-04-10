@@ -27,6 +27,7 @@ from gavo import utils
 from gavo.protocols import uws
 from gavo.protocols import uwsactions
 from gavo.utils import codetricks
+from gavo.utils import stanxml
 
 
 RD_ID = "__system__/tap"
@@ -623,6 +624,7 @@ class Plan(object):
 	
 	class plan(PlanElement): pass
 	class operation(PlanElement): pass
+	class query(PlanElement): pass
 	class min(PlanElement): pass
 	class max(PlanElement): pass
 	class value(PlanElement): pass
@@ -652,7 +654,7 @@ class PlanAction(uwsactions.JobAction):
 		else:
 			yield Plan.value[str(data)]
 
-	def _makePlanDoc(self, planTree):
+	def _makePlanDoc(self, planTree, query):
 		def recurse(node):
 			(opName, attrs), children = node[:2], node[2:]
 			res = Plan.operation()[
@@ -663,16 +665,19 @@ class PlanAction(uwsactions.JobAction):
 				res[recurse(child)]
 			return res
 		return Plan.plan[
+			Plan.query[query],
 			recurse(planTree)]
 
 	def doGET(self, job, request):
 		from gavo.protocols import taprunner
 		qTable = taprunner.getQTableFromJob(job.parameters,
 			job.jobId, "untrustedquery", 1)
-		request.setHeader("content-type", "text/plain")
+		request.setHeader("content-type", "text/xml")
 		plan = qTable.getPlan()
-		res = self._makePlanDoc(plan).render()
-		return res
+		return stanxml.xmlrender(
+			self._makePlanDoc(plan, qTable.query),
+			"<?xml-stylesheet "
+				"href='/static/xsl/plan-to-html.xsl' type='text/xsl'?>")
 
 
 class TAPUWS(uws.UWS):
