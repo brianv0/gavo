@@ -612,6 +612,69 @@ class TAPJob(uws.BaseUWSJob):
 
 #################### The TAP worker system
 
+from gavo.utils.stanxml import Element, registerPrefix, schemaURL
+
+class Plan(object):
+	"""A container for the XML namespace for query plans.
+	"""
+	class PlanElement(Element):
+		_prefix = "plan"
+		_mayBeEmpty = True
+	
+	class plan(PlanElement): pass
+	class operation(PlanElement): pass
+	class min(PlanElement): pass
+	class max(PlanElement): pass
+	class value(PlanElement): pass
+	class description(PlanElement): pass
+	class rows(PlanElement): pass
+	class cost(PlanElement): pass
+
+
+registerPrefix("plan", "http://docs.g-vo.org/std/TAPPlan.xsd",
+	schemaURL("TAPPlan.xsd"))
+
+
+class PlanAction(uwsactions.JobAction):
+	"""retrieve a query plan.
+
+	This is actually a TAP action; as we add UWSes, we'll need to think
+	about how we can customize uwsactions my UWS type.
+	"""
+	name = "plan"
+
+	def _formatRange(self, data):
+		if data is None:
+			return
+		elif isinstance(data, tuple):
+			yield Plan.min[str(data[0])]
+			yield Plan.max[str(data[1])]
+		else:
+			yield Plan.value[str(data)]
+
+	def _makePlanDoc(self, planTree):
+		def recurse(node):
+			(opName, attrs), children = node[:2], node[2:]
+			res = Plan.operation()[
+				Plan.description[opName],
+				Plan.rows[self._formatRange(attrs.get("rows"))],
+				Plan.cost[self._formatRange(attrs.get("cost"))]]
+			for child in children:
+				res[recurse(child)]
+			return res
+		return Plan.plan[
+			recurse(planTree)]
+
+	def doGET(self, job, request):
+		from gavo.protocols import taprunner
+		qTable = taprunner.getQTableFromJob(job.parameters,
+			job.jobId, "untrustedquery", 1)
+		request.setHeader("content-type", "text/plain")
+		plan = qTable.getPlan()
+		res = self._makePlanDoc(plan).render()
+		return res
+
+
 class TAPUWS(uws.UWS):
 	# processQueueDirty is set by TAPTransitions whenever it's likely
 	# QUEUED jobs could be promoted to executing.
@@ -622,7 +685,8 @@ class TAPUWS(uws.UWS):
 		# processQueue shouldn't need a lock, but it's wasteful to
 		# run more unqueuers, so we only run one at a time.
 		self._processQueueLock = threading.Lock()
-		uws.UWS.__init__(self, TAPJob, uwsactions.JobActions())
+		uws.UWS.__init__(self, TAPJob, uwsactions.JobActions(
+			PlanAction))
 
 	def _makeMoreStatements(self, statements, jobsTable):
 		td = jobsTable.tableDef

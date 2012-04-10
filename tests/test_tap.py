@@ -302,10 +302,15 @@ class SimpleAsyncTest(TAPRenderTest):
 				"/async/%s/phase"%jobId, {"PHASE": "RUN"}
 			).addCallback(assertStarted, jobId)
 
+		def checkPlan(ignored, jobId):
+			return self.assertGETHasStrings("/async/%s/plan"%jobId, {},
+				["<plan:operation><plan:description>Limit</plan:description>"]
+			).addCallback(promote, jobId)
+
 		def checkQuote(ingored, jobId):
 			return self.assertGETHasStrings("/async/%s/quote"%jobId, {},
 				['-']
-				).addCallback(promote, jobId)
+				).addCallback(checkPlan, jobId)
 
 		def checkPhase(jobId):
 			return self.assertGETHasStrings("/async/%s/phase"%jobId, {},
@@ -323,7 +328,7 @@ class SimpleAsyncTest(TAPRenderTest):
 
 		return trialhelpers.runQuery(self.renderer, "POST", "/async", {
 			"REQUEST": "doQuery", "LANG": "ADQL", 
-			"QUERY": "SELECT ra FROM test.adql WHERE ra<3"}
+			"QUERY": "SELECT alpha FROM test.adql WHERE alpha<3"}
 		).addCallback(checkPosted)
 
 	def testBadConstructionArgument(self):

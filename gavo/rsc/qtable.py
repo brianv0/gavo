@@ -10,6 +10,7 @@ from gavo import base
 from gavo import rscdef
 from gavo.rsc import dbtable
 from gavo.rsc import table
+from gavo.utils import pgexplain
 
 
 class QueryTable(table.BaseTable, dbtable.DBMethodsMixin):
@@ -88,6 +89,18 @@ class QueryTable(table.BaseTable, dbtable.DBMethodsMixin):
 				# Connection already closed or similarly ignorable
 				pass
 			self.connection = None
+
+	def getPlan(self):
+		"""returns a parsed query plan for the current query.
+
+		After you use this method, the iterator is exhausted and the
+		connection will be closed.
+		"""
+		cursor = self.connection.cursor()
+		cursor.execute("EXPLAIN "+self.query)
+		res = pgexplain.parseQueryPlan(cursor)
+		self.cleanup()
+		return res
 
 	def __del__(self):
 		self.cleanup()

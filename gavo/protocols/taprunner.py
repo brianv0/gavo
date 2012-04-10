@@ -64,6 +64,10 @@ def normalizeTAPFormat(rawFmt):
 
 
 def _parseTAPParameters(jobId, parameters):
+	"""gets and checks TAP parameters like version, request, and such.
+
+	The function returns a tuple of query and maxrec.
+	"""
 	rd = base.caches.getRD("__system__/tap")
 	version = rd.getProperty("TAP_VERSION")
 	try:
@@ -79,8 +83,6 @@ def _parseTAPParameters(jobId, parameters):
 		raise base.ui.logOldExc(base.ValidationError(
 			"Required parameter %s missing."%key, key))
 
-	format = normalizeTAPFormat(parameters.get("format", "votable"))
-
 	try:
 		maxrec = min(base.getConfig("async", "hardMAXREC"),
 			int(parameters["maxrec"]))
@@ -89,7 +91,7 @@ def _parseTAPParameters(jobId, parameters):
 			uws.UWSError("Invalid MAXREC literal '%s'."%parameters["maxrec"]))
 	except KeyError:
 		maxrec = base.getConfig("async", "defaultMAXREC")
-	return query, format, maxrec
+	return query, maxrec
 
 
 def _makeDataFor(resultTable):
@@ -213,17 +215,10 @@ def _getResultType(formatProduced, formatOrdered):
 	return formats.getMIMEFor(formatProduced)
 
 
-def runTAPJobNoState(parameters, jobId, queryProfile, timeout, 
-		getPlan=False):
-	"""executes a TAP job defined by parameters.  
-	
-	This does not do state management.  Use runTAPJob if you need it.
-
-	If you set getPlan to True, you'll get back a cursor you can
-	use with utils.pgexplain.
+def getQTableFromJob(parameters, jobId, queryProfile, timeout):
+	"""returns a QueryTable for a TAP job.
 	"""
-	_hangIfMagic(jobId, parameters, timeout)
-	query, format, maxrec = _parseTAPParameters(jobId, parameters)
+	query, maxrec = _parseTAPParameters(jobId, parameters)
 	connectionForQuery = base.getDBConnection(queryProfile)
 	try:
 		_noteWorkerPID(connectionForQuery)
@@ -234,9 +229,25 @@ def runTAPJobNoState(parameters, jobId, queryProfile, timeout,
 		connectionForQuery)
 
 	base.ui.notifyInfo("taprunner executing %s"%query)
-	res = runTAPQuery(query, timeout, connectionForQuery,
+	return runTAPQuery(query, timeout, connectionForQuery,
 		tdsForUploads, maxrec)
-	res = _makeDataFor(res)
+
+
+def runTAPJobNoState(parameters, jobId, queryProfile, timeout):
+	"""executes a TAP job defined by parameters and writes the
+	result to the job's working directory.
+	
+	This does not do state management.  Use runTAPJob if you need it.
+	"""
+	_hangIfMagic(jobId, parameters, timeout)
+	# The following makes us bail out if a bad format was passed -- no
+	# sense spending the CPU on executing the query then, so we get the
+	# format here.
+	format = normalizeTAPFormat(parameters.get("format", "votable"))
+
+	res = _makeDataFor(getQTableFromJob(
+		parameters, jobId, queryProfile, timeout))
+
 	job = tap.workerSystem.getJob(jobId)
 	destF = job.openResult(
 		_getResultType(format, job.parameters.get("format")), "result")
