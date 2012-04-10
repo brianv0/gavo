@@ -183,7 +183,10 @@ def _sizeMapperFactory(colDesc):
 		return
 	sf = int(colDesc["displayHint"].get("sf", 1))
 	def coder(val):
-		return utils.formatSize(val, sf)
+		if val is None:
+			return "N/A"
+		else:
+			return utils.formatSize(val, sf)
 	return coder
 _registerHTMLMF(_sizeMapperFactory)
 

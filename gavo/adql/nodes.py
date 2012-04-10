@@ -990,7 +990,7 @@ def _guessNumericType(literal):
 		elif abs(val)<2147483648:
 			type = "integer"
 		else:
-			type = bigint
+			type = "bigint"
 	except ValueError:
 		type = "double precision"
 	return type

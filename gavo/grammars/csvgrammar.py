@@ -15,7 +15,7 @@ class CSVIterator(FileRowIterator):
 	def __init__(self, grammar, sourceToken, **kwargs):
 		FileRowIterator.__init__(self, grammar, sourceToken, **kwargs)
 		self.csvSource = csv.DictReader(self.inputFile,
-			delimiter=self.grammar.delimiter)
+			delimiter=str(self.grammar.delimiter))
 
 	def _iterRows(self):
 		return self.csvSource
