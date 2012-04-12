@@ -468,22 +468,25 @@ class StandardQueryMixin(object):
 		ignored, but a log entry is generated.
 		"""
 		for role in set(foundPrivs)-set(shouldPrivs):
-			self.query("REVOKE ALL PRIVILEGES ON %s FROM %s"%(
-				objectName, role))
-		for role in set(shouldPrivs)-set(foundPrivs):
-			if self.roleExists(role):
-				self.query("GRANT %s ON %s TO %s"%(shouldPrivs[role], objectName,
-					role))
-			else:
-				utils.sendUIEvent("Warning", 
-					"Request to grant privileges to non-existing"
-					" database user %s dropped"%role)
-		for role in set(shouldPrivs)&set(foundPrivs):
-			if shouldPrivs[role]!=foundPrivs[role]:
+			if role:
 				self.query("REVOKE ALL PRIVILEGES ON %s FROM %s"%(
 					objectName, role))
-				self.query("GRANT %s ON %s TO %s"%(shouldPrivs[role], objectName,
-					role))
+		for role in set(shouldPrivs)-set(foundPrivs):
+			if role:
+				if self.roleExists(role):
+					self.query("GRANT %s ON %s TO %s"%(shouldPrivs[role], objectName,
+						role))
+				else:
+					utils.sendUIEvent("Warning", 
+						"Request to grant privileges to non-existing"
+						" database user %s dropped"%role)
+		for role in set(shouldPrivs)&set(foundPrivs):
+			if role:
+				if shouldPrivs[role]!=foundPrivs[role]:
+					self.query("REVOKE ALL PRIVILEGES ON %s FROM %s"%(
+						objectName, role))
+					self.query("GRANT %s ON %s TO %s"%(shouldPrivs[role], objectName,
+						role))
 
 	def setTimeout(self, timeout):
 		"""sets a timeout on queries.
