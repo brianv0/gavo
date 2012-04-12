@@ -116,9 +116,11 @@ def main():
 	opts, cmd, args = parseArgs()
 	errmsg = None
 	try:
-		globals()["cmd_"+cmd](opts, *args)
+		handler = globals()["cmd_"+cmd]
 	except KeyError:
 		bailOnExc(opts, "Unknown command: %s."%cmd)
+	try:
+		handler(opts, *args)
 	except TypeError:
 		bailOnExc(opts, "Invalid arguments for %s: %s."%(cmd, args))
 	except stc.STCSParseError, ex:

@@ -699,8 +699,8 @@ class IdResolutionTest(testhelpers.VerboseTest):
 class ListRecordsTest(testhelpers.VerboseTest):
 	def testRecords(self):
 		tree = testhelpers.getXMLTree(
-			oaiinter.run_ListIdentifiers(
-				{"verb": "listIdentifiers", "metadataPrefix": "ivo_vor"}).render())
+			oaiinter.runPMH({"verb": "ListIdentifiers", "metadataPrefix": "ivo_vor"},
+				oaiinter.RegistryCore.builders).render())
 		res = set(el.text for el in tree.xpath("//identifier"))
 		expected = set([
 			"ivo://x-unregistred/__system__/services/registry",
