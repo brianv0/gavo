@@ -42,7 +42,7 @@ class ErrorPosition(object):
 class iterparse(object):
 	"""iterates over start, data, and end events in source.
 
-	To keep things simple downstream, we swallow all namespace prefix,
+	To keep things simple downstream, we swallow all namespace prefixes,
 	if present.
 
 	iterparse is constructed with a source (anything that can read(source))
@@ -173,6 +173,10 @@ class StartEndHandler(ContentHandler):
 	def cleanupName(self, name):
 		return name.split(":")[-1].replace("-", "_")
 
+	def startElementNS(self, namePair, qName, attrs):
+		# Do we want to worry about attrs being an AttributesNS instance?
+		self.startElement(namePair[1], attrs)
+
 	def startElement(self, name, attrs):
 		self.contentsStack.append([])
 		name = self.cleanupName(name)
@@ -181,6 +185,9 @@ class StartEndHandler(ContentHandler):
 			getattr(self.realHandler, "_start_%s"%name)(name, attrs)
 		elif hasattr(self, "_defaultStart"):
 			self._defaultStart(name, attrs)
+
+	def endElementNS(self, namePair, qName):
+		self.endElement(namePair[1])
 
 	def endElement(self, name, suppress=False):
 		contents = "".join(self.contentsStack.pop())
