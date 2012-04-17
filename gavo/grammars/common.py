@@ -81,8 +81,9 @@ def compileRowfilter(filters):
 	if not filters:
 		return
 	iters = [f.compile() for f in filters]
-	src = ["def iterPipe(row, rowIter):"]
-	src.append("  for item0 in iters[0](row, rowIter):")
+	src = [
+		"def iterPipe(row, rowIter):",
+		"  for item0 in iters[0](row, rowIter):"]
 	for ind in range(1, len(filters)):
 		src.append("%s  for item%d in iters[%d](item%d, rowIter):"%(
 			"  "*ind, ind, ind, ind-1))
@@ -226,7 +227,11 @@ class RowIterator(object):
 				yield row
 
 	def _iterRowsProcessed(self):
-		for row in self._iterRows():
+		if getattr(self.grammar, "isDispatching", False):
+			for dest, row in self._iterRows():
+				for procRow in self.rowfilter(row, self):
+					yield dest, procRow
+		else:
 			for procRow in self.rowfilter(row, self):
 				yield procRow
 
@@ -242,7 +247,7 @@ class RowIterator(object):
 		return res
 	
 	def getLocator(self):
-		return "Null grammar"
+		return "(unknown position -- locator missing)"
 
 
 class FileRowIterator(RowIterator):
