@@ -225,10 +225,6 @@ def _defineNullInValues(votEl, nullLiteral):
 
 def _makeVOTParam(ctx, param):
 	"""returns VOTable stan for param.
-
-	If param's value is NotGiven, it will count as a null value for
-	VOTable purposes.  This is since params frequently are referred to,
-	and we don't want the ref targets to vanish.
 	"""
 	# note that we're usually accessing the content, i.e., the string
 	# serialization we got.  The only exception is when we're seeing

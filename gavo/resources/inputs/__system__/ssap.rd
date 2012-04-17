@@ -449,8 +449,8 @@
 			phot.count, phot.flux.density, etc.  Default is for flux over
 			wavelength; ssa:Char.FluxAxis.Ucd">phot.flux.density;em.wl</mixinPar>
 		<mixinPar key="spectralResolution" 
-			description="Resolution on the spectral axis; you must give this here
-			as FWHM wavelength in meters; approximate as necessary; 
+			description="Resolution on the spectral axis; you must give this
+			as FWHM wavelength in meters here. Approximate as necessary; 
 			ssa:Char.SpectralAxis.Resolution">NaN</mixinPar>
 
 		<FEED source="//products#hackProductsData"/>

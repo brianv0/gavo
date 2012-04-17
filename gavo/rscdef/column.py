@@ -670,13 +670,12 @@ class Param(ParamBase):
 
 	You can obtain a parsed value from the value attribute.
 
-	Null value handling is tricky with params.  An empty param (like 
-	``<param name="x"/>)`` will have a NotGiven value; this means it will not
-	even be rendered in VOTables.  To set a PARAM to NULL, use null values as
-	bodies.  For strings, there's the default __NULL__, for floats, it's NaN;
-	ints have not default null literals.
-
-	You can set custom null literals using a values child, like::
+	Null value handling is a bit tricky with params.  An empty param (like 
+	``<param name="x"/>)`` will usually be NULL, except of strings, for which
+	it is the empty string (as is, by the way, everything that contains
+	whitespace exclusively).
+	
+	params also suppoert explicit null values via values, as in::
 
 		<param name="x" type="integer"><values nullLiteral="-1"/>-1</params>
 	
@@ -686,11 +685,18 @@ class Param(ParamBase):
 
 	def validate(self):
 		self._validateNext(Param)
-		if self.required and self.content_ is base.NotGiven:
+		if self.content_ is base.NotGiven:
+			if self.type=="text" or self.type=="unicode":
+				self.set("")
+			else:
+				self.set(None)
+
+		if self.required and self.value is None:
 			raise base.StructureError("Required value not given for param"
 				" %s"%self.name)
-		# the value property will bomb on malformed literals
+
 		try:
+			# the value property will bomb on malformed literals
 			_ = self.value
 		except ValueError, msg:
 			raise base.LiteralParseError(self.name, self.content_,

@@ -455,10 +455,14 @@ class ParamNullValueTest(VOTableRenderTest):
 		self.assertEqual(par[0].tag, votable.voTag("VALUES"))
 		self.assertEqual(par[0].get("null"), nullLiteral)
 
-	def testNotGiven(self):
+	def testEmptyString(self):
+		par = self._getParamFor('<param name="x" type="text"/>')
+		self.assertEqual(par.get("value"), "")
+
+	def testEmptyIntIsNull(self):
 		self._assertDeclaredNull(
-			'<param name="x" type="text"/>', 
-			"__NULL__")
+			'<param name="x" type="integer"/>',
+			"-1")
 
 	def testStringNullDefault(self):
 		self._assertDeclaredNull(

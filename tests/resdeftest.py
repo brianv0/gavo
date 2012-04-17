@@ -400,7 +400,7 @@ class DataDescTest(testhelpers.VerboseTest):
 			isinstance(dd.grammar, rscdef.getGrammar("fitsProdGrammar")))
 		dd = base.parseFromString(rscdef.DataDescriptor,
 			'<data><dictlistGrammar/></data>')
-		self.failUnless(isinstance(dd.grammar, 
+		self.failUnless(isinstance(dd.grammar,
 			rscdef.getGrammar("dictlistGrammar")))
 
 	def testIgnorePats(self):
@@ -463,6 +463,12 @@ class ParamTest(testhelpers.VerboseTest):
 		par = base.parseFromString(rscdef.Param,
 			'<param name="foo" type="text">__NULL__</param>')
 		self.assertEqual(par.value, None)
+
+	def testEmptyIsNotNull(self):
+		par = base.parseFromString(rscdef.Param,
+			'<param name="foo" type="text" required="True">'
+			'<values nullLiteral="XXX"/></param>')
+		self.assertEqual(par.value, '')
 
 
 class GroupTest(testhelpers.VerboseTest):
