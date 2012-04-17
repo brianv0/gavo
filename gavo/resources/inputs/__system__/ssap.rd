@@ -135,7 +135,7 @@
 		These params are supposed to be filled using mixin parameters
 		(or stream parameters, but the available parameters are documented
 		in the hcd mixin).  Some params are hardcoded to NULL right now;
-		they can easily be added to hcd's paramters if someone needs them.
+		they can easily be added to hcd's parameters if someone needs them.
 
 		ssa_model and ssa_dstype cannot be changed right now.  Changing
 		them would probably not make much sense since they reflect
@@ -218,32 +218,36 @@
 			description="Statistical error in flux">\statFluxError</param>
 		<param name="ssa_sysError" 
 			utype="ssa:Char.FluxAxis.Accuracy.SysError"
-			ucd="stat.error.sys;phot.flux.density;em"
+			unit="\fluxSI" ucd="stat.error.sys;phot.flux.density;em"
 			verbLevel="25"
 			description="Systematic error in flux">\sysFluxError</param>
 		<param name="ssa_fluxcalib" type="text"
 			utype="ssa:Char.FluxAxis.Calibration"
 			verbLevel="25"
 			description="Type of flux calibration">\fluxCalibration</param>
-		<param name="ssa_binSize"
-			utype="ssa:Char.SpectralAxis.Accuracy.BinSize" ucd="em.wl;spect.binSize"
-			verbLevel="25" unit="m"
+		<param name="ssa_binSize" 
+			utype="ssa:Char.SpectralAxis.Accuracy.BinSize" 
+			unit="\spectralSI" ucd="em.wl;spect.binSize"
+			verbLevel="25"
 			description="Bin size in wavelength"/>
 		<param name="ssa_statError"
-			utype="ssa:Char.SpectralAxis.Accuracy.StatError" ucd="stat.error;em"
-			verbLevel="25" unit="m"
+			utype="ssa:Char.SpectralAxis.Accuracy.StatError" 
+			unit="\spectralSI" ucd="stat.error;em"
+			verbLevel="25"
 			description="Statistical error in wavelength">\statSpectError</param>
 		<param name="ssa_sysError"
-			utype="ssa:Char.SpectralAxis.Accuracy.SysError" ucd="stat.error.sys;em"
-			verbLevel="25" unit="m"
+			utype="ssa:Char.SpectralAxis.Accuracy.SysError" 
+			unit="\spectralSI" ucd="stat.error.sys;em"
+			verbLevel="25"
 			description="Systematic error in wavelength">\sysSpectError</param>
 		<param name="ssa_speccalib" type="text"
 			utype="ssa:Char.SpectralAxis.Calibration" ucd="meta.code.qual"
 			verbLevel="25"
 			description="Type of wavelength calibration">\spectralCalibration</param>
 		<param name="ssa_specres" 
-			utype="ssa:Char.SpectralAxis.Resolution" ucd="spect.resolution;em.wl"
-			verbLevel="25" unit="m"
+			utype="ssa:Char.SpectralAxis.Resolution" 
+			unit="\spectralSI" ucd="spect.resolution;em.wl"
+			verbLevel="25"
 			description="Resolution on the spectral axis">\spectralResolution</param>
 		<param name="ssa_spaceError"
 			utype="ssa:Char.SpatialAxis.Accuracy.StatError" ucd="stat.error;pos.eq"
@@ -415,20 +419,20 @@
 		<mixinPar key="reference" description="URL or bibcode of a 
 			publication describing this data; ssa:Curation.Reference"
 			>__NULL__</mixinPar>
-		<mixinPar key="statFluxError" description="Statistical error in flux;
-			ssa:Char.FluxAxis.Accuracy.StatError"
+		<mixinPar key="statFluxError" description="Statistical error in flux
+			(units of fluxSI); ssa:Char.FluxAxis.Accuracy.StatError"
 			>__NULL__</mixinPar>
-		<mixinPar key="sysFluxError" description="Systematic error in flux;
-			ssa:Char.FluxAxis.Accuracy.SysError"
+		<mixinPar key="sysFluxError" description="Systematic error in flux
+			(units of fluxSI); ssa:Char.FluxAxis.Accuracy.SysError"
 			>__NULL__</mixinPar>
 		<mixinPar key="fluxCalibration" description="Type of flux calibration
 			(one of ABSOLUTE, RELATIVE, NORMALIZED, or UNCALIBRATED);
 			ssa:Char.FluxAxis.Calibration"/>
 		<mixinPar key="statSpectError" 
-			description="Statistical error in wavelength; 
+			description="Statistical error in wavelength (units of specralSI); 
 			ssa:Char.SpectralAxis.Accuracy.StatError">__NULL__</mixinPar>
-		<mixinPar key="sysSpectError" description="Systematic error in wavelength;
-			ssa:Char.SpectralAxis.Accuracy.SysError"
+		<mixinPar key="sysSpectError" description="Systematic error in wavelength
+			(units of spectralSI); ssa:Char.SpectralAxis.Accuracy.SysError"
 			>__NULL__</mixinPar>
 		<mixinPar key="spectralCalibration" description="Type of wavelength 
 			Calibration (one of ABSOLUTE, RELATIVE, NORMALIZED, or UNCALIBRATED);
@@ -446,7 +450,7 @@
 			wavelength; ssa:Char.FluxAxis.Ucd">phot.flux.density;em.wl</mixinPar>
 		<mixinPar key="spectralResolution" 
 			description="Resolution on the spectral axis; you must give this here
-			as wavelength in meters; approximate as necessary; 
+			as FWHM wavelength in meters; approximate as necessary; 
 			ssa:Char.SpectralAxis.Resolution">NaN</mixinPar>
 
 		<FEED source="//products#hackProductsData"/>

@@ -232,8 +232,9 @@ class RowIterator(object):
 				for procRow in self.rowfilter(row, self):
 					yield dest, procRow
 		else:
-			for procRow in self.rowfilter(row, self):
-				yield procRow
+			for row in self._iterRows():
+				for procRow in self.rowfilter(row, self):
+					yield procRow
 
 	def _iterRows(self):
 		if False:

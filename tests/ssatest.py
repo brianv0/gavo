@@ -291,6 +291,9 @@ class SSATableTest(testhelpers.VerboseTest):
 	def testAccrefPresent(self):
 		self.failUnless("http://localhost:8080/getproduct" in self.docAndTree[0])
 
+	def testEverythingExpanded(self):
+		self.failIf("\\" in self.docAndTree[0])
+
 
 class SDMRenderTest(testhelpers.VerboseTest):
 	resources = [("ssatable", _ssaTable)]
