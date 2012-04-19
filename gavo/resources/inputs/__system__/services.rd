@@ -272,6 +272,8 @@
 		<meta name="resType">registry</meta>
 		<meta name="title">\getConfig{web}{sitename} Registry</meta>
 		<meta name="creationDate">2008-05-07T11:33:00</meta>
+		<meta name="accessURL"
+			>\getConfig{web}{serverURL}\getConfig{web}{nevowRoot}oai.xml</meta>
 		<meta name="description">
 			The publishing registry for the \getConfig{web}{sitename}.
 		</meta>

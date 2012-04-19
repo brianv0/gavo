@@ -193,7 +193,8 @@ def getIdentifyElement(registryService):
 	"""
 	return OAI.Identify[
 		OAI.repositoryName[base.getMetaText(registryService, "title")],
-		OAI.baseURL[registryService.getURL("pubreg.xml")],
+		OAI.baseURL[base.getMetaText(registryService, "accessURL")
+			or registryService.getURL("pubreg.xml")],
 		OAI.protocolVersion["2.0"],
 		OAI.adminEmail[base.getMetaText(registryService, "contact.email")],
 		OAI.earliestDatestamp["1970-01-01T00:00:00Z"],

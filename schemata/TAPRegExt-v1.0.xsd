@@ -21,7 +21,6 @@ xsi:schemaLocation="http://www.w3.org/2001/XMLSchema http://vo.ari.uni-heidelber
     </xs:documentation>
   </xs:annotation>
   <xs:import namespace="http://www.ivoa.net/xml/VOResource/v1.0" schemaLocation="http://vo.ari.uni-heidelberg.de/docs/schemata/VOResource-v1.0.xsd"/>
-  <xs:import namespace="http://www.ivoa.net/xml/VODataService/v1.1" schemaLocation="http://vo.ari.uni-heidelberg.de/docs/schemata/VODataService-v1.1.xsd"/>
   <xs:complexType name="TAPCapRestriction" abstract="true">
     <xs:annotation>
       <xs:documentation>
@@ -383,8 +382,6 @@ xsi:schemaLocation="http://www.w3.org/2001/XMLSchema http://vo.ari.uni-heidelber
     </xs:sequence>
   
     <xs:attribute name="ivo-id" type="xs:anyURI">
-      <!-- We'd like this to be of type vr:IdentifierURI, but that doesn't
-        allow fragments. -->
       <xs:annotation>
         <xs:documentation>
         An optional IVORN of the output format.
@@ -425,8 +422,6 @@ xsi:schemaLocation="http://www.w3.org/2001/XMLSchema http://vo.ari.uni-heidelber
     <xs:complexContent>
       <xs:restriction base="xs:anyType">
         <xs:attribute name="ivo-id" type="xs:anyURI">
-          <!-- We'd like this to be of type vr:IdentifierURI, but that doesn't
-          allow fragments. -->
           <xs:annotation>
             <xs:documentation>
             The IVORN of the upload method.
@@ -437,10 +432,6 @@ xsi:schemaLocation="http://www.w3.org/2001/XMLSchema http://vo.ari.uni-heidelber
     </xs:complexContent>
   </xs:complexType>
 
-
-  <!-- it would be nice if we could build TimeLimits and DataLimits
-  in the fashion of java generics - is there a Schema way of doing
-  this? -->
 
   <xs:complexType name="TimeLimits">
     <xs:annotation>
