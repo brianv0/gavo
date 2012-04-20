@@ -222,6 +222,11 @@ class Registration(base.Structure):
 		# Tables in ADQL are always published via TAP
 		if getattr(self.parent, "adql", False):
 			base.caches.getRD("//tap").getById("run").declareServes(self.parent)
+		#...as are data items that contain at least one table
+		for t in getattr(self.parent, "iterTableDefs", lambda: [])():
+			base.caches.getRD("//tap").getById("run").declareServes(self.parent)
+			# but on declaration is enough
+			break
 
 
 class ColumnList(list):

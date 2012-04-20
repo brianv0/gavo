@@ -16,9 +16,11 @@ import trialhelpers
 api.setConfig("web", "enabletests", "True")
 
 
-class AdminTest(trialhelpers.RenderTest):
+class ArchiveTest(trialhelpers.RenderTest):
 	renderer = root.ArchiveService()
 
+
+class AdminTest(ArchiveTest):
 	def _makeAdmin(self, req):
 		req.user = "gavoadmin"
 		req.password = api.getConfig("web", "adminpasswd")
@@ -83,9 +85,7 @@ class AdminTest(trialhelpers.RenderTest):
 		).addCallback(checkBlocked)
 
 
-class CustomizationTest(trialhelpers.RenderTest):
-	renderer = root.ArchiveService()
-
+class CustomizationTest(ArchiveTest):
 	def testSidebarRendered(self):
 		return self.assertGETHasStrings("/data/test/basicprod/form", {}, [
 			'<a href="mailto:invalid@whereever.else">site operators</a>',
@@ -108,9 +108,7 @@ class CustomizationTest(trialhelpers.RenderTest):
 			"<managedAuthority>x-unregistred</managedAuthority>"])
 
 
-class FormTest(trialhelpers.RenderTest):
-	renderer = root.ArchiveService()
-
+class FormTest(ArchiveTest):
 	def testSimple(self):
 		return self.assertGETHasStrings("/data/test/basicprod/form", {}, [
 				'<a href="/static/help_vizier.shtml#floats">[?num. expr.]</a>',
@@ -153,9 +151,7 @@ class FormTest(trialhelpers.RenderTest):
 			])
 
 
-class StreamingTest(trialhelpers.RenderTest):
-	renderer = root.ArchiveService()
-
+class StreamingTest(ArchiveTest):
 	def testStreamingWorks(self):
 		return self.assertGETHasStrings("/test/stream", {"size": 30}, [
 			"123456789012345678901234567890"])
@@ -206,9 +202,7 @@ class StreamingTest(trialhelpers.RenderTest):
 		).addCallback(assertResult)
 
 
-class TemplatingTest(trialhelpers.RenderTest):
-	renderer = root.ArchiveService()
-
+class TemplatingTest(ArchiveTest):
 	def testContentDelivered(self):
 		return self.assertGETHasStrings("//tests/dyntemplate/fixed", 
 			{"foo": "content delivered test"},
@@ -229,9 +223,7 @@ class TemplatingTest(trialhelpers.RenderTest):
 			['&lt;script language="nasty&amp;"/&gt;'])
 
 
-class PathResoutionTest(trialhelpers.RenderTest):
-	renderer = root.ArchiveService()
-
+class PathResoutionTest(ArchiveTest):
 	def testDefaultRenderer(self):
 		return self.assertGETHasStrings("/data/cores/impgrouptest", {},
 			['id="genForm-rV"']) #form rendered
@@ -251,28 +243,21 @@ class PathResoutionTest(trialhelpers.RenderTest):
 		).addErrback(checkRedirect)
 
 
-class BuiltinResTest(trialhelpers.RenderTest):
-	renderer = root.ArchiveService()
-
+class BuiltinResTest(ArchiveTest):
 	def testRobotsTxt(self):
 		return self.assertGETHasStrings("/robots.txt", {},
 			['Disallow: /login'])
 
 
-class ConstantRenderTest(trialhelpers.RenderTest):
-	renderer = root.ArchiveService()
-
+class ConstantRenderTest(ArchiveTest):
 	def testVOPlot(self):
 		return self.assertGETHasStrings("/__system__/run/voplot/fixed",
 			{"source": "http%3A%3A%2Ffoo%3Asentinel"}, 
 			['<object archive="http://']) # XXX TODO: votablepath is url-encoded -- that can't be right?
 
 
-class MetaRenderTest(trialhelpers.RenderTest):
-	renderer = root.ArchiveService()
-
+class MetaRenderTest(ArchiveTest):
 	def testMacroExpanded(self):
 		return self.assertGETHasStrings("/browse/__system__/tap", {},
 			['<div class="rddesc"><span class="plainmeta"> Unittest'
 				" Suite's Table Access"])
-	

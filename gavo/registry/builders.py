@@ -185,6 +185,21 @@ def getOAIHeaderElementForRestup(restup):
 
 ###################### Direct children of OAI.PMH
 
+def _getOAIURL(registryService):
+	"""returns the OAI-PHM access URL for a registry service.
+
+	We don't want to just use getURL(pubreg) since the publication
+	may (and for the publishing registry does) have an accessURL meta.
+	"""
+	oaiAccessURL = registryService.getURL("pubreg.xml")
+	for pub in registryService.publications:
+		if pub.render=="pubreg.xml":
+			oaiAccessURL = base.getMetaText(
+				pub, "accessURL", macroPackage=pub.parent)
+			break
+	return oaiAccessURL
+
+
 def getIdentifyElement(registryService):
 	"""returns OAI Identify stanxml.
 
@@ -193,8 +208,7 @@ def getIdentifyElement(registryService):
 	"""
 	return OAI.Identify[
 		OAI.repositoryName[base.getMetaText(registryService, "title")],
-		OAI.baseURL[base.getMetaText(registryService, "accessURL")
-			or registryService.getURL("pubreg.xml")],
+		OAI.baseURL[_getOAIURL(registryService)],
 		OAI.protocolVersion["2.0"],
 		OAI.adminEmail[base.getMetaText(registryService, "contact.email")],
 		OAI.earliestDatestamp["1970-01-01T00:00:00Z"],
@@ -388,7 +402,7 @@ class RegistryResourceMaker(ResourceMaker):
 				VOG.Harvest[
 					VOR.description[base.getMetaText(registry, "harvest.description")],
 					VOG.OAIHTTP(role="std", version="1.0")[
-						VOR.accessURL[registry.getURL("pubreg.xml")],
+						VOR.accessURL[_getOAIURL(registry)],
 					],
 					VOG.maxRecords[base.getMetaText(registry, "maxRecords")],
 				],
