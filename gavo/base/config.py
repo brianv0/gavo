@@ -451,7 +451,11 @@ _config = Configuration(
 		IntConfigItem("dalDefaultLimit", "10000",
 			"Default match limit on DAL queries"),
 		IntConfigItem("dalHardLimit", "10000000",
-			"Hard match limit on DAL queries"),),
+			"Hard match limit on DAL queries"),
+		EnumeratedConfigItem("votDefaultEncoding", "binary",
+			"Default 'encoding' for VOTables in many places (like the DAL"
+			" responses; this can be user-overridden using"
+			" the _TDENC local HTTP parameter.", options=["binary", "td"])),
 )
 
 def loadConfig():

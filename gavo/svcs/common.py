@@ -173,10 +173,12 @@ class QueryMeta(dict):
 		except ValueError:
 			self["verbosity"] = "HTML"  # VERB given, but not an int.
 
-		try:
-			self["tdEnc"] = base.parseBooleanLiteral(args.get("_TDENC", "False"))
-		except ValueError:
-			self["tdEnc"] = False
+		self["tdEnc"] = base.getConfig("ivoa", "votDefaultEncoding")=="td"
+		if "_TDENC" in args:
+			try:
+				self["tdEnc"] = base.parseBooleanLiteral(args["_TDENC"])
+			except ValueError:
+				pass
 
 		try:
 			self["VOTableVersion"] = tuple(int(v) for v in
