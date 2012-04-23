@@ -404,6 +404,11 @@ class SSAPRenderer(UnifiedDALRenderer):
 
 
 class RegistryRenderer(grend.ServiceBasedPage):
+	"""A renderer that works with registry.oaiinter to provide an OAI-PMH
+	interface.
+
+	The core is expected to return a stanxml tree.
+	"""
 	name = "pubreg.xml"
 	urlUse = "base"
 	resultType = "text/xml"
@@ -419,12 +424,12 @@ class RegistryRenderer(grend.ServiceBasedPage):
 	def _renderResponse(self, svcResult, ctx):
 		return self._renderXML(svcResult.original, ctx)
 
-	def _renderXML(self, etree, ctx):
-# XXX TODO: etree can be pretty large -- do we want async operation
+	def _renderXML(self, stanxml, ctx):
+# XXX TODO: this can be pretty large -- do we want async operation
 # here?  Stream this?
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "text/xml")
-		return utils.xmlrender(etree.getroot(),
+		return utils.xmlrender(stanxml,
 			"<?xml-stylesheet href='/static/xsl/oai.xsl' type='text/xsl'?>")
 
 	def _getErrorTree(self, exception, pars):
@@ -446,7 +451,7 @@ class RegistryRenderer(grend.ServiceBasedPage):
 		else:
 			code = "badArgument" # Why the hell don't they have a serverError?
 			message = "Internal Error: "+str(exception)
-		return ElementTree.ElementTree(OAI.PMH[
+		return OAI.PMH[
 			OAI.responseDate[datetime.datetime.utcnow().strftime(
 				utils.isoTimestampFmt)],
 			OAI.request(verb=pars.get("verb", ["Identify"])[0], 
@@ -454,7 +459,7 @@ class RegistryRenderer(grend.ServiceBasedPage):
 			OAI.error(code=code)[
 				message
 			]
-		].asETree())
+		]
 
 	def _renderError(self, failure, ctx, pars):
 		try:

@@ -278,7 +278,7 @@ class Element(object):
 		An empty element is one that has only empty children and no
 		non-whitespace text content.
 
-		TODO: rename this, and make isActuallyEmpty isEmpty.
+		TODO: rename this (to "shouldBeSkipped" or so), and make isActuallyEmpty isEmpty.
 		"""
 		if self._mayBeEmpty:
 			return False
@@ -578,6 +578,7 @@ def _makeVisitor(outputFile, prefixForEmpty):
 			outputFile.write("<%s%s>"%(name, attrRepr))
 			if text:
 				outputFile.write(escapePCDATA(text).encode("utf-8"))
+
 			for c in childIter:
 				if hasattr(c, "write"):
 					c.write(outputFile)

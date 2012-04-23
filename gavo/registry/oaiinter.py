@@ -346,7 +346,7 @@ class RegistryCore(svcs.Core, base.RestrictionMixin):
 		if "resumptionToken" in pars:
 			pars = parseResumptionToken(pars)
 
-		return ElementTree.ElementTree(runPMH(pars, self.builders).asETree())
+		return runPMH(pars, self.builders)
 
 	def run(self, service, inputTable, queryMeta):
 		"""returns an ElementTree containing a OAI-PMH response for the query 
