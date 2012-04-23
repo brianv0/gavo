@@ -16,6 +16,8 @@ the namespace mapping (and the schema locations) required.
 #c
 #c This program is free software, covered by the GNU GPL.  See COPYING.
 
+from cStringIO import StringIO
+
 try:
 	from xml.etree import cElementTree as ElementTree
 except ImportError:
@@ -115,10 +117,9 @@ class Element(object):
 	an attribute _name_a_<att> and point it to any string you want as the
 	attribute.
 
-	When building an ElementTree out of this, empty elements (i.e. those
-	having an empty text and having no non-empty children) are usually
-	discarded.  If you need such an element (e.g., for attributes), set
-	mayBeEmpty to True.
+	When serializing these, empty elements (i.e. those having an empty text and
+	having no non-empty children) are usually discarded.  If you need such an
+	element (e.g., for attributes), set mayBeEmpty to True.
 
 	Since insane XSD mandates that local elements must not be qualified when
 	elementFormDefault is unqualified, you need to set _local=True on
@@ -232,10 +233,10 @@ class Element(object):
 		added.
 		"""
 		self._isEmptyCache = None
-		if hasattr(child, "serializeToXMLStan"):
-			self.addChild(child.serializeToXMLStan())
-		elif child is None:
+		if child is None:
 			pass
+		elif hasattr(child, "serializeToXMLStan"):
+			self.addChild(child.serializeToXMLStan())
 		elif isinstance(child, basestring):
 			self.bailIfBadChild(child)
 			self.text_ = child
@@ -253,17 +254,35 @@ class Element(object):
 			raise Error("%s element %s cannot be added to %s node"%(
 				type(child), repr(child), self.name_))
 
-	def isEmpty(self):
+	def isActuallyEmpty(self):
+		"""returns true if the current node has no non-empty children and no
+		non-whitespace text content.
+		"""
 		if self._isEmptyCache is None:
 			self._isEmptyCache = True
-			if self._mayBeEmpty or self.text_.strip():
+
+			if self.text_.strip():
 				self._isEmptyCache = False
-			else:
+			if self._isEmptyCache:
 				for c in self._children:
 					if not c.isEmpty():
 						self._isEmptyCache = False
 						break
+
 		return self._isEmptyCache
+
+	def isEmpty(self):
+		"""returns true if the current node should be part of an output.
+
+		That is true if it is either non-empty or _mayBeEmpty is true.
+		An empty element is one that has only empty children and no
+		non-whitespace text content.
+
+		TODO: rename this, and make isActuallyEmpty isEmpty.
+		"""
+		if self._mayBeEmpty:
+			return False
+		return self.isActuallyEmpty()
 
 	def iterAttNames(self):
 		"""iterates over the defined attribute names of this node.
@@ -311,7 +330,7 @@ class Element(object):
 		"""calls func(node, text, attrs, childIter).
 
 		This is a building block for tree traversals; the expectation is that 
-		func does something like (c.apply(visitor) for c in childIter).
+		func does something like func(node, text, attrDict, childSequence).
 		"""
 		try:
 			if self.isEmpty():
@@ -329,24 +348,26 @@ class Element(object):
 					texttricks.makeEllipsis(repr(self._children), 60)))
 			raise
 
-	def asETree(self, emptyPrefix=None):
+	def asETree(self, prefixForEmpty=None):
 		"""returns an ElementTree instance for the tree below this node.
+
+		Deprecated.  Use Serializer rather than ElementTree.
 		"""
-		return DOMMorpher(emptyPrefix, NSRegistry).getMorphed(self)
+		return DOMMorpher(prefixForEmpty, NSRegistry).getMorphed(self)
 
-	def render(self, emptyPrefix=None):
-		et = self.asETree(emptyPrefix=emptyPrefix)
-		if et is None:
-			return ""
-		return ElementTree.tostring(et)
-
+	def render(self, prefixForEmpty=None):
+		"""returns this and its children as a string.
+		"""
+		f = StringIO()
+		write(self, f, prefixForEmpty=prefixForEmpty, xmlDecl=False)
+		return f.getvalue()
 
 
 class NSRegistry(object):
 	"""A container for a registry of namespace prefixes to namespaces.
 
 	This is used to have fixed namespace prefixes (IMHO the only way
-	to have namespaced attributes and retain sanity).  The
+	to have namespaced attribute values and retain sanity).  The
 	class is never instanciated.  It is used through the module-level
 	method registerPrefix and by DOMMorpher.
 	"""
@@ -383,20 +404,56 @@ class NSRegistry(object):
 				"registry of prefixes.", hint="The registry is filled"
 				" by modules as they are imported -- maybe you need to import"
 				" the right module?")
-
+	
 	@classmethod
-	def addNamespaceDeclarations(cls, root, prefixes):
+	def _iterNSAttrs(cls, prefixes, prefixForEmpty):
+		"""iterates over pairs of (attrName, attrVal) for declaring
+		prefixes.
+		"""
+		# null prefixes are ignored here; prefixForEmpty, if non-null, gives
+		# the prefix the namespace would normally be bound to.
+		prefixes.discard("")
+
 		schemaLocations = []
-		if prefixes:  # we'll need xsi for schemaLocation if we declare some
-			prefixes.add("xsi")
-		for pref in prefixes:
-			root.attrib["xmlns:%s"%pref] = cls._registry[pref]
+		for pref in sorted(prefixes):
+			yield "xmlns:%s"%pref, cls._registry[pref]
 			if cls._schemaLocations[pref]:
 				schemaLocations.append("%s %s"%(
 					cls._registry[pref],
 					cls._schemaLocations[pref]))
+
+		if prefixForEmpty:
+			yield "xmlns", cls._registry[prefixForEmpty]
+
 		if schemaLocations:
-			root.attrib["xsi:schemaLocation"] = " ".join(schemaLocations)
+			if not "xsi" in prefixes:
+				yield "xmlns:xsi", cls._registry["xsi"]
+			yield "xsi:schemaLocation", " ".join(schemaLocations)
+
+
+	@classmethod
+	def addNamespaceDeclarationsETree(cls, root, prefixes, prefixForEmpty=None):
+		"""adds xmlns declarations for prefixes to the etree node root.
+
+		With stanxml and the global-prefix scheme, xmlns declarations
+		only come at the root element; thus, root should indeed be root
+		rather than some random element.
+
+		Deprecated, don't use ElementTree with stanxml any more.
+		"""
+		for attName, attVal in cls._iterNSAttrs(prefixes, prefixForEmpty):
+			root.attrib[attName] = attVal
+
+	@classmethod
+	def addNamespaceDeclarations(cls, root, prefixes, prefixForEmpty=None):
+		"""adds xmlns declarations for prefixes to the stanxml node root.
+
+		With stanxml and the global-prefix scheme, xmlns declarations
+		only come at the root element; thus, root should indeed be root
+		rather than some random element.
+		"""
+		for attName, attVal in cls._iterNSAttrs(prefixes, prefixForEmpty):
+			root.addAttribute(attName, attVal)
 
 	@classmethod
 	def getPrefixInfo(cls, prefix):
@@ -425,16 +482,18 @@ class DOMMorpher(object):
 	tree into an ElementTree.
 
 	Discard instances after single use.
+
+	Deprecated, since the whole ElementTree-based serialization is deprecated.
 	"""
-	def __init__(self, emptyPrefix=None, nsRegistry=NSRegistry):
-		self.emptyPrefix, self.nsRegistry = emptyPrefix, nsRegistry
+	def __init__(self, prefixForEmpty=None, nsRegistry=NSRegistry):
+		self.prefixForEmpty, self.nsRegistry = prefixForEmpty, nsRegistry
 		self.prefixesUsed = set()
 	
 	def _morphNode(self, stanEl, content, attrDict, childIter):
 		name = stanEl.name_
 		if stanEl._prefix:
 			self.prefixesUsed.add(stanEl._prefix)
-			if not (stanEl._local or stanEl._prefix==self.emptyPrefix):
+			if not (stanEl._local or stanEl._prefix==self.prefixForEmpty):
 				name = "%s:%s"%(stanEl._prefix, stanEl.name_)
 		if stanEl._additionalPrefixes:
 			self.prefixesUsed.update(stanEl._additionalPrefixes)
@@ -450,10 +509,10 @@ class DOMMorpher(object):
 
 	def getMorphed(self, stan):
 		root = stan.apply(self._morphNode)
-		self.nsRegistry.addNamespaceDeclarations(root, self.prefixesUsed)
-		if self.emptyPrefix:
+		self.nsRegistry.addNamespaceDeclarationsETree(root, self.prefixesUsed)
+		if self.prefixForEmpty:
 			root.attrib["xmlns"] = self.nsRegistry.getNSForPrefix(
-				self.emptyPrefix)
+				self.prefixForEmpty)
 		return root
 
 
@@ -466,6 +525,8 @@ class NillableMixin(object):
 	This overrides apply, so the mixin must be before the base class in
 	the inheritance list.
 	"""
+	_mayBeEmpty = True
+
 	def apply(self, func):
 		attrs = self._makeAttrDict()
 		if self.text_:
@@ -480,7 +541,80 @@ class NillableMixin(object):
 		return False
 
 
-def xmlrender(tree, prolog=None, emptyPrefix=None):
+def escapePCDATA(val):
+	return (val
+		).replace("&", "&amp;"
+		).replace('<', '&lt;'
+		).replace('>', '&gt;'
+		).replace("\0", "&x00;")
+
+
+def escapeAttrVal(val):
+	return '"%s"'%(escapePCDATA(val).replace('"', '&quot;').encode("utf-8"))
+
+
+def _makeVisitor(outputFile, prefixForEmpty):
+	"""returns a function writing nodes to outputFile.
+	"""
+	
+	def visit(node, text, attrs, childIter):
+		attrRepr = " ".join("%s=%s"%(k, escapeAttrVal(attrs[k]))
+			for k in sorted(attrs.iterkeys()))
+		if attrRepr:
+			attrRepr = " "+attrRepr
+
+		if getattr(node, "_fixedTagMaterial", None):
+			attrRepr = attrRepr+" "+node._fixedTagMaterial
+
+		if not node._prefix or node._local or node._prefix==prefixForEmpty:
+			name = node.name_
+		else:
+			name = "%s:%s"%(node._prefix, node.name_)
+
+		if node.isActuallyEmpty():
+			if node._mayBeEmpty:
+				outputFile.write("<%s%s/>"%(name, attrRepr))
+		else:
+			outputFile.write("<%s%s>"%(name, attrRepr))
+			if text:
+				outputFile.write(escapePCDATA(text).encode("utf-8"))
+			for c in childIter:
+				if hasattr(c, "write"):
+					c.write(outputFile)
+				else:
+					c.apply(visit)
+			outputFile.write("</%s>"%name)
+
+	return visit
+
+
+def write(root, outputFile, prefixForEmpty=None, nsRegistry=NSRegistry,
+		xmlDecl=True):
+	"""writes an xmlstan tree starting at root to destFile.
+
+	prefixForEmpty is a namespace URI that should have no prefix at all.
+	"""
+	# since namespaces only enter here through prefixes, I just need to
+	# figure out which ones are used.
+	prefixesUsed = set()
+
+	def collectPrefixes(node, text, attrs, childIter, 
+			prefixesUsed=prefixesUsed):
+		prefixesUsed |= node._additionalPrefixes
+		prefixesUsed.add(node._prefix)
+		for child in childIter:
+			child.apply(collectPrefixes)
+
+	root.apply(collectPrefixes)
+	nsRegistry.addNamespaceDeclarations(root, prefixesUsed, prefixForEmpty)
+
+	if xmlDecl:
+		outputFile.write("<?xml version='1.0' encoding='utf-8'?>\n")
+
+	root.apply(_makeVisitor(outputFile, prefixForEmpty))
+
+
+def xmlrender(tree, prolog=None, prefixForEmpty=None):
 	"""returns a unicode object containing tree in serialized forms.
 
 	tree can be any object with a render method or some sort of string.
@@ -492,7 +626,7 @@ def xmlrender(tree, prolog=None, emptyPrefix=None):
 	instructions.
 	"""
 	if hasattr(tree, "render"):
-		res = tree.render(emptyPrefix=emptyPrefix)
+		res = tree.render(prefixForEmpty=prefixForEmpty)
 	elif hasattr(tree, "getchildren"):  # hopefully an xml.etree Element
 		res = ElementTree.tostring(tree)
 	elif isinstance(tree, str):

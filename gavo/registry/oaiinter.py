@@ -199,24 +199,28 @@ def _parseOAIPars(pars):
 			raise BadArgument("until")
 		sqlFrags.append("recTimestamp <= %%(%s)s"%base.getSQLKey("until",
 			pars["until"], sqlPars))
+	return " AND ".join(sqlFrags), sqlPars
+
+
+def _getSetCondition(pars, sqlPars):
+	"""helps getMatchingRestups.
+	"""
 	if "set" in pars:
 		setName = pars["set"]
 	else:
 		setName = "ivo_managed"
 	# we should join for this, but we'd need more careful query 
 	# construction then...
-	sqlFrags.append("EXISTS (SELECT setName from dc.sets WHERE"
+	return ("EXISTS (SELECT setName from dc.sets WHERE"
 		" sets.resId=resources.resId"
 		" AND sets.sourceRD=resources.sourceRD"
 		" AND setname=%%(%s)s)"%(base.getSQLKey("set", setName, sqlPars)))
-	return " AND ".join(sqlFrags), sqlPars
 
 
-def getMatchingRestups(pars, connection=None):
-	"""returns a list of res tuples matching the OAI query arguments pars.
+def getMatchingRows(pars, rscTableDef, getSetFilter):
+	"""returns rows in rscTableDef matching the OAI parameters pars.
 
 	The last element of the list could be an OAI.resumptionToken element.
-
 	pars is a dictionary mapping any of the following keys to values:
 
 		- from
@@ -228,16 +232,24 @@ def getMatchingRestups(pars, connection=None):
 	
 	maxRecords is not part of OAI-PMH; it is used internally to
 	turn paging on when we think it's a good idea, and for testing.
+
+	rscTableDef has to be a table with a column recTimestamp giving the
+	resource record's updated time.
+
+	getSetFilter(pars, fillers) is a function receiving the PMH parameters
+	dictionary and a dictionary of query fillers and returning, as appropriate,
+	a condition that implements any conditions on sets within pars
 	"""
 	maxRecords = int(pars.get("maxRecords", 1000))
 	offset = pars.get("resumptionToken", 0)
 	frag, fillers = _parseOAIPars(pars)
+	frag = " AND ".join(
+		f for f in [getSetFilter(pars, fillers), frag] if f)
 
 	try:
 		with base.getTableConn() as conn:
-			srvTable = rsc.TableForDef(getServicesRD().getById("resources"),
-				connection=conn) 
-			res = list(srvTable.iterQuery(srvTable.tableDef, frag, fillers,
+			srvTable = rsc.TableForDef(rscTableDef, connection=conn) 
+			res = list(srvTable.iterQuery(rscTableDef, frag, fillers,
 				limits=(
 					"LIMIT %(maxRecords)s OFFSET %(offset)s", locals())))
 		
@@ -245,6 +257,7 @@ def getMatchingRestups(pars, connection=None):
 			# there's probably more data, request a resumption token
 			res.append(OAI.resumptionToken[
 				makeResumptionToken(pars, offset+len(res))])
+
 	except base.DBError:
 		raise base.ui.logOldExc(BadArgument("Bad syntax in some parameter value"))
 	except KeyError, msg:
@@ -252,6 +265,15 @@ def getMatchingRestups(pars, connection=None):
 	if not res:
 		raise NoRecordsMatch("No resource records match your criteria.")
 	return res
+
+
+def getMatchingRestups(pars):
+	"""returns a list of res tuples matching the OAI query arguments pars.
+
+	See getMatchingRows for details on pars.
+	"""
+	td = getServicesRD().getById("resources")
+	return getMatchingRows(pars, td, _getSetCondition)
 
 
 def getMatchingResobs(pars):

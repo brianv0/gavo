@@ -79,48 +79,6 @@ class IdManagerTest(testhelpers.VerboseTest):
 		self.failUnless(testob2 is self.im.getForId("ob10"))
 
 
-class StanXMLTest(testhelpers.VerboseTest):
-	"""tests for our ad hoc XML DOM.
-	"""
-	stanxml.registerPrefix("ns1", "http://bar.com", None)
-	stanxml.registerPrefix("ns0", "http://foo.com", None)
-
-	class E(object):
-		class LocalElement(stanxml.Element):
-			_prefix = "ns1"
-			_local = _mayBeEmpty = True
-		class A(LocalElement):
-			_a_x = None
-		class B(LocalElement):
-			_a_y = None
-		class NSElement(stanxml.Element):
-			_prefix = "ns0"
-		class C(NSElement):
-			_a_z = "ab"
-
-	def testTraversal(self):
-		tree = self.E.A[self.E.B, self.E.B, self.E.A]
-		def record(node, content, attrDict, childIter):
-			return (node.name_,
-				[c.apply(record) for c in childIter])
-		self.assertEqual(tree.apply(record),
-			('A', [('B', []), ('B', []), ('A', [])]))
-	
-	def testSimpleRender(self):
-		tree = self.E.A[self.E.B, self.E.B, self.E.A]
-		self.assertEqual(testhelpers.cleanXML(tree.render()), 
-			'<A ><B /><B /><A /></A>')
-	
-	def testRenderWithText(self):
-		E = self.E
-		tree = E.A[E.C["arg"], E.C(z="c")[E.B["muss"], E.A]]
-		self.assertEqual(tree.render(), 
-			'<A xmlns:ns0="http://foo.com" xmlns:ns1="http://bar.com" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><ns0:C z="ab">arg</ns0:C>'
-				'<ns0:C z="c"><B>muss</B><A /></ns0:C></A>')
-
-# XXX TODO: add a test for _addtionalPrefixes
-
-
 class LoadModuleTest(testhelpers.VerboseTest):
 	"""tests for cli's module loader.
 	"""

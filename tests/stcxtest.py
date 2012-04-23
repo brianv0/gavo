@@ -20,7 +20,10 @@ def assertEqualWithoutIds(withId, template, desc="<Undescribed>"):
 
 	We want this since the ids given to our elements are essentially random.
 	"""
+	# etree-based serialization has blanks in empty elements; we don't
+	# want to fail on templates for that
 	withoutId = testhelpers.cleanXML(withId)
+	template = testhelpers.cleanXML(template)
 	if withoutId!=template:
 		matchLen = len(os.path.commonprefix([template, withoutId]))
 		raise AssertionError("Didn't get expected STC XML for example '%s';"
@@ -32,7 +35,7 @@ class SpaceFrameTest(testhelpers.VerboseTest):
 		assertEqualWithoutIds(stcxgen._nodeToStan(dm.SpaceFrame(
 			flavor="CARTESIAN", nDim=2, refFrame="ICRS", name="rotten",
 			refPos=dm.RefPos(standardOrigin="GEOCENTER")), None).render(
-				emptyPrefix="stc"),
+				prefixForEmpty="stc"),
 		'<SpaceFrame ><Name>rotten</Name><ICRS /><GEOCENTER />'
 			'<CARTESIAN coord_naxes="2" /></SpaceFrame>')
 
@@ -63,7 +66,7 @@ class V(stc.STC.STCElement):
 class STCMappingTest(testhelpers.VerboseTest):
 	def assertMapsto(self, stcsLiteral, stcxExpected):
 		ast = stc.parseSTCS(stcsLiteral)
-		stcxResult = stcxgen.astToStan(ast, V).render(emptyPrefix="stc")
+		stcxResult = stcxgen.astToStan(ast, V).render(prefixForEmpty="stc")
 		assertEqualWithoutIds(stcxResult, stcxExpected,
 			stcsLiteral)
 

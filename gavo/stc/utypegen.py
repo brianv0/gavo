@@ -78,7 +78,8 @@ class UtypeMaker(object):
 	# attributes that don't get serialized to utypes per spec
 	bannedAttributes = set("id frame_id coord_system_id unit"
 		" pos_angle_unit pos_unit spectral_unit time_unit"
-		" vel_time_unit gen_unit xsi:type ucd".split())
+		" vel_time_unit gen_unit xsi:type ucd xmlns:stc xmlns xmlns:xsi"
+		" xsi:schemaLocation".split())
 
 	rootType = None
 

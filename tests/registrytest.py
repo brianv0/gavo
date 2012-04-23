@@ -100,8 +100,7 @@ class DeletedTest(testhelpers.VerboseTest):
 		# see if oaiinter functions see new service
 		yesterday = datetime.datetime.today()+ datetime.timedelta(days=-1)
 		matches = [tup for tup in oaiinter.getMatchingRestups(
-			{"from": yesterday.strftime(utils.isoTimestampFmt)}, 
-				connection=self.connection)
+			{"from": yesterday.strftime(utils.isoTimestampFmt)})
 			if tup["sourceRD"]==self.rdId]
 		self.failUnless(len(matches)==1, "Publication did not write record.")
 		match = matches[0]
@@ -112,8 +111,7 @@ class DeletedTest(testhelpers.VerboseTest):
 	def _assertUnpublished(self):
 		yesterday = datetime.datetime.today()+ datetime.timedelta(days=-1)
 		matches = [tup for tup in oaiinter.getMatchingRestups(
-			{"from": yesterday.strftime(utils.isoTimestampFmt)}, 
-				connection=self.connection)
+			{"from": yesterday.strftime(utils.isoTimestampFmt)})
 			if tup["sourceRD"]==self.rdId]
 		self.failUnless(len(matches)==1, "Unpublication deleted record.")
 		match = matches[0]
@@ -121,8 +119,7 @@ class DeletedTest(testhelpers.VerboseTest):
 			"Unpublication didn't set deleted flag.")
 	
 	def _assertCanBuildResob(self):
-		restup = [tup for tup in oaiinter.getMatchingRestups(
-			{}, connection=self.connection)
+		restup = [tup for tup in oaiinter.getMatchingRestups({})
 			if tup["sourceRD"]==self.rdId][0]
 		resob = registry.getResobFromRestup(restup)
 		self.assertEqual(resob.resType, "deleted")

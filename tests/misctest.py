@@ -306,7 +306,7 @@ class StanXMLTest(testhelpers.VerboseTest):
 	def testTextContent(self):
 		M = self.Model
 		data = M.Root[M.Child[u"a\xA0bc"]]
-		self.assertEqual(data.render(), '<Root><Child>a&#160;bc</Child></Root>')
+		self.assertEqual(data.render(), '<Root><Child>a\xc2\xa0bc</Child></Root>')
 
 	def testRetrieveText(self):
 		M = self.Model
@@ -330,8 +330,55 @@ class StanXMLTest(testhelpers.VerboseTest):
 	def testNillableAttribute(self):
 		M = self.Model
 		rendered = M.Root[M.Nilble(restatt="x")].render()
-		self.failUnless('<Nilble restatt="x" xsi:nil="true" />' in rendered)
+		self.failUnless('<Nilble restatt="x" xsi:nil="true"/>' in rendered)
+	
 
+class StanXMLNamespaceTest(testhelpers.VerboseTest):
+
+	stanxml.registerPrefix("ns1", "http://bar.com", None)
+	stanxml.registerPrefix("ns0", "http://foo.com", None)
+	stanxml.registerPrefix("foo", "http://bori.ng", None)
+
+	class E(object):
+		class LocalElement(stanxml.Element):
+			_prefix = "ns1"
+			_local = _mayBeEmpty = True
+		class A(LocalElement):
+			_a_x = None
+		class B(LocalElement):
+			_a_y = None
+		class NSElement(stanxml.Element):
+			_prefix = "ns0"
+		class C(NSElement):
+			_a_z = "ab"
+		class D(NSElement):
+			_a_u = "x"
+			_name_a_u = "foo:u"
+			_additionalPrefixes = frozenset(["foo"])
+
+	def testTraversal(self):
+		tree = self.E.A[self.E.B, self.E.B, self.E.A]
+		def record(node, content, attrDict, childIter):
+			return (node.name_,
+				[c.apply(record) for c in childIter])
+		self.assertEqual(tree.apply(record),
+			('A', [('B', []), ('B', []), ('A', [])]))
+	
+	def testSimpleRender(self):
+		tree = self.E.A[self.E.B, self.E.B, self.E.A]
+		self.assertEqual(testhelpers.cleanXML(tree.render()), 
+			'<A><B/><B/><A/></A>')
+
+	def testRenderWithText(self):
+		E = self.E
+		tree = E.A[E.C["arg"], E.C(z="c")[E.B["muss"], E.A]]
+		self.assertEqual(tree.render(), 
+			'<A xmlns:ns0="http://foo.com" xmlns:ns1="http://bar.com"><ns0:C z="ab">arg</ns0:C>'
+				'<ns0:C z="c"><B>muss</B><A/></ns0:C></A>')
+
+	def testAdditionalPrefixes(self):
+		tree = self.E.C[self.E.D["xy"]]
+		self.assertEqual(tree.render(), '<ns0:C xmlns:foo="http://bori.ng" xmlns:ns0="http://foo.com" z="ab"><ns0:D foo:u="x">xy</ns0:D></ns0:C>')
 
 class TestGroupsMembership(testhelpers.VerboseTest):
 	resources = [('querier', tresc.testUsers)]

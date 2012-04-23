@@ -323,7 +323,8 @@ def cleanXML(aString):
 
 	For new tests, you should just getXMLTree and XPath tests.
 	"""
-	return re.sub("\s+", " ", _xmlJunkPat.sub('', aString)).strip()
+	return re.sub("\s+", " ", _xmlJunkPat.sub('', aString)).strip(
+		).replace(" />", "/>").replace(" >", ">")
 
 
 def _nukeNamespaces(xmlString):

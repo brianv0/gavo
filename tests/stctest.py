@@ -587,10 +587,10 @@ class NullTest(testhelpers.VerboseTest):
 		self.assertEqual(
 			testhelpers.cleanXML(
 				stc.getSTCX(self._makeEmptySTC(), stc.STC.STCSpec).render(
-					emptyPrefix="stc")), 
-			'<STCSpec ><AstroCoordSystem ><TimeFrame ><TimeScale /><UNKNOWNRefPos '
-			'/></TimeFrame><SpaceFrame ><UNKNOWNFrame /><UNKNOWNRefPos /><SPHERIC'
-			'AL coord_naxes="2" /></SpaceFrame></AstroCoordSystem></STCSpec>')
+					prefixForEmpty="stc")), 
+			'<STCSpec><AstroCoordSystem><TimeFrame><TimeScale/><UNKNOWNRefPos'
+			'/></TimeFrame><SpaceFrame><UNKNOWNFrame/><UNKNOWNRefPos/><SPHERIC'
+			'AL coord_naxes="2"/></SpaceFrame></AstroCoordSystem></STCSpec>')
 
 	def testToUtypes(self):
 		self.assertEqual(dict(stc.getUtypes(self._makeEmptySTC())), {
