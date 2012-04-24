@@ -784,20 +784,20 @@ and access the table in the row iterator.
 Also look into EmbeddedGrammar, which may be a more convenient way to
 achieve the same thing.
 
-Dispatched Grammars
-'''''''''''''''''''
+Dispatching Grammars
+''''''''''''''''''''
 
 With normal grammars, all rows are fed to all rowmakers of all makes
-within a data object.  The rowmakers can than decide to not process a
+within a data object.  The rowmakers can then decide to not process a
 given row by raising ``IgnoreThisRow`` or using the trigger mechanism.
 However, when filling complex data models with potentially dozens of
 tables, this becomes highly inefficient.
 
-With custom grammars, you can to better.  Instead of just yielding a row
-from ``_iterRows``, you yield a pair of a role (as specified in the
-``role`` attribute of a ``make`` element) and the row.  The machinery
-will then pass the row only to the feeder for the table in the
-corresponding make.
+When you write your own grammars, you can to better.  Instead of just
+yielding a row from ``_iterRows``, you yield a pair of a role (as
+specified in the ``role`` attribute of a ``make`` element) and the row.
+The machinery will then pass the row only to the feeder for the table in
+the corresponding make.
 
 Currently, the only way to define such a dispatching grammar is to use a
 custom grammar or an embedded grammar.  For these, just change your
@@ -805,6 +805,15 @@ custom grammar or an embedded grammar.  For these, just change your
 element.  If you implement ``getParameters``, you can return either
 pairs of role and row or just the row; in the latter case, the row will
 be broadcast to all parmakers.
+
+Special care needs to be taken when a dispatching grammar parses
+products, because the product table is fed by a special make inserted
+from the products mixin.  This make of course doesn't see the rows you
+are yielding from your dispatching grammar.  This means that without
+further action, your files will not end up the the product table at all.
+
+The way to fix it is to yield the rows destined for the products table
+with a products role, like this: ``yield ("products", newRow)``.
 
 
 Functions Available for Row Makers

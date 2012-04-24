@@ -185,7 +185,8 @@ machinery -->
 							# ...feed instructions to make the row table to it and...
 							dd._makes.feedObject(dd, rscdef.Make(dd, 
 								table=prodRD.getTableDefById("products"),
-								rowmaker=prodRD.getById("productsMaker")))
+								rowmaker=prodRD.getById("productsMaker"),
+								role="products"))
 							# ...add some rules to ensure prodcut table cleanup,
 							# and add mappings for the embedding table.
 							for make in dd.makes:
