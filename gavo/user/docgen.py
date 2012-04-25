@@ -313,17 +313,18 @@ def getTriggerDocs(docStructure):
 
 def _documentParameters(content, pars):
 	content.makeSpace()
-	for par in pars:
-		doc = ["* "]
+	for par in sorted(pars, key=lambda p: p.name):
 		if par.late:
-			doc.append("Late p")
+			doc = ["Late p"]
 		else:
-			doc.append("P")
-		doc.append("arameter %s "%par.name)
+			doc = ["P"]
+		doc.append("arameter *%s*\n"%par.name)
 		if par.content_:
-			doc.append("defaults to ``%s``"%par.content_)
+			doc.append("  defaults to ``%s``;\n"%par.content_)
 		if par.description:
-			doc.append(" -- "+par.description)
+			doc.append(utils.fixIndentation(par.description, "  "))
+		else:
+			doc.append("   UNDOCUMENTED")
 		content.addRaw(''.join(doc)+"\n")
 	content.makeSpace()
 

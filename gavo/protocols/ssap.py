@@ -244,3 +244,9 @@ class SDMCore(svcs.Core):
 
 		return ("application/x-votable+xml",
 			votable.asString(makeSDMVOT(resData, **votContextArgs)))
+
+
+class SSAPProcessCore(SSAPCore):
+	"""Temporary Hack; delete when ccd700 is ported to a sane infrastructure.
+	"""
+	name_ = "ssapProcessCore"
