@@ -79,6 +79,8 @@ should look if you just want to use this.</meta>
 	<setup>
 		<par key="ignoreUnknowns" description="Return Nones for unknown
 			objects?  (if false, ValidationErrors will be raised)">True</par>
+		<par key="logUnknowns" description="Write unresolved object names
+			to the info log">False</par>
 		<par key="identifier" late="True" 
 			description="The identifier to be resolved."/>
 		<code>
@@ -101,6 +103,8 @@ should look if you just want to use this.</meta>
 		try:
 			ra, dec = resolver.getPositionFor(identifier)
 		except KeyError:
+			if logUnknowns:
+				base.ui.notifyInfo("Identifier did not resolve: %s"%identifier)
 			if not ignoreUnknowns:
 				raise base.Error("resolveObject could not resolve object"
 					" %s."%identifier)

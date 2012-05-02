@@ -87,7 +87,7 @@ def padCard(input, length=CARD_SIZE):
 	return input+' '*(length-l%length)
 
 
-def readHeaderBytes(f, maxHeaderBlocks=30):
+def readHeaderBytes(f, maxHeaderBlocks=40):
 	"""returns the bytes beloning to a FITS header starting at the current
 	position within the file f.
 
