@@ -681,5 +681,13 @@ class SimpleInterfaceTest(testhelpers.VerboseTest):
 		self.failUnless('Right Ascension (J2000)</DESCRIPTION>' in content)
 
 
+class StanXMLText(testhelpers.VerboseTest):
+	# make sure VOTable work as normal stanxml trees in a pinch
+	def testSimple(self):
+		vot = V.VOTABLE[
+			V.INFO(name="QUERY_STATUS", value="ERROR")["Nothing, testing"]]
+		self.assertEqual(vot.render(), '<VOTABLE version="1.2" xmlns="http://www.ivoa.net/xml/VOTable/v1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.ivoa.net/xml/VOTable/v1.2 http://vo.ari.uni-heidelberg.de/docs/schemata/VOTable-1.2.xsd"><INFO name="QUERY_STATUS" value="ERROR">Nothing, testing</INFO></VOTABLE>')
+
+
 if __name__=="__main__":
 	testhelpers.main(BinaryReadTest)

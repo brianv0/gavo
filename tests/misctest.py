@@ -337,7 +337,7 @@ class StanXMLNamespaceTest(testhelpers.VerboseTest):
 
 	stanxml.registerPrefix("ns1", "http://bar.com", None)
 	stanxml.registerPrefix("ns0", "http://foo.com", None)
-	stanxml.registerPrefix("foo", "http://bori.ng", None)
+	stanxml.registerPrefix("foo", "http://bori.ng", "http://schema.is.here")
 
 	class E(object):
 		class LocalElement(stanxml.Element):
@@ -378,7 +378,16 @@ class StanXMLNamespaceTest(testhelpers.VerboseTest):
 
 	def testAdditionalPrefixes(self):
 		tree = self.E.C[self.E.D["xy"]]
-		self.assertEqual(tree.render(), '<ns0:C xmlns:foo="http://bori.ng" xmlns:ns0="http://foo.com" z="ab"><ns0:D foo:u="x">xy</ns0:D></ns0:C>')
+		self.assertEqual(tree.render(includeSchemaLocation=False), 
+			'<ns0:C xmlns:foo="http://bori.ng" xmlns:ns0="http://foo.com" z="ab"><ns0:D foo:u="x">xy</ns0:D></ns0:C>')
+
+	def testSchemaLocation(self):
+		tree = self.E.D["xy"]
+		self.assertEqual(tree.render(),
+			'<ns0:D foo:u="x" xmlns:foo="http://bori.ng" xmlns:ns0="http://'
+			'foo.com" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
+			'xsi:schemaLocation="http://bori.ng http://schema.is.here">xy</ns0:D>')
+
 
 class TestGroupsMembership(testhelpers.VerboseTest):
 	resources = [('querier', tresc.testUsers)]

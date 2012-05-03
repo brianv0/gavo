@@ -301,7 +301,8 @@ class Element(object):
 		in a pinch, use this.
 		"""
 		attName = str(attName)
-		self._nodeAttrs.append((attName, attValue))
+		if not hasattr(self, attName):
+			self._nodeAttrs.append((attName, attValue))
 		setattr(self, attName, attValue)
 
 	def iterChildrenOfType(self, type):
@@ -355,11 +356,12 @@ class Element(object):
 		"""
 		return DOMMorpher(prefixForEmpty, NSRegistry).getMorphed(self)
 
-	def render(self, prefixForEmpty=None):
+	def render(self, prefixForEmpty=None, includeSchemaLocation=True):
 		"""returns this and its children as a string.
 		"""
 		f = StringIO()
-		write(self, f, prefixForEmpty=prefixForEmpty, xmlDecl=False)
+		write(self, f, prefixForEmpty=prefixForEmpty, xmlDecl=False,
+			includeSchemaLocation=includeSchemaLocation)
 		return f.getvalue()
 
 
@@ -406,7 +408,7 @@ class NSRegistry(object):
 				" the right module?")
 	
 	@classmethod
-	def _iterNSAttrs(cls, prefixes, prefixForEmpty):
+	def _iterNSAttrs(cls, prefixes, prefixForEmpty, includeSchemaLocation):
 		"""iterates over pairs of (attrName, attrVal) for declaring
 		prefixes.
 		"""
@@ -417,7 +419,7 @@ class NSRegistry(object):
 		schemaLocations = []
 		for pref in sorted(prefixes):
 			yield "xmlns:%s"%pref, cls._registry[pref]
-			if cls._schemaLocations[pref]:
+			if includeSchemaLocation and cls._schemaLocations[pref]:
 				schemaLocations.append("%s %s"%(
 					cls._registry[pref],
 					cls._schemaLocations[pref]))
@@ -432,7 +434,8 @@ class NSRegistry(object):
 
 
 	@classmethod
-	def addNamespaceDeclarationsETree(cls, root, prefixes, prefixForEmpty=None):
+	def addNamespaceDeclarationsETree(cls, root, prefixes, prefixForEmpty=None,
+			includeSchemaLocation=True):
 		"""adds xmlns declarations for prefixes to the etree node root.
 
 		With stanxml and the global-prefix scheme, xmlns declarations
@@ -441,18 +444,21 @@ class NSRegistry(object):
 
 		Deprecated, don't use ElementTree with stanxml any more.
 		"""
-		for attName, attVal in cls._iterNSAttrs(prefixes, prefixForEmpty):
+		for attName, attVal in cls._iterNSAttrs(prefixes, prefixForEmpty,
+				includeSchemaLocation):
 			root.attrib[attName] = attVal
 
 	@classmethod
-	def addNamespaceDeclarations(cls, root, prefixes, prefixForEmpty=None):
+	def addNamespaceDeclarations(cls, root, prefixes, prefixForEmpty=None,
+			includeSchemaLocation=True):
 		"""adds xmlns declarations for prefixes to the stanxml node root.
 
 		With stanxml and the global-prefix scheme, xmlns declarations
 		only come at the root element; thus, root should indeed be root
 		rather than some random element.
 		"""
-		for attName, attVal in cls._iterNSAttrs(prefixes, prefixForEmpty):
+		for attName, attVal in cls._iterNSAttrs(prefixes, prefixForEmpty,
+				includeSchemaLocation):
 			root.addAttribute(attName, attVal)
 
 	@classmethod
@@ -558,8 +564,8 @@ def _makeVisitor(outputFile, prefixForEmpty):
 	"""
 	
 	def visit(node, text, attrs, childIter):
-		attrRepr = " ".join("%s=%s"%(k, escapeAttrVal(attrs[k]))
-			for k in sorted(attrs.iterkeys()))
+		attrRepr = " ".join(sorted("%s=%s"%(k, escapeAttrVal(attrs[k]))
+			for k in attrs))
 		if attrRepr:
 			attrRepr = " "+attrRepr
 
@@ -590,7 +596,7 @@ def _makeVisitor(outputFile, prefixForEmpty):
 
 
 def write(root, outputFile, prefixForEmpty=None, nsRegistry=NSRegistry,
-		xmlDecl=True):
+		xmlDecl=True, includeSchemaLocation=True):
 	"""writes an xmlstan tree starting at root to destFile.
 
 	prefixForEmpty is a namespace URI that should have no prefix at all.
@@ -607,7 +613,12 @@ def write(root, outputFile, prefixForEmpty=None, nsRegistry=NSRegistry,
 			child.apply(collectPrefixes)
 
 	root.apply(collectPrefixes)
-	nsRegistry.addNamespaceDeclarations(root, prefixesUsed, prefixForEmpty)
+	# An incredibly nasty hack for VOTable generation; we need a better
+	# way to handle with the 1.1/1.2 namespaces: Root may declare it
+	# handles all NS declarations itself.  Die, die, die.
+	if getattr(root, "_fixedTagMaterial", None) is None:
+		nsRegistry.addNamespaceDeclarations(root, prefixesUsed, prefixForEmpty,
+			includeSchemaLocation)
 
 	if xmlDecl:
 		outputFile.write("<?xml version='1.0' encoding='utf-8'?>\n")
