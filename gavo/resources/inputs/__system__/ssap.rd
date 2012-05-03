@@ -212,7 +212,7 @@
 			tablehead="UCD(spectral)" verbLevel="25" 
 			description="UCD of the spectral column">\spectralUCD</param>
 		<param name="ssa_statError" 
-			utype="ssa:Char.FluxAxis.Accuracy.StatError"
+			unit="\fluxSI" utype="ssa:Char.FluxAxis.Accuracy.StatError"
 			ucd="stat.error;phot.flux.density;em"
 			verbLevel="25"
 			description="Statistical error in flux">\statFluxError</param>
@@ -344,7 +344,8 @@
 			<par key="timeExt" late="True" description="exposure time
 				(in seconds); ssa:Char.TimeAxis.Coverage.Bounds.Extent">None</par>
 			<par key="specmid" late="True" description="central wavelength
-				(in meters); ssa:Char.SpectralAxis.Coverage.Location.Value">None</par>
+				(in meters of wavelength); 
+				ssa:Char.SpectralAxis.Coverage.Location.Value">None</par>
 			<par key="specext" late="True" description="width of bandpass
 				(in meters of wavelength); 
 				ssa:Char.SpectralAxis.Coverage.Bounds.Extent">None</par>
@@ -400,8 +401,8 @@
 			instance (not the SSA metadata); use a blank (or a percent) for
 			relative or uncalibrated fluxes; ssa:Dataset.FluxSI"/>
 		<mixinPar key="spectralSI" description="Unit of frequency or 
-			wavelength in the spectrum instance (not the SSA metadata);
-			ssa:Dataset.SpectralSI"/>
+			wavelength in the spectrum instance (not the SSA metadata, they
+			are all in meters); ssa:Dataset.SpectralSI"/>
 		<mixinPar key="creator" description="Creator designation;
 			ssa:DataID.Creator">__NULL__</mixinPar>
 		<mixinPar key="publisher" description="Publisher IVO (by default
@@ -437,7 +438,8 @@
 		<mixinPar key="spectralCalibration" description="Type of wavelength 
 			Calibration (one of ABSOLUTE, RELATIVE, NORMALIZED, or UNCALIBRATED);
 			ssa:Char.SpectralAxis.Calibration">__NULL__</mixinPar>
-		<mixinPar key="statSpaceError" description="Statistical error in position;
+		<mixinPar key="statSpaceError" description="Statistical error in position
+			in degrees;
 			ssa:Char.SpatialAxis.Accuracy.StatError"
 			>__NULL__</mixinPar>
 		<mixinPar key="collection" description="ivo id of the originating
@@ -598,6 +600,29 @@
 						type="text" std="True"/>
 					<phraseMaker procDef="\procDef">
 						<bind name="consCol">"\matchCol"</bind>
+					</phraseMaker>
+				</condDesc>
+			</events>
+		</LOOP>
+
+		<!-- WILDTARGET and WILDTARGETCASE are funky special cases. -->
+		<LOOP>
+			<csvItems>
+				keyName,        parClass
+				WILDTARGET,     PQLNocaseShellPatternPar
+				WILDTARGETCASE, PQLShellPatternPar
+			</csvItems>
+			<events>
+				<condDesc id="\keyName\+_cond">
+					<inputKey name="\keyName" type="text" tablehead="Name Pattern"
+						description="Shell pattern of target observed"/>
+					<phraseMaker>
+						<code>
+							parsed = pql.\parClass.fromLiteral(
+								inPars.get("\keyName"), "\keyName")
+							if parsed is not None:
+								yield parsed.getSQL("\keyName", outPars)
+						</code>
 					</phraseMaker>
 				</condDesc>
 			</events>

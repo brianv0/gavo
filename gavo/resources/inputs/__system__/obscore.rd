@@ -331,8 +331,9 @@
 		<mixinPar name="productSubtype" description="File subtype.  Details
 			pending">NULL</mixinPar>
 		<mixinPar name="calibLevel" description="Calibration level of data,
-			a number between 0 and 3; for details, see obsCore's calib_level
-			column.">0</mixinPar>
+			a number between 0 and 3; for details, see 
+			http://dc.g-vo.org/tableinfo/ivoa.obscore#note-calib"
+			>0</mixinPar>
 		<mixinPar name="collectionName" description="A human-readable name
 			for this collection.  This should be short, so don't just use the
 			resource title">'unnamed'</mixinPar>
@@ -344,7 +345,7 @@
 		<mixinPar name="tResolution" description="Temporal resolution"
 			>NULL</mixinPar>
 		<mixinPar name="emResPower" description="Spectral resolution as
-			delta lambda/lambda">NULL</mixinPar>
+			lambda/delta lambda">NULL</mixinPar>
 		<mixinPar name="expTime" description="Total time of event counting.
 			This simply is tMax-tMin for simple exposures.">NULL</mixinPar>
 		<mixinPar name="polStates" description="List of polarization

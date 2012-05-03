@@ -740,6 +740,15 @@ class MetaURL(MetaValue):
 	
 	These values are used for _related (meaning "visible" links to other
 	services).
+
+	For links within you data center, use the internallink macro, the argument
+	of which the the "path" to a resource, i.e. RD path/service/renderer;
+	we recommend to use the info renderer in such links as a rule.  This would
+	look like this::
+		
+		<meta name="_related" title="Aspec SSAP"
+			>\internallink{aspec/q/ssa/info}</meta>
+
 	"""
 	def __init__(self, url, format="plain", title=None):
 		MetaValue.__init__(self, url, format)

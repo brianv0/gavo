@@ -128,11 +128,22 @@ class CoreQueriesTest(_WithSSATableTest):
 			["test2"]),
 #15
 		({"excellence": "/100"},
-		["test2", "test3"]),
+			["test2", "test3"]),
 		({"POS": "10,+15"}, # POS without SIZE is ignored
 			["test1", "test2", "test3"]),
 		({"SIZE": "30"}, # splat sends SIZE without POS; ignore it in this case.
 			["test1", "test2", "test3"]),
+		({"WILDTARGET": "BIG*"},
+			["test1"]),
+		({"WILDTARGETCASE": "BIG*"},
+			[]),
+#20
+		({"WILDTARGET": "b??g*"},
+			["test2"]),
+		({"WILDTARGET": "\*"},
+			[]),
+		({"WILDTARGET": "[br][oa]*"},
+			["test2", "test3"]),
 	]
 
 

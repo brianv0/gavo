@@ -27,6 +27,7 @@ import re
 import urllib
 
 from gavo import base
+from gavo import utils
 from gavo.base import literals
 from gavo.base import sqlmunge
 from gavo.base import typesystems
@@ -427,6 +428,93 @@ class PQLFloatPar(PQLPar):
 					for r in self.ranges)
 
 
+class PQLShellPatternPar(PQLPar):
+	"""a PQL shell pattern parameter.
+
+	These are posix shell patterns, where no PQL metacharacters are evaluated
+	at all.
+	"""
+	_reOperator = "~"
+
+	@classmethod
+	def fromLiteral(cls, val, destName):
+		if val is None:
+			return None
+		val = getREForShPat(val)
+		return cls([PQLRange(val)])
+	
+	def getSQL(self, colName, sqlPars):
+		"""returns an RE-based query equivalent to the input shell pattern.
+		"""
+		return "ssa_targname %s %%(%s)s"%(self._reOperator,
+			base.getSQLKey(colName, self.ranges[0].value, sqlPars))
+
+
+class PQLNocaseShellPatternPar(PQLShellPatternPar):
+	"""a shell-pattern matching parameter, ignoring case.
+	"""
+	_reOperator = "~*"
+
+
+######## posix shell patterns hacking (find some better place?)
+def _mungeEnumSequence(s, p, t):
+	"""a pyparsing handler for transforming shell character enumerations to
+	pcre character enumerations.
+
+	(this is a helper for _getShPatGrammar)
+	"""
+	seq = "".join(t)
+	# metacharacters in seq are troublesome: ! vs. ^, and we need to
+	# defuse hyphens, brackets, and backslashes
+	negate = seq.startswith("!")
+	if negate:
+		seq = seq[1:]
+	seq = seq.replace("]", "\\]"
+		).replace("\\", "\\\\"
+		).replace("-", "\\-")
+
+	if negate:
+		return "[^%s]"%seq
+	else:
+		return "[%s]"%seq
+
+
+@utils.memoized
+def _getShPatGrammar():
+	"""returns a grammar to translate posix shell patterns to posix regular
+	expressions.
+
+	This is different from fnmatch.translate in that it handles escaping
+	correctly.
+	"""
+	from pyparsing import Literal, Regex, CharsNotIn, ZeroOrMore, QuotedString
+
+	with utils.pyparsingWhitechars(""):
+		enumChars = QuotedString(quoteChar="[", endQuoteChar="]", escChar="\\"
+			).addParseAction(_mungeEnumSequence)
+		noEnum = Literal("[").addParseAction(lambda s, p, t: "\\[")
+		star = Literal("*").addParseAction(lambda s, p, t: ".*")
+		questionmark = Literal("?").addParseAction(lambda s, p, t: ".")
+		escSeq = Regex(r"\\(.)").addParseAction(lambda s, p, t: re.escape(t[0][1]))
+		normalStuff = CharsNotIn(r"*?[\\").addParseAction(lambda s, p, t:
+			re.escape("".join(t)))
+		shPat = ZeroOrMore(escSeq | enumChars | noEnum
+			| star | questionmark | normalStuff)
+	return shPat
+
+
+def getREForShPat(shPat):
+	r"""returns a POSIX RE for a POSIX shell pattern.
+
+	>>> getREForShPat(r"ZU?\*[!A-Z]*")
+	'ZU.\\*[^A\\-Z].*'
+	>>> getREForShPat("no[*")
+	'no\\[.*'
+	"""
+	return "".join(utils.pyparseString(_getShPatGrammar(), shPat, parseAll=True))
+
+######### end posix shell patterns
+
 def _makeFactory(parType):
 	def factory(field, val, sqlPars):
 		try:
@@ -492,3 +580,11 @@ def adaptInputKey(inputKey):
 import sys
 from gavo import rscdef
 rscdef.addProcDefObject("pql", sys.modules[__name__])
+
+
+def _test():
+	import pql, doctest
+	doctest.testmod(pql)
+
+if __name__=="__main__":
+	_test()

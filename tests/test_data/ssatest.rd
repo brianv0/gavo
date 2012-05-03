@@ -7,7 +7,9 @@
 			fluxSI=" "
 			spectralSI="m"
 			>//ssap#hcd</mixin>
-		<column name="excellence" type="integer" description="random number"/>
+		<column name="excellence" type="integer" description="random number">
+			<values nullLiteral="-1"/>
+		</column>
 	</table>
 
 	<data id="test_import">

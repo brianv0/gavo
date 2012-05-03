@@ -212,6 +212,12 @@ class InputKeyTest(testhelpers.VerboseTest):
 				'widgetFactory(ScalingTextArea, rows=15)"/></condDesc>')
 		self.assertEqual(rendered.attributes["rows"], 15)
 
+	def testSpointWidget(self):
+		cd = base.parseFromString(svcs.CondDesc, '<condDesc buildFrom='
+			'"data/ssatest#hcdtest.ssa_location"/>'
+			).adaptForRenderer(svcs.getRenderer("form"))
+		# XXX TODO: bauen, sehen, dass ein paar iks rauskommen
+
 
 class InputFieldSelectionTest(testhelpers.VerboseTest):
 	# Tests for renderer-dependent selection and adaptation of db core 
