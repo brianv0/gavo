@@ -200,6 +200,7 @@ class VOTable(object):
 		_a_href = None
 		_a_name = None
 		_a_value = None
+		_a_title = None
 		_childSequence = []
 		_mayBeEmpty = True
 
