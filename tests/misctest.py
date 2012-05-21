@@ -388,6 +388,11 @@ class StanXMLNamespaceTest(testhelpers.VerboseTest):
 			'foo.com" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
 			'xsi:schemaLocation="http://bori.ng http://schema.is.here">xy</ns0:D>')
 
+	def testEmptyPrefix(self):
+		tree = self.E.C["bar"]
+		self.assertEqual(tree.render(prefixForEmpty="ns0"),
+			'<C xmlns:ns0="http://foo.com" xmlns="http://foo.com" z="ab">bar</C>')
+
 
 class TestGroupsMembership(testhelpers.VerboseTest):
 	resources = [('querier', tresc.testUsers)]

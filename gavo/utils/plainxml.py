@@ -174,8 +174,13 @@ class StartEndHandler(ContentHandler):
 		return name.split(":")[-1].replace("-", "_")
 
 	def startElementNS(self, namePair, qName, attrs):
-		# Do we want to worry about attrs being an AttributesNS instance?
-		self.startElement(namePair[1], attrs)
+		newAttrs = {}
+		for ns, name in attrs.keys():
+			if ns is None:
+				newAttrs[name] = attrs[(ns, name)]
+			else:
+				newAttrs["{%s}%s"(ns, name)] = attrs[(ns, name)]
+		self.startElement(namePair[1], newAttrs)
 
 	def startElement(self, name, attrs):
 		self.contentsStack.append([])
