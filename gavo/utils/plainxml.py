@@ -179,7 +179,7 @@ class StartEndHandler(ContentHandler):
 			if ns is None:
 				newAttrs[name] = attrs[(ns, name)]
 			else:
-				newAttrs["{%s}%s"(ns, name)] = attrs[(ns, name)]
+				newAttrs["{%s}%s"%(ns, name)] = attrs[(ns, name)]
 		self.startElement(namePair[1], newAttrs)
 
 	def startElement(self, name, attrs):
