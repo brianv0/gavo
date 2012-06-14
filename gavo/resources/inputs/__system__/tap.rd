@@ -385,25 +385,34 @@
 
 		<meta name="_longdoc" format="rst"><![CDATA[
 		This service speaks TAP, a protocol designed to allow the exchange of
-		queries and data between clients (that's you or a program you operate)
-		and servers (e.g., us).
+		queries and data between clients (that's normally something running on your
+		computer) and servers (e.g., us).
 
-		You will usually want to use some sort of client to query TAP services;
-		TOPCAT_ contains one, the `GAVO VOTable library`_ another,
-		and there's the `TAP shell`_.
-		You can, however, use our service in an XML-enabled browser (see below under
-		`Overview <#overview>`_), too: click on "New job..." in the job list,
-		enter your query, click "Set query", then "Execute query".  Reload the
-		page you are redirected to now and then to see when your job is finished,
-		then retrieve the result.
+		You will want to use some sort of client to query TAP services;
+		examples for those include:
+
+		* TOPCAT_ (see in the "VO" menu)
+		* `TAPHandle`_ (following this link should bring you to a page 
+		  that lets you query this server) works completely within your
+		  browser,
+		* the `TAP shell`_, giving you a command line and powerful job chaining
+		  facilities,
+		* the `GAVO VOTable library`_, letting you embed TAP queries in
+		  python programs
+		
+		You can, in a pinch, use our service in an XML-enabled browser, too.
+		Under `Overview <#overview>`_, look for the bullet point on tap and
+		follow the link to "this service". Then, click on "New job..." 
+		in the job list, enter your query, click "Set query", then 
+		"Execute query".  Reload the page you are redirected to now 
+		and then to see when your job is finished, then retrieve the result.
 
 		The queries this service executes are written an a dialect of SQL called
-		ADQL.  You need to learn it to use this service.  See `our ADQL tutorial`_ or
-		check the `service doc of our ADQL form service`_ for some other resources
-		for doing that.  Also do not miss our `local examples`_
+		ADQL.  You need to learn it to use this service.  See 
+		`our ADQL tutorial`_.  Also do not miss the `local examples`_.
 		
 		By the way, for quick ad-hoc queries from within a browser,
-		this local `ADQL form`_ may be more convenient than ADQL.
+		our `ADQL form service`_ may be more convenient than TAP.
 
 		Also see the `table metadata`_ of the tables exposed here.
 
@@ -415,6 +424,7 @@
 		.. _service doc of our ADQL form service: \internallink{__system__/adql/query/info}
 		.. _our ADQL tutorial: http://docs.g-vo.org/adql
 		.. _local examples: \internallink{__system__/tap/run/tap/examples}
+		.. _TAPHandle: http://saada.unistra.fr/taphandle/?url=\urlquote{\metaString{identifier}}
 
 
 		Issues

@@ -6,6 +6,7 @@ from __future__ import with_statement
 
 import datetime
 import time
+import urllib
 
 from pyparsing import Word, OneOrMore, ZeroOrMore, QuotedString, Forward,\
 	SkipTo, Optional, StringEnd, Regex, LineEnd, Suppress, ParserElement,\
@@ -193,6 +194,11 @@ class StandardMacroMixin(MacroPackage):
 		"""an absolute URL from a path relative to the DC root.
 		"""
 		return config.makeAbsoluteURL(relPath)
+
+	def macro_urlquote(self, string):
+		"""wraps urllib.quote.
+		"""
+		return urllib.quote(string)
 
 	def macro_today(self):
 		"""today's date in ISO representation.

@@ -781,8 +781,7 @@ class CustomConnectionPool(psycopg2.pool.ThreadedConnectionPool):
 		if self.autocommitted:
 			try:
 				conn.set_session(
-					isolation_level=psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT,
-					readonly=True)
+					autocommit=True, readonly=True)
 			except AttributeError:
 				# fallback for old psycopg2
 				conn.set_isolation_level(

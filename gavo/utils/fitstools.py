@@ -45,7 +45,8 @@ except ImportError:
 else:
 	# I need some parts of pyfits' internals, and it's version-dependent
 	# where they are found
-	if hasattr(pyfits, "core"):
+	_TempHDU = None
+	if hasattr(pyfits, "core") and hasattr(pyfits.core, "_TempHDU"):
 		_TempHDU = pyfits.core._TempHDU
 	else:
 		_TempHDU = pyfits._TempHDU
@@ -121,6 +122,8 @@ def readPrimaryHeaderQuick(f):
 
 	This function is adapted from pyfits.
 	"""
+	if _TempHDU is None:
+		raise Exception("pyfits 3 is unsupported here.  FIXME in utils.fitstools")
 	hdu = _TempHDU()
 	hdu._raw = readHeaderBytes(f)
 	_size, hdu.name = hdu._getsize(hdu._raw)
