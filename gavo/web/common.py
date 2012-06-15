@@ -82,9 +82,7 @@ def runAuthenticated(ctx, reqGroup, fun, *args):
 	if creds.hasCredentials(request.getUser(), request.getPassword(), reqGroup):
 		return fun(*args)
 	else:
-		request.setHeader('WWW-Authenticate', 'Basic realm="Gavo"')
-		request.setResponseCode(http.UNAUTHORIZED)
-		return "Authorization required"
+		raise svcs.Authenticate()
 
 
 class doctypedStan(loaders.stan):

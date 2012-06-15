@@ -223,7 +223,7 @@ class UnauthorizedProduct(FileProduct):
 		return self.__class__==other.__class__
 
 	def renderHTTP(self, ctx):
-		raise svcs.Authenticate(self.sourceSpec)
+		raise svcs.Authenticate()
 
 
 class NonExistingProduct(ProductBase):

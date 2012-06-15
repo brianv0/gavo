@@ -511,7 +511,7 @@ class ServiceBasedPage(ResourceBasedPage):
 		if service.limitTo:
 			if not creds.hasCredentials(request.getUser(), request.getPassword(),
 					service.limitTo):
-				raise svcs.Authenticate(base.getConfig("web", "realm"))
+				raise svcs.Authenticate()
 
 		if self.checkedRenderer and self.name not in self.service.allowed:
 			raise svcs.ForbiddenURI(

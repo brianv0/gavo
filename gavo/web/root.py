@@ -31,8 +31,7 @@ from gavo.web import grend
 from gavo.web import ifpages
 from gavo.web import weberrors
 
-from gavo.svcs import (Error, UnknownURI, ForbiddenURI, 
-	WebRedirect, BadMethod, Authenticate)
+from gavo.svcs import (Error, UnknownURI, WebRedirect)
 
 
 ###  some global manipulations of nevow/twisted

@@ -199,14 +199,14 @@ class CondDesc(base.Structure):
 	# be missing); thus, we dispatch on the first call.
 	def _getPhraseMaker(self):
 		try:
-			return self.__compiledPhrase
+			return self.__compiledPhraseMaker
 		except AttributeError:
 			if self.phraseMaker is not None:
 				val = self.phraseMaker.compile()
 			else:
 				val = self._makePhraseDefault
-			self.__compiledPhrase = val
-		return self.__compiledPhrase
+			self.__compiledPhraseMaker = val
+		return self.__compiledPhraseMaker
 	makePhrase = property(_getPhraseMaker)
 
 	def _isActive(self, inPars):

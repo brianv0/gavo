@@ -90,23 +90,18 @@ class LoginPage(rend.Page, grend.GavoRenderMixin):
 	def data_loggedUser(self, ctx, data):
 		return self.request.getUser()
 
-	def doAuth(self, ctx):
-		self.request.setResponseCode(401)
-		self.request.setHeader('WWW-Authenticate', 'Basic realm="Gavo"')
-		return rend.Page.renderHTTP(self, ctx)
-
 	def renderHTTP(self, ctx):
 		relogging = self.request.args.get("relog", None)
 		if self.request.getUser():  # user is logged in...
 			if relogging: # ...and wants to log out: show login dialog...
-				return self.doAuth(ctx)
+				raise svcs.Authenticate()
 			else:   # ...and has just logged in: forward to destination
 				return url.URL.fromContext(ctx).click(self.nextURL)
 		else:  # user is not logged in
 			if relogging:  #...but was and has just logged out: forward to dest
 				return url.URL.fromContext(ctx).click(self.nextURL)
 			else: # ... and wants to log in.
-				return self.doAuth(ctx)
+				raise svcs.Authenticate()
 
 	docFactory = svcs.loadSystemTemplate("loginout.html")
 

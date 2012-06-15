@@ -14,3 +14,4 @@ profilePath: $configDir
 enableTests: True
 adminpasswd: loser
 sitename: Unittest Suite
+realm: dachsunit
