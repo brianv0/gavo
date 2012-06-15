@@ -778,7 +778,18 @@ class VOTReadTest(testhelpers.VerboseTest):
 		td = votableread.makeTableDefForVOTable("foo", rows.tableDefinition)
 		self.assertEqual(td.indices[0].content_.strip(),
 			r"q3c_ang2ipix(a, d)")
-	
+
+	def testNoQ3CIndexOnChar(self):
+		rows = votable.parse(StringIO(
+			"""<VOTABLE><RESOURCE><TABLE>
+				<FIELD name="a" datatype="char" arraysize="*" 
+					ucd="pos.eq.ra;meta.main"/>
+				<FIELD name="d" datatype="float" ucd="pos.eq.dec;meta.main"/>
+				<DATA><TABLEDATA><TR><TD>1</TD><TD>2</TD></TR></TABLEDATA></DATA>
+				</TABLE></RESOURCE></VOTABLE>""")).next()
+		td = votableread.makeTableDefForVOTable("foo", rows.tableDefinition)
+		self.assertEqual(len(td.indices), 0)
+
 	def testNoIndex(self):
 		# The thing shouldn't crash or do anything stupid with silly UCDs.
 		rows = votable.parse(StringIO(

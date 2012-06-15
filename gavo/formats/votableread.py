@@ -71,9 +71,12 @@ def addQ3CIndex(tableDef):
 	"""
 	try:
 		raField = tableDef.getColumnByUCDs("pos.eq.ra;meta.main", 
-			"POS_EQ_RA_MAIN").name
+			"POS_EQ_RA_MAIN")
 		decField = tableDef.getColumnByUCDs("pos.eq.dec;meta.main", 
-			"POS_EQ_RA_MAIN").name
+			"POS_EQ_RA_MAIN")
+		if (raField.type not in ["real", "double precision"] 
+			or decField.type not in ["real", "double precision"]):
+			raise ValueError("Don't index non-floats")
 	except ValueError: # No unique positions
 		return
 	base.resolveId(None, "//scs#q3cindex").applyToFinished(tableDef)
