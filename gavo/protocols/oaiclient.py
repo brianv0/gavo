@@ -223,7 +223,8 @@ class OAIQuery(object):
 
 		The result is returned as a string.
 		"""
-		srcURL = self.registry+"?"+self._getOpQS(**self.getKWs(**moreArgs))
+		srcURL = self.registry.rstrip("?"
+			)+"?"+self._getOpQS(**self.getKWs(**moreArgs))
 		base.ui.notifyInfo("OAI query %s"%srcURL)
 		f = utils.urlopenRemote(srcURL)
 		res = f.read()
