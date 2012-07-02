@@ -38,6 +38,7 @@ class FITSProdIterator(RowIterator):
 			except ValueError:
 				self._hackBotchedCard(card, res)
 		res["parser_"] = self
+		res["header_"] = header
 		if self.grammar.hdusField:
 			res[self.grammar.hdusField] = fitstools.openFits(self.sourceToken)
 		return self.grammar.mapKeys.doMap(res)
@@ -70,8 +71,13 @@ class FITSProdGrammar(Grammar):
 	row in the destination table.
 
 	The keywords of the grammar record are the cards in the primary
-	header (or some other hdu using the same-named attribute).  
-	
+	header (or some other hdu using the same-named attribute).  "-" in
+	keywords is replaced with an underscore for easier @-referencing.
+	You can use a mapKeys element to effect further name cosmetics.
+
+	The original header is preserved as the value of the header_ key.  This
+	is mainly intended for use WCS use, as in ``pywcs.WCS(@header_)``.
+
 	If you have more complex structures in your FITS files, you can get access
 	to the pyfits HDU using the hdusField attribute.  With
 	``hdusField="_H"``, you could say things like ``@H[1].data[10][0]``

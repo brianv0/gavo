@@ -59,7 +59,7 @@
 
 		<code>
 			key = inputKeys[0].name
-			parsed = pql.PQLFloat.fromLiteral(inPars.get(key, None), key)
+			parsed = pql.PQLFloatPar.fromLiteral(inPars.get(key, None), key)
 			if parsed is not None:
 				yield parsed.getSQL(consCol, outPars)
 		</code>
