@@ -17,6 +17,7 @@ from twisted.python import failure
 from twisted.internet import defer
 
 from gavo import base
+from gavo.web import weberrors
 
 def _requestDone(result, request, ctx):
 	if isinstance(result, basestring):
@@ -33,12 +34,14 @@ def _requestDone(result, request, ctx):
 	return request.accumulator, request
 
 
-def _renderException(failure, ctx):
+def _renderCrashAndBurn(failure, ctx):
 	return failure
-# later, when we've fixed the current error handling mess:
-#	return util.maybeDeferred(
-#		inevow.ICanHandleException(ctx).renderHTTP_exception, ctx, failure
-#	).addCallback(_requestDone, inevow.IRequest(ctx), ctx)
+
+
+def _renderException(failure, ctx):
+	return util.maybeDeferred(
+		weberrors.DCExceptionHandler().renderHTTP_exception, ctx, failure
+		).addCallback(_requestDone, inevow.IRequest(ctx), ctx)
 
 
 def _doRender(page, ctx):
@@ -51,7 +54,7 @@ def _doRender(page, ctx):
 			tag=page, parent=context.RequestContext(tag=request)))
 
 	d.addCallback(_requestDone, request, ctx)
-	d.addErrback(_renderException, ctx)
+	d.addErrback(_renderCrashAndBurn, ctx)
 	return d
 
 

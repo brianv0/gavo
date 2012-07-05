@@ -222,10 +222,18 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 					id, forceType.__name__))
 		return res
 
+	def getAbsPath(self, relPath):
+		"""returns the absolute path for a resdir-relative relPath.
+		"""
+		return os.path.join(self.resdir, relPath)
+
 	def openRes(self, relPath, mode="r"):
 		"""returns a file object for relPath within self's resdir.
+
+		Deprecated.  This is going to go away, use getAbsPath and a context 
+		manager.
 		"""
-		return open(os.path.join(self.resdir, relPath), mode)
+		return open(self.getResPath(relPath), mode)
 
 	def getTimestampPath(self):
 		"""returns a path to a file that's accessed by Resource each time 

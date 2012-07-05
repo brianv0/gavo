@@ -25,7 +25,7 @@ from gavo.stc import parseSimpleSTCS
 from gavo.stc.times import (dateTimeToJdn, dateTimeToMJD, dateTimeToJYear,
 	bYearToDateTime, jdnToDateTime, mjdToDateTime, TTtoTAI, TAItoTT)
 from gavo.utils import codetricks
-from gavo.utils import dmsToDeg, hmsToDeg, DEG
+from gavo.utils import dmsToDeg, hmsToDeg, DEG, parseISODT
 from gavo.utils import pgsphere
 
 

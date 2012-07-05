@@ -402,6 +402,7 @@ _isoDTRE = re.compile(r"(?P<year>\d\d\d\d)-?(?P<month>\d\d)-?(?P<day>\d\d)"
 		r"(?P<seconds>\d\d)(?P<secFracs>\.\d*)?Z?(\+00:00)?)?$")
 
 
+@codetricks.document
 def parseISODT(literal):
 	"""returns a datetime object for a ISO time literal.
 

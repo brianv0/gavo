@@ -233,14 +233,13 @@ class PathResoutionTest(ArchiveTest):
 			svcs.UnknownURI)
 
 	def testSlashAtEndRedirects(self):
-		def checkRedirect(failure):
-			self.failUnless(isinstance(failure.value, svcs.WebRedirect))
-			# (the destination of the redirect is wrong due to limitiations
-			# of the test context object)
+		def checkRedirect(result):
+			self.assertEqual(result[1].code, 301)
+			# the destination of the redirect currently is wrong due to trialhelper
+			# restrictions.
 		return trialhelpers.runQuery(self.renderer, "GET", 
 			"/data/cores/convcat/form/", {}
-		).addCallback(lambda ig: self.fail("WebRedirect not raised")
-		).addErrback(checkRedirect)
+		).addCallback(checkRedirect)
 
 
 class BuiltinResTest(ArchiveTest):

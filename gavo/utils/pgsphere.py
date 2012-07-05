@@ -80,9 +80,6 @@ class PgSAdapter(object):
 class SPoint(PgSAdapter):
 	"""A point on a sphere from pgSphere.
 
-	You can optionally pass a "unit" argument.  This is simply multiplied
-	to each coordinate.
-
 	>>> SPoint(1, 1).asSTCS("ICRS")
 	'Position ICRS 57.2957795131 57.2957795131'
 	>>> SPoint.fromDegrees(1, -1).asSTCS("ICRS")

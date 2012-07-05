@@ -425,6 +425,3 @@ class DCExceptionHandler(object):
 		log.err(error, _why="Inline exception")
 		return ('<div style="border: 1px dashed red; color: red; clear: both">'
 			'[[ERROR]]</div>')
-
-
-

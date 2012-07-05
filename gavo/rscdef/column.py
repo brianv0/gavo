@@ -397,7 +397,6 @@ class ColumnBase(base.Structure, base.MetaMixin):
 		if self.restrictedMode and self.fixup:
 			raise base.RestrictedElement("fixup")
 
-
 	def validateValue(self, value):
 		"""raises a ValidationError if value does not match the constraints
 		given here.

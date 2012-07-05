@@ -86,6 +86,15 @@ def annotateDBTable(td):
 		annotator.annotate(resultRow)
 
 
+def safe_str(val):
+	if isinstance(val, str):
+		return val
+	elif isinstance(val, unicode):
+		return val.encode("ascii", "ignore")
+	else:
+		return str(val)
+
+
 _PROP_SEQ = ("min", "avg", "max", "hasnulls")
 
 def printTableInfo(td):
@@ -99,7 +108,7 @@ def printTableInfo(td):
 		for prop in _PROP_SEQ:
 			if prop in col.annotations:
 				row.append(utils.makeEllipsis(
-					str(col.annotations[prop]), 30))
+					safe_str(col.annotations[prop]), 30))
 			else:
 				row.append("-")
 		propTable.append(tuple(row))

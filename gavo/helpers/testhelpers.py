@@ -35,47 +35,61 @@ from cStringIO import StringIO
 
 # This forces tests to be run from the tests directory.  Reasonable, I'd
 # say.
-TEST_BASE = os.getcwd()
-os.environ["GAVOCUSTOM"] = "/invalid"
-os.environ["GAVOSETTINGS"] = os.path.join(TEST_BASE, "test_data", "test-gavorc")
-if not os.path.exists(os.environ["GAVOSETTINGS"]):
-	warnings.warn("testhelpers imported from non-test directory.  This"
-		" is almost certainly not what you want.")
+#
+# All the custom setup can be suppressed by setting a GAVO_OOTTEST
+# env var before importing this.  That's for "out of tree test"
+# and is used by the relational registry "unit" tests (and possibly
+# others later).
+if "GAVO_OOTTEST" in os.environ:
+	from gavo import base
 
-from gavo import base
-dbname = "dachstest"
-if not os.path.exists(base.getConfig("rootDir")):
-	from gavo.user import initdachs
-	try:
-		dsn = initdachs.DSN(dbname)
-		subprocess.call(["createdb", "--encoding=UTF-8", dbname])
-		initdachs.createFSHierarchy(dsn, "test")
+else:
+	TEST_BASE = os.getcwd()
+	os.environ["GAVOCUSTOM"] = "/invalid"
+	os.environ["GAVOSETTINGS"] = os.path.join(TEST_BASE, "test_data", "test-gavorc")
+	if not os.path.exists(os.environ["GAVOSETTINGS"]):
+		warnings.warn("testhelpers imported from non-test directory.  This"
+			" is almost certainly not what you want (or set GAVO_OOTTEST).")
 
-		with open(os.path.join(base.getConfig("configDir"), "defaultmeta.txt"),
-				"a") as f:
-			f.write("!organization.description: Mein w\xc3\xbcster Club\n")
-			f.write("!contact.email: invalid@whereever.else\n")
-		from gavo.base import config
-		config.makeFallbackMeta(reload=True)
+	from gavo import base
+	dbname = "dachstest"
+	if not os.path.exists(base.getConfig("rootDir")):
+		from gavo.user import initdachs
+		try:
+			dsn = initdachs.DSN(dbname)
+			subprocess.call(["createdb", "--encoding=UTF-8", dbname])
+			initdachs.createFSHierarchy(dsn, "test")
 
-		os.symlink(os.path.join(TEST_BASE, "test_data"),
-			os.path.join(base.getConfig("inputsDir"), "data"))
-		os.rmdir(os.path.join(base.getConfig("inputsDir"), "__system"))
-		os.symlink(os.path.join(TEST_BASE, "test_data", "__system"),
-			os.path.join(base.getConfig("inputsDir"), "__system"))
-		os.mkdir(os.path.join(base.getConfig("inputsDir"), "test"))
-		initdachs.initDB(dsn)
+			with open(os.path.join(base.getConfig("configDir"), "defaultmeta.txt"),
+					"a") as f:
+				f.write("!organization.description: Mein w\xc3\xbcster Club\n")
+				f.write("!contact.email: invalid@whereever.else\n")
+			from gavo.base import config
+			config.makeFallbackMeta(reload=True)
 
-		from gavo.registry import publication
-		from gavo import rscdesc
-		from gavo import base
-		publication.updateServiceList([base.caches.getRD("//services")])
-	except:
-		import traceback
-		traceback.print_exc()
-		sys.stderr.write("Creation of test environment failed.  Remove %s\n"
-			" before trying again.\n"%(base.getConfig("rootDir")))
-		sys.exit(1)
+			os.symlink(os.path.join(TEST_BASE, "test_data"),
+				os.path.join(base.getConfig("inputsDir"), "data"))
+			os.rmdir(os.path.join(base.getConfig("inputsDir"), "__system"))
+			os.symlink(os.path.join(TEST_BASE, "test_data", "__system"),
+				os.path.join(base.getConfig("inputsDir"), "__system"))
+			os.mkdir(os.path.join(base.getConfig("inputsDir"), "test"))
+			initdachs.initDB(dsn)
+
+			from gavo.registry import publication
+			from gavo import rscdesc
+			from gavo import base
+			publication.updateServiceList([base.caches.getRD("//services")])
+		except:
+			import traceback
+			traceback.print_exc()
+			sys.stderr.write("Creation of test environment failed.  Remove %s\n"
+				" before trying again.\n"%(base.getConfig("rootDir")))
+			sys.exit(1)
+
+	# the following only needs to be set correctly if you run 
+	# twisted trial-based tests
+	testsDir = TEST_BASE
+
 
 
 from gavo.helpers.testtricks import *
@@ -94,10 +108,6 @@ from gavo.imp.testresources import TestResource
 # 
 # If you use this and you have a setUp of your own, you *must* call 
 # the superclass's setUp method.
-
-# the following only needs to be set correctly if you run 
-# twisted trial-based tests
-testsDir = "/home/msdemlei/gavo/trunk/tests"
 
 
 class ForkingSubprocess(subprocess.Popen):
