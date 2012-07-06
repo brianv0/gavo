@@ -745,5 +745,44 @@ class ResourceLocationTest(testhelpers.VerboseTest):
 			"ivoa.ObsCore")
 
 
+class _OtherServiceRRTree(testhelpers.TestResource):
+	def make(self, deps):
+		rd = base.parseFromString(rscdesc.RD, """
+			<resource schema="test">
+				<meta name="datetimeUpdated">2000-00-00T00:00:00</meta>
+				<meta name="referenceURL">http://faked</meta>
+				<service id="web">
+					<meta name="title">Web service</meta>
+					<publish render="form" sets="local"/>
+					<nullCore/></service>
+				<service id="scs" allowed="scs.xml">
+					<meta name="title">SCS service</meta>
+					<meta name="testQuery.ra">1</meta>
+					<meta name="testQuery.dec">1</meta>
+					<meta name="testQuery.sr">1</meta>
+					<publish render="scs.xml" sets="ivo_managed"/>
+					<publish render="form" sets="ivo_managed" service="web"/>
+					<nullCore/></service></resource>
+				""")
+		rd.sourceId = "k"
+		return testhelpers.getXMLTree(
+			builders.getVOResourceElement(rd.services[1]).render(), debug=False)
+
+
+class OtherServiceTest(testhelpers.VerboseTest):
+# tests for having a service attribute in a publish record
+	resources = [("tree", _OtherServiceRRTree())]
+
+	def testSCSCapability(self):
+		self.assertEqual(self.tree.xpath("//capability[1]/interface/accessURL"
+				)[0].text,
+			"http://localhost:8080/k/scs/scs.xml?")
+
+	def testWebCapability(self):
+		self.assertEqual(self.tree.xpath("//capability[2]/interface/accessURL"
+				)[0].text,
+			"http://localhost:8080/k/web/form")
+
+
 if __name__=="__main__":
-	testhelpers.main(ListRecordsTest)
+	testhelpers.main(OtherServiceTest)

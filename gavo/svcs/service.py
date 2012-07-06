@@ -153,12 +153,21 @@ class Publication(base.Structure, base.ComputedMetaMixin):
 			" published in.  Predefined are: local=publish on front page,"
 			" ivo_managed=register with the VO registry.  If you leave it"
 			" empty, 'local' publication is assumed.")
+	_service = base.ReferenceAttribute("service", default=base.NotGiven,
+		description="Reference for a service actually implementing the"
+			" capability corresponding to this publication.  This is"
+			" mainly when there is a vs:WebBrowser service accompanying a VO"
+			" protocol service, and this other service should be published"
+			" in the same resource record.  See also the operator's guite.")
 
 	def completeElement(self, ctx):
 		if self.render is base.Undefined:
 			self.render = "form"
 		if not self.sets:
 			self.sets.add("local")
+		if self.service is base.NotGiven:
+			self.service = self.parent
+		self.setMetaParent(self.service)
 		self._completeElementNext(Publication, ctx)
 
 	def validate(self):
@@ -169,7 +178,7 @@ class Publication(base.Structure, base.ComputedMetaMixin):
 			raise base.StructureError("Unknown renderer: %s"%self.render)
 
 	def _meta_accessURL(self):
-		return self.parent.getURL(self.render)
+		return self.service.getURL(self.render)
 
 	def _meta_urlUse(self):
 		return renderers.getRenderer(self.render).urlUse
