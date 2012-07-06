@@ -21,8 +21,8 @@ import re
 import sys
 import tempfile
 
-import numpy
 
+from gavo.utils import misctricks
 from gavo.utils import ostricks
 
 # Make sure we get the numpy version of pyfits.  This is the master
@@ -30,17 +30,12 @@ from gavo.utils import ostricks
 # see also utils/__init__.py
 os.environ["NUMERIX"] = "numpy"
 try:
+	import numpy
 	import pyfits  # not "from gavo.utils" (this is the original)
 except ImportError:  
 	# pyfits is not installed; don't die, since the rest of gavo.utils
 	# will still work.
-	class _NotInstalledModuleStub(object):
-		def __init__(self, modName):
-			self.modName = modName
-
-		def __getattr__(self, name):
-			raise RuntimeError("%s not installed"%self.modName)
-	pyfits = _NotInstalledModuleStub("pyfits")
+	pyfits = misctricks.NotInstalledModuleStub("pyfits and/or numpy")
 
 else:
 	# I need some parts of pyfits' internals, and it's version-dependent

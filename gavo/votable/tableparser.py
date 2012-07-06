@@ -111,7 +111,7 @@ class _StreamData(object):
 			return
 		destBytes = max(nBytes*2, self.minChunk)
 		curBytes, hadLf = 0, False
-		encoded = []
+		encoded = [self.leftover]
 
 		for type, tag, payload in self.nodeIterator:
 			if type=="end":   # must be </STREAM> or expat would've crapped.

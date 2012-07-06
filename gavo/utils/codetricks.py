@@ -7,6 +7,8 @@ external code.
 #c
 #c This program is free software, covered by the GNU GPL.  See COPYING.
 
+from __future__ import with_statement
+
 import compiler
 import compiler.ast
 import contextlib

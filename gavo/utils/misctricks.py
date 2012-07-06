@@ -12,9 +12,26 @@ import threading
 import time
 import urllib2
 
-from docutils import core as rstcore
-
 from gavo.utils import excs
+
+class NotInstalledModuleStub(object):
+	"""A stub that raises some more or less descriptive error on attribute
+	access.
+
+	This is used in some places no replace non-essential modules.
+	"""
+	def __init__(self, modName):
+		self.modName = modName
+
+	def __getattr__(self, name):
+		raise RuntimeError("%s not installed"%self.modName)
+
+
+try:
+	from docutils import core as rstcore
+except ImportError:
+	rstcore = NotInstalledModuleStub("docutils")
+
 
 
 class _UndefinedType(type):

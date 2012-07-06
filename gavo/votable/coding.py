@@ -2,6 +2,8 @@
 Common code for coding and decoding VOTable data.
 """
 
+from __future__ import with_statement
+
 from gavo import utils
 from gavo.votable import common
 from gavo.votable.model import VOTable
