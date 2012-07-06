@@ -228,7 +228,7 @@ def getMatchingRows(pars, rscTableDef, getSetFilter):
 		- set -- maps to a sequence of set names to be matched.
 		- resumptionToken -- some magic value (see OAI.resumptionToken)
 		- maxRecords -- an integer literal that specifies the maximum number
-		  of records returned, defaulting to 1000
+		  of records returned, defaulting to [ivoa]oaipmhPageSize
 	
 	maxRecords is not part of OAI-PMH; it is used internally to
 	turn paging on when we think it's a good idea, and for testing.
@@ -240,7 +240,8 @@ def getMatchingRows(pars, rscTableDef, getSetFilter):
 	dictionary and a dictionary of query fillers and returning, as appropriate,
 	a condition that implements any conditions on sets within pars
 	"""
-	maxRecords = int(pars.get("maxRecords", 1000))
+	maxRecords = int(pars.get("maxRecords", 
+		base.getConfig("ivoa", "oaipmhPagesize")))
 	offset = pars.get("resumptionToken", 0)
 	frag, fillers = _parseOAIPars(pars)
 	frag = " AND ".join(

@@ -420,7 +420,7 @@
 		.. _GAVO VOTable library: http://soft.g-vo.org/subpkgs
 		.. _TAP shell: http://soft.g-vo.org/tapsh
 		.. _table metadata: \internallink{__system__/tap/run/tableMetadata}
-		.. _ADQL form: \internallink{__system__/adql/query/form}
+		.. _ADQL form service: \internallink{__system__/adql/query/form}
 		.. _service doc of our ADQL form service: \internallink{__system__/adql/query/info}
 		.. _our ADQL tutorial: http://docs.g-vo.org/adql
 		.. _local examples: \internallink{__system__/tap/run/tap/examples}

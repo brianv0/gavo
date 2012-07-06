@@ -452,6 +452,8 @@ _config = Configuration(
 			"Default match limit on DAL queries"),
 		IntConfigItem("dalHardLimit", "10000000",
 			"Hard match limit on DAL queries"),
+		IntConfigItem("oaipmhPageSize", "500",
+			"Default number of records per page in the OAI-PMH interface"),
 		EnumeratedConfigItem("votDefaultEncoding", "binary",
 			"Default 'encoding' for VOTables in many places (like the DAL"
 			" responses; this can be user-overridden using"

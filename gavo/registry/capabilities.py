@@ -379,7 +379,7 @@ class RegistryCapabilityMaker(CapabilityMaker):
 	capabilityClass = VOG.Harvest
 	def _makeCapability(self, publication):
 		return CapabilityMaker._makeCapability(self, publication)[
-			VOG.maxRecords[base.getMetaText(publication.parent, "maxRecords")]]
+			VOG.maxRecords[str(base.getConfig("ivoa", "oaipmhPageSize"))]]
 
 
 class VOSICapabilityMaker(CapabilityMaker):
