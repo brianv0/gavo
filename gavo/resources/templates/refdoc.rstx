@@ -811,9 +811,13 @@ products, because the product table is fed by a special make inserted
 from the products mixin.  This make of course doesn't see the rows you
 are yielding from your dispatching grammar.  This means that without
 further action, your files will not end up the the product table at all.
+In turn, getproducts will return 404s instead of your products.
 
-The way to fix it is to yield the rows destined for the products table
-with a products role, like this: ``yield ("products", newRow)``.
+To fix this, you need to explicitely yield the rows destined for the 
+products table with a products role, from within your grammar.  Where
+the grammar yield rows for the table with metadata (i.e., rows that actually
+contain the fields with prodtblAccref, prodtblPath, etc), yield
+to the products table, too, like this: ``yield ("products", newRow)``.
 
 
 Functions Available for Row Makers

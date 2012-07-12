@@ -165,7 +165,8 @@
 							"table_description": base.getMetaText(table, "description",
 								propagate=True),
 							"table_type": tableType,
-							"table_utype": None,
+							"table_utype": base.getMetaText(table, "utype",
+								propagate=False),
 							"sourceRD": rd.sourceId,
 						}
 				</code>

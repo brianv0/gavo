@@ -342,7 +342,7 @@ class FITSProdGrammarTest(testhelpers.VerboseTest):
 		return list(grammar.parse(self.sample))[0]
 
 	def _assertBasicFieldsPresent(self, d):
-		self.assertEqual(len(d), 103)
+		self.assertEqual(len(d), 104)
 		self.assertEqual(d["EXTEND"], True)
 		self.assertEqual(d["OBSERVER"], "M.Wolf")
 		self.assertEqual(d["LATPOLE"], 0.0)
