@@ -24,6 +24,13 @@ Version 0.7.1 (2012-XX-XX)
     Do not give --system here; if you do, the existing tables will be
     re-created and you will have to say gavo pub -ma to re-fill them.
 
+	* Some ADQL user-defined functions are now implemented as Postgres
+	  stored procedures.  Say::
+
+			gavo imp //adql
+
+		define those.
+
 
 Version 0.7 (2012-01-12)
 

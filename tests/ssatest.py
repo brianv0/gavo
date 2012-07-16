@@ -51,23 +51,8 @@ class RDTest(testhelpers.VerboseTest):
 				).description)
 
 
-class _SSATable(testhelpers.TestResource):
-	resources = [("conn", tresc.dbConnection)]
-
-	def make(self, deps):
-		conn = deps["conn"]
-		dd = getRD().getById("test_import")
-		data = api.makeData(dd, connection=conn)
-		return data.getPrimaryTable()
-	
-	def clean(self, res):
-		res.drop().commit()
-
-_ssaTable = _SSATable()
-
-
 class _WithSSATableTest(testhelpers.VerboseTest):
-	resources = [("ssaTable", _ssaTable)]
+	resources = [("ssaTable", tresc.ssaTestTable)]
 
 
 class ImportTest(_WithSSATableTest):
@@ -251,7 +236,7 @@ class CoreFailuresTest(_WithSSATableTest):
 
 
 class _RenderedSSAResponse(testhelpers.TestResource):
-	resources = [("ssatable", _ssaTable)]
+	resources = [("ssatable", tresc.ssaTestTable)]
 
 	def make(self, deps):
 		res = getRD().getById("s").runFromDict(
@@ -307,7 +292,7 @@ class SSATableTest(testhelpers.VerboseTest):
 
 
 class SDMRenderTest(testhelpers.VerboseTest):
-	resources = [("ssatable", _ssaTable)]
+	resources = [("ssatable", tresc.ssaTestTable)]
 
 	def testUnknownURI(self):
 		pk = _FakeRAccref.fromString(
@@ -339,7 +324,7 @@ class _FakeRAccref(products.RAccref):
 
 
 class _RenderedSDMResponse(testhelpers.TestResource):
-	resources = [("ssatable", _ssaTable)]
+	resources = [("ssatable", tresc.ssaTestTable)]
 
 	def make(self, deps):
 		rAccref = _FakeRAccref.fromString("bar")
@@ -405,7 +390,7 @@ class SDMTableTest(testhelpers.VerboseTest):
 
 
 class _RenderedSEDResponse(testhelpers.TestResource):
-	resources = [("ssatable", _ssaTable)]
+	resources = [("ssatable", tresc.ssaTestTable)]
 
 	def make(self, deps):
 		rAccref = _FakeRAccref.fromString("bar?dm=sed")

@@ -178,6 +178,21 @@ class CSTestTable(RDDataResource):
 csTestTable = CSTestTable()
 
 
+class _SSATable(testhelpers.TestResource):
+	resources = [("conn", dbConnection)]
+
+	def make(self, deps):
+		conn = deps["conn"]
+		dd = base.caches.getRD("data/ssatest").getById("test_import")
+		data = rsc.makeData(dd, connection=conn)
+		return data.getPrimaryTable()
+	
+	def clean(self, res):
+		res.drop().commit()
+
+ssaTestTable = _SSATable()
+
+
 class RandomDataTable(testhelpers.TestResource):
 	"""An in-memory table with a couple of rows.
 	"""

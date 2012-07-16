@@ -23,6 +23,7 @@ from gavo.adql import tree
 from gavo.protocols import adqlglue
 from gavo.stc import tapstc
 
+import tresc
 
 MS = base.makeStruct
 
@@ -32,13 +33,11 @@ class Error(Exception):
 
 
 # The resources below are used elsewhere (e.g., taptest).
-# XXX TODO: move them to tresc
 class _ADQLQuerier(testhelpers.TestResource):
+	resources = [("conn", tresc.dbConnection)]
+
 	def make(self, deps):
-		return base.UnmanagedQuerier(base.getDBConnection("admin"))
-	
-	def clean(self, querier):
-		querier.connection.close()
+		return base.UnmanagedQuerier(deps["conn"])
 adqlQuerier = _ADQLQuerier()
 
 

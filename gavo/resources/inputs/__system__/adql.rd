@@ -144,4 +144,51 @@ of where we messed up, and we'll try to improve.
 		<meta name="title">ADQL Query</meta>
 		<publish render="form" sets="local,ivo_managed"/>
 	</service>
+
+
+<!-- definition of user defined functions -->
+	<data id="make_udfs">
+		<!-- HACK: I need a table that's make on disk for the script to run. -->
+		<table id="empty" onDisk="True" temporary="True"/>
+		<make table="empty">
+			<script lang="SQL" type="postCreation" name="create_user_functions">
+				<![CDATA[
+				CREATE OR REPLACE FUNCTION ivo_hasword(haystack TEXT, needle TEXT)
+				RETURNS INTEGER AS $func$
+				BEGIN
+					IF to_tsvector(haystack) @@ plainto_tsquery(needle) THEN
+						RETURN 1;
+					ELSE
+						RETURN 0;
+					END IF;
+				END;
+				$func$ LANGUAGE plpgsql;
+
+				CREATE OR REPLACE FUNCTION ivo_hashlist_has(hashlist TEXT, item TEXT)
+				RETURNS INTEGER AS $func$
+				BEGIN
+					-- postgres can't RE-escape a user string; hence, we'll have
+					-- to work on the hashlist (this assumes hashlist is already
+					-- lowercased).
+					IF lower(item) = ANY(string_to_array(hashlist, '#')) THEN
+						RETURN 1;
+					ELSE
+						RETURN 0;
+					END IF;
+				END;
+				$func$ LANGUAGE plpgsql;
+
+				CREATE OR REPLACE FUNCTION ivo_nocasecmp(arg1 TEXT, arg2 TEXT)
+				RETURNS INTEGER AS $func$
+				BEGIN
+					IF lower(arg1)=lower(arg2) THEN
+						RETURN 1;
+					ELSE
+						RETURN 0;
+					END IF;
+				END;
+				$func$ LANGUAGE plpgsql;
+			]]></script>
+		</make>
+	</data>
 </resource>

@@ -15,6 +15,7 @@ from gavo.adql import nodes
 from gavo.adql import ufunctions 
 
 import adqltest
+import tresc
 
 
 class BasicTest(unittest.TestCase):
@@ -31,25 +32,33 @@ class BasicTest(unittest.TestCase):
 
 class _UfuncDefinition(testhelpers.TestResource):
 	def make(self, nodeps):
-		@adql.userFunction("testingXXX",
+		@adql.userFunction("gavo_testingXXX",
 			"(x INTEGER) -> INTEGER",
 			"""
 			This function returns its argument decreased by one.
 			
 			This is the end.
 			""")
-		def _(args):
+		def _f1(args):
 			if len(args)!=1:
 				raise adql.UfuncError("gavo_testingXXX takes only a single argument")
 			return "(%s+1)"%nodes.flatten(args[0])
-		return True
+		
+		@adql.userFunction("gavo_testingYYY",
+			"(x DOUBLE PRECISION) -> DOUBLE PRECISION",
+			"This function will not work (since it's not defined in the DB)")
+		def _f2(args):
+			return None
 	
 	def clean(self, ignored):
 		del ufunctions.UFUNC_REGISTRY["GAVO_TESTINGXXX"]
+		del ufunctions.UFUNC_REGISTRY["GAVO_TESTINGYYY"]
 
+
+_ufuncDefinition = _UfuncDefinition()
 
 class UfuncDefTest(testhelpers.VerboseTest):
-	resources = [("ufunc_defined", _UfuncDefinition()),
+	resources = [("ufunc_defined", _ufuncDefinition),
 		("adqlTestTable", adqltest.adqlTestTable),
 		("querier", adqltest.adqlQuerier)]
 
@@ -66,6 +75,12 @@ class UfuncDefTest(testhelpers.VerboseTest):
 			adql.parseToTree("SELECT GAVO_TESTINGXXX(frob) FROM x"
 				).flatten(),
 			"SELECT (frob+1) FROM x")
+	
+	def testFlatteningTransparent(self):
+		self.assertEqual(
+			adql.parseToTree("SELECT GAVO_TESTINGYYY(CIRCLE('', a, b, c), u) FROM x"
+				).flatten(),
+			'SELECT GAVO_TESTINGYYY(CIRCLE(a, b, c), u) FROM x')
 
 	def testQueryInSelectList(self):
 		self.assertEqual(adqlglue.query(self.querier,
@@ -79,21 +94,63 @@ class UfuncDefTest(testhelpers.VerboseTest):
 
 
 class BuiltinUfuncTest(testhelpers.VerboseTest):
-	resources = [("ufunc_defined", _UfuncDefinition()),
-		("adqlTestTable", adqltest.adqlTestTable),
+	resources = [
+		("ssaTestTable", tresc.ssaTestTable),
 		("querier", adqltest.adqlQuerier)]
-
-	def testHaswordMorph(self):
-		self.assertEqual(adql.parseToTree("select * from x where"
-			" 1=gavo_hasword('cat&dog', v)").flatten(),
-			"SELECT * FROM x WHERE 1 = (CASE WHEN to_tsvector(v) @@"
-			" to_tsquery('cat&dog') THEN 1 ELSE 0 END)")
 
 	def testHaswordQuery(self):
 		self.assertEqual(adqlglue.query(self.querier,
-			"select * from test.adql where"
-			" 1=gavo_hasword('0', 'abc'||rv)").rows,
+			"select distinct ssa_targname from test.hcdtest where"
+			" 1=ivo_hasword(ssa_targname, 'rat hole')").rows,
+			[{'ssa_targname': u'rat hole in the yard'}])
+
+	def testHaswordQueryInsensitive(self):
+		self.assertEqual(adqlglue.query(self.querier,
+			"select distinct ssa_targname from test.hcdtest where"
+			" 1=ivo_hasword(ssa_targname, 'Booger')").rows,
+			[{'ssa_targname': u'booger star'}])
+
+	def testHaswordQueryBorders(self):
+		self.assertEqual(adqlglue.query(self.querier,
+			"select distinct ssa_targname from test.hcdtest where"
+			" 1=ivo_hasword(ssa_targname, 'ooger')").rows,
 			[])
+	
+	def testHashlistSimple(self):
+		self.assertEqual(adqlglue.query(self.querier,
+			"select distinct ivo_hashlist_has('bork#nork#gaob norm', 'nork') as h"
+				" FROM test.hcdtest").rows,
+			[{'h': 1}])
+
+	def testHashlistBorders(self):
+		self.assertEqual(adqlglue.query(self.querier,
+			"select distinct ivo_hashlist_has('bork#nork#gaob norm', 'ork') as h"
+				" FROM test.hcdtest").rows,
+			[{'h': 0}])
+
+	def testHashlistNocase(self):
+		self.assertEqual(adqlglue.query(self.querier,
+			"select distinct ivo_hashlist_has('bork#nork#gaob norm', 'nOrk') as h"
+				" FROM test.hcdtest").rows,
+			[{'h': 1}])
+	
+	def testNocasecmp(self):
+		self.assertEqual(len(adqlglue.query(self.querier,
+			"select ssa_targname FROM test.hcdtest"
+				" WHERE 1=ivo_nocasecmp(ssa_targname, 'BOOGER star')").rows),
+			2)
+
+	def testNocasecmpSymm(self):
+		self.assertEqual(adqlglue.query(self.querier,
+			"select distinct ivo_nocasecmp('FooBar', 'fOObAR') as h"
+				" FROM test.hcdtest").rows,
+			[{'h': 1}])
+
+	def testNocasecmpFalse(self):
+		self.assertEqual(adqlglue.query(self.querier,
+			"select distinct ivo_nocasecmp('FooBa', 'fOObAR') as h"
+				" FROM test.hcdtest").rows,
+			[{'h': 0}])
 
 
 class RegionTest(unittest.TestCase):

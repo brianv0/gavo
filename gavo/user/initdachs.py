@@ -374,7 +374,7 @@ def _importBasicResources():
 	from gavo.user import importing
 
 	for rdId in ["//dc_tables", "//services", "//users", 
-			"//uws", "//tap", "//products", "//obscore"]:
+			"//uws", "//adql", "//tap", "//products", "//obscore"]:
 		base.ui.notifyInfo("Importing %s"%rdId)
 		importing.process(rsc.getParseOptions(), [rdId])
 

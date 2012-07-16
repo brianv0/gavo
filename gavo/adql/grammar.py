@@ -176,8 +176,8 @@ sqlReservedWords = set([
 allReservedWords = adqlReservedWords | sqlReservedWords
 
 
-# Prefix for user defined functions
-userFunctionPrefix = "gavo_"
+# A regular expression for prefixes of user defined functions
+userFunctionPrefix = "(gavo|ivo)"
 
 
 def _makeQuotedName(s, p, t):
@@ -450,7 +450,7 @@ def getADQLGrammarCopy():
 				+ Args(numericValueExpression) 
 				+ ',' + Args(numericValueExpression) + ')')
 		userDefinedFunctionParam = valueExpression
-		userDefinedFunctionName = Regex("(?i)"+userFunctionPrefix+"[A-Za-z_]+")
+		userDefinedFunctionName = Regex("(?i)"+userFunctionPrefix+"_[A-Za-z_]+")
 		userDefinedFunctionName.setName("Name of locally defined function")
 		userDefinedFunction = ( userDefinedFunctionName("fName") + '(' +
 			Args(userDefinedFunctionParam) 

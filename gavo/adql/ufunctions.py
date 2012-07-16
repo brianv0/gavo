@@ -24,11 +24,10 @@ def userFunction(name, signature, doc, returntype="double precision",
 	"""a decorator adding some metadata to python functions to make
 	them suitable as ADQL user defined functions.
 
-	name is the name the function will be visible under in
-	ADQL, *without* the _funPrefix; signature is a signature
-	not including the name of the form '(parName1 type1, parName1
-	type2) -> resulttype'; doc is preformatted ASCII documentation.
-	The indentation of the second line will be removed from all lines.
+	name is the name the function will be visible under in ADQL; signature is a
+	signature not including the name of the form '(parName1 type1, parName1
+	type2) -> resulttype'; doc is preformatted ASCII documentation.  The
+	indentation of the second line will be removed from all lines.
 
 	returntype is the SQL return type, which defaults to double
 	precision.  With current ADQL, you could specialize to INTEGER
@@ -38,16 +37,18 @@ def userFunction(name, signature, doc, returntype="double precision",
 	coming back from your ufunc.
 
 	The python function receives an array of arguments; this will in
-	general be ADQL expression trees.  It must return a string that
-	will go literally into the SQL string, so take care to quote.
-	In general, you will use nodes.flatten(arg) to flatten individual
-	args.
+	general be ADQL expression trees.  It must return either a string that
+	will go literally into the SQL string (so take care to quote;
+	in general, you will use nodes.flatten(arg) to flatten individual
+	args); or they may return None, in which case the expression tree
+	remains unchanged.  This is for when the actual implementation is
+	in the database.
 
 	If you receive bad arguments or something else goes awry, raise
 	a UfuncError.
 	"""
 	def deco(f):
-		f.adqlUDF_name = grammar.userFunctionPrefix+name
+		f.adqlUDF_name = name
 		f.adqlUDF_signature = f.adqlUDF_name+signature.strip()
 		f.adqlUDF_doc = utils.fixIndentation(doc, "", 1).strip()
 		f.adqlUDF_returntype = returntype
@@ -58,7 +59,7 @@ def userFunction(name, signature, doc, returntype="double precision",
 	return deco
 
 
-@userFunction("match",
+@userFunction("gavo_match",
 	"(pattern TEXT, string TEXT) -> INTEGER",
 	"""
 	gavo_match returns 1 if the POSIX regular expression pattern
@@ -67,15 +68,15 @@ def userFunction(name, signature, doc, returntype="double precision",
 	"integer")
 def _match(args):
 	if len(args)!=2:
-		raise UfuncError("match takes exactly two arguments")
+		raise UfuncError("gavo_match takes exactly two arguments")
 	return "(CASE WHEN %s ~ %s THEN 1 ELSE 0 END)"%(
 		nodes.flatten(args[1]), nodes.flatten(args[0]))
 
 
-@userFunction("hasword",
-	"(word TEXT, string TEST) -> INTEGER",
+@userFunction("ivo_hasword",
+	"(haystack TEXT, needle TEXT) -> INTEGER",
 	"""
-	gavo_hasword returns 1 if word shows up in string, 0 otherwise.  This
+	gavo_hasword returns 1 if needle shows up in haystack, 0 otherwise.  This
 	is for "google-like"-searches in text-like fields.  In word, you can
 	actually employ a fairly complex query language; see
 	http://www.postgresql.org/docs/8.3/static/textsearch.html
@@ -84,9 +85,40 @@ def _match(args):
 	"integer")
 def _hasword(args):
 	if len(args)!=2:
-		raise UfuncError("match takes exactly two arguments")
-	return "(CASE WHEN to_tsvector(%s) @@ to_tsquery(%s) THEN 1 ELSE 0 END)"%(
-		nodes.flatten(args[1]), nodes.flatten(args[0]))
+		raise UfuncError("ivo_hasword takes exactly two arguments")
+	return None
+
+
+@userFunction("ivo_nocasecmp",
+	"(arg1 TEXT, arg2 TEXT) -> INTEGER",
+	"""
+	gavo_nocasecmp returns 1 if arg1 and arg2 compare equal after normalizing
+	case.   The behaviour with non-ASCII characters depends on the
+	server locale and is thus not well predictable.
+	""",
+	"integer")
+def _nocasecmp(args):
+	if len(args)!=2:
+		raise UfuncError("ivo_nocasecmp takes exactly two arguments")
+	return None
+
+
+@userFunction("ivo_hashlist_has",
+	"(hashlist TEXT, item TEXT) -> INTEGER",
+	"""
+	The function takes two strings; the first is a list of words not
+	containing the hash sign (#), concatenated by hash signs, the second is
+	a word not containing the hash sign.  It returns 1 if, compared
+	case-insensitively, the second argument is in the list of words coded in
+	the first argument.  The behaviour in case the the second
+	argument contains a hash sign is unspecified.
+	""",
+	"integer")
+def _hashlist_has(args):
+	if len(args)!=2:
+		raise UfuncError("ivo_nocasecmp takes exactly two arguments")
+	return None
+
 
 class UserFunction(nodes.FunctionNode):
 	"""A node processing user defined functions.
@@ -104,7 +136,10 @@ class UserFunction(nodes.FunctionNode):
 			raise common.UfuncError("No such function: %s"%self.funName)
 
 	def flatten(self):
-		return self.processedExpression
+		if self.processedExpression is None:
+			return nodes.FunctionNode.flatten(self)
+		else:
+			return self.processedExpression
 
 	def addFieldInfo(self, context):
 		try:
