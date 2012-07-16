@@ -1065,6 +1065,25 @@ class NumericValueExpression(CombiningFINode, TransparentMixin):
 		return fi1
 
 
+class StringValueExpression(FieldInfoedNode, TransparentMixin):
+	type = "stringValueExpression"
+	collapsible = True
+
+	def addFieldInfo(self, context):
+# This is concatenation; we treat is as if we'd be adding numbers
+		infoChildren = self._getInfoChildren()
+		if infoChildren:
+			fi1 = infoChildren.pop(0).fieldInfo
+			while infoChildren:
+				fi1 = fieldinfo.FieldInfo.fromAddExpression(
+					"+", fi1, infoChildren.pop(0).fieldInfo)
+			self.fieldInfo = fi1
+		else:
+			self.fieldInfo = fieldinfo.FieldInfo(
+				"text", "", "")
+	
+
+
 class GenericValueExpression(CombiningFINode, TransparentMixin):
 	"""A container for value expressions that we don't want to look at
 	closer.
@@ -1206,7 +1225,7 @@ class CharacterStringLiteral(FieldInfoedNode):
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
-		value = "".join(c[1:-1] for c in _parseResult)
+		value = "".join(_c[1:-1] for _c in _parseResult)
 		return locals()
 
 	def flatten(self):

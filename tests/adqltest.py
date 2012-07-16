@@ -446,7 +446,7 @@ class TreeParseTest(testhelpers.VerboseTest):
 		compPred = t.whereClause.children[1]
 		self.assertEqual(compPred.op1.type, "numericValueExpression")
 		self.assertEqual(compPred.opr, ">")
-		self.assertEqual(compPred.op2.type, "valueExpression")
+		self.assertEqual(compPred.op2.type, "stringValueExpression")
 
 	def testQualifiedStar(self):
 		t = adql.parseToTree("select t1.*, s1.t2.* from t1, s1.t2, s2.t3")
@@ -712,7 +712,7 @@ class SelectClauseTest(ColumnTest):
 		cols = self._getColSeq("select 1+0.1, 'const'||'ab' from spatial")
 		self._assertColumns(cols, [
 			("double precision", "", "", True),
-			("text", "", "", False),])
+			("text", "", "", True),])
 
 	def testConstantSelectWithAs(self):
 		cols = self._getColSeq("select 1+0.1 as x from spatial")
@@ -926,7 +926,7 @@ class ColResTest(ColumnTest):
 	def testExpressionWithUnicode(self):
 		cols = self._getColSeq("select crazy.name||geo.pt from crazy, geo")
 		self._assertColumns(cols, [
-			("unicode", '', '', False)])
+			("unicode", '', '', True)])
 
 
 class DelimitedColResTest(ColumnTest):
@@ -1306,6 +1306,16 @@ class MiscFlatteningTest(_FlatteningTest):
 			" (spatial join spatial2 using (ra1)), misc",
 			"SELECT ra1, dec, mass FROM"
 			" (spatial JOIN spatial2 USING ( ra1 )) , misc ")
+
+	def testConcat(self):
+		self._assertFlattensTo(
+			"select 'ivo://' ||  name || '%' as pat from crazy",
+			"SELECT 'ivo://' || name || '%' AS pat FROM crazy")
+	
+	def testAliasExpr(self):
+		self._assertFlattensTo(
+			"select a+b/(8+x) as num from crazy",
+			"SELECT a + b / ( 8 + x ) AS num FROM crazy")
 
 
 class CommentTest(_FlatteningTest):

@@ -630,6 +630,6 @@ if __name__=="__main__":
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
 	res = syms["querySpecification"].parseString(
-		"select gavo_foo(x) from y"
+		"select 'ivo://' ||  '%' as pat from crazy"
 		, parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)
