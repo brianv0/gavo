@@ -499,6 +499,7 @@
 		</inputKey>
 		<inputKey original="base_SIZE" name="hSIZE">
 			<property name="notForRenderer">siap.xml</property>
+			<values default="0.5"/>
 		</inputKey>
 		<inputKey original="base_INTERSECT" name="hINTERSECT">
 			<property name="notForRenderer">siap.xml</property>
