@@ -178,10 +178,10 @@ of where we messed up, and we'll try to improve.
 				END;
 				$func$ LANGUAGE plpgsql;
 
-				CREATE OR REPLACE FUNCTION ivo_nocasecmp(arg1 TEXT, arg2 TEXT)
+				CREATE OR REPLACE FUNCTION ivo_nocasematch(value TEXT, pattern TEXT)
 				RETURNS INTEGER AS $func$
 				BEGIN
-					IF lower(arg1)=lower(arg2) THEN
+					IF value ILIKE pattern THEN
 						RETURN 1;
 					ELSE
 						RETURN 0;

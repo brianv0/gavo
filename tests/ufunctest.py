@@ -134,23 +134,11 @@ class BuiltinUfuncTest(testhelpers.VerboseTest):
 				" FROM test.hcdtest").rows,
 			[{'h': 1}])
 	
-	def testNocasecmp(self):
+	def testNocasematch(self):
 		self.assertEqual(len(adqlglue.query(self.querier,
 			"select ssa_targname FROM test.hcdtest"
-				" WHERE 1=ivo_nocasecmp(ssa_targname, 'BOOGER star')").rows),
+				" WHERE 1=ivo_nocasematch(ssa_targname, 'BOOGER%')").rows),
 			2)
-
-	def testNocasecmpSymm(self):
-		self.assertEqual(adqlglue.query(self.querier,
-			"select distinct ivo_nocasecmp('FooBar', 'fOObAR') as h"
-				" FROM test.hcdtest").rows,
-			[{'h': 1}])
-
-	def testNocasecmpFalse(self):
-		self.assertEqual(adqlglue.query(self.querier,
-			"select distinct ivo_nocasecmp('FooBa', 'fOObAR') as h"
-				" FROM test.hcdtest").rows,
-			[{'h': 0}])
 
 
 class RegionTest(unittest.TestCase):

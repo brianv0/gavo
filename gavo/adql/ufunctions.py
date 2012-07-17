@@ -89,17 +89,19 @@ def _hasword(args):
 	return None
 
 
-@userFunction("ivo_nocasecmp",
-	"(arg1 TEXT, arg2 TEXT) -> INTEGER",
+@userFunction("ivo_nocasematch",
+	"(value TEXT, pattern TEXT) -> INTEGER",
 	"""
-	gavo_nocasecmp returns 1 if arg1 and arg2 compare equal after normalizing
-	case.   The behaviour with non-ASCII characters depends on the
-	server locale and is thus not well predictable.
+	ivo_nocasematch returns 1 if pattern matches value, 0 otherwise.
+	pattern is defined as for the SQL LIKE operator, but the
+	match is performed case-insensitively.  This function in effect
+	provides a surrogate for the ILIKE SQL operator that is missing from
+	ADQL.
 	""",
 	"integer")
-def _nocasecmp(args):
+def _nocasematch(args):
 	if len(args)!=2:
-		raise UfuncError("ivo_nocasecmp takes exactly two arguments")
+		raise UfuncError("ivo_nocasematch takes exactly two arguments")
 	return None
 
 
@@ -116,7 +118,7 @@ def _nocasecmp(args):
 	"integer")
 def _hashlist_has(args):
 	if len(args)!=2:
-		raise UfuncError("ivo_nocasecmp takes exactly two arguments")
+		raise UfuncError("ivo_haslist_has takes exactly two arguments")
 	return None
 
 
