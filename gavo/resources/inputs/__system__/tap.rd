@@ -22,27 +22,47 @@
 	<!-- since schemata may be shared between RDs, nothing will ever
 	     get deleted from here -->
 		<column name="schema_name" type="text" 
-			description="Fully qualified schema name"/>
+			description="Fully qualified schema name">
+			<property name="std">1</property>
+		</column>
 		<column name="description" type="text"
-			description="Brief description of the schema"/>
+			description="Brief description of the schema">
+			<property name="std">1</property>
+		</column>
 		<column name="utype" type="text"
-			description="utype if schema corresponds to a data model"/>
+			description="utype if schema corresponds to a data model">
+			<property name="std">1</property>
+		</column>
 	</table>
 	
 	<table id="tables" onDisk="True" system="True" primary="table_name"
 			readProfiles="defaults,untrustedquery" adql="True">
 		<meta name="description">Tables available for ADQL querying.</meta>
 		<column name="schema_name" type="text" 
-			description="Fully qualified schema name"/>
+			tablehead="Schema"
+			description="Fully qualified schema name">
+			<property name="std">1</property>
+		</column>
 		<column name="table_name" type="text" 
-			description="Fully qualified table name"/>
+			tablehead="Table"
+			description="Fully qualified table name">
+			<property name="std">1</property>
+		</column>
 		<column name="table_type" type="text" 
-			description="One of: table, view"/>
+			tablehead="Type"
+			description="One of: table, view">
+			<property name="std">1</property>
+		</column>
 		<column name="description" type="text" 
-			description="Brief description of the table"/>
+			description="Brief description of the table">
+			<property name="std">1</property>
+		</column>
 		<column name="utype" type="text" 
-			description="utype if the table corresponds to a data model"/>
-		<column name="sourceRD" type="text" description="Id of the originating rd"/>
+			description="utype if the table corresponds to a data model">
+			<property name="std">1</property>
+		</column>
+		<column name="sourceRD" type="text" 
+			description="Id of the originating rd (local information)"/>
 	</table>
 
 	<table id="columns" onDisk="True" system="True"
@@ -51,30 +71,59 @@
 		<meta name="description">Columns in tables available for ADQL querying.
 		</meta>
 		<column name="table_name" type="text" 
-			description="Fully qualified table name"/>
-		<column name="column_name" type="text" description="Column name"/>
+			tablehead="Table"
+			description="Fully qualified table name">
+			<property name="std">1</property>
+		</column>
+		<column name="column_name" type="text" 
+			tablehead="Name"
+			description="Column name">
+			<property name="std">1</property>
+		</column>
 		<column name="description" type="text" 
-			description="Brief description of column"/>
+			description="Brief description of column">
+			<property name="std">1</property>
+		</column>
 		<column name="unit" type="text" 
-			description="Unit in VO standard format"/>
+			description="Unit in VO standard format">
+			<property name="std">1</property>
+		</column>
 		<column name="ucd" type="text" 
-			description="UCD of column if any"/>
+			tablehead="UCD"
+			description="UCD of column if any">
+			<property name="std">1</property>
+		</column>
 		<column name="utype" type="text" 
-			description="Utype of column if any"/>
+			description="Utype of column if any">
+			<property name="std">1</property>
+		</column>
 		<column name="datatype" type="text" 
-			description="ADQL datatype"/>
+			tablehead="Type"
+			description="ADQL datatype">
+			<property name="std">1</property>
+		</column>
 		<column name="size" type="integer" 
 				description="Length of variable length datatypes">
 			<values nullLiteral="1"/>
+			<property name="std">1</property>
 		</column>
 		<column name="principal" type="integer" required="True"
-			description="Is column principal?"/>
+			tablehead="Princ?"
+			description="Is column principal?">
+			<property name="std">1</property>
+		</column>
 		<column name="indexed" type="integer" required="True"
-			description="Is there an index on this column?"/>
+			tablehead="Indexed?"
+			description="Is there an index on this column?">
+			<property name="std">1</property>
+		</column>
 		<column name="std" type="integer" required="True"
-			description="Is this a standard column?"/>
+			tablehead="Std?"
+			description="Is this a standard column?">
+			<property name="std">1</property>
+		</column>
 		<column name="sourceRD" type="text" 
-			description="Id of the originating rd"/>
+			description="Id of the originating rd (local information)"/>
 	</table>
 
 	<table id="keys" onDisk="True" system="True"
@@ -82,17 +131,31 @@
 		<meta name="description">Foreign key relationships between tables 
 			available for ADQL querying.
 		</meta>
-		<column name="key_id" type="text" 
-			description="Unique key identifier"/>
+		<column name="key_id" type="text"
+			tablehead="Id"
+			description="Unique key identifier">
+			<property name="std">1</property>
+		</column>
 		<column name="from_table" type="text" 
-			description="Fully qualified table name"/>
+			tablehead="From table..."
+			description="Fully qualified table name">
+			<property name="std">1</property>
+		</column>
 		<column name="target_table" type="text" 
-			description="Fully qualified table name"/>
+			tablehead="To table..."
+			description="Fully qualified table name">
+			<property name="std">1</property>
+		</column>
 		<column name="description" type="text" 
-			description="Description of this key"/>
+			description="Description of this key">
+			<property name="std">1</property>
+		</column>
 		<column name="utype" type="text" 
-			description="Utype of this key"/>
-		<column name="sourceRD" type="text" description="Id of the originating rd"/>
+			description="Utype of this key">
+			<property name="std">1</property>
+		</column>
+		<column name="sourceRD" type="text" 
+			description="Id of the originating rd (local information)"/>
 	</table>
 
 	<table id="key_columns" onDisk="True" system="True"
@@ -101,12 +164,22 @@
 			relationships between tables available for ADQL querying.
 		</meta>
 		<column name="key_id" type="text" 
-			description="Key identifier from TAP_SCHEMA.keys"/>
+			tablehead="Id"
+			description="Key identifier from TAP_SCHEMA.keys">
+			<property name="std">1</property>
+		</column>
 		<column name="from_column" type="text" 
-			description="Key column name in the from table"/>
+			tablehead="Src. Column"
+			description="Key column name in the from table">
+			<property name="std">1</property>
+		</column>
 		<column name="target_column" type="text" 
-			description="Key column in the target table"/>
-		<column name="sourceRD" type="text" description="Id of the originating rd"/>
+			tablehead="Tgt. Column"
+			description="Key column in the target table">
+			<property name="std">1</property>
+		</column>
+		<column name="sourceRD" type="text" 
+			description="Id of the originating rd (local information)"/>
 	</table>
 
 	<table id="groups" onDisk="True" system="True"
@@ -126,6 +199,9 @@
 			description="Name of the group"/>
 		<column name="group_utype" type="text"
 			description="utype of the group"/>
+		<!--
+		<column name="sourceRD" type="text" 
+			description="Id of the originating rd (local information)"/>-->
 	</table>
 
 	<table id="examples" onDisk="True" adql="True">
@@ -259,6 +335,7 @@
 									"column_utype": colRef.utype,
 									"group_name": group.name,
 									"group_utype": group.utype,
+									"sourceRD": rd.sourceId,
 								}
 				</code>
 			</iterator>
