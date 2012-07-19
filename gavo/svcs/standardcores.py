@@ -299,7 +299,7 @@ def mapDBErrors(excType, excValue, excTb):
 
 
 class TableBasedCore(core.Core):
-	"""is a core knowing a DB table it operates on and allowing the definition
+	"""A core knowing a DB table it operates on and allowing the definition
 	of condDescs.
 	"""
 	_queriedTable = base.ReferenceAttribute("queriedTable",

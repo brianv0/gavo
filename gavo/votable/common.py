@@ -47,18 +47,6 @@ class VOTableParseError(VOTableError):
 	"""
 
 
-def escapePCDATA(val):
-	return (val
-		).replace("&", "&amp;"
-		).replace('<', '&lt;'
-		).replace('>', '&gt;'
-		).replace("\0", "&x00;")
-
-
-def escapeAttrVal(val):
-	return '"%s"'%(escapePCDATA(val).replace('"', '&quot;').encode("utf-8"))
-
-
 def validateTDComplex(val):
 	re, im = map(float, val.split())
 

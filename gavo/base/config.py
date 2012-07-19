@@ -449,9 +449,12 @@ _config = Configuration(
 		StringConfigItem("authority", "x-unregistred", 
 			"The authority id for this DC"),
 		IntConfigItem("dalDefaultLimit", "10000",
-			"Default match limit on DAL queries"),
-		IntConfigItem("dalHardLimit", "10000000",
-			"Hard match limit on DAL queries"),
+			"Default match limit on SCS/SSAP/SIAP queries"),
+		IntConfigItem("dalHardLimit", "1000000",
+			"Hard match limit on SCS/SSAP/SIAP queries (be careful: due to the"
+			" way these protocols work, the results cannot be streamed, and"
+			" the results have to be kept in memory; 1e7 rows requiring 1k"
+			" of memory each add up to 10 Gigs...)"),
 		IntConfigItem("oaipmhPageSize", "500",
 			"Default number of records per page in the OAI-PMH interface"),
 		EnumeratedConfigItem("votDefaultEncoding", "binary",
