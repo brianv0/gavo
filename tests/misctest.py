@@ -330,7 +330,7 @@ class StanXMLTest(testhelpers.VerboseTest):
 	def testNillableAttribute(self):
 		M = self.Model
 		rendered = M.Root[M.Nilble(restatt="x")].render()
-		self.failUnless('<Nilble restatt="x" xsi:nil="true"/>' in rendered)
+		self.failUnless('<Nilble restatt="x" xsi:nil="true"></Nilble>' in rendered)
 	
 
 class StanXMLNamespaceTest(testhelpers.VerboseTest):

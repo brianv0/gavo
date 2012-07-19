@@ -87,13 +87,23 @@ class Stub(object):
 
 	def isEmpty(self):
 		return False
-	
+
+	def shouldBeSkipped(self):
+		return False
+
 	def makeChildDict(self):
 		return {}
 
 	def iterAttNames(self):
 		if False:
 			yield
+
+	def apply(self, func):
+		"""does nothing.
+
+		Stubs don't have what Element.apply needs, so we don't even pretend.
+		"""
+		return
 
 
 class Element(object):
@@ -254,7 +264,7 @@ class Element(object):
 			raise Error("%s element %s cannot be added to %s node"%(
 				type(child), repr(child), self.name_))
 
-	def isActuallyEmpty(self):
+	def isEmpty(self):
 		"""returns true if the current node has no non-empty children and no
 		non-whitespace text content.
 		"""
@@ -265,24 +275,22 @@ class Element(object):
 				self._isEmptyCache = False
 			if self._isEmptyCache:
 				for c in self._children:
-					if not c.isEmpty():
+					if not c.shouldBeSkipped():
 						self._isEmptyCache = False
 						break
 
 		return self._isEmptyCache
 
-	def isEmpty(self):
+	def shouldBeSkipped(self):
 		"""returns true if the current node should be part of an output.
 
 		That is true if it is either non-empty or _mayBeEmpty is true.
 		An empty element is one that has only empty children and no
 		non-whitespace text content.
-
-		TODO: rename this (to "shouldBeSkipped" or so), and make isActuallyEmpty isEmpty.
 		"""
 		if self._mayBeEmpty:
 			return False
-		return self.isActuallyEmpty()
+		return self.isEmpty()
 
 	def iterAttNames(self):
 		"""iterates over the defined attribute names of this node.
@@ -334,7 +342,7 @@ class Element(object):
 		func does something like func(node, text, attrDict, childSequence).
 		"""
 		try:
-			if self.isEmpty():
+			if self.shouldBeSkipped():
 				return
 			attrs = self._makeAttrDict()
 			return func(self, self.text_,
@@ -577,7 +585,7 @@ def _makeVisitor(outputFile, prefixForEmpty):
 		else:
 			name = "%s:%s"%(node._prefix, node.name_)
 
-		if node.isActuallyEmpty():
+		if node.isEmpty():
 			if node._mayBeEmpty:
 				outputFile.write("<%s%s/>"%(name, attrRepr))
 		else:

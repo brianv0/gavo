@@ -5,6 +5,7 @@ Encoding to tabledata.
 import traceback
 
 from gavo import utils
+from gavo.utils import stanxml
 from gavo.votable import coding
 from gavo.votable import common
 
@@ -38,9 +39,9 @@ def _addNullvalueCode(field, src, validator, defaultNullValue=None):
 			" define one using values null to allow for NULL in integer columns')"
 			)%field.getDesignation()
 		else:
-			action = ("  tokens.append(%r)"%common.escapePCDATA(defaultNullValue))
+			action = ("  tokens.append(%r)"%stanxml.escapePCDATA(defaultNullValue))
 	else:
-		action = "  tokens.append(%r)"%common.escapePCDATA(nullvalue)
+		action = "  tokens.append(%r)"%stanxml.escapePCDATA(nullvalue)
 	return [
 			'if val is None:',
 			action,
@@ -93,12 +94,12 @@ def _makeCharEncoder(field):
 	if field.isMultiDim():
 		# 2+d char arrays are string arrays -- the serialization is insane
 		src.extend([
-			"tokens.append(common.escapePCDATA(' '.join("
+			"tokens.append(stanxml.escapePCDATA(' '.join("
 			" s.replace(' ', '%20') for s in common.iterflattened(val))))"])
 
 	else:
 		src.extend([
-			"tokens.append(common.escapePCDATA(val))"])
+			"tokens.append(stanxml.escapePCDATA(val))"])
 
 	return _addNullvalueCode(field, src, lambda _: True, "")
 

@@ -694,8 +694,10 @@ class STCEmbedTest(testhelpers.VerboseTest):
 		self.failUnless(re.search('<PARAM [^>]*utype="stc:AstroCoo'
 			'rdSystem.SpaceFrame.CoordRefFrame"[^>]* value="ICRS"', tx))
 		self.failUnless(re.search('<FIELD[^>]* ID="alpha" ', tx))
-		self.failUnless('<FIELDref utype="stc:AstroCoords.Position2D'
-			'.Value2.C2" ref="delta"' in tx)
+		mat = re.search(
+			'<FIELDref[^>]*utype="stc:AstroCoords.Position2D.Value2.C2[^>]*>',
+			tx)
+		self.failUnless('ref="delta"' in mat.group())
 
 	def testMultiTables(self):
 		# twice the same table -- this is mainly for id mapping
@@ -709,13 +711,16 @@ class STCEmbedTest(testhelpers.VerboseTest):
 			parent_=table.tableDef.rd)
 		data = rsc.Data(dd, tables={table.tableDef.id: table,
 			"copy": tableCopy})
-		serialized = votablewrite.getAsVOTable(data)
-		for fragment in [
-				'Position2D.Value2.C2" ref="delta"',
-				'ID="delta"',
-				'Position2D.Value2.C2" ref="delta0"',
-				'ID="delta0"']:
-			self.failUnless(fragment in serialized)
+
+		tree = testhelpers.getXMLTree(
+			votablewrite.getAsVOTable(data), debug=False)
+		for path in [
+				"//FIELD[@ID='delta']",
+				"//FIELD[@ID='delta0']",
+				"//FIELDref[@ref='delta' and @utype='stc:AstroCoords.Position2D.Value2.C2']",
+				"//FIELDref[@ref='delta0' and @utype='stc:AstroCoords.Position2D.Value2.C2']",
+				]:
+			self.failUnless(len(tree.xpath(path))==1, "%s not found"%path)
 
 
 class STCParseTest(testhelpers.VerboseTest):

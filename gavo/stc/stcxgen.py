@@ -211,7 +211,7 @@ def _make1DSerializer(cooClass, valueSerializer):
 			_wrapValues(STC.Resolution, getattr(node.resolution, "values", ())),
 			_wrapValues(STC.PixSize, getattr(node.pixSize, "values", ())),
 		]
-		if not res.isEmpty():
+		if not res.shouldBeSkipped():
 			return res(unit=node.unit, 
 				vel_time_unit=getattr(node, "velTimeUnit", None),
 				frame_id=node.frame.id)
@@ -305,7 +305,7 @@ def _makeSpatialCooSerializer(stcClasses):
 			]
 		if node.epoch:
 			res[STC.Epoch(yearDef=node.yearDef)[str(node.epoch)]]
-		if not res.isEmpty():
+		if not res.shouldBeSkipped():
 			return res(frame_id=node.frame.id, **clsArgs)
 	return serialize
 

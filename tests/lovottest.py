@@ -76,10 +76,10 @@ class TrivialParseTest(testhelpers.VerboseTest):
 
 class TrivialWriteTest(testhelpers.VerboseTest):
 	def testEmpty(self):
-		res = votable.asString(V.VOTABLE())
-		self.failUnless("<?xml version='1.0' encoding='utf-8'?>\n"
-			"<VOTABLE version=" in res)
-		self.failUnless("</VOTABLE>" in res)
+		res = votable.asString(V.VOTABLE(), xmlDecl=True)
+		self.failUnless("<?xml version='1.0' encoding='utf-8'?>" in res)
+		self.failUnless("<VOTABLE version=" in res)
+		self.failUnless("/>" in res)
 
 
 class ErrorParseTest(testhelpers.VerboseTest):

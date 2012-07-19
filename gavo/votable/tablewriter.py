@@ -18,47 +18,21 @@ _encoders = {
 
 
 def write(root, outputFile, xmlDecl=True):
-	"""writes the VOTable below row to outputFile.
+	"""writes a VOTable to outputFile.
 
-	stanxml has a render method that could do the same thing; however,
-	that uses ElementTree, and there is no way we can support streaming
-	rendering using that mechanism.
-
-	This function is more or less a subset of ElementTree.write (in particular:
-	No namespaces, no processing instructions since we don't need them for
-	VOTables yet, fixed encoding utf-8), with the extension that xmlstan nodes 
-	can define a write(file, encoding) method that, if defined, will be used 
-	instead of the standard serialization.
+	This is a compatiblity function that's here mainly for historical reasons.
+	It's basically stanxml.write, except that the prefix of the root element
+	will be the empty prefix.
 	"""
-# This should be in a different module, really.  It's too specialized
-# for xmlstan itself, though.
-	def visit(node, text, attrs, childIter):
-		attrRepr = " ".join("%s=%s"%(k, common.escapeAttrVal(v))
-			for k, v in attrs.iteritems())
-		if attrRepr:
-			attrRepr = " "+attrRepr
-		if getattr(node, "_fixedTagMaterial", None):
-			attrRepr = attrRepr+" "+node._fixedTagMaterial
-		outputFile.write("<%s%s>"%(node.name_, attrRepr))
-		if text:
-			outputFile.write(common.escapePCDATA(text).encode("utf-8"))
-		for c in childIter:
-			if hasattr(c, "write"):
-				c.write(outputFile)
-			else:
-				c.apply(visit)
-		outputFile.write("</%s>"%node.name_)
-	
-	if xmlDecl:
-		outputFile.write("<?xml version='1.0' encoding='utf-8'?>\n")
-	root.apply(visit)
-	
+	return stanxml.write(root, outputFile, xmlDecl=xmlDecl,
+		prefixForEmpty=root._prefix)
 
-def asString(root):
+
+def asString(root, xmlDecl=False):
 	"""returns the V.VOTABLE root as a string.
 	"""
 	res = StringIO()
-	write(root, res)
+	write(root, res, xmlDecl=xmlDecl)
 	return res.getvalue()
 
 
