@@ -78,8 +78,10 @@ class InterfaceMaker(object):
 		return self._makeInterface(publication)
 
 
+
 class VOSIInterface(InterfaceMaker):
-	interfaceClass = VS.ParamHTTP
+	class interfaceClass(VS.ParamHTTP):
+		role = "std"
 
 class VOSIAvInterface(VOSIInterface):
 	renderer = "availability"

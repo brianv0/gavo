@@ -216,6 +216,7 @@ class InputKeyTest(testhelpers.VerboseTest):
 		cd = base.parseFromString(svcs.CondDesc, '<condDesc buildFrom='
 			'"data/ssatest#hcdtest.ssa_location"/>'
 			).adaptForRenderer(svcs.getRenderer("form"))
+		print ">>>>>>>>>>>", cd.inputKeys
 		# XXX TODO: bauen, sehen, dass ein paar iks rauskommen
 
 
