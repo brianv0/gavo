@@ -131,8 +131,11 @@ class SyncQueryTest(TAPRenderTest):
 				"LANG": "ADQL",
 				"QUERY": 'SELECT alpha FROM test.adql WHERE alpha<2'
 			}, [
-				'<FIELD datatype="float" ucd="pos.eq.ra;meta.main"'
-				' ID="alpha" unit="deg" name="alpha">'])
+				'<RESOURCE type="results">',
+				'ucd="pos.eq.ra;meta.main"',
+				'ID="alpha"',
+				'unit="deg"',
+				'name="alpha"'])
 
 	def testOverflow(self):
 		return self.assertGETHasStrings("/sync", {

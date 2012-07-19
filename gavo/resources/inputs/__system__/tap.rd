@@ -346,6 +346,19 @@
 	<data id="importFkeysFromRD" auto="False">
 		<embeddedGrammar>
 			<iterator>
+				<setup>
+					<code>
+						@utils.memoized
+						def isPublicTable(tableName):
+							"""returns whether if tableName is tap-public.
+							"""
+							try:
+								return base.caches.getMTH(None
+									).getTableDefForTable(tableName).adql
+							except base.NotFoundError:
+								return False
+					</code>
+				</setup>
 				<code>
 					rd = self.sourceToken
 					if rd.getProperty("moribund", False):
@@ -354,11 +367,15 @@
 						if not table.adql:
 							continue
 						for fkey in table.foreignKeys:
+							targetTable = table.expand(fkey.table.lower())
+							if not isPublicTable(targetTable):
+								continue
+
 							fkeyId = rd.sourceId+utils.intToFunnyWord(id(fkey))
 							yield {
 								"key_id": fkeyId.lower(),
 								"from_table": table.getQName().lower(),
-								"target_table": table.expand(fkey.table.lower()),
+								"target_table": targetTable,
 								"description": None,
 								"utype": None,
 								"sourceRD": rd.sourceId,
