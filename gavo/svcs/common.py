@@ -203,6 +203,11 @@ class QueryMeta(dict):
 			self["dbLimit"] = int(args["_DBOPTIONS_LIMIT"])
 		except (ValueError, KeyError):
 			self["dbLimit"] = base.getConfig("db", "defaultLimit")
+		if "MAXREC" in args:
+			try:
+				self["dbLimit"] = int(args["MAXREC"])
+			except ValueError:
+				pass
 
 		try:
 			self["timeout"] = int(args["_TIMEOUT"])

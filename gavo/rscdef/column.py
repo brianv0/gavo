@@ -560,7 +560,7 @@ class ParamBase(ColumnBase):
 	_value = base.DataContent(description="The value of parameter."
 		" It is parsed according to the param's type using the default"
 		" parser for the type as in rowmakers.", default=base.NotGiven,
-		copyable=True)
+		copyable=True, expand=True)
 
 	_valueCache = base.Undefined
 
@@ -570,6 +570,14 @@ class ParamBase(ColumnBase):
 	def __repr__(self):
 		return "<%s %s=%s>"%(self.__class__.__name__, 
 			self.name, repr(self.content_))
+
+	def expand(self, value):
+		"""hands up macro expansion requests to a parent, if there is one
+		and it can handle expansions.
+		"""
+		if hasattr(self.parent, "expand"):
+			return self.parent.expand(value)
+		return value
 
 	def completeElement(self, ctx):
 		if not self.values:

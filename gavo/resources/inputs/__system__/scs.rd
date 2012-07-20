@@ -321,4 +321,21 @@
 		</condDesc>
 	</STREAM>
 
+	<STREAM id="coreDescs">
+		<doc><![CDATA[
+			This stream inserts three condDescs for SCS services on tables with
+			pos.eq.(ra|dec).main columns; one producing the standard SCS RA, 
+			DEC, and SR parameters, another creating input fields for human
+			consumption, and finally MAXREC.
+		]]></doc>
+		<condDesc original="//scs#humanInput"/>
+		<condDesc original="//scs#protoInput"/>
+		<condDesc silent="True">
+			<inputKey name="MAXREC" type="integer" tablehead="Limit"
+				description="Do not return more than MAXREC records"
+					>\\getConfig{ivoa}{dalDefaultLimit}
+					<property name="onlyForRenderer">scs.xml</property></inputKey>
+		</condDesc>
+	</STREAM>
+
 </resource>

@@ -244,6 +244,7 @@ class InputFieldSelectionTest(testhelpers.VerboseTest):
 		self.assertEqual(
 			[(k.name, k.type) for k in self.service.getInputKeysFor("scs.xml")],
 			[('RA', 'double precision'), ('DEC', 'double precision'), 
+				('MAXREC', 'integer'),
 				('SR', 'real'), ("mag", "real"), (u'rV', u'vexpr-float')])
 
 

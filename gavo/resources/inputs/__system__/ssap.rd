@@ -638,7 +638,7 @@
 				description='Only return the TOP "best" records' std="True"/>
 			<inputKey name="MAXREC" type="integer" tablehead="Limit"
 				description="Do not return more than MAXREC records"
-				std="True">5000</inputKey>
+				std="True">\\getConfig{ivoa}{dalDefaultLimit}</inputKey>
 			<inputKey name="COMPRESS" type="boolean" tablehead="Compress?"
 				description="Return compressed results?"
 				std="True">True</inputKey>
