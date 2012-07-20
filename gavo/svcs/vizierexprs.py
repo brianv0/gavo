@@ -425,12 +425,29 @@ class ToVexprConverter(typesystems.FromSQLConverter):
 getVexprFor = ToVexprConverter().convert
 
 
+def makeConeSearchFor(inputKey):
+	"""returns an //scs#makeSpointCD condDesc tailored for inputKey.
+	"""
+	from gavo.svcs import standardcores
+	return base.parseFromString(standardcores.CondDesc, """
+		<FEED source="//scs#makeSpointCD"
+			tablehead=%s
+			matchColumn=%s/>
+		"""%(
+			utils.escapeAttrVal(inputKey.tablehead),
+			utils.escapeAttrVal(inputKey.name)))
+
+
 def adaptInputKey(inputKey):
 	"""returns ik changed to generate SQL for Vizier-like expressions.
 
 	This is used for buildFrom on CondDescs and renderers having
 	parameterStyle form.
 	"""
+	# manually check for things that need to change the whole condDesc.
+	if inputKey.type=='spoint':
+		raise base.Replace(makeConeSearchFor(inputKey))
+
 	try:
 		return inputKey.change(
 			type=getVexprFor(inputKey.type))

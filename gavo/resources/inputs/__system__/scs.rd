@@ -255,4 +255,70 @@
 		</phraseMaker>
 	</condDesc>
 
+	<STREAM id="makeSpointCD">
+		<doc><![CDATA[
+			This builds a cone search condDesc for Web forms for an spoint column.
+
+			To define it, say something like::
+
+				<FEED source="//scs#makeSpointCD"
+					tablehead="Position observed"
+					matchColumn="ssa_location"/>
+
+			This is also used in ``<condDesc buildFrom="(some spoint col)"/>``
+		]]></doc>
+
+		<!-- this should beforbidden in untrusted RDs since it's easy to
+		do python code or SQL injection using this.  To mitigate it,
+		we'd need some input validation for (specific) macro arguments
+		or a notion of "unsafe" streams.  Well, right before untrusted
+		DaCHS RDs actually start to get swapped, I'll do either of these. -->
+
+		<condDesc>
+			<inputKey name="pos_\matchColumn" type="text"
+				description= "Coordinates (as h m s, d m s or decimal degrees), 
+					or SIMBAD-resolvable object" tablehead="\tablehead">
+			</inputKey>
+			<inputKey name="sr_\matchColumn" 
+				description="Search radius in arcminutes"
+				unit="arcmin"
+				tablehead="Search radius">
+			</inputKey>
+			<phraseMaker>
+				<setup>
+					<code>
+						from gavo.protocols import simbadinterface
+						
+						def getRADec(inPars, sqlPars):
+							"""tries to guess coordinates from inPars.
+
+							(for human SCS condition).
+							"""
+							pos = inPars["pos_\matchColumn"]
+							try:
+								return base.parseCooPair(pos)
+							except ValueError:
+								data = base.caches.getSesame("web").query(pos)
+								if not data:
+									raise base.ValidationError("%s is neither a RA,DEC"
+									" pair nor a simbad resolvable object"%
+									inPars["pos_\matchColumn"], "pos_\matchColumn")
+								return float(data["RA"]), float(data["dec"])
+					</code>
+				</setup>
+				<code><![CDATA[
+					ra, dec = getRADec(inPars, outPars)
+					try:
+						sr = float(inPars["sr_\matchColumn"])/60.
+					except ValueError: # in case we're not running behind forms
+						raise gavo.ValidationError("Not a valid float", "sr_\matchColumn")
+					yield "%s <-> %%(%s)s < %%(%s)s"%("\matchColumn",
+						base.getSQLKey("pos", 
+							pgsphere.SPoint.fromDegrees(ra, dec), outPars), 
+						base.getSQLKey("sr", sr/180*math.pi, outPars))
+				]]></code>
+			</phraseMaker>
+		</condDesc>
+	</STREAM>
+
 </resource>

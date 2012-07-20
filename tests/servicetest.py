@@ -17,6 +17,7 @@ from gavo import rsc
 from gavo import rscdesc
 from gavo import protocols
 from gavo import svcs
+from gavo import utils
 from gavo.imp import formal
 from gavo.imp.formal import iformal
 from gavo.web import formrender
@@ -216,8 +217,14 @@ class InputKeyTest(testhelpers.VerboseTest):
 		cd = base.parseFromString(svcs.CondDesc, '<condDesc buildFrom='
 			'"data/ssatest#hcdtest.ssa_location"/>'
 			).adaptForRenderer(svcs.getRenderer("form"))
-		print ">>>>>>>>>>>", cd.inputKeys
-		# XXX TODO: bauen, sehen, dass ein paar iks rauskommen
+		outPars = {}
+		self.assertEqual(
+			cd.asSQL({"pos_ssa_location": "23,-43", "sr_ssa_location": "3"},
+				outPars, svcs.emptyQueryMeta),
+			"ssa_location <-> %(pos0)s < %(sr0)s")
+		self.assertAlmostEqual(outPars["sr0"], 3/60.*utils.DEG)
+		self.assertEqual(outPars["pos0"].asSTCS("Junk"),
+			'Position Junk 23. -43.')
 
 
 class InputFieldSelectionTest(testhelpers.VerboseTest):

@@ -262,7 +262,14 @@ class CondDesc(base.Structure):
 		change.
 
 		This only happens if buildFrom is non-None.  The method must
-		return a "defused" version that has buildFrom None.
+		return a "defused" version that has buildFrom None (or self,
+		which will do because core.adaptForRenderer stops adapting if
+		the condDescs are stable).
+
+		The adaptors may also raise a Replace exception and return a 
+		full CondDesc; this is done, e.g., for spoints for the form
+		renderer, since they need two input keys and a completely modified
+		phrase.
 		"""
 		if not self.buildFrom:
 			return self
@@ -270,13 +277,16 @@ class CondDesc(base.Structure):
 		if adaptor is None:
 			return self
 
-		newInputKeys = []
-		for ik in self.inputKeys:
-			newInputKeys.append(adaptor(ik))
-		if self.inputKeys==newInputKeys:
-			return self
-		else:
-			return self.change(inputKeys=newInputKeys, buildFrom=None)
+		try:
+			newInputKeys = []
+			for ik in self.inputKeys:
+				newInputKeys.append(adaptor(ik))
+			if self.inputKeys==newInputKeys:
+				return self
+			else:
+				return self.change(inputKeys=newInputKeys, buildFrom=None)
+		except base.Replace, ex:
+			return ex.newOb
 
 
 def mapDBErrors(excType, excValue, excTb):
