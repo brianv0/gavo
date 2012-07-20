@@ -260,3 +260,13 @@ class MetaRenderTest(ArchiveTest):
 		return self.assertGETHasStrings("/browse/__system__/tap", {},
 			['<div class="rddesc"><span class="plainmeta"> Unittest'
 				" Suite's Table Access"])
+
+
+class MetaPagesTest(ArchiveTest):
+	def testGetRR404(self):
+		return self.assertGETHasStrings("/getRR/non/existing", {},
+			['The resource non#existing is unknown at this site.'])
+
+	def testGetRRForService(self):
+		return self.assertGETHasStrings("/getRR/data/pubtest/moribund", {},
+			['<identifier>ivo://x-unregistred/data/pubtest/moribund</identifier>'])

@@ -29,6 +29,7 @@ from gavo.web import caching
 from gavo.web import common
 from gavo.web import grend
 from gavo.web import ifpages
+from gavo.web import metarender
 from gavo.web import weberrors
 
 from gavo.svcs import (Error, UnknownURI, WebRedirect)
@@ -324,6 +325,9 @@ class ArchiveService(rend.Page):
 ArchiveService.addStatic("login", makeDynamicPage(ifpages.LoginPage))
 ArchiveService.addStatic("static", ifpages.StaticServer())
 ArchiveService.addStatic("robots.txt", makeDynamicPage(ifpages.RobotsTxt))
+
+# make these self-registering?  Or write them out somewhere?
+ArchiveService.addStatic("getRR", metarender.ResourceRecordMaker())
 
 ArchiveService.addStatic('formal.css', formal.defaultCSS)
 ArchiveService.addStatic('js', formal.formsJS)

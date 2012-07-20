@@ -292,6 +292,9 @@ class ServiceInfoRenderer(MetaRenderer, utils.IdManagerMixin):
 				T.xml(note.getContent(targetFormat="html"))
 			for note in sorted(self.footnotes, key=lambda n: n.tag)]]
 
+	def data_internalpath(self, ctx, data):
+		return "%s/%s"%(self.service.rd.sourceId, self.service.id)
+
 	def data_inputFields(self, ctx, data):
 		res = [f.asInfoDict() for f in self.service.getInputKeysFor("form")+
 				self.service.serviceKeys]
@@ -610,3 +613,31 @@ class RDInfoRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 			T.body[
 				T.p["The RD list is only available with an rdlist.html template"]]
 		])
+
+
+class ResourceRecordMaker(rend.Page):
+	"""A page that returns resource records for internal services.
+
+	This is basically like OAI-PMH getRecord, except we're using rd/id/svcid
+	from our path.
+	"""
+	def renderHTTP(self, ctx):
+		raise svcs.UnknownURI("What resource record do you want?")
+
+	def locateChild(self, ctx, segments):
+		from gavo.registry import builders
+
+		rdParts, svcId = segments[:-1], segments[-1]
+		rdId = "/".join(rdParts)
+		try:
+			resob = base.caches.getRD(rdId).getById(svcId)
+		except base.NotFoundError:
+			raise svcs.UnknownURI("The resource %s#%s is unknown at this site."%(
+				rdId, svcId))
+
+		return common.TypedData(
+			utils.xmlrender(builders.getVORMetadataElement(resob),
+				prolog="<?xml version='1.0'?>"
+					"<?xml-stylesheet href='/static/xsl/oai.xsl' type='text/xsl'?>",
+				),
+			"application/xml"), ()

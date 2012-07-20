@@ -3,6 +3,7 @@
 <xsl:stylesheet
     xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ri="http://www.ivoa.net/xml/RegistryInterface/v1.0"
     xmlns:oai="http://www.openarchives.org/OAI/2.0/"
     xmlns="http://www.w3.org/1999/xhtml"
     version="1.0">
@@ -119,6 +120,38 @@
         </div>
     </xsl:template>
 
+    <xsl:template match="/ri:Resource">
+        <!-- naked ri:Resource at the root: this is from metarender -->
+        <html>
+            <head>
+                <title>Resource Record for 
+                    <xsl:value-of select="identifier"/></title>
+                <xsl:call-template name="localCompleteHead"/>
+                <style type="text/css"><![CDATA[
+                    .nestbox {
+                        padding: 1ex;
+                        margin-top: 2ex;
+                        border: 1px solid grey;
+                        position: relative;
+                    }
+                    .boxtitle {
+                        background-color: white;
+                        position: absolute;
+                        top: -3ex;
+                    }
+                    .deleted a {
+                        text-decoration: line-through;
+                    }
+                ]]></style>
+            </head>
+            <body>
+                <h1>Resource Record for <xsl:value-of select="identifier"/>
+                </h1>
+    				    <xsl:apply-templates mode="dumpall"/>
+                <xsl:call-template name="localMakeFoot"/>
+            </body>
+        </html>
+    </xsl:template>
 </xsl:stylesheet>
 
 

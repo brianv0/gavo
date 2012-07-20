@@ -378,7 +378,13 @@ class CustomTemplateMixin(object):
 ############# nevow Resource derivatives used here.
 
 
-class ResourceBasedPage(rend.Page, GavoRenderMixin):
+class GavoPage(rend.Page, GavoRenderMixin):
+	"""a base class for all "pages" (i.e. things talking to the web) within
+	DaCHS.
+	"""
+
+
+class ResourceBasedPage(GavoPage):
 	"""A base for renderers based on RDs.
 
 	It is constructed with the resource descriptor and leaves it

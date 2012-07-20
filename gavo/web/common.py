@@ -8,6 +8,7 @@ from nevow import appserver
 from nevow import tags as T, entities as E
 from nevow import loaders
 from nevow import inevow
+from nevow import rend
 try:
     from twisted.web import http
 except ImportError:
@@ -138,3 +139,19 @@ class Request(appserver.NevowRequest):
 			self.channel.transport.loseConnection()
 			return
 		return appserver.NevowRequest.gotLength(self, length)
+
+
+class TypedData(rend.Page):
+	"""A simple resource just producing bytes passed in during construction,
+	declared as a special content type.
+	"""
+	def __init__(self, data, mime):
+		rend.Page.__init__(self)
+		self.data, self.mime = data, mime
+	
+	def renderHTTP(self, ctx):
+		request = inevow.IRequest(ctx)
+		request.setHeader("content-type", self.mime)
+		request.write(self.data)
+		return ""
+
