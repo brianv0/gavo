@@ -454,17 +454,7 @@ class DataCollectionResourceMaker(ResourceMaker):
 	resourceClass = VS.DataCollection
 
 	def _makeTableset(self, schemas):
-		"""see _makeDCResource.
-		"""
-		res = VS.tableset()
-		for rd, tables in schemas:
-			res[VS.schema[
-				VS.name[rd.schema],
-				VS.title[base.getMetaText(rd, "title")],
-				VS.description[base.getMetaText(rd, "description")],
-				[tableset.getTableForTableDef(td)
-					for td in tables]]]
-		return res
+		return tableset.getTablesetForSchemaCollection(schemas)
 
 	def _makeResourceForSchemas(self, metaCarrier, schemas, setNames):
 		"""returns xmlstan for schemas within metaCarrier.
