@@ -227,7 +227,7 @@ class RowIterator(object):
 				yield row
 
 	def _iterRowsProcessed(self):
-		if getattr(self.grammar, "isDispatching", False):
+		if self.grammar.isDispatching:
 			for dest, row in self._iterRows():
 				for procRow in self.rowfilter(row, self):
 					yield dest, procRow
@@ -388,6 +388,12 @@ class Grammar(base.Structure, GrammarMacroMixin):
 	_properties = base.PropertyAttribute(copyable=True)
 	_original = base.OriginalAttribute()
 	_rd = rscdef.RDAttribute()
+
+	# isDispatching is used by various special grammars to signify the
+	# grammar returns rowdicts for multiple makers.  See those.
+	# Here, we just fix it to false so clients can rely on the attribute's
+	# existance.
+	isDispatching = False
 
 	rowIterator = RowIterator
 

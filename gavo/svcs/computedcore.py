@@ -109,7 +109,6 @@ class ComputedCore(core.Core):
 	def _runAndCapture(self, inputTable):
 # if we wanted to get really fancy, it shouldn't be hard to pipe that stuff
 # directly into the grammar.
-		print ">>>>>>>>", self._getArgs(inputTable)
 		pipe = subprocess.Popen(self._getArgs(inputTable), 2**16, 
 			stdin=subprocess.PIPE, stdout=subprocess.PIPE, close_fds=True,
 			cwd=os.path.dirname(self.computer))

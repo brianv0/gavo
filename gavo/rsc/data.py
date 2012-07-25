@@ -429,7 +429,7 @@ def makeData(dd, parseOptions=common.parseNonValidating,
 	res.recreateTables(connection)
 	
 	feederOpts = {"batchSize": parseOptions.batchSize}
-	if getattr(dd.grammar, "isDispatching", False):
+	if dd.grammar and dd.grammar.isDispatching:
 		feederOpts["dispatched"] = True
 
 	with res.getFeeder(connection=connection, **feederOpts) as feeder:

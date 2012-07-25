@@ -568,7 +568,7 @@ class TypesSerializationTest(VOTableRenderTest):
 			StringIO(self._getAsVOTable('<column name="x" type="unicode"/>', 
 				rows=[{"x": u"f\u00fcr"}])))
 		self.assertEqual(data[0][0], u"f\u00fcr")
-	
+
 
 class ValuesParsedTest(testhelpers.VerboseTest):
 	def testNull(self):

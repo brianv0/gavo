@@ -157,7 +157,6 @@ class RedshiftFrameMaker(_CoordFrameMaker):
 	rootType = "AstroCoordSystem.RedshiftFrame"
 	
 	def iterUtypes(self, node, prefix):
-		yield utypejoin(prefix, "value_type"), node.value_type
 		for pair in _CoordFrameMaker.iterUtypes(self, node, prefix):
 			yield pair
 

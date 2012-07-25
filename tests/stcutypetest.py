@@ -271,4 +271,4 @@ class UtypeRoundtripTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(UtypeRoundtripTest)
+	testhelpers.main(CooGenerTest)
