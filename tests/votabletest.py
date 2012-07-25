@@ -493,6 +493,10 @@ class ParamNullValueTest(VOTableRenderTest):
 		par = self._getParamFor('<param name="x">NaN</param>')
 		self.assertEqual(par.get("value"), "NaN")
 
+	def testNonNullNotDeclared(self):
+		par = self._getParamsFor('<param name="z" type="text">abc</param>')[0]
+		self.assertEqual(self._getEls(par, "VALUES"), [])
+
 
 class TabledataNullValueTest(VOTableRenderTest):
 	def testIntNullRaising(self):

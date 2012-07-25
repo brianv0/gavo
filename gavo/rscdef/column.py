@@ -582,13 +582,6 @@ class ParamBase(ColumnBase):
 	def completeElement(self, ctx):
 		if not self.values:
 			self.values = base.makeStruct(Values, parent_=self)
-
-		if self.values.nullLiteral is None:
-			if self.type=="text":
-				self.values.nullLiteral = "__NULL__"
-			if self.type=="real" or self.type=="double precision":
-				self.values.nullLiteral = "NaN"
-
 		self._completeElementNext(ParamBase, ctx)
 	
 	def onElementComplete(self):

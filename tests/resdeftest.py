@@ -456,7 +456,7 @@ class ParamTest(testhelpers.VerboseTest):
 
 	def testNanIsNull(self):
 		par = base.parseFromString(rscdef.Param,
-			'<param name="foo">NaN</param>')
+			'<param name="foo"><values nullLiteral="NaN"/>NaN</param>')
 		self.assertEqual(par.value, None)
 
 	def test__NULL__IsNull(self):

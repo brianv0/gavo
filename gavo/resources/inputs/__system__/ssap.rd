@@ -215,12 +215,14 @@
 			unit="\fluxSI" utype="ssa:Char.FluxAxis.Accuracy.StatError"
 			ucd="stat.error;phot.flux.density;em"
 			verbLevel="25"
-			description="Statistical error in flux">\statFluxError</param>
+			description="Statistical error in flux"
+			><values nullLiteral="NaN"/>\statFluxError</param>
 		<param name="ssa_sysError" 
 			utype="ssa:Char.FluxAxis.Accuracy.SysError"
 			unit="\fluxSI" ucd="stat.error.sys;phot.flux.density;em"
 			verbLevel="25"
-			description="Systematic error in flux">\sysFluxError</param>
+			description="Systematic error in flux"
+			><values nullLiteral="NaN"/>\sysFluxError</param>
 		<param name="ssa_fluxcalib" type="text"
 			utype="ssa:Char.FluxAxis.Calibration"
 			verbLevel="25"
@@ -234,12 +236,14 @@
 			utype="ssa:Char.SpectralAxis.Accuracy.StatError" 
 			unit="\spectralSI" ucd="stat.error;em"
 			verbLevel="25"
-			description="Statistical error in wavelength">\statSpectError</param>
+			description="Statistical error in wavelength">
+			<values nullLiteral="NaN"/>\statSpectError</param>
 		<param name="ssa_sysError"
 			utype="ssa:Char.SpectralAxis.Accuracy.SysError" 
 			unit="\spectralSI" ucd="stat.error.sys;em"
 			verbLevel="25"
-			description="Systematic error in wavelength">\sysSpectError</param>
+			description="Systematic error in wavelength">
+			<values nullLiteral="NaN"/>\sysSpectError</param>
 		<param name="ssa_speccalib" type="text"
 			utype="ssa:Char.SpectralAxis.Calibration" ucd="meta.code.qual"
 			verbLevel="25"
@@ -248,11 +252,13 @@
 			utype="ssa:Char.SpectralAxis.Resolution" 
 			unit="\spectralSI" ucd="spect.resolution;em.wl"
 			verbLevel="25"
-			description="Resolution on the spectral axis">\spectralResolution</param>
+			description="Resolution on the spectral axis"
+			><values nullLiteral="NaN"/>\spectralResolution</param>
 		<param name="ssa_spaceError"
 			utype="ssa:Char.SpatialAxis.Accuracy.StatError" ucd="stat.error;pos.eq"
 			verbLevel="15" unit="deg"
-			description="Statistical error in position">\statSpaceError</param>
+			description="Statistical error in position"
+			><values nullLiteral="NaN"/>\statSpaceError</param>
 		<param name="ssa_spaceCalib" type="text"
 			utype="ssa:Char.SpatialAxis.Calibration" ucd="meta.code.qual"
 			verbLevel="25"
