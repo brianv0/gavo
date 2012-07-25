@@ -276,6 +276,7 @@ class SIAPRenderer(DALRenderer):
 	def __init__(self, ctx, *args, **kwargs):
 		reqArgs = inevow.IRequest(ctx).args
 		reqArgs["_VOTABLE_VERSION"] = ["1.1"]
+		reqArgs["_TDENC"] = ["True"]
 		DALRenderer.__init__(self, ctx, *args, **kwargs)
 
 	def renderHTTP(self, ctx):

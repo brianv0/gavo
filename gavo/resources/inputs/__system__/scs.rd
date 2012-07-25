@@ -282,7 +282,7 @@
 			<inputKey name="sr_\matchColumn" 
 				description="Search radius in arcminutes"
 				unit="arcmin"
-				tablehead="Search radius">
+				tablehead="Search radius for \tablehead">
 			</inputKey>
 			<phraseMaker>
 				<setup>
