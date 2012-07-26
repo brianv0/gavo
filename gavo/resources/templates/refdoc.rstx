@@ -18,9 +18,43 @@ The following (XML) elements are defined for resource descriptors.  Some
 elements are polymorous (Grammars, Cores).  See below for a reference
 on the respective real elements known to the software.
 
+
+Each element description gives a general introduction to the element's
+use (complain if it's too technical; it's not unlikely that it is since
+these texts are actually the defining classes' docstrings).
+
+What follows is a list of "atomic" children – these are essentially
+element properties that can (but need) be written in XML attributes,
+i.e., as a single string.  Their types are given in parentheses after
+the attribute name along with a default value.
+
 In general, items defaulting to Undefined are mandatory.  Failing to
-give a value will result in a parse error.  Exceptions to this rule are
-given at the respective elements.
+give a value will result in a parse error.
+
+Within RD XML documents, you can give atomic children either as XML
+attribute (``att="abc"``) or as child elements (``<att>abc</abc>``).
+Some of the "atomic" attributes actually contain lists of items.  For
+those, you should normally write multiple child elements
+(``<att>val1</att><att>val2</att>``), although sometimes it's allowed to
+mash together the individual list items using a variety of separators.
+
+Here are some short words about the types you may encounter, together
+with valid literals:
+
+* boolean – these allow quite a number of literals; use ``True`` and
+  ``False`` or ``yes`` and ``no`` and stick to your choice.
+* unicode string – there may be additional syntactical limitations on
+  those.  See the explanation
+* integer – only decimal integer literals are allowed
+* id reference – these are references to items within XML documents; all
+  elements within RDs can have an ``id`` attribute, which can then be
+  used as an id reference.  Additionally, you can reference elements
+  in different RDs using <rd-id>#<id>.  Note that DaCHS does not support
+  forward references (i.e., references to items lexically behind the
+  referencing element).
+* list of id references – Lists of id references.  The
+  values could be mashed together with commas, but prefer multiple child
+  elements.
 
 .. replaceWithResult getStructDocs(docStructure)
 

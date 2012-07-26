@@ -199,7 +199,9 @@ class Registration(base.Structure):
 	Data registrations may refer to published services that make their
 	data available.
 	"""
-	name_ = "register"
+	name_ = "publish"
+	docName_ = "publish (data)"
+	aliases = ["register"]
 
 	_sets = base.StringSetAttribute("sets", default=frozenset(["ivo_managed"]),
 		description="A comma-separated list of sets this data will be"

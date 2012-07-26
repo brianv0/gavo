@@ -259,10 +259,15 @@ class StructAttribute(attrdef.AttributeDef):
 			self.xmlName_ = xmlName
 		elif self.childFactory is not None:
 			self.xmlName_ = self.childFactory.name_
+			if getattr(self.childFactory, "aliases", None):
+				if self.aliases:
+					self.aliases.extend(self.childFactory.aliases)
+				else:
+					self.aliases = self.childFactory.aliases[:]
 
 	@property
 	def typeDesc_(self):
-		return self.childFactory.name_
+		return getattr(self.childFactory, "docName_", self.childFactory.name_)
 
 	def feedObject(self, instance, value):
 		if value and value.parent is None:  # adopt if necessary
@@ -316,7 +321,7 @@ class StructAttribute(attrdef.AttributeDef):
 		if self.childFactory is attrdef.Recursive:
 			contains = "(contains an instance of the embedding element)"
 		else:
-			contains = "(contains `Element %s`_)"%self.childFactory.name_
+			contains = "(contains `Element %s`_)"%self.typeDesc_
 		return "%s %s -- %s"%(
 			self.name_,  contains, self.description_)
 

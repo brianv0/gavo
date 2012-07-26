@@ -146,6 +146,10 @@ class DocumentStructure(dict):
 					protoDoc[index] = ""
 
 
+def getDocName(klass):
+	return getattr(klass, "docName_", klass.name_)
+
+
 class StructDocMaker(object):
 	"""A class encapsulating generation of documentation from structs.
 	"""
@@ -188,17 +192,18 @@ class StructDocMaker(object):
 		content.makeSpace()
 
 	def _realAddDocsFrom(self, klass):
-		if klass.name_ in self.docStructure:
+		name = getDocName(klass)
+		if name in self.docStructure:
 			return
 		self.visitedClasses.add(klass)
 		content = RSTFragment()
-		content.addHead1("Element %s"%klass.name_)
+		content.addHead1("Element %s"%name)
 		if klass.__doc__:
 			content.addNormalizedPara(klass.__doc__)
 		else:
 			content.addNormalizedPara("NOT DOCUMENTED")
 
-		content.addRaw(ParentPlaceholder(klass.name_))
+		content.addRaw(ParentPlaceholder(name))
 
 		content.addHead2("Atomic Children")
 		for att in self._iterAttsOfBase(klass, base.AtomicAttribute):
@@ -211,14 +216,14 @@ class StructDocMaker(object):
 			try:
 				content.addULItem(att.makeUserDoc())
 				if isinstance(getattr(att, "childFactory", None), structure.StructType):
-					children.append(att.childFactory.name_)
+					children.append(getDocName(att.childFactory))
 					if att.childFactory not in self.visitedClasses:
 						self.addDocsFrom(att.childFactory)
 			except:
 				sys.stderr.write("While gendoccing %s in %s:\n"%(
-					att.name_, klass.name_))
+					att.name_, name))
 				traceback.print_exc()
-		self.docStructure.setdefault(klass.name_, []).extend(children)
+		self.docStructure.setdefault(name, []).extend(children)
 		content.delEmptySection()
 	
 		content.addHead2("Other Children")
