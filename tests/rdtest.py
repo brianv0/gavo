@@ -205,10 +205,10 @@ class ViewTest(testhelpers.VerboseTest):
 		rd = base.parseFromString(rscdesc.RD,
 			'<resource schema="test2">'
 			'<simpleView id="vv">'
-			'<fieldRef table="data/test#prodtest" column="alpha"/>'
-			'<fieldRef table="data/test#prodtest" column="delta"/>'
-			'<fieldRef table="data/test#prodtest" column="object"/>'
-			'<fieldRef table="data/test#adql" column="mag"/>'
+			'<columnRef table="data/test#prodtest" column="alpha"/>'
+			'<columnRef table="data/test#prodtest" column="delta"/>'
+			'<columnRef table="data/test#prodtest" column="object"/>'
+			'<columnRef table="data/test#adql" column="mag"/>'
 			'</simpleView></resource>')
 		self.assertEqual(len(rd.tables), 1)
 		td = rd.tables[0]
@@ -283,9 +283,9 @@ class TAP_SchemaTest(testhelpers.VerboseTest):
 		self.assertEqual(fkcols, set())
 
 	def testMega(self):
+		self.conn.commit()
 		tap.publishToTAP(self.rd, self.conn)
-		self._checkPublished()
-		tap.publishToTAP(self.rd, self.conn)
+		self.conn.commit()
 		self._checkPublished()
 		tap.unpublishFromTAP(self.rd, self.conn)
 		self._checkUnpublished()

@@ -652,10 +652,12 @@ class TableDef(base.Structure, base.ComputedMetaMixin, common.PrivilegesMixin,
 
 
 class FieldRef(base.Structure):
-	"""A reference to a column in a table definition using the table's
-	id and the column name.
+	"""A reference to a table column for building simple views.
 	"""
-	name_ = "fieldRef"
+	name_ = "columnRef"
+	docName_ = "columnRef (view)"
+	aliases = ["fieldRef"]
+
 	_srcTable = base.ReferenceAttribute("table", forceType=TableDef,
 		description="Reference to the table the field comes from.",
 		default=base.Undefined)

@@ -36,7 +36,7 @@ class TypedReference(base.Structure):
 
 
 class ColumnReference(TypedReference):
-	"""A reference to a column within a table.
+	"""A reference from a group to a column within a table.
 
 	ColumnReferences do not support qualified references, i.e., you
 	can only give simple names.
@@ -48,7 +48,7 @@ class ColumnReference(TypedReference):
 
 
 class ParameterReference(TypedReference):
-	"""A reference to a parameter within a table.
+	"""A reference from a group to a parameter within a table.
 
 	ParamReferences do not support qualified references, i.e., you
 	can only give simple names.

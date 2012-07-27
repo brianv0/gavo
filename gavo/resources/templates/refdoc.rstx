@@ -56,6 +56,14 @@ with valid literals:
   values could be mashed together with commas, but prefer multiple child
   elements.
 
+Most elements can also have "structure children".  These correspond to
+compound things with attributes and possibly children of their own.
+The name given at the start of each description is irrelevant to the
+pure user; it's the attribute name you'd use when you have the
+corresponding python objects.  For authoring XML, you use the name in
+the following link; thus, the phrase "colRefs (contains Element
+columnRef..." means you'd write ``<columnRef...>``.
+
 .. replaceWithResult getStructDocs(docStructure)
 
 

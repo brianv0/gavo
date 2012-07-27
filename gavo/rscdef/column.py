@@ -510,7 +510,6 @@ class ColumnBase(base.Structure, base.MetaMixin):
 
 
 class Column(ColumnBase):
-	name_ = "column"
 	"""A database column.
 	
 	Columns contain almost all metadata to describe a column in a database
@@ -532,6 +531,8 @@ class Column(ColumnBase):
 	- std -- set to 1 to tell the tap schema importer to have the column's
 	  std column in TAP_SCHEMA 1 (it's 0 otherwise).
 	"""
+	name_ = "column"
+
 	def validate(self):
 		self._validateNext(Column)
 		# Now check if we can serialize the column safely in VOTables.

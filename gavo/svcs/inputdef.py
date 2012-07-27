@@ -86,6 +86,12 @@ class InputKey(column.ParamBase):
 
 
 class InputTable(rscdef.TableDef):
+	"""an input table for a service.
+
+	These are usually created implicitely from condDescs and are not defined
+	in RDs.  However, you can do so; just enumerate your inputKeys; other
+	specifications probably do not make sense.
+	"""
 	name_ = "inputTable"
 	_params = rscdef.ColumnListAttribute("params",
 		childFactory=InputKey, description='Input parameters for'
