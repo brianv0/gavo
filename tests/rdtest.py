@@ -283,9 +283,7 @@ class TAP_SchemaTest(testhelpers.VerboseTest):
 		self.assertEqual(fkcols, set())
 
 	def testMega(self):
-		self.conn.commit()
 		tap.publishToTAP(self.rd, self.conn)
-		self.conn.commit()
 		self._checkPublished()
 		tap.unpublishFromTAP(self.rd, self.conn)
 		self._checkUnpublished()

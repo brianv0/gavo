@@ -1,25 +1,49 @@
 """
-Runs all known tests on the main gavo code tree (i.e. .../gavo).
+Runs all unit tests defined for DaCHS.
 
 This script *asssumes* it is run from tests subdirectory of the code
 tree and silently won't work (properly) otherwise.
+
+If ran with no arguments, it executes the tests from the current directory
+and then tries to locate further, data-specific unit test suites.
+
+If ran with the single argument "data", the program will read 
+$GAVO_INPUTS/__tests/__unitpaths__, interpret each line as a
+inputs-relative directory name and run out-of-tree unittests there.
+
+Location of unit tests: pyunit-based test suites are files matching
+*test.py, trial-based suites are found by looking for test_*.py.
 """
+
+import os
+import sys
+
+if len(sys.argv)==1:
+	pass
+elif len(sys.argv)==2 and sys.argv[1]=="data":
+	os.environ["GAVO_OOTTEST"] = "dontcare"
+else:
+	raise sys.exit(
+		'%s takes zero arguments or just "data"'%sys.argv[0])
+
 
 import unittest
 import doctest
 import glob
-import os
 import subprocess
 import warnings
+
 
 from gavo.helpers import testhelpers
 
 from gavo.imp import testresources
 
+from gavo import base
+
 warnings.simplefilter("ignore", category=UserWarning)
 
 
-unittestModules = [n[:-3] for n in glob.glob("*test.py")]
+
 
 
 def hasDoctest(fName):
@@ -48,13 +72,48 @@ def runTrialTests():
 		del os.environ["GAVO_INPUTSDIR"]
 	except KeyError:
 		pass
-	subprocess.call("trial --reporter text test_*.py", shell=True)
-	
+	if glob.glob("test_*.py"):
+		print "\nTrial-based tests:"
+		subprocess.call("trial --reporter text test_*.py", shell=True)
+
+
+def runAllTests(includeDoctests=True):
+	pyunitSuite = testresources.TestLoader().loadTestsFromNames(
+		[n[:-3] for n in glob.glob("*test.py")])
+	runner = unittest.TextTestRunner(verbosity=1)
+	if includeDoctests:
+		pyunitSuite = unittest.TestSuite([pyunitSuite, getDoctests()])
+ 	runner.run(pyunitSuite)
+	runTrialTests()
+
+
+def runDataTests():
+	"""reads directory names from __tests/__unitpaths__ and then runs
+	tests defined there.
+	"""
+	inputsDir = base.getConfig("inputsDir")
+	dirFile = os.path.join(inputsDir, "__tests", "__unitpaths__")
+	if not os.path.exists(dirFile):
+		return
+	with open(dirFile) as f:
+		for dirName in f:
+			dirName = dirName.strip()
+			if dirName and not dirName.startswith("#"):
+				os.chdir(os.path.join(inputsDir, dirName))
+				curDir = os.getcwd()
+				sys.path[0:0] = [curDir]
+
+				print "\n\nTests from %s:\n\n"%dirName
+				runAllTests(includeDoctests=False)
+				sys.path.remove(curDir)
+
 
 if __name__=="__main__":
-	unittestSuite = testresources.TestLoader().loadTestsFromNames(
-		unittestModules)
-	runner = unittest.TextTestRunner(verbosity=1)
- 	runner.run(unittest.TestSuite([unittestSuite, getDoctests()]))
-	print "\nTrial-based tests:"
-	runTrialTests()
+	if len(sys.argv)==1:
+		runAllTests()
+
+		subprocess.check_call(["python", "runAllTests.py", "data"],
+			env=testhelpers.originalEnvironment)
+
+	else:
+		runDataTests()

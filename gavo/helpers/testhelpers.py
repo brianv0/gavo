@@ -45,6 +45,7 @@ if "GAVO_OOTTEST" in os.environ:
 
 else:
 	TEST_BASE = os.getcwd()
+	originalEnvironment = os.environ.copy()
 	os.environ["GAVOCUSTOM"] = "/invalid"
 	os.environ["GAVOSETTINGS"] = os.path.join(TEST_BASE, "test_data", "test-gavorc")
 	if not os.path.exists(os.environ["GAVOSETTINGS"]):
