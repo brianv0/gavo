@@ -35,7 +35,9 @@ def getForeignKeyForForeignKey(fk, namesInSet):
 	If the target table's name is not in nameInSet, the foreign key
 	is not created.
 	"""
-	targetName = fk.parent.expand(fk.table).lower()
+# XXX TODO: we don't need to expand any more as soon as we've done away with
+# the table attribute of foreignKey
+	targetName = fk.parent.expand(fk.destTableName).lower()
 	if targetName not in namesInSet:
 		return None
 

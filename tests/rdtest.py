@@ -233,7 +233,7 @@ class TAP_SchemaTest(testhelpers.VerboseTest):
 		self.rd = testhelpers.getTestRD()
 		self.rd.getById("adqltable").foreignKeys.append(
 			base.parseFromString(tabledef.ForeignKey, 
-				'<foreignKey table="test.adql" source="foo" dest="rV"/>'))
+				'<foreignKey inTable="data/test#adql" source="foo" dest="rV"/>'))
 
 	def tearDown(self):
 		tap.unpublishFromTAP(self.rd, self.conn)

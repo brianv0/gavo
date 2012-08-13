@@ -5,6 +5,7 @@ Description and definition of tables.
 import itertools
 import re
 import traceback
+import warnings
 
 from gavo import adql
 from gavo import base
@@ -145,9 +146,15 @@ class ForeignKey(base.Structure):
 	"""
 	name_ = "foreignKey"
 
-	_table = base.UnicodeAttribute("table", default=base.Undefined,
+	# TODO (ca. 1/2013): remove the table attribute, make destId default
+	# to base.Undefined, and remove hackery in onElementComplete
+	_table = base.UnicodeAttribute("table", default=base.NotGiven,
 		description="Fully qualified SQL name of the table holding the"
-		" key.", copyable=True)
+		" key (DEPRECATED, use inTable instead).", copyable=True)
+	
+	_inTable = base.ReferenceAttribute("inTable", default=base.NotGiven,
+		description="Reference to the table the foreign key points to.",
+		copyable=True)
 	_source = base.UnicodeAttribute("source", default=base.Undefined,
 		description="Comma-separated list of local columns corresponding"
 			" to the foreign key.  No sanity checks are performed here.")
@@ -158,12 +165,25 @@ class ForeignKey(base.Structure):
 
 	def getDescription(self):
 		return "%s:%s -> %s:%s"%(self.parent.getQName(), ",".join(self.source), 
-			self.table, ".".join(self.dest))
+			self.destTableName, ".".join(self.dest))
 
 	def _parseList(self, raw):
 		return [s.strip() for s in raw.split(",") if s.strip()]
 
 	def onElementComplete(self):
+		if self.table is not base.NotGiven:
+			warnings.warn("DEPRECATED: Use inTable rather than table in foreignKeys",
+				DeprecationWarning)
+			self.destTableName = self.table
+			self.isADQLKey = False
+
+		elif self.inTable is not base.NotGiven:
+			self.destTableName = self.inTable.getQName()
+			self.isADQLKey = self.inTable.adql
+
+		else:
+			raise base.StructureError("You must define inTable in foreignKeys")
+
 		self.source = self._parseList(self.source)
 		if self.dest is base.NotGiven:
 			self.dest = self.source
@@ -172,18 +192,23 @@ class ForeignKey(base.Structure):
 		self._onElementCompleteNext(ForeignKey)
 	
 	def create(self, querier):
-		if not querier.foreignKeyExists(self.parent.getQName(), self.table,
-				self.source, self.dest):
+		if not querier.foreignKeyExists(self.parent.getQName(), 
+				self.destTableName,
+				self.source, 
+				self.dest):
 			return querier.query("ALTER TABLE %s ADD FOREIGN KEY (%s)"
 				" REFERENCES %s (%s)"
 				" ON DELETE CASCADE"
-				" DEFERRABLE INITIALLY DEFERRED"%(self.parent.getQName(),
-					",".join(self.source), self.table, ",".join(self.dest)))
+				" DEFERRABLE INITIALLY DEFERRED"%(
+					self.parent.getQName(),
+					",".join(self.source), 
+					self.destTableName, 
+					",".join(self.dest)))
 
 	def delete(self, querier):
 		try:
 			constraintName = querier.getForeignKeyName(self.parent.getQName(), 
-				self.table, self.source, self.dest)
+				self.destTableName, self.source, self.dest)
 		except base.DBError:  # key does not exist.
 			return
 		querier.query("ALTER TABLE %s DROP CONSTRAINT %s"%(self.parent.getQName(), 

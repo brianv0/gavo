@@ -19,7 +19,7 @@
 
 	<table id="groups" onDisk="True" system="True">
 		<readProfiles/>
-		<foreignKey table="dc.users" source="username"/>
+		<foreignKey inTable="users" source="username"/>
 		<column name="username" type="text"/>
 		<column name="groupname" type="text"/>
 	</table>

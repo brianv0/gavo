@@ -187,7 +187,7 @@
 		<meta name="description">Columns that are part of groups
 			within tables available for ADQL querying.
 		</meta>
-		<foreignKey source="table_name" table="tap_schema.tables"/>
+		<foreignKey source="table_name" inTable="tables"/>
 		<!-- this is slightly denormalized, but normalizing it by introducing
 		two new tables IMHO isn't worth it at all -->
 		<column original="columns.table_name"/>
@@ -346,19 +346,6 @@
 	<data id="importFkeysFromRD" auto="False">
 		<embeddedGrammar>
 			<iterator>
-				<setup>
-					<code>
-						@utils.memoized
-						def isPublicTable(tableName):
-							"""returns whether if tableName is tap-public.
-							"""
-							try:
-								return base.caches.getMTH(None
-									).getTableDefForTable(tableName).adql
-							except base.NotFoundError:
-								return False
-					</code>
-				</setup>
 				<code>
 					rd = self.sourceToken
 					if rd.getProperty("moribund", False):
@@ -367,15 +354,14 @@
 						if not table.adql:
 							continue
 						for fkey in table.foreignKeys:
-							targetTable = table.expand(fkey.table.lower())
-							if not isPublicTable(targetTable):
+							if not fkey.isADQLKey:
 								continue
 
 							fkeyId = rd.sourceId+utils.intToFunnyWord(id(fkey))
 							yield {
 								"key_id": fkeyId.lower(),
 								"from_table": table.getQName().lower(),
-								"target_table": targetTable,
+								"target_table": fkey.inTable.getQName().lower(),
 								"description": None,
 								"utype": None,
 								"sourceRD": rd.sourceId,

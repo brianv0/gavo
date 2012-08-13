@@ -248,24 +248,31 @@ class TableDefTest(testhelpers.VerboseTest):
 		self.assertEqual(t.indices[0].cluster, False)
 		self.assertEqual(t.indexedColumns, set(['a']))
 
-	def testForeignKey(self):
-		class Anything(object): pass
-		fakeRd = Anything()
-		fakeRd.schema, fakeRd.parent, fakeRd.rd = "foo", None, fakeRd
-		t = base.parseFromString(rscdef.TableDef, '<table id="test">'
-			'<column name="a"/><column name="b"/><foreignKey table="xy"'
-			' source="a,b"><dest>b,c </dest></foreignKey>'
-			'<foreignKey table="zz" source="b"/></table>')
-		t.parent = fakeRd
+	def testForeignKeyMeta(self):
+		rd = base.parseFromString(rscdesc.RD,
+			"""<resource schema="test">
+				<table id="xy">
+					<column name="b"/><column name="c"/>
+				</table>
+				<table id="test">
+					<column name="foo"/><column name="b"/>
+					<foreignKey inTable="xy" source="foo,b"><dest>b,c </dest></foreignKey>
+					<foreignKey inTable="data/test#adqltable" source="foo"/>
+				</table>
+			</resource>""")
+		t = rd.tables[1]
+
 		self.assertEqual(len(t.foreignKeys), 2)
 		fk = t.foreignKeys[0]
-		self.assertEqual(fk.source, ["a", "b"])
+		self.assertEqual(fk.source, ["foo", "b"])
 		self.assertEqual(fk.dest, ["b", "c"])
-		self.assertEqual(fk.table, "xy")
+		self.assertEqual(fk.destTableName, "test.xy")
+		self.assertEqual(fk.isADQLKey, False)
 		fk = t.foreignKeys[1]
-		self.assertEqual(fk.source, ["b"])
+		self.assertEqual(fk.source, ["foo"])
 		self.assertEqual(fk.source, fk.dest)
-		self.assertEqual(fk.table, "zz")
+		self.assertEqual(fk.destTableName, "test.adqltable")
+		self.assertEqual(fk.isADQLKey, True)
 
 	def testSTCCopy(self):
 		t0 = base.parseFromString(rscdef.TableDef, '<table id="test">'
