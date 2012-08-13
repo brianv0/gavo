@@ -501,9 +501,10 @@ class DBCore(TableBasedCore):
 			parent_=self.queriedTable.parent, id="result",
 			onDisk=False, columns=self.getQueryCols(service, queryMeta),
 			params=self.queriedTable.params)
+
 		resultTableDef.copyMetaFrom(self.queriedTable)
 		if not resultTableDef.columns:
-			raise base.ValidationError("No output fields with these settings",
+			raise base.ValidationError("No output columns with these settings."
 				"_OUTPUT")
 		sortKeys = None
 		if self.sortKey:

@@ -321,7 +321,7 @@ class ColumnBase(base.Structure, base.MetaMixin):
 			" <kw>=<value>{,<kw>=<value>}, where what is interpreted depends"
 			" on the output format.  See, e.g., documentation on HTML renderers"
 			" and the formatter child of outputFields.", copyable=True)
-	_verbLevel = IntAttribute("verbLevel", default=30,
+	_verbLevel = IntAttribute("verbLevel", default=20,
 		description="Minimal verbosity level at which to include this column", 
 		copyable=True)
 	_values = base.StructAttribute("values", default=None,

@@ -861,4 +861,3 @@ getWritableTableConn = _makeConnectionManager("trustedquery",
 	autocommitted=False)
 getWritableAdminConn = _makeConnectionManager("admin", 
 	autocommitted=False)
-	
