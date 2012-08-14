@@ -198,8 +198,8 @@ class SetupTest(testhelpers.VerboseTest):
 				<setup><par name="unk2">"def2"</par></setup>
 				</procDef></foo>""")
 		pars = f.defs[0].getSetupPars()
-		pars.sort(key=lambda p: p.name)
-		self.assertEqual(pars[0].name, "unk1")
+		pars.sort(key=lambda p: p.key)
+		self.assertEqual(pars[0].key, "unk1")
 		self.assertEqual(pars[1].content_, '"def2"')
 
 	def testOverridingJoin(self):
@@ -209,9 +209,9 @@ class SetupTest(testhelpers.VerboseTest):
 				<procDef type="t_t" id="u" original="b">
 					<setup><par name="unk1">"overridden"</par></setup></procDef></foo>""")
 		pars = f.defs[1].getSetupPars()
-		pars.sort(key=lambda p: p.name)
+		pars.sort(key=lambda p: p.key)
 		self.assertEqual(len(pars), 2)
-		self.assertEqual(pars[0].name, "unk1")
+		self.assertEqual(pars[0].key, "unk1")
 		self.assertEqual(pars[0].content_, '"overridden"')
 		self.assertEqual(pars[1].content_, '"def2"')
 
@@ -222,9 +222,9 @@ class SetupTest(testhelpers.VerboseTest):
 				<testApp procDef="b">
 					<setup><par name="unk1">"overridden"</par></setup></testApp></foo>""")
 		pars = f.apps[0].getSetupPars()
-		pars.sort(key=lambda p: p.name)
+		pars.sort(key=lambda p: p.key)
 		self.assertEqual(len(pars), 2)
-		self.assertEqual(pars[0].name, "unk1")
+		self.assertEqual(pars[0].key, "unk1")
 		self.assertEqual(pars[0].content_, '"overridden"')
 		self.assertEqual(pars[1].content_, '"def2"')
 

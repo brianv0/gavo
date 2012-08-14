@@ -182,7 +182,7 @@ class DBUniqueForcedTest(UniqueForcedTest):
 				<column name="x" type="text"/>
 			</table>
 			<table onDisk="True" id="b">
-				<foreignKey source="x" table="test.a"/>
+				<foreignKey source="x" inTable="a"/>
 				<column original="a.x"/><column name="y" type="text"/>
 			</table>
 			<data id="bla">

@@ -123,7 +123,7 @@ class _DictAttributeParser(common.Parser):
 			self.dict[key] = value
 
 	def value_(self, ctx, name, value):
-		if name==self.keyName:
+		if name=="key" or name==self.keyName:
 			self.key = value
 		elif name=="content_":
 			if self.key is attrdef.Undefined:
@@ -179,7 +179,7 @@ class DictAttribute(attrdef.AttributeDef):
 	def iterEvents(self, instance):
 		for key, value in getattr(instance, self.name_).iteritems():
 			yield ("start", self.xmlName_, None)
-			yield ("value", self.keyName, key)
+			yield ("value", "key", key)
 			yield ("value", "content_", self.itemAttD.unparse(value))
 			yield ("end", self.xmlName_, None)
 	
@@ -188,9 +188,12 @@ class DictAttribute(attrdef.AttributeDef):
 
 	def makeUserDoc(self):
 		if self.inverted:
-			expl = "the key is the element content, the value is in the %s attribute"
+			expl = ("the key is the element content, the value is in the 'key'"
+				" (or, equivalently, %s) attribute"%self.keyName)
 		else:
-			expl = "the value is the element content, the key is in the %s attribute"
+			expl = ("the value is the element content, the key is in the  'key'"
+				" (or, equivalently, %s) attribute"%self.keyName)
+
 		expl = expl%self.keyName
 		return "**%s** (mapping; %s) -- %s"%(
 			 self.xmlName_, expl, self.description_)

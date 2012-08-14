@@ -64,6 +64,18 @@ corresponding python objects.  For authoring XML, you use the name in
 the following link; thus, the phrase "colRefs (contains Element
 columnRef..." means you'd write ``<columnRef...>``.
 
+Here are some guidelines as to the naming of the attributes:
+
+* Attributes giving keys into dictionaries or similar (e.g., column
+  names) should always be named ``key``
+* Attributes giving references to some source of events or data
+  should always be named ``source``, never "src" or similar
+* Attributes referencing generic things should always be called
+  ``ref``; of course, references to specific things like tables or
+  services should indicate in their names what they are supposed to
+  reference.
+
+
 .. replaceWithResult getStructDocs(docStructure)
 
 

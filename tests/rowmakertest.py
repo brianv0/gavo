@@ -36,12 +36,12 @@ class RowmakerDefTest(testhelpers.VerboseTest):
 	def testBasic(self):
 		makeDD('<column name="x"/>', '<map dest="x">a+b</map>')
 		map = base.parseFromString(rscdef.MapRule,'<map dest="bar"/>')
-		self.assertEqual(map.src, "bar")
+		self.assertEqual(map.source, "bar")
 
 	def testNoDestRaises(self):
 		self.assertRaisesWithMsg(base.StructureError,
 			'At [<map>bar</map>], (1, 8): '
-			"You must set dest on map elements",
+			"You must set key on map elements",
 			base.parseFromString, (rscdef.MapRule, '<map>bar</map>'))
 
 	def testStatementRaises(self):
@@ -60,7 +60,7 @@ class RowmakerDefTest(testhelpers.VerboseTest):
 	def testPleonasticRaises(self):
 		self.assertRaisesWithMsg(base.StructureError,
 			'At [<map dest="bar" src="foo">b...], (1, 29):'
-			' Map must have exactly one of src attribute or element content',
+			' Map must have exactly one of source attribute or element content',
 			base.parseFromString, 
 			(rscdef.MapRule,'<map dest="bar" src="foo">bar</map>'))
 
@@ -83,7 +83,7 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 	def testBadBasicMap(self):
 		self.assertRaisesWithMsg(base.LiteralParseError,
 			'At [<data><table id="foo"><colu...], (1, 109):'
-			" '@src' is not a valid value for src",
+			" '@src' is not a valid value for source",
 			makeDD, ('<column name="x" type="integer"/>',
 			'<map dest="x" src="@src"/>'))
 

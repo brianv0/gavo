@@ -343,7 +343,7 @@ class FormMixin(formal.ResourceMixin):
 		groupedKeys = {}
 		for group in inputTable.groups:
 			for ref in group.paramRefs:
-				groupedKeys[ref.dest] = group
+				groupedKeys[ref.key] = group
 
 		inputKeySequence, addedNames = [], set()
 		for inputKey in inputTable.params:
@@ -363,8 +363,8 @@ class FormMixin(formal.ResourceMixin):
 				# enclosed in group/None.
 				inputKeySequence.append(newGroup)
 				for ref in groupedKeys[inputKey.name].paramRefs:
-					inputKeySequence.append(ref.dest)
-					addedNames.add(ref.dest)
+					inputKeySequence.append(ref.key)
+					addedNames.add(ref.key)
 				inputKeySequence.append(None)
 		return inputKeySequence
 

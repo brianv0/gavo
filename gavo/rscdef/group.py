@@ -11,10 +11,11 @@ from gavo.rscdef import common
 class TypedReference(base.Structure):
 	"""A base class for references to columns and parameters.
 	"""
-	_dest = base.UnicodeAttribute("dest",
+	_dest = base.UnicodeAttribute("key",
 		default=base.Undefined,
-		description="The (unqualified) reference to the destination",
-		copyable="True")
+		description="The key (i.e., name) of the referenced column or param.",
+		copyable="True",
+		aliases=["dest"])
 	
 	_ucd = base.UnicodeAttribute("ucd", 
 		default=None, 
@@ -44,7 +45,7 @@ class ColumnReference(TypedReference):
 	name_ = "columnRef"
 
 	def resolve(self, container):
-		return container.getColumnByName(self.dest)
+		return container.getColumnByName(self.key)
 
 
 class ParameterReference(TypedReference):
@@ -59,7 +60,7 @@ class ParameterReference(TypedReference):
 	name_ = "paramRef"
 
 	def resolve(self, container):
-		return container.getParamByName(self.dest)
+		return container.getParamByName(self.key)
 
 
 class Group(base.Structure):

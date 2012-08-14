@@ -683,23 +683,27 @@ class FieldRef(base.Structure):
 	docName_ = "columnRef (view)"
 	aliases = ["fieldRef"]
 
-	_srcTable = base.ReferenceAttribute("table", forceType=TableDef,
+	_srcTable = base.ReferenceAttribute("table", 
+		default=base.Undefined,
 		description="Reference to the table the field comes from.",
-		default=base.Undefined)
-	_srcCol = base.UnicodeAttribute("column", default=base.Undefined,
-		description="Column name within the referenced table.")
+		forceType=TableDef)
+
+	_srcCol = base.UnicodeAttribute("key", 
+		default=base.Undefined,
+		description="Column name within the referenced table.",
+		aliases=["column"])
 
 	def onElementComplete(self):
 		self._onElementCompleteNext(FieldRef)
-		if not self.column in self.table:
+		if not self.key in self.table:
 			raise base.StructureError("No field '%s' in table %s"%(
-				self.column, self.table.getQName()))
+				self.key, self.table.getQName()))
 
 	def getColumn(self):
-		return self.table.getColumnByName(self.column)
+		return self.table.getColumnByName(self.key)
 
 	def getQName(self):
-		name = "%s.%s"%(self.table.getQName(), self.column)
+		name = "%s.%s"%(self.table.getQName(), self.key)
 		if "\\" in name:
 			name = self.expand(name)
 		return name

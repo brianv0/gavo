@@ -36,28 +36,47 @@ class MapRule(base.Structure):
 
 	To specify the source of a mapping, you can either
 	
-	- use a key emitted by the grammar or defined using var.  The value of 
-	  of the key is converted to a python value and stored.
+	- grab a value from what's emitted by the grammar or defined using var via
+		the source attribute.  The value given for source is converted to a 
+		python value and stored.
 	- or give a python expression in the body.  In that case, no further
 	  type conversion will be attempted.
 
-	If src is not given, it defaults to dest.
+	If neither source or a body is given, map uses the key attribute as its
+	source attribute.
+
+	The map rule generates a key/value pair in the result record.
 	"""
 	name_ = "map"
 	restrictedMode = False
 
-	_dest = base.UnicodeAttribute("dest", default=base.Undefined, 
+	_dest = base.UnicodeAttribute("key", 
+		default=base.Undefined, 
 		description="Name of the column the value is to end up in.",
-		copyable=True, strip=True)
-	_src = base.UnicodeAttribute("src", default=None,
+		copyable=True, 
+		strip=True, 
+		aliases=["dest"])
+
+	_src = base.UnicodeAttribute("source", 
+		default=None,
 		description="Source key name to convert to column value (either a grammar"
-		" key or a var).", copyable=True, strip=True)
-	_nullExcs = base.UnicodeAttribute("nullExcs", default=base.NotGiven,
+		" key or a var).", 
+		copyable=True, 
+		strip=True,
+		aliases=["src"])
+
+	_nullExcs = base.UnicodeAttribute("nullExcs", 
+		default=base.NotGiven,
 		description="Exceptions that should be caught and"
 		" cause the value to be NULL, separated by commas.")
-	_expr = base.DataContent(copyable=True, description="A python"
-		" expression giving the value to end up in dest", strip=True)
-	_nullExpr = base.UnicodeAttribute("nullExpr", default=base.NotGiven,
+
+	_expr = base.DataContent(
+		description="A python expression giving the value for key.", 
+		copyable=True, 
+		strip=True)
+
+	_nullExpr = base.UnicodeAttribute("nullExpr", 
+		default=base.NotGiven,
 		description="A python expression for a value that is mapped to"
 		" NULL (None).  Equality is checked after building the value, so"
 		" this expression has to be of the column type.  Use map with"
@@ -71,10 +90,10 @@ class MapRule(base.Structure):
 				or self.nullExpr
 				or self.nullValue):
 			raise base.RestrictedElement("map", hint="In restricted mode, only"
-				" maps with a src attribute are allowed; nullExpr or nullValue"
+				" maps with a source attribute are allowed; nullExpr or nullValue"
 				" are out, too, since they can be used to inject raw code.")
-		if not self.content_ and not self.src:
-			self.src = self.dest
+		if not self.content_ and not self.source:
+			self.source = self.key
 		if self.content_ and "\\" in self.content_:
 			self.content_ = self.parent.expand(self.content_)
 
@@ -83,14 +102,14 @@ class MapRule(base.Structure):
 		the destination exists in the tableDef
 		"""
 		self._validateNext(MapRule)
-		if (self.content_ and self.src) or not (self.content_ or self.src):
-			raise base.StructureError("Map must have exactly one of src attribute"
+		if (self.content_ and self.source) or not (self.content_ or self.source):
+			raise base.StructureError("Map must have exactly one of source attribute"
 				" or element content")
-		if self.src:
-			if not utils.identifierPattern.match(self.src):
-				raise base.LiteralParseError("src", self.src,
+		if self.source:
+			if not utils.identifierPattern.match(self.source):
+				raise base.LiteralParseError("source", self.source,
 					hint="Map sources must be (python)"
-					" identifiers, and '%s' is not"%self.src)
+					" identifiers, and '%s' is not"%self.source)
 		if self.nullExpr is not base.NotGiven:
 			utils.ensureExpression(self.nullExpr)
 		if self.content_:
@@ -104,25 +123,25 @@ class MapRule(base.Structure):
 		code = []
 
 		if self.content_:
-			code.append('result["%s"] = %s'%(self.dest, self.content_))
+			code.append('result["%s"] = %s'%(self.key, self.content_))
 		else:
-			colDef = columns.getColumnByName(self.dest)
+			colDef = columns.getColumnByName(self.key)
 			try:
-				code.append('result["%s"] = %s'%(self.dest, 
-					base.sqltypeToPythonCode(colDef.type)%'vars["%s"]'%self.src))
+				code.append('result["%s"] = %s'%(self.key, 
+					base.sqltypeToPythonCode(colDef.type)%'vars["%s"]'%self.source))
 			except base.ConversionError:
 				raise base.ui.logOldExc(base.LiteralParseError("map", colDef.type,
 					hint="Auto-mapping to %s is impossible since"
-					" no default map for %s is known"%(self.dest, colDef.type)))
+					" no default map for %s is known"%(self.key, colDef.type)))
 
 		if self.nullExpr is not base.NotGiven:
 			code.append('\nif result["%s"]==%s: result["%s"] = None'%(
-				self.dest, self.nullExpr, self.dest))
+				self.key, self.nullExpr, self.key))
 		code = "".join(code)
 
 		if self.nullExcs is not base.NotGiven:
 			code = 'try:\n%s\nexcept (%s): result["%s"] = None'%(
-				re.sub("(?m)^", "  ", code), self.nullExcs, self.dest)
+				re.sub("(?m)^", "  ", code), self.nullExcs, self.key)
 		return code
 
 
@@ -135,10 +154,16 @@ class VarDef(base.Structure, base.RestrictionMixin):
 	"""
 	name_ = "var"
 	
-	_name = base.UnicodeAttribute("name", default=base.Undefined, 
+	_name = base.UnicodeAttribute("key", 
+		default=base.Undefined, 
 		description="Name of the variable (under which it can later be"
-			" referred to", copyable=True, strip=True)
-	_expr = base.DataContent(copyable=True, description="A python expression."
+			" referred to", 
+		copyable=True, 
+		strip=True,
+		aliases=["name"])
+
+	_expr = base.DataContent(copyable=True, 
+		description="A python expression."
 		" Its value is accessible under the key name in the input row.",
 		strip=True)
 
@@ -154,13 +179,13 @@ class VarDef(base.Structure, base.RestrictionMixin):
 		self._validateNext(VarDef)
 		if self.content_:
 			utils.ensureExpression(common.replaceRMKAt(self.content_), self.name_)
-		if not utils.identifierPattern.match(self.name):
-			raise base.LiteralParseError("name", self.name,
-				hint="Var names must be valid python"
-				" identifiers, and '%s' is not"%self.name)
+		if not utils.identifierPattern.match(self.key):
+			raise base.LiteralParseError("name", self.key,
+				hint="Var keys must be valid python"
+				" identifiers, and '%s' is not"%self.key)
 
 	def getCode(self):
-		return 'vars["%s"] = %s'%(self.name, self.content_)
+		return 'vars["%s"] = %s'%(self.key, self.content_)
 
 
 class ApplyDef(procdef.ProcApp):
@@ -285,11 +310,11 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		copyable=True)
 	_rd = common.RDAttribute()
 	_idmaps = base.StringListAttribute("idmaps", description="List of"
-		' column names that are just "mapped through" (like map with dest'
+		' column names that are just "mapped through" (like map with key'
 		" only); you can use shell patterns to select multiple colums at once.",
 		copyable=True)
 	_simplemaps = base.IdMapAttribute("simplemaps", description=
-		"Abbreviated notation for <map src>", copyable=True)
+		"Abbreviated notation for <map source>", copyable=True)
 	_ignoreOn = base.StructAttribute("ignoreOn", default=None,
 		childFactory=rowtriggers.IgnoreOn, description="Conditions on the"
 		" input record (as delivered by the grammar) to cause the input"
@@ -316,7 +341,7 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		if "id" not in kwargs:
 			kwargs["id"] = "autogenerated rowmaker for table %s"%table.id
 		return base.makeStruct(cls, maps=[
-				base.makeStruct(MapRule, dest=c.name, content_="vars[%s]"%repr(c.name))
+				base.makeStruct(MapRule, key=c.name, content_="vars[%s]"%repr(c.name))
 					for c in table],
 			**kwargs)
 
@@ -328,7 +353,7 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 					v = v[1:]
 					nullExcs = "KeyError,"
 				self.feedObject("maps", base.makeStruct(MapRule, 
-					dest=k, src=v, nullExcs=nullExcs))
+					key=k, source=v, nullExcs=nullExcs))
 		self._completeElementNext(RowmakerDef, ctx)
 
 	def _getSourceFromColset(self, columns):
@@ -349,13 +374,13 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 				"  raise IgnoreThisRow(vars)",
 				line, "Checking ignore")
 		for v in self.vars:
-			line = appendToSource(v.getCode(), line, "assigning "+v.name)
+			line = appendToSource(v.getCode(), line, "assigning "+v.key)
 		for a in self.apps:
 			line = appendToSource(
 				"%s(vars, result, targetTable)"%a.name, 
 				line, "executing "+a.name)
 		for m in self.maps:
-			line = appendToSource(m.getCode(columns), line, "building "+m.dest)
+			line = appendToSource(m.getCode(columns), line, "building "+m.key)
 		return "\n".join(source), lineMap
 
 	def _getSource(self, tableDef):
@@ -378,7 +403,7 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		"""
 		if self.idmaps is None:
 			return
-		existingMaps = set(m.dest for m in self.maps)
+		existingMaps = set(m.key for m in self.maps)
 		baseNames = [c.name for c in columns]
 		for colName in self.idmaps:
 			matching = fnmatch.filter(baseNames, colName)
@@ -386,7 +411,7 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 				raise base.NotFoundError(colName, "columns matching", "unknown")
 			for dest in matching:
 				if dest not in existingMaps:
-					self.maps.append(MapRule(self, dest=dest).finishElement(None))
+					self.maps.append(MapRule(self, key=dest).finishElement(None))
 		self.idmaps = []
 
 	def _checkTable(self, columns, id):
@@ -395,11 +420,11 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		"""
 		for map in self.maps:
 			try:
-				columns.getColumnByName(map.dest)
+				columns.getColumnByName(map.key)
 			except KeyError:
-				raise base.ui.logOldExc(base.LiteralParseError(self.name_, self.dest, 
+				raise base.ui.logOldExc(base.LiteralParseError(self.name_, map.key, 
 					"Cannot map to '%s' since it does not exist in %s"%(
-						map.dest, id)))
+						map.key, id)))
 
 	def _buildForTable(self, tableDef):
 		"""returns a RowmakerDef with everything expanded and checked for

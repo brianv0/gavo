@@ -44,13 +44,17 @@ class MixinPar(procdef.RDParameter):
 	The (optional) body provides a default for the parameter.
 	"""
 	name_ = "mixinPar"
-	_expr = base.DataContent(description="The default for the parameter.",
-		copyable=True, strip=True, null=None, default=base.NotGiven)
+	_expr = base.DataContent(
+		default=base.NotGiven,
+		description="The default for the parameter.",
+		null=None, 
+		copyable=True, 
+		strip=True)
 
 	def validate(self):
 		self._validateNext(MixinPar)
-		if len(self.name)<2:
-			raise base.LiteralParseError("name", self.name, hint="Names of"
+		if len(self.key)<2:
+			raise base.LiteralParseError("name", self.key, hint="Names of"
 				" mixin parameters must have at least two characters (since"
 				" they are exposed as macros")
 
@@ -135,12 +139,12 @@ class MixinDef(activetags.ReplayBase):
 
 		self.macroExpansions = {}
 		for p in self.pars:
-			if p.name in fillers:
-				self.macroExpansions[p.name] = fillers.pop(p.name)
+			if p.key in fillers:
+				self.macroExpansions[p.key] = fillers.pop(p.key)
 			elif p.content_ is base.NotGiven:
-				raise base.StructureError("Mixin parameter %s mandatory"%p.name)
+				raise base.StructureError("Mixin parameter %s mandatory"%p.key)
 			else:
-				self.macroExpansions[p.name] = p.content_
+				self.macroExpansions[p.key] = p.content_
 		if fillers:
 			raise base.StructureError("The attribute(s) %s is/are not allowed"
 				" on this mixin"%(",".join(fillers)))

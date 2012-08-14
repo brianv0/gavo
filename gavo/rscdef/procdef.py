@@ -12,8 +12,8 @@ from gavo.rscdef import rmkfuncs
 
 
 # Move this one to utils?
-def unionByName(*sequences):
-	"""returns all items in sequences uniqued by the item's name attribute.
+def unionByKey(*sequences):
+	"""returns all items in sequences uniqued by the items' key attributes.
 
 	The order of the sequence items is not maintained, but items in
 	later sequences override those in earlier ones.
@@ -21,16 +21,16 @@ def unionByName(*sequences):
 	allItems = {}
 	for seq in sequences:
 		for item in seq:
-			allItems[item.name] = item
+			allItems[item.key] = item
 	return allItems.values()
 
 
 class RDParameter(base.Structure):
 	"""A base class for parameters.
 	"""
-	_name = base.UnicodeAttribute("name", default=base.Undefined,
+	_name = base.UnicodeAttribute("key", default=base.Undefined,
 		description="The name of the parameter", copyable=True, strip=True,
-		aliases=["key"])
+		aliases=["name"])
 	_descr = base.NWUnicodeAttribute("description", default=None,
 		description="Some human-readable description of what the"
 		" parameter is about", copyable=True, strip=True)
@@ -46,8 +46,8 @@ class RDParameter(base.Structure):
 
 	def validate(self):
 		self._validateNext(RDParameter)
-		if not utils.identifierPattern.match(self.name):
-			raise base.LiteralParseError("name", self.name, hint=
+		if not utils.identifierPattern.match(self.key):
+			raise base.LiteralParseError("name", self.key, hint=
 				"The name you supplied was not defined by any procedure definition.")
 
 
@@ -65,7 +65,7 @@ class ProcPar(RDParameter):
 		# Allow non-python syntax when things look like macro calls.
 		if self.content_ and not "\\" in self.content_:
 			utils.ensureExpression(
-				common.replaceRMKAt(self.content_), self.name)
+				common.replaceRMKAt(self.content_), self.key)
 
 
 class Binding(ProcPar):
@@ -125,10 +125,10 @@ class ProcSetup(base.Structure):
 		parCode = []
 		for p in self.pars:
 			if p.late==useLate:
-				val = bindings.get(p.name, base.NotGiven)
+				val = bindings.get(p.key, base.NotGiven)
 				if val is base.NotGiven:
 					val = p.content_
-				parCode.append("%s%s = %s"%(indent, p.name, val))
+				parCode.append("%s%s = %s"%(indent, p.key, val))
 		return "\n".join(parCode)
 
 	def getParCode(self, bindings):
@@ -201,7 +201,7 @@ class ProcDef(base.Structure, base.RestrictionMixin):
 		"""returns all parameters used by setup items, where lexically
 		later items override earlier items of the same name.
 		"""
-		return unionByName(*[s.pars for s in self.setups])
+		return unionByKey(*[s.pars for s in self.setups])
 
 	def getLateSetupCode(self, boundNames):
 		return "\n".join(s.getLateCode(boundNames) for s in self.setups)
@@ -250,20 +250,20 @@ class ProcApp(ProcDef):
 		if self.procDef is not base.NotGiven:
 			allSetups.extend(self.procDef.setups)
 		allSetups.extend(self.setups)
-		return unionByName(*[s.pars for s in allSetups])
+		return unionByKey(*[s.pars for s in allSetups])
 
 	def _ensureParsBound(self):
 		"""raises an error if non-defaulted pars of procDef are not filled
 		by the bindings.
 		"""
-		bindNames = set(b.name for b in self.bindings)
+		bindNames = set(b.key for b in self.bindings)
 		for p in self.getSetupPars():
 			if not p.isDefaulted():
-				if not p.name in bindNames:
+				if not p.key in bindNames:
 					raise base.StructureError("Parameter %s is not defaulted in"
-						" %s and thus must be bound."%(p.name, self.name))
-			if p.name in bindNames:
-				bindNames.remove(p.name)
+						" %s and thus must be bound."%(p.key, self.name))
+			if p.key in bindNames:
+				bindNames.remove(p.key)
 		if bindNames:
 			raise base.StructureError("May not bind non-existing parameter(s)"
 				" %s."%(", ".join(bindNames)))
@@ -274,7 +274,7 @@ class ProcApp(ProcDef):
 
 	def onElementComplete(self):
 		self._onElementCompleteNext(ProcApp)
-		self._boundNames = dict((b.name, b.content_) for b in self.bindings)
+		self._boundNames = dict((b.key, b.content_) for b in self.bindings)
 
 	def _combineWithProcDef(self, methodName, boundNames):
 		# A slightly tricky helper method for the implementation of get*SetupCode:

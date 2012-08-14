@@ -485,7 +485,7 @@ class GroupTest(testhelpers.VerboseTest):
 			"<group name='foo'><columnRef dest='y'/></group></table>")
 		g = t.groups[0]
 		self.assertEqual(g.name, "foo")
-		self.assertEqual(g.columnRefs[0].dest, "y")
+		self.assertEqual(g.columnRefs[0].key, "y")
 		c = list(g.iterColumns())[0]
 		self.assertEqual(c.type, "real")
 
