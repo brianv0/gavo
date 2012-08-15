@@ -68,6 +68,14 @@
 		<column name="subject" type="text"/>
 	</table>
 
+	<table system="True" id="authors" forceUnique="True"
+			onDisk="True" primary="sourceRD, resId, author">
+		<foreignKey inTable="resources" source="sourceRD,resId"/>
+		<column original="resources.sourceRD"/>
+		<column original="resources.resId"/>
+		<column name="author" type="unicode"/>
+	</table>
+
 	<table system="True" id="res_dependencies" forceUnique="True"
 			onDisk="True" primary="rd, prereq" dupePolicy="overwrite">
 		<meta name="description">An RD-level map of dependencies, meaning
@@ -89,7 +97,7 @@
 		  in sets and services since oai may query those.  In interfaces
 			and subjects we can safely delete them.  All that will be overwritten
 			by new entries if they come. -->
-		<make table="resources">
+		<make table="resources" role="resources">
 			<script type="newSource" lang="python" id="markDeleted">
 				table.query("UPDATE \curtable SET deleted=True"
 					" WHERE sourceRD=%(sourceRD)s",
@@ -97,7 +105,7 @@
 			</script>
 		</make>
 
-		<make table="interfaces">
+		<make table="interfaces" role="interfaces">
 			<rowmaker idmaps="*">
 				<ignoreOn>
 					<keyIs key="accessURL" value="__NULL__"/>
@@ -110,11 +118,15 @@
 			</script>
 		</make>
 
-		<make table="sets">
+		<make table="sets" role="sets">
 			<script original="markDeleted"/>
 		</make>
 
-		<make table="subjects">
+		<make table="subjects" role="subjects">
+			<script original="deleteByRDId"/>
+		</make>
+
+		<make table="authors" role="authors">
 			<script original="deleteByRDId"/>
 		</make>
 	</data>

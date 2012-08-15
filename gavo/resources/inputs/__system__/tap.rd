@@ -199,9 +199,8 @@
 			description="Name of the group"/>
 		<column name="group_utype" type="text"
 			description="utype of the group"/>
-		<!--
 		<column name="sourceRD" type="text" 
-			description="Id of the originating rd (local information)"/>-->
+			description="Id of the originating rd (local information)"/>
 	</table>
 
 	<table id="examples" onDisk="True" adql="True">

@@ -93,6 +93,9 @@ class ProfileItem(StringConfigItem):
 	"""
 	typedesc = "profile name"
 	def __init__(self, name):
+		warnings.warn(
+			"Warning: Entries in the profiles section are deprecated and ignored.",
+			DeprecationWarning)
 		StringConfigItem.__init__(self, name, description="A name of a file"
 			" in [db]profilePath")
 		self.default = None
@@ -299,12 +302,14 @@ class Configuration(fancyconfig.Configuration):
 		return self.__profileParser
 
 	def getDBProfile(self, profileName):
-		if profileName is None:
-			return self.getDBProfile()
+		# remains of retired profile name mapping infrastructure
+		if profileName=='admin':
+			profileName = 'feed'
+
 		if not self._dbProfileCache.has_key(profileName):
 			try:
 				self._dbProfileCache[profileName] = self._getProfileParser().parse(
-					profileName, self.get("profiles", profileName))
+					profileName, profileName)
 			except utils.NoConfigItem:
 				raise ProfileParseError("Undefined DB profile: %s"%profileName)
 		return self._dbProfileCache[profileName]
@@ -440,10 +445,9 @@ _config = Configuration(
 		IntConfigItem("defaultLimit", "100", "Default match limit for DB queries"),
 	),
 	
-	MagicSection('profiles', 'Mapping of DC profiles to profile definitions.',
-		itemFactory=ProfileItem,
-		defaults=(("admin", "feed"), ("trustedquery", "trustedquery"),
-			("untrustedquery", "untrustedquery"))),
+	MagicSection('profiles', 'Ignored and deprecated, only here for backward'
+		' compatibility.',
+		itemFactory=ProfileItem),
 
 	Section('ivoa', 'The interface to the Greater VO.',
 		StringConfigItem("authority", "x-unregistred", 

@@ -504,9 +504,9 @@ class TAPPublicationTest(testhelpers.VerboseTest):
 				"select * from tap_schema.groups")))
 			self.failUnless(
 				('test.adql', 'alpha', 'col:weird.reason', 
-					'weird_columns', 'col:weird.name') in res)
+					'weird_columns', 'col:weird.name', "data/test") in res)
 			self.failUnless(
-				('test.adql', 'rv', None, 'nice_columns', 'col:nice.name')
+				('test.adql', 'rv', None, 'nice_columns', 'col:nice.name', "data/test")
 					in res)
 
 

@@ -158,7 +158,7 @@ class UWS(object):
 		the db.
 		"""
 		timeout = kws.pop("timeout", _DEFAULT_LOCK_TIMEOUT)
-		with base.getWritableAdminConn() as conn:
+		with base.getWritableTableConn() as conn:
 			with base.connectionConfiguration(conn, timeout=timeout):
 				props = self.jobClass.getDefaults(conn)
 				props["jobId"] = self.jobClass.getNewId(self, conn)
@@ -204,7 +204,7 @@ class UWS(object):
 		As long as you are in the controlled section, nobody else
 		can change the job.
 		"""
-		with base.getWritableAdminConn() as conn:
+		with base.getWritableTableConn() as conn:
 			with base.connectionConfiguration(conn, timeout=timeout):
 				job = self._getJob(jobId, conn, writable=True)
 				try:
@@ -245,7 +245,7 @@ class UWS(object):
 				base.ui.notifyWarning(
 					"Ignored error while destroying UWS job %s: %s"%(jobId, exc))
 		finally:
-			with base.getWritableAdminConn() as conn:
+			with base.getWritableTableConn() as conn:
 				self.runCanned("deleteByIdEx", locals(), conn)
 
 	def _countUsingCanned(self, statementId):

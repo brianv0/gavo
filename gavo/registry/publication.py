@@ -59,43 +59,66 @@ def makeBaseRecord(res):
 	return rec
 
 
+def iterAuthorsAndSubjects(resource, sourceRD, resId):
+	"""yields rows for the subjects and authors tables.
+
+	resource is the meta-carrier for the resource to be described,
+	sourceRD and resId are its keys in the resources table.
+	"""
+	for subject in [str(item) for item in resource.getMeta("subject") or (None,)]:
+		yield ("subjects", {
+			"sourceRD": sourceRD,
+			"resId": resId,
+			"subject": subject})
+	
+	# for authors, we support a special notation, separating individual
+	# authors with semicolons.
+	for authors in resource.iterMeta("creator.name"):
+		authors = [s.strip() for s in unicode(authors).split(";")]
+		for author in authors:
+			if not author.startswith("et al"):
+				yield ("authors", {
+					"sourceRD": sourceRD,
+					"resId": resId,
+					"author": author})
+
+
 def iterSvcRecs(service):
 	"""iterates over records suitable for importing into the service list 
 	for service.
-
-	It will yield record(s) for each "publication" (i.e., renderer) and
-	for each set therein.  It will then, together with the last publication,
-	records for all given subjects are yielded.
-
-	With the forceUnique hacks on the records defined in 
-	services.rd#servicetables, this fills every table as desired.  However,
-	the whole thing clearly shows we want something more fancy when data
-	models get a bit more complex.
-
-	WARNING: you'll get back the same dict every time.  You need to copy
-	it if you can't process is between to visits in the iterator.
 	"""
 	if not service.publications:
 		return  # don't worry about missing meta if there are no publications
 
 	rec = makeBaseRecord(service)
 	rec["owner"] = service.limitTo
-	subjects = [str(item) for item in service.getMeta("subject") or (None,)]
-	rec["subject"] = subjects.pop()
+	yield ("resources", rec)
+
+	# each publication becomes one interface
 	for pub in service.publications:
-		rec["renderer"] = pub.render
-		rec["accessURL"] = service.getURL(pub.render, absolute=False)
-		rec["referenceURL"] = base.getMetaText(service, "referenceURL")
 		try:
-			rec["browseable"] = service.isBrowseableWith(pub.render)
+			browseable = service.isBrowseableWith(pub.render)
 		except AttributeError:  # service is not a ServiceBasedPage
-			rec["browseable"] = False
+			browseable = False
+
+		intfRec = {
+			"sourceRD": rec["sourceRD"],
+			"resId": rec["resId"],
+			"renderer": pub.render,
+			"accessURL":  service.getURL(pub.render, absolute=False),
+			"referenceURL": base.getMetaText(service, "referenceURL"),
+			"browseable": browseable,
+			"deleted": False}
+		yield ("interfaces", intfRec)
+
 		for setName in pub.sets:
-			rec["setName"] = setName
-			yield rec
-	for subject in subjects:
-		rec["subject"] = subject
-		yield rec
+			intfRec.copy()
+			intfRec["setName"] = setName
+			yield ("sets", intfRec)
+
+	for pair in iterAuthorsAndSubjects(service, 
+			rec["sourceRD"], rec["resId"]):
+		yield pair
 
 
 def iterResRecs(res):
@@ -105,21 +128,27 @@ def iterResRecs(res):
 	# resource records only make sense if destined for the registry
 	rec["setName"] = "ivo_managed"
 	rec["renderer"] = "rcdisplay"
-	for subject in [str(item) for item in res.getMeta("subject") or (None,)]:
-		rec["subject"] = subject
-		yield rec
+	yield ("resources", rec)
+	yield ("sets", rec)
+
+	for pair in iterAuthorsAndSubjects(res, 
+			rec["sourceRD"], rec["resId"]):
+		yield pair
 
 
 def iterDataRecs(res):
 	"""as iterSvcRecs, just for DataDescriptors rather than Services.
 	"""
 	rec = makeBaseRecord(res)
+	yield ("resources", rec)
 	for setName in res.registration.sets:
 		rec["setName"] = setName
 		rec["renderer"] = "rcdisplay"
-		for subject in [str(item) for item in res.getMeta("subject") or (None,)]:
-			rec["subject"] = subject
-			yield rec
+		yield ("sets", rec.copy())
+
+	for pair in iterAuthorsAndSubjects(res, 
+			rec["sourceRD"], rec["resId"]):
+		yield pair
 
 
 class RDRscRecIterator(grammars.RowIterator):
@@ -130,16 +159,18 @@ class RDRscRecIterator(grammars.RowIterator):
 		for svc in self.sourceToken.services:
 			self.curSource = svc.id
 			for sr in iterSvcRecs(svc):
-				yield sr.copy()
+				yield sr
+
 		for res in self.sourceToken.resRecs:
 			self.curSource = res.id
 			for sr in iterResRecs(res):
-				yield sr.copy()
+				yield sr
+
 		for res in itertools.chain(self.sourceToken.tables, self.sourceToken.dds):
 			self.curSource = res.id
 			if res.registration:
 				for sr in iterDataRecs(res):
-					yield sr.copy()
+					yield sr
 	
 	def getLocation(self):
 		return "%s#%s"%(self.sourceToken.sourceId, self.curSource)
@@ -149,6 +180,7 @@ class RDRscRecGrammar(grammars.Grammar):
 	"""A grammar for "parsing" raw resource records from RDs.
 	"""
 	rowIterator = RDRscRecIterator
+	isDispatching = True
 _rdRscRecGrammar = base.makeStruct(RDRscRecGrammar)
 
 
@@ -214,7 +246,8 @@ def _purgeFromServiceTables(rdId, conn):
 	"""
 	cursor = conn.cursor()
 	for tableName in [
-			"resources", "interfaces", "sets", "subjects", "res_dependencies"]:
+			"resources", "interfaces", "sets", "subjects", "res_dependencies",
+			"authors"]:
 		cursor.execute("delete from dc.%s where sourceRD=%%(rdId)s"%tableName,
 			{"rdId": rdId})
 	cursor.close()
@@ -235,7 +268,7 @@ def findAllRDs():
 					utils.getRelativePath(os.path.join(dir, file), inputsDir))[0])
 	for name in pkg_resources.resource_listdir('gavo', 
 			"resources/inputs/__system__"):
-		if name.startswith("."):  # ignore VCS files (and possibly others:-)
+		if not name.endswith(".rd"):  # ignore VCS files (and possibly others:-)
 			continue
 		rds.append(os.path.splitext("__system__/%s"%name)[0])
 	return rds

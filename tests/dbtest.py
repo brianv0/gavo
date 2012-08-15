@@ -195,8 +195,6 @@ class TestRoleSetting(TestPrivs):
 			f.write("include dsn\nuser=privtestuser\n")
 		with open(os.path.join(self.profDir, "testadmin"), "w") as f:
 			f.write("include dsn\nuser=testadmin\n")
-		base.setConfig("profiles", "privtest", "privtest")
-		base.setConfig("profiles", "testadmin", "testadmin")
 	
 		TestPrivs.setUp(self)
 	

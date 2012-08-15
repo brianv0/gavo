@@ -126,7 +126,33 @@ class DebugCursor(psycopg2.extensions.cursor):
 		return res
 
 
-class DebugConnection(psycopg2.extensions.connection):
+class GAVOConnection(psycopg2.extensions.connection):
+	"""A psycopg2 connection with some additional methods.
+
+	This derivation is also done so we can attach the getDBConnection
+	arguments to the connection; it is used when recovering from
+	a database restart.
+	"""
+	def queryToDicts(self, query, args={}):
+		"""iterates over dictionary rows for query.
+
+		This is mainly for ad-hoc queries needing little metadata.
+
+		The dictionary keys are determined by what the database says the
+		column titles are; thus, it's usually lower-cased variants of what's
+		in the select-list.
+		"""
+		cursor = self.cursor()
+		try:
+			cursor.execute(query, args)
+			keys = [cd[0] for cd in cursor.description]
+			for row in cursor:
+				yield dict(zip(keys, row))
+		finally:
+			cursor.close()
+
+
+class DebugConnection(GAVOConnection):
 	def cursor(self, *args, **kwargs):
 		kwargs["cursor_factory"] = DebugCursor
 		return psycopg2.extensions.connection.cursor(self, *args, **kwargs)
@@ -138,14 +164,6 @@ class DebugConnection(psycopg2.extensions.connection):
 		cursor.close()
 		return pid
 
-
-class GAVOConnection(psycopg2.extensions.connection):
-	"""A standard psycopg2 connection.
-
-	This derivation is just done so we can attach the getDBConnection
-	arguments to the connection; it is used when recovering from
-	a database restart.
-	"""
 
 
 def getDBConnection(profile, debug=debug, autocommitted=False):

@@ -340,9 +340,12 @@ class DataPublicationMetaTest(testhelpers.VerboseTest):
 			<table id="ronk"><register sets="ivo_managed,local"/>
 			</table></resource>"""%self._minimalMeta)
 		recs = list(publication._rdRscRecGrammar.parse(rd))
-		self.assertEquals(len(recs), 2)
-		self.assertEquals(recs[0]["setName"], "ivo_managed")
-		self.assertEquals(recs[1]["setName"], "local")
+		self.assertEquals(len(recs), 4)
+		self.assertEquals(recs[0][0], "resources")
+		self.assertEquals(recs[0][1]["resId"], "ronk")
+		self.assertEquals(recs[1][1]["setName"], "ivo_managed")
+		self.assertEquals(recs[2][1]["setName"], "local")
+		self.assertEquals(recs[3][0], "subjects")
 
 	def testIterDataData(self):
 		rd = base.parseFromString(rscdesc.RD, """<resource schema="data">
@@ -352,9 +355,12 @@ class DataPublicationMetaTest(testhelpers.VerboseTest):
 			<make table="ronk"/><make table="funk"/>
 			</data></resource>"""%self._minimalMeta)
 		recs = list(publication._rdRscRecGrammar.parse(rd))
-		self.assertEquals(len(recs), 2)
-		self.assertEquals(recs[0]["setName"], "ivo_managed")
-		self.assertEquals(recs[1]["setName"], "local")
+		self.assertEquals(len(recs), 4)
+		self.assertEquals(recs[0][0], "resources")
+		self.assertEquals(recs[0][1]["resId"], "ronkcoll")
+		self.assertEquals(recs[1][1]["setName"], "ivo_managed")
+		self.assertEquals(recs[2][1]["setName"], "local")
+		self.assertEquals(recs[3][0], "subjects")
 
 	def testRejectedWithoutId(self):
 		self.assertRaisesWithMsg(base.StructureError,
@@ -733,7 +739,7 @@ class ResumptionTokenTest(testhelpers.VerboseTest):
 class MetaExpandedTest(testhelpers.VerboseTest):
 	def testWithTAPRecord(self):
 		rd = base.caches.getRD("//tap")
-		rec = publication.iterSvcRecs(rd.services[0]).next()
+		rec = publication.iterSvcRecs(rd.services[0]).next()[-1]
 		self.failUnless(rec["description"].startswith(
 			"The Unittest Suite's TAP end point. The Table Access"))
 		self.assertEqual(rec["shortName"], "DaCHS standin TAP")

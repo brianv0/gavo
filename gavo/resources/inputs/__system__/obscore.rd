@@ -3,7 +3,7 @@
 	<meta name="description">Definition and support code for the ObsCore
 		data model and table.</meta>
 	
-	<table id="ObsCore" onDisk="True" adql="True">
+	<table id="ObsCore" onDisk="True" adql="True" system="True">
 		<!-- the view creation statement is bogus; in reality, we create
 		the view creation statement from the _obscoresources table in the
 		data create -->
@@ -275,7 +275,7 @@
 		<make table="_obscoresources"/>
 	</data>
 
-	<data id="create" auto="False">
+	<data id="create">
 		<!-- the view is created from prescriptions in _obscoresources -->
 		<make table="ObsCore">
 			<script name="create obscore view" type="postCreation" lang="python">

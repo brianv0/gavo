@@ -9,6 +9,7 @@
 		<onDisk>True</onDisk>
 		<primary>jobId</primary>
 		<forceUnique>True</forceUnique>
+		<allProfiles>feed,trustedquery</allProfiles>
 		<dupePolicy>overwrite</dupePolicy>
 		<!-- the entire UWS shares a single directory for the job directories. -->
 		<column name="jobId" type="text" 

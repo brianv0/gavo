@@ -422,7 +422,7 @@ To avoid this, make a new creator node in between, i.e., write::
   creator:
   creator.name: Berta
 
-In DC resources, it's better to be explicit about the tree structure
+In DaCHS resources, it's better to be explicit about the tree structure
 (though you could write it like in metastream)::
 
   <meta name="creator">
@@ -435,6 +435,13 @@ In DC resources, it's better to be explicit about the tree structure
 However, for creator.name specifically, it's highly likely that people
 accept things like "Arthur; Berta" anyway, and so here it might be
 better to disregard the tree structure issues entirely.
+
+Actually, the DaCHS internal author table as used by the alternative
+portal interprets one special notation::
+
+  <author1>, <inits1> {; <authorn>, <initsn>}
+
+That is, you should write authors lists like "Foo, X.; Bar, Q.; et al".
 
 
 Coverage Metadata

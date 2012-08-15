@@ -13,11 +13,41 @@ tables and the RDs the tables come from. -->
 		the tables within the data holdings.
 		This is primarily for use with ADQL queries.</meta>
 
+
+	<table id="tablemeta" onDisk="True" system="True" forceUnique="True"
+			dupePolicy="overwrite">
+		<meta name="description">A table mapping table names and schemas to
+			the resource descriptors they come from and whether they are open
+			to ADQL queries.  This table is primarily used for the table info
+			services defined below.</meta>
+
+		<primary>tableName, sourceRD</primary>
+
+		<column name="tableName" description="Fully qualified table name"
+			type="text" verbLevel="1"/>
+		<column name="sourceRD" type="text"
+			description="Id of the resource descriptor containing the 
+				table's definition"
+			tablehead="RD" verbLevel="15"/>
+		<column name="tableDesc" type="text"
+			description="Description of the table content" 
+			tablehead="Table desc." verbLevel="1"/>
+		<column name="resDesc" type="text"
+			description="Description of the resource this table is part of"
+			tablehead="Res desc." verbLevel="15"/>
+		<column name="adql" type="boolean" required="True"
+			description="True if this table may be accessed using ADQL"
+			verbLevel="30"/>
+	</table>
+
 	<table id="columnmeta" onDisk="True" system="True">
 		<meta name="description">A table mapping field names and their
 			principal properties (types, ucds, descriptions...).</meta>
-		<column name="tableName" type="text"
+
+		<column original="tablemeta.tableName"
 			description="Fully qualified name of the table the column is in"/>
+		<foreignKey source="tableName,sourceRD" inTable="tablemeta"/>
+
 		<column name="fieldName" type="text"
 			description="SQL identifier for the column"/>
 		<column name="unit" type="text" description="Unit for the value"/>
@@ -37,6 +67,9 @@ tables and the RDs the tables come from. -->
 		</column>
 		<column name="displayHint" type="text"
 			description="Hints how to display that item for human consumption"/>
+		<column original="tablemeta.sourceRD"
+			description="Id of the resource descriptor containing the 
+				column's definition"/>
 		<primary>tableName,fieldName</primary>
 	</table>
 
@@ -51,39 +84,16 @@ tables and the RDs the tables come from. -->
 					result[key] = getattr(column, key)
 				result["displayHint"] = column.getDisplayHintAsString()
 				result["fieldName"] = column.name
+				result["sourceRD"] = column.parent.rd.sourceId
 			</code>
 		</apply>
 		<map dest="colInd"/>
 		<map dest="tableName"/>
 	</rowmaker>
 
-	<table id="tablemeta" onDisk="True" system="True" forceUnique="True"
-			dupePolicy="overwrite">
-		<meta name="description">A table mapping table names and schemas to
-			the resource descriptors they come from and whether they are open
-			to ADQL queries.  This table is primarily used for the table info
-			services defined below.</meta>
-
-		<column name="tableName" description="Fully qualified table name"
-			type="text" verbLevel="1"/>
-		<column name="sourceRD" type="text"
-			description="Id of the resource descriptor containing the table's definition"
-			tablehead="RD" verbLevel="15"/>
-		<column name="tableDesc" type="text"
-			description="Description of the table content" 
-			tablehead="Table desc." verbLevel="1"/>
-		<column name="resDesc" type="text"
-			description="Description of the resource this table is part of"
-			tablehead="Res desc." verbLevel="15"/>
-		<column name="adql" type="boolean" required="True"
-			description="True if this table may be accessed using ADQL"
-			verbLevel="30"/>
-		<primary>tableName, sourceRD</primary>
-	</table>
-
 	<data id="import">
-		<make table="columnmeta"/>
 		<make table="tablemeta"/>
+		<make table="columnmeta"/>
 	</data>
 
 	<outputTable id="metaRowdef" namePath="columnmeta">
