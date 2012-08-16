@@ -1,4 +1,4 @@
-Version 0.8 (2012-XX-XX)
+Version 0.8 (2012-08-15)
 
 	* The schema for the DaCHS-internal metadata tables changed.  To adapt
 		your database, run

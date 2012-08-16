@@ -637,9 +637,9 @@
 		<condDesc combining="True">
 			<!-- meta keys not (directly) entering the query -->
 			<inputKey name="REQUEST" type="text" tablehead="Request type"
-				description='This currently has to be queryData' std="True">
-				<values default="queryData"/>
-			</inputKey>
+				description='This is queryData for the default operation; some
+					services support getData as well' std="True"
+				required="True"/>
 			<inputKey name="TOP" type="integer" tablehead="#Best"
 				description='Only return the TOP "best" records' std="True"/>
 			<inputKey name="MAXREC" type="integer" tablehead="Limit"

@@ -78,4 +78,35 @@
 		<meta name="ssap.creationType">archival</meta>
 		<meta name="ssap.testQuery">TARGETNAME=alpha%20Boo</meta>
 	</service>
+
+	<table id="instance">
+		<mixin ssaTable="hcdtest"
+			spectralDescription="Wavelength"
+			fluxDescription="Stellar surface flux density"
+		>//ssap#sdm-instance</mixin>
+	</table>
+
+	<data id="datamaker">
+		<!-- a hacked data maker that uses the source token passed in
+		to come up with essentially random data. -->
+		<embeddedGrammar>
+			<iterator>
+				<code>
+					seed = sum(ord(c) for c in self.sourceToken["accref"])
+					for count in range(seed/10):
+						yield {"spectral": seed+count, "flux": seed-count}
+				</code>
+			</iterator>
+ 		</embeddedGrammar>
+  	<make table="instance">
+   		<parmaker>
+     		<apply procDef="//ssap#feedSSAToSDM"/>
+   		</parmaker>
+  	</make>
+	</data>
+
+	<service id="c" original="s">
+		<meta name="description">An SSAP service supporting getData.</meta>
+		<property name="tablesource">datamaker</property>
+	</service>
 </resource>

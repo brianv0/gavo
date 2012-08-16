@@ -7,6 +7,7 @@ import urllib
 from cStringIO import StringIO
 
 from gavo import base
+from gavo import formats
 from gavo import rsc
 from gavo import rscdef
 from gavo import svcs
@@ -18,6 +19,18 @@ from gavo.votable import V
 
 
 RD_ID = "//ssap"
+
+
+# getdata format identifiers to formats.formatData keys.  Special
+# handling for FITS variants below, noted by None values here.
+GETDATA_FORMATS = {
+	"application/x-votable+xml": "votable",
+	"application/x-votable+xml;encoding=tabledata": "votabletd",
+	"text/plain": "tsv",
+	"text/csv": "csv",
+	"application/fits": None,
+	"image/fits": None,}
+
 
 def getRD():
 	return base.caches.getRD(RD_ID)
@@ -65,11 +78,31 @@ class SSAPCore(svcs.DBCore):
 		requestType = (inputTable.getParam("REQUEST") or "").upper()
 		if requestType=="QUERYDATA":
 			return self._runQueryData(service, inputTable, queryMeta)
+		elif requestType=="GETDATA":
+			return self._runGetData(service, inputTable, queryMeta)
 		elif requestType=="GETTARGETNAMES":
 			return self._runGetTargetNames(service, inputTable, queryMeta)
 		else:
-			raise base.ValidationError("Only queryData operation supported so"
-				" far for SSAP.", "REQUEST")
+			raise base.ValidationError("Missing or invalid value for REQUEST.",
+				"REQUEST")
+
+	def _runGetData(self, service, inputTable, queryMeta):
+		tablesourceId = service.getProperty("tablesource", None)
+		if tablesourceId is None:
+			raise base.ValidationError("No getData support on %s"%
+				service.getMeta("identifier"), "REQUEST", hint="Only SSAP"
+				" services with a tablesource property support getData")
+		tablesourceDD = service.rd.getById(tablesourceId)
+
+		pubDID = inputTable.getParam("PUBDID")
+		if pubDID is None:
+			raise base.ValidationError("PUBDID mandatory for getData", "PUBDID")
+		
+		sdmData = makeSDMDataForPUBDID(pubDID, self.queriedTable, 
+			tablesourceDD)
+
+		return formatSDMData(sdmData, inputTable, queryMeta)
+			
 
 	def _runGetTargetNames(self, service, inputTable, queryMeta):
 		with base.getTableConn()  as conn:
@@ -176,6 +209,65 @@ def hackSDMToSED(data):
 			param.utype = _SDM_TO_SED_UTYPES[param.utype]
 
 
+def formatSDMData(sdmData, inputTable, queryMeta):
+	"""returns a pair of mime-type and payload for a rendering of the SDM
+	Data instance sdmData replying to the request given in inputTable.
+	"""
+	destMime = inputTable.getParam("FORMAT") or "application/x-votable+xml"
+	if queryMeta["tdEnc"] and destMime=="application/x-votable+xml":
+		destMime = "application/x-votable+xml;encoding=tabledata"
+	formatId = GETDATA_FORMATS.get(destMime, None)
+
+	sdmTable = sdmData.getPrimaryTable()
+	sdmData.addMeta("_votableRootAttributes", 
+		'xmlns:spec="http://www.ivoa.net/xml/SpectrumModel/v1.01"')
+
+	if formatId is None:
+		# special or unknown format
+		raise base.ValidationError("Cannot format table to %s"%destMime)
+
+	resF = StringIO()
+	formats.formatData(formatId, sdmData, resF, acquireSamples=False)
+	return (destMime, resF.getvalue())
+
+
+def makeSDMDataForSSARow(ssaRow, spectrumData):
+	"""returns a rsc.Data instance containing an SDM compliant spectrum
+	for the spectrum described by ssaRow.
+
+	spectrumData is a data element making a primary table containing
+	the spectrum data from an SSA row (typically, this is going to be
+	the tablesource property of an SSA service).
+	"""
+	resData = rsc.makeData(spectrumData, forceSource=ssaRow)
+	resTable = resData.getPrimaryTable()
+	resTable.setMeta("description",
+		"Spectrum from %s"%products.makeProductLink(ssaRow["accref"]))
+	# fudge accref  into a full URL
+	resTable.setParam("accref",
+		products.makeProductLink(resTable.getParam("accref")))
+	return resData
+
+
+def makeSDMDataForPUBDID(pubDID, ssaTD, spectrumData):
+	"""returns a rsc.Table instance containing an SDM compliant spectrum
+	for pubDID from ssaTable.
+
+	ssaTD is the definition of a table containg the SSA metadata, 
+	spectrumData is a data element making a primary table containing
+	the spectrum data from an SSA row (typically, this is going to be
+	the tablesource property of an SSA service).
+	"""
+	with base.getTableConn() as conn:
+		ssaTable = rsc.TableForDef(ssaTD, connection=conn)
+		matchingRows = list(ssaTable.iterQuery(ssaTable.tableDef, 
+			"ssa_pubdid=%(pubdid)s", {"pubdid": pubDID}))
+		if not matchingRows:
+			raise svcs.UnknownURI("No spectrum with pubdid %s known here"%
+				inputTable.getParam("pubdid"))
+	return makeSDMDataForSSARow(matchingRows[0], spectrumData)
+
+
 class SDMCore(svcs.Core):
 	"""A core for making (VO)Tables according to the Spectral Data Model.
 
@@ -223,13 +315,7 @@ class SDMCore(svcs.Core):
 			finally:
 				ssaTable.close()
 
-		resData = rsc.makeData(self.sdmDD, forceSource=ssaRow)
-		resTable = resData.getPrimaryTable()
-		resTable.setMeta("description",
-			"Spectrum from %s"%products.makeProductLink(accref))
-		# fudge accref  into a full URL
-		resTable.setParam("accref",
-			products.makeProductLink(resTable.getParam("accref")))
+		resData = makeSDMDataForSSARow(ssaRow, self.sdmDD)
 
 		votContextArgs = {}
 		if queryMeta["tdEnc"]:

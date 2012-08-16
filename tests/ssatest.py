@@ -132,6 +132,47 @@ class CoreQueriesTest(_WithSSATableTest):
 	]
 
 
+class CoreMiscTest(_WithSSATableTest):
+	def testRejectWithoutREQUEST(self):
+		inDict= {"POS": "12,12",
+			"SIZE": "1"}
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Missing or invalid value for REQUEST.",
+			getRD().getById("s").runFromDict,
+			(inDict, "ssap.xml"))
+
+
+class GetDataTest(_WithSSATableTest):
+	def testNormalServicesReject(self):
+		self.assertRaisesWithMsg(base.ValidationError,
+			"No getData support on ivo://x-unregistred/data/ssatest/s",
+			getRD().getById("s").runFromDict,
+			({"REQUEST": "getData"}, "ssap.xml"))
+
+	def testRejectWithoutPUBDID(self):
+		self.assertRaisesWithMsg(base.ValidationError,
+			"PUBDID mandatory for getData",
+			getRD().getById("c").runFromDict,
+			({"REQUEST": "getData"}, "ssap.xml"))
+
+	def testGetdataVOT(self):
+		res = getRD().getById("c").runFromDict(
+			{"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1'}, "ssap.xml")
+		mime, payload = res.original
+		self.assertEqual(mime, "application/x-votable+xml")
+		self.failUnless('xmlns:spec="http://www.ivoa.net/xml/SpectrumModel/v1.01'
+			in payload)
+		self.failUnless('QJtoAAAAAABAm2g' in payload)
+
+	def testGetdataText(self):
+		res = getRD().getById("c").runFromDict(
+			{"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
+				"FORMAT": "text/plain"}, "ssap.xml")
+		mime, payload = res.original
+		self.failUnless("1754.0\t1754.0\n1755.0\t1753.0\n"
+			"1756.0\t1752.0" in payload)
+
+
 class CoreNullTest(_WithSSATableTest):
 # make sure empty parameters of various types are just ignored.
 	totalRecs = 6
@@ -289,6 +330,8 @@ class SSATableTest(testhelpers.VerboseTest):
 
 	def testEverythingExpanded(self):
 		self.failIf("\\" in self.docAndTree[0])
+
+
 
 
 class SDMRenderTest(testhelpers.VerboseTest):
