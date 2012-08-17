@@ -66,7 +66,7 @@ CORE_REGISTRY = {
 	"uploadCore": ("svcs.uploadcores", "UploadCore"),
 	"editCore": ("svcs.uploadcores", "EditCore"),
 	"ssapCore": ("protocols.ssap", "SSAPCore"),
-	"sdmCore": ("protocols.ssap", "SDMCore"),
+	"sdmCore": ("protocols.sdm", "SDMCore"),
 
 # Temporary hack to avoid validation errors on ccd700 in development
 	"ssapProcessCore": ("protocols.ssap", "SSAPProcessCore"),

@@ -666,10 +666,10 @@
 		<group utype="\groupUtype">
 			<LOOP>
 				<codeItems>
-					from gavo.protocols import ssap
+					from gavo.protocols import sdm
 					srcTable = context.getById("instance")
 					for name in "\fieldnames".split():
-						utype = ssap.getSpecForSSA(srcTable.getElementForName(name).utype)
+						utype = sdm.getSpecForSSA(srcTable.getElementForName(name).utype)
 						yield {"dest": name, "utype": utype}
 				</codeItems>
 				<events>
@@ -745,7 +745,7 @@
 				<code>
 					from gavo import base
 					from gavo import rscdef
-					from gavo.protocols import ssap
+					from gavo.protocols import sdm
 				</code>
 			</setup>
 			<code>
@@ -754,12 +754,12 @@
 				ssapInstance = context.resolveId(mixinPars["ssaTable"])
 				for col in ssapInstance.columns:
 					atts = col.getAttributes()
-					atts["utype"] = ssap.getSpecForSSA(atts["utype"])
+					atts["utype"] = sdm.getSpecForSSA(atts["utype"])
 					atts["required"] = False
 					substrate.feedObject("param", 
 						base.makeStruct(rscdef.Param, parent_=substrate, **atts))
 				for param in ssapInstance.params:
-					newUtype = ssap.getSpecForSSA(param.utype)
+					newUtype = sdm.getSpecForSSA(param.utype)
 					substrate.feedObject("param", 
 						param.change(utype=newUtype))
 
