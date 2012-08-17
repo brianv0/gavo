@@ -79,6 +79,8 @@ def _makeExtension(serMan):
 	"""
 	values = list(serMan.getMappedTuples())
 	columns = []
+	utypes = []
+
 	for colInd, colDesc in enumerate(serMan):
 		if colDesc["datatype"]=="char":
 			makeArray = _makeStringArray
@@ -88,7 +90,13 @@ def _makeExtension(serMan):
 		columns.append(pyfits.Column(name=str(colDesc["name"]), 
 			unit=str(colDesc["unit"]), format=typecode, 
 			null=colDesc.nullvalueInType(), array=arr))
-	return pyfits.new_table(pyfits.ColDefs(columns))
+		if colDesc["utype"]:
+			utypes.append((colInd, str(colDesc["utype"].lower())))
+
+	hdu = pyfits.new_table(pyfits.ColDefs(columns))
+	for colInd, utype in utypes:
+		hdu.header.update("TUTYP%d"%colInd, utype)
+	return hdu
 	
 
 def _makeFITSTableNOLOCK(dataSet, acquireSamples=True):
@@ -117,6 +125,17 @@ def makeFITSTable(dataSet, acquireSamples=False):
 		return _makeFITSTableNOLOCK(dataSet, acquireSamples)
 
 
+def writeFITSTableFile(hdulist):
+	"""returns the name of a temporary file containing the FITS data for
+	hdulist.
+	"""
+	handle, pathname = tempfile.mkstemp(".fits", dir=base.getConfig("tempDir"))
+	with utils.silence():
+		hdulist.writeto(pathname, clobber=1)
+	os.close(handle)
+	return pathname
+
+
 def makeFITSTableFile(dataSet, acquireSamples=True):
 	"""returns the name of a temporary file containing a fits file
 	representing dataSet.
@@ -124,11 +143,7 @@ def makeFITSTableFile(dataSet, acquireSamples=True):
 	The caller is responsible to remove the file.
 	"""
 	hdulist = makeFITSTable(dataSet, acquireSamples)
-	handle, pathname = tempfile.mkstemp(".fits", dir=base.getConfig("tempDir"))
-	with utils.silence():
-		hdulist.writeto(pathname, clobber=1)
-	os.close(handle)
-	return pathname
+	return writeFITSTableFile(hdulist)
 
 
 def writeDataAsFITS(data, outputFile, acquireSamples=False):

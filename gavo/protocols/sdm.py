@@ -3,6 +3,8 @@ Code dealing with spectra (the actual data), in particular in the spectral
 data model (sdm).
 """
 
+import datetime
+import os
 import urllib
 from cStringIO import StringIO
 
@@ -11,9 +13,12 @@ from gavo import formats
 from gavo import rsc
 from gavo import rscdef
 from gavo import svcs
+from gavo import utils
 from gavo import votable
+from gavo.formats import fitstable
 from gavo.formats import votablewrite
 from gavo.protocols import products
+from gavo.utils import pyfits
 
 
 # MIME types we can generate from SDM-compliant data; the values are
@@ -120,6 +125,184 @@ def makeSDMDataForPUBDID(pubDID, ssaTD, spectrumData):
 	return makeSDMDataForSSARow(matchingRows[0], spectrumData)
 
 
+################## Special FITS hacks for SDM serialization
+
+def _add_target_pos_cards(header, par):
+	"""_SDM_HEADER_MAPPING for target.pos.
+	"""
+	header.update("RA_TARG", par.value.x/utils.DEG)
+	header.update("DEC_TARG", par.value.y/utils.DEG)
+
+
+def _add_location_cards(header, par):
+	"""_SDM_HEADER_MAPPING for target.pos.
+	"""
+	header.update("RA", par.value.x/utils.DEG)
+	header.update("DEC", par.value.y/utils.DEG)
+
+
+# A mapping from utypes to the corresponding FITS keywords
+# There are some more complex cases, for which a function is a value
+# here; the funciton is called with the FITS header and the parameter
+# in question.
+_SDM_HEADER_MAPPING = {
+	"datamodel": "VOCLASS",
+	"length": "DATALEN",
+	"type": "VOSEGT",
+	"coordsys.id": "VOCSID",
+	"coordsys.spaceframe.name": "RADECSYS",
+	"coordsys.spaceframe.equinox": "EQUINOX",
+	"coordsys.spaceframe.ucd": "SKY_UCD",
+	"coordsys.spaceframe.refpos": "SKY_REF",
+	"coordsys.timeframe.name": "TIMESYS",
+	"coordsys.timeframe.ucd": None,
+	"coordsys.timeframe.zero": "MJDREF",
+	"coordsys.timeframe.refpos": None,
+	"coordsys.spectralframe.refpos": "SPECSYS",
+	"coordsys.spectralframe.redshift": "REST_Z",
+	"coordsys.spectralframe.name": "SPECNAME",
+	"coordsys.redshiftframe.name": "ZNAME",
+	"coordsys.redshiftframe.refpos": "SPECSYSZ",
+	"curation.publisher": "VOPUB",
+	"curation.reference": "VOREF",
+	"curation.publisherid": "VOPUBID",
+	"curation.version": "VOVER",
+	"curation.contactname": "CONTACT",
+	"curation.contactemail": "EMAIL",
+	"curation.rights": "VORIGHTS",
+	"curation.date": "VODATE",
+	"curation.publisherdid": "DS_IDPUB",
+	"target.name": "OBJECT",
+	"target.description": "OBJDESC",
+	"target.class": "SRCCLASS",
+	"target.spectralclass": "SPECTYPE",
+	"target.redshift": "REDSHIFT",
+	"target.varampl": "TARGVAR",
+	"dataid.title": "TITLE",
+	"dataid.creator": "AUTHOR",
+	"dataid.datasetid": "DS_IDENT",
+	"dataid.creatordid": "CR_IDENT",
+	"dataid.date": "DATE",
+	"dataid.version": "VERSION",
+	"dataid.instrument": "INSTRUME",
+	"dataid.creationtype": "CRETYPE",
+	"dataid.logo": "VOLOGO",
+# collection will need work when we properly implement it
+	"dataid.collection": "COLLECT1",
+	"dataid.contributor": "CONTRIB1",
+	"dataid.datasource": "DSSOURCE",
+	"dataid.bandpass": "SPECBAND",
+	"derived.snr": "DER_SNR",
+	"derived.redshift.value": "DER_Z",
+	"derived.redshift.staterror": "DER_ZERR",
+	"derived.redshift.confidence": "DER_ZCNF",
+	"derived.varampl": "DER_VAR",
+	"timesi": "TIMESDIM",
+	"spectralsi": "SPECSDIM",
+	"fluxsi": "FLUXSDIM",
+	"char.fluxaxis.name": None,
+	"char.fluxaxis.unit": None,
+	"char.fluxaxis.ucd": None,
+	"char.spectralaxis.name": None,
+	"char.spectralaxis.unit": None,
+	"char.spectralaxis.ucd": None,
+	"char.timeaxis.name": None,
+	"char.timeaxis.ucd": None,
+	"char.spatialaxis.name": None,
+	"char.spatialaxis.unit": None,
+	"char.fluxaxis.accuracy.staterror": "STAT_ERR",
+	"char.fluxaxis.accuracy.syserror": "SYS_ERR",
+	"char.timeaxis.accuracy.staterror": "TIME_ERR",
+	"char.timeaxis.accuracy.syserror": "TIME_SYE",
+	"char.timeaxis.resolution": "TIME_RES",
+	"char.fluxaxis.calibration": "FLUX_CAL",
+	"char.spectralaxis.calibration": "SPEC_CAL",
+	"char.spectralaxis.coverage.location.value": "SPEC_VAL",
+	"char.spectralaxis.coverage.bounds.extent": "SPEC_BW",
+	"char.spectralaxis.samplingprecision.": None,
+	"samplingprecisionrefval.fillfactor": "SPEC_FIL",
+	"char.spectralaxis.samplingprecision.SampleExtent": "SPEC BIN",
+	"char.spectralaxis.accuracy.binsize": "SPEC_BIN",
+	"char.spectralaxis.accuracy.staterror": "SPEC_ERR",
+	"char.spectralaxis.accuracy.syserror": "SPEC_SYE",
+	"char.spectralaxis.resolution": "SPEC_RES",
+	"char.spectralaxis.respower": "SPEC_RP",
+	"char.spectralaxis.coverage.support.extent": "SPECWID",
+	"char.timeaxis.unit": "TIMEUNIT",
+	"char.timeaxis.accuracy.binsize": "TIMEDEL",
+	"char.timeaxis.calibration": "TIME_CAL",
+	"char.timeaxis.coverage.location.value": "TMID",
+	"char.timeaxis.coverage.bounds.extent": "TELAPSE",
+	"char.timeaxis.coverage.bounds.start": "TSTART",
+	"char.timeaxis.coverage.bounds.stop": "TSTOP",
+	"char.timeaxis.coverage.support.extent": "EXPOSURE",
+	"char.timeaxis.samplingprecision.samplingprecisionrefval.fillfactor": "DTCOR",
+	"char.timeaxis.samplingprecision.sampleextent": "TIMEDEL",
+	"char.spatialaxis.ucd": "SKY_UCD",
+	"char.spatialaxis.accuracy.staterr": "SKY_ERR",
+	"char.spatialaxis.accuracy.syserror": "SKY_SYE",
+	"char.spatialaxis.calibration": "SKY_CAL",
+	"char.spatialaxis.resolution": "SKY_RES",
+	"char.spatialaxis.coverage.bounds.extent": "APERTURE",
+	"char.spatialaxis.coverage.support.area": "REGION",
+	"char.spatialaxis.coverage.support.extent": "AREA",
+	"char.spatialaxis.samplingprecision.samplingprecisionrefval.fillfactor": 
+		"SKY_FILL",
+	
+	# special handling through functions
+	"target.pos": _add_target_pos_cards,
+	"char.spatialaxis.coverage.location.value": _add_location_cards,
+}
+
+def makeBasicSDMHeader(sdmData):
+	"""returns a pyfits header containing the SDM header fields common to
+	standard and image serialization.
+	"""
+	header = pyfits.Header()
+	for par in sdmData.getPrimaryTable().iterParams():
+		if par.value is None or par.utype is None:
+			continue
+		
+		mapKey = par.utype.lower().split(":")[-1]
+		if mapKey.startswith("spectrum."):  # WTF?
+			mapKey = mapKey[9:]
+
+		destKey = _SDM_HEADER_MAPPING.get(mapKey, None)
+		if destKey is None:
+			pass
+		elif callable(destKey):
+			destKey(header, par)
+		else:
+			comment = ""
+			if par.unit:
+				comment = str("[%s]"%par.unit)
+
+			# Use our serializing infrastructure here?
+			value = par.value
+			if isinstance(value, unicode):
+				value = value.encode("ascii", "ignore")
+			elif isinstance(value, datetime.datetime):
+				value = value.isoformat()
+
+			header.update(destKey, value, comment)
+	
+	return header
+
+
+def makeSDMFITS(sdmData):
+	"""returns sdmData in an SDM-compliant FITS.
+	"""
+	hdus = fitstable.makeFITSTable(sdmData)
+	sdmHdr = hdus[1].header
+	for card in makeBasicSDMHeader(sdmData).ascardlist():
+		sdmHdr.update(card.key, card.value, card.comment)
+	srcName = fitstable.writeFITSTableFile(hdus)
+	with open(srcName) as f:
+		data = f.read()
+	os.unlink(srcName)
+	return data
+
+
 ################## Serializing SDM compliant tables
 
 def makeSDMVOT(table, **votContextArgs):
@@ -131,11 +314,11 @@ def makeSDMVOT(table, **votContextArgs):
 	return votablewrite.makeVOTable(table, **votContextArgs)
 
 
-def formatSDMData(sdmData, inputTable, queryMeta):
+def formatSDMData(sdmData, format, queryMeta=svcs.emptyQueryMeta):
 	"""returns a pair of mime-type and payload for a rendering of the SDM
-	Data instance sdmData replying to the request given in inputTable.
+	Data instance sdmData in format.
 	"""
-	destMime = inputTable.getParam("FORMAT") or "application/x-votable+xml"
+	destMime =  format or "application/x-votable+xml"
 	if queryMeta["tdEnc"] and destMime=="application/x-votable+xml":
 		destMime = "application/x-votable+xml;encoding=tabledata"
 	formatId = GETDATA_FORMATS.get(destMime, None)
@@ -146,11 +329,15 @@ def formatSDMData(sdmData, inputTable, queryMeta):
 
 	if formatId is None:
 		# special or unknown format
-		raise base.ValidationError("Cannot format table to %s"%destMime)
-
+		if destMime=="application/fits":
+			return destMime, makeSDMFITS(sdmData)
+		else:
+			raise base.ValidationError("Cannot format table to %s"%destMime)
+		
 	resF = StringIO()
 	formats.formatData(formatId, sdmData, resF, acquireSamples=False)
-	return (destMime, resF.getvalue())
+	return destMime, resF.getvalue()
+
 
 
 ################## The SDM core (usable in dcc: accrefs).  Do we still

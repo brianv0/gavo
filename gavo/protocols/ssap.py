@@ -92,7 +92,8 @@ class SSAPCore(svcs.DBCore):
 		
 		sdmData = sdm.makeSDMDataForPUBDID(pubDID, 
 			self.queriedTable, tablesourceDD)
-		return sdm.formatSDMData(sdmData, inputTable, queryMeta)
+		return sdm.formatSDMData(sdmData, inputTable.getParam("FORMAT"), 
+			queryMeta)
 			
 	def _run_getTargetNames(self, service, inputTable, queryMeta):
 		with base.getTableConn()  as conn:

@@ -4,6 +4,7 @@ Some tests around the SSAP infrastructure.
 
 import datetime
 import re
+import tempfile
 
 from gavo.helpers import testhelpers
 
@@ -13,8 +14,9 @@ from gavo import svcs
 from gavo import votable
 from gavo.formats import votablewrite
 from gavo.protocols import products
+from gavo.protocols import sdm
 from gavo.protocols import ssap
-from gavo.utils import DEG, ElementTree
+from gavo.utils import DEG, ElementTree, pyfits
 from gavo.web import vodal
 
 import tresc
@@ -436,6 +438,47 @@ class SDMTableTest(testhelpers.VerboseTest):
 		tree = self.stringAndTree[1]
 		p = tree.xpath("//PARAM[@utype='spec:Spectrum.Access.Reference']")[0]
 		self.failUnless(p.get("value").startswith("http"))
+
+
+class _RenderedSDMFITSResponse(testhelpers.TestResource):
+	resources = [("ssatable", tresc.ssaTestTable)]
+
+	def make(self, deps):
+		sdmData = sdm.makeSDMDataForPUBDID('ivo://test.inv/test1', 
+			getRD().getById("hcdtest"),
+			getRD().getById("datamaker"))
+		fitsBytes = sdm.formatSDMData(sdmData, "application/fits")[-1]
+		self.tempFile = tempfile.NamedTemporaryFile()
+		self.tempFile.write(fitsBytes)
+		self.tempFile.flush()
+		return pyfits.open(self.tempFile.name)
+	
+	def clean(self, res):
+		self.tempFile.close()
+
+
+class SDMFITSTest(testhelpers.VerboseTest):
+	resources = [("hdus", _RenderedSDMFITSResponse())]
+
+	def testPrimaryHDU(self):
+		self.hdus[0].header.get("EXTEND", True)
+		self.hdus[0].header.get("NAXIS", 0)
+
+	def testSimpleUtypeTranslated(self):
+		self.assertEqual(self.hdus[1].header.get("OBJECT"), "big fart nebula")
+	
+	def testParTypesPreserved(self):
+		self.assertAlmostEqual(self.hdus[1].header.get("DEC"), 15.2)
+	
+	def testColumnUtype(self):
+		hdr = self.hdus[1].header
+		self.assertEqual(hdr["TUTYP0"], 'spec:data.spectralaxis.value')
+		self.assertEqual(hdr["TUTYP1"], 'spec:data.fluxaxis.value')
+
+	def testValues(self):
+		wl, flux = self.hdus[1].data[1]
+		self.assertAlmostEqual(wl, 1755.)
+		self.assertAlmostEqual(flux, 1753.)
 
 
 class _RenderedSEDResponse(testhelpers.TestResource):
