@@ -77,6 +77,8 @@
 		<meta name="ssap.dataSource">artificial</meta>
 		<meta name="ssap.creationType">archival</meta>
 		<meta name="ssap.testQuery">TARGETNAME=alpha%20Boo</meta>
+
+		<property name="returnData">True</property>
 	</service>
 
 	<table id="instance">
@@ -108,5 +110,6 @@
 	<service id="c" original="s">
 		<meta name="description">An SSAP service supporting getData.</meta>
 		<property name="tablesource">datamaker</property>
+		<property name="returnData"/>
 	</service>
 </resource>

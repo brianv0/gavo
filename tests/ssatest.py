@@ -143,6 +143,15 @@ class CoreMiscTest(_WithSSATableTest):
 
 
 class GetDataTest(_WithSSATableTest):
+	def testGetdataDeclared(self):
+		res = getRD().getById("c").runFromDict(
+			{"REQUEST": "queryData"}, "ssap.xml")
+		tree = testhelpers.getXMLTree(res.original[1])
+		gpTable = tree.xpath('//TABLE[@name="generationParameters"]')[0]
+		formats = [el.get("value")
+			for el in gpTable.xpath("PARAM[@name='FORMAT']/VALUES/OPTION")]
+		self.failUnless("application/fits" in formats)
+
 	def testNormalServicesReject(self):
 		self.assertRaisesWithMsg(base.ValidationError,
 			"No getData support on ivo://x-unregistred/data/ssatest/s",
@@ -280,11 +289,10 @@ class _RenderedSSAResponse(testhelpers.TestResource):
 	resources = [("ssatable", tresc.ssaTestTable)]
 
 	def make(self, deps):
-		res = getRD().getById("s").runFromDict(
+		res = getRD().getById("c").runFromDict(
 			{"REQUEST": "queryData", "TOP": "3", "MAXREC": "1"}, "ssap.xml")
-		rawVOT = votablewrite.getAsVOTable(res.original,
-			votablewrite.VOTableContext(suppressNamespace=True, tablecoding="td"))
-		return rawVOT, ElementTree.fromstring(rawVOT)
+		rawVOT = res.original[-1]
+		return rawVOT, testhelpers.getXMLTree(rawVOT, debug=False)
 
 _renderedSSAResponse = _RenderedSSAResponse()
 
@@ -306,12 +314,10 @@ class SSATableTest(testhelpers.VerboseTest):
 			in self.docAndTree[0])
 	
 	def testOverflowWarning(self):
-		infoEl = self.docAndTree[1].find("RESOURCE/INFO")
-		self.assertEqual(infoEl.attrib["name"], "QUERY_STATUS")
+		infoEl = self.docAndTree[1].xpath(
+			"//RESOURCE/INFO[@name='QUERY_STATUS']")[0]
 		self.assertEqual(infoEl.attrib["value"], "OVERFLOW")
-		self.assertEqual(infoEl.text, "Exactly 1 rows were returned."
-			" This means your query probably reached\nthe match limit."
-			" Increase MAXREC.")
+		self.assertEqual(infoEl.text, "Exactly 1 rows were returned.  This means your query probably reached the match limit.  Increase MAXREC.")
 	
 	def testSSAUtype(self):
 		table = self.docAndTree[1].find("RESOURCE/TABLE")

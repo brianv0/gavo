@@ -74,6 +74,19 @@ class SSAPCore(svcs.DBCore):
 		
 		return "application/x-votable+xml", votablewrite.getAsVOTable(data)
 
+	def _declareGenerationParameters(self, resElement, ssaTable):
+		"""adds a table declaring getData support to resElement as appropriate.
+
+		resElement is a votable.V RESOURCE element, ssaTable is the SSA response
+		table.
+		"""
+		resElement[
+			V.TABLE(name="generationParameters") [
+    		V.PARAM(name="FORMAT", datatype="char", arraysize="*",
+			      value="application/x-votable+xml") [
+		      V.VALUES[[
+		      	V.OPTION(value=mime) for mime in GETDATA_FORMATS]]]]]
+
 	def run(self, service, inputTable, queryMeta):
 		requestType = (inputTable.getParam("REQUEST") or "").upper()
 		if requestType=="QUERYDATA":
@@ -103,7 +116,6 @@ class SSAPCore(svcs.DBCore):
 
 		return formatSDMData(sdmData, inputTable, queryMeta)
 			
-
 	def _runGetTargetNames(self, service, inputTable, queryMeta):
 		with base.getTableConn()  as conn:
 			table = rsc.TableForDef(self.queriedTable, create=False,
@@ -132,19 +144,39 @@ class SSAPCore(svcs.DBCore):
 
 		res = svcs.DBCore.run(self, service, inputTable, queryMeta)
 		if len(res)==limit:
-			res.addMeta("info", base.makeMetaValue(type="info", 
-				value="Exactly %s rows were returned.  This means"
-				" your query probably reached the match limit.  Increase MAXREC."%limit,
-				infoName="QUERY_STATUS", infoValue="OVERFLOW"))
+			queryStatus = "OVERFLOW"
+			queryStatusBody = ("Exactly %s rows were returned.  This means your"
+				" query probably reached the match limit.  Increase MAXREC."%limit)
+		else:
+			queryStatus = "OK"
+			queryStatusBody = ""
 
-		# add shitty namespace for utypes.  sigh.
-		res.addMeta("_votableRootAttributes",
+		# We wrap our result into a data instance since we need to set the
+		#	result type
+		data = rsc.wrapTable(res)
+		data.setMeta("_type", "results")
+		data.addMeta("_votableRootAttributes",
 			'xmlns:ssa="http://www.ivoa.net/xml/DalSsap/v1.0"')
 
-		res.addMeta("info", base.makeMetaValue("SSAP",
-			type="info",
-			infoName="SERVICE_PROTOCOL", infoValue=self.ssapVersion))
-		return res
+		# The returnRaw property is a hack, mainly for unit testing;
+		# The renderer would have to add the QUERY_STATUS here.
+		if service.getProperty("returnData", False):
+			return data
+
+		# we fix tablecoding to td for now since nobody seems to like
+		# binary tables and we don't have huge tables here.
+		vot = votablewrite.makeVOTable(data, 
+			votablewrite.VOTableContext(tablecoding="td"))
+		resElement = vot.makeChildDict()["RESOURCE"][0]
+		resElement[
+			V.INFO(name="SERVICE_PROTOCOL", value=self.ssapVersion)["SSAP"],
+			V.INFO(name="QUERY_STATUS", value=queryStatus)[
+				queryStatusBody]]
+		
+		if service.getProperty("tablesource", None) is not None:
+			self._declareGenerationParameters(vot, res)
+
+		return "application/x-votable+xml", votable.asString(vot)
 
 
 _SSA_SPEC_EXCEPTIONS = {
