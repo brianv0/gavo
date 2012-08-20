@@ -150,9 +150,17 @@ class GetDataTest(_WithSSATableTest):
 			{"REQUEST": "queryData"}, "ssap.xml")
 		tree = testhelpers.getXMLTree(res.original[1])
 		gpTable = tree.xpath('//TABLE[@name="generationParameters"]')[0]
+
 		formats = [el.get("value")
 			for el in gpTable.xpath("PARAM[@name='FORMAT']/VALUES/OPTION")]
 		self.failUnless("application/fits" in formats)
+
+		self.assertAlmostEqual(
+			float(gpTable.xpath("PARAM[@name='BAND']/VALUES/MIN")[0].get("value")),
+			4e-7)
+		self.assertAlmostEqual(
+			float(gpTable.xpath("PARAM[@name='BAND']/VALUES/MAX")[0].get("value")), 
+			8e-7)
 
 	def testNormalServicesReject(self):
 		self.assertRaisesWithMsg(base.ValidationError,

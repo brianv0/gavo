@@ -70,8 +70,15 @@ class SSAPCore(svcs.DBCore):
 		resElement is a votable.V RESOURCE element, ssaTable is the SSA response
 		table.
 		"""
+		specMin = min(row["ssa_specstart"] for row in ssaTable.rows)
+		specMax = max(row["ssa_specend"] for row in ssaTable.rows)
+
 		resElement[
 			V.TABLE(name="generationParameters") [
+				V.PARAM(name="BAND", datatype="float", unit="m")[
+					V.VALUES[
+						V.MIN(value=specMin),
+						V.MAX(value=specMax)]],
     		V.PARAM(name="FORMAT", datatype="char", arraysize="*",
 			      value="application/x-votable+xml") [
 		      V.VALUES[[
