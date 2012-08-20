@@ -541,6 +541,18 @@ class TableDef(base.Structure, base.ComputedMetaMixin, common.PrivilegesMixin,
 			res.extend(self.columns.getColumnsByUCD(ucd))
 		return res
 
+	def getByUtype(self, utype):
+		"""returns the column or param with utype.
+
+		This is supposed to be unique, but the function will just return
+		the first matching item it finds.
+		"""
+		try:
+			return self.params.getColumnByUtype(utype)
+		except base.NotFoundError:
+			return self.columns.getColumnByUtype(utype)
+
+
 	def getProductColumns(self):
 		"""returns the names of the columns containing products.
 

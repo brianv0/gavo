@@ -8,8 +8,7 @@ version="1.0"
 targetNamespace="http://www.ivoa.net/xml/TAPRegExt/v1.0" 
 elementFormDefault="unqualified" 
 attributeFormDefault="unqualified" 
-xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-xsi:schemaLocation="http://www.w3.org/2001/XMLSchema http://vo.ari.uni-heidelberg.de/docs/schemata/XMLSchema.xsd">
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <xs:annotation>
     <xs:appinfo>
       <vm:schemaName>TAPRegExt</vm:schemaName>
@@ -20,7 +19,7 @@ xsi:schemaLocation="http://www.w3.org/2001/XMLSchema http://vo.ari.uni-heidelber
     A description of the capabilities metadata for TAP services.
     </xs:documentation>
   </xs:annotation>
-  <xs:import namespace="http://www.ivoa.net/xml/VOResource/v1.0" schemaLocation="http://vo.ari.uni-heidelberg.de/docs/schemata/VOResource-v1.0.xsd"/>
+  <xs:import namespace="http://www.ivoa.net/xml/VOResource/v1.0" schemaLocation="http://www.ivoa.net/xml/VOResource/VOResource-v1.0.xsd"/>
   <xs:complexType name="TAPCapRestriction" abstract="true">
     <xs:annotation>
       <xs:documentation>
@@ -250,7 +249,7 @@ xsi:schemaLocation="http://www.w3.org/2001/XMLSchema http://vo.ari.uni-heidelber
     				<xs:documentation>
     					To more formally define a language supported by a service,
     					a resource record for the language can be created, either
-    					centrally on the RofR or by other registry operators.  
+    					centrally on the Registry of Registries or by other registry operators.  
     					When such a record exists, the language element's ivo-id
     					should point to it.
     				</xs:documentation>
@@ -274,11 +273,11 @@ xsi:schemaLocation="http://www.w3.org/2001/XMLSchema http://vo.ari.uni-heidelber
     		are possible.
 
       	All feature in a given list are of the same type.  This type
-      	is declared using the mandatoy <code>type</code> attribute,
+      	is declared using the mandatory type attribute,
       	the value of which will typically be an IVORN.
       	To see values defined in TAPRegExt,
 				retrieve the ivo://ivoa.net/std/TAPRegExt
-      	resource record and look for keys starting with features-.
+      	resource record and look for keys starting with "features-".
     	</xs:documentation>
   	</xs:annotation>
   	<xs:sequence>
@@ -393,7 +392,7 @@ xsi:schemaLocation="http://www.w3.org/2001/XMLSchema http://vo.ari.uni-heidelber
         	or StandardsRegExt document defining the format more
         	precisely.  To see values defined in TAPRegExt,
 					retrieve the ivo://ivoa.net/std/TAPRegExt
-      		resource record and look for keys starting with output-.
+      		resource record and look for keys starting with "output-".
         </xs:documentation>
       </xs:annotation>
     </xs:attribute>
@@ -410,7 +409,7 @@ xsi:schemaLocation="http://www.w3.org/2001/XMLSchema http://vo.ari.uni-heidelber
       Descriptions can be obtained by dereferencing this
       IVORN.  To see values defined in TAPRegExt,
 			retrieve the ivo://ivoa.net/std/TAPRegExt
-   		resource record and look for keys starting with upload-.
+   		resource record and look for keys starting with "upload-".
 
 
       You can register custom upload methods, but you must use the
@@ -504,8 +503,8 @@ xsi:schemaLocation="http://www.w3.org/2001/XMLSchema http://vo.ari.uni-heidelber
           </xs:annotation>
           <xs:simpleType>
             <xs:restriction base="xs:token">
-              <xs:enumeration value="bytes"/>
-              <xs:enumeration value="rows"/>
+              <xs:enumeration value="byte"/>
+              <xs:enumeration value="row"/>
             </xs:restriction>
           </xs:simpleType>
         </xs:attribute>

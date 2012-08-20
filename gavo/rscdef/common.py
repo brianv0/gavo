@@ -332,6 +332,18 @@ class ColumnList(list):
 		except KeyError:
 			raise base.NotFoundError(id, what="column", within=self.withinId)
 
+	def getColumnByUtype(self, utype):
+		"""returns the column having utype.
+
+		This should be unique, but this method does not check for uniqueness.
+		"""
+		utype = utype.lower()
+		for item in self:
+			if item.utype and item.utype.lower()==utype:
+				return item
+		raise base.NotFoundError(utype, what="column with utype", 
+			within=self.withinId)
+
 	def getColumnsByUCD(self, ucd):
 		"""returns all columns having ucd.
 		"""

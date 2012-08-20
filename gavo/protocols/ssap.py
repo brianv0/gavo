@@ -12,6 +12,7 @@ from gavo import svcs
 from gavo import votable
 from gavo.formats import votablewrite
 from gavo.protocols import sdm
+from gavo.svcs import pql
 from gavo.svcs import outputdef
 from gavo.votable import V
 
@@ -89,9 +90,24 @@ class SSAPCore(svcs.DBCore):
 		pubDID = inputTable.getParam("PUBDID")
 		if pubDID is None:
 			raise base.ValidationError("PUBDID mandatory for getData", "PUBDID")
-		
+
 		sdmData = sdm.makeSDMDataForPUBDID(pubDID, 
 			self.queriedTable, tablesourceDD)
+
+		# XXX TODO: replacing tables like that probably is not a good idea.
+		# Figure out something better (actually copy sdmData rather than
+		# fiddle with it?)
+		rawBand = inputTable.getParam("BAND")
+		if rawBand:
+			bands = pql.PQLFloatPar.fromLiteral(rawBand, "BAND")
+			if len(bands.ranges)!=1:
+				raise base.ValidationError("BAND must specify exactly one interval",
+					"BAND")
+			band = bands.ranges[0]
+			sdmData.tables[sdmData.tables.keys()[0]] = sdm.mangle_cutout(
+				sdmData.getPrimaryTable(),
+				band.start or -1, band.stop or 1e308)
+
 		return sdm.formatSDMData(sdmData, inputTable.getParam("FORMAT"), 
 			queryMeta)
 			

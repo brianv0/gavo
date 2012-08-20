@@ -177,7 +177,7 @@ class TableDefTest(testhelpers.VerboseTest):
 		self.assertEqual(len(t.columns), 2)
 		self.assertEqual(t.getColumnsByUCD("meta.id")[0].name, "cd")
 		self.assertEqual(t.primary, ())
-	
+
 	def testDuplicateUCD(self):
 		t = base.parseFromString(rscdef.TableDef, '<table id="t"><column name="x"'
 			' ucd="meta.id"/><column name="y" ucd="meta.id"/>'
@@ -185,7 +185,32 @@ class TableDefTest(testhelpers.VerboseTest):
 		self.assertEqual(len(t.getColumnsByUCD("meta.id")), 2)
 		self.assertEqual(t.getColumnsByUCD("meta.id;meta.main")[0].name, "z")
 		self.assertRaises(ValueError, t.macro_nameForUCD, "meta.id")
-	
+
+	def testColumnByUtype(self):
+		t = base.parseFromString(rscdef.TableDef, '<table id="t">'
+			' <column name="x" utype="foo:Bar.gaz"/>'
+			' <column name="y" utype="foo:Quux"/>'
+			' </table>')
+		self.assertEqual(t.getByUtype("foo:quux").name, "y")
+
+	def testParamByUtype(self):
+		t = base.parseFromString(rscdef.TableDef, '<table id="t">'
+			' <param name="x" utype="foo:Bar.gaz"/>'
+			' <param name="y" type="text" utype="foo:Quux">value</param>'
+			' </table>')
+		self.assertEqual(t.getByUtype("foo:quux").value, "value")
+
+	def testNotFoundByUtype(self):
+		t = base.parseFromString(rscdef.TableDef, '<table id="t">'
+			' <column name="x" utype="foo:Bar.gaz"/>'
+			' <column name="y" utype="foo:Quux"/>'
+			' </table>')
+		self.assertRaisesWithMsg(base.NotFoundError,
+			"column with utype 'stc:astrocoordsystem' could"
+				" not be located in table t",
+			t.getByUtype,
+			("stc:AstroCoordSystem",))
+
 	def testRoles(self):
 		t = base.parseFromString(rscdef.TableDef, '<table id="t"></table>')
 		self.assertEqual(t.readProfiles, base.getConfig("db", "queryProfiles"))

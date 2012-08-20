@@ -183,6 +183,24 @@ class GetDataTest(_WithSSATableTest):
 		self.failUnless("1754.0\t1754.0\n1755.0\t1753.0\n"
 			"1756.0\t1752.0" in payload)
 
+	def testCutoutFull(self):
+		res = getRD().getById("c").runFromDict(
+			{"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
+				"FORMAT": "text/plain", "BAND": "1762/1764"}, "ssap.xml")
+		mime, payload = res.original
+		self.assertEqual(payload, 
+			'1762.0\t1746.0\n1763.0\t1745.0\n1764.0\t1744.0\n')
+
+	def testCutoutHalfopen(self):
+		res = getRD().getById("c").runFromDict(
+			{"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
+				"FORMAT": "application/x-votable+xml;encoding=tabledata", 
+				"BAND": "1927/"}, "ssap.xml")
+		mime, payload = res.original
+		self.failUnless('xmlns:spec="http://www.ivoa.net/xml/SpectrumModel/v1.01'
+			in payload)
+		self.failUnless('<TR><TD>1927.0</TD><TD>1581.0</TD>' in payload)
+
 
 class CoreNullTest(_WithSSATableTest):
 # make sure empty parameters of various types are just ignored.

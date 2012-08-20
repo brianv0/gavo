@@ -332,12 +332,32 @@ def formatSDMData(sdmData, format, queryMeta=svcs.emptyQueryMeta):
 		if destMime=="application/fits":
 			return destMime, makeSDMFITS(sdmData)
 		else:
-			raise base.ValidationError("Cannot format table to %s"%destMime)
+			raise base.ValidationError("Cannot format table to %s"%destMime,
+				"FORMAT")
 		
 	resF = StringIO()
 	formats.formatData(formatId, sdmData, resF, acquireSamples=False)
 	return destMime, resF.getvalue()
 
+
+################## Manipulation of SDM compliant tables
+# The idea here is that you can push in a table, the function does some
+# magic, and it returns that table.  The getData implementation (see ssap.py)
+# uses these functions to provide some spectrum transformations.  We
+# may want to provide some plugin system so people can add their own
+# transformations, but let's first see someone request that.
+
+def mangle_cutout(sdmTable, low, high):
+	"""returns only those rows from sdmTable for which the spectral coordinate
+	is between low and high.
+
+	Both low and high must be given.  If you actually want half-open intervals,
+	do it in interface code (low=-1 and high=1e308 should do fine).
+	"""
+	spectralName = sdmTable.tableDef.getByUtype(
+		"spec:Data.SpectralAxis.Value").name
+	return rsc.TableForDef(sdmTable.tableDef,
+		rows=[row for row in sdmTable.rows if low<=row[spectralName]<=high])
 
 
 ################## The SDM core (usable in dcc: accrefs).  Do we still
