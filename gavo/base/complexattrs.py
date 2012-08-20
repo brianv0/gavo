@@ -194,7 +194,6 @@ class DictAttribute(attrdef.AttributeDef):
 			expl = ("the value is the element content, the key is in the  'key'"
 				" (or, equivalently, %s) attribute"%self.keyName)
 
-		expl = expl%self.keyName
 		return "**%s** (mapping; %s) -- %s"%(
 			 self.xmlName_, expl, self.description_)
 

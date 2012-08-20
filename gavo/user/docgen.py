@@ -318,12 +318,12 @@ def getTriggerDocs(docStructure):
 
 def _documentParameters(content, pars):
 	content.makeSpace()
-	for par in sorted(pars, key=lambda p: p.name):
+	for par in sorted(pars, key=lambda p: p.key):
 		if par.late:
 			doc = ["Late p"]
 		else:
 			doc = ["P"]
-		doc.append("arameter *%s*\n"%par.name)
+		doc.append("arameter *%s*\n"%par.key)
 		if par.content_:
 			doc.append("  defaults to ``%s``;\n"%par.content_)
 		if par.description:
