@@ -114,6 +114,12 @@ class SSAPCore(svcs.DBCore):
 		sdmData = sdm.makeSDMDataForPUBDID(pubDID, 
 			self.queriedTable, tablesourceDD)
 
+		calib = inputTable.getParam("FLUXCALIB")
+		if calib:
+			sdmData.tables[sdmData.tables.keys()[0]] = sdm.mangle_fluxcalib(
+				sdmData.getPrimaryTable(),
+				calib)
+
 		# XXX TODO: replacing tables like that probably is not a good idea.
 		# Figure out something better (actually copy sdmData rather than
 		# fiddle with it?)
@@ -128,12 +134,6 @@ class SSAPCore(svcs.DBCore):
 				sdmData.getPrimaryTable(),
 				band.start or -1, band.stop or 1e308)
 		
-		calib = inputTable.getParam("FLUXCALIB")
-		if calib:
-			sdmData.tables[sdmData.tables.keys()[0]] = sdm.mangle_fluxcalib(
-				sdmData.getPrimaryTable(),
-				calib)
-
 		return sdm.formatSDMData(sdmData, inputTable.getParam("FORMAT"), 
 			queryMeta)
 			
