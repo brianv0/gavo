@@ -162,6 +162,11 @@ class GetDataTest(_WithSSATableTest):
 			float(gpTable.xpath("PARAM[@name='BAND']/VALUES/MAX")[0].get("value")), 
 			8e-7)
 
+		self.assertEqual(set(el.get("value") for el in 
+			gpTable.xpath("PARAM[@name='FLUXCALIB']/VALUES/OPTION")), 
+			set(['uncalibrated', 'normalized']))
+
+
 	def testNormalServicesReject(self):
 		self.assertRaisesWithMsg(base.ValidationError,
 			"No getData support on ivo://x-unregistred/data/ssatest/s",
@@ -208,6 +213,28 @@ class GetDataTest(_WithSSATableTest):
 		self.failUnless('xmlns:spec="http://www.ivoa.net/xml/SpectrumModel/v1.01'
 			in payload)
 		self.failUnless('<TR><TD>1927.0</TD><TD>1581.0</TD>' in payload)
+
+	def testOriginalCalibOk(self):
+		mime, payload = getRD().getById("c").runFromDict(
+			{"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
+				"FORMAT": "text/plain", 
+				"FLUXCALIB": "uncalibrated"}, "ssap.xml").original
+		self.failUnless(payload.endswith("1928.0	1580.0\n"))
+
+	def testNormalize(self):
+		mime, payload = getRD().getById("c").runFromDict(
+			{"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
+				"FORMAT": "text/plain", 
+				"FLUXCALIB": "normalized"}, "ssap.xml").original
+		self.failUnless(payload.startswith("1754.0\t1.0"))
+
+	def testBadCalib(self):
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Do not know how to turn a UNCALIBRATED spectrum into a ferpotschket one.",
+			getRD().getById("c").runFromDict,
+			({"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
+				"FORMAT": "text/plain", 
+				"FLUXCALIB": "ferpotschket"}, "ssap.xml"))
 
 
 class CoreNullTest(_WithSSATableTest):

@@ -290,7 +290,7 @@
 			instrument="junk" dataSource="junk" creationType="junk"
 			reference="junk" fluxUCD="junk" spectralSI="junk"
 			spectralUCD="junk" statFluxError="NaN" sysFluxError="NaN"
-			fluxCalibration="junk" statSpectError="NaN" sysSpectError="NaN"
+			fluxCalibration="" statSpectError="NaN" sysSpectError="NaN"
 			spectralCalibration="junk" statSpaceError="NaN"
 			spectralResolution="NaN"/>
 	</table>
@@ -583,7 +583,7 @@
 		<!-- 
 			The following ssa keys make no sense for hcd tables since they
 		  are constant by definition:
-			SPECRP, SPATRES, TIMERES, FLUXCALIB, WAVECALIB, COLLECTION
+			SPECRP, SPATRES, TIMERES, WAVECALIB, COLLECTION
 
 			The following ssa keys cannot be generically supported since 
 			no SSA model column corresponds to them:
@@ -599,6 +599,7 @@
 				PUBDID,       ssa_pubDID,    //pql#stringParameter
 				CREATORDID,   ssa_creatorDID,//pql#stringParameter
 				MTIME,        ssa_pdate,     //pql#dateParameter
+				FLUXCALIB,    ssa_fluxcalib, //pql#stringParameter
 			</csvItems>
 			<events>
 				<condDesc id="\keyName\+_cond">

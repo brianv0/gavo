@@ -360,6 +360,30 @@ def mangle_cutout(sdmTable, low, high):
 		rows=[row for row in sdmTable.rows if low<=row[spectralName]<=high])
 
 
+def mangle_fluxcalib(sdmTable, newCalib):
+	"""returns sdmTable with a new calibration.
+
+	Currently, we can only normalize the spectrum to the maximum value.
+	"""
+	newCalib = newCalib.lower()
+	if newCalib==sdmTable.getParam("ssa_fluxcalib").lower():
+		return sdmTable
+	fluxName = sdmTable.tableDef.getByUtype(
+		"spec:Data.FluxAxis.Value").name
+
+	if newCalib=="normalized":
+		# whoa!  we're changing this in place; I guess that should be
+		# legalized for tables in general.
+		normalizer = float(max(row[fluxName] for row in sdmTable.rows))
+		for row in sdmTable.rows:
+			row[fluxName] = row[fluxName]/normalizer
+		return sdmTable
+		
+	raise base.ValidationError("Do not know how to turn a %s spectrum"
+		" into a %s one."%(sdmTable.getParam("ssa_fluxcalib"), newCalib), 
+		"FLUXCALIB")
+
+
 ################## The SDM core (usable in dcc: accrefs).  Do we still
 ################## want this?
 

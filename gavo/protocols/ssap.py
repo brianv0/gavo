@@ -73,12 +73,25 @@ class SSAPCore(svcs.DBCore):
 		specMin = min(row["ssa_specstart"] for row in ssaTable.rows)
 		specMax = max(row["ssa_specend"] for row in ssaTable.rows)
 
+		# fluxcalib is a param in hcd
+		try:
+			calibrations = set([ssaTable.getParam("ssa_fluxcalib").lower()])
+		except NotFoundError:
+			calibrations = set(row["ssa_fluxcalib"].lower()
+				for row in ssaTable.rows)
+		calibrations.add("normalized")
+
 		resElement[
 			V.TABLE(name="generationParameters") [
 				V.PARAM(name="BAND", datatype="float", unit="m")[
 					V.VALUES[
 						V.MIN(value=specMin),
 						V.MAX(value=specMax)]],
+
+				V.PARAM(name="FLUXCALIB", datatype="char", arraysize="*") [
+					V.VALUES[
+						[V.OPTION(value=c) for c in calibrations]]],
+					
     		V.PARAM(name="FORMAT", datatype="char", arraysize="*",
 			      value="application/x-votable+xml") [
 		      V.VALUES[[
@@ -114,6 +127,12 @@ class SSAPCore(svcs.DBCore):
 			sdmData.tables[sdmData.tables.keys()[0]] = sdm.mangle_cutout(
 				sdmData.getPrimaryTable(),
 				band.start or -1, band.stop or 1e308)
+		
+		calib = inputTable.getParam("FLUXCALIB")
+		if calib:
+			sdmData.tables[sdmData.tables.keys()[0]] = sdm.mangle_fluxcalib(
+				sdmData.getPrimaryTable(),
+				calib)
 
 		return sdm.formatSDMData(sdmData, inputTable.getParam("FORMAT"), 
 			queryMeta)
