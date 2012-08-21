@@ -164,7 +164,7 @@ class GetDataTest(_WithSSATableTest):
 
 		self.assertEqual(set(el.get("value") for el in 
 			gpTable.xpath("PARAM[@name='FLUXCALIB']/VALUES/OPTION")), 
-			set(['uncalibrated', 'normalized']))
+			set(['uncalibrated', 'relative']))
 
 
 	def testNormalServicesReject(self):
@@ -225,7 +225,7 @@ class GetDataTest(_WithSSATableTest):
 		mime, payload = getRD().getById("c").runFromDict(
 			{"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
 				"FORMAT": "text/plain", 
-				"FLUXCALIB": "normalized"}, "ssap.xml").original
+				"FLUXCALIB": "relative"}, "ssap.xml").original
 		self.failUnless(payload.startswith("1754.0\t1.0"))
 
 	def testBadCalib(self):

@@ -270,3 +270,4 @@ class MetaPagesTest(ArchiveTest):
 	def testGetRRForService(self):
 		return self.assertGETHasStrings("/getRR/data/pubtest/moribund", {},
 			['<identifier>ivo://x-unregistred/data/pubtest/moribund</identifier>'])
+

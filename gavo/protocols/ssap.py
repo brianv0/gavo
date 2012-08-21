@@ -79,7 +79,7 @@ class SSAPCore(svcs.DBCore):
 		except NotFoundError:
 			calibrations = set(row["ssa_fluxcalib"].lower()
 				for row in ssaTable.rows)
-		calibrations.add("normalized")
+		calibrations.add("relative")
 
 		resElement[
 			V.TABLE(name="generationParameters") [
@@ -107,9 +107,12 @@ class SSAPCore(svcs.DBCore):
 				" services with a tablesource property support getData")
 		tablesourceDD = service.rd.getById(tablesourceId)
 
+		handledArguments = set(["REQUEST", "COMPRESS", "MAXREC", "FORMAT"])
+
 		pubDID = inputTable.getParam("PUBDID")
 		if pubDID is None:
 			raise base.ValidationError("PUBDID mandatory for getData", "PUBDID")
+		handledArguments.add("PUBDID")
 
 		sdmData = sdm.makeSDMDataForPUBDID(pubDID, 
 			self.queriedTable, tablesourceDD)
@@ -119,6 +122,7 @@ class SSAPCore(svcs.DBCore):
 			sdmData.tables[sdmData.tables.keys()[0]] = sdm.mangle_fluxcalib(
 				sdmData.getPrimaryTable(),
 				calib)
+			handledArguments.add("FLUXCALIB")
 
 		# XXX TODO: replacing tables like that probably is not a good idea.
 		# Figure out something better (actually copy sdmData rather than
@@ -133,7 +137,16 @@ class SSAPCore(svcs.DBCore):
 			sdmData.tables[sdmData.tables.keys()[0]] = sdm.mangle_cutout(
 				sdmData.getPrimaryTable(),
 				band.start or -1, band.stop or 1e308)
-		
+			handledArguments.add("BAND")
+
+		unhandledArguments = set(par.name
+			for par in inputTable.iterParams() if par.value is not None
+				)-handledArguments
+		if unhandledArguments:
+			raise base.ValidationError("The following parameter(s) are not"
+				" accepted by this service: %s"%", ".join(unhandledArguments),
+				"(various)")
+
 		return sdm.formatSDMData(sdmData, inputTable.getParam("FORMAT"), 
 			queryMeta)
 			

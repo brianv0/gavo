@@ -106,6 +106,8 @@ class DALRenderer(grend.ServiceBasedPage):
 			reqArgs["_DBOPTIONS_LIMIT"] = [
 				str(base.getConfig("ivoa", "dalDefaultLimit"))]
 		reqArgs["_FORMAT"] = ["VOTable"]
+		# see _writeErrorTable
+		self.saneResponseCodes = False
 		grend.ServiceBasedPage.__init__(self, ctx, *args, **kwargs)
 
 	@classmethod
@@ -133,11 +135,16 @@ class DALRenderer(grend.ServiceBasedPage):
 		return self.runServiceWithContext(contextData, ctx
 			).addCallback(self._formatOutput, ctx)
 
-	def _writeErrorTable(self, ctx, errmsg):
-		# Don't set a non-200 response code here -- the specs don't like
-		# that.
-		result = self._makeErrorTable(ctx, errmsg)
+	def _writeErrorTable(self, ctx, errmsg, code=200):
 		request = inevow.IRequest(ctx)
+
+		# Unfortunately, most legacy DAL specs say the error messages must
+		# be delivered with a 200 response code.  I hope this is going
+		# to change at some point, so I let renderers order sane response
+		# codes.
+		if not self.saneResponseCodes:
+			request.setResponseCode(code)
+		result = self._makeErrorTable(ctx, errmsg)
 		request.setHeader("content-type", "application/x-votable")
 		votable.write(result, request)
 		return "\n"
@@ -155,7 +162,8 @@ class DALRenderer(grend.ServiceBasedPage):
 		if not isinstance(failure, base.ValidationError):
 			base.ui.notifyFailure(failure)
 		return self._writeErrorTable(ctx,
-			"Unexpected failure, error message: %s"%failure.getErrorMessage())
+			"Unexpected failure, error message: %s"%failure.getErrorMessage(),
+			500)
 	
 	def _handleInputErrors(self, errors, ctx):
 		if not errors:  # flag from form.process: All is fine.
@@ -169,7 +177,7 @@ class DALRenderer(grend.ServiceBasedPage):
 		except AttributeError:
 			msg = "Error(s) in given Parameters: %s"%"; ".join(
 				[formatError(e) for e in errors])
-		return self._writeErrorTable(ctx, msg)
+		return self._writeErrorTable(ctx, msg, 400)
 
 
 class SCSRenderer(DALRenderer):
@@ -192,7 +200,7 @@ class SCSRenderer(DALRenderer):
 		reqArgs["_VOTABLE_VERSION"] = ["1.1"]
 		DALRenderer.__init__(self, ctx, *args, **kwargs)
 
-	def _writeErrorTable(self, ctx, msg):
+	def _writeErrorTable(self, ctx, msg, code=200):
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "application/x-votable")
 		votable.write(V.VOTABLE11[

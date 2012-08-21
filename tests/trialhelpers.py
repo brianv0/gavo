@@ -193,8 +193,8 @@ class RenderTest(TrialTest):
 		return self.assertResultHasStrings("POST", path, args, strings,
 			rm)
 
-	def assertStatus(self, path, status, rm=None):
-		return runQuery(self.renderer, "GET", path, {}).addCallback(
+	def assertStatus(self, path, status, args={}, rm=None):
+		return runQuery(self.renderer, "GET", path, args).addCallback(
 			lambda res: self.assertEqual(res[1].code, status))
 
 	def assertGETRaises(self, path, args, exc):

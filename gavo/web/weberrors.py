@@ -370,7 +370,7 @@ def _writePanicInfo(ctx, failure, secErr=None):
 	request.finishRequest(False)
 
 
-_getErrorPage = utils.buildClassResolver(
+getErrorPage = utils.buildClassResolver(
 	baseClass=ErrorPage, 
 	objects=globals().values(),
 	instances=False, 
@@ -385,7 +385,7 @@ def getDCErrorPage(error):
 # some day we fix nevow.
 	if error is None:
 		error = failure.Failure()
-	return _getErrorPage(error.value.__class__)(error)
+	return getErrorPage(error.value.__class__)(error)
 
 
 def _finishErrorProcessing(ctx, error):

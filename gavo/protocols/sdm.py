@@ -371,7 +371,7 @@ def mangle_fluxcalib(sdmTable, newCalib):
 	fluxName = sdmTable.tableDef.getByUtype(
 		"spec:Data.FluxAxis.Value").name
 
-	if newCalib=="normalized":
+	if newCalib=="relative":
 		# whoa!  we're changing this in place; I guess that should be
 		# legalized for tables in general.
 		normalizer = float(max(row[fluxName] for row in sdmTable.rows))
