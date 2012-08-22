@@ -413,6 +413,8 @@ def parseCommandLine():
 
 
 def main():
+	"""initializes the DaCHS environment (where that's not already done).
+	"""
 	opts = parseCommandLine()
 	dsn = DSN(opts.dsn)
 	createFSHierarchy(dsn)
