@@ -33,7 +33,7 @@ from gavo.registry import nonservice
 from gavo.registry.common import *
 
 
-def makeBaseRecord(res):
+def makeBaseRecord(res, keepTimestamp=False):
 	"""returns a dictionary giving the metadata common to resource records.
 	"""
 	# bomb out if critical metadata is missing
@@ -52,6 +52,14 @@ def makeBaseRecord(res):
 	rec["recTimestamp"] = datetime.datetime.utcnow()
 	rec["description"] = base.getMetaText(res, "description")
 	dateUpdated = res.getMeta("datetimeUpdated")
+
+	if keepTimestamp:
+		try:
+			rec["recTimestamp"] = base.getMetaText(res, "recTimestamp")
+		except base.NoMetaKey:
+			# not published, nothing to keep
+			pass
+
 	if dateUpdated is None:
 		rec["dateUpdated"] = datetime.datetime.utcnow()
 	else:
@@ -83,14 +91,14 @@ def iterAuthorsAndSubjects(resource, sourceRD, resId):
 					"author": author})
 
 
-def iterSvcRecs(service):
+def iterSvcRecs(service, keepTimestamp=False):
 	"""iterates over records suitable for importing into the service list 
 	for service.
 	"""
 	if not service.publications:
 		return  # don't worry about missing meta if there are no publications
 
-	rec = makeBaseRecord(service)
+	rec = makeBaseRecord(service, keepTimestamp)
 	rec["owner"] = service.limitTo
 	yield ("resources", rec)
 
@@ -121,10 +129,10 @@ def iterSvcRecs(service):
 		yield pair
 
 
-def iterResRecs(res):
+def iterResRecs(res, keepTimestamp=False):
 	"""as iterSvcRecs, just for ResRecs rather than Services.
 	"""
-	rec = makeBaseRecord(res)
+	rec = makeBaseRecord(res, keepTimestamp)
 	# resource records only make sense if destined for the registry
 	rec["setName"] = "ivo_managed"
 	rec["renderer"] = "rcdisplay"
@@ -136,10 +144,10 @@ def iterResRecs(res):
 		yield pair
 
 
-def iterDataRecs(res):
+def iterDataRecs(res, keepTimestamp=False):
 	"""as iterSvcRecs, just for DataDescriptors rather than Services.
 	"""
-	rec = makeBaseRecord(res)
+	rec = makeBaseRecord(res, keepTimestamp)
 	yield ("resources", rec)
 	for setName in res.registration.sets:
 		rec["setName"] = setName
@@ -158,18 +166,18 @@ class RDRscRecIterator(grammars.RowIterator):
 	def _iterRows(self):
 		for svc in self.sourceToken.services:
 			self.curSource = svc.id
-			for sr in iterSvcRecs(svc):
+			for sr in iterSvcRecs(svc, self.grammar.keepTimestamp):
 				yield sr
 
 		for res in self.sourceToken.resRecs:
 			self.curSource = res.id
-			for sr in iterResRecs(res):
+			for sr in iterResRecs(res, self.grammar.keepTimestamp):
 				yield sr
 
 		for res in itertools.chain(self.sourceToken.tables, self.sourceToken.dds):
 			self.curSource = res.id
 			if res.registration:
-				for sr in iterDataRecs(res):
+				for sr in iterDataRecs(res, self.grammar.keepTimestamp):
 					yield sr
 	
 	def getLocation(self):
@@ -181,10 +189,15 @@ class RDRscRecGrammar(grammars.Grammar):
 	"""
 	rowIterator = RDRscRecIterator
 	isDispatching = True
+
+	# this is a flag to try and keep the registry timestamps as they are
+	# during republication.
+	keepTimestamp = False
 _rdRscRecGrammar = base.makeStruct(RDRscRecGrammar)
 
 
-def updateServiceList(rds, metaToo=False, connection=None, onlyWarn=True):
+def updateServiceList(rds, metaToo=False, connection=None, onlyWarn=True,
+		keepTimestamp=False):
 	"""updates the services defined in rds in the services table in the database.
 	"""
 	recordsWritten = 0
@@ -193,6 +206,7 @@ def updateServiceList(rds, metaToo=False, connection=None, onlyWarn=True):
 		connection = base.getDBConnection("admin")
 	dd = getServicesRD().getById("tables")
 	dd.grammar = _rdRscRecGrammar
+	dd.grammar.keepTimestamp = keepTimestamp
 	depDD = getServicesRD().getById("deptable")
 	msg = None
 	for rd in rds:
@@ -293,7 +307,12 @@ def parseCommandLine():
 		" for publications.", dest="all", action="store_true")
 	parser.add_option("-m", "--meta-too", help="update meta information, too",
 		dest="meta", action="store_true")
-	parser.add_option("-f", "--fixed", help="ignored", action="store_true")
+	parser.add_option("-f", "--fixed", help="ignored", action="store_true",
+		dest="ignored")
+	parser.add_option("-k", "--keep-timestamps", help="Preserve the"
+		" time stamp of the last record modification.  This may sometimes"
+		" be desirable when updating a schema to avoid a reharvesting of"
+		" all resource records.", action="store_true", dest="keepTimestamp")
 	return parser.parse_args()
 
 
@@ -345,7 +364,8 @@ def main():
 	getServicesRD().touchTimestamp()
 	if opts.all:
 		args = findAllRDs()
-	updateServiceList(getRDs(args), metaToo=opts.meta)
+	updateServiceList(getRDs(args), metaToo=opts.meta, 
+		keepTimestamp=opts.keepTimestamp)
 	tryServiceReload()
 
 
