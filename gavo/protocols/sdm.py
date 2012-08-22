@@ -354,6 +354,14 @@ def mangle_cutout(sdmTable, low, high):
 	Both low and high must be given.  If you actually want half-open intervals,
 	do it in interface code (low=-1 and high=1e308 should do fine).
 	"""
+	spectralUnit = sdmTable.tableDef.getByUtype(
+		"spec:Spectrum.Char.SpectralAxis.Unit").value
+	# convert low and high from meters to the unit on the 
+	# spectrum's spectral axis
+	factor = base.computeConversionFactor("m", spectralUnit)
+	low = low*factor
+	high = high*factor
+
 	spectralName = sdmTable.tableDef.getByUtype(
 		"spec:Data.SpectralAxis.Value").name
 	return rsc.TableForDef(sdmTable.tableDef,

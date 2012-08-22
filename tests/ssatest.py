@@ -199,7 +199,7 @@ class GetDataTest(_WithSSATableTest):
 	def testCutoutFull(self):
 		res = getRD().getById("c").runFromDict(
 			{"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
-				"FORMAT": "text/plain", "BAND": "1762/1764"}, "ssap.xml")
+				"FORMAT": "text/plain", "BAND": "1.762e-7/1.764e-7"}, "ssap.xml")
 		mime, payload = res.original
 		self.assertEqual(payload, 
 			'1762.0\t1746.0\n1763.0\t1745.0\n1764.0\t1744.0\n')
@@ -208,7 +208,7 @@ class GetDataTest(_WithSSATableTest):
 		res = getRD().getById("c").runFromDict(
 			{"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
 				"FORMAT": "application/x-votable+xml;encoding=tabledata", 
-				"BAND": "1927/"}, "ssap.xml")
+				"BAND": "1.927e-7/"}, "ssap.xml")
 		mime, payload = res.original
 		self.failUnless('xmlns:spec="http://www.ivoa.net/xml/SpectrumModel/v1.01'
 			in payload)
