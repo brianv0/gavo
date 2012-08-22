@@ -81,8 +81,8 @@ def iterAuthorsAndSubjects(resource, sourceRD, resId):
 	
 	# for authors, we support a special notation, separating individual
 	# authors with semicolons.
-	for authors in resource.iterMeta("creator.name"):
-		authors = [s.strip() for s in unicode(authors).split(";")]
+	for authors in resource.iterMeta("creator.name", propagate="True"):
+		authors = [s.strip() for s in authors.getContent("text").split(";")]
 		for author in authors:
 			if not author.startswith("et al"):
 				yield ("authors", {

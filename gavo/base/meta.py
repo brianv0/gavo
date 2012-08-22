@@ -331,17 +331,24 @@ class MetaMixin(object):
 			else:
 				yield mv
 			
-	def iterMeta(self, key):
+	def iterMeta(self, key, propagate=False):
 		"""yields all MetaValues for key.
 
 		This will traverse down all branches necessary to yield, in sequence,
 		all MetaValues reachable by key.
 
-		So far, no meta propagation takes place; if this is implemented,
-		think whether or not meta items along the propagation axis
-		should be concatenated.
+		If propagation is enabled, the first meta carrier that has at least
+		one item exhausts the iteration.
+
+		(this currently doesn't return an iterator but a sequence; that's an
+		implementation detail though, you should only assume whatever comes
+		back is iterable)
 		"""
-		return self._iterMeta(parseKey(key))
+		val = list(self._iterMeta(parseKey(key)))
+		if not val and propagate:
+			if self.__hasMetaParent():
+				val = self.__metaParent.iterMeta(key)
+		return val
 
 	def buildRepr(self, key, builder, propagate=True, raiseOnFail=True):
 		value = self.getMeta(key, raiseOnFail=raiseOnFail, propagate=propagate)

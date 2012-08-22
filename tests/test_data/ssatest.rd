@@ -1,4 +1,11 @@
 <resource schema="test" resdir=".">
+	<meta name="creationDate">1973-02-03T12:22:01Z</meta>
+	<meta name="title">DaCHS SSA unittest resource</meta>
+	<meta name="description">You should not see this.</meta>
+	<meta name="subject">Testing</meta>
+	<meta name="creator.name">Hendrix, J.; Page, J; et al.</meta>
+	<meta name="creator.name">The Master Tester</meta>
+
 	<table id="hcdtest" onDisk="True" primary="accref">
 		<meta name="description">A boring and pointless test table</meta>
 		<mixin 
@@ -74,6 +81,7 @@
 			<condDesc buildFrom="excellence"/>
 		</ssapCore>
 		<publish render="ssap.xml" sets="local"/>
+		<meta name="shortName">ssatest test ssa</meta>
 		<meta name="ssap.dataSource">artificial</meta>
 		<meta name="ssap.creationType">archival</meta>
 		<meta name="ssap.testQuery">TARGETNAME=alpha%20Boo</meta>

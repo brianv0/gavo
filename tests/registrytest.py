@@ -386,6 +386,35 @@ class DataPublicationMetaTest(testhelpers.VerboseTest):
 			"registrytest._PublishedData.clean failed?")
 
 
+class _ResobGrammarResponse(testhelpers.TestResource):
+	"""A resource giving the records the grammar in registry.publication
+	spits out for a simple resource.
+	"""
+	def make(self, deps):
+		tables = {}
+		rd = base.caches.getRD("data/ssatest")
+		for destTable, row in publication._rdRscRecGrammar.parse(rd):
+			tables.setdefault(destTable, []).append(row)
+		return tables
+
+
+class ResobGrammarTest(testhelpers.VerboseTest):
+	resources = [("tables", _ResobGrammarResponse())]
+
+	def testServicePresent(self):
+		self.assertEqual(self.tables["resources"][0]["ivoid"],
+			'ivo://x-unregistred/data/ssatest/s')
+	
+	def testSubjects(self):
+		self.assertEqual(self.tables["subjects"],
+			[{'sourceRD': 'data/ssatest', 'resId': u's', 'subject': 'Testing'}])
+	
+	def testAuthors(self):
+		self.assertEqual(
+			set([r["author"] for r in self.tables["authors"]]),
+			set(['Hendrix, J.', 'Page, J', 'The Master Tester']))
+
+
 class _PublishedRD(testhelpers.TestResource):
 	"""A resource that publishes all the stuff from an RD for while the
 	resource exists.

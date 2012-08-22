@@ -176,6 +176,7 @@ class IterMetaTest(testhelpers.VerboseTest):
 		self.assertEqual(list(v.getContent() for v in m.iterMeta("foo.bar")),
 			["a", "b", "c"])
 
+# XXX TODO: add a test for propagation
 
 class SetAndDelTest(testhelpers.VerboseTest):
 	"""tests for working deletion and setting of meta items.
