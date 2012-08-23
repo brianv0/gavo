@@ -378,11 +378,6 @@ def _importBasicResources():
 		base.ui.notifyInfo("Importing %s"%rdId)
 		importing.process(rsc.getParseOptions(), [rdId])
 
-	# publish //services so at least the authority has a record
-	# (we want that at least for unit tests).
-	from gavo.registry import publication
-	publication.updateServiceList([base.caches.getRD("//services")])
-
 
 def initDB(dsn):
 	"""creates users and tables expected by DaCHS in the database described
