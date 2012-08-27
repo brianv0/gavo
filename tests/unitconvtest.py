@@ -116,6 +116,9 @@ class GoodUnitStringTest(GrammarTest):
 		("(am/fs)/((m/s)/(pc/a))", "(am/fs)/((m/s)/(pc/a))"),
 		("(km^(3.25)/s^(3.25))/pc", "(km**(13/4)/s**(13/4))/pc"),
 #10
+		("log(Hz)", "log(Hz)"),
+		("sqrt(m2)", "sqrt(m2)"),
+		("exp(J^(3/2)/m2)/ln(solMass).lyr", "(exp(J**(3/2)/m2)/ln(solMass)) lyr"),
 	]
 
 
@@ -139,6 +142,8 @@ class BadUnitStringTest(GrammarTest):
 		"cd/(ms*zm",
 		"ks**3",
 		"ks^3",
+		"sin(s)",
+		"exp(s)^(3/2)",
 	]
 
 
@@ -164,37 +169,46 @@ class GetSITest(testhelpers.VerboseTest):
 #5
 			("ks3/hm2", (1e5, {'s': 3, 'm': -2})),
 			("13 ks3/hm2", (1.3e6, {'s': 3, 'm': -2})),
+			("log(Yadu-4)", (-96, {('log', 'adu'): -4})),
+			("10+4 sqrt(log(uadu-4))", (48989.7948557, {('log', 'adu'): -2})),
+			("log(km)", (3, {('log', 'm'): 1})),
 			]
 
 
-class ConvFactorTest(testhelpers.VerboseTest):
-	"""tests for the functionality of the getFactor top-level function.
-	"""
-	def testFactors(self):
-		"""tests for factors with valid unit strings.
-		"""
-		for example, expected in [
-				(("m/s", "cm/s"), 100),
-				(("1 10+4 V/m", "kV/dm"), 1),
-				(("arcsec/a", "mas/d"), 2.737851),
-				(("kHz", "GHz"), 1e-6),
-			]:
-			res = base.computeConversionFactor(*example)
-			self.assertAlmostEqual(res, expected, 6, msg="getFactor%s yielded %f,"
-				" expected %f."%(example, res, expected))
+class GoodConvFactorTest(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
 
-	def testFactorFails(self):
-		"""tests for correct exceptions raised for bad unit strings or conversions.
-		"""
-		for example, exception in [
-				(("m7v", "cm/s"), base.BadUnit),
-				(("m/ks", "cm..s"), base.BadUnit),
-				(("m/s", "V/m"), base.IncompatibleUnits),
-				(("arcsec/m", "byte"), base.IncompatibleUnits),
-			]:
-			self.assertRaisesVerbose(exception, base.computeConversionFactor, example,
-				"getFactors%s didn't raise an exception (or raised the wrong"
-				" one)")
+	def _runTest(self, sample):
+		example, expected = sample
+		res = base.computeConversionFactor(*example)
+		self.assertEqualToWithin(res, expected, 1e-10)
+
+	samples = [
+		(("m/s", "cm/s"), 100),
+		(("1 10+4 V/m", "kV/dm"), 1),
+		(("arcsec/a", "mas/d"), 2.73785078713),
+		(("kHz", "GHz"), 1e-6), 
+		(("sqrt(Mm/us)", "m^(0.5) s**(-0.5)"), 1e6),
+	]
+
+
+class BadConvFactorTest(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		example, excType = sample
+		self.assertRaisesVerbose(excType, 
+			base.computeConversionFactor, example,
+			"getFactors%s didn't raise an exception (or raised the wrong"
+			" one)")
+
+	samples = [
+		(("m7v", "cm/s"), base.BadUnit),
+		(("m/ks", "cm..s"), base.BadUnit),
+		(("m/s", "V/m"), base.IncompatibleUnits),
+		(("arcsec/m", "byte"), base.IncompatibleUnits),
+		(("log(Mm/us)", "log(m/s)"), base.IncompatibleUnits),
+		]
 
 
 class ColumnConvTest(testhelpers.VerboseTest):

@@ -170,6 +170,38 @@ class Factor(_Node):
 		return factor**self.power, powers
 
 
+class FunctionApplication(_Node):
+	"""A function applied to a term.
+	"""
+	_pythonFunc = {
+		"ln": math.log,
+		"log": math.log10,
+		"exp": math.exp,
+		"sqrt": math.sqrt,
+	}
+
+	def __init__(self, s, p, toks):
+		self.funcName = toks[0]
+		self.term = toks[1]
+
+	def __str__(self):
+		return "%s(%s)"%(self.funcName, self.term)
+
+	def __repr__(self):
+		return "A(%s ; %s)"%(repr(self.funcName), repr(self.term))
+	
+	def getSI(self):
+		factor, powers = self.term.getSI()
+		if self.funcName=="sqrt":
+			powers = dict((key, value/2.) 
+				for key, value in powers.iteritems())
+		else:
+			powers = dict(((self.funcName, key), value) 
+				for key, value in powers.iteritems())
+		return self._pythonFunc[self.funcName](factor), powers
+
+
+
 class Term(_Node):
 	"""A Node containing two factors and an operator.
 	"""
@@ -263,15 +295,9 @@ def _parseScaleFactor(s, pos, toks):
 	"""a parse action making a float out of the weird format for the global
 	scale factor.
 
-	toks can be 1-element (a float literal) or 2-element (float literal plus
-	10-exponent)
+	toks must have dict keys; we evaluate mantissa and power.
 	"""
-	if len(toks)==1:
-		return float(toks[0])
-	elif len(toks)==2:
-		return float(toks[0])*10**toks[1]
-	else:
-		raise Exception("This can't happen")
+	return float(toks.get("mantissa", 1))*10**float(toks.get("power", 0))
 
 
 def evalAll(s, p, t):
@@ -301,6 +327,8 @@ class getUnitGrammar(utils.CachedResource):
 			dekaPrefix = Literal("da")
 			dekaPrefix.setWhitespaceChars("")
 
+			function_name = Regex("sqrt|log|exp|ln")
+
 			atomicUnit = (simpleUnit 
 				^ (prefix + simpleUnit) 
 				^ (dekaPrefix + simpleUnit))
@@ -329,17 +357,22 @@ class getUnitGrammar(utils.CachedResource):
 					_buildFactor)
 
 			term = Forward()
-			unit_expression = (factor
+			function_application = (function_name
+				+ Suppress(OPEN_P) + term + Suppress(CLOSE_P))
+			function_application.setParseAction(FunctionApplication)
+
+			unit_expression = (function_application
+				| factor
 				| Suppress(OPEN_P) + term + Suppress(CLOSE_P))
+				
 			term << (unit_expression 
 					+ ZeroOrMore(point_operator + unit_expression)
 				).setParseAction(_buildTerm)
 
-			scale_factor = (FLOAT 
-				+ Optional(Suppress(
-							multiplication_operator
-							+Literal("10")) 
-					+ numeric_power))
+			pow_10 = Literal("10") + numeric_power("power")
+			scale_factor = (FLOAT("mantissa") + multiplication_operator + pow_10
+				| pow_10
+				| FLOAT("mantissa"))
 			scale_factor.addParseAction(_parseScaleFactor)
 			input = (
 				Optional(scale_factor + Suppress(multiplication_operator))
@@ -386,6 +419,19 @@ def computeConversionFactor(unitStr1, unitStr2):
 	if powers1!=powers2:
 		raise IncompatibleUnits("%s and %s do not have the same SI base"%(
 			unitStr1, unitStr2))
+	
+	# tuples as keys in powers come from non-polynomial function
+	# applications; in such cases, multiplication is not good enough
+	# for conversions, and thus we give up.
+	for u in powers1.iterkeys():
+		if isinstance(u, tuple):
+			raise IncompatibleUnits("%s has a non-polynomial function. No"
+				" conversion by multiplication possible"%(unitStr1))
+	for u in powers2.iterkeys():
+		if isinstance(u, tuple):
+			raise IncompatibleUnits("%s has a non-polynomial function. No"
+				" conversion by multiplication possible"%(unitStr2))
+
 	return factor1/factor2
 
 
