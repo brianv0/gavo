@@ -259,7 +259,17 @@ class VerboseTest(testresources.ResourcedTestCase):
 			else:
 				raise AssertionError("%s != %s within %d places"%(
 					first, second, places))
-	
+
+	def assertEqualToWithin(self, a, b, ratio=1e-7, msg=None):
+		"""asserts that abs(a-b/(a+b))<ratio.
+		
+		If a+b are an underflow, we error out right now.
+		"""
+		if msg is None:
+			msg = "%s != %s to within %s of the sum"%(a, b, ratio)
+		denom = abs(a+b)
+		self.failUnless(abs(a-b)/denom<ratio, msg)
+
 	def assertOutput(self, toExec, argList, expectedStdout=None, 
 			expectedStderr="", expectedRetcode=0, input=None,
 			stdoutStrings=None):

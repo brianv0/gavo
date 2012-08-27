@@ -12,7 +12,7 @@
 			instrument="DaCHS test suite" 
 			fluxCalibration="UNCALIBRATED"
 			fluxSI=" "
-			spectralSI="1x10-10m"
+			spectralSI="1 10-10 m"
 			>//ssap#hcd</mixin>
 		<column name="excellence" type="integer" description="random number">
 			<values nullLiteral="-1"/>

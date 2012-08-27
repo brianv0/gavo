@@ -40,7 +40,7 @@ class getHexToBin(codetricks.CachedResource):
 	"""returns a dictionary mapping hex chars to their binary expansions.
 	"""
 	@classmethod
-	def impl(self):
+	def impl(cls):
 		return dict(zip(
 			"0123456789abcdef",
 			["0000", "0001", "0010", "0011", "0100", "0101", "0110", "0111",

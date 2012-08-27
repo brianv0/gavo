@@ -9,12 +9,10 @@ import math
 import re
 import traceback
 
-from pyparsing import Word, Literal, Regex, Optional, ZeroOrMore, StringEnd
-from pyparsing import MatchFirst, ParseException, ParserElement
+import pyparsing
 
 from gavo import utils
 
-ParserElement.enablePackrat()
 
 class IncompatibleUnits(utils.Error):
 	pass
@@ -26,33 +24,43 @@ class BadUnit(utils.Error):
 # We can't yet restructure the tree, so we don't do SI-base-casting for
 # compound units.  Also, we don't change anything when a change of exponent
 # would be necessary
-units = {
+PLAIN_UNITS = units = {
 	"a": (3600*24*365.25, "s"), # This is the SI/julian year!
-	"A": (1, "A"), 
+	"A": (1, "A"),				# *Ampere* not Angstrom 
+	"adu": (1, "adu"),
 	u"\xc5": (1e-10, "m"),
+	"Angstrom": (1e-10, "m"),
+	"angstrom": (1e-10, "m"),
 	"AU": (1.49598e11, "m"), 
 	"arcmin": (math.pi/180./60., "rad"), 
 	"arcsec": (math.pi/180./3600., "rad"), 
 	"barn": (1, "barn"),  # 1e-28 m2
+	"beam": (1, "beam"), 
 	"bit": (1, "bit"), 
+	"bin": (1, "bin"), 
 	"byte": (1, "byte"),  # I don't think we ever want to unify bit and byte
 	"C": (1, "C"),        # A.s
 	"cd": (1, "cd"), 
 	"ct": (1, "ct"), 
+	"count": (1, "ct"), 
+	"chan": (1, "chan"), 
 	"D": (1e-19/3., "D"), # C.m
 	"d": (3600*24, "s"), 
 	"deg": (math.pi/180., "rad"), 
+	"erg": (1e-7, "J"), 
 	"eV": (1.602177e-19, "J"), 
 	"F": (1, "F"),        # C/V
 	"g": (1e-3, "kg"), 
+	"G": (1e-4, "T"), 
 	"h": (3600., "s"), 
 	"H": (1, "H"),        # Wb/A
 	"Hz": (1, "Hz"),      # s-1
-	"J": (1, "J"), 
+	"J": (1, "J"), 				# kg m^2/s^2
 	"Jy": (1, "Jy"),			# 1e-26 W/m2/Hz
 	"K": (1, "K"), 
 	"lm": (1, "lm"), 
 	"lx": (1, "lx"), 
+	"lyr": (2627980686828.0, "m"), 
 	"m": (1, "m"), 
 	"mag": (1, "mag"),    # correlate that with, erm, lux?
 	"mas": (math.pi/180./3.6e6, "rad"), 
@@ -62,6 +70,8 @@ units = {
 	"Ohm": (1, "Ohm"),    # V/A
 	"Pa": (1, "Pa"),      # N/m^2
 	"pc": (3.0857e16, "m"), 
+	"ph": (1, "ph"), 
+	"photon": (1, "ph"), 
 	"pix": (1, "pix"), 
 	"rad": (1, "rad"), 
 	"Ry": (2.17989e-18, "J"), 
@@ -71,183 +81,288 @@ units = {
 	"solMass": (1.989e30, "kg"),
 	"solRad": (6.9559e8, "m"), 
 	"sr": (1, "sr"), 
-	"T": (1, "T"),        # Wb/m2
+	"T": (1, "T"),        # V.s/m2
 	"V": (1, "V"), 
-	"W": (1, "W"),        # kg.m2/s2 or A.V -- that's going to be a tough one
+	"voxel": (1, "voxel"),
+	"W": (1, "W"),        # kg.m2/s3 or A.V -- that's going to be a tough one
 	"Wb": (1, "Wb"), 
 	"yr": (3600*24*365.25, "s"), # This is the SI/julian year!
 }
 
-prefixes = {"d": 1e-1, "c": 1e-2, "m":1e-3, "u":1e-6, 
+PREFIXES = prefixes = {"d": 1e-1, "c": 1e-2, "m":1e-3, "u":1e-6, 
 	"n":1e-9, "p":1e-12, "f":1e-15, "a":1e-18, "z":1e-21, "y":1e-24,
 	"da": 1e1, "h":1e2, "k":1e3, "M":1e6, "G":1e9, "T":1e12, "P":1e15, 
 	"E":1e18, "Z":1e21, "Y":1e24}
 
 
-class Prefix(object):
-	"""is a decimal prefix to a unit.
+def formatScaleFactor(aFloat):
+	"""returns a float in the form <mantissa> 10<exponent>.
 
-	You find the float value of the thing in its float attribute.
+	Floats looking good as simple decimals (modulus between 0.01 and 1000)
+	are returned without exponent.
+	"""
+	if 0.01<=abs(aFloat)<=1000:
+		return ("%f"%aFloat).rstrip("0")
+
+	exponent = int(math.log10(aFloat))
+	mantissa = ("%f"%(aFloat/10**exponent)).rstrip("0")
+	return "%s 10%+d"%(mantissa, exponent)
+
+
+class _Node(object):
+	"""the abstract base for a node in a Unit tree.
+	"""
+
+
+class UnitNode(_Node):
+	"""a preterminal node containing a unit and possibly a prefix.
+
+	It is constructed from the unit grammar.
 	"""
 	def __init__(self, s, pos, toks):
-		self.prefix = toks[0]
-		self.float = prefixes[self.prefix]
-
-
-class ExedFloat(object):
-	"""is a float in the mant x exp notation of CDS.
-	"""
-	pat = re.compile(r"([\d.]+)(?:x10([+-])(\d+))?$")
-
-	def __init__(self, s, pos, toks):
-		self.literal = toks[0]
-		mat = self.pat.match(self.literal)
-		mantissa = float(mat.group(1))
-		exponent = 0
-		if mat.group(3):
-			exponent = int(mat.group(3))
-			if mat.group(2)=="-":
-				exponent = -exponent
-		self.float = mantissa*10**exponent
-
-
-class Unit(object):
-	"""is a unit with an optional numeric factor and an optional prefix in
-	front and an optional exponent at the end.
-	"""
-	def __init__(self, s, pos, toks):
-		self.scale = 1
-		self.exponent = 1
-		self.unit = "--"
-		for tok in toks:
-			if isinstance(tok, Prefix) or isinstance(tok, ExedFloat):
-				self.scale *= tok.float
-			elif isinstance(tok, basestring):
-				self.unit = tok
-			elif isinstance(tok, int):
-				self.exponent = tok
-			else:
-				raise Exception("This can't happen")
-	
-	def __str__(self):
-		parts = []
-		if self.scale!=1:
-			parts.append(str(self.scale))
-		parts.append(self.unit)
-		if self.exponent!=1:
-			parts.append(str(self.exponent))
-		return "".join(parts)
-	
-	def toSI(self):
-		"""tries to make self's unit SI.
-
-		This will usually change scale.
-		"""
-		factor, newUnit = units.get(self.unit, (None, None))
-		self.scale *= factor
-		self.unit = newUnit
-	
-	def __cmp__(self, other):
-		if isinstance(other, Unit):
-			return cmp((self.unit, self.exponent), (other.unit, other.exponent))
-		return super(Unit, self).__cmp__(other)
-
-
-class Expression(object):
-	"""is an expression made of possibly scaled units, multiplication, and
-	division.
-	"""
-	def __init__(self, s, pos, toks):
-		self.globalFactor = 1
-		self.units = []
-		self._addTokens(toks)
+		if len(toks)==2:
+			self.prefix, self.unit = toks[0], toks[1]
+			self.prefixFactor = PREFIXES[self.prefix]
+		else:
+			self.prefix, self.prefixFactor = "", 1
+			self.unit = toks[0]
 
 	def __str__(self):
-		prefix = ""
-		if self.globalFactor!=1:
-			prefix = "%g "%self.globalFactor
-		return prefix+" ".join([unicode(u) for u in self.units])
+		return "%s%s"%(self.prefix, self.unit)
 
 	def __repr__(self):
-		return repr(self.__str__())
+		return "U(%s ; %s)"%(self.prefix, repr(self.unit))
 
-	def _addTokens(self, toks):
-		curOperator = "."
-		for tok in toks:
-			if isinstance(tok, Unit):
-				if curOperator=="/":
-					tok.exponent = -tok.exponent
-				self.units.append(tok)
-			elif isinstance(tok, str):
-				curOperator = tok
+	def getSI(self):
+		"""returns a pair of factor and basic unit.
+
+		Basic units are what's in the defining pairs in the PLAIN_UNITS dict.
+		"""
+		factor, basic = PLAIN_UNITS[self.unit]
+		return self.prefixFactor*factor, {basic: 1}
+
+
+class Factor(_Node):
+	"""An AtomicUnit with a power.
+	"""
+	def __init__(self, s, p, toks):
+		self.unit = toks[0]
+		self.power = toks[1]
+
+	def __str__(self):
+		powerLit = repr(self.power).rstrip("0").rstrip(".")
+		if "." in powerLit:
+			# see if we can come up with a nice fraction
+			for denom in range(2, 8):
+				if abs(int(self.power*denom)-self.power*denom)<1e-13:
+					powerLit = "**(%d/%d)"%(round(self.power*denom), denom)
+					break
 			else:
-				raise Exception("This can't happen")
+				powerLit = "**"+powerLit
+		return "%s%s"%(self.unit, powerLit)
+
+	def __repr__(self):
+		return "F(%s ; %s)"%(repr(self.unit), repr(self.power))
 	
-	def normalize(self):
-		"""tries to convert all subordinate units to SI, collects all factors 
-		into one and sorts the remaining units.
+	def getSI(self):
+		factor, powers = self.unit.getSI()
+		powers[powers.keys()[0]] = self.power
+		return factor**self.power, powers
+
+
+class Term(_Node):
+	"""A Node containing two factors and an operator.
+	"""
+	def __init__(self, s, pos, toks):
+		assert len(toks)==3
+		self.op1, self.op2 = toks[0], toks[2]
+		self.operator = toks[1]
+		if self.operator=='.' or self.operator=='*':
+			self.operator = ' '
+
+	def __str__(self):
+		op1Lit, op2Lit = str(self.op1), str(self.op2)
+		if isinstance(self.op1, Term):
+			op1Lit = "(%s)"%op1Lit
+		if isinstance(self.op2, Term):
+			op2Lit = "(%s)"%op2Lit
+		return "%s%s%s"%(op1Lit, self.operator, op2Lit)
+
+	def __repr__(self):
+		return "T(%s ; %s ; %s)"%(repr(self.op1), 
+			repr(self.operator), repr(self.op2))
+
+	def getSI(self):
+		factor1, powers1 = self.op1.getSI()
+		factor2, powers2 = self.op2.getSI()
+		newPowers = powers1
+		if self.operator==" ":
+			for si, power in powers2.iteritems():
+				newPowers[si] = newPowers.get(si, 0)+power
+			return factor1*factor2, newPowers
+		else:
+			for si, power in powers2.iteritems():
+				newPowers[si] = newPowers.get(si, 0)-power
+			return factor1/factor2, newPowers
+
+
+class Expression(_Node):
+	"""The root node of an expression tree, giving a factor (defaulting to 1)
+	and a term.
+	"""
+	def __init__(self, s, p, toks):
+		if len(toks)==2:
+			self.factor, self.term = toks
+		elif len(toks)==1:
+			self.factor, self.term = 1., toks[0]
+		else:
+			raise Exception("This can't happen")
+
+	def __str__(self):
+		if self.factor==1:
+			return str(self.term)
+		else:
+			return "%s %s"%(formatScaleFactor(self.factor), self.term)
+
+	def __repr__(self):
+		return "R(%s ; %s)"%(repr(self.factor), repr(self.term))
+
+	def getSI(self):
+		"""returns a pair of a numeric factor and a dict mapping SI units to
+		their powers.
 		"""
-		for unit in self.units:
-			unit.toSI()
-		for unit in self.units:
-			if unit.exponent<0:
-				self.globalFactor /= float(unit.scale)
-			else:
-				self.globalFactor *= unit.scale
-			unit.scale = 1
-		return self
+		factor, siPowers = self.term.getSI()
+		return factor*self.factor, siPowers
 
-	def getFactor(self, other):
-		"""returns a factor you have to multiply to values given in self
-		to get values given in other.
 
-		Both self and other have to be normalized.  The function will
-		raise an IncompatibleUnits exception if self and other do not
-		have the same dimension.
+def _buildTerm(s, pos, toks):
+	"""a parseAction for terms, making trees out of parse lists 
+	left-associatively.
+	"""
+	toks = list(toks)
+	curOperand = toks.pop(0)
+	while len(toks)>1:
+		curOperand = Term(s, pos, [curOperand, toks[0], toks[1]])
+		del toks[:2]
+	return curOperand
+
+
+def _buildFactor(s, pos, toks):
+	"""a parse action for factors, dispatching between the unit (1 operator)
+	or unit with power (2 operators) cases).
+	"""
+	if len(toks)==2:
+		return Factor(s, pos, toks)
+	elif len(toks)==1:
+		return toks[0]
+	else:
+		raise Exception("This can't happen")
+
+
+def _parseScaleFactor(s, pos, toks):
+	"""a parse action making a float out of the weird format for the global
+	scale factor.
+
+	toks can be 1-element (a float literal) or 2-element (float literal plus
+	10-exponent)
+	"""
+	if len(toks)==1:
+		return float(toks[0])
+	elif len(toks)==2:
+		return float(toks[0])*10**toks[1]
+	else:
+		raise Exception("This can't happen")
+
+
+def evalAll(s, p, t):
+	"""a parse action evaluating the whole match as a python expression.
+
+	Obviously, this should only be added to carefully screened nonterminals.
+	"""
+	return eval("".join(t))
+
+
+class getUnitGrammar(utils.CachedResource):
+	"""the grammar to parse VOUnits.
+
+	After initialization, the class has a "symbols" dictionary containing
+	the individual nonterminals.
+	"""
+	@classmethod
+	def impl(cls):
+		from pyparsing import (Word, Literal, Regex, Optional, ZeroOrMore,
+			MatchFirst, ParseException, nums, Suppress, Forward)
+		with utils.pyparsingWhitechars(''):
+			simpleUnit = Regex("|".join(
+				sorted(PLAIN_UNITS, key=lambda k: -len(k))))
+			prefix = Regex("|".join(p for p in PREFIXES if p!="da"))
+			# da is a valid unit, and I'd need backtracking without
+			# special casing.
+			dekaPrefix = Literal("da")
+			dekaPrefix.setWhitespaceChars("")
+
+			atomicUnit = (simpleUnit 
+				^ (prefix + simpleUnit) 
+				^ (dekaPrefix + simpleUnit))
+			atomicUnit.setParseAction(UnitNode)
+
+			OPEN_P = Literal('(')
+			CLOSE_P = Literal(')')
+			SIGN = Literal('+') | Literal('-')
+			UNSIGNED_INTEGER = Word("01234567890")
+			SIGNED_INTEGER = SIGN + UNSIGNED_INTEGER
+			FLOAT = Regex(r"[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)")
+
+			integer = SIGNED_INTEGER | UNSIGNED_INTEGER
+			power_operator = Suppress(Literal('**') | Literal("^"))
+			multiplication_operator = Literal(".") | Literal(" ") | Literal("*")
+			point_operator = Literal('/') | multiplication_operator
+			numeric_power = (integer 
+				| power_operator + OPEN_P + integer + CLOSE_P 
+				| power_operator + OPEN_P + FLOAT + CLOSE_P 
+				| power_operator + OPEN_P + integer + '/' + 
+					UNSIGNED_INTEGER.addParseAction(lambda s, p, t: t[0]+".") + CLOSE_P)
+			numeric_power.setParseAction(evalAll)
+
+			factor = (atomicUnit + numeric_power
+				| atomicUnit).addParseAction(
+					_buildFactor)
+
+			term = Forward()
+			unit_expression = (factor
+				| Suppress(OPEN_P) + term + Suppress(CLOSE_P))
+			term << (unit_expression 
+					+ ZeroOrMore(point_operator + unit_expression)
+				).setParseAction(_buildTerm)
+
+			scale_factor = (FLOAT 
+				+ Optional(Suppress(
+							multiplication_operator
+							+Literal("10")) 
+					+ numeric_power))
+			scale_factor.addParseAction(_parseScaleFactor)
+			input = (
+				Optional(scale_factor + Suppress(multiplication_operator))
+				+ term).setParseAction(Expression)
+
+			cls.symbols = locals()
+			return input
+
+	@classmethod
+	def enableDebuggingOutput(cls):
+		"""(not user-servicable)
 		"""
-		if self.units!=other.units:
-			raise IncompatibleUnits("%s, %s"%(str(self), str(other)))
-		return self.globalFactor/other.globalFactor
-
-
-def getUnitGrammar():
-	with utils.pyparsingWhitechars(" \t"):
-		unitStrings = units.keys()
-		unitStrings.sort(lambda a,b: -cmp(len(a), len(b)))
-		# funkyUnits those that would partially parse, like mas or mag
-		funkyUnit = Regex("cd|Pa|mas|mag")
-		unit = Regex("|".join(unitStrings))
-		unit.setWhitespaceChars("")
-		prefix = Regex("|".join(prefixes))
-		prefix.setParseAction(Prefix)
-		number = Regex(r"[+-]?(\d+(?:\.?\d+)?)(x10[+-]\d+)?").setParseAction(
-			ExedFloat)
-		integer = Regex(r"[+-]?(?:\d+)").setParseAction(lambda s, p, toks: 
-			int(toks[0]))
-		operator = Literal(".") | Literal("/")
-		completeUnit = (Optional(number) + ( funkyUnit | Optional(prefix) + unit ) + 
-			Optional(integer))
-		prefixlessUnit = Optional(number) + unit + Optional(integer)
-# The longest match here is a bit unfortunate, but it's necessary to keep
-# the machinery from happily accepting the m in ms as a unit and then
-# stumble since there's not operator or number following
-		unitLiteral = completeUnit | prefixlessUnit
-		unitLiteral.setParseAction(Unit)
-		expression = ( unitLiteral + ZeroOrMore( operator + unitLiteral ) +
-			StringEnd() ).setParseAction(Expression)
-
-		prefix.setName("metric prefix")
-		unit.setName("naked unit")
-		completeUnit.setName("unit with prefix")
-		prefixlessUnit.setName("unit without prefix")
-
-		return expression
+		from pyparsing import ParserElement
+		for name, sym in cls.symbols.iteritems():
+			if isinstance(sym, ParserElement):
+				sym.setDebug(True)
+				sym.setName(name)
 
 
 def parseUnit(unitStr, unitGrammar=getUnitGrammar()):
 	try:
-		return utils.pyparseString(unitGrammar, unitStr)[0]
-	except ParseException, msg:
+		return utils.pyparseString(unitGrammar, unitStr, parseAll=True)[0]
+	except pyparsing.ParseException, msg:
 		raise utils.logOldExc(
 			BadUnit("%s at col. %d"%(repr(unitStr), msg.column)))
 
@@ -256,18 +371,22 @@ def computeConversionFactor(unitStr1, unitStr2):
 	"""returns the factor needed to get from quantities given in unitStr1
 	to unitStr2.
 
-	Both must be given in a slightly relaxed form of CDS' unit notation.
+	Both must be given in VOUnits form (we allow cy for century, though).
 
 	This function may raise a BadUnit if one of the strings are
 	malformed, or an IncompatibleUnit exception if the units don't have
 	the same SI base.
+
+	If the function is successful, unitStr1 = result*unitStr2
 	"""
 	if unitStr1==unitStr2:
 		return 1
-	unit1, unit2 = parseUnit(unitStr1), parseUnit(unitStr2)
-	unit1.normalize()
-	unit2.normalize()
-	return unit1.getFactor(unit2)
+	factor1, powers1 = parseUnit(unitStr1).getSI()
+	factor2, powers2 = parseUnit(unitStr2).getSI()
+	if powers1!=powers2:
+		raise IncompatibleUnits("%s and %s do not have the same SI base"%(
+			unitStr1, unitStr2))
+	return factor1/factor2
 
 
 def computeColumnConversions(newColumns, oldColumns):
