@@ -364,8 +364,20 @@ def mangle_cutout(sdmTable, low, high):
 
 	spectralName = sdmTable.tableDef.getByUtype(
 		"spec:Data.SpectralAxis.Value").name
-	return rsc.TableForDef(sdmTable.tableDef,
-		rows=[row for row in sdmTable.rows if low<=row[spectralName]<=high])
+	# Whoa! we should have an API that allows replacing table rows safely
+	# (this stuff will blow up when we have indices):
+	sdmTable.rows=[
+		row for row in sdmTable.rows if low<=row[spectralName]<=high]
+
+	specVals = [r[spectralName] for r in sdmTable.rows]
+	if specVals:
+		specstart, specend = min(specVals)/factor, max(specVals)/factor
+		sdmTable.setParam("ssa_specext", specend-specstart)
+		sdmTable.setParam("ssa_specstart", specstart)
+		sdmTable.setParam("ssa_specend", specend)
+		sdmTable.setParam("ssa_specmid", (specstart+specend)/2)
+
+	return sdmTable
 
 
 def mangle_fluxcalib(sdmTable, newCalib):
@@ -385,6 +397,7 @@ def mangle_fluxcalib(sdmTable, newCalib):
 		normalizer = float(max(row[fluxName] for row in sdmTable.rows))
 		for row in sdmTable.rows:
 			row[fluxName] = row[fluxName]/normalizer
+		sdmTable.setParam("ssa_fluxcalib", "RELATIVE")
 		return sdmTable
 		
 	raise base.ValidationError("Do not know how to turn a %s spectrum"

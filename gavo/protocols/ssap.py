@@ -150,6 +150,9 @@ class SSAPCore(svcs.DBCore):
 				" accepted by this service: %s"%", ".join(unhandledArguments),
 				"(various)")
 
+		if not sdmData.getPrimaryTable().rows:
+			raise base.ValidationError("Spectrum is empty.", "(various)")
+
 		return sdm.formatSDMData(sdmData, inputTable.getParam("FORMAT"), 
 			queryMeta)
 			

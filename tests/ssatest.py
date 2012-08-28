@@ -166,7 +166,6 @@ class GetDataTest(_WithSSATableTest):
 			gpTable.xpath("PARAM[@name='FLUXCALIB']/VALUES/OPTION")), 
 			set(['uncalibrated', 'relative']))
 
-
 	def testNormalServicesReject(self):
 		self.assertRaisesWithMsg(base.ValidationError,
 			"No getData support on ivo://x-unregistred/data/ssatest/s",
@@ -203,6 +202,7 @@ class GetDataTest(_WithSSATableTest):
 		mime, payload = res.original
 		self.assertEqual(payload, 
 			'1762.0\t1746.0\n1763.0\t1745.0\n1764.0\t1744.0\n')
+		self.failIf('<TR><TD>1756.0</TD>' in payload)
 
 	def testCutoutHalfopen(self):
 		res = getRD().getById("c").runFromDict(
@@ -213,6 +213,22 @@ class GetDataTest(_WithSSATableTest):
 		self.failUnless('xmlns:spec="http://www.ivoa.net/xml/SpectrumModel/v1.01'
 			in payload)
 		self.failUnless('<TR><TD>1927.0</TD><TD>1581.0</TD>' in payload)
+		self.failIf('<TR><TD>1756.0</TD>' in payload)
+		tree = testhelpers.getXMLTree(payload, debug=False)
+		self.assertEqual(tree.xpath("//PARAM[@utype="
+			"'spec:Spectrum.Char.SpectralAxis.Coverage.Bounds.Start']"
+			)[0].get("value"), "1.927e-07")
+		self.assertEqual(tree.xpath("//PARAM[@utype="
+			"'spec:Spectrum.Char.SpectralAxis.Coverage.Bounds.Extent']"
+			)[0].get("value"), "1e-10")
+
+	def testEmptyCutoutFails(self):
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Spectrum is empty.",
+			getRD().getById("c").runFromDict,
+			({"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
+				"FORMAT": "application/x-votable+xml",
+				"BAND": "/1.927e-8"}, "ssap.xml"))
 
 	def testOriginalCalibOk(self):
 		mime, payload = getRD().getById("c").runFromDict(
@@ -224,9 +240,14 @@ class GetDataTest(_WithSSATableTest):
 	def testNormalize(self):
 		mime, payload = getRD().getById("c").runFromDict(
 			{"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
-				"FORMAT": "text/plain", 
-				"FLUXCALIB": "relative"}, "ssap.xml").original
-		self.failUnless(payload.startswith("1754.0\t1.0"))
+				"FORMAT": "application/x-votable+xml;encoding=tabledata", 
+				"BAND": "1.9e-7/1.92e-7", "FLUXCALIB": "relative"}, "ssap.xml").original
+		self.failUnless("<TD>1900.0</TD><TD>0.91676" in payload)
+		tree = testhelpers.getXMLTree(payload, debug=False)
+		self.assertEqual(tree.xpath(
+			"//PARAM[@utype='spec:Spectrum.Char.FluxAxis.Calibration']")[0].get(
+				"value"),
+			"RELATIVE")
 
 	def testBadCalib(self):
 		self.assertRaisesWithMsg(base.ValidationError,

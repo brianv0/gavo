@@ -201,7 +201,6 @@ class FunctionApplication(_Node):
 		return self._pythonFunc[self.funcName](factor), powers
 
 
-
 class Term(_Node):
 	"""A Node containing two factors and an operator.
 	"""
