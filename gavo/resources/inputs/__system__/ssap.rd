@@ -77,7 +77,7 @@
 			utype="ssa:Char.SpatialAxis.Coverage.Location.Value"
 			ucd="pos.eq"
 			verbLevel="5" tablehead="Location"
-			description="ICRS location of aperture center" unit="deg,deg"/>
+			description="ICRS location of aperture center" unit="deg"/>
 		<column name="ssa_aperture" 
 			utype="ssa:Char.SpatialAxis.Coverage.Bounds.Extent" ucd="instr.fov"
 			verbLevel="15" tablehead="Aperture" unit="deg"
@@ -477,7 +477,7 @@
 			<!-- condCond is combining to let the client specify SIZE but
 			not POS (as splat does); pql#coneParameter can handle that. -->
 			<inputKey name="POS" type="text" description="ICRS position of target
-				object" unit="deg,deg" std="True"
+				object" unit="deg" std="True"
 				utype="ssa:Char.SpatialAxis.Coverage.Location.Value"/>
 			<inputKey name="SIZE" description="Size of the region of
 				interest around POS" std="True" 

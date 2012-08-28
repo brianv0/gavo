@@ -49,12 +49,12 @@
 		<column name="wcs_refPixel" ucd="VOX:WCS_CoordRefPixel"
 			 type="real[]" verbLevel="20"
 			tablehead="Ref. pixel" description="WCS reference pixel"
-			unit="pix,pix"/>
+			unit="pix"/>
 		<column name="wcs_refValues" ucd="VOX:WCS_CoordRefValue"
 			 type="double precision[]"
 			verbLevel="20" tablehead="Ref. values"
 			description="World coordinates at WCS reference pixel"
-			unit="deg,deg"/>
+			unit="deg"/>
 		<column name="wcs_cdmatrix" ucd="VOX:WCS_CDMatrix" verbLevel="20"
 			 type="real[]" tablehead="CD matrix"
 			description="FITS WCS CDij matrix" unit="deg/pix"/>
@@ -441,13 +441,13 @@
 			</setup>
 		</phraseMaker>
 
-		<inputKey id="base_POS" name="POS" type="text" unit="deg,deg"
+		<inputKey id="base_POS" name="POS" type="text" unit="deg"
 			ucd="pos.eq"
 			description="ICRS Position, RA,DEC decimal degrees (e.g., 234.234,-32.46)"
 			tablehead="Position" required="True">
 		</inputKey>
 
-		<inputKey name="SIZE" type="text" unit="deg,deg" id="base_SIZE"
+		<inputKey name="SIZE" type="text" unit="deg" id="base_SIZE"
 			description="Size in decimal degrees (e.g., 0.2 or 1,0.1)"
 			tablehead="Field size" required="True">
 		</inputKey>

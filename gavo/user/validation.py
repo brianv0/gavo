@@ -137,6 +137,24 @@ def validateRowmakers(rd, args):
 	return True
 
 
+def validateTables(rd, args):
+	"""does some sanity checks on the (top-level) tables within rd.
+	"""
+	valid = True
+
+	for td in rd.tables:
+		for col in td:
+			try:
+				if col.unit:
+					base.parseUnit(col.unit)
+			except base.BadUnit:
+				valid = False
+				outputError(rd.sourceId, "Bad unit in table %s, column %s: %s"%(
+					td.getQName(), col.name, col.unit))
+
+		return valid
+
+
 def validateOne(rdId, args):
 	"""outputs to stdout various information on the RD identified by rdId.
 	"""
@@ -145,6 +163,7 @@ def validateOne(rdId, args):
 		return
 	validSoFar = validateServices(rd, args)
 	validSoFar = validSoFar and validateRowmakers(rd, args)
+	validSoFar = validSoFar and validateTables(rd, args)
 	return validSoFar
 
 
