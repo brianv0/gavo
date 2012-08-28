@@ -62,11 +62,9 @@ _registerHTMLMF(_sfMapperFactory)
 
 
 def _hmsMapperFactory(colDesc):
-	if ((colDesc["unit"]!="hms" 
-			and colDesc["displayHint"].get("type")!="time")
-		or colDesc["datatype"]=="char"):
+	if colDesc["displayHint"].get("type")!="hms":
 		return
-	colDesc["unit"] = "hms"
+	colDesc["unit"] = ""
 	sepChar = colDesc["displayHint"].get("sepChar", " ")
 	sf = int(colDesc["displayHint"].get("sf", 2))
 	def coder(val):
@@ -78,12 +76,10 @@ def _hmsMapperFactory(colDesc):
 _registerHTMLMF(_hmsMapperFactory)
 
 
-def _sexagesimalMapperFactory(colDesc):
-	if ((colDesc["unit"]!="dms" 
-			and colDesc["displayHint"].get("type")!="sexagesimal")
-		or colDesc["datatype"]=="char"):
+def _dmsMapperFactory(colDesc):
+	if colDesc["displayHint"].get("type")!="dms":
 		return
-	colDesc["unit"] = "dms"
+	colDesc["unit"] = ""
 	sepChar = colDesc["displayHint"].get("sepChar", " ")
 	sf = int(colDesc["displayHint"].get("sf", 2))
 	def coder(val):
@@ -91,7 +87,8 @@ def _sexagesimalMapperFactory(colDesc):
 			return "N/A"
 		return utils.degToDms(val, sepChar, sf)
 	return coder
-_registerHTMLMF(_sexagesimalMapperFactory)
+_registerHTMLMF(_dmsMapperFactory)
+
 
 def _unitMapperFactory(colDesc):
 	"""returns a factory that converts between units for fields that have

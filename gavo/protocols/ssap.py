@@ -70,8 +70,11 @@ class SSAPCore(svcs.DBCore):
 		resElement is a votable.V RESOURCE element, ssaTable is the SSA response
 		table.
 		"""
-		specMin = min(row["ssa_specstart"] for row in ssaTable.rows)
-		specMax = max(row["ssa_specend"] for row in ssaTable.rows)
+		if ssaTable.rows:
+			specMin = min(row["ssa_specstart"] for row in ssaTable.rows)
+			specMax = max(row["ssa_specend"] for row in ssaTable.rows)
+		else:
+			specMin = specMax = None
 
 		# fluxcalib is a param in hcd
 		try:

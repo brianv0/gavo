@@ -119,6 +119,7 @@ class GoodUnitStringTest(GrammarTest):
 		("log(Hz)", "log(Hz)"),
 		("sqrt(m2)", "sqrt(m2)"),
 		("exp(J^(3/2)/m2)/ln(solMass).lyr", "(exp(J**(3/2)/m2)/ln(solMass)) lyr"),
+		("10-27 J/(s m2 Angstrom)", "1. 10-27 J/((s m2) Angstrom)"),
 	]
 
 

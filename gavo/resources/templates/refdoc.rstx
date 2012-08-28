@@ -605,7 +605,7 @@ type
     protocols.products.  This display hint is also used by, e.g., the tar
     format to identify which columns should contribute to the tar file.
 
-  sexagesimal
+  dms
     format a float as degree, minutes, seconds.
 
   simbadlink
@@ -617,8 +617,8 @@ type
     do not automatically include this column in any table (e.g.,
     verbLevel-based column selection).
 
-  time
-    force formatting of this column as a time (with unit like hms).
+  hms
+    force formatting of this column as a time (usually for RA).
 
   url
     makes value a link in HTML tables.
