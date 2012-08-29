@@ -472,6 +472,34 @@
 	</mixinDef>
 
 
+	<procDef id="nocaseParableStringPQL" type="phraseMaker">
+		<doc>A procDef for condDescs that may match against table
+		params; this is for stuff like FLUXCALIB, which, with the
+		hcd mixin, is constant over the table.</doc>
+		<setup>
+			<par name="consCol" description="Name of the database column
+				constrained by the input value."/>
+			<code>
+				from gavo import rscdef
+			</code>
+		</setup>
+		<code>
+			key = inputKeys[0].name
+			val = inPars.get(key, None)
+			if val is None:
+				return
+			parsed = pql.PQLPar.fromLiteral(val.lower(), key)
+
+			valueSource = core.queriedTable.getByName(consCol)
+			if isinstance(valueSource, rscdef.Param):
+				if (valueSource.value is not None 
+						and not parsed.covers(valueSource.value.lower())):
+					yield '1!=1'
+			else:
+				yield parsed.getSQL(consCol, outPars)
+		</code>
+	</procDef>
+
 	<STREAM id="hcd_condDescs">
 		<condDesc id="coneCond" combining="True">
 			<!-- condCond is combining to let the client specify SIZE but
@@ -580,6 +608,7 @@
 			</phraseMaker>
 		</condDesc>
 
+
 		<!-- 
 			The following ssa keys make no sense for hcd tables since they
 		  are constant by definition:
@@ -599,7 +628,7 @@
 				PUBDID,       ssa_pubDID,    //pql#stringParameter
 				CREATORDID,   ssa_creatorDID,//pql#stringParameter
 				MTIME,        ssa_pdate,     //pql#dateParameter
-				FLUXCALIB,    ssa_fluxcalib, //pql#stringParameter
+				FLUXCALIB,    ssa_fluxcalib, //ssap#nocaseParableStringPQL
 			</csvItems>
 			<events>
 				<condDesc id="\keyName\+_cond">

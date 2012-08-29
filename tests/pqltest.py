@@ -230,5 +230,56 @@ class PQLIRTest(testhelpers.VerboseTest):
 			("foo", {}))
 
 
+class CoversTest(testhelpers.VerboseTest):
+	def testSimpleStringTrue(self):
+		cs = pql.PQLPar.fromLiteral("ABC", "quack")
+		self.assertEqual(cs.covers("ABC"), True)
+
+	def testSimpleStringFalse(self):
+		cs = pql.PQLPar.fromLiteral("ABC", "quack")
+		self.assertEqual(cs.covers("AB"), False)
+
+	def testStringEnumeration(self):
+		cs = pql.PQLPar.fromLiteral("AB,CDE,FG", "quack")
+		self.assertEqual(cs.covers("CDE"), True)
+	
+	def testStringIntervalTrue(self):
+		cs = pql.PQLPar.fromLiteral("!/@", "quack")
+		self.assertEqual(cs.covers("@"), True)
+
+	def testMultiStringIntervalFalse(self):
+		cs = pql.PQLPar.fromLiteral("!/@,B/}", "quack")
+		self.assertEqual(cs.covers("A"), False)
+	
+	def testMultiStringIntervalTrue(self):
+		cs = pql.PQLPar.fromLiteral("!/@,B/}", "quack")
+		self.assertEqual(cs.covers("Z"), True)
+
+	def testIntegerWithStepsTrue(self):
+		cs = pql.PQLIntPar.fromLiteral("50/100/10,200/250/20", "quack")
+		self.assertEqual(cs.covers(60), True)
+		self.assertEqual(cs.covers(220), True)
+
+	def testIntegerWithStepsFalse(self):
+		cs = pql.PQLIntPar.fromLiteral("50/100/10,200/250/20", "quack")
+		self.assertEqual(cs.covers(49), False)
+		self.assertEqual(cs.covers(51), False)
+		self.assertEqual(cs.covers(101), False)
+		self.assertEqual(cs.covers(201), False)
+		self.assertEqual(cs.covers(251), False)
+
+	def testHalfopenFloatTrue(self):
+		cs = pql.PQLFloatPar.fromLiteral("/-3,5/6,12.5/", "quack")
+		self.assertEqual(cs.covers(-5), True)
+		self.assertEqual(cs.covers(5.5), True)
+		self.assertEqual(cs.covers(13), True)
+
+	def testHalfopenFloatFalse(self):
+		cs = pql.PQLFloatPar.fromLiteral("/-3,5/6,12.5/", "quack")
+		self.assertEqual(cs.covers(-2.5), False)
+		self.assertEqual(cs.covers(6.5), False)
+
+
+
 if __name__=="__main__":
-	testhelpers.main(PQLIRTest)
+	testhelpers.main(CoversTest)

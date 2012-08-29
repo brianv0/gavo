@@ -134,6 +134,8 @@ class PQLRange(object):
 		elif (self.step is not None \
 				and self.start is not None 
 				and self.stop is not None):
+			if (self.stop-self.start)/abs(self.step)+1e-10>2000:
+				raise ValueError("Too many steps; will not check discretely")
 			res, val = set(), self.start
 			while val<=self.stop:
 				res.add(val)
@@ -192,6 +194,30 @@ class PQLRange(object):
 					upperColName))
 			return "(%s)"%" AND ".join(constraints)
 
+	def covers(self, value):
+		"""returns True if value is covered by this interval.
+
+		value must be type-true, i.e. in whatever type value, start, and stop
+		have.
+		"""
+		# try a single value
+		if self.value is not None:
+			return value==self.value
+
+		# try a discrete set ("step" has been specified)
+		try:
+			return value in self.getValuesAsSet()
+		except ValueError: # not a discrete set
+			pass
+	
+		# interval, possibly half-open
+		covers = True
+		if self.start is not None:
+			covers &= self.start<=value
+		if self.stop is not None:
+			covers &= self.stop>=value
+		return covers
+
 					
 class PQLPar(object):
 	"""a representation for PQL expressions.
@@ -210,6 +236,12 @@ class PQLPar(object):
 	ValueError if the string does not contain a proper literal.
 	The default for valParser is str, the default for stepParser
 	a function that always raises a ValueError.
+
+	PQLPars usually support a covers(value) method that you can
+	pass a value having the required type; it will return whether or
+	not value would be picked up by the condition formulated in PQL.  
+	Some advanced PQLPars do not support this method and will 
+	raise a ValueError if called.
 
 	Note: valParser and stepParser must not be *methods* of the
 	class but plain functions; since they are function-like class attributes,
@@ -307,33 +339,18 @@ class PQLPar(object):
 			return "(%s)"%" OR ".join(
 				r.getSQL(colName, sqlPars) for r in self.ranges)
 
+	def covers(self, value):
+		"""returns true if value is within the ranges specified by the PQL 
+		expression.
 
-class PQLTextParIR(PQLPar):
-	"""a PQL string parameter matching "google-like", "Information Retrieval".
+		value must be type-true, i.e., you are responsible for converting it
+		into the type the range are in.
+		"""
+		for r in self.ranges:
+			if r.covers(value):
+				return True
+		return False
 
-	Basically, this matches the input and the database column as document
-	vectors.  Correspondingly, ranges are disallowed.
-	"""
-	nullvalue = ""
-
-	def getSQL(self, colName, sqlPars):
-		try:
-			docs = self.getValuesAsSet()
-		except ValueError:
-			# ranges were given; we don't support those with IR-searching
-			raise base.LiteralParseError(colName, str(self), hint=
-				"Ranges are not allowed with IR-matches (or did you want to"
-				" to search for a slash?  In that case, please escape it)")
-
-		keys = []
-		for doc in docs:
-			keys.append(base.getSQLKey(colName, doc, sqlPars))
-
-		return "(%s)"%" OR ".join(
-			"to_tsvector(%s) @@ plainto_tsquery(%%(%s)s)"%(
-				colName,
-				keyName)
-			for keyName in keys)
 
 
 class PQLIntPar(PQLPar):
@@ -406,6 +423,10 @@ class PQLPositionPar(PQLPar):
 				lastCoo = None
 		return "(%s)"%" OR ".join(parts)
 
+	def covers(self, value):
+		raise ValueError("%s do not support PQL covers yet.  Complain."
+			"  This is fairly easy to fix."%self.__class__.__name__)
+
 
 class PQLFloatPar(PQLPar):
 	"""a PQL float parameter.
@@ -449,11 +470,46 @@ class PQLShellPatternPar(PQLPar):
 		return "ssa_targname %s %%(%s)s"%(self._reOperator,
 			base.getSQLKey(colName, self.ranges[0].value, sqlPars))
 
+	def covers(self, value):
+		raise ValueError("%s do not support PQL covers yet.  Complain."
+			"  This is easy to fix."%self.__class__.__name__)
+
 
 class PQLNocaseShellPatternPar(PQLShellPatternPar):
 	"""a shell-pattern matching parameter, ignoring case.
 	"""
 	_reOperator = "~*"
+
+
+class PQLTextParIR(PQLPar):
+	"""a PQL string parameter matching "google-like", "Information Retrieval".
+
+	Basically, this matches the input and the database column as document
+	vectors.  Correspondingly, ranges are disallowed.
+	"""
+	nullvalue = ""
+
+	def getSQL(self, colName, sqlPars):
+		try:
+			docs = self.getValuesAsSet()
+		except ValueError:
+			# ranges were given; we don't support those with IR-searching
+			raise base.LiteralParseError(colName, str(self), hint=
+				"Ranges are not allowed with IR-matches (or did you want to"
+				" to search for a slash?  In that case, please escape it)")
+
+		keys = []
+		for doc in docs:
+			keys.append(base.getSQLKey(colName, doc, sqlPars))
+
+		return "(%s)"%" OR ".join(
+			"to_tsvector(%s) @@ plainto_tsquery(%%(%s)s)"%(
+				colName,
+				keyName)
+			for keyName in keys)
+
+	def covers(self, value):
+		raise ValueError("%s do not support PQL covers."%self.__class__.__name__)
 
 
 ######## posix shell patterns hacking (find some better place?)

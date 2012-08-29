@@ -552,6 +552,17 @@ class TableDef(base.Structure, base.ComputedMetaMixin, common.PrivilegesMixin,
 		except base.NotFoundError:
 			return self.columns.getColumnByUtype(utype)
 
+	def getByName(self, name):
+		"""returns the column or param with name.
+
+		There is nothing keeping you from having both a column and a param with
+		the same name.  If that happens, you will only see the column.  But
+		don't do it.
+		"""
+		try:
+			return self.columns.getColumnByName(name)
+		except base.NotFoundError:
+			return self.params.getColumnByName(name)
 
 	def getProductColumns(self):
 		"""returns the names of the columns containing products.

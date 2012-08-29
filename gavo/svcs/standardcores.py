@@ -60,6 +60,7 @@ class PhraseMaker(rscdef.ProcApp):
 		  provided by the user
 		- outPars -- a dictionary that is later used as the parameter
 			dictionary to the query.
+		- core -- the core to which this phrase maker's condDesc belongs
 	
 	To get the standard SQL a single key would generate, say::
 
@@ -80,7 +81,7 @@ class PhraseMaker(rscdef.ProcApp):
 	name_ = "phraseMaker"
 
 	requiredType = "phraseMaker"
-	formalArgs = "self, inputKeys, inPars, outPars"
+	formalArgs = "self, inputKeys, inPars, outPars, core"
 
 
 class CondDesc(base.Structure):
@@ -187,7 +188,7 @@ class CondDesc(base.Structure):
 		else:
 			return self.parent.rd.expand(*args, **kwargs)
 
-	def _makePhraseDefault(self, ignored, inputKeys, inPars, outPars):
+	def _makePhraseDefault(self, ignored, inputKeys, inPars, outPars, core):
 		# the default phrase maker uses whatever the individual input keys
 		# come up with.
 		for ik in self.inputKeys:
@@ -234,12 +235,14 @@ class CondDesc(base.Structure):
 					keysFound.append(f)
 		if not keysMissing:
 			return True
+
 		# keys are missing.  That's ok if none were found and we're not required
 		if not self.required and not keysFound:
 			return False
 		if self.required:
 			raise base.ValidationError("A value is necessary here", 
 				colName=keysMissing[0].name)
+
 		# we're optional, but a value was given and others are missing
 		if not self.combining:
 			raise base.ValidationError("When you give a value for %s,"
@@ -251,7 +254,8 @@ class CondDesc(base.Structure):
 	def asSQL(self, inPars, sqlPars, queryMeta):
 		if self.silent or not self.inputReceived(inPars, queryMeta):
 			return ""
-		res = list(self.makePhrase(self, self.inputKeys, inPars, sqlPars))
+		res = list(self.makePhrase(
+			self, self.inputKeys, inPars, sqlPars, self.parent))
 		sql = base.joinOperatorExpr("AND", res)
 		if self.fixedSQL:
 			sql = base.joinOperatorExpr("AND", [sql, self.fixedSQL])

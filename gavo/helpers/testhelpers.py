@@ -47,7 +47,8 @@ else:
 	TEST_BASE = os.getcwd()
 	originalEnvironment = os.environ.copy()
 	os.environ["GAVOCUSTOM"] = "/invalid"
-	os.environ["GAVOSETTINGS"] = os.path.join(TEST_BASE, "test_data", "test-gavorc")
+	os.environ["GAVOSETTINGS"] = os.path.join(TEST_BASE, 
+		"test_data", "test-gavorc")
 	if not os.path.exists(os.environ["GAVOSETTINGS"]):
 		warnings.warn("testhelpers imported from non-test directory.  This"
 			" is almost certainly not what you want (or set GAVO_OOTTEST).")
@@ -77,9 +78,14 @@ else:
 			initdachs.initDB(dsn)
 
 			from gavo.registry import publication
+			from gavo import rsc
 			from gavo import rscdesc
 			from gavo import base
 			publication.updateServiceList([base.caches.getRD("//services")])
+
+			# Import some resources necessary in trial tests
+			rsc.makeData(
+				base.caches.getRD("data/ssatest").getById("test_import"))
 		except:
 			import traceback
 			traceback.print_exc()

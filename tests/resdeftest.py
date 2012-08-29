@@ -211,6 +211,13 @@ class TableDefTest(testhelpers.VerboseTest):
 			t.getByUtype,
 			("stc:AstroCoordSystem",))
 
+	def testParamByName(self):
+		t = base.parseFromString(rscdef.TableDef, '<table id="t">'
+			' <param name="y"/><column name="x"/>'
+			' </table>')
+		self.assertEqual(t.getByName("y").name_, "param")
+		self.assertEqual(t.getByName("x").name_, "column")
+
 	def testRoles(self):
 		t = base.parseFromString(rscdef.TableDef, '<table id="t"></table>')
 		self.assertEqual(t.readProfiles, base.getConfig("db", "queryProfiles"))

@@ -131,6 +131,10 @@ class CoreQueriesTest(_WithSSATableTest):
 			[]),
 		({"WILDTARGET": "[br][oa]*"},
 			["test2", "test3"]),
+		({"FLUXCALIB": "CALIBRATED"},
+			[]),
+		({"FLUXCALIB": "unCALIBRATED"},
+			['test1', 'test3', 'test2']),
 	]
 
 

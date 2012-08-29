@@ -179,6 +179,8 @@ csTestTable = CSTestTable()
 
 
 class _SSATable(testhelpers.TestResource):
+# This stuff is now imported by testhelpers on test environment creation
+# (that's mainly so trial can use it, too).
 	resources = [("conn", dbConnection)]
 
 	def make(self, deps):
@@ -188,7 +190,8 @@ class _SSATable(testhelpers.TestResource):
 		return data.getPrimaryTable()
 	
 	def clean(self, res):
-		res.drop().commit()
+		# Leave the stuff so trial still has it.
+		pass
 
 ssaTestTable = _SSATable()
 
