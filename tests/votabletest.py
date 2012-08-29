@@ -827,6 +827,9 @@ class OverflowTest(testhelpers.VerboseTest):
 				overflowElement=votable.OverflowElement(2,
 					votable.V.GROUP(name="overflow"))))
 		self.failUnless('</TABLE><GROUP name="overflow"' in res)
+		# since the overflow element is rendered in a context of its own,
+		# it's non-trivial that no xml namespaces are declared on it.
+		self.failIf('name="overflow" xmlns' in res)
 
 
 class HackMetaTest(testhelpers.VerboseTest):

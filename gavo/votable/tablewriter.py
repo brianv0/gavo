@@ -47,11 +47,16 @@ class OverflowElement(stanxml.Stub):
 	material to be inserted when exactly row limit (or more) rows
 	have been written to the table.
 
-	This will not work with stanxml serialization (could be fixed).
+	All automatic namespace processing is turned off for the overflow
+	element.  This should not be a problem if you're embedding VOTable
+	elements into VOTables.
 	"""
 	def __init__(self, rowLimit, overflowStan):
 		self.rowLimit, self.overflowStan = rowLimit, overflowStan
 		self.rowsDelivered = None
+		# disable namespace generation for write (ugly; fix this when
+		# we've improved XML generation in xmlstan)
+		self.overflowStan._fixedTagMaterial = ""
 
 	def __repr__(self):
 		return "<Uninstanciated Overflow Warning>"

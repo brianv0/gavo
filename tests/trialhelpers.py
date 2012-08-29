@@ -182,8 +182,8 @@ class RenderTest(TrialTest):
 			).addCallback(self.assertStringsIn, strings, inverse=inverse)
 
 	def assertGETHasStrings(self, path, args, strings, rm=None):
-		return self.assertResultHasStrings("GET", path, args, strings,
-			rm)
+		return self.assertResultHasStrings("GET", 
+			path, args, strings, rm)
 
 	def assertGETLacksStrings(self, path, args, strings, rm=None):
 		return self.assertResultHasStrings("GET", 
