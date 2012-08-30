@@ -135,6 +135,24 @@ class CoreQueriesTest(_WithSSATableTest):
 			[]),
 		({"FLUXCALIB": "unCALIBRATED"},
 			['test1', 'test3', 'test2']),
+#25
+		({"SPECRP": "/1e-13"},
+			[]),
+		({"SPECRP": "1e-13/"},
+			['test1', 'test3', 'test2']),
+		({"SPATRES": "/1e-13"},
+			['test1', 'test3', 'test2']), # (no spatial resolution given in test set)
+		({"SPATRES": "1e-13/"},
+			['test1', 'test3', 'test2']),
+		({"WAVECALIB": "calibrated"},
+			['test1', 'test3', 'test2']),
+#30
+		({"WAVECALIB": "approximate"},
+			[]),
+		({"COLLECTION": "test set"},
+			['test1', 'test3', 'test2']),
+		({"COLLECTION": "Test set"},
+			[]),
 	]
 
 
@@ -416,8 +434,6 @@ class SSATableTest(testhelpers.VerboseTest):
 
 	def testEverythingExpanded(self):
 		self.failIf("\\" in self.docAndTree[0])
-
-
 
 
 class SDMRenderTest(testhelpers.VerboseTest):

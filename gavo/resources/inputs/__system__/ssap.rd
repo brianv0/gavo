@@ -286,12 +286,12 @@
 		</meta>
 		<FEED source="hcd_fields"/>
 		<FEED source="hcd_outpars" timeSI="junk" fluxSI="junk"
-			publisher="junk" creator="junk" collection="junk"
+			publisher="junk" creator="junk" collection=""
 			instrument="junk" dataSource="junk" creationType="junk"
 			reference="junk" fluxUCD="junk" spectralSI="junk"
 			spectralUCD="junk" statFluxError="NaN" sysFluxError="NaN"
 			fluxCalibration="" statSpectError="NaN" sysSpectError="NaN"
-			spectralCalibration="junk" statSpaceError="NaN"
+			spectralCalibration="" statSpaceError="NaN"
 			spectralResolution="NaN"/>
 	</table>
 
@@ -612,13 +612,9 @@
 
 
 		<!-- 
-			The following ssa keys make no sense for hcd tables since they
-		  are constant by definition:
-			SPECRP, SPATRES, TIMERES, WAVECALIB, COLLECTION
-
 			The following ssa keys cannot be generically supported since 
 			no SSA model column corresponds to them:
-			VARAMPL -->
+			VARAMPL, TIMERES -->
 		<LOOP>
 			<csvItems>
 				keyName,      matchCol,      procDef
@@ -648,6 +644,10 @@
 			<csvItems>
 				keyName,      matchCol,        parClass
 				FLUXCALIB,    ssa_fluxcalib,   pql.PQLCaselessPar
+				SPECRP,       ssa_specres,     pql.PQLFloatPar
+				SPATRES,      ssa_spaceRes,    pql.PQLFloatPar
+				WAVECALIB,    ssa_speccalib,   pql.PQLCaselessPar
+				COLLECTION,   ssa_collection,  pql.PQLPar
 			</csvItems>
 			<events>
 				<condDesc id="\keyName\+_cond">
