@@ -206,6 +206,24 @@ class PQLFloatTest(testhelpers.VerboseTest):
 			"val4": 7.})
 
 
+class PQLCaselessTest(testhelpers.VerboseTest):
+	def testSQLGeneration(self):
+		cs = pql.PQLCaselessPar.fromLiteral("AB/CD,FoOBar,{/", "quack")
+		pars = {}
+		expr = cs.getSQL("val", pars)
+		self.assertEqual(expr, "(LOWER(val) BETWEEN %(val0)s AND %(val1)s"
+			"  OR LOWER(val) = %(val2)s OR LOWER(val) >= %(val3)s)")
+		self.assertEqual(pars, { 'val0': 'ab', 'val1': 'cd', 
+			'val2': 'foobar', 'val3': '{',})
+
+	def testSQLGenerationDiscrete(self):
+		cs = pql.PQLCaselessPar.fromLiteral("AB,CD,al Horno,22%", "quack")
+		pars = {}
+		expr = cs.getSQL("val", pars)
+		self.assertEqual(expr, "LOWER(val) IN %(val0)s")
+		self.assertEqual(pars, {'val0': set(['al horno', '22%', 'ab', 'cd'])})
+
+
 class PQLIRTest(testhelpers.VerboseTest):
 	def testBasic(self):
 		cs = pql.PQLTextParIR.fromLiteral("abc ef", "foo")
@@ -254,6 +272,18 @@ class CoversTest(testhelpers.VerboseTest):
 	def testMultiStringIntervalTrue(self):
 		cs = pql.PQLPar.fromLiteral("!/@,B/}", "quack")
 		self.assertEqual(cs.covers("Z"), True)
+
+	def testCaselessStringLower(self):
+		cs = pql.PQLCaselessPar.fromLiteral("abu/simbel", "quack")
+		self.assertEqual(cs.covers("BEMBEL"), True)
+
+	def testCaselessStringUpper(self):
+		cs = pql.PQLCaselessPar.fromLiteral("ABU/SIMBEL", "quack")
+		self.assertEqual(cs.covers("bembel"), True)
+
+	def testCaselessStringSingle(self):
+		cs = pql.PQLCaselessPar.fromLiteral("beMbel", "quack")
+		self.assertEqual(cs.covers("BEmBEL"), True)
 
 	def testIntegerWithStepsTrue(self):
 		cs = pql.PQLIntPar.fromLiteral("50/100/10,200/250/20", "quack")

@@ -472,13 +472,15 @@
 	</mixinDef>
 
 
-	<procDef id="nocaseParableStringPQL" type="phraseMaker">
+	<procDef id="parablePQLPar" type="phraseMaker">
 		<doc>A procDef for condDescs that may match against table
-		params; this is for stuff like FLUXCALIB, which, with the
-		hcd mixin, is constant over the table.</doc>
+		params *or* table columns, depending on where consCol is found.
+		</doc>
 		<setup>
 			<par name="consCol" description="Name of the database column
 				constrained by the input value."/>
+			<par name="parClass" description="Identifier of a PQLPar
+				(sub)class that is used to parse the incoming value."/>
 			<code>
 				from gavo import rscdef
 			</code>
@@ -488,12 +490,12 @@
 			val = inPars.get(key, None)
 			if val is None:
 				return
-			parsed = pql.PQLPar.fromLiteral(val.lower(), key)
+			parsed = parClass.fromLiteral(val, key)
 
 			valueSource = core.queriedTable.getByName(consCol)
 			if isinstance(valueSource, rscdef.Param):
 				if (valueSource.value is not None 
-						and not parsed.covers(valueSource.value.lower())):
+						and not parsed.covers(valueSource.value)):
 					yield '1!=1'
 			else:
 				yield parsed.getSQL(consCol, outPars)
@@ -628,7 +630,6 @@
 				PUBDID,       ssa_pubDID,    //pql#stringParameter
 				CREATORDID,   ssa_creatorDID,//pql#stringParameter
 				MTIME,        ssa_pdate,     //pql#dateParameter
-				FLUXCALIB,    ssa_fluxcalib, //ssap#nocaseParableStringPQL
 			</csvItems>
 			<events>
 				<condDesc id="\keyName\+_cond">
@@ -636,6 +637,25 @@
 						type="text" std="True"/>
 					<phraseMaker procDef="\procDef">
 						<bind name="consCol">"\matchCol"</bind>
+					</phraseMaker>
+				</condDesc>
+			</events>
+		</LOOP>
+
+		<!-- the following keys may need to be compared against PARAMs,
+		hence the special handling -->
+		<LOOP>
+			<csvItems>
+				keyName,      matchCol,        parClass
+				FLUXCALIB,    ssa_fluxcalib,   pql.PQLCaselessPar
+			</csvItems>
+			<events>
+				<condDesc id="\keyName\+_cond">
+					<inputKey original="//ssap#instance.\matchCol" name="\keyName"
+						type="text" std="True"/>
+					<phraseMaker procDef="//ssap#parablePQLPar">
+						<bind name="consCol">"\matchCol"</bind>
+						<bind name="parClass">\parClass</bind>
 					</phraseMaker>
 				</condDesc>
 			</events>

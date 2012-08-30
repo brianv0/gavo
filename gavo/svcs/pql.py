@@ -143,31 +143,38 @@ class PQLRange(object):
 			return res
 		raise ValueError("No set representation for non-stepped or open ranges.")
 
-	def getSQL(self, colName, sqlPars):
+	def getSQL(self, colName, sqlPars, cmpExpr=None):
 		"""returns an SQL boolean expression for representing this constraint.
+
+		cmpExpr, if given, will be an expression that is compared
+		against.  It defaults to colName, but this is, of course, intended
+		to allow stuff like LOWER(colName).
 		"""
+		if cmpExpr is None:
+			cmpExpr = colName
+
 		# Single Value
 		if self.value is not None:
-			return "%s = %%(%s)s"%(colName, 
+			return "%s = %%(%s)s"%(cmpExpr, 
 				base.getSQLKey(colName, self.value, sqlPars))
 		
 		# Discrete Set
 		try:
-			return "%s IN %%(%s)s"%(colName, base.getSQLKey(colName, 
+			return "%s IN %%(%s)s"%(cmpExpr, base.getSQLKey(colName, 
 				self.getValuesAsSet(), sqlPars))
 		except ValueError: # Not a discrete set
 			pass
 
 		# At least one half-open or non-stepped range
 		if self.start is None and self.stop is not None:
-			return "%s <= %%(%s)s"%(colName, 
+			return "%s <= %%(%s)s"%(cmpExpr, 
 				base.getSQLKey(colName, self.stop, sqlPars))
 		elif self.start is not None and self.stop is None:
-			return "%s >= %%(%s)s"%(colName, 
+			return "%s >= %%(%s)s"%(cmpExpr, 
 				base.getSQLKey(colName, self.start, sqlPars))
 		else:
 			assert self.start is not None and self.stop is not None
-			return "%s BETWEEN %%(%s)s AND %%(%s)s "%(colName, 
+			return "%s BETWEEN %%(%s)s AND %%(%s)s "%(cmpExpr, 
 				base.getSQLKey(colName, self.start, sqlPars),
 				base.getSQLKey(colName, self.stop, sqlPars))
 
@@ -325,19 +332,27 @@ class PQLPar(object):
 			res.update(r.getValuesAsSet())
 		return res
 
-	def getSQL(self, colName, sqlPars):
+	def getSQL(self, colName, sqlPars, cmpExpr=None):
 		"""returns an SQL condition expressing this PQL constraint for colName.
 
 		The parameters necessary are added to sqlPars.
+
+		cmpExpr can be used to override the cmpExpr argument to PQLRange.getSQL;
+		this is not really intended for user code, though, but rather for
+		subclasses of PQLPar
 		"""
+		if cmpExpr is None:
+			cmpExpr = colName
+
 		if len(self.ranges)==1: # Special case for SQL cosmetics
-			return self.ranges[0].getSQL(colName, sqlPars)
+			return self.ranges[0].getSQL(colName, sqlPars, cmpExpr=cmpExpr)
+
 		try:
-			return "%s IN %%(%s)s"%(colName, base.getSQLKey(colName, 
+			return "%s IN %%(%s)s"%(cmpExpr, base.getSQLKey(colName, 
 				self.getValuesAsSet(), sqlPars))
 		except ValueError:  # at least one open or non-stepped range
 			return "(%s)"%" OR ".join(
-				r.getSQL(colName, sqlPars) for r in self.ranges)
+				r.getSQL(colName, sqlPars, cmpExpr=cmpExpr) for r in self.ranges)
 
 	def covers(self, value):
 		"""returns true if value is within the ranges specified by the PQL 
@@ -350,7 +365,6 @@ class PQLPar(object):
 			if r.covers(value):
 				return True
 		return False
-
 
 
 class PQLIntPar(PQLPar):
@@ -447,6 +461,24 @@ class PQLFloatPar(PQLPar):
 			return "(%s)"%" OR ".join(
 				r.getSQLForInterval(lowerColName, upperColName, sqlPars) 
 					for r in self.ranges)
+
+
+class PQLCaselessPar(PQLPar):
+	"""a PQL string parameter that's compared with case folding.
+
+	Don't count on case folding to work outside of ASCII.
+	"""
+	valParser = staticmethod(lambda val: val and val.lower())
+
+	def getSQL(self, colName, sqlPars, cmpExpr=None):
+		"""Overridden to change cmpExpr.
+		"""
+		return PQLPar.getSQL(self, colName, sqlPars, "LOWER(%s)"%colName)
+
+	def covers(self, value):
+		if value is None:
+			return False
+		return PQLPar.covers(self, value.lower())
 
 
 class PQLShellPatternPar(PQLPar):
