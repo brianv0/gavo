@@ -21,9 +21,6 @@ class GrammarTest(testhelpers.VerboseTest):
 			self.assertEqual(str(tree), result)
 		except base.ParseException:
 			raise AssertionError("%s doesn't parse"%source)
-		except:
-			sys.stderr.write("\nFailed example is %s\n"%source)
-			raise
 
 	def _assertFailure(self, expr):
 		self.assertRaisesVerbose(base.BadUnit,
@@ -80,6 +77,13 @@ class AtomicUnitTest(_AtomicUnitBase):
 		("ysolMass", (1989000, 'kg')),
 		("ma", (31557.6, 's')),
 		("mag", (1., 'mag')),
+#25
+		("au", (1.6605388600000002e-45, 'kg')),
+		("u", (1.6605388600000002e-27, 'kg')),
+		("uu", (1.6605388600000002e-33, 'kg')),
+		("ua", (31.5576, 's')),
+		("mAU", (149598000.0, 'm')),
+		("Marcsec", (4.84813681109536, 'rad')),
 	]
 
 
@@ -108,18 +112,29 @@ class GoodUnitStringTest(GrammarTest):
 		("10 km/s", "10. km/s"),
 		("10.5 m s-1", "10.5 m s-1"),
 		("10.5 10+4 m/s", "1.05 10+5 m/s"),
-		("kg*m/s2", "(kg m)/s2"),
+		("kg*m/s2", "kg m/s2"),
 # 5
 		("mas**(2/3)", "mas**(2/3)"),
-		("mas/yr.m", "(mas/yr) m"),
+		("(mas/yr).m", "mas/yr m"),
 		("mmag/(m2 s)", "mmag/(m2 s)"),
-		("(am/fs)/((m/s)/(pc/a))", "(am/fs)/((m/s)/(pc/a))"),
-		("(km^(3.25)/s^(3.25))/pc", "(km**(13/4)/s**(13/4))/pc"),
+		("(am/fs)/((m/s)/(pc/a))", "am/fs/(m/s/(pc/a))"),
+		("(km^(3.25)/s^(3.25))/pc", "km**(13/4)/s**(13/4)/pc"),
 #10
 		("log(Hz)", "log(Hz)"),
 		("sqrt(m2)", "sqrt(m2)"),
-		("exp(J^(3/2)/m2)/ln(solMass).lyr", "(exp(J**(3/2)/m2)/ln(solMass)) lyr"),
-		("10-27 J/(s m2 Angstrom)", "1. 10-27 J/((s m2) Angstrom)"),
+		("(exp(J^(3/2)/m2)/ln(solMass)).lyr", "exp(J**(3/2)/m2)/ln(solMass) lyr"),
+		("10-27 J/(s m2 Angstrom)", "1. 10-27 J/(s m2 Angstrom)"),
+		("ks**3", "ks3"),
+#15
+		("ks^3", "ks3"),
+		("pixel/s", "pixel/s"),
+		("mHz^2 Gs**-3.mmag*mm^3", "mHz2 Gs-3 mmag mm3"),
+		("m**-3", "m-3"),
+		("m-3", "m-3"),
+		("m+3", "m3"),
+		("0.1 nm", "0.1 nm"),
+		("10 m", "10. m"),
+		("10.0 m", "10. m"),
 	]
 
 
@@ -141,10 +156,17 @@ class BadUnitStringTest(GrammarTest):
 		"+b",
 		"10e7m",
 		"cd/(ms*zm",
-		"ks**3",
-		"ks^3",
 		"sin(s)",
 		"exp(s)^(3/2)",
+		"n",
+		"m *kg",
+		"m* kg",
+		"m   . kg",
+		"m**3/kg/s^2",
+		"m)s",
+		"m***3",
+		"m=s",
+		"-0.1m",
 	]
 
 
@@ -173,6 +195,7 @@ class GetSITest(testhelpers.VerboseTest):
 			("log(Yadu-4)", (-96, {('log', 'adu'): -4})),
 			("10+4 sqrt(log(uadu-4))", (48989.7948557, {('log', 'adu'): -2})),
 			("log(km)", (3, {('log', 'm'): 1})),
+			("dam.dm**2", (0.1, {'m': 3})),
 			]
 
 

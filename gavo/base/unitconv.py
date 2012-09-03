@@ -73,6 +73,7 @@ PLAIN_UNITS = units = {
 	"ph": (1, "ph"), 
 	"photon": (1, "ph"), 
 	"pix": (1, "pix"), 
+	"pixel": (1, "pix"), 
 	"rad": (1, "rad"), 
 	"Ry": (2.17989e-18, "J"), 
 	"s": (1, "s"), 
@@ -82,6 +83,7 @@ PLAIN_UNITS = units = {
 	"solRad": (6.9559e8, "m"), 
 	"sr": (1, "sr"), 
 	"T": (1, "T"),        # V.s/m2
+	"u": (1.66053886e-27, "kg"),
 	"V": (1, "V"), 
 	"voxel": (1, "voxel"),
 	"W": (1, "W"),        # kg.m2/s3 or A.V -- that's going to be a tough one
@@ -213,9 +215,7 @@ class Term(_Node):
 
 	def __str__(self):
 		op1Lit, op2Lit = str(self.op1), str(self.op2)
-		if isinstance(self.op1, Term):
-			op1Lit = "(%s)"%op1Lit
-		if isinstance(self.op2, Term):
+		if self.operator=='/' and isinstance(self.op2, Term):
 			op2Lit = "(%s)"%op2Lit
 		return "%s%s%s"%(op1Lit, self.operator, op2Lit)
 
@@ -338,17 +338,17 @@ class getUnitGrammar(utils.CachedResource):
 			SIGN = Literal('+') | Literal('-')
 			UNSIGNED_INTEGER = Word("01234567890")
 			SIGNED_INTEGER = SIGN + UNSIGNED_INTEGER
-			FLOAT = Regex(r"[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)")
+			FLOAT = Regex(r"[+-]?([0-9]+(\.[0-9]*)?)")
 
 			integer = SIGNED_INTEGER | UNSIGNED_INTEGER
 			power_operator = Suppress(Literal('**') | Literal("^"))
 			multiplication_operator = Literal(".") | Literal(" ") | Literal("*")
-			point_operator = Literal('/') | multiplication_operator
 			numeric_power = (integer 
+				| power_operator + integer
 				| power_operator + OPEN_P + integer + CLOSE_P 
 				| power_operator + OPEN_P + FLOAT + CLOSE_P 
-				| power_operator + OPEN_P + integer + '/' + 
-					UNSIGNED_INTEGER.addParseAction(lambda s, p, t: t[0]+".") + CLOSE_P)
+				| power_operator + OPEN_P + integer + '/'
+					+ UNSIGNED_INTEGER.addParseAction(lambda s, p, t: t[0]+".") + CLOSE_P)
 			numeric_power.setParseAction(evalAll)
 
 			factor = (atomicUnit + numeric_power
@@ -363,9 +363,10 @@ class getUnitGrammar(utils.CachedResource):
 			unit_expression = (function_application
 				| factor
 				| Suppress(OPEN_P) + term + Suppress(CLOSE_P))
-				
+
 			term << (unit_expression 
-					+ ZeroOrMore(point_operator + unit_expression)
+					+ ZeroOrMore(multiplication_operator + unit_expression)
+					+ Optional(Literal('/') + unit_expression)
 				).setParseAction(_buildTerm)
 
 			pow_10 = Literal("10") + numeric_power("power")
