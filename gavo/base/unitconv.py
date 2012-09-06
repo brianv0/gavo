@@ -91,6 +91,12 @@ PLAIN_UNITS = units = {
 	"yr": (3600*24*365.25, "s"), # This is the SI/julian year!
 }
 
+# These are the keys from PLAIN_UNITS that cannot take SI prefixes
+NON_PREFIXABLE = frozenset([
+	"AU", "D", "Ry", "arcmin", "beam", "bin", "chan", "d", "h", "mas",
+	"min", "ph", "photon", "pix", "pixel", "solLum", "solMass", "solRad",
+	"voxel"])
+
 PREFIXES = prefixes = {"d": 1e-1, "c": 1e-2, "m":1e-3, "u":1e-6, 
 	"n":1e-9, "p":1e-12, "f":1e-15, "a":1e-18, "z":1e-21, "y":1e-24,
 	"da": 1e1, "h":1e2, "k":1e3, "M":1e6, "G":1e9, "T":1e12, "P":1e15, 
@@ -318,8 +324,13 @@ class getUnitGrammar(utils.CachedResource):
 		from pyparsing import (Word, Literal, Regex, Optional, ZeroOrMore,
 			MatchFirst, ParseException, nums, Suppress, Forward)
 		with utils.pyparsingWhitechars(''):
-			simpleUnit = Regex("|".join(
-				sorted(PLAIN_UNITS, key=lambda k: -len(k))))
+			prefixableUnit = Regex("|".join(u for u in
+					sorted(PLAIN_UNITS, key=lambda k: -len(k))
+				if u not in NON_PREFIXABLE))
+			nonPrefixableUnit = Regex("|".join(u for u in
+					sorted(PLAIN_UNITS, key=lambda k: -len(k))
+				if u in NON_PREFIXABLE))
+
 			prefix = Regex("|".join(p for p in PREFIXES if p!="da"))
 			# da is a valid unit, and I'd need backtracking without
 			# special casing.
@@ -328,9 +339,10 @@ class getUnitGrammar(utils.CachedResource):
 
 			function_name = Regex("sqrt|log|exp|ln")
 
-			atomicUnit = (simpleUnit 
-				^ (prefix + simpleUnit) 
-				^ (dekaPrefix + simpleUnit))
+			atomicUnit = (nonPrefixableUnit
+				^ prefixableUnit 
+				^ (prefix + prefixableUnit) 
+				^ (dekaPrefix + prefixableUnit))
 			atomicUnit.setParseAction(UnitNode)
 
 			OPEN_P = Literal('(')
