@@ -8,7 +8,7 @@ import csv
 
 from gavo import base
 from gavo import utils
-from gavo.grammars.common import Grammar, FileRowIterator
+from gavo.grammars.common import Grammar, FileRowIterator, FileRowAttributes
 
 
 class CSVIterator(FileRowIterator):
@@ -24,13 +24,11 @@ class CSVIterator(FileRowIterator):
 		return "FIXME"
 
 
-class CSVGrammar(Grammar):
+class CSVGrammar(Grammar, FileRowAttributes):
 	"""A grammar that uses python's csv module to parse files.
 	"""
 	name_ = "csvGrammar"
 
-	_gunzip = base.BooleanAttribute("gunzip", description="Unzip sources"
-		" while reading?", default=False)
 	_delimiter = base.UnicodeAttribute("delimiter", 
 		description="CSV delimiter", default=",")
 		

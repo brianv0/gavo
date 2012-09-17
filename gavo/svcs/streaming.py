@@ -2,7 +2,6 @@
 Streaming out large computed things using twisted and threads.
 """
 
-import collections
 import sys
 import time
 import threading
@@ -24,59 +23,6 @@ from gavo.formats import votablewrite
 class StopWriting(IOError):
 	"""clients can raise this when they want the stream to abort.
 	"""
-
-
-class StreamBuffer(object):
-	"""a buffer that takes data in arbitrary chunks and returns
-	them in chops of chunkSize bytes.
-
-	There's a lock in place so you can access add and get from
-	different threads.
-
-	When everything is written, you must all doneWriting.
-	"""
-	chunkSize = 50000 # XXX TODO: Can we make a reasoned  choice here?
-
-	def __init__(self):
-		self.buffer = collections.deque()
-		self.curSize = 0
-		self.lock = threading.Lock()
-		self.finished = False
-	
-	def add(self, data):
-		with self.lock:
-			self.buffer.append(data)
-			self.curSize += len(data)
-	
-	def get(self):
-		if self.curSize<self.chunkSize and not self.finished:
-			return None
-		if not self.buffer:
-			return None
-
-		with self.lock:
-			items, sz = [], 0
-			# collect items till we've got a chunk
-			while self.buffer:
-				item = self.buffer.popleft()
-				sz += len(item)
-				self.curSize -= len(item)
-				items.append(item)
-				if sz>=self.chunkSize:
-					break
-
-			# make a chunk and push back what we didn't need
-			chunk = "".join(items)
-			leftOver = chunk[self.chunkSize:]
-			if leftOver:
-				self.buffer.appendleft(leftOver)
-			self.curSize += len(leftOver)
-			chunk = chunk[:self.chunkSize]
-
-		return chunk
-	
-	def doneWriting(self):
-		self.finished = True
 
 
 class DataStreamer(threading.Thread):
@@ -112,7 +58,7 @@ class DataStreamer(threading.Thread):
 		self.connectionLive = True
 		consumer.notifyFinish().addCallback(self._abortProducing)
 		self.setDaemon(True) # kill transfers on server restart
-		self.buffer = StreamBuffer()
+		self.buffer = utils.StreamBuffer()
 
 	def _abortProducing(self, res):
 		# the callback for notifyFinish -- res is non-None when the remote

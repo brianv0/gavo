@@ -9,7 +9,7 @@ import pyparsing
 
 from gavo import base
 from gavo import utils
-from gavo.grammars.common import Grammar, FileRowIterator
+from gavo.grammars.common import Grammar, FileRowIterator, FileRowAttributes
 
 
 class SplitLineIterator(FileRowIterator):
@@ -74,7 +74,7 @@ class ColRangeAttribute(base.UnicodeAttribute):
 				" (either int1-int2 or just an int) is expected here."))
 
 
-class ColumnGrammar(Grammar):
+class ColumnGrammar(Grammar, FileRowAttributes):
 	"""A grammar that builds rowdicts out of character index ranges.
 
 	This works by using the colRanges attribute like <col key="mag">12-16</col>,
@@ -97,8 +97,6 @@ class ColumnGrammar(Grammar):
 		"Skip this many lines at the top of each source file.")
 	_cols = base.DictAttribute("colRanges", description="Mapping of"
 		" source keys to column ranges.", itemAttD=ColRangeAttribute("col"))
-	_gunzip = base.BooleanAttribute("gunzip", description="Unzip sources"
-		" while reading?", default=False)
 	_colDefs = base.ActionAttribute("colDefs", description="Shortcut"
 		" way of defining cols", methodName="_parseColDefs")
 

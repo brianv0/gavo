@@ -6,7 +6,8 @@ using REs.
 import re
 
 from gavo import base
-from gavo.grammars.common import Grammar, FileRowIterator, REAttribute
+from gavo.grammars.common import (
+	Grammar, FileRowIterator, FileRowAttributes, REAttribute)
 
 
 class REIterator(FileRowIterator):
@@ -69,7 +70,7 @@ class REIterator(FileRowIterator):
 		return "line %d"%self.curLine
 
 
-class REGrammar(Grammar):
+class REGrammar(Grammar, FileRowAttributes):
 	"""A grammar that builds rowdicts from records and fields specified
 	via REs separating them.
 	"""
@@ -91,7 +92,5 @@ class REGrammar(Grammar):
 	_names = base.StringListAttribute("names", description=
 		"Names for the parsed columns, in sequence of the fields.  You can"
 		" use macros here, e.g., \colNames{someTable}.", expand=True)
-	_gunzip = base.BooleanAttribute("gunzip", description="Unzip sources"
-		" while reading?", default=False)
 	_lax = base.BooleanAttribute("lax", description="allow more or less"
 		" fields in source records than there are names", default=False)

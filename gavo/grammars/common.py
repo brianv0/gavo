@@ -5,6 +5,9 @@ Base classes and common code for grammars.
 import codecs
 import gzip
 import re
+import os
+import select
+import subprocess
 
 from gavo import base
 from gavo import rscdef
@@ -42,8 +45,114 @@ class REAttribute(base.UnicodeAttribute):
 			return value.pattern
 
 
-_atPattern = re.compile("@(%s)"%utils.identifierPattern.pattern[:-1])
+class FilteredInputFile(object):
+	"""a pseudo-file that allows piping data thorugh a shell command.
 
+	It supports read, readline, and close.  Close closes the original
+	file, too.
+
+	Warning: the command passed in will be shell-expanded (which is fair
+	since you can pass in any command you want anyway).
+
+	If you pass silent=True, stderr will be redirected to /dev/null.
+	This is probably only attractive for unit tests and such.
+	"""
+	def __init__(self, filterCommand, origFile, silent=False):
+		self.filterCommand, self.origFile = filterCommand, origFile
+
+		processArgs = {"shell": True,
+			"stdin": subprocess.PIPE, 
+			"stdout": subprocess.PIPE, 
+			"close_fds": True}
+		if silent:
+			processArgs["stderr"] = open("/dev/null", "w")
+		self.process = subprocess.Popen([self.filterCommand], **processArgs)
+		self.fromChild, self.toChild = self.process.stdout, self.process.stdin
+		self.buffer = utils.StreamBuffer(2**14)
+
+		try:
+			self.PIPE_BUF = select.PIPE_BUF
+		except AttributeError:
+			# use POSIX guarantee for python<2.7
+			self.PIPE_BUF = 512
+
+	def _fillChildBuffer(self):
+		"""feeds the child new data, closing the source file if all data
+		has been fed.
+		"""
+		data = self.origFile.read(self.PIPE_BUF)
+		if data=="":
+			# source file exhausted, tell child we're done
+			self.toChild.close()
+			self.toChild = None 
+		else:
+			self.toChild.write(data)
+
+	def _readAll(self):
+		allChunks = []
+		while True:
+			data = self.read(2**20)
+			if data=="":
+				break
+			allChunks.append(data)
+		return "".join(allChunks)
+
+	def _fillBuffer(self):
+		"""tries to obtain another chunk of data from the child, feeding
+		it new data if possible.
+		"""
+		if self.toChild:
+			writeList = [self.toChild]
+		else:
+			writeList = []
+		readReady, writeReady, _ = select.select(
+			[self.fromChild], writeList, [])
+		
+		if writeReady:
+			self._fillChildBuffer()
+
+		if readReady:
+			data = self.fromChild.read(self.PIPE_BUF)
+			if data=="":
+				self.buffer.doneWriting()
+				if self.process.wait():
+					raise IOError("Child exited with return code %s"%
+						self.process.wait())
+			self.buffer.add(data)
+
+	def read(self, nBytes=None):
+		if nBytes is None:
+			return self._readAll()
+
+		while self.buffer.curSize<nBytes and not self.buffer.finished:
+			self._fillBuffer()
+
+		return self.buffer.get(nBytes) or ""
+
+	def readline(self):
+		# let's do a quick one ourselves rather than inherit from file
+		# just for this; this just works with unix line ends.
+		while True:
+			val = self.buffer.getToChar("\n")
+			if val is None:
+				if self.buffer.finished:
+					return self.buffer.getRest()
+				else:
+					self._fillBuffer()
+			else:
+				return val
+
+	def close(self):
+		if self.process.returncode is None:
+			self.process.terminate()
+			# not checking the return code here; if the client closed
+			# while the child was still running, an error from it would
+			# not count as an error.
+			self.process.wait()
+		self.origFile.close()
+
+
+_atPattern = re.compile("@(%s)"%utils.identifierPattern.pattern[:-1])
 
 class Rowfilter(procdef.ProcApp):
 	"""A generator for rows coming from a grammar.
@@ -283,8 +392,33 @@ class FileRowIterator(RowIterator):
 		else:
 			self.inputFile = self.sourceToken
 			self.sourceToken = getattr(self.inputFile, "name", repr(self.sourceToken))
-		if hasattr(self.grammar, "gunzip") and self.grammar.gunzip:
+
+		if hasattr(self.grammar, "preFilter") and self.grammar.preFilter:
+			self.inputFile = FilteredInputFile(
+				self.grammar.preFilter, self.inputFile)
+
+		elif hasattr(self.grammar, "gunzip") and self.grammar.gunzip:
 			self.inputFile = gzip.GzipFile(fileobj=self.inputFile)
+
+
+class FileRowAttributes(object):
+	"""A mixin for grammars with FileRowIterators.
+
+	This provides some attributes that FileRowIterators interpret, e.g.,
+	preFilter.
+	"""
+	_gunzip = base.BooleanAttribute("gunzip", description="Unzip sources"
+		" while reading? (Deprecated, use preFilter='zcat')", default=False)
+	_preFilter = base.UnicodeAttribute("preFilter", description="Shell"
+		" command to pipe the input through before passing it on to the"
+		" grammar.  Classical examples include zcat or bzcat, but you"
+		" can commit arbitrary shell atrocities here.")
+
+	def completeElement(self, ctx):
+		if ctx.restricted:
+			if self.preFilter is not None:
+				raise base.RestrictedElement("preFilter")
+		self._completeElementNext(FileRowAttributes, ctx)
 
 
 class GrammarMacroMixin(base.StandardMacroMixin):

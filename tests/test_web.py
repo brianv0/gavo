@@ -6,6 +6,7 @@ from gavo.helpers import testhelpers
 
 from gavo import api
 from gavo import svcs
+from gavo import utils
 from gavo.imp import formal
 from gavo.svcs import streaming
 from gavo.web import root
@@ -180,11 +181,11 @@ class StreamingTest(ArchiveTest):
 				"No data delivered at all")
 			# ...but the kill must become active before the whole mess
 			# has been written
-			self.failIf(len(result[0])>streaming.StreamBuffer.chunkSize,
+			self.failIf(len(result[0])>utils.StreamBuffer.chunkSize,
 				"Kill hasn't happened")
 
 		return trialhelpers.runQuery(self.renderer, "GET", "/test/stream",
-			{"chunksize": "10", "size": streaming.StreamBuffer.chunkSize*2}, 
+			{"chunksize": "10", "size": utils.StreamBuffer.chunkSize*2}, 
 			requestClass=StoppingRequest
 		).addCallback(assertResult)
 

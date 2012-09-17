@@ -15,8 +15,10 @@ from gavo import rsc
 from gavo import rscdef
 from gavo.grammars import binarygrammar
 from gavo.grammars import columngrammar
+from gavo.grammars import common
 from gavo.grammars import fitsprodgrammar
 from gavo.grammars import regrammar
+from gavo.helpers import testtricks
 
 
 
@@ -374,7 +376,61 @@ class ReGrammarTest(testhelpers.VerboseTest):
 			"At line 2: Only 1 fields found, expected 2",
 			lambda: list(grammar.parse(StringIO("1 2\n3"))),
 			())
+	
+
+class FilteredInputTest(testhelpers.VerboseTest):
+	def testSimple(self):
+		with testtricks.testFile("filterInput", "ab\ncd\nef\n") as srcName:
+			f = common.FilteredInputFile("tac", open(srcName))
+			self.assertEqual(f.read(), "ef\ncd\nab\n")
+			f.close()
+
+	def testLargeOutput(self):
+		data = "                    \n"*200000
+		open("zw.txt", "w").write(data)
+		with testtricks.testFile(
+				"filterInput", data, writeGz=True) as srcName:
+			f = common.FilteredInputFile("zcat", open(srcName))
+			result = f.read()
+			self.assertEqual(result, data)
+			f.close()
+
+	def testLargeInput(self):
+		inF = StringIO("                    \n"*200000)
+		f = common.FilteredInputFile("gzip", inF)
+		result = f.read()
+		self.assertEqual(len(result), 10216)
+		f.close()
+
+	def testFailedCommand(self):
+		f = common.FilteredInputFile("verpotshket", StringIO("abc"),
+			silent=True)
+		self.assertRaisesWithMsg(IOError,
+			"Child exited with return code 127",
+			f.read,
+			())
+
+	def testReadWithSizeAndClose(self):
+		f = common.FilteredInputFile("yes", StringIO("abc"))
+		self.assertEqual("y\n"*10, f.read(20))
+		f.close()
+		self.assertEqual(f.process.returncode, -15)
+
+	def testReadline(self):
+		f = common.FilteredInputFile("zcat", StringIO(
+			"H4sIAFcmV1AAA0vkSgQCMDHcABcXAN3p7JLdAAAA".decode("base64")))
+		self.assertEqual(f.readline(), "a\n")
+		self.assertEqual(f.readline(), "aaaa\n")
+		self.assertEqual(f.readline(), "a"*212+"\n")
+		self.assertEqual(f.readline(), "\n")
+		self.assertEqual(f.readline(), "")
+
+	def testReadlineNoLF(self):
+		f = common.FilteredInputFile("cat", StringIO(
+			"AAAA\nBBBB"))
+		self.assertEqual(f.readline(), "AAAA\n")
+		self.assertEqual(f.readline(), "BBBB")
 
 
 if __name__=="__main__":
-	testhelpers.main(ReGrammarTest)
+	testhelpers.main(FilteredInputTest)

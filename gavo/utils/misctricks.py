@@ -4,6 +4,7 @@ Various helpers that didn't fit into any other xTricks.
 
 from __future__ import with_statement
 
+import collections
 import contextlib
 import os
 import re
@@ -129,7 +130,109 @@ class QuotedName(object):
 	
 	def __add__(self, other):  # for disambiguateColumns
 		return QuotedName(self.name+other)
+
+
+class StreamBuffer(object):
+	"""a buffer that takes data in arbitrary chunks and returns
+	them in chops of chunkSize bytes.
+
+	There's a lock in place so you can access add and get from
+	different threads.
+
+	When everything is written, you must all doneWriting.
+	"""
+	# XXX TODO: Can we make a reasoned  choice for (default) chunkSize?
+	chunkSize = 50000
+
+	def __init__(self, chunkSize=None):
+		self.buffer = collections.deque()
+		if chunkSize is not None:
+			self.chunkSize = chunkSize
+		self.curSize = 0
+		self.lock = threading.Lock()
+		self.finished = False
 	
+	def add(self, data):
+		with self.lock:
+			self.buffer.append(data)
+			self.curSize += len(data)
+	
+	def get(self, numBytes=None):
+		if numBytes is None:
+			numBytes = self.chunkSize
+
+		if self.curSize<numBytes and not self.finished:
+			return None
+		if not self.buffer:
+			return None
+
+		with self.lock:
+			items, sz = [], 0
+			# collect items till we've got a chunk
+			while self.buffer:
+				item = self.buffer.popleft()
+				sz += len(item)
+				self.curSize -= len(item)
+				items.append(item)
+				if sz>=numBytes:
+					break
+
+			# make a chunk and push back what we didn't need
+			chunk = "".join(items)
+			leftOver = chunk[numBytes:]
+			if leftOver:
+				self.buffer.appendleft(leftOver)
+			self.curSize += len(leftOver)
+			chunk = chunk[:numBytes]
+
+		return chunk
+
+	# XXX TODO: refactor get and getToChar to use as much common code
+	# as sensible
+	def getToChar(self, char):
+		"""returns the the buffer up to the first occurrence of char.
+
+		If char is not present in the buffer, the function returns None.
+		"""
+		with self.lock:
+			items, sz = [], 0
+			# collect items till we've got our character
+			while self.buffer:
+				item = self.buffer.popleft()
+				sz += len(item)
+				self.curSize -= len(item)
+				items.append(item)
+				if char in item:
+					break
+			else:
+				# didn't break out of the loop, i.e., no char found.
+				# items now contains the entire buffer.
+				self.buffer.clear()
+				self.buffer.append("".join(items))
+				self.curSize = sz
+				return None
+
+			# char is in the last element of items
+			items[-1], leftOver = items[-1].split(char, 1)
+			chunk = "".join(items)
+			if leftOver:
+				self.buffer.appendleft(leftOver)
+			self.curSize += len(leftOver)
+			return chunk+char
+
+		this(cannot, happen)
+	
+	
+	def getRest(self):
+		"""returns the entire buffer as far as it is left over.
+		"""
+		result = "".join(self.buffer)
+		self.buffer = []
+		return result
+
+	def doneWriting(self):
+		self.finished = True
+
 
 def getfirst(args, key, default=Undefined):
 	"""returns the first value of key in the web argument-like object args.

@@ -36,7 +36,8 @@ from gavo.utils.mathtricks import *
 
 from gavo.utils.misctricks import (Undefined, QuotedName, getfirst,
 	logOldExc, sendUIEvent, pyparsingWhitechars, getWithCache,
-	rstxToHTML, pyparseString, pyparseTransform, parseKVLine, makeKVLine)
+	rstxToHTML, pyparseString, pyparseTransform, parseKVLine, makeKVLine,
+	StreamBuffer)
 
 from gavo.utils.ostricks import (safeclose, urlopenRemote, 
 	fgetmtime, cat, ensureDir, safeReplaced)

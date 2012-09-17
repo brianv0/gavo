@@ -312,6 +312,7 @@ class RestrictionTest(testhelpers.VerboseTest):
 			'CREATE</index></table>',
 		'<table id="test2"><column name="x" fixup="__+\'x\'"/></table>',
 		'<data><embeddedGrammar><iterator/></embeddedGrammar></data>',
+		'<data><reGrammar names="a,b" preFilter="rm -rf /"/></data>',
 	]
 
 
