@@ -501,8 +501,7 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 			raise base.DataError("Invalid dupePolicy: %s"%self.tableDef.dupePolicy)
 
 	def configureTable(self):
-		if not self.tableDef.temporary:
-			self.updateMeta()
+		self.updateMeta()
 		self.createUniquenessRules()
 		return self
 
@@ -514,6 +513,8 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 		return self.configureTable()
 
 	def updateMeta(self):
+		if self.tableDef.temporary:
+			return
 		self.setTablePrivileges(self.tableDef)
 		self.setSchemaPrivileges(self.tableDef.rd)
 
