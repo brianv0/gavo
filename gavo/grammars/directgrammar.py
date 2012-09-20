@@ -103,19 +103,20 @@ class CBooster:
 		this to be able to retrieve the command status below.
 		"""
 		if self.preFilter:
-			self.pipe = os.popen("%s '%s' | %s"%(self.preFilter, argName, 
-				self.binaryName))
+			shellCommand = "%s '%s' | %s"%(self.preFilter, argName, self.binaryName)
 		elif self.gzippedInput:
-			self.pipe = os.popen("zcat '%s' | %s"%(argName, self.binaryName))
+			shellCommand = "zcat '%s' | %s"%(argName, self.binaryName)
 		else:
-			self.pipe = os.popen("%s '%s'"%(self.binaryName, argName))
-		return self.pipe
+			shellCommand = "%s '%s'"%(self.binaryName, argName)
+		self.pipe = subprocess.Popen(shellCommand, shell=True,
+			stdout=subprocess.PIPE)
+		return self.pipe.stdout
 	
 	def getStatus(self):
-		return self.pipe.close()
+		return self.pipe.wait()
 
 
-class DirectGrammar(base.Structure):
+class DirectGrammar(base.Structure, base.RestrictionMixin):
 	"""A user-defined external grammar.
 
 	See the separate document on user-defined code on more on direct grammars.
@@ -136,10 +137,12 @@ class DirectGrammar(base.Structure):
 		default=False, description="Let booster ignore invalid records?")
 	_recordSize = base.IntAttribute("recordSize", default=None,
 		description="Have C booster read that much bytes to obtain a record")
-	_preFilter = rscdef.ResdirRelativeAttribute("preFilter", default=None,
+	_preFilter = base.UnicodeAttribute("preFilter", default=None,
 		description="Pipe input through this program before handing it to"
-			" the booster.")
+			" the booster; this string is shell-expanded.")
 	_rd = rscdef.RDAttribute()
+
+	isDispatching = False
 
 	def parse(self, sourceToken, targetData=None):
 		booster = CBooster(self.cBooster, self.recordSize, self.parent,
