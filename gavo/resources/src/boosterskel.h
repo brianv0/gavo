@@ -86,6 +86,7 @@ void parseDoubleWithMagicNULL(char *src, Field *field, int start, int len,
 		char *magicVal);
 void parseDouble(char *src, Field *field, int start, int len);
 void parseInt(char *src, Field *field, int start, int len);
+void parseShort(char *src, Field *field, int start, int len);
 void parseBlankBoolean(char *src, Field *field, int srcInd);
 void parseString(char *src, Field *field, int start, int len, char *space);
 void parseStringWithMagicNull(char *src, Field *field, int start, int len, 

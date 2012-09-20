@@ -271,6 +271,16 @@ void parseInt(char *src, Field *field, int start, int len)
 	scanfWithWhitespace(input, "%d", field, int);
 }
 
+void parseShort(char *src, Field *field, int start, int len)
+{
+	char input[len+1];
+
+	copyString(src, input, start, len);
+	field->type = VAL_SHORT;
+	scanfWithWhitespace(input, "%hd", field, short);
+}
+
+
 void parseBlankBoolean(char *src, Field *field, int srcInd)
 {
 	field->type = VAL_BOOL;
