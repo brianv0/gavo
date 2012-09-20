@@ -23,6 +23,8 @@
 	<style type="text/css" n:render="servicestyle"/>
 </head>
 
+<script type="text/javascript" src="/static/js/samp.js"/>
+
 <body n:render="withsidebar">
 	<h1 n:render="meta">title</h1>
 
@@ -40,6 +42,9 @@
 		</div>
 		<div class="result" n:render="ifresult">
 			<p class="plotbuttons">
+				<button id="sendViaSAMP" title="Broadcasts this table to all 
+SAMP clients on your desktop.
+This needs a fairly modern hub to work.">Send via SAMP</button>
 				<button n:render="flotplot">Quick Plot</button>
 				<button onClick="openVOPlot()">Open in VOPlot</button>
 			</p>
@@ -50,7 +55,7 @@
 		</div>
 		<h2><a name="_queryForm">Query Form</a></h2>
 	</div>
-
+	
 	<div id="intro" n:render="intro" class="intro"/>
 	<n:invisible n:render="form genForm"/>
 	<div id="bottominfo" n:render="metahtml">_bottominfo</div>
