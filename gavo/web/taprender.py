@@ -228,11 +228,18 @@ class _TAPEx(rend.DataFactory):
 	
 	def data_id(self, ctx, data):
 		return re.sub("\W", "", self.original["name"])
-	
+
+	def _translateDescription(self):
+		# see the comment on the RST extension below for what's going on here
+		rawHTML = utils.rstxToHTML(self.original["description"])
+		# we should do XML parsing here, but frankly, there's little that
+		# could go wrong when just substituting stuff
+		return re.sub('(class="[^"]*ivo_tap_exampletable[^"]*")',
+			r'\1 property="table"', rawHTML)
+
 	def data_renderedDescription(self, ctx, data):
 		if "renderedDescription" not in self.original:
-			self.original["renderedDescription"] = 	utils.rstxToHTML(
-				self.original["description"])
+			self.original["renderedDescription"] = 	self._translateDescription()
 		return self.original["renderedDescription"]
 	
 
@@ -240,6 +247,10 @@ class _TAPEx(rend.DataFactory):
 # descriptions, we add a custom interpreted text role, taptable.
 # Since this module has to be imported before the renderer can
 # be used, this is not a bad place to put it.
+#
+# For RST convenience, this only adds a class attribute.  In HTML,
+# this needs to become a property attribute;  there's code in _TAPEx
+# that does this.
 
 def _registerDocutilsExtension():
 	from docutils.parsers.rst import roles
@@ -266,7 +277,7 @@ class TAPExamples(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 	"""A page with query examples.
 
 	This will only run on services with the TAP rd (or one that has
-	an examples tables structured in the same way).
+	an examples table structured in the same way).
 	"""
 	name = "tapexamples"
 	checkedRenderer = False

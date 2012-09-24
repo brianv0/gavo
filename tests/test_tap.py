@@ -96,11 +96,11 @@ class SyncMetaTest(TAPRenderTest):
 
 	def testExamples(self):
 		return self.assertGETHasStrings("/examples", {}, [
-			'<div class="ivo_tap_examples" id="kamatschhorribundus">',
-			'<h2 class="ivo_tap_examplename">kamatsch horribundus</h2>',
+			'<div property="Example" id="kamatschhorribundus">',
+			'<h2 property="name">kamatsch horribundus</h2>',
 			'<a class="ivo_tap_exampletable reference external"'
-			' href="/tableinfo/foo.bar">foo.bar',
-			'<pre class="ivo_tap_examplequery">select something'])
+			' property="table" href="/tableinfo/foo.bar">foo.bar',
+			'<pre property="query">select something'])
 			
 
 class SyncQueryTest(TAPRenderTest):
