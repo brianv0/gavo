@@ -70,6 +70,9 @@ class ValueMapperFactoryRegistry(object):
 	def registerFactory(self, factory):
 		self.factories.insert(0, factory)
 
+	def appendFactory(self, factory):
+		self.factories.append(factory)
+
 	def getMapper(self, colDesc):
 		"""returns a mapper for values with the python value instance, 
 		according to colDesc.
@@ -165,29 +168,6 @@ def datetimeMapperFactory(colDesc):
 		colDesc["datatype"], colDesc["arraysize"] = destType
 		return fun
 _registerDefaultMF(datetimeMapperFactory)
-
-
-def jdMapperFactory(colDesc):
-	"""maps JD columns to human-readable datetimes.
-
-	MJDs are caught by inspecting the UCD.
-	"""
-	if (colDesc["displayHint"].get("type")=="humanDate"
-			and colDesc["dbtype"] in ("double precision", "real")
-			and colDesc["unit"]=="d"):
-		if "mjd" in colDesc["ucd"].lower():
-			converter = stc.mjdToDateTime
-		else:
-			converter = stc.jdnToDateTime
-		def fun(val):
-			if val is None:
-				return "N/A"
-			return utils.formatISODT(converter(val))
-		colDesc["datatype"], colDesc["arraysize"] = "char", "*"
-		colDesc["xtype"] = "adql:TIMESTAMP"
-		colDesc["unit"] = ""
-		return fun
-_registerDefaultMF(jdMapperFactory)
 
 
 _pgTypes = set(["spoint", "spoly", "scircle", "sbox"])

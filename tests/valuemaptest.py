@@ -15,6 +15,7 @@ from gavo import rscdef
 from gavo.base import valuemappers
 from gavo.protocols import products
 from gavo.utils import pgsphere
+from gavo.web import htmltable
 
 
 class AnnotationTest(testhelpers.VerboseTest):
@@ -113,7 +114,7 @@ class StandardMapperTest(_EnumeratedMapperTest):
 	]
 
 
-class AdvancedMapperTest(testhelpers.VerboseTest):
+class HTMLMapperTest(testhelpers.VerboseTest):
 	__metaclass__ = testhelpers.SamplesBasedAutoTest
 
 	def _runTest(self, args):
@@ -121,7 +122,7 @@ class AdvancedMapperTest(testhelpers.VerboseTest):
 		column = base.parseFromString(rscdef.Column, 
 			"<column %s</column>"%colDef)
 		annCol = valuemappers.AnnotatedColumn(column)
-		res = valuemappers.defaultMFRegistry.getMapper(annCol)(inValue)
+		res = htmltable._htmlMFRegistry.getMapper(annCol)(inValue)
 		self.assertEqual(res, expected)
 		for key, value in propDict.iteritems():
 			self.assertEqual(annCol[key], value)
@@ -173,4 +174,4 @@ class STCMappingTest(_MapperTestBase):
 
 
 if __name__=="__main__":
-	testhelpers.main(AdvancedMapperTest)
+	testhelpers.main(HTMLMapperTest)

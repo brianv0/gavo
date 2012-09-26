@@ -387,7 +387,6 @@ class FilteredInputTest(testhelpers.VerboseTest):
 
 	def testLargeOutput(self):
 		data = "                    \n"*200000
-		open("zw.txt", "w").write(data)
 		with testtricks.testFile(
 				"filterInput", data, writeGz=True) as srcName:
 			f = common.FilteredInputFile("zcat", open(srcName))
