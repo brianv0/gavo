@@ -113,6 +113,32 @@ class StandardMapperTest(_EnumeratedMapperTest):
 	]
 
 
+class AdvancedMapperTest(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, args):
+		colDef, inValue, expected, propDict = args
+		column = base.parseFromString(rscdef.Column, 
+			"<column %s</column>"%colDef)
+		annCol = valuemappers.AnnotatedColumn(column)
+		res = valuemappers.defaultMFRegistry.getMapper(annCol)(inValue)
+		self.assertEqual(res, expected)
+		for key, value in propDict.iteritems():
+			self.assertEqual(annCol[key], value)
+	
+	samples = [
+		('name="d" unit="d" type="double precision" displayHint="type=humanDate">',
+			2451909.999988426,
+			"2000-12-31T11:59:59Z",
+			{"xtype": "adql:TIMESTAMP", "arraysize": "*", "unit": ""}),
+		('name="d" unit="d" ucd="vox:MJDTrash" displayHint="type=humanDate">',
+			51909.499988,
+			"2000-12-31T11:59:58Z",
+			{"xtype": "adql:TIMESTAMP", "arraysize": "*", "unit": ""}),
+
+	]
+
+
 class ProductMapperTest(_MapperTestBase):
 	__metaclass__ = testhelpers.SamplesBasedAutoTest
 
@@ -147,4 +173,4 @@ class STCMappingTest(_MapperTestBase):
 
 
 if __name__=="__main__":
-	testhelpers.main(ProductMapperTest)
+	testhelpers.main(AdvancedMapperTest)

@@ -167,6 +167,29 @@ def datetimeMapperFactory(colDesc):
 _registerDefaultMF(datetimeMapperFactory)
 
 
+def jdMapperFactory(colDesc):
+	"""maps JD columns to human-readable datetimes.
+
+	MJDs are caught by inspecting the UCD.
+	"""
+	if (colDesc["displayHint"].get("type")=="humanDate"
+			and colDesc["dbtype"] in ("double precision", "real")
+			and colDesc["unit"]=="d"):
+		if "mjd" in colDesc["ucd"].lower():
+			converter = stc.mjdToDateTime
+		else:
+			converter = stc.jdnToDateTime
+		def fun(val):
+			if val is None:
+				return "N/A"
+			return utils.formatISODT(converter(val))
+		colDesc["datatype"], colDesc["arraysize"] = "char", "*"
+		colDesc["xtype"] = "adql:TIMESTAMP"
+		colDesc["unit"] = ""
+		return fun
+_registerDefaultMF(jdMapperFactory)
+
+
 _pgTypes = set(["spoint", "spoly", "scircle", "sbox"])
 
 def _pgSphereMapperFactory(colDesc):

@@ -31,7 +31,8 @@ from gavo.stc.common import (STCError, STCSParseError, STCLiteralError,
 from gavo.stc.times import (parseISODT, 
 	jYearToDateTime, dateTimeToJYear,
 	bYearToDateTime, dateTimeToBYear,
-	jdnToDateTime, dateTimeToJdn)
+	jdnToDateTime, dateTimeToJdn,
+	mjdToDateTime, dateTimeToMJD)
 
 # hardcore stc only from 2.5 upwards
 if sys.version_info[0]>=2 and sys.version_info[1]>4:  
