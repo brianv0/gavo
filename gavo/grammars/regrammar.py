@@ -41,7 +41,10 @@ class REIterator(FileRowIterator):
 
 	def _iterRows(self):
 		for rawRec in self._iterInRecords():
-			res = self._makeRec(rawRec)
+			try:
+				res = self._makeRec(rawRec)
+			except base.SkipThis:
+				continue
 			res["parser_"] = self
 			yield res
 		self.inputFile.close()
@@ -54,6 +57,9 @@ class REIterator(FileRowIterator):
 				raise base.SourceParseError("'%s' does not match cleaner"%inputLine,
 					source=str(self.sourceToken))
 			inputLine = " ".join(cleanMat.groups())
+
+		if not inputLine.strip():
+			raise base.SkipThis("Empty line")
 
 		fields = self.grammar.fieldSep.split(inputLine)
 		if not self.grammar.lax and len(fields)!=len(self.grammar.names):
