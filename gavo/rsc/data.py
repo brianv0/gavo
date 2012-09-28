@@ -400,9 +400,10 @@ def processSource(data, source, feeder, opts, connection=None):
 			feeder.reset()
 			cursor.execute("ROLLBACK TO SAVEPOINT thisSource")
 			cursor.execute("RELEASE SAVEPOINT thisSource")
-			base.ui.notifyError("Error while importing source; changes from"
-				" this source will be rolled back, processing will continue."
-				" (%s)"%unicode(ex))
+			if not isinstance(ex, base.ExecutiveAction):
+				base.ui.notifyError("Error while importing source; changes from"
+					" this source will be rolled back, processing will continue."
+					" (%s)"%unicode(ex))
 		else:
 			cursor.execute("RELEASE SAVEPOINT thisSource")
 
