@@ -6,6 +6,7 @@
 	<meta name="test.inRd">from Rd</meta>
 	<meta name="copyright">Everything in here is pure fantasy 
 	(distributed under the GNU GPL)</meta>
+	<meta name="creator.name">John C. Testwriter</meta>
 	<schema>test</schema>
 
 	<table id="bbox_siaptable" mixin="//siap#bbox" onDisk="True"/>

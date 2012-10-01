@@ -381,7 +381,7 @@ class BooleanAttribute(AtomicAttribute):
 		try:
 			return literals.parseBooleanLiteral(value)
 		except ValueError:
-			raise utils.logOldExc(LiteralParseError(self.name_, val, hint=
+			raise utils.logOldExc(LiteralParseError(self.name_, value, hint=
 				"A boolean literal (e.g., True, False, yes, no) is expected here."))
 		
 	def unparse(self, value):

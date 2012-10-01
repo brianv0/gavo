@@ -51,6 +51,8 @@ def makeBaseRecord(res, keepTimestamp=False):
 	rec["deleted"] = False
 	rec["recTimestamp"] = datetime.datetime.utcnow()
 	rec["description"] = base.getMetaText(res, "description")
+	rec["authors"] = "; ".join(m.getContent("text") 
+		for m in res.iterMeta("creator.name", propagate=True))
 	dateUpdated = res.getMeta("datetimeUpdated")
 
 	if keepTimestamp:

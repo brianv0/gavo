@@ -176,7 +176,18 @@ class IterMetaTest(testhelpers.VerboseTest):
 		self.assertEqual(list(v.getContent() for v in m.iterMeta("foo.bar")),
 			["a", "b", "c"])
 
-# XXX TODO: add a test for propagation
+	def testPropagation(self):
+		res = "; ".join(m.getContent("text") for m in
+			testhelpers.getTestRD().getById("basicprod").iterMeta(
+				"creator.name", propagate=True))
+		self.assertEqual(res, "John C. Testwriter")
+	
+	def testPropagationToDefault(self):
+		res = "; ".join(m.getContent("text") for m in
+			testhelpers.getTestRD("pubtest").getById("moribund"
+				).iterMeta("creator.name", propagate=True))
+		self.assertEqual(res, "Could be same as contact.name")
+
 
 class SetAndDelTest(testhelpers.VerboseTest):
 	"""tests for working deletion and setting of meta items.

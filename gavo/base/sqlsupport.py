@@ -151,6 +151,19 @@ class GAVOConnection(psycopg2.extensions.connection):
 		finally:
 			cursor.close()
 
+	def query(self, query, args={}):
+		"""iterates over result tuples for query.
+
+		This is mainly for ad-hoc queries needing little metadata.
+		"""
+		cursor = self.cursor()
+		try:
+			cursor.execute(query, args)
+			for row in cursor:
+				yield row
+		finally:
+			cursor.close()
+
 
 class DebugConnection(GAVOConnection):
 	def cursor(self, *args, **kwargs):

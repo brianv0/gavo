@@ -36,6 +36,8 @@
 			the resource.  This is usually ivo://auth/rdid/frag but may
 			be overridden (you should probably not create records for
 			which you are not authority, but we do not enforce that any more)."/>
+		<column name="authors" type="text" description="Resource authors
+			in source sequence"/>
 	</table>
 
 	<table system="True" id="interfaces" forceUnique="True" onDisk="True"

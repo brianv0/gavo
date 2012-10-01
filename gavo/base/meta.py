@@ -347,7 +347,9 @@ class MetaMixin(object):
 		val = list(self._iterMeta(parseKey(key)))
 		if not val and propagate:
 			if self.__hasMetaParent():
-				val = self.__metaParent.iterMeta(key)
+				val = self.__metaParent.iterMeta(key, propagate=True)
+			else:
+				val = configMeta.iterMeta(key, propagate=False)
 		return val
 
 	def buildRepr(self, key, builder, propagate=True, raiseOnFail=True):
