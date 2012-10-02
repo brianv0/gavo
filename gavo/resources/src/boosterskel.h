@@ -58,6 +58,8 @@ typedef struct Field_s {
 	if ((value)==(nullvalue)) { MAKE_NULL(fi); } else {MAKE_CHAR(fi, value);}}
 #define MAKE_JDATE(fi, value) {\
 	F(fi)->type=VAL_JDATE; F(fi)->val.c_double = value;}
+#define MAKE_TEXT(fi, value) {\
+	F(fi)->type=VAL_TEXT; F(fi)->val.c_ptr = value;}
 
 #define MAKE_WITH_NULL(type, fi, value, nullvalue) {\
 	if ((value)==(nullvalue)) { MAKE_NULL(fi); } else {\
