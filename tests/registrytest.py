@@ -362,7 +362,7 @@ class DataPublicationMetaTest(testhelpers.VerboseTest):
 		self.assertEquals(recs[2][1]["setName"], "local")
 		self.assertEquals(recs[3][0], "subjects")
 		self.assertEquals(recs[4][0], "authors")
-		self.assertEquals(recs[4][0]["author", "Could be same as contact.name")
+		self.assertEquals(recs[4][1]["author"], "Could be same as contact.name")
 
 	def testRejectedWithoutId(self):
 		self.assertRaisesWithMsg(base.StructureError,

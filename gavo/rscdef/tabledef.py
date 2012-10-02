@@ -179,7 +179,7 @@ class ForeignKey(base.Structure):
 
 		elif self.inTable is not base.NotGiven:
 			self.destTableName = self.inTable.getQName()
-			self.isADQLKey = self.inTable.adql
+			self.isADQLKey = self.inTable.adql and self.inTable.adql!='hidden'
 
 		else:
 			raise base.StructureError("You must define inTable in foreignKeys")
@@ -244,6 +244,28 @@ class STCDef(base.Structure):
 		return self._origFields.iteritems()
 
 
+class ADQLVisibilityAttribute(base.BooleanAttribute):
+	"""An attribute that has values True/False and hidden.
+	"""
+	typeDesc_ = "boolean or 'hidden'"
+
+	def feedObject(self, instance, value):
+		if value=='hidden':
+			instance.feedObject("readProfiles", "defaults,untrustedquery")
+			value = False
+		base.BooleanAttribute.feedObject(self, instance, value)
+		
+	def parse(self, value):
+		if value.lower=="hidden":
+			return "hidden"
+		return base.BooleanAttribute.parse(self, value)
+
+	def unparse(self, value):
+		if value=="hidden":
+			return hidden
+		return base.BooleanAttribute.unparse(self, value)
+
+
 class TableDef(base.Structure, base.ComputedMetaMixin, common.PrivilegesMixin,
 		common.IVOMetaMixin, base.StandardMacroMixin):
 	"""A definition of a table, both on-disk and internal.
@@ -290,9 +312,14 @@ class TableDef(base.Structure, base.ComputedMetaMixin, common.PrivilegesMixin,
 			"  This is mostly useful for custom cores and such.", 
 		copyable=True)
 
-	_adql = base.BooleanAttribute("adql", 
+	_adql = ADQLVisibilityAttribute("adql", 
 		default=False, 
-		description="Should this table be available for ADQL queries?")
+		description="Should this table be available for ADQL queries?  In"
+		" addition to True/False, this can also be 'hidden' for tables"
+		" readable from the TAP machinery but not published in the"
+		" metadata; this is useful for, e.g., tables contributing to a"
+		" published view.  Warning: adql=hidden is incompatible with setting"
+		" readProfiles manually.")
 
 	_system = base.BooleanAttribute("system", 
 		default=False,
