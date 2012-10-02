@@ -251,12 +251,12 @@ class ADQLVisibilityAttribute(base.BooleanAttribute):
 
 	def feedObject(self, instance, value):
 		if value=='hidden':
-			instance.feedObject("readProfiles", "defaults,untrustedquery")
+			instance._readProfiles.feed(None, instance, "defaults,untrustedquery")
 			value = False
 		base.BooleanAttribute.feedObject(self, instance, value)
 		
 	def parse(self, value):
-		if value.lower=="hidden":
+		if value.lower()=="hidden":
 			return "hidden"
 		return base.BooleanAttribute.parse(self, value)
 

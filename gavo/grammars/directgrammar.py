@@ -21,7 +21,7 @@ from gavo import rsc
 from gavo import rscdef
 
 
-class CBooster:
+class CBooster(object):
 	"""is a wrapper for an import booster written in C using the DC booster
 	infrastructure.
 
@@ -29,7 +29,8 @@ class CBooster:
 	the source to recompile.
 	"""
 	def __init__(self, srcName, recordSize, dataDesc, gzippedInput=False,
-			autoNull=None, preFilter=None, ignoreBadRecords=False):
+			autoNull=None, preFilter=None, ignoreBadRecords=False,
+			customFlags=""):
 		self.dataDesc = dataDesc
 		self.recordSize = recordSize
 		self.resdir = dataDesc.rd.resdir
@@ -37,6 +38,7 @@ class CBooster:
 		self.autoNull, self.preFilter = autoNull, preFilter
 		self.ignoreBadRecords = ignoreBadRecords
 		self.gzippedInput = gzippedInput
+		self.customFlags = customFlags
 		self.bindir = os.path.join(self.resdir, "bin")
 		self.binaryName = os.path.join(self.bindir,
 			os.path.splitext(os.path.basename(srcName))[0]+"-"+base.getConfig(
@@ -73,7 +75,7 @@ class CBooster:
 			f.write("CFLAGS += -DIGNORE_BAD_RECORDS\n")
 		f.write("CFLAGS += -g\n")
 		f.write("booster: boosterskel.c func.c\n"
-			"\t$(CC) $(CFLAGS) $(LDFLAGS) -o booster $^\n")
+			"\t$(CC) $(CFLAGS) $(LDFLAGS) %s -o booster $^\n"%self.customFlags)
 		f.close()
 	
 	def _build(self):
@@ -140,6 +142,9 @@ class DirectGrammar(base.Structure, base.RestrictionMixin):
 	_preFilter = base.UnicodeAttribute("preFilter", default=None,
 		description="Pipe input through this program before handing it to"
 			" the booster; this string is shell-expanded.")
+	_customFlags = base.UnicodeAttribute("customFlags", default="",
+		description="Pass these flags to the C compiler when building the"
+		" booster.")
 	_rd = rscdef.RDAttribute()
 
 	isDispatching = False
@@ -149,7 +154,8 @@ class DirectGrammar(base.Structure, base.RestrictionMixin):
 			gzippedInput=self.gzippedInput,
 			preFilter=self.preFilter,
 			autoNull=self.autoNull,
-			ignoreBadRecords=self.ignoreBadRecords)
+			ignoreBadRecords=self.ignoreBadRecords,
+			customFlags=self.customFlags)
 		makes = self.parent.makes
 		if len(makes)!=1:
 			raise base.StructureError("Directgrammar only works for data having"
