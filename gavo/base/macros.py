@@ -230,6 +230,13 @@ class StandardMacroMixin(MacroPackage):
 		return val.getContent(macroPackage=self
 			).replace("\n", " ") # undo default line breaking
 
+	def macro_upper(self, aString):
+		"""returns aString uppercased.
+
+		There's no guarantees for characters outside ASCII.
+		"""
+		return aString.upper()
+
 	def macro_test(self, *args):
 		"""always "test macro expansion".
 		"""

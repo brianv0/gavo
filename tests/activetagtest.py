@@ -65,6 +65,13 @@ class ReplayMacroTest(testhelpers.VerboseTest):
 			<FEED source="foo" tabname="abc"/></data>""")
 		self.assertEqual(res.tables[0].id, "abc")
 
+	def testStandardMacrosAvailable(self):
+		res = base.parseFromString(rscdef.DataDescriptor, 
+			"""<data><STREAM id="foo"><table id="test">
+			<column name="x\upper{\col}"/></table></STREAM>
+			<FEED source="foo" col="abc"/></data>""")
+		self.assertEqual(res.tables[0].columns[0].name, "xABC")
+
 	def testHandover(self):
 		res = base.parseFromString(rscdef.DataDescriptor, 
 			"""<data><STREAM id="foo"><table id="\\tabname" onDisk="True">
@@ -95,6 +102,7 @@ class ReplayMacroTest(testhelpers.VerboseTest):
 				" see the documentation of the STREAM with id foo.")
 			return
 		self.fail("MacroError not raised")
+
 
 
 class NestedTest(testhelpers.VerboseTest):

@@ -296,7 +296,7 @@ class Edit(EmbeddedStream):
 		self.triggerEl, self.triggerId = mat.groups()
 	
 
-class ReplayBase(ActiveTag, structure.Structure, macros.MacroPackage):
+class ReplayBase(ActiveTag, structure.Structure, macros.StandardMacroMixin):
 	"""An "abstract base" for active tags replaying streams.
 	"""
 	name_ = None  # not a usable active tag
