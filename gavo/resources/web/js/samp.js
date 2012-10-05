@@ -910,19 +910,19 @@ var samp = (function() {
         }
         this.update();
     };
-    Connector.prototype.register = function(onSuccess, onError) {
+    Connector.prototype.register = function(successCallback, errorCallback) {
         var connector = this;
         var regErrHandler = function(err) {
             setRegText(connector, "no (" + err.toString() + ")");
-            if (onError) {
-            	onError(conn);
+            if (errorCallback) {
+            	errorCallback(err);
             }
         };
         var regSuccessHandler = function(conn) {
             connector.setConnection(conn);
             setRegText(connector, conn ? "Yes" : "No");
-            if (onSuccess) {
-            	onSuccess(conn);
+            if (successCallback) {
+            	successCallback(conn);
             }
         };
         register(this.name, regSuccessHandler, regErrHandler);
@@ -1039,60 +1039,3 @@ var samp = (function() {
 
     return jss;
 })();
-
-
-// Local DaCHS support code
-
-function makeConnection(onSuccess) {
-// sets up a connection to the hub; if the hub is reachable, onSuccess
-// is called.  The function sets things up such that the connection is
-// closed when the page is left.
-	var cc = new samp.ClientTracker();
-	var callHandler = cc.callHandler;
-	var meta = {
-		"samp.name": "DaCHS Web",
-		"samp.description": "Result from DaCHS Web interface",
-		"samp.icon.url": 
-			"http://"+window.location.host+"/static/img/logo_tiny.png"
-		};
-	var subs = cc.calculateSubscriptions();
-	var connector = new samp.Connector("DaCHS Web", meta, cc, subs);
-	connector.register(
-		onSuccess,
-		function(conn) {
-			alert("Could not connect to SAMP hub");
-		});
-}
-
-
-function connectAndSendSAMP(sampButton, tableSource) {
-	makeConnection(function(conn) {
-		sampButton.unbind("click");
-		$(window).unload(function() {
-			conn.unregister();
-		});
-		sampButton.click(function(e) {
-			sendSAMP(conn, tableSource);
-		});
-		sendSAMP(conn, tableSource);
-	});
-		
-}
-
-function sendSAMP(conn, tableSource) {
-	var tableURL = getFormQuery(tableSource, {'_FORMAT': 1})+"&_FORMAT=VOTable";
-	var msg = new samp.Message("table.load.votable", {
-		"table-id": "DaCHSResult",
-		"url": tableURL,
-		"name": "DaCHS result"});
-	conn.notifyAll([msg]);
-}
-
-
-$(document).ready(function() {
-	var sampButton = $('#sendViaSAMP');
-	var tableSource = document.getElementById('genForm');
-	sampButton.click(function (e) {
-		connectAndSendSAMP(sampButton, tableSource);
-	})
-});

@@ -104,7 +104,6 @@ class ReplayMacroTest(testhelpers.VerboseTest):
 		self.fail("MacroError not raised")
 
 
-
 class NestedTest(testhelpers.VerboseTest):
 	def testDoubleNest(self):
 		res = base.parseFromString(rscdesc.RD, 

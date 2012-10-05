@@ -106,7 +106,14 @@ class CommonRenderers(object):
 	"""
 
 	def render_commonhead(self, ctx, data):
+		#	we do not want to blindly append these things to the tag since user-
+		# provided items in the header should have access to this environment,
+		# in particular to jquery; thus, this stuff must be as early as possible.
+		originalChildren = ctx.tag.children[:]
+		ctx.tag.clear()
 		return ctx.tag[
+			T.meta(**{"http-equiv": "Content-type",
+				"content": "text/html;charset=UTF-8"}),
 			T.link(rel="stylesheet", href=base.makeSitePath("/formal.css"),
 				type="text/css"),
 			T.link(rel="stylesheet", href=base.makeSitePath(
@@ -117,8 +124,7 @@ class CommonRenderers(object):
 				'/js/formal.js')),
 			T.script(src=base.makeSitePath("/static/js/gavo.js"),
 				type="text/javascript"),
-			T.meta(**{"http-equiv": "Content-type",
-				"content": "text/html;charset=UTF-8"}),
+			originalChildren,
 		]
 
 
