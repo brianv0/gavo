@@ -46,8 +46,7 @@ class VOTableGrammar(common.Grammar):
 	returned.
 
 	voTableGrammars result in typed records, i.e., values normally come
-	in in the types they are supposed to have (with obvious exceptions;
-	e.g., VOTables have no datetime type.
+	in the types they are supposed to have.
 	"""
 	name_ = "voTableGrammar"
 	_gunzip = base.BooleanAttribute("gunzip", description="Unzip sources"

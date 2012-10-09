@@ -314,7 +314,8 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		" only); you can use shell patterns to select multiple colums at once.",
 		copyable=True)
 	_simplemaps = base.IdMapAttribute("simplemaps", description=
-		"Abbreviated notation for <map source>", copyable=True)
+		"Abbreviated notation for <map source>; each pair is destination:source", 
+		copyable=True)
 	_ignoreOn = base.StructAttribute("ignoreOn", default=None,
 		childFactory=rowtriggers.IgnoreOn, description="Conditions on the"
 		" input record (as delivered by the grammar) to cause the input"

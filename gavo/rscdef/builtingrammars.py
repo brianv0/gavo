@@ -28,6 +28,7 @@ GRAMMAR_REGISTRY = {
 	"rowsetGrammar": ("grammars.rowsetgrammar", "RowsetGrammar"),
 	"voTableGrammar": ("grammars.votablegrammar", "VOTableGrammar"),
 	"csvGrammar": ("grammars.csvgrammar", "CSVGrammar"),
+	"fitsTableGrammar": ("grammars.fitstablegrammar", "FITSTableGrammar"),
 }
 
 @utils.memoized
