@@ -9,7 +9,7 @@
 </head>
 
 <body n:render="withsidebar"
-		vocab="http://www.ivoa.net/vocabularies/tapexamples#">
+		vocab="http://purl.org/astronomy/vocab/examples#">
 	<h1>Example Queries for our TAP Service</h1>
 
 	<ul id="toc" n:render="sequence" n:data="examples">
@@ -22,8 +22,10 @@
 	</ul>
 
 	<n:invisible n:render="sequence" n:data="examples">
-		<div property="Example" n:pattern="item">
+		<div typeof="Example" n:pattern="item">
 			<n:attr name="id" n:render="string" n:data="id"/>
+			<n:attr name="about"
+				>#<n:invisible n:render="string" n:data="id"/></n:attr>
 			<h2 n:render="string" n:data="name" property="name"/>
 			<n:invisible n:data="renderedDescription" n:render="xml"/>
 			<p>Try the following query:</p>
