@@ -111,8 +111,9 @@ class SourceSpec(base.Structure):
 		IgnoreSpec, description="Specification of sources that should not"
 			" be processed although they match patterns.  Typically used"
 			" in update-type data descriptors.", copyable=True)
-	_file = base.DataContent(copyable=True, description="A single"
-		" file name (this is for convenience)")
+	_file = base.DataContent(description="A single"
+		" file name (this is for convenience)", copyable="True")
+	_original = base.OriginalAttribute()
 
 	def __iter__(self):
 		return self.iterSources()
