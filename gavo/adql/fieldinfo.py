@@ -254,7 +254,7 @@ class FieldInfo(object):
 				tainted=True, stc=stc)
 	
 	@classmethod
-	def fromAddExpression(cls, opr, fi1, fi2):
+	def fromAddExpression(cls, opr, fi1, fi2, forceType=None):
 		"""returns a new FieldInfo built from the addition-like operator
 		opr and the two field infos.
 			
@@ -271,7 +271,10 @@ class FieldInfo(object):
 			ucd = fi1.ucd
 		else:
 			taint = True
-		newType = getSubsumingType([fi1.type, fi2.type])
+		if forceType is not None:
+			newType = forceType
+		else:
+			newType = getSubsumingType([fi1.type, fi2.type])
 		return cls(newType, unit, ucd, cls.combineUserData(fi1, fi2), taint, stc)
 
 	def copyModified(self, **kwargs):

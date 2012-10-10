@@ -591,7 +591,9 @@ crazyFields = [
 	MS(rscdef.Column, name="wotb", type="bytea", 
 		values=MS(rscdef.Values, nullLiteral="255")),
 	MS(rscdef.Column, name="mass", ucd="event;using.incense"),
-	MS(rscdef.Column, name="name", type="unicode"),]
+	MS(rscdef.Column, name="name", type="unicode"),
+	MS(rscdef.Column, name="version", type="text"),
+	MS(rscdef.Column, name="flag", type="char"),]
 geoFields = [
 	MS(rscdef.Column, name="pt", type="spoint"),
 ]
@@ -927,6 +929,23 @@ class ColResTest(ColumnTest):
 		cols = self._getColSeq("select crazy.name||geo.pt from crazy, geo")
 		self._assertColumns(cols, [
 			("unicode", '', '', True)])
+
+
+class ExprColTest(ColumnTest):
+	def testCharConcat(self):
+		cols = self._getColSeq("select flag||'ab' as cat from crazy")
+		self._assertColumns(cols, [
+			("text", '', "", True),])
+
+	def testTextConcat(self):
+		cols = self._getColSeq("select version||'ab' as cat from crazy")
+		self._assertColumns(cols, [
+			("text", '', "", True),])
+
+	def testUnicodeConcat(self):
+		cols = self._getColSeq("select name||'ab' as cat from crazy")
+		self._assertColumns(cols, [
+			("unicode", '', "", True),])
 
 
 class DelimitedColResTest(ColumnTest):

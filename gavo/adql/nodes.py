@@ -1074,9 +1074,15 @@ class StringValueExpression(FieldInfoedNode, TransparentMixin):
 		infoChildren = self._getInfoChildren()
 		if infoChildren:
 			fi1 = infoChildren.pop(0).fieldInfo
+			if fi1.type=="unicode":
+				baseType = "unicode"
+			else:
+				baseType = "text"
 			while infoChildren:
+				if infoChildren[0].fieldInfo.type=="unicode":
+					baseType = "unicode"
 				fi1 = fieldinfo.FieldInfo.fromAddExpression(
-					"+", fi1, infoChildren.pop(0).fieldInfo)
+					"+", fi1, infoChildren.pop(0).fieldInfo, forceType=baseType)
 			self.fieldInfo = fi1
 		else:
 			self.fieldInfo = fieldinfo.FieldInfo(
