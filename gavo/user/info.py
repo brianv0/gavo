@@ -86,6 +86,7 @@ def annotateDBTable(td):
 		annotator.annotate(resultRow)
 
 
+# XXX TODO: use the version from utils.texttricks
 def safe_str(val):
 	if isinstance(val, str):
 		return val

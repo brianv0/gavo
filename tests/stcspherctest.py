@@ -231,6 +231,25 @@ class SpherMathTest(testhelpers.VerboseTest):
 		self._assertThreeVecRoundtrip(0, -90)
 
 
+class MiscTest(testhelpers.VerboseTest):
+	def testAllFour(self):
+		sysAST = stc.parseSTCS("Time TT unit d\n"
+			"Position ICRS BARYCENTER 0 0 unit deg\n"
+			"Spectral BARYCENTER unit m\n"
+			"Redshift OPTICAL")
+		baseAST = stc.parseSTCS("TimeInterval UTC 2000-01-01T00:00:00" 
+				" 2010-01-01T00:00:00\n"
+			"Position GALACTIC 1.2 0.4 unit rad\n"
+			"Spectral GEOCENTER 4000 unit Angstrom\n"
+			"Redshift RADIO 4")
+		newAST = stc.conformTo(baseAST, sysAST)
+		self.assertEqual(newAST.timeAs[0].upperLimit.second, 1)
+		self.assertEqual(newAST.timeAs[0].frame.timeScale, "TT")
+		self.assertEqual(int(newAST.place.getValues()[0]), 275)
+		self.assertEqual(newAST.place.unit, ("deg", "deg"))
+		self.assertEqual(int(newAST.freq.getValues()[0]*1e7), 4)
+
+
 class ToGalacticTest(testhelpers.VerboseTest):
 	__metaclass__ = testhelpers.SamplesBasedAutoTest
 

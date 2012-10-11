@@ -1,8 +1,8 @@
 """
 Definition of the structure of the internal representation (the AST).
 
-For now, we want to be able to capture what STC-S can do.  This
-means that we do not support generic coordinates (yet), elements,
+For now, we want to be able to capture what STC-S can do (and a bit more).  
+This means that we do not support generic coordinates (yet), elements,
 xlink and all the other stuff.
 """
 
@@ -477,14 +477,12 @@ class _CoordinateInterval(_CoordinateLike):
 		ll, ul = self.lowerLimit, self.upperLimit
 		if ll is None:
 			return self.change(upperLimit=sTrafo(ul), frame=destFrame)
-		if ul is None:
+		elif ul is None:
 			return self.change(lowerLimit=sTrafo(ll), frame=destFrame)
-		vertices = [sTrafo(coo) for coo in (
-			(ll[0], ll[1]), (ul[0], ll[1]), (ll[0], ul[1]), (ul[0], ul[1]))]
-		xVals = [coo[0] for coo in vertices]
-		yVals = [coo[1] for coo in vertices]
-		return self.change(upperLimit=(max(xVals), max(yVals)),
-			lowerLimit=(min(xVals), min(yVals)), frame=destFrame)
+		else:
+			return self.change(upperLimit=sTrafo(ul), lowerLimit=sTrafo(ll), 
+				frame=destFrame)
+
 
 	def getValues(self):
 		return [l for l in (self.lowerLimit, self.upperLimit) if l is not None]
@@ -494,6 +492,25 @@ class SpaceInterval(_CoordinateInterval):
 
 	def getValues(self):
 		return reduce(lambda a,b: a+b, _CoordinateInterval.getValues(self))
+	
+	def getTransformed(self, sTrafo, destFrame):
+		# for n-d coordinates, upper and lower limit can be difficult
+		# under rotations.  We need to look into this (>2 would need separate
+		# support)
+		if (self.frame.nDim==1
+				or (self.lowerLimit is None or self.upperLimit is None)):
+			return _CoordinateInterval.getTransformed(self, sTrafo, destFrame)
+		elif self.frame.nDim==2:
+			vertices = [sTrafo(coo) for coo in (
+				(ll[0], ll[1]), (ul[0], ll[1]), (ll[0], ul[1]), (ul[0], ul[1]))]
+			xVals = [coo[0] for coo in vertices]
+			yVals = [coo[1] for coo in vertices]
+			return self.change(upperLimit=(max(xVals), max(yVals)),
+				lowerLimit=(min(xVals), min(yVals)), frame=destFrame)
+		else:
+			raise NotImplemented("Cannot yet transform coordinate intervals"
+				" in n>2 dims.")
+
 
 class VelocityInterval(_CoordinateInterval):
 	cType = VelocityType

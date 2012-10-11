@@ -487,8 +487,8 @@ def icrsToFK5(sixTrans, svICRS):
 # extragalactic regime but makes this library basically useless for
 # solar system work.
 
-def _transformRefpos(fromSTC, toSTC, sixTrans):
-	return utils.identity
+def _transformRefpos(sixTrans, sixVec):
+	return sixVec
 
 
 ############### Top-level code

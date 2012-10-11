@@ -266,6 +266,14 @@ class VerboseTest(testresources.ResourcedTestCase):
 				raise AssertionError("%s != %s within %d places"%(
 					first, second, places))
 
+	def assertSetEqual(self, arg1, arg2):
+		arg1, arg2 = set(arg1), set(arg2)
+		if arg1!=arg2:
+			if arg1-arg2:
+				raise AssertionError("Missing in arg2: %s"%(arg1-arg2))
+			if arg2-arg1:
+				raise AssertionError("Missing in arg1: %s"%(arg2-arg1))
+
 	def assertEqualToWithin(self, a, b, ratio=1e-7, msg=None):
 		"""asserts that abs(a-b/(a+b))<ratio.
 		
