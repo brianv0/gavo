@@ -525,6 +525,15 @@ def getRandomString(length):
 		random.choice(_RANDOM_STRING_OK_CHARS) for c in range(length))
 
 
+def safe_str(val):
+	if isinstance(val, str):
+		return val
+	elif isinstance(val, unicode):
+		return val.encode("ascii", "ignore")
+	else:
+		return str(val)
+
+
 def _test():
 	import doctest, texttricks
 	doctest.testmod(texttricks)

@@ -403,7 +403,7 @@ def processSource(data, source, feeder, opts, connection=None):
 			if not isinstance(ex, base.ExecutiveAction):
 				base.ui.notifyError("Error while importing source; changes from"
 					" this source will be rolled back, processing will continue."
-					" (%s)"%unicode(ex))
+					" (%s)"%utils.safe_str(ex))
 		else:
 			cursor.execute("RELEASE SAVEPOINT thisSource")
 
