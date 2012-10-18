@@ -333,17 +333,15 @@ var samp = (function() {
             })(this);
             xhr.onerror = (function(l2) {
                 return function(event) {
-                    if (!l2.completed) {
-                        l2.completed = true;
-                        if (l2.onerror) {
-                            if (event) {
-                                event.toString = function() {return "No hub?";};
-                            }
-                            else {
-                                event = "No hub?";
-                            }
-                            l2.onerror(event);
+                    l2.completed = true;
+                    if (l2.onerror) {
+                        if (event) {
+                            event.toString = function() {return "No hub?";};
                         }
+                        else {
+                            event = "No hub?";
+                        }
+                        l2.onerror(event);
                     }
                 };
             })(this);
