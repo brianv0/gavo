@@ -12,6 +12,7 @@ xlink and all the other stuff.
 
 
 from itertools import *
+import math
 import operator
 import re
 
@@ -537,11 +538,11 @@ class SpectralInterval(_CoordinateInterval):
 class _Geometry(_CoordinateLike):
 	"""A base class for all kinds of geometries.
 
-	Geometries may have "dependent" quantities like radii, sizes,
-	etc.  For those, the convention is that if they are 1D, they must be
-	expressed in the first component of the position units, otherwise
-	(in particular, for box size) in the full unit of the position.
-	This has to be made sure by the client.
+	Geometries may have "dependent" quantities like radii, sizes, etc.  For
+	those, the convention is that if they are 1D, they must be expressed in the
+	unit  of the first component of the position units, otherwise (in particular,
+	for box size) in the full unit of the position.  This has to be made sure by
+	the client.
 
 	To make this work, Geometries are unit adapted on STC adoption.
 	Since their dependents need to be adapted as well, they have to
@@ -568,9 +569,8 @@ class _Geometry(_CoordinateLike):
 		else:
 			return self._getValuesSplit()
 
-class AllSky(_Geometry):
-	pass
 
+class AllSky(_Geometry):
 	def getTransformed(self, sTrafo, destFrame):
 		return self.change(frame=destFrame)
 
@@ -582,7 +582,7 @@ class AllSky(_Geometry):
 
 	def _getValuesSplit(self):
 		return []
-
+	
 
 class Circle(_Geometry):
 	_a_center = None
@@ -624,7 +624,7 @@ class Ellipse(_Geometry):
 class Box(_Geometry):
 	_a_center = None
 	_a_boxsize = None
-	
+
 	def getTransformed(self, sTrafo, destFrame):
 		"""returns a Polygon corresponding to this Box after rotation.
 		"""

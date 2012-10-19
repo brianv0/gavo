@@ -712,6 +712,5 @@ class SystemLibraryTest(testhelpers.VerboseTest):
 			stc.getLibrarySystem, ("JUNK-RANDOM-LOST",))
 
 
-
 if __name__=="__main__":
 	testhelpers.main(GeoTest)

@@ -8,6 +8,7 @@ Definitions and shared code for STC processing.
 
 
 import itertools
+import math
 import operator
 
 from gavo import utils
@@ -63,6 +64,7 @@ class STCNotImplementedError(STCError):
 
 #### Constants
 
+TWO_PI = 2*math.pi
 tropicalYear = 365.242198781  # in days
 secsPerJCy = 36525*86400.
 
@@ -224,6 +226,30 @@ class GeometryColRef(ColRef):
 
 	def __nonzero__(self):
 		return True
+
+
+def clampLong(val):
+	"""returns val standardized as a latitude.
+
+	Our latitudes are always in [0, 2*pi].
+	"""
+	val = math.fmod(val, TWO_PI)
+	if val<0:
+		val += TWO_PI
+	return val
+
+
+def clampLat(val):
+	"""returns val standardized as a latitude.
+
+	Our latitudes are always in [-pi, pi].
+	"""
+	val = math.fmod(val, TWO_PI)
+	if val<-math.pi:
+		val += TWO_PI
+	if val>math.pi:
+		val -= TWO_PI
+	return val
 
 
 def _test():

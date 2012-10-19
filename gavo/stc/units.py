@@ -222,7 +222,7 @@ def getVectorConverter(fromUnits, toUnits, reverse=False):
 	"""returns a function converting from fromUnits to toUnits.
 
 	fromUnits is a tuple, toUnits is a tuple of which only the first item
-	is interpreted.  this be a tuple or a single string; in the
+	is interpreted.  This first item must be a tuple or a single string; in the
 	latter case, all components are supposed to be of that unit.
 
 	ToUnits may be shorter than fromUnits.  In this case, the additional 
