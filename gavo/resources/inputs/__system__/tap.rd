@@ -504,7 +504,7 @@
 		.. _service doc of our ADQL form service: \internallink{__system__/adql/query/info}
 		.. _our ADQL tutorial: http://docs.g-vo.org/adql
 		.. _local examples: \internallink{__system__/tap/run/tap/examples}
-		.. _TAPHandle: http://saada.unistra.fr/taphandle/?url=\urlquote{\metaString{identifier}}
+		.. _TAPHandle: http://saada.unistra.fr/taphandle/?url=\internallink{__system__/tap}
 
 
 		Issues
