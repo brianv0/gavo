@@ -10,6 +10,7 @@ import traceback
 from gavo import base
 from gavo import grammars
 from gavo import rsc
+from gavo import utils
 
 
 class _Reformatter(object):
@@ -114,6 +115,14 @@ def raiseAndCatch(opts=None, output=outputError):
 	except rsc.DBTableError, msg:
 		messages.append("While building table %s: %s"%(msg.qName,
 			msg))
+	
+	except base.MetaError, msg:
+		messages.append("While working on metadata of '%s': %s"%(
+			str(msg.carrier),
+			str(msg.__class__.__name__)))
+		if msg.key is not None:
+			messages.append("-- key %s --"%msg.key)
+		messages.append(utils.safe_str(msg))
 
 	except (base.ValidationError, base.ReportableError, 
 			base.LiteralParseError, base.StructureError, base.NotFoundError,

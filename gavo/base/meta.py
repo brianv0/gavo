@@ -49,8 +49,9 @@ class MetaError(utils.Error):
 	To yield useful error messages, leave carrier at its default None
 	only when you really have no idea what the meta will end up on.
 	"""
-	def __init__(self, msg, carrier=None, hint=None):
+	def __init__(self, msg, carrier=None, hint=None, key=None):
 		self.carrier = carrier
+		self.key = key
 		utils.Error.__init__(self, msg, hint)
 
 
@@ -545,7 +546,7 @@ class MetaItem(object):
 		if atoms:
 			if len(self.children)!=1:
 				raise MetaCardError("getMeta cannot be used on"
-					" sequence meta items", carrier=self)
+					" sequence meta items", carrier=self, key=".".join(atoms))
 			else:
 				return self.children[0]._getMeta(atoms)
 		return self
