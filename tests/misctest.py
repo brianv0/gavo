@@ -751,5 +751,25 @@ class KVLMakeTest(testhelpers.VerboseTest):
 			({"a form": "f'(x) = 2x^3"},))
 
 
+import calendar
+import time
+
+from gavo.base import cron
+
+class CronTest(testhelpers.VerboseTest):
+	def testDailyReschedulePre(self):
+		job = cron.DailyJob(15, 20, None)
+		t0 = calendar.timegm((1990, 5, 3, 10, 30, 0, -1, -1, -1))
+		t1 = time.gmtime(job.getNextWakeupTime(t0))
+		self.assertEqual(t1[2:5], (3, 15, 20))
+
+	def testDailyReschedulePost(self):
+		job = cron.DailyJob(15, 20, None)
+		t0 = calendar.timegm((1990, 5, 3, 20, 30, 0, -1, -1, -1))
+		t1 = time.gmtime(job.getNextWakeupTime(t0))
+		self.assertEqual(t1[2:5], (4, 15, 20))
+
+
+
 if __name__=="__main__":
 	testhelpers.main(KVLMakeTest)

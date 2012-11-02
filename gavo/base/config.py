@@ -353,6 +353,14 @@ _config = Configuration(
 		PathConfigItem("xsdclasspath", description="Classpath necessary"
 			" to validate XSD using an xsdval java class.  You want GAVO's"
 			" VO schemata collection for this.", default="None"),
+		StringConfigItem("sendmail", default="sendmail -t",
+			description="Command that reads a mail from stdin, taking the"
+				"recipient address from the mail header, and transfers the"
+				" mail (this is for sending mails to the administrator)."
+				" This command is processed by a shell (generally running as"
+				" the server user), so you can to tricks if necessary."),
+		StringConfigItem("maintainerAddress", default="",
+			description="An e-mail address to send reports and warnings to."),
 		),
 
 	Section('web', 'Settings related to serving content to the web.',
@@ -401,6 +409,7 @@ _config = Configuration(
 			"20000000",
 			"Maximal size of file uploads in bytes."),
 	),
+
 
 	Section('adql', "Settings concerning the built-in ADQL core",
 		IntConfigItem("webDefaultLimit", "2000",
