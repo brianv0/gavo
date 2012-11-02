@@ -22,21 +22,17 @@
 			document.addEventListener("keydown", watchKey, true);
 		}
 
-// TODO: How do I set the URL displayed in the hub dialog?
 	function makeConnection(onSuccess) {
 	// sets up a connection to the SAMP hub; if the hub is reachable, onSuccess
 	// is called.  The function sets things up such that the connection is
 	// closed when the page is left.
-		var cc = new samp.ClientTracker();
-		var callHandler = cc.callHandler;
 		var meta = {
 			"samp.name": "DaCHS Web",
 			"samp.description": "A form in a web interface at "+document.URL,
 			"samp.icon.url": 
 				"http://"+window.location.host+"/static/img/logo_tiny.png"
 			};
-		var subs = cc.calculateSubscriptions();
-		var connector = new samp.Connector("DaCHS Web", meta, cc, subs);
+		var connector = new samp.Connector("DaCHS Web", meta);
 		connector.register(
 			onSuccess,
 			function(err) {

@@ -50,6 +50,8 @@ typedef struct Field_s {
 	F(fi)->type=VAL_FLOAT; F(fi)->val.c_float = value;}
 #define MAKE_SHORT(fi, value) {\
 	F(fi)->type=VAL_SHORT; F(fi)->val.c_int16 = value;}
+#define MAKE_INT(fi, value) {\
+	F(fi)->type=VAL_INT; F(fi)->val.c_int32 = value;}
 #define MAKE_CHAR(fi, value) {\
 	F(fi)->type=VAL_CHAR; F(fi)->val.c_int8 = value;}
 #define MAKE_BYTE(fi, value) {\
@@ -72,7 +74,6 @@ typedef struct Field_s {
 	real_fieldscanf((str), vals+(fieldName), type, STRINGIFY(fieldName),\
 		## __VA_ARGS__)
 
-Field *getTuple(char *inputLine);
 void die(char *format, ...);
 void linearTransform(Field *field, double offset, double factor);
 int julian2unixtime(double julian, time_t *result);

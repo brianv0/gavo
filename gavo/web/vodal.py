@@ -408,7 +408,8 @@ class SSAPRenderer(UnifiedDALRenderer):
 	 - ssap.creationType -- archival, cutout, filtered, mosaic,
 	   projection, specialExtraction, catalogExtraction (defaults to archival)
 	 - ssap.complianceLevel -- set to "query" when you don't deliver
-	   SDM compliant spectra.
+	   SDM compliant spectra; otherwise don't say anything, DaCHS will fill
+	   in the right value.
 	"""
 	name = "ssap.xml"
 

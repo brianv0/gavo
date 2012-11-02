@@ -320,8 +320,8 @@ var samp = (function() {
                         return;
                     }
                     else if (!l2.completed) {
-                        l2.completed = true;
                         if (+xhr.status === 200) {
+                            l2.completed = true;
                             l2.responseText = xhr.responseText;
                             l2.responseXML = xhr.responseXML;
                             if (l2.onload) {
@@ -333,15 +333,17 @@ var samp = (function() {
             })(this);
             xhr.onerror = (function(l2) {
                 return function(event) {
-                    l2.completed = true;
-                    if (l2.onerror) {
-                        if (event) {
-                            event.toString = function() {return "No hub?";};
+                    if (!l2.completed) {
+                        l2.completed = true;
+                        if (l2.onerror) {
+                            if (event) {
+                                event.toString = function() {return "No hub?";};
+                            }
+                            else {
+                                event = "No hub?";
+                            }
+                            l2.onerror(event);
                         }
-                        else {
-                            event = "No hub?";
-                        }
-                        l2.onerror(event);
                     }
                 };
             })(this);
@@ -920,7 +922,7 @@ var samp = (function() {
             connector.setConnection(conn);
             setRegText(connector, conn ? "Yes" : "No");
             if (successCallback) {
-            	successCallback(conn);
+            	successCallback();
             }
         };
         register(this.name, regSuccessHandler, regErrHandler);
