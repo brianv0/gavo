@@ -96,7 +96,8 @@ class SyncMetaTest(TAPRenderTest):
 
 	def testExamples(self):
 		return self.assertGETHasStrings("/examples", {}, [
-			'<div property="Example" id="kamatschhorribundus">',
+			'<div about="#kamatschhorribundus" typeof="Example"'
+				' id="kamatschhorribundus">',
 			'<h2 property="name">kamatsch horribundus</h2>',
 			'<a class="ivo_tap_exampletable reference external"'
 			' property="table" href="/tableinfo/foo.bar">foo.bar',

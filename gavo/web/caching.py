@@ -20,13 +20,16 @@ def instrumentRequestForCaching(request, finishAction):
 	builder = CacheItemBuilder(finishAction)
 	request = inevow.IRequest(request)
 	origWrite, origFinishRequest = request.write, request.finishRequest
+
 	def write(content):
 		builder.addContent(content)
 		return origWrite(content)
+
 	def finishRequest(success):
 		if success:
 			builder.finish(request)
 		return origFinishRequest(success)
+
 	request.write = write
 	request.finishRequest = finishRequest
 

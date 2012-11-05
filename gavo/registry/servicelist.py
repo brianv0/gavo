@@ -70,9 +70,6 @@ def querySubjectsList(setName=None):
 	res.sort(lambda a,b: cmp(a["subject"], b["subject"]))
 	return res
 
-base.caches.makeCache("getSubjectsList", 
-	lambda ignored: querySubjectsList())
-
 
 def getChunkedServiceList(setName=None):
 	"""returns a list of local services chunked by title char.
@@ -88,9 +85,6 @@ def getChunkedServiceList(setName=None):
 			key=lambda s: s.get("title").lower()),
 		lambda srec: srec.get("title", ".")[0].upper())
 
-base.caches.makeCache("getChunkedServiceList", 
-	lambda ignored: getChunkedServiceList())
-
 
 def cleanServiceTablesFor(rd, connection):
 	"""removes/invalidates all entries originating from rd from the service
@@ -102,6 +96,7 @@ def cleanServiceTablesFor(rd, connection):
 		getServicesRD().getById("tables"),
 		connection=connection)
 	tables.runScripts("newSource", sourceToken=rd)
+
 
 def basename(tableName):
 	if "." in tableName:

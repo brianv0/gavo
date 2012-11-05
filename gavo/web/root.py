@@ -229,14 +229,18 @@ class ArchiveService(rend.Page):
 		request = inevow.IRequest(ctx)
 		if request.method!="GET" or request.args or request.getUser():
 			return None
+
 		if not rendC.isCacheable(segments, request):
 			return None
+
 		request.setLastModified(
 			max(self.timestampStarted, service.rd.timestampUpdated))
+		
 		cache = base.caches.getPageCache(service.rd.sourceId)
 		segments = tuple(segments)
 		if segments in cache:
 			return cache[segments]
+
 		caching.instrumentRequestForCaching(request,
 			caching.enterIntoCacheAs(segments, cache))
 		return None

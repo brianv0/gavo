@@ -310,10 +310,18 @@
 		<template key="fixed">//root.html</template>
 		<meta name="title">\getConfig{web}{sitename}</meta>
 		<customDF name="chunkedServiceList">
-			return base.caches.getChunkedServiceList("\RDid")
+			rd = base.caches.getRD("__system__/services")
+			if not hasattr(rd, "chunkedServiceList"):
+				from gavo.registry import servicelist
+				rd.chunkedServiceList = servicelist.getChunkedServiceList()
+			return rd.chunkedServiceList
 		</customDF>
 		<customDF name="subjectServiceList">
-			return base.caches.getSubjectsList("\RDid")
+			rd = base.caches.getRD("__system__/services")
+			if not hasattr(rd, "subjectServiceList"):
+				from gavo.registry import servicelist
+				rd.subjectServiceList = servicelist.querySubjectsList()
+			return rd.subjectServiceList
 		</customDF>
 		<customRF name="ifprotected">
 			if data["owner"]:
