@@ -37,10 +37,12 @@ class ResRec(rscdef.IVOMetaMixin, NonServiceResource):
 	
 	You must further set the following meta items:
 
-	   - resType specifying the kind of resource record.  This element
-	     is intended to be used to build registry, organization, authority, 
-	     and deleted resources.  For other types of records, use either
-	     service or table elements.
+	   - resType specifying the kind of resource record.  You should not
+	     use this element to build resource records for services or tables
+	     (use the normal elements, even if the actual resrouces are external
+	     to DaCHS).  resType can be registry, organization, authority, 
+	     deleted, or anything else for which registry.builders has a
+	     handling class.
 	   - title
 	   - subject(s)
 	   - description

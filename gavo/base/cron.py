@@ -55,14 +55,28 @@ def sendMailToAdmin(subject, message):
 
 class AbstractJob(object):
 	"""A job run in a queue.
+
+	These have a name and a run() method; use their reportCronFailure(message)
+	method to deliver error messages (of course, you can also just log;
+	reportCronFailure will in typically send a mail).  Concrete jobs
+	have to implement a getNextWakeupTime(gmtime) -> gmtime method;
+	they probably have to redefine __init__; the must up-call.
 	"""
 	# here, Queue keeps track of the last time this job was started.
 	lastStarted = None
 
+	def __init__(self, name, callable):
+		self.name = name
+		self.callable = callable
+
+	def __str__(self):
+		return "<%s %s, last run at %s>"%(
+			self.__class__.__name__, self.name, self.lastStarted)
+
 	def reportCronFailure(self, message):
-		sendMailToAdmin("DaCHS job failed",
+		sendMailToAdmin("DaCHS %s job failed"%self.name,
 			"\n".join([
-				"DaCHS job %s failed"%str(self),
+				"DaCHS job %s failed"%utils.safe_str(self),
 				"\nDetails:\n",
 				message]))
 
@@ -73,7 +87,8 @@ class AbstractJob(object):
 			self.callable()
 		except Exception, ex:
 			utils.sendUIEvent("Error",
-				"Failure in timed job.  Trying to send maintainer a mail.")
+				"Failure in timed job %s.  Trying to send maintainer a mail."%
+					utils.safe_str(self))
 			self.reportCronFailure("".join(
 				traceback.format_exception(*sys.exc_info())))
 
@@ -88,12 +103,13 @@ class AbstractJob(object):
 class IntervalJob(AbstractJob):
 	"""A job that's executed roughly every interval seconds.
 	"""
-	def __init__(self, interval, callable):
-		self.interval, self.callable = interval, callable
+	def __init__(self, interval, name, callable):
+		self.interval = interval
+		AbstractJob.__init__(self, name, callable)
 
 	def getNextWakeupTime(self, curTime):
 		if self.lastStarted is None:
-			return curTime
+			return curTime+self.interval/2
 		else:
 			return curTime+self.interval
 
@@ -101,9 +117,9 @@ class IntervalJob(AbstractJob):
 class DailyJob(AbstractJob):
 	"""A job that's run roughly daily at a given time UTC.
 	"""
-	def __init__(self, hour, minute, callable):
+	def __init__(self, hour, minute, name, callable):
 		self.hour, self.minute = hour, minute
-		self.callable = callable
+		AbstractJob.__init__(self, name, callable)
 
 	def getNextWakeupTime(self, curTime):
 		# dumb strategy: get parts, replace hour and minute, and if it's
@@ -126,25 +142,67 @@ class Queue(object):
 		self.lock = threading.Lock()
 		self.scheduleFunction = None
 
-	def _scheduleJob(self, job):
+	def _rescheduleJob(self, job):
+		"""adds job to the queue and reschedules the wakeup if necessary.
+		
+		Since this method does not check for the presence of like-named jobs,
+		it must be used for rescheduling exclusively.  To schedule new jobs,
+		use _scheduleJob.
+		"""
 		with self.lock:
 			heapq.heappush(self.jobs, (job.getNextWakeupTime(time.time()), job))
 		self._scheduleWakeup()
 
+	def _scheduleJob(self, job):
+		"""adds job to the job list.
+
+		This is basically like _rescheduleJob, except that this method makes
+		sure that any other job with the same name is removed.
+		"""
+		lastStarted = self._unscheduleForName(job.name)
+		job.lastStarted = lastStarted
+		self._rescheduleJob(job)
+
+	def _unscheduleForName(self, name):
+		"""removes all jobs named name from the job queue.
+		"""
+		toRemove = []
+		with self.lock:
+			for index, (_, job) in enumerate(self.jobs):
+				if job.name==name:
+					toRemove.append(index)
+			if not toRemove:
+				return None
+
+			toRemove.reverse()
+			retval = self.jobs[toRemove[0]][1].lastStarted
+			for index in toRemove:
+				self.jobs.pop(index)
+			heapq.heapify(self.jobs)
+		return retval
+
 	def _runNextJob(self):
+		"""takes the next job off of the job queue and runs it.
+
+		If the wakeup time of the next job is too far in the future,
+		this does essentially nothing.
+		"""
 		try:
 			with self.lock:
 				jobTime, job = heapq.heappop(self.jobs)
-				if jobTime>time.time()+60:
+				if jobTime>time.time()+1:
 					# spurious wakeup, forget about it
-					heapq.heappush(jobTime, job)
+					pass
 				else:
 					job.lastStarted = time.time()
 					job.run()
 		finally:
-			self._scheduleJob(job)
+			self._rescheduleJob(job)
 	
 	def _scheduleWakeup(self):
+		"""makes the toplevel scheduler wake queue processing up when the
+		next job is due.
+		"""
 		if not self.jobs:  
 			# Nothing to run; we'll be called when someone schedules something
 			return
@@ -152,11 +210,27 @@ class Queue(object):
 		if self.scheduleFunction is not None:
 			self.scheduleFunction(max(0, nextWakeup-time.time()), self._runNextJob)
 
-	def runEvery(self, seconds, callable):
-		self._scheduleJob(IntervalJob(seconds, callable))
+	def runEvery(self, seconds, name, callable):
+		"""schedules callable to be run every seconds.
 
-	def repeatAt(self, hours, minutes, callable):
-		self._scheduleJob(DailyJob(seconds, callable))
+		name must be a unique identifier for the "job".  jobs with identical
+		names overwrite each other.
+
+		callable will be run in the main thread, so it must finish quickly
+		or it will block the server.
+		"""
+		self._scheduleJob(IntervalJob(seconds, name, callable))
+
+	def repeatAt(self, hours, minutes, name, callable):
+		"""schedules callable to be run every day at hours:minutes.
+
+		name must be a unique identifier for the "job".  jobs with identical
+		names overwrite each other.
+
+		callable will be run in the main thread, so it must finish quickly
+		or it will block the server.
+		"""
+		self._scheduleJob(DailyJob(seconds, name, callable))
 
 	def registerScheduleFunction(self, scheduleFunction):
 		if self.scheduleFunction is None:

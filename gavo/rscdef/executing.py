@@ -153,8 +153,8 @@ class Execute(base.Structure):
 		callable = _guardedFunctionFactory.makeGuardedThreaded(
 			self.job.compile(), self.rd, self.title)
 
+		jobName = "%s#%s"%(self.rd.sourceId, self.title)
 		if self.at is not base.NotGiven:
-			cron.repeatAt(self.hour, self.minute, callable)
+			cron.repeatAt(self.hour, self.minute, jobName, callable)
 		else:
-			cron.runEvery(self.every, callable)
-		
+			cron.runEvery(self.every, jobName, callable)

@@ -752,6 +752,7 @@ class KVLMakeTest(testhelpers.VerboseTest):
 
 
 import calendar
+import threading
 import time
 
 from gavo.base import cron
@@ -760,39 +761,51 @@ from gavo.rscdef import executing
 
 class _TestScheduleFunction(testhelpers.TestResource):
 	def make(self, deps):
+		spawnedThreads = []
+
 		def schedule(delay, callable):
-			if delay<1:
-				callable()
+			t = threading.Timer(delay/10., callable)
+			t.daemon = 1
+			t.start()
+			spawnedThreads.append(t)
+			
 		cron.registerScheduleFunction(schedule)
-		return schedule
+		return spawnedThreads
 	
-	def clean(self, res):
+	def clean(self, spawnedThreads):
 		cron.clearScheduleFunction()
+		for t in spawnedThreads:
+			if t.isAlive():
+				try:
+					t.cancel()
+				except:
+					pass
+			t.join(0.001)
 
 
 class CronTest(testhelpers.VerboseTest):
-	resources = [("scheduleFunction", _TestScheduleFunction())]
+	resources = [("threads", _TestScheduleFunction())]
 
 	def testDailyReschedulePre(self):
-		job = cron.DailyJob(15, 20, None)
+		job = cron.DailyJob(15, 20, "testing#testing", None)
 		t0 = calendar.timegm((1990, 5, 3, 10, 30, 0, -1, -1, -1))
 		t1 = time.gmtime(job.getNextWakeupTime(t0))
 		self.assertEqual(t1[2:5], (3, 15, 20))
 
 	def testDailyReschedulePost(self):
-		job = cron.DailyJob(15, 20, None)
+		job = cron.DailyJob(15, 20, "testing#testing", None)
 		t0 = calendar.timegm((1990, 5, 3, 20, 30, 0, -1, -1, -1))
 		t1 = time.gmtime(job.getNextWakeupTime(t0))
 		self.assertEqual(t1[2:5], (4, 15, 20))
 
 	def testEveryFirstSchedule(self):
-		job = cron.IntervalJob(3600, None)
+		job = cron.IntervalJob(3600, "testing#testing", None)
 		t0 = calendar.timegm((1990, 5, 3, 20, 30, 0, -1, -1, -1))
 		t1 = time.gmtime(job.getNextWakeupTime(t0))
-		self.assertEqual(t1[2:5], (3, 20, 30))
+		self.assertEqual(t1[2:5], (3, 21, 00))
 
 	def testEveryReschedule(self):
-		job = cron.IntervalJob(3600, None)
+		job = cron.IntervalJob(3600, "testing#testing", None)
 		job.lastStarted = calendar.timegm((1990, 5, 3, 20, 30, 0, -1, -1, -1))
 		t0 = calendar.timegm((1990, 5, 3, 20, 30, 0, -1, -1, -1))
 		t1 = time.gmtime(job.getNextWakeupTime(t0))
@@ -800,14 +813,35 @@ class CronTest(testhelpers.VerboseTest):
 
 	def testSuccessfulEveryInRD(self):
 		rd = base.parseFromString(rscdesc.RD, """<resource schema="test">
-			<execute title="seir" every="1000">
+			<execute title="seir" every="1">
 				<job><code>
 						rd.flum = 31
 				</code></job></execute></resource>""")
-		self.assertEqual(
-			len(executing._guardedFunctionFactory.threadsCurrentlyActive), 1)
-		executing._guardedFunctionFactory.threadsCurrentlyActive[0].join(0.01)
+		self.threads[-1].join(0.1)
+		del self.threads[-1]
 		self.assertEqual(rd.flum, 31)
+
+	def testRescheduleUnschedules(self):
+		rd = base.parseFromString(rscdesc.RD, """<resource schema="test">
+			<execute title="seir" every="1">
+				<job><code>
+						rd.flum = 31
+				</code></job></execute></resource>""")
+		self.assertEqual(len([j for _, j in cron._queue.jobs
+			if j.name=="None#seir"]), 1)
+		self.threads[-1].join(0.2)
+		del self.threads[-1]
+
+		rd = base.parseFromString(rscdesc.RD, """<resource schema="test">
+			<execute title="seir" every="1">
+				<job><code>
+						rd.flum = 32
+				</code></job></execute></resource>""")
+		self.threads[-1].join(0.2)
+		del self.threads[-1]
+		self.assertEqual(rd.flum, 32)
+		self.assertEqual(len([j for _, j in cron._queue.jobs
+			if j.name=="None#seir"]), 1)
 
 
 if __name__=="__main__":
