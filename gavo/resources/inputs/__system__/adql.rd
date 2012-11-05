@@ -6,6 +6,7 @@
 	<meta name="description">An endpoint for submitting ADQL queries
 		to the data center and retrieving the result in various forms.</meta>
 	<meta name="subject">Virtual observatory</meta>
+	<meta name="subject">ADQL</meta>
 	<meta name="subject">Catalogs</meta>
 	<meta name="creationDate">2008-09-20T12:00:00Z</meta>
 
