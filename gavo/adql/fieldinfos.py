@@ -96,6 +96,11 @@ class FieldInfos(object):
 		fi = self.columns.get(colName, Absent)
 		if fi is Absent:
 			raise ColumnNotFound(colName)
+		if fi is None:
+			# This can happen on joined tables
+			if refName is not None:
+				return self.locateTable(refName).getFieldInfo(colName)
+			raise AmbiguousColumn(colName)
 		return fi
 
 

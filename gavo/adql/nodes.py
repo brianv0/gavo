@@ -1089,7 +1089,6 @@ class StringValueExpression(FieldInfoedNode, TransparentMixin):
 				"text", "", "")
 	
 
-
 class GenericValueExpression(CombiningFINode, TransparentMixin):
 	"""A container for value expressions that we don't want to look at
 	closer.

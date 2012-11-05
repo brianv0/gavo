@@ -73,7 +73,7 @@ class UWS(object):
 		self.jobClass = jobClass
 		self.jobActions = jobActions
 		self._statementsCache = None
-		cron.every(self.cleanupInterval, self.cleanupJobsTable)
+		cron.runEvery(self.cleanupInterval, self.cleanupJobsTable)
 	
 	def _makeMoreStatements(self, statements, jobsTable):
 		"""adds custom statements to the canned query dict in derived

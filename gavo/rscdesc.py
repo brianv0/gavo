@@ -25,6 +25,7 @@ from gavo import svcs
 from gavo import utils
 from gavo.rscdef import common
 from gavo.rscdef import scripting
+from gavo.rscdef import executing
 
 
 class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
@@ -118,6 +119,10 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 		childNames=svcs.CORE_REGISTRY.keys(),
 		description="Cores available in this resource.", copyable=True,
 		before="services")
+
+	_jobs = base.StructListAttribute("jobs",
+		childFactory=executing.Execute,
+		description="Jobs to be run while this RD is active.")
 
 	# These replace themselves with expanded tables
 	_viewDefs = base.StructAttribute("simpleView",

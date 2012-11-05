@@ -17,6 +17,7 @@ These are computed by the nodes themselves, using their addFieldInfo
 
 import contextlib
 
+from gavo import utils
 from gavo import stc
 from gavo.adql import nodes
 from gavo.adql.common import *
@@ -62,7 +63,12 @@ class AnnotationContext(object):
 
 		This should be a sequence of (colName, common.FieldInfo) pairs.
 		"""
-		return self.colResolvers[-1](colName, tableName)
+		res = self.colResolvers[-1](colName, tableName)
+		if res is None:
+			raise utils.ReportableError("Internal Error: resolver returned NULL for"
+				" %s.%s.  Please report this to the gavo@ari.uni-heidelberg.de"
+				" together with the failed query."%(tableName, colName))
+		return res
 
 
 def _annotateTraverse(node, context):

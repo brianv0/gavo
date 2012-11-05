@@ -755,8 +755,24 @@ import calendar
 import time
 
 from gavo.base import cron
+from gavo.rscdef import executing
+
+
+class _TestScheduleFunction(testhelpers.TestResource):
+	def make(self, deps):
+		def schedule(delay, callable):
+			if delay<1:
+				callable()
+		cron.registerScheduleFunction(schedule)
+		return schedule
+	
+	def clean(self, res):
+		cron.clearScheduleFunction()
+
 
 class CronTest(testhelpers.VerboseTest):
+	resources = [("scheduleFunction", _TestScheduleFunction())]
+
 	def testDailyReschedulePre(self):
 		job = cron.DailyJob(15, 20, None)
 		t0 = calendar.timegm((1990, 5, 3, 10, 30, 0, -1, -1, -1))
@@ -769,6 +785,29 @@ class CronTest(testhelpers.VerboseTest):
 		t1 = time.gmtime(job.getNextWakeupTime(t0))
 		self.assertEqual(t1[2:5], (4, 15, 20))
 
+	def testEveryFirstSchedule(self):
+		job = cron.IntervalJob(3600, None)
+		t0 = calendar.timegm((1990, 5, 3, 20, 30, 0, -1, -1, -1))
+		t1 = time.gmtime(job.getNextWakeupTime(t0))
+		self.assertEqual(t1[2:5], (3, 20, 30))
+
+	def testEveryReschedule(self):
+		job = cron.IntervalJob(3600, None)
+		job.lastStarted = calendar.timegm((1990, 5, 3, 20, 30, 0, -1, -1, -1))
+		t0 = calendar.timegm((1990, 5, 3, 20, 30, 0, -1, -1, -1))
+		t1 = time.gmtime(job.getNextWakeupTime(t0))
+		self.assertEqual(t1[2:5], (3, 21, 30))
+
+	def testSuccessfulEveryInRD(self):
+		rd = base.parseFromString(rscdesc.RD, """<resource schema="test">
+			<execute title="seir" every="1000">
+				<job><code>
+						rd.flum = 31
+				</code></job></execute></resource>""")
+		self.assertEqual(
+			len(executing._guardedFunctionFactory.threadsCurrentlyActive), 1)
+		executing._guardedFunctionFactory.threadsCurrentlyActive[0].join(0.01)
+		self.assertEqual(rd.flum, 31)
 
 
 if __name__=="__main__":

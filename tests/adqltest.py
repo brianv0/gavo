@@ -565,7 +565,7 @@ spatialFields = [
 	MS(rscdef.Column, name="dist", ucd="phys.distance", unit="m"),
 	MS(rscdef.Column, name="width", ucd="phys.dim", unit="m"),
 	MS(rscdef.Column, name="height", ucd="phys.dim", unit="km"),
-	MS(rscdef.Column, name="ra1", ucd="pos.eq.ra;meta.main", unit="deg"),
+	MS(rscdef.Column, name="ra1", ucd="pos.eq.ra", unit="deg"),
 	MS(rscdef.Column, name="ra2", ucd="pos.eq.ra", unit="rad"),]
 spatial2Fields = [
 	MS(rscdef.Column, name="ra1", ucd="pos.eq.ra;meta.main", unit="deg"),
@@ -789,7 +789,7 @@ class ColResTest(ColumnTest):
 			("real", "m", "phys.distance", False),
 			("real", "m", "phys.dim", False),
 			("real", "km", "phys.dim", False),
-			("real", "deg", "pos.eq.ra;meta.main", False),
+			("real", "deg", "pos.eq.ra", False),
 			("real", "rad", "pos.eq.ra", False), ])
 
 	def testStarSelectJoined(self):
@@ -798,7 +798,7 @@ class ColResTest(ColumnTest):
 			("real", "m", "phys.distance", False),
 			("real", "m", "phys.dim", False),
 			("real", "km", "phys.dim", False),
-			("real", "deg", "pos.eq.ra;meta.main", False),
+			("real", "deg", "pos.eq.ra", False),
 			("real", "rad", "pos.eq.ra", False),
 			("real", "kg", "phys.mass", False),
 			("real", "mag", "phot.mag", False),
@@ -854,7 +854,7 @@ class ColResTest(ColumnTest):
 		self._assertColumns(cols, [
 			("double precision", "rad", "", True),
 			("double precision", "deg", "pos.eq.ra", True),
-			("double precision", "rad", "pos.eq.ra;meta.main", True),
+			("double precision", "rad", "pos.eq.ra", True),
 			("double precision", "", "", True),
 			("double precision", "m", "phys.dim", True),
 			("double precision", "m", "phys.dim", True),
@@ -863,8 +863,8 @@ class ColResTest(ColumnTest):
 	def testAggFunctions(self):
 		cols = self._getColSeq("select max(ra1), min(ra1) from spatial")
 		self._assertColumns(cols, [
-			("real", "deg", "stat.max;pos.eq.ra;meta.main", False),
-			("real", "deg", "stat.min;pos.eq.ra;meta.main", False)])
+			("real", "deg", "stat.max;pos.eq.ra", False),
+			("real", "deg", "stat.min;pos.eq.ra", False)])
 
 	def testPoint(self):
 		cols = self._getColSeq("select point('ICRS', ra1, ra2) from spatial")
@@ -930,6 +930,13 @@ class ColResTest(ColumnTest):
 		self._assertColumns(cols, [
 			("unicode", '', '', True)])
 
+	def testIdenticalNames(self):
+		cols = self._getColSeq("SELECT u.ra1 FROM spatial AS mine"
+  		" LEFT OUTER JOIN spatial2 as u"
+  		" ON (1=CONTAINS(POINT('', mine.ra1, mine.ra2),"
+  		"   CIRCLE('', u.ra1, u.dec, 1)))")
+		self._assertColumns(cols, [
+			("real", 'deg', 'pos.eq.ra;meta.main', False)])
 
 class ExprColTest(ColumnTest):
 	def testCharConcat(self):
@@ -1022,7 +1029,7 @@ class JoinColResTest(ColumnTest):
 			("real", 'm', 'phys.distance', False),
 			("real", 'm', 'phys.dim', False),
 			("real", 'km', 'phys.dim', False),
-			("real", 'deg', 'pos.eq.ra;meta.main', False),
+			("real", 'deg', 'pos.eq.ra', False),
 			("real", 'rad', 'pos.eq.ra', False),
 			("real", 'kg', 'phys.mass', False),
 			("real", 'mag', 'phot.mag', False),
@@ -1037,7 +1044,7 @@ class JoinColResTest(ColumnTest):
     	"  spatial ON (mass=width)) AS f")
 		self._assertColumns(cols, [
 			("real", 'kg', 'phys.mass', False),
-			("real", 'deg', 'pos.eq.ra;meta.main', False)])
+			("real", 'deg', 'pos.eq.ra', False)])
 
 	def testAutoJoin(self):
 		cols = self._getColSeq("SELECT * FROM misc JOIN"
@@ -1084,7 +1091,7 @@ class JoinColResTest(ColumnTest):
 			("real", "m", "phys.distance", False),
 			("real", "m", "phys.dim", False),
 			("real", "km", "phys.dim", False),
-			("real", "deg", "pos.eq.ra;meta.main", False),
+			("real", "deg", "pos.eq.ra", False),
 			("real", "rad", "pos.eq.ra", False),
 			("real", "deg", "pos.eq.dec;meta.main", False)])
 
@@ -1095,7 +1102,7 @@ class JoinColResTest(ColumnTest):
 			("real", "m", "phys.distance", False),
 			("real", "m", "phys.dim", False),
 			("real", "km", "phys.dim", False),
-			("real", "deg", "pos.eq.ra;meta.main", False),
+			("real", "deg", "pos.eq.ra", False),
 			("real", "rad", "pos.eq.ra", False),
 			("real", "deg", "pos.eq.dec;meta.main", False),
 			("real", "m", "phys.distance", False)])
@@ -1107,7 +1114,7 @@ class JoinColResTest(ColumnTest):
 			("real", "m", "phys.distance", False),
 			("real", "m", "phys.dim", False),
 			("real", "km", "phys.dim", False),
-			("real", "deg", "pos.eq.ra;meta.main", False),
+			("real", "deg", "pos.eq.ra", False),
 			("real", "rad", "pos.eq.ra", False),
 			("real", "deg", "pos.eq.dec;meta.main", False)])
 
@@ -1115,7 +1122,7 @@ class JoinColResTest(ColumnTest):
 		cols = self._getColSeq("SELECT ra1, dec, mass FROM"
 			" spatial JOIN spatial2 USING (ra1, dist) JOIN misc ON (dist=mass)")
 		self._assertColumns(cols, [
-			("real", "deg", "pos.eq.ra;meta.main", False),
+			("real", "deg", "pos.eq.ra", False),
 			("real", "deg", "pos.eq.dec;meta.main", False),
 			("real", "kg", "phys.mass", False),])
 
@@ -1124,7 +1131,7 @@ class JoinColResTest(ColumnTest):
 			" (SELECT * FROM spatial) as q JOIN spatial2"
 			" USING (ra1, dist) JOIN misc ON (dist=mass)")
 		self._assertColumns(cols, [
-			("real", "deg", "pos.eq.ra;meta.main", False),
+			("real", "deg", "pos.eq.ra", False),
 			("real", "deg", "pos.eq.dec;meta.main", False),
 			("real", "kg", "phys.mass", False),])
 	
@@ -1146,7 +1153,7 @@ class UploadColResTest(ColumnTest):
 		self._assertColumns(cols, [
 			("real", 'deg', 'pos.eq.ra;meta.main', False),
 			("double precision", 'km/s', 'phys.veloc;pos.heliocentric', False),])
-	
+
 	def testFailedResolutionCol(self):
 		self.assertRaises(base.NotFoundError, self._getColSeq,
 			'select alp, rv from TAP_UPLOAD.adql')
@@ -1228,6 +1235,7 @@ class STCTest(ColumnTest):
 				"select region('Circle FK4 10 10 1')"
 				" from spatial")
 		self.assertEqual(cs[0][1].unit, "deg")
+
 
 
 class FunctionNodeTest(unittest.TestCase):

@@ -9,7 +9,7 @@ To make the jobs actually execute, the running program has to call
 registerScheduler(schedulerFunction).  Only the first registration is relevant.
 The schedulerFunction has the signature sf(delay, callable) and has to
 arrange for callable to be called delay seconds in the future.  In reality,
-that's just reactor.callLater registred by the web server.
+that's usually just reactor.callLater registred by the web server.
 """
 
 from __future__ import with_statement
@@ -17,9 +17,11 @@ from __future__ import with_statement
 import calendar
 import heapq
 import os
+import sys
 import subprocess
 import time
 import threading
+import traceback
 
 from gavo import utils
 from gavo.base import config
@@ -90,7 +92,7 @@ class IntervalJob(AbstractJob):
 		self.interval, self.callable = interval, callable
 
 	def getNextWakeupTime(self, curTime):
-		if lastStarted is None:
+		if self.lastStarted is None:
 			return curTime
 		else:
 			return curTime+self.interval
@@ -161,8 +163,12 @@ class Queue(object):
 			self.scheduleFunction = scheduleFunction
 			self._scheduleWakeup()
 
+	def clearScheduleFunction(self):
+		self.scheduleFunction = None
+
 
 _queue = Queue()
 runEvery = _queue.runEvery
 repeatAt = _queue.repeatAt
 registerScheduleFunction = _queue.registerScheduleFunction
+clearScheduleFunction = _queue.clearScheduleFunction
