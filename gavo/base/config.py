@@ -358,7 +358,7 @@ _config = Configuration(
 				"recipient address from the mail header, and transfers the"
 				" mail (this is for sending mails to the administrator)."
 				" This command is processed by a shell (generally running as"
-				" the server user), so you can to tricks if necessary."),
+				" the server user), so you can do tricks if necessary."),
 		StringConfigItem("maintainerAddress", default="",
 			description="An e-mail address to send reports and warnings to."),
 		),

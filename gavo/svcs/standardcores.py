@@ -301,8 +301,12 @@ def mapDBErrors(excType, excValue, excTb):
 	if getattr(excValue, "cursor", None) is not None:
 		base.ui.notifyWarning("Failed DB query: %s"%excValue.cursor.query)
 	if isinstance(excValue, sqlsupport.QueryCanceledError):
-		raise base.ui.logOldExc(base.ValidationError("Query timed out"
-			" (took too long).  See our help.", "query"))
+		message = "Query timed out (took too long)."
+		if base.getConfig("maintainerAddress"):
+			message = message+("  Unless you know why the query took that"
+				" long, please contact %s; we will probably be able to"
+				" help you."%base.getConfig("maintainerAddress"))
+		raise base.ui.logOldExc(base.ValidationError(message, "query"))
 	elif isinstance(excValue, base.NotFoundError):
 		raise base.ui.logOldExc(base.ValidationError("Could not locate %s '%s'"%(
 			excValue.what, excValue.lookedFor), "query"))

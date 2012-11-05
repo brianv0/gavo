@@ -26,6 +26,7 @@ from gavo import formats
 from gavo import rsc
 from gavo import rscdef
 from gavo import rscdesc
+from gavo import svcs
 from gavo import utils
 from gavo import votable
 from gavo.base import valuemappers
@@ -248,11 +249,16 @@ def runTAPJobNoState(parameters, jobId, queryProfile, timeout):
 	res = _makeDataFor(getQTableFromJob(
 		parameters, jobId, queryProfile, timeout))
 
-	job = tap.workerSystem.getJob(jobId)
-	destF = job.openResult(
-		_getResultType(format, job.parameters.get("format")), "result")
-	writeResultTo(format, res, destF)
-	destF.close()
+	try:
+		job = tap.workerSystem.getJob(jobId)
+		destF = job.openResult(
+			_getResultType(format, job.parameters.get("format")), "result")
+		writeResultTo(format, res, destF)
+		destF.close()
+	except Exception, ex:
+		# DB errors can occur here since we're streaming directly from
+		# the database.
+		svcs.mapDBErrors(*sys.exc_info())
 	# connectionForQuery closed by QueryTable
 
 
