@@ -3,6 +3,7 @@ The execute element and related stuff.
 """
 
 import os
+import re
 import subprocess
 import sys
 import threading
@@ -187,7 +188,7 @@ class Execute(base.Structure):
 				raise base.LiteralParseError("at", self.at, pos=ctx.pos, hint=
 					"This must be in hour:minute format")
 			self.hour, self.minute = int(mat.group(1)), int(mat.group(2))
-			if not 0<=hour<=23 or 0<=minute<=59:
+			if not 0<=self.hour<=23 or 0<=self.minute<=59:
 				raise base.LiteralParseError("at", self.at, pos=ctx.pos, hint=
 					"This must be hour:minute with 0<=hour<=23 or 0<=minute<=59")
 
