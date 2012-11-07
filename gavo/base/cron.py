@@ -194,6 +194,7 @@ class Queue(object):
 					# spurious wakeup, forget about it
 					pass
 				else:
+					utils.sendUIEvent("Debug", "Running job %s"%job.name)
 					job.lastStarted = time.time()
 					job.run()
 		finally:

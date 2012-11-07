@@ -2,6 +2,9 @@
 The execute element and related stuff.
 """
 
+import os
+import subprocess
+import sys
 import threading
 import traceback
 
@@ -45,19 +48,21 @@ class GuardedFunctionFactory(object):
 					t.join(timeout=0.001)
 			self.threadsCurrentlyActive = newThreads
 
-	def makeGuardedThreaded(self, callable, rd, title):
+	def makeGuardedThreaded(self, callable, execDef):
 		"""returns callable ready for safe cron-like execution.
+
+		execDef is an Execute instance.
 		"""
 		serializingLock = threading.Lock()
 		
 		def innerFunction():
 			try:
 				try:
-					callable(rd)
+					callable(execDef.rd, execDef)
 				except Exception, msg:
 					base.ui.notifyError("Uncaught exception in timed job %s."
-						" Trying to send traceback to the maintainer."%title)
-					cron.sendMailToAdmin("DaCHS Job %s failed"%title,
+						" Trying to send traceback to the maintainer."%execDef.title)
+					cron.sendMailToAdmin("DaCHS Job %s failed"%execDef.title,
 						"".join(traceback.format_exception(*sys.exc_info())))
 			finally:
 				serializingLock.release()
@@ -66,9 +71,9 @@ class GuardedFunctionFactory(object):
 			self._reapOldThreads()
 			if not serializingLock.acquire(False):
 				base.ui.notifyWarning("Timed job %s has not finished"
-					" before next instance came around"%title)
+					" before next instance came around"%execDef.title)
 				return
-			t = threading.Thread(name=title, target=innerFunction)
+			t = threading.Thread(name=execDef.title, target=innerFunction)
 			t.daemon = True
 			t.start()
 
@@ -81,13 +86,21 @@ _guardedFunctionFactory = GuardedFunctionFactory()
 
 
 class CronJob(procdef.ProcApp):
-	"""Python code for a timed job.
+	"""Python code for use within execute.
 
-	The resource descriptor this runs at is available as rd.
+	The resource descriptor this runs at is available as rd, the execute
+	definition (having such attributes as title, job, plus any
+	properties given in the RD) as execDef.
+
+	Note that no I/O capturing takes place (that's impossible since in
+	general the jobs run within the server).  To have actual cron jobs,
+	use execDef.spawn(["cmd", "arg1"...]).  This will send a mail on failed
+	execution and also raise a ReportableError in that case.
+
+	In the frequent use case of a resdir-relative python program, you
+	can use the execDef.spawnPython(modulePath) function.
 	"""
-	name_ = "job"
-	requiredType = "job"
-	formalArgs = "rd"
+	formalArgs = "rd, execDef"
 
 
 class Execute(base.Structure):
@@ -102,7 +115,7 @@ class Execute(base.Structure):
 	block with the GIL held; this is still in the server process.
 	If you do daring things, fork off (note that you must not use
 	any database connections you may have after forking, which means
-	you can't safely use the RD passed in).
+	you can't safely use the RD passed in).  See the docs on CronJob.
 	"""
 	name_ = "execute"
 
@@ -130,7 +143,37 @@ class Execute(base.Structure):
 		description="The code to run.",
 		copyable=True,)
 
+	_properties = base.PropertyAttribute()
+
 	_rd = common.RDAttribute()
+
+	def spawn(self, cliList):
+		"""spawns an external command, capturing the output and mailing it
+		to the admin if it failed.
+
+		Output is buffered and mailed, so it shouldn't be  too large.
+
+		This does not raise an exception if it failed (in normal usage,
+		this would cause two mails to be sent).  Instead, it returns the 
+		returncode of the spawned process; if that's 0, you're ok.  But
+		in general, you wouldn't want to check it.
+		"""
+		p = subprocess.Popen(cliList,
+			stdin=subprocess.PIPE, stdout=subprocess.PIPE, 
+			stderr=subprocess.STDOUT, close_fds=True)
+		childOutput, _ = p.communicate()
+		if p.returncode:
+			cron.sendMailToAdmin("A process spawned by %s failed with %s"%(
+				self.title, p.returncode),
+				"Output of %s:\n\n%s"%(cliList, childOutput))
+		return p.returncode
+	
+	def spawnPython(self, pythonFile):
+		"""spawns a new python interpreter executing pythonFile.
+
+		pythonFile may be resdir-relative.
+		"""
+		self.spawn(["python", os.path.join(self.rd.resdir, pythonFile)])
 
 	def completeElement(self, ctx):
 		self._completeElementNext(Execute, ctx)
@@ -151,7 +194,7 @@ class Execute(base.Structure):
 	def onElementComplete(self):
 		self._onElementCompleteNext(Execute)
 		callable = _guardedFunctionFactory.makeGuardedThreaded(
-			self.job.compile(), self.rd, self.title)
+			self.job.compile(), self)
 
 		jobName = "%s#%s"%(self.rd.sourceId, self.title)
 		if self.at is not base.NotGiven:

@@ -759,17 +759,30 @@ from gavo.base import cron
 from gavo.rscdef import executing
 
 
+class _listWithMessage(list):
+	"""Uh... I need this to have a place to keep... mails.
+	"""
+	lastMessage = None
+
+
 class _TestScheduleFunction(testhelpers.TestResource):
 	def make(self, deps):
-		spawnedThreads = []
+		spawnedThreads = _listWithMessage()
 
 		def schedule(delay, callable):
 			t = threading.Timer(delay/10., callable)
 			t.daemon = 1
 			t.start()
 			spawnedThreads.append(t)
-			
+
 		cron.registerScheduleFunction(schedule)
+
+		def storeAMail(subject, message):
+			spawnedThreads.lastMessage = subject+"\n"+message
+
+		self.oldMailFunction = cron.sendMailToAdmin
+		cron.sendMailToAdmin = storeAMail
+
 		return spawnedThreads
 	
 	def clean(self, spawnedThreads):
@@ -779,8 +792,10 @@ class _TestScheduleFunction(testhelpers.TestResource):
 				try:
 					t.cancel()
 				except:
-					pass
+					import traceback
+					traceback.print_exc()
 			t.join(0.001)
+		cron.sendMailToAdmin = self.oldMailFunction
 
 
 class CronTest(testhelpers.VerboseTest):
@@ -842,6 +857,26 @@ class CronTest(testhelpers.VerboseTest):
 		self.assertEqual(rd.flum, 32)
 		self.assertEqual(len([j for _, j in cron._queue.jobs
 			if j.name=="None#seir"]), 1)
+
+	def testFailingSpawn(self):
+		rd = base.parseFromString(rscdesc.RD, """<resource schema="test">
+			<execute title="seir" every="1">
+				<job><code>
+					execDef.spawn(["ls", "/does/not/exist"])
+					execDef.ran = 1
+				</code></job></execute></resource>""")
+		self.threads[-1].join()
+		del self.threads[-1]
+		for i in range(100):
+			if hasattr(rd.jobs[0], "ran"):
+				break
+			time.sleep(0.005)
+		else:
+			raise AssertionError("spawned ls did not come around")
+		self.failUnless("A process spawned by seir failed with 2"
+			in self.threads.lastMessage)
+		self.failUnless("Output of ['ls', '/does/not/exist']:"
+			in self.threads.lastMessage)
 
 
 if __name__=="__main__":
