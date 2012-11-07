@@ -360,7 +360,10 @@ _config = Configuration(
 				" This command is processed by a shell (generally running as"
 				" the server user), so you can do tricks if necessary."),
 		StringConfigItem("maintainerAddress", default="",
-			description="An e-mail address to send reports and warnings to."),
+			description="An e-mail address to send reports and warnings to;"
+				" this could be the same as contact.email; in practice, it is"
+				" shown in more technical circumstances, so it's adviable"
+				" to have a narrower distribution here."),
 		),
 
 	Section('web', 'Settings related to serving content to the web.',

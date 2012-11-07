@@ -878,6 +878,30 @@ class CronTest(testhelpers.VerboseTest):
 		self.failUnless("Output of ['ls', '/does/not/exist']:"
 			in self.threads.lastMessage)
 
+	def testAtFromRDBad(self):
+		self.assertRaisesWithMsg(base.LiteralParseError,
+			'At [<resource schema="test">\\n\\...], (5, 17): \'25:78\' is'
+				' not a valid value for at',
+			base.parseFromString,
+			(rscdesc.RD, """<resource schema="test">
+			<execute title="seir" at="25:78">
+				<job><code>
+						rd.flum = 31
+				</code></job></execute></resource>"""))
+
+	def testAtFromRDGood(self):
+		rd = base.parseFromString(rscdesc.RD, """<resource schema="test">
+			<execute title="seir" at="16:28">
+				<job><code>
+						rd.flum = 31
+				</code></job></execute></resource>""")
+		self.assertEqual(rd.jobs[0].hour, 16)
+		self.assertEqual(rd.jobs[0].minute, 28)
+		self.threads[-1].cancel()
+		self.threads[-1].join(0.01)
+		self.assertEqual(time.gmtime([j for _, j in cron._queue.jobs 
+			if j.name=="None#seir"][0].getNextWakeupTime(time.time()))[3:5],
+			(16, 28))
 
 if __name__=="__main__":
 	testhelpers.main(KVLMakeTest)

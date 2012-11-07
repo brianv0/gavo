@@ -231,7 +231,7 @@ class Queue(object):
 		callable will be run in the main thread, so it must finish quickly
 		or it will block the server.
 		"""
-		self._scheduleJob(DailyJob(seconds, name, callable))
+		self._scheduleJob(DailyJob(hours, minutes, name, callable))
 
 	def registerScheduleFunction(self, scheduleFunction):
 		if self.scheduleFunction is None:
