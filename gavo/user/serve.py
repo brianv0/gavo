@@ -159,6 +159,18 @@ def _configureTwistedLog():
 	rotator()
 
 
+def _preloadRDs():
+	"""accesses the RDs mentioned in [web]preloadRDs.
+
+	Errors while loading those are logged but are not fatal to the server.
+	"""
+	for rdId in base.getConfig("web", "preloadRDs"):
+		try:
+			base.caches.getRD(rdId)
+		except:
+			base.ui.notifyError("Error while preloading %s."%rdId)
+
+
 def _startServer():
 	"""runs a detached server, dropping privileges and all.
 	"""
@@ -183,6 +195,7 @@ def _startServer():
 		setupServer(root)
 		signal.signal(signal.SIGHUP, lambda sig, stack: 
 			reactor.callLater(0, _reloadConfig))
+		_preloadRDs()
 		reactor.run()
 	finally:
 		PIDManager.clearPID()

@@ -408,8 +408,10 @@ _config = Configuration(
 		IntConfigItem("maxUploadSize",
 			"20000000",
 			"Maximal size of file uploads in bytes."),
+		ListConfigItem("preloadRDs", "", "RD ids to preload at the server"
+			" start (this is mainly for RDs that have execute children"
+			" that should run regularly)."),
 	),
-
 
 	Section('adql', "Settings concerning the built-in ADQL core",
 		IntConfigItem("webDefaultLimit", "2000",
