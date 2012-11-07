@@ -161,7 +161,7 @@ def getTablesetForService(service, physical=False):
 		rdForSchema[t.rd.schema] = t.rd
 
 	schemas = []
-	for schemaName, tables in bySchema.iteritems():
+	for schemaName, tables in sorted(bySchema.iteritems()):
 		schemas.append((rdForSchema[schemaName], tables))
 	
 	return getTablesetForSchemaCollection(schemas)
