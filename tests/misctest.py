@@ -802,16 +802,28 @@ class CronTest(testhelpers.VerboseTest):
 	resources = [("threads", _TestScheduleFunction())]
 
 	def testDailyReschedulePre(self):
-		job = cron.DailyJob(15, 20, "testing#testing", None)
+		job = cron.DailyJob([(15, 20)], "testing#testing", None)
 		t0 = calendar.timegm((1990, 5, 3, 10, 30, 0, -1, -1, -1))
 		t1 = time.gmtime(job.getNextWakeupTime(t0))
 		self.assertEqual(t1[2:5], (3, 15, 20))
 
 	def testDailyReschedulePost(self):
-		job = cron.DailyJob(15, 20, "testing#testing", None)
+		job = cron.DailyJob([(15, 20)], "testing#testing", None)
 		t0 = calendar.timegm((1990, 5, 3, 20, 30, 0, -1, -1, -1))
 		t1 = time.gmtime(job.getNextWakeupTime(t0))
 		self.assertEqual(t1[2:5], (4, 15, 20))
+
+	def testDailyRescheduleBetween(self):
+		job = cron.DailyJob([(15, 20), (8, 45)], "testing#testing", None)
+		t0 = calendar.timegm((1990, 5, 3, 12, 30, 0, -1, -1, -1))
+		t1 = time.gmtime(job.getNextWakeupTime(t0))
+		self.assertEqual(t1[2:5], (3, 15, 20))
+
+	def testDailyRescheduleBeforeAll(self):
+		job = cron.DailyJob([(15, 20), (8, 45)], "testing#testing", None)
+		t0 = calendar.timegm((1990, 5, 3, 0, 30, 0, -1, -1, -1))
+		t1 = time.gmtime(job.getNextWakeupTime(t0))
+		self.assertEqual(t1[2:5], (3, 8, 45))
 
 	def testEveryFirstSchedule(self):
 		job = cron.IntervalJob(3600, "testing#testing", None)
@@ -895,8 +907,8 @@ class CronTest(testhelpers.VerboseTest):
 				<job><code>
 						rd.flum = 31
 				</code></job></execute></resource>""")
-		self.assertEqual(rd.jobs[0].hour, 16)
-		self.assertEqual(rd.jobs[0].minute, 28)
+		self.assertEqual(rd.jobs[0].parsedAt[0], (16, 28))
+		self.assertEqual(len(rd.jobs[0].parsedAt), 1)
 		self.threads[-1].cancel()
 		self.threads[-1].join(0.01)
 		self.assertEqual(time.gmtime([j for _, j in cron._queue.jobs 

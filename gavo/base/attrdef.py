@@ -411,7 +411,10 @@ class StringListAttribute(UnicodeAttribute):
 
 	@property
 	def default_(self):
-		return self.realDefault[:]
+		try:
+			return self.realDefault[:]
+		except TypeError:  # Not iterable; that's the client's problem.
+			return self.realDefault
 
 	def unparse(self, value):
 		return ", ".join(value)

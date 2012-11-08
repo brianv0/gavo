@@ -115,21 +115,27 @@ class IntervalJob(AbstractJob):
 
 
 class DailyJob(AbstractJob):
-	"""A job that's run roughly daily at a given time UTC.
+	"""A job that's run roughly daily at some wallclock (UTC) times.
+
+	times is a list of (hour, minute) pairs.
 	"""
-	def __init__(self, hour, minute, name, callable):
-		self.hour, self.minute = hour, minute
+	def __init__(self, times, name, callable):
+		self.times = times
 		AbstractJob.__init__(self, name, callable)
 
 	def getNextWakeupTime(self, curTime):
 		# dumb strategy: get parts, replace hour and minute, and if it's
-		# in the past, add a day
+		# in the past, add a day; do that for all recurrence times, and use
+		# the smallest one.
+		nextWakeups = []
 		curTup = time.gmtime(curTime)
-		wakeupTime = calendar.timegm(
-			curTup[:3]+(self.hour, self.minute)+curTup[5:])
-		if wakeupTime<curTime:
-			wakeupTime += 86400
-		return wakeupTime
+		for hour, minute in self.times:
+			wakeupTime = calendar.timegm(
+				curTup[:3]+(hour, minute)+curTup[5:])
+			if wakeupTime<curTime:
+				wakeupTime += 86400
+			nextWakeups.append(wakeupTime)
+		return min(nextWakeups)
 
 
 class Queue(object):
@@ -222,8 +228,10 @@ class Queue(object):
 		"""
 		self._scheduleJob(IntervalJob(seconds, name, callable))
 
-	def repeatAt(self, hours, minutes, name, callable):
-		"""schedules callable to be run every day at hours:minutes.
+	def repeatAt(self, times, name, callable):
+		"""schedules callable to be run every day at times.
+
+		times is a list of (hour, minute) pairs.
 
 		name must be a unique identifier for the "job".  jobs with identical
 		names overwrite each other.
@@ -231,7 +239,7 @@ class Queue(object):
 		callable will be run in the main thread, so it must finish quickly
 		or it will block the server.
 		"""
-		self._scheduleJob(DailyJob(hours, minutes, name, callable))
+		self._scheduleJob(DailyJob(times, name, callable))
 
 	def registerScheduleFunction(self, scheduleFunction):
 		if self.scheduleFunction is None:

@@ -126,10 +126,10 @@ class Execute(base.Structure):
 			" in diagnostics.",
 		copyable=False,)
 
-	_at = base.UnicodeAttribute("at",
+	_at = base.StringListAttribute("at",
+		description="One or more hour:minute pairs at which to run"
+			" the code each day.  This conflicts with every.",
 		default=base.NotGiven,
-		description='A hour:minute pair at which to run the code each day.'
-		'  This conflicts with every.',
 		copyable=True,)
 
 	_every = base.IntAttribute("every",
@@ -183,14 +183,18 @@ class Execute(base.Structure):
 				" for Execute", pos=ctx.pos)
 
 		if self.at is not base.NotGiven:
-			mat = re.match(r"(\d+):(\d+)", self.at)
-			if not mat:
-				raise base.LiteralParseError("at", self.at, pos=ctx.pos, hint=
-					"This must be in hour:minute format")
-			self.hour, self.minute = int(mat.group(1)), int(mat.group(2))
-			if not (0<=self.hour<=23 and 0<=self.minute<=59):
-				raise base.LiteralParseError("at", self.at, pos=ctx.pos, hint=
-					"This must be hour:minute with 0<=hour<=23 or 0<=minute<=59")
+			times = []
+			for literal in self.at:
+				mat = re.match(r"(\d+):(\d+)", literal)
+				if not mat:
+					raise base.LiteralParseError("at", literal, pos=ctx.pos, hint=
+						"This must be in hour:minute format")
+				hour, minute = int(mat.group(1)), int(mat.group(2))
+				if not (0<=hour<=23 and 0<=minute<=59):
+					raise base.LiteralParseError("at", literal, pos=ctx.pos, hint=
+						"This must be hour:minute with 0<=hour<=23 or 0<=minute<=59")
+				times.append((hour, minute))
+			self.parsedAt = times
 
 	def onElementComplete(self):
 		self._onElementCompleteNext(Execute)
@@ -199,6 +203,6 @@ class Execute(base.Structure):
 
 		jobName = "%s#%s"%(self.rd.sourceId, self.title)
 		if self.at is not base.NotGiven:
-			cron.repeatAt(self.hour, self.minute, jobName, callable)
+			cron.repeatAt(self.parsedAt, jobName, callable)
 		else:
 			cron.runEvery(self.every, jobName, callable)
