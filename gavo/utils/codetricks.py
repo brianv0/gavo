@@ -191,6 +191,54 @@ class NullObject(object):
 		pass
 
 
+class _CmpType(type):
+	"""is a metaclass for *classes* that always compare in one way.
+	"""
+# Ok, the class thing is just posing.  It's fun anyway.
+	def __cmp__(cls, other):
+		return cls.cmpRes
+
+
+class _Comparer(object):
+	__metaclass__ = _CmpType
+	def __init__(self, *args, **kwargs):
+		raise Error("%s classes can't be instanciated."%self.__class__.__name__)
+
+
+class Infimum(_Comparer):
+	"""is a *class* smaller than anything.
+
+	This will only work as the first operand.
+
+	>>> Infimum<-2333
+	True
+	>>> Infimum<""
+	True
+	>>> Infimum<None
+	True
+	>>> Infimum<Infimum
+	True
+	"""
+	cmpRes = -1
+
+
+class Supremum(_Comparer):
+	"""is a *class* larger than anything.
+
+	This will only work as the first operand.
+
+	>>> Supremum>1e300
+	True
+	>>> Supremum>""
+	True
+	>>> Supremum>None
+	True
+	>>> Supremum>Supremum
+	True
+	"""
+	cmpRes = 1
+
+
 def iterDerivedClasses(baseClass, objects):
 	"""iterates over all subclasses of baseClass in the sequence objects.
 	"""

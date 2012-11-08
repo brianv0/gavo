@@ -295,7 +295,12 @@ def _getServerScriptPath(conn):
 	from gavo.base import sqlsupport
 	version = sqlsupport.parseBannerString(
 		_execDB(conn, "SELECT version()")[0][0])
-	return "/usr/share/postgresql/%s/contrib"%version
+	name = "/usr/share/postgresql/%s/contrib"%version
+	if os.path.isdir(name):
+		return name
+	name = "/usr/share/postgresql/contrib"
+# Try others here?  Which?
+	return name
 
 
 def _readDBScript(conn, scriptPath, sourceName, procName):
@@ -356,7 +361,7 @@ def _readDBScripts(dsn):
 	"""loads definitions of pgsphere, q3c and similar into the DB.
 
 	This only works for local installations, and the script location
-	is more or less hardcoded for Debian.
+	is more or less hardcoded (Debian and SuSE work, at least).
 	"""
 	conn = psycopg2.connect(dsn.full)
 	scriptPath = _getServerScriptPath(conn)

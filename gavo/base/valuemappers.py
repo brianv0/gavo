@@ -252,54 +252,6 @@ def getMapperRegistry():
 		defaultMFRegistry.getFactories())
 
 
-class _CmpType(type):
-	"""is a metaclass for *classes* that always compare in one way.
-	"""
-# Ok, that's just posing.  It's fun anyway.
-	def __cmp__(cls, other):
-		return cls.cmpRes
-
-
-class _Comparer(object):
-	__metaclass__ = _CmpType
-	def __init__(self, *args, **kwargs):
-		raise Error("%s classes can't be instanciated."%self.__class__.__name__)
-
-
-class _Infimum(_Comparer):
-	"""is a *class* smaller than anything.
-
-	This will only work as the first operand.
-
-	>>> _Infimum<-2333
-	True
-	>>> _Infimum<""
-	True
-	>>> _Infimum<None
-	True
-	>>> _Infimum<_Infimum
-	True
-	"""
-	cmpRes = -1
-
-
-class _Supremum(_Comparer):
-	"""is a *class* larger than anything.
-
-	This will only work as the first operand.
-
-	>>> _Supremum>1e300
-	True
-	>>> _Supremum>""
-	True
-	>>> _Supremum>None
-	True
-	>>> _Supremum>_Supremum
-	True
-	"""
-	cmpRes = 1
-
-
 class AnnotatedColumn(object):
 	"""A collection of annotations for a column.
 

@@ -22,7 +22,8 @@ from gavo.utils.codetricks import (silence, ensureExpression, compileFunction,
 	IdManagerMixin,
 	addDefaults, iterDerivedClasses, iterDerivedObjects, iterConsecutivePairs,
 	importModule, loadInternalObject, printFrames, memoizeOn, sandbox,
-	in_dir, memoizedMethod, getTracebackAsString)
+	in_dir, memoizedMethod, getTracebackAsString,
+	Infimum, Supremum)
 
 from gavo.utils.excs import *
 
