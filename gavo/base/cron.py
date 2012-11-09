@@ -109,7 +109,7 @@ class IntervalJob(AbstractJob):
 
 	def getNextWakeupTime(self, curTime):
 		if self.lastStarted is None:
-			return curTime+self.interval/2
+			return curTime+self.interval/10
 		else:
 			return curTime+self.interval
 

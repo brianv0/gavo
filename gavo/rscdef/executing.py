@@ -135,7 +135,11 @@ class Execute(base.Structure):
 	_every = base.IntAttribute("every",
 		default=base.NotGiven,
 		description="Run the job roughly every this many seconds."
-		"  This conflicts with at.",
+		"  This conflicts with at.  Note that the first execution of"
+		" such a job is after every/10 seconds, and that the timers"
+		" start anew at every server restart.  So, if you restart"
+		" often, these jobs may run much more frequent or not at all"
+		" if the interval is large.",
 		copyable=True,)
 
 	_job = base.StructAttribute("job",

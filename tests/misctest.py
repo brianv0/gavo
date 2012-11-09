@@ -829,7 +829,7 @@ class CronTest(testhelpers.VerboseTest):
 		job = cron.IntervalJob(3600, "testing#testing", None)
 		t0 = calendar.timegm((1990, 5, 3, 20, 30, 0, -1, -1, -1))
 		t1 = time.gmtime(job.getNextWakeupTime(t0))
-		self.assertEqual(t1[2:5], (3, 21, 00))
+		self.assertEqual(t1[2:5], (3, 20, 36))
 
 	def testEveryReschedule(self):
 		job = cron.IntervalJob(3600, "testing#testing", None)
