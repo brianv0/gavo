@@ -200,7 +200,8 @@ class SCSRenderer(DALRenderer):
 		if not "_DBOPTIONS_LIMIT" in reqArgs:
 			reqArgs["_DBOPTIONS_LIMIT"] = [
 				str(base.getConfig("ivoa", "dalDefaultLimit")*10)]
-		reqArgs["_VOTABLE_VERSION"] = ["1.1"]
+		if "_VOTABLE_VERSION" not in reqArgs:
+			reqArgs["_VOTABLE_VERSION"] = ["1.1"]
 		DALRenderer.__init__(self, ctx, *args, **kwargs)
 
 	def _writeErrorTable(self, ctx, msg, code=200):
