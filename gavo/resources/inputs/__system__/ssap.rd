@@ -759,34 +759,38 @@
 
 		<mixinPar key="ssaTable" description="The SSAP (HCD) instance table
 			 to take the params from"/>
-		<mixinPar key="spectralDescription" description="Description for the spectral column">The independent variable of this spectrum (see its ucd to figure out whether it's a wavelength, frequency, or energy)</mixinPar>
+		<mixinPar key="spectralDescription" description="Description for the 
+			spectral column">The independent variable of this spectrum 
+			(see its ucd to figure out whether it's a wavelength, frequency, 
+			or energy)</mixinPar>
 		<mixinPar key="fluxDescription" description="Description
-			for the flux column">The dependent variable of this spectrum (see the ucd for its physical meaning</mixinPar> 
+			for the flux column">The dependent variable of this spectrum 
+			(see the ucd for its physical meaning</mixinPar> 
 		<events>
 			<FEED source="makeSpecGroup" 
-				groupUtype="spec:Target"
+				groupUtype="spec:Spectrum.Target"
 				fieldnames="ssa_targname ssa_redshift ssa_targetpos"/>
 			<FEED source="makeSpecGroup" 
-				groupUtype="spec:Char"
+				groupUtype="spec:Spectrum.Char"
 				fieldnames="ssa_location ssa_aperture ssa_dateObs ssa_timeExt
 					ssa_specmid ssa_specext ssa_specstart ssa_specend ssa_spectralucd
 					ssa_binSize ssa_statError ssa_sysError ssa_speccalib
 					ssa_specres"/>
 			<FEED source="makeSpecGroup" 
-				groupUtype="spec:Curation" 
+				groupUtype="spec:Spectrum.Curation" 
 				fieldnames="ssa_reference ssa_pubDID ssa_pdate"/>
 			<FEED source="makeSpecGroup" 
-				groupUtype="spec:DataID" 
+				groupUtype="spec:Spectrum.DataID" 
 				fieldnames="ssa_dstitle ssa_creatorDID ssa_cdate ssa_bandpass 
 					ssa_cversion ssa_creator ssa_collection ssa_instrument 
 					ssa_datasource ssa_creationtype"/>
 
 			<!-- units and UCDs are being filled in by processEarly -->
 			<column name="spectral" type="double precision"
-				utype="spec:Data.SpectralAxis.Value"
+				utype="spec:Spectrum.Data.SpectralAxis.Value"
 				description="\spectralDescription"/>
 			<column name="flux" type="double precision"
-				utype="spec:Data.FluxAxis.Value"
+				utype="spec:Spectrum.Data.FluxAxis.Value"
 				description="\fluxDescription"/>
 		</events>
 

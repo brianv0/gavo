@@ -59,8 +59,9 @@ def getSpecForSSA(utype):
 
 
 _SDM_TO_SED_UTYPES = {
-	"spec:Data.SpectralAxis.Value": "sed:Segment.Points.SpectralCoord.Value",
-	"spec:Data.FluxAxis.Value": "sed:Segment.Points.Flux.Value",
+	"spec:Spectrum.Data.SpectralAxis.Value": 
+		"sed:Segment.Points.SpectralCoord.Value",
+	"spec:Spectrum.Data.FluxAxis.Value": "sed:Segment.Points.Flux.Value",
 }
 
 
@@ -363,7 +364,7 @@ def mangle_cutout(sdmTable, low, high):
 	high = high*factor
 
 	spectralName = sdmTable.tableDef.getByUtype(
-		"spec:Data.SpectralAxis.Value").name
+		"spec:Spectrum.Data.SpectralAxis.Value").name
 	# Whoa! we should have an API that allows replacing table rows safely
 	# (this stuff will blow up when we have indices):
 	sdmTable.rows=[
@@ -389,7 +390,7 @@ def mangle_fluxcalib(sdmTable, newCalib):
 	if newCalib==sdmTable.getParam("ssa_fluxcalib").lower():
 		return sdmTable
 	fluxName = sdmTable.tableDef.getByUtype(
-		"spec:Data.FluxAxis.Value").name
+		"spec:Spectrum.Data.FluxAxis.Value").name
 
 	if newCalib=="relative":
 		# whoa!  we're changing this in place; I guess that should be

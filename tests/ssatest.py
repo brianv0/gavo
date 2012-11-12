@@ -497,7 +497,7 @@ class SDMTableTest(testhelpers.VerboseTest):
 		self.assertEqual(res.get('value'), 'ivo://test.inv/test1')
 
 	def testSpecGroupsPresent(self):
-		group = self._getUniqueByXPath("//GROUP[@utype='spec:Target']")
+		group = self._getUniqueByXPath("//GROUP[@utype='spec:Spectrum.Target']")
 		ref = self._getUniqueByXPath(
 			'//PARAMref[@utype="spec:Spectrum.Target.Name"]')
 		self.failIf(ref.get("ref") is None)
@@ -566,8 +566,8 @@ class SDMFITSTest(testhelpers.VerboseTest):
 	
 	def testColumnUtype(self):
 		hdr = self.hdus[1].header
-		self.assertEqual(hdr["TUTYP0"], 'spec:data.spectralaxis.value')
-		self.assertEqual(hdr["TUTYP1"], 'spec:data.fluxaxis.value')
+		self.assertEqual(hdr["TUTYP0"], 'spec:spectrum.data.spectralaxis.value')
+		self.assertEqual(hdr["TUTYP1"], 'spec:spectrum.data.fluxaxis.value')
 
 	def testValues(self):
 		wl, flux = self.hdus[1].data[1]
