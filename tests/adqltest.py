@@ -1565,7 +1565,7 @@ class PGSMorphTest(testhelpers.VerboseTest):
 				" DISTANCE(p1,p2), centroid(box('ICRS', coord1(p1), coord2(p1),"
 				" coord1(p2), coord2(p2))) from (select point('ICRS', ra1, dec1) as p1,"
 				"   point('ICRS', ra2, dec2) as p2 from foo) as q", 
-			'SELECT AREA(scircle(spoint(RADIANS(long(p1)), RADIANS(lat(p1))), RADIANS(2))), (p1) <-> (p2), @@((SELECT spoly(q.p) FROM (VALUES (0, spoint(RADIANS(long(p1))-RADIANS(long(p2))/2, RADIANS(lat(p1))-RADIANS(lat(p2))/2)), (1, spoint(RADIANS(long(p1))-RADIANS(long(p2))/2, RADIANS(lat(p1))+RADIANS(lat(p2))/2)), (2, spoint(RADIANS(long(p1))+RADIANS(long(p2))/2, RADIANS(lat(p1))+RADIANS(lat(p2))/2)), (3, spoint(RADIANS(long(p1))+RADIANS(long(p2))/2, RADIANS(lat(p1))-RADIANS(lat(p2))/2)) ORDER BY column1) as q(ind,p))) FROM (SELECT spoint(RADIANS(ra1), RADIANS(dec1)) AS p1, spoint(RADIANS(ra2), RADIANS(dec2)) AS p2 FROM foo) AS q'),
+			'SELECT AREA(scircle(spoint(RADIANS(long(p1)), RADIANS(lat(p1))), RADIANS(2))), DEGREES((p1) <-> (p2)), @@((SELECT spoly(q.p) FROM (VALUES (0, spoint(RADIANS(long(p1))-RADIANS(long(p2))/2, RADIANS(lat(p1))-RADIANS(lat(p2))/2)), (1, spoint(RADIANS(long(p1))-RADIANS(long(p2))/2, RADIANS(lat(p1))+RADIANS(lat(p2))/2)), (2, spoint(RADIANS(long(p1))+RADIANS(long(p2))/2, RADIANS(lat(p1))+RADIANS(lat(p2))/2)), (3, spoint(RADIANS(long(p1))+RADIANS(long(p2))/2, RADIANS(lat(p1))-RADIANS(lat(p2))/2)) ORDER BY column1) as q(ind,p))) FROM (SELECT spoint(RADIANS(ra1), RADIANS(dec1)) AS p1, spoint(RADIANS(ra2), RADIANS(dec2)) AS p2 FROM foo) AS q'),
 		("select coord1(p) from foo", 'SELECT long(p) FROM foo'),
 		("select coord2(p) from foo", 'SELECT lat(p) FROM foo'),
 		# Ahem -- the following could resolve the coordsys, but intra-query 
@@ -1752,6 +1752,12 @@ class QueryTest(testhelpers.VerboseTest):
 			'select "rv", rV from %s'%self.tableName)
 		self.assertEqual(res.rows, [{"rv": 0., "rv_": 0.}])
 
+	def testDistanceDegrees(self):
+		res = self.runQuery(
+			"select DISTANCE(POINT('ICRS', 22, -3), POINT('ICRS', 183, 50)) as d"
+			" from %s"%self.tableName)
+		self.assertAlmostEqual(res.rows[0]["d"], 130.31777623681)
+	
 
 class SimpleSTCSTest(testhelpers.VerboseTest):
 	def setUp(self):

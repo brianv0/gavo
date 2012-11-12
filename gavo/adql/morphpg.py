@@ -194,7 +194,7 @@ def _computePointFunction(node, state):
 
 
 def _distanceToPG(node, state):
-	return "(%s) <-> (%s)"%tuple(flatten(a) for a in node.args)
+	return "DEGREES((%s) <-> (%s))"%tuple(flatten(a) for a in node.args)
 
 
 def _centroidToPG(node, state):
