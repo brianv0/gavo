@@ -8,6 +8,7 @@ from gavo.helpers import testhelpers
 
 from gavo import stc
 from gavo import utils
+from gavo.stc import bboxes
 from gavo.stc import units
 
 
@@ -404,5 +405,33 @@ class TimeConformTest(_STCSMatchTestBase):
 			"Time TAI 2005-03-07T16:31:57.946772")
 
 
+class BboxTest(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		stcsString, expected = sample
+		ast = stc.parseSTCS(stcsString)
+		found = list(bboxes.getBboxes(ast))
+		self.assertEqual(len(found), len(expected), "Wrong # of bboxes: %s %s"%(
+			expected, found))
+		for fbb, ebb in zip(found, expected):
+			for fc, ec in zip (fbb, ebb):
+				self.assertAlmostEqual(fc, ec, 7, "Bad coo:%s %s"%(
+					expected, found))
+
+	samples = [
+		("Circle ICRS 1.1 -0.2 0.1 unit rad", 
+			[(57.295779513082323, -17.188733853924699, 
+				68.754935415698796, -5.729577951308233)]),
+		("Circle GALACTIC 1.1 -0.2 0.1 unit rad", 
+			[(302.43329340145374, 14.559998345530186, 
+				313.89244930407017, 26.019154248146652)]),
+		("Circle ICRS 40 70 30", [(0, 40.0, 360, 90)]),
+		("Circle ICRS 40 70 60", [(0, 10.0, 360, 90)]),
+		("Circle ICRS 40 10 60", 
+			[(0, -50.0, 100, 70), (340, -50, 360, 70)]),
+	]
+
+
 if __name__=="__main__":
-	testhelpers.main(TimeConformTest)
+	testhelpers.main(BboxTest)
