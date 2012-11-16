@@ -17,7 +17,6 @@ import math
 import numpy
 from numpy import linalg as la
 
-from gavo import utils
 from gavo.stc import common
 from gavo.stc import sphermath
 from gavo.stc import times
@@ -143,94 +142,16 @@ def _makeFindPath(transforms):
 	return findPath
 
 
-############### Some spehrical geometry calculations
-# (most due to Chamberlain and Duquette, "Some Algorithms for Polygons on
-# a sphere", http://hdl.handle.net/2014/40409)
-
-class GCSegment(object):
-	"""A great circle segment on a sphere.  It is assumed that it's no larger
-	than pi.
-
-	Construction is long,lat, long, lat in rad (or use the fromDegrees
-	class method.
-
-	Very small (<1e-8 rad, say) segments are not supported.  You should
-	probably work in the tangential plane on that kind of scale.
+def tupleMin(t1, t2):
+	"""returns the element-wise minimum of two tuples:
 	"""
-	def __init__(self, long1, lat1, long2, lat2):
-		self.long1, self.lat1 = long1, lat1
-		self.long2, self.lat2 = long2, lat2
-		self._normalize()
-		if self.long1>self.long2:
-			self.long1, self.long2 = self.long2, self.long1
-			self.lat1, self.lat2 = self.lat2, self.lat1
-		self.vertical = abs(self.long1-self.long2)<1e-10
-		if self.vertical and abs(self.lat1-self.lat2)<1e-10:
-			raise ValueError("Null segment: start and end are identical")
-		self.overStich = 2*math.pi<=self.long1+self.long2<3*math.pi
+	return tuple(min(i1, i2) for i1, i2 in zip(t1, t2))
 
-	@classmethod
-	def fromDegrees(cls, long1, lat1, long2, lat2):
-		return cls(long1*DEG, lat1*DEG, long2*DEG, lat2*DEG)
 
-	def __str__(self):
-		return "<Great Circle through (%f %f), (%f %f)"%(
-			self.long1/DEG, self.lat1/DEG, self.long2/DEG, self.lat2/DEG)
-
-	def _normalize(self):
-		"""makes sure all longitudes are in [0, 2 pi[ and all latitudes between
-		[-pi, pi].
-		"""
-		self.long1 = common.clampLong(self.long1)
-		self.long2 = common.clampLong(self.long2)
-		self.lat1 = common.clampLat(self.lat1)
-		self.lat2 = common.clampLat(self.lat2)
-
-	def _computeBBFor(self, long1, lat1, long2, lat2):
-		"""returns a 4-tuple bounding box for a great circle segment.
-
-		This is restricted to GCs not crossing the stitch line; furthermore, it
-		still depends on self.
-		"""
-		if self.vertical:
-			latMin, latMax  = min(lat1, lat2), max(lat1, lat2)
-		else:
-			zeta = utils.spherDist(
-				utils.spherToCart(long1, lat1),
-				utils.spherToCart(long2, lat2))
-			# heading at long1, lat1 (according to wikipedia)
-			theta = acos((sin(lat2)-sin(lat1)*cos(zeta))/(cos(lat1)*sin(zeta)))
-			latExt = max(acos(abs(sin(theta))*cos(lat1)), lat1, lat2)
-			latMin = min(latExt, lat1, lat2)
-			latMax = max(latExt, lat1, lat2)
-		return (long1, latMin, long2, latMax)
-
-	def latForLong(self, long):
-		"""returns the latitude the great circle is on for a given longitude.
-
-		Input and output is in rad.
-		"""
-		if self.vertical:
-			return self.long1
-		return atan(
-			tan(self.lat1)*(sin(long-self.long2)/sin(self.long1-self.long2))
-			-tan(self.lat2)*(sin(long-self.long1)/sin(self.long1-self.long2)))
-
-	def getBBs(self):
-		"""returns a sequence of bounding boxes for this great circle segment.
-
-		Actually, the sequence contains one box for a segment that does not
-		cross the stitching line, two boxes for those that do.
-		"""
-		if TWO_PI<=self.long1+self.long2<3*math.pi:
-			# segment crosses stitch line, split it up
-			latAtStich = self.latForLong(0)
-			return [
-				self._computeBBFor(0, latAtStich, self.long1, self.lat1),
-				self._computeBBFor(self.long2, self.lat2, 2*math.pi, latAtStich)]
-		else:
-			return [
-				self._computeBBFor(self.long1, self.lat1, self.long2, self.lat2)]
+def tupleMax(t1, t2):
+	"""returns the element-wise maximum of two tuples:
+	"""
+	return tuple(max(i1, i2) for i1, i2 in zip(t1, t2))
 
 
 ############### Computation of precession matrices.
@@ -744,3 +665,12 @@ def getTrafoFunction(srcTriple, dstTriple, sixTrans):
 		raise STCValueError("Cannot find a transform from %s to %s"%(
 			srcTriple, dstTriple))
 	return _pathToFunction(trafoPath, sixTrans)
+
+
+#def _test():
+#	import doctest, spherc
+#	doctest.testmod(spherc)
+
+
+if __name__=="__main__":
+	_test()

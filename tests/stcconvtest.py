@@ -10,6 +10,7 @@ from gavo import stc
 from gavo import utils
 from gavo.stc import bboxes
 from gavo.stc import units
+from gavo.utils import DEG
 
 
 
@@ -405,6 +406,96 @@ class TimeConformTest(_STCSMatchTestBase):
 			"Time TAI 2005-03-07T16:31:57.946772")
 
 
+class HeadingTest(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		args, expected = sample
+		res = bboxes.getHeading(*(a*DEG for a in args))
+		self.assertAlmostEqual(res, expected*DEG, 7,
+			"%s, %s!=%s"%(args, expected, res/DEG))
+
+	samples = [
+		((0, 0, 1, 0), 90.),
+		((0, 0, -1, 0), 270.),
+		((0, 0, 0, 1), 0.),
+		((0, 20, 0, 1), 180.),
+		((50, 20, 70, 40), 36.2122360568),
+#5
+		((50, -20, 70, -40), 180-36.2122360568),
+		((100-50, -20, 100-70, -40), 180+36.2122360568),
+		((100-50, 20, 100-70, 40), 360-36.2122360568),
+		((50, 20, 230, 40), 0),
+		((230, 40, 50, 20), 0),
+#10
+		((230, 90, 50, 20), 180),
+		((120, 40, 110, 40), 273.218731205),
+		((110, -40, 120, -10), 19.2250728671),
+		((110, -40, 150, -30), 85.5408032012),
+		((110, -40, 210, -30), 119.355123886),
+	]
+
+
+class GreatCircleSpecialTest(testhelpers.VerboseTest):
+
+	def testLatForLongLat(self):
+		gc = bboxes.GCSegment.fromDegrees(20, 60, 130, 60)
+		for long, expected in [
+				(20, 60),
+				(75, 71.677478167328047),
+				(130, 60)]:
+			self.assertAlmostEqual(gc.latForLong(long*DEG), expected*DEG)
+
+	def testLatForLongMerid(self):
+		gc = bboxes.GCSegment.fromDegrees(20, 60, 20, -60)
+		self.assertAlmostEqual(gc.latForLong(23*DEG), 20*DEG)
+
+	def testLatForLongOblique(self):
+		gc = bboxes.GCSegment.fromDegrees(20, -60, 180, 45)
+		for long, expected in [
+				(20, -60),
+				(75, -68.171528804315329),
+				(156.65, -0.0066479410359413316),
+				(180, 45)]:
+			self.assertAlmostEqual(gc.latForLong(long*DEG), expected*DEG, 7,
+				"Bad sample: %f %f"%(long, expected))
+
+	def testNoNull(self):
+		self.assertRaisesWithMsg(ValueError,
+			"Null segment: start and end are identical",
+			bboxes.GCSegment,
+			(0.1, 0.3, 0.1, 0.3))
+
+class GreatCircleBboxTest(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _assertBBox(self, found, expected):
+		# lazy: found is in rad, expected in deg
+		terminal = [(0,0,0,0)]
+		for fb, eb in zip(found+terminal, expected+terminal):
+			fb = tuple(f/utils.DEG for f in fb)
+			for f, e in zip(fb, eb):
+				self.assertAlmostEqual(f, e, 7, "%s!=%s"%(fb, eb))
+
+	def _runTest(self, sample):
+		args, expected = sample
+		gc = bboxes.GCSegment.fromDegrees(*args)
+		self._assertBBox(gc.getBBs(), expected)
+
+	samples = [
+		((20, 60, 120, 60), [(20, 60, 120, 69.63942512)]),
+		((20, -60, 120, -60), [(20, -69.63942512, 120, -60)]),
+		((0, 0, 10, 1), [(0, 0, 10, 1)]),
+		((0, -10, 20, 1), [(0, -10, 20, 1)]),
+		((20, 30, 100, -1), [(20, -1, 100, 30)]),
+# 5
+		((110, 40, 160, 20), [(110, 20, 160, 40)]),
+		((-10, -40, 40, 20), [
+			(0.0, -31.864374833103472, 40.0, 20.0),
+			(350.0, -40.0, 360.0, -31.864374833103472)]),
+	]
+
+
 class BboxTest(testhelpers.VerboseTest):
 	__metaclass__ = testhelpers.SamplesBasedAutoTest
 
@@ -430,6 +521,26 @@ class BboxTest(testhelpers.VerboseTest):
 		("Circle ICRS 40 70 60", [(0, 10.0, 360, 90)]),
 		("Circle ICRS 40 10 60", 
 			[(0, -50.0, 100, 70), (340, -50, 360, 70)]),
+# 5
+		("Circle ICRS 40 90 10", [(0, 80, 360, 90)]),
+		("Ellipse ICRS 40 10 60 20 280", 
+			[(0, -50.0, 100, 70), (340, -50, 360, 70)]),
+		("Box ICRS 90 0 30 30", 
+			[(60, -33.690067525979771, 120, 33.690067525979771)]),
+		("Box ICRS 0 0 30 30", [
+			(0, -33.690067525979771, 30, 33.690067525979771),
+			(330, -33.690067525979771, 360, 33.690067525979771)]),
+		("Box ICRS 0 -90 20 10", [(0, -90, 360, -80)]),
+# 10
+		("Box ICRS 0 -89 20 1", [(0, -90, 360, -88)]),
+		("Box ICRS 0 89 20 1", [(0, 88, 360, 90)]),
+		("AllSky ICRS", [(0, -90, 360, 90)]),
+		("Polygon ICRS 0 0 10 3 12 -3", [(0, -3, 12, 3)]),
+		("Polygon ICRS 100 30 120 30 122 9 110 -2", 
+			[(100, -2, 122, 30.381255142470486)]),
+		("Polygon ICRS -10 30 120 30 122 9 110 -2", [
+			(0.0, -2.0, 122, 53.796010254893815), 
+			(350.0, 30, 360.0, 38.081479977806467)]),
 	]
 
 

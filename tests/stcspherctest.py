@@ -345,46 +345,5 @@ for sampleName in dir(stcgroundtruth):
 	del base
 
 
-class GreatCircleTest(testhelpers.VerboseTest):
-	def _assertBBox(self, found, expected):
-		# lazy: found is in rad, expected in deg
-		terminal = [(0,0,0,0)]
-		for fb, eb in zip(found+terminal, expected+terminal):
-			fb = tuple(f/utils.DEG for f in fb)
-			for f, e in zip(fb, eb):
-				self.assertAlmostEqual(f, e, 7, "%s!=%s"%(fb, eb))
-
-	def testLatForLongLat(self):
-		gc = stc.GCSegment.fromDegrees(20, 60, 130, 60)
-		for long, expected in [
-				(20, 60),
-				(75, 71.677478167328047),
-				(130, 60)]:
-			self.assertAlmostEqual(gc.latForLong(long*DEG), expected*DEG)
-
-	def testLatForLongMerid(self):
-		gc = stc.GCSegment.fromDegrees(20, 60, 20, -60)
-		self.assertAlmostEqual(gc.latForLong(23*DEG), 20*DEG)
-
-	def testLatForLongOblique(self):
-		gc = stc.GCSegment.fromDegrees(20, -60, 180, 45)
-		for long, expected in [
-				(20, -60),
-				(75, -68.171528804315329),
-				(156.65, -0.0066479410359413316),
-				(180, 45)]:
-			self.assertAlmostEqual(gc.latForLong(long*DEG), expected*DEG, 7,
-				"Bad sample: %f %f"%(long, expected))
-
-	def testNoNull(self):
-		self.assertRaisesWithMsg(ValueError,
-			"Null segment: start and end are identical",
-			stc.GCSegment,
-			(0.1, 0.3, 0.1, 0.3))
-
-	def testSimpleBbox(self):
-		gc = stc.GCSegment.fromDegrees(20, 60, 120, 60)
-		self._assertBBox(gc.getBBs(), [(20, 60, 120, 69.63942512)])
-
 if __name__=="__main__":
-	testhelpers.main(GreatCircleTest)
+	testhelpers.main(PositionOnlyTestBase)

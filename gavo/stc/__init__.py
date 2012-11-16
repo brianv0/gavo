@@ -44,8 +44,6 @@ if sys.version_info[0]>=2 and sys.version_info[1]>4:
 
 	from gavo.stc.stcsgen import getSTCS, getSpatialSystem
 
-	from gavo.stc.spherc import GCSegment
-
 	from gavo.stc.stcx import STC
 
 	from gavo.stc.stcxast import parseSTCX, parseFromETree
