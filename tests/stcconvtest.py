@@ -538,9 +538,18 @@ class BboxTest(testhelpers.VerboseTest):
 		("Polygon ICRS 0 0 10 3 12 -3", [(0, -3, 12, 3)]),
 		("Polygon ICRS 100 30 120 30 122 9 110 -2", 
 			[(100, -2, 122, 30.381255142470486)]),
+# 15
 		("Polygon ICRS -10 30 120 30 122 9 110 -2", [
 			(0.0, -2.0, 122, 53.796010254893815), 
 			(350.0, 30, 360.0, 38.081479977806467)]),
+		("PositionInterval ICRS 90 -90 180 0", [
+			(90.0, -90.0, 180.0, 0.0)]),
+		("PositionInterval ICRS 180 0", [
+			(180, 0, 360, 90)]),
+		("PositionInterval ICRS", []),
+		("PositionInterval ICRS -10 -10 10 10", [
+			(0, -10, 10, 10),
+			(350., -10, 360, 10),]),
 	]
 
 

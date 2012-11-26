@@ -301,12 +301,34 @@ def _computeAllSkyBbox(geo):
 	yield (0, -90, 360, 90)
 
 
+def _computeSpaceIntervalBbox(geo):
+	"""helps _getBboxesFor.
+
+	PositionInterval could have all kinds of weird coordinate systems.
+	We only check there's exactly two dimensions and otherwise hope for the
+	best.
+	"""
+	if geo.frame.nDim!=2:
+		raise ValueError("Only PositionsIntervals with nDim=2 are supported"
+			" for bboxes.")
+
+	lowerLimit = geo.lowerLimit
+	if lowerLimit is None:
+		lowerLimit = (0, -90)
+
+	upperLimit = geo.upperLimit
+	if upperLimit is None:
+		upperLimit = (360, 90)
+	return _makeSphericalBbox(lowerLimit[0], lowerLimit[1],
+		upperLimit[0], upperLimit[1])
+
 _BBOX_COMPUTERS = {
 	"Circle": _computeCircleBbox,
 	"Ellipse": _computeEllipseBbox,
 	"Box": _computeBoxBbox,
 	"Polygon": _computePolygonBbox,
 	"AllSky": _computeAllSkyBbox,
+	"SpaceInterval": _computeSpaceIntervalBbox,
 }
 
 
