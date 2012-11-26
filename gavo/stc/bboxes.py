@@ -213,6 +213,39 @@ def _makeSphericalBbox(minRA, minDec, maxRA, maxDec):
 		yield (minRA, minDec, maxRA, maxDec)
 
 
+def _intersectBboxes(bbox1, bbox2):
+	"""returns the intersection of the two bboxes.
+	"""
+	return (
+		max(bbox1[0], bbox2[0]),
+		max(bbox1[1], bbox2[1]),
+		min(bbox1[2], bbox2[2]),
+		min(bbox1[3], bbox2[3]))
+
+
+def _isEmpty(bbox):
+	"""returns true if bbox is empty.
+	"""
+	return bbox[0]>=bbox[2] or bbox[1]>=bbox[3]
+
+
+def _computeIntersectionForSequence(seq1, seq2):
+	"""helps _computeIntersection; see comment there.
+	"""
+	if seq1 is None:
+		return seq2
+	if seq2 is None:
+		return seq1
+
+	commonBoxes = []
+	for box1 in seq1:
+		for box2 in seq2:
+			commonBox = _intersectBboxes(box1, box2)
+			if not _isEmpty(commonBox):
+				commonBoxes.append(commonBox)
+	return commonBoxes
+
+
 def _computeCircleBbox(circle):
 	"""helps _getBboxesFor.
 	"""
@@ -322,6 +355,50 @@ def _computeSpaceIntervalBbox(geo):
 	return _makeSphericalBbox(lowerLimit[0], lowerLimit[1],
 		upperLimit[0], upperLimit[1])
 
+
+def _computeUnionBbox(geo):
+	"""helps _getBboxesFor.
+
+	Union is just returning all bboxes from our child geometries.
+	"""
+	for child in geo.children:
+		for bbox in _getBboxesFor(child):
+			yield bbox
+
+
+def _computeIntersectionBbox(geo):
+	"""helps _getBboxesFor.
+	"""
+# This is surprisingly involved, since our children may yield an arbitrary 
+#	number of part boxes; each of those could contribute to an intersection.
+# To figure out the intersection, we need to intersect each part bbox with
+# each other part bbox and keep whatever is non-empty.
+	commonBboxes = None
+	for child in geo.children:
+		commonBboxes = _computeIntersectionForSequence(commonBboxes,
+			list(_getBboxesFor(child)))
+	for bbox in commonBboxes:
+		yield bbox
+
+def _computeDifferenceBbox(geo):
+	"""helps _getBboxesFor.
+
+	(we ignore the cut-out).
+	"""
+	return _getBboxesFor(geo.children[0])
+
+def _computeNotBbox(geo):
+	"""helps _getBboxesFor.
+
+	(we ignore the cut-out and always return the entire sky)
+	"""
+# of course, we could provide a saner implementation of _computeIntersection
+# which then would make up to eight bboxes out of such a thing.
+# Never mind, people shouldn't do this anyway.
+	return _computeAllSkyBbox(geo)
+
+
+
 _BBOX_COMPUTERS = {
 	"Circle": _computeCircleBbox,
 	"Ellipse": _computeEllipseBbox,
@@ -329,6 +406,10 @@ _BBOX_COMPUTERS = {
 	"Polygon": _computePolygonBbox,
 	"AllSky": _computeAllSkyBbox,
 	"SpaceInterval": _computeSpaceIntervalBbox,
+	"Union": _computeUnionBbox,
+	"Intersection": _computeIntersectionBbox,
+	"Difference": _computeDifferenceBbox,
+	"Not": _computeNotBbox,
 }
 
 
