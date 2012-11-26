@@ -465,7 +465,7 @@ _config = Configuration(
 
 	Section('ivoa', 'The interface to the Greater VO.',
 		StringConfigItem("authority", "x-unregistred", 
-			"The authority id for this DC"),
+			"The authority id for this DC; this has *no* leading ivo://"),
 		IntConfigItem("dalDefaultLimit", "10000",
 			"Default match limit on SCS/SSAP/SIAP queries"),
 		IntConfigItem("dalHardLimit", "1000000",

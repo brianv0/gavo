@@ -166,7 +166,7 @@ def makeProfiles(dsn, userPrefix=""):
 	if "host" in dsn.parsed:
 		dsnContent.append("host = %s"%dsn.parsed["host"])
 	else:
-		dsnContent.append("#host = computer.doma.in")
+		dsnContent.append("host = 127.0.0.1")
 	if "port" in dsn.parsed:
 		dsnContent.append("port = %s"%dsn.parsed["port"])
 	else:

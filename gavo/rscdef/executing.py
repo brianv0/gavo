@@ -100,6 +100,14 @@ class CronJob(procdef.ProcApp):
 
 	In the frequent use case of a resdir-relative python program, you
 	can use the execDef.spawnPython(modulePath) function.
+
+	If you must stay within the server process, you can do something like::
+
+		mod = utils.loadPythonModule(rd.getAbsPath("bin/coverageplot.py"))
+		mod.makePlot()
+	
+	-- in that way, your code can sit safely within the resource directory
+	and you still don't have to manipulate the module path.
 	"""
 	formalArgs = "rd, execDef"
 
