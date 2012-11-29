@@ -314,7 +314,7 @@ def _readDBScript(conn, scriptPath, sourceName, procName):
 		warnings.warn("SQL script file for %s not found.  There are many"
 			" reasons why that may be ok, but unless you know what you are"
 			" doing, you probably should install the corresponding postgres"
-			" extension.")
+			" extension."%scriptPath)
 	from gavo.rscdef import scripting
 
 	cursor = conn.cursor()

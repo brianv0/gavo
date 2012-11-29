@@ -319,9 +319,14 @@ def _computePolygonBbox(poly):
 		addBoxes(list(curSegment.getBBs()))
 		lastPoint = point
 
-	curSegment = GCSegment.fromDegrees(
-		lastPoint[0], lastPoint[1], firstPoint[0], firstPoint[1])
-	addBoxes(list(curSegment.getBBs()))
+	try:
+		curSegment = GCSegment.fromDegrees(
+			lastPoint[0], lastPoint[1], firstPoint[0], firstPoint[1])
+	except ValueError: # probably a null segment since the authors
+	                   # closed the polygon.  Ignore this.
+		pass
+	else:
+		addBoxes(list(curSegment.getBBs()))
 
 	yield joinBboxes(*rightBoxes)
 	if leftBoxes:

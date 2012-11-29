@@ -498,6 +498,7 @@ class SpaceInterval(_CoordinateInterval):
 		# for n-d coordinates, upper and lower limit can be difficult
 		# under rotations.  We need to look into this (>2 would need separate
 		# support)
+		ll, ul = self.lowerLimit, self.upperLimit
 		if (self.frame.nDim==1
 				or (self.lowerLimit is None or self.upperLimit is None)):
 			return _CoordinateInterval.getTransformed(self, sTrafo, destFrame)
@@ -629,7 +630,7 @@ class Box(_Geometry):
 		"""returns a Polygon corresponding to this Box after rotation.
 		"""
 		center, boxsize = self.center, self.boxsize
-		return Polygon(vertices=(sTrafo(coo) for coo in (
+		return Polygon(vertices=tuple(sTrafo(coo) for coo in (
 			(center[0]-boxsize[0], center[1]-boxsize[1]),
 			(center[0]-boxsize[0], center[1]+boxsize[1]),
 			(center[0]+boxsize[0], center[1]+boxsize[1]),
@@ -647,11 +648,11 @@ class Polygon(_Geometry):
 	_a_vertices = ()
 
 	def getTransformed(self, sTrafo, destFrame):
-		return self.change(vertices=(sTrafo(v) for v in self.vertices), 
+		return self.change(vertices=tuple(sTrafo(v) for v in self.vertices), 
 			frame=destFrame)
 
 	def adaptValuesWith(self, converter):
-		return self.change(vertices=(converter(v) for v in self.vertices))
+		return self.change(vertices=tuple(converter(v) for v in self.vertices))
 
 	def _getValuesSplit(self):
 		return reduce(operator.add, self.vertices)
@@ -698,13 +699,17 @@ class _Compound(_Geometry):
 		res = self._applyToChildren(binarizeCompound)
 		return res
 
-
 	def debinarizeOperands(self):
 		"""returns self with debinarized operands.
 
 		If no operand needed debinarizing, self is returned.
 		"""
 		return self._applyToChildren(debinarizeCompound)
+
+	def getTransformed(self, sTrafo, destFrame):
+		return self.change(children=tuple(
+			child.getTransformed(sTrafo, destFrame) for child in self.children),
+			frame=destFrame)
 
 
 class _MultiOpCompound(_Compound):
@@ -808,6 +813,10 @@ class STCSpec(ASTNode):
 
 		For convenience, it returns the instance itself.
 		"""
+		# Fix local frames if not given (e.g., manual construction)
+		if self.place is not None and self.place.frame is None:
+			self.place.frame = self.astroSystem.spaceFrame
+
 # Operations here cannot be in a _setupNode since when parsing from
 # XML, there may be IdProxies instead of real objects.
 		# Equinox for ecliptic defaults to observation time

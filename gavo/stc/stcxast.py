@@ -28,6 +28,9 @@ from gavo.stc import units
 from gavo.stc.common import *
 
 
+WIGGLE_TYPES = ["error", "resolution", "size", "pixSize"]
+
+
 class SIBLING_ASTRO_SYSTEM(object):
 	"""A sentinel class to tell the id resolver to use the sibling AstroCoordSys
 	element."""
@@ -222,16 +225,33 @@ def _makeSpatialUnits(nDim, *unitSources):
 def _fixSpatialUnits(node, buildArgs, context):
 	nDim = context.peekDim()
 	ln = _localname(node.tag)
+
 	# buildArgs["unit"] may have been left in build_args from upstream
 	buildArgs["unit"] = _makeSpatialUnits(nDim, buildArgs.pop("unit", None),
 		node.get("unit", "").split())
+
 	# This only kicks in for velocities
 	buildArgs["velTimeUnit"] = _makeSpatialUnits(nDim, 
 		buildArgs.pop("vel_time_unit", ()), node.get("vel_time_unit", "").split())
 	if not buildArgs["velTimeUnit"]:
 		del buildArgs["velTimeUnit"]
+
 	if not buildArgs["unit"]:
-		del buildArgs["unit"]
+		# it's actually legal to have to unit on the position but on some
+		# wiggle (sigh).  Adopt the first one we find if that's true.
+		for wiggleType in WIGGLE_TYPES:
+			if buildArgs.has_key(wiggleType):
+				if buildArgs[wiggleType].origUnit:
+					buildArgs["unit"] = buildArgs[wiggleType].origUnit
+					break
+		else:
+			del buildArgs["unit"]
+	
+	# sometimes people give position1d for nDim=2...  *Presumably*
+	# actual units are the same on both axes then.  Sigh
+	mainUnit = buildArgs.get("unit")
+	if mainUnit and len(mainUnit)==2 and mainUnit[1] is None:
+		buildArgs["unit"] = (mainUnit[0], mainUnit[0])
 
 
 _unitFixers = {
@@ -332,7 +352,7 @@ def _fixWiggles(buildArgs):
 	"""modifies buildArgs so all wiggles are properly wrapped in their
 	classes.
 	"""
-	for wiggleType in ["error", "resolution", "size", "pixSize"]:
+	for wiggleType in WIGGLE_TYPES:
 		localArgs = {}
 		wigClass = None
 
@@ -654,6 +674,12 @@ def _addPositionsForAreas(buildArgs):
 						posAttrs["velTimeUnit"] = area.origUnit[1]
 					area.origUnit = None
 					break
+
+			# if no spatial area had a unit, it's probably something like AllSky,
+			# but we still must have *something*, anything
+			if posAtt=="place" and areas and posAttrs["unit"] is None:
+				posAttrs["unit"] = ("deg", "deg")
+
 			buildArgs[posAtt] = area.getPosition(posAttrs)
 
 

@@ -244,7 +244,13 @@ class SVConverter(object):
 
 	def _determineFeatures(self, posVals, velVals):
 		if posVals is None:
-			raise STCValueError("No conversion possible without a position.")
+			# No position has been given; that is possible if only "wiggles"
+			# were specified.  We'd have to transform those, too, but we
+			# don't for now.
+			self.distGiven = self.posdGiven = False
+			self._velDefault = None
+			return
+
 		if len(posVals)==2:
 			self.distGiven = False
 		if velVals is None:

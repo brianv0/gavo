@@ -274,13 +274,18 @@ timeConversions = {
 
 
 def getTransformFromScales(fromScale, toScale):
+	if not fromScale or not toScale:
+		return utils.identity
+
 	try:
 		toTT = timeConversions[fromScale][0]
 		toTarget = timeConversions[toScale][1]
 	except KeyError, key:
 		raise STCValueError("Unknown timescale for transform: %s"%key)
+
 	def transform(val):
 		return toTarget(toTT(val))
+
 	return transform
 
 

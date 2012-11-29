@@ -481,6 +481,105 @@ class CompoundUnitsTest(SimpleSTCXSrcTest):
 		self.assertAlmostEqual(ast.areas[0].children[1].radius, 1*utils.DEG)
 
 
+class PositionAddedTest(SimpleSTCXSrcTest):
+	def testGeometry(self):
+		ast = self._getAST("<SpaceFrame><ICRS/></SpaceFrame>",
+			'<AllSky/>', " ")
+		self.assertEqual(ast.place.unit, ("deg", "deg"))
+
+
+AST0 = stc.parseSTCS("Time TT unit d\n"
+	"Position ICRS BARYCENTER 0 0 unit deg\n"
+	"Spectral BARYCENTER unit m\n"
+	"Redshift OPTICAL")
+
+
+class RealWorldMessTest(testhelpers.VerboseTest):
+	def testAllSky(self):
+		ast = stc.parseSTCX(
+		"""<stc:STCResourceProfile xmlns:stc="http://www.ivoa.net/xml/STC/stc-v1.30.xsd" xmlns:xlink="http://www.w3.org/1999/xlink">
+      <stc:AstroCoordSystem xlink:type="simple" xlink:href="ivo://STClib/CoordSys#UTC-ICRS-TOPO" id="_cygob2xmm_UTC-ICRS-TOPO"/>
+      <stc:AstroCoords coord_system_id="_cygob2xmm_UTC-ICRS-TOPO">
+			<stc:Position1D>
+			<stc:Size pos_unit="deg">0.0166666666666666667</stc:Size></stc:Position1D>
+			</stc:AstroCoords>
+			<stc:AstroCoordArea coord_system_id="_cygob2xmm_UTC-ICRS-TOPO">
+				<stc:AllSky/></stc:AstroCoordArea></stc:STCResourceProfile>""")[0][1]
+		self.assertEqual(
+			stc.conformTo(ast, AST0).areas[0].__class__.__name__, "AllSky")
+
+	def testShittyPolygon(self):
+		ast = stc.parseSTCX("""
+      <stc:STCResourceProfile xmlns:stc="http://www.ivoa.net/xml/STC/stc-v1.30.xsd" xmlns:xlink="http://www.w3.org/1999/xlink">
+         <stc:AstroCoordSystem id="UTC-ICRS-TOPO" xlink:href="ivo://STClib/CoordSys#UTC-ICRS-TOPO" xlink:type="simple"/>
+         <stc:AstroCoordArea coord_system_id="UTC-ICRS-TOPO">
+            <stc:TimeInterval>
+               <stc:StartTime>
+                  <stc:Timescale>UTC</stc:Timescale>
+                  <stc:ISOTime>1965-01-01T00:00:00Z</stc:ISOTime>
+               </stc:StartTime>
+               <stc:StopTime>
+                  <stc:Timescale>UTC</stc:Timescale>
+                  <stc:ISOTime>1980-01-01T00:00:00Z</stc:ISOTime>
+               </stc:StopTime>
+            </stc:TimeInterval>
+            <stc:Polygon unit="deg">
+               <stc:Vertex>
+                  <stc:Position>
+                     <stc:C1>360</stc:C1>
+                     <stc:C2>-15</stc:C2>
+                  </stc:Position>
+               </stc:Vertex>
+               <stc:Vertex>
+                  <stc:Position>
+                     <stc:C1>180</stc:C1>
+                     <stc:C2>-15</stc:C2>
+                  </stc:Position>
+               </stc:Vertex>
+               <stc:Vertex>
+                  <stc:Position>
+                     <stc:C1>0</stc:C1>
+                     <stc:C2>-15</stc:C2>
+                  </stc:Position>
+                  <stc:SmallCircle/>
+               </stc:Vertex>
+            </stc:Polygon>
+            <stc:SpectralInterval unit="Angstrom">
+               <stc:LoLimit>3400</stc:LoLimit>
+               <stc:HiLimit>6900</stc:HiLimit>
+            </stc:SpectralInterval>
+         </stc:AstroCoordArea>
+      </stc:STCResourceProfile>""")[0][1]
+		self.assertEqual(
+			stc.conformTo(ast, AST0).areas[0].__class__.__name__, "Polygon")
+
+	def testInferredFrame(self):
+		ast = stc.parseSTCX("""
+			<ns0:STCResourceProfile xmlns:ns0="http://www.ivoa.net/xml/STC/stc-v1.30.xsd">
+            <ns0:AstroCoordSystem id="aelhouge">
+              <ns0:TimeFrame id="ahbhouge">
+                <ns0:TimeScale>TT</ns0:TimeScale><ns0:UNKNOWNRefPos /></ns0:TimeFrame><ns0:SpaceFrame id="apphouge">
+                <ns0:ICRS /><ns0:UNKNOWNRefPos /><ns0:SPHERICAL coord_naxes="2" /></ns0:SpaceFrame></ns0:AstroCoordSystem><ns0:AstroCoordArea coord_system_id="aelhouge">
+              <ns0:TimeInterval frame_id="ahbhouge">
+                <ns0:StartTime>
+                  <ns0:ISOTime>2003-04-01T00:00:00</ns0:ISOTime></ns0:StartTime><ns0:StopTime>
+                  <ns0:ISOTime>2009-03-31T23:59:59</ns0:ISOTime></ns0:StopTime></ns0:TimeInterval><ns0:Union>
+                <ns0:Box unit="deg">
+                  <ns0:Center>
+                    <ns0:C1>36.0</ns0:C1><ns0:C2>-6.0</ns0:C2></ns0:Center><ns0:Size>
+                    <ns0:C1>6.0</ns0:C1><ns0:C2>5.0</ns0:C2></ns0:Size></ns0:Box><ns0:Box unit="deg">
+                  <ns0:Center>
+                    <ns0:C1>211.5</ns0:C1><ns0:C2>52.0</ns0:C2></ns0:Center><ns0:Size>
+                    <ns0:C1>4.0</ns0:C1><ns0:C2>3.0</ns0:C2></ns0:Size></ns0:Box><ns0:Box unit="deg">
+                  <ns0:Center>
+                    <ns0:C1>334.0</ns0:C1><ns0:C2>0.5</ns0:C2></ns0:Center><ns0:Size>
+                    <ns0:C1>4.0</ns0:C1><ns0:C2>3.0</ns0:C2></ns0:Size></ns0:Box></ns0:Union></ns0:AstroCoordArea></ns0:STCResourceProfile>
+	""")[0][1]
+		self.assertEqual(
+			stc.conformTo(ast, AST0).areas[0].__class__.__name__, "Union")
+
+
+
 def _wrapSample(srcPath):
 	import textwrap
 	bzstr = bz2.compress(open(srcPath).read()
@@ -493,4 +592,4 @@ if __name__=="__main__":
 	if len(sys.argv)>1 and sys.argv[1].startswith("/"):
 		_wrapSample(sys.argv[1])
 	else:
-		testhelpers.main(M81EventHrefTest)
+		testhelpers.main(RealWorldMessTest)

@@ -253,6 +253,9 @@ def getVectorConverter(fromUnits, toUnits, reverse=False):
 			convs.append(getParallaxConverter(fromUnits[2], toUnits[2], reverse))
 
 	def convert(val):
+		if not hasattr(val, "__iter__"):
+			# someone sneaked in a scalar.  Sigh
+			val = (val,)
 		return tuple(f(c) for f, c in izip(convs, val))
 	if reverse:
 		convert.fromUnit, convert.toUnit = toUnits, fromUnits
@@ -294,9 +297,9 @@ def getUnitConverter(fromCoo, toCoo):
 	The unit info is a dictionary suitable for change().
 	"""
 	if toCoo is None or toCoo.getUnitArgs() is None:
-		return fromCoo.getUnitArgs(), utils.identity
+		return fromCoo.getUnitArgs(), None
 	if fromCoo.getUnitArgs() is None:
-		return toCoo.getUnitArgs(), utils.identity
+		return toCoo.getUnitArgs(), None
 	if fromCoo.getUnitArgs()==toCoo.getUnitArgs():
 		return None, None
 	return toCoo.getUnitArgs(), toCoo.getUnitConverter(

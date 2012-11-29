@@ -46,6 +46,7 @@ def _transformAreas(areas, sTrafo, srcFrame, destFrame):
 		newAreas.append(a.getTransformed(sTrafo, destFrame))
 	return newAreas
 
+i = [0]
 
 def iterSpatialChanges(baseSTC, sysSTC, slaComp=False):
 	"""yields changes to baseSTC to bring places and velocities to the
@@ -60,6 +61,7 @@ def iterSpatialChanges(baseSTC, sysSTC, slaComp=False):
 		return  # nothing to conform in space
 	sixTrans = sphermath.SVConverter.fromSTC(baseSTC, slaComp=slaComp)
 	destFrame, srcFrame = sysSTC.place.frame, baseSTC.place.frame
+
 	bPlace, bVel = baseSTC.place, baseSTC.velocity
 	trafo = spherc.getTrafoFunction(baseSTC.place.frame.asTriple(),
 		sysSTC.place.frame.asTriple(), sixTrans)

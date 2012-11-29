@@ -435,7 +435,7 @@ class STCSRoundtripTest(testhelpers.VerboseTest):
 		("Polygon ICRS 70 190 23 18 12 45 30 -10",
 			"Polygon ICRS 70.0 190.0 23.0 18.0 12.0 45.0 30.0 -10.0"),
 		("Convex FK5 J1990 70 190 23 0.125 12 45 30 -0.25",
-			"Convex FK5 J1990.0 70.0 190.0 23.0 0.125 12.0 45.0 30.0 -0.25"),
+			"Convex FK5 J1990.0 70.0 190.0 23.0 0.125 12.0 45.0 30.0 -0.25 unit deg"),
 		("TimeInterval TT 2009-03-10T09:56:10.015625"
 			" SpectralInterval 1e10 1e11 unit Hz"
 			" RedshiftInterval VELOCITY 1000 7500 unit km/s",

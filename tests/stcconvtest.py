@@ -368,24 +368,12 @@ class GeometryConformTest(_STCSMatchTestBase):
 			"Position ICRS VelocityInterval 0.00277777777778 0.00555555555556 unit"
 			" deg/cy")
 
-	def testVelocityOnlyRaises(self):
-		srcAst = stc.parseSTCS("Position ICRS VelocityInterval Velocity 0.1 0.1")
-		sysAst = stc.parseSTCS("Position B1950")
-		self.assertRaisesWithMsg(stc.STCValueError, "No conversion possible without a position.",
-			stc.conformTo, (srcAst, sysAst))
-
 
 class TimeConformTest(_STCSMatchTestBase):
 	def testNoDestSystem(self):
 		self.assertMatchingSTCS("Time TT 2005-03-07T16:33:20",
 			"Position GALACTIC unit rad",
 			"Time TT 2005-03-07T16:33:20")
-	
-	def testNoSrcSystem(self):
-		self.assertRaises(stc.STCValueError, self.assertMatchingSTCS,
-			"Time 2005-03-07T16:33:20",
-			"Time TT",
-			"")
 	
 	def testToUTC(self):
 		self.assertMatchingSTCS(
