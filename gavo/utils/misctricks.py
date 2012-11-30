@@ -400,7 +400,7 @@ def rstxToHTML(source, **userOverrides):
 # themselves since they may be called very frequently.
 
 try:
-	from pyparsing import ParserElement
+	from gavo.imp.pyparsing import ParserElement
 	ParserElement.enablePackrat()
 	# Hack to get around behaviour swings of setParseAction; we use
 	# addParseAction throughout and retrofit it to pyparsings that don't have it.
@@ -451,7 +451,8 @@ try:
 	######################### pyparsing-based key-value lines.  
 
 	def _makeKVLGrammar():
-		from pyparsing import Word,alphas, QuotedString, Regex, OneOrMore, Empty
+		from gavo.imp.pyparsing import (
+			Word,alphas, QuotedString, Regex, OneOrMore, Empty)
 
 		with pyparsingWhitechars(" \t"):
 			keyword = Word(alphas+"_")("key")

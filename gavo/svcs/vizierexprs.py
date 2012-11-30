@@ -7,9 +7,9 @@ from __future__ import with_statement
 import datetime
 import re
 
-from pyparsing import Word, Literal, Optional, Forward, Group,\
-	ZeroOrMore, nums, Suppress, ParseException, StringEnd, Regex,\
-	OneOrMore, Or, MatchFirst, CharsNotIn
+from gavo.imp.pyparsing import (Word, Literal, Optional, Forward, Group,
+	ZeroOrMore, nums, Suppress, ParseException, StringEnd, Regex,
+	OneOrMore, Or, MatchFirst, CharsNotIn)
 
 from gavo import utils
 from gavo import base

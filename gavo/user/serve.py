@@ -34,7 +34,16 @@ from gavo.web import root
 def setupServer(rootPage):
 	config.setMeta("upSince", utils.formatISODT(datetime.datetime.utcnow()))
 	base.ui.notifyWebServerUp()
-	cron.registerScheduleFunction(reactor.callLater)
+	if base.DEBUG:
+		# we don't want periodic stuff to happen when in debug mode, since
+		# it usually will involve fetching or importing things, and it's at
+		# best going to be confusing.  However, at least TAP cleanup needs
+		# to run now and then
+		from gavo.protocols import tap
+		tap.workerSystem.cleanupJobsTable()
+	else:
+		cron.registerScheduleFunction(reactor.callLater)
+
 
 
 class _PIDManager(object):

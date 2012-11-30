@@ -6,8 +6,6 @@ import os
 import unittest
 from pprint import pprint
 
-import pyparsing
-
 from gavo.helpers import testhelpers
 
 from gavo import adql
@@ -20,6 +18,7 @@ from gavo.adql import annotations
 from gavo.adql import morphpg
 from gavo.adql import nodes
 from gavo.adql import tree
+from gavo.imp import pyparsing
 from gavo.protocols import adqlglue
 from gavo.stc import tapstc
 

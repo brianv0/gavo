@@ -3,7 +3,6 @@ Node classes and factories used in ADQL tree processing.
 """
 
 import itertools
-import pyparsing
 import re
 import sys
 import traceback
@@ -14,6 +13,7 @@ from gavo import utils
 from gavo.adql import fieldinfo
 from gavo.adql import fieldinfos
 from gavo.adql.common import *
+from gavo.imp import pyparsing
 from gavo.stc import tapstc
 
 

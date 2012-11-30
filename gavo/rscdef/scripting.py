@@ -12,9 +12,10 @@ import re
 import sys
 import weakref
 
-from pyparsing import Word, OneOrMore, ZeroOrMore, QuotedString, Forward,\
-	SkipTo, Optional, StringEnd, Regex, LineEnd, Suppress, ParserElement,\
-	Literal, White, ParseException, dblQuotedString
+from gavo.imp.pyparsing import (
+	Word, OneOrMore, ZeroOrMore, QuotedString, Forward,
+	SkipTo, Optional, StringEnd, Regex, LineEnd, Suppress, ParserElement,
+	Literal, White, ParseException, dblQuotedString)
 
 from gavo import base
 from gavo import utils

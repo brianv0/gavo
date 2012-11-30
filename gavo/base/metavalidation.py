@@ -120,7 +120,7 @@ _assertionCodes = {
 
 @utils.memoized
 def _getModelGrammar():
-	from pyparsing import (Literal, Optional, StringEnd, Suppress, 
+	from gavo.imp.pyparsing import (Literal, Optional, StringEnd, Suppress, 
 		Word, ZeroOrMore, alphas)
 
 	with utils.pyparsingWhitechars(" \t"):

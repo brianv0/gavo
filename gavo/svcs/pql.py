@@ -575,7 +575,8 @@ def _getShPatGrammar():
 	This is different from fnmatch.translate in that it handles escaping
 	correctly.
 	"""
-	from pyparsing import Literal, Regex, CharsNotIn, ZeroOrMore, QuotedString
+	from gavo.imp.pyparsing import (
+		Literal, Regex, CharsNotIn, ZeroOrMore, QuotedString)
 
 	with utils.pyparsingWhitechars(""):
 		enumChars = QuotedString(quoteChar="[", endQuoteChar="]", escChar="\\"

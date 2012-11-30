@@ -116,7 +116,8 @@ characterPrimary production.
 
 from __future__ import with_statement
 
-from pyparsing import (Word, Literal, Optional, alphas, CaselessKeyword,
+from gavo.imp.pyparsing import (
+	Word, Literal, Optional, alphas, CaselessKeyword,
 	ZeroOrMore, OneOrMore, SkipTo, srange, StringEnd, Or, MatchFirst,
 	Suppress, Keyword, Forward, QuotedString, Group, printables, nums,
 	CaselessLiteral, ParseException, Regex, sglQuotedString, alphanums,

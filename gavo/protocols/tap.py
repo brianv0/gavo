@@ -14,7 +14,6 @@ import tempfile
 import threading
 import warnings
 
-from pyparsing import ParseException
 from twisted.internet import reactor
 from twisted.internet import protocol
 import twisted.internet.utils
@@ -24,6 +23,7 @@ from gavo import formats
 from gavo import rsc
 from gavo import svcs
 from gavo import utils
+from gavo.imp.pyparsing import ParseException
 from gavo.protocols import uws
 from gavo.protocols import uwsactions
 from gavo.utils import codetricks
@@ -375,7 +375,7 @@ class TAPTransitions(uws.UWSTransitions):
 
 @utils.memoized
 def getUploadGrammar():
-	from pyparsing import (Word, ZeroOrMore, Suppress, StringEnd,
+	from gavo.imp.pyparsing import (Word, ZeroOrMore, Suppress, StringEnd,
 		alphas, alphanums, CharsNotIn)
 	# Should we allow more tableNames?
 	with utils.pyparsingWhitechars(" \t"):

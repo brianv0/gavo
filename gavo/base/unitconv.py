@@ -9,9 +9,9 @@ import math
 import re
 import traceback
 
-import pyparsing
 
 from gavo import utils
+from gavo.imp import pyparsing
 
 
 class IncompatibleUnits(utils.Error):
@@ -321,7 +321,7 @@ class getUnitGrammar(utils.CachedResource):
 	"""
 	@classmethod
 	def impl(cls):
-		from pyparsing import (Word, Literal, Regex, Optional, ZeroOrMore,
+		from gavo.imp.pyparsing import (Word, Literal, Regex, Optional, ZeroOrMore,
 			MatchFirst, ParseException, nums, Suppress, Forward)
 		with utils.pyparsingWhitechars(''):
 			prefixableUnit = Regex("|".join(u for u in
@@ -397,7 +397,7 @@ class getUnitGrammar(utils.CachedResource):
 	def enableDebuggingOutput(cls):
 		"""(not user-servicable)
 		"""
-		from pyparsing import ParserElement
+		from gavo.imp.pyparsing import ParserElement
 		for name, sym in cls.symbols.iteritems():
 			if isinstance(sym, ParserElement):
 				sym.setDebug(True)

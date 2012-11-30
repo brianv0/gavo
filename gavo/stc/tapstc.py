@@ -208,7 +208,8 @@ def _makeRE(strings):
 
 @utils.memoized
 def getSimpleSTCSParser():
-	from pyparsing import (Regex, CaselessKeyword, OneOrMore, Forward, Suppress,
+	from gavo.imp.pyparsing import (
+		Regex, CaselessKeyword, OneOrMore, Forward, Suppress,
 		Optional, ParseException, ParseSyntaxException)
 
 	with utils.pyparsingWhitechars(" \t\n\r"):

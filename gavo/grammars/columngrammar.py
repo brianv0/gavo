@@ -5,11 +5,11 @@ lets you name character ranges.
 
 from __future__ import with_statement
 
-import pyparsing
 
 from gavo import base
 from gavo import utils
 from gavo.grammars.common import Grammar, FileRowIterator, FileRowAttributes
+from gavo.imp import pyparsing
 
 
 class SplitLineIterator(FileRowIterator):

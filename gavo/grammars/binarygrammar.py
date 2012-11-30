@@ -2,13 +2,13 @@
 A grammar reading from (fixed-record) binary files.
 """
 
-import pyparsing
 import re
 import struct
 
 from gavo import base
 from gavo import utils
 from gavo.grammars.common import Grammar, FileRowIterator
+from gavo.imp import pyparsing
 from gavo.utils import misctricks
 
 

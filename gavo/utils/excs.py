@@ -226,6 +226,6 @@ class SkipThis(ExecutiveAction):
 
 
 try:
-	from pyparsing import ParseBaseException as ParseException
+	from gavo.imp.pyparsing import ParseBaseException as ParseException
 except ImportError:
 	pass
