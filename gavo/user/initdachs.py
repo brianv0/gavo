@@ -403,7 +403,7 @@ def parseCommandLine():
 	parser.add_argument("-d", "--dsn", help="DSN to use to connect to"
 		" the future DaCHS database.  The DSN must let DaCHS connect"
 		" to the DB as an administrator.  dbname, host, and port"
-		" get copied to the profile, if given.  The DSN looks roughly like
+		" get copied to the profile, if given.  The DSN looks roughly like"
 		' "host=foo.bar user=admin password=secret". If you followed the'
 		" installation instructions, you don't need this option.",
 		action="store", type=str, dest="dsn", default="gavo")
