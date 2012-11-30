@@ -303,6 +303,8 @@ class VerboseTest(testresources.ResourcedTestCase):
 		"""
 		for name in ["output.stderr", "output.stdout"]:
 			try:
+				if os.path.exists(name) and os.path.getsize(name)>0:
+					print open(name).read()
 				os.unlink(name)
 			except os.error:
 				pass

@@ -110,7 +110,7 @@ class MiscCLITest(testhelpers.VerboseTest):
 
 	def testCleanTAPPending(self):
 		self.assertOutput(cli.main, argList=["admin", "cleantap", "-p"],
-			expectedRetcode=0)
+			expectedRetcode=0, expectedStderr="")
 
 	def testShowDD(self):
 		self.assertOutput(cli.main, argList=["show", "dds", "//tap"],
@@ -265,9 +265,9 @@ class _MyRDResource(tresc.FileResource):
 	path = "inputs/myrd.rd"
 	content = """<resource schema="test">
 			<table onDisk="True" id="autotable">
-				<column name="x" type="integer"/></table>
+				<column name="x" type="integer" required="True"/></table>
 			<table onDisk="True" id="noautotable">
-				<column name="x" type="integer"/></table>
+				<column name="x" type="integer" required="True"/></table>
 			<data id="y"><make table="autotable"/></data>
 			<data id="z" auto="False"><make table="noautotable"/></data>
 		</resource>"""

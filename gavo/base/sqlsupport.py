@@ -865,6 +865,10 @@ def _makeConnectionManager(profileName, minConn=3, maxConn=20,
 			except InterfaceError:  
 				# Connection already closed
 				pass
+			except Exception, msg:
+				print "Oops"
+				import code;code.interact(local=locals())
+
 			raise
 
 		else:

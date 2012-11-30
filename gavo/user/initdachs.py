@@ -214,7 +214,7 @@ class DSN(object):
 		self._parse()
 		self._validate()
 
-	_knownKeys = set(["dbname", "user", "password", "host", "port"])
+	_knownKeys = set(["dbname", "user", "password", "host", "port", "sslmode"])
 
 	def _validate(self):
 		for key in self.parsed:
@@ -403,7 +403,8 @@ def parseCommandLine():
 	parser.add_argument("-d", "--dsn", help="DSN to use to connect to"
 		" the future DaCHS database.  The DSN must let DaCHS connect"
 		" to the DB as an administrator.  dbname, host, and port"
-		" get copied to the profile, if given.  If you followed the"
+		" get copied to the profile, if given.  The DSN looks roughly like
+		' "host=foo.bar user=admin password=secret". If you followed the'
 		" installation instructions, you don't need this option.",
 		action="store", type=str, dest="dsn", default="gavo")
 	parser.add_argument("--nodb", help="Inhibit initialization of the"

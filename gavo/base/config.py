@@ -132,11 +132,14 @@ class DBProfile(structure.Structure):
 		"User to log into DB as")
 	_pw = attrdef.UnicodeAttribute("password", default="", description=
 		"Password for user")
+	_sslmode = attrdef.UnicodeAttribute("sslmode", default="allow", description=
+		"SSL negotiation mode (disable, allow, prefer, require, verify-*)")
 
 	def getDsn(self):
 		parts = []
 		for key, part in [("host", "host"), ("port", "port"), 
-				("database", "dbname"), ("user", "user"), ("password", "password")]:
+				("sslmode", "sslmode"), ("database", "dbname"), 
+				("user", "user"), ("password", "password")]:
 			if getattr(self, part):
 				parts.append("%s=%s"%(key, getattr(self, part)))
 		return " ".join(parts)
@@ -146,10 +149,10 @@ class DBProfile(structure.Structure):
 		connect.
 		"""
 		res = {}
-		for key in ["database", "user", "password", "host", "port"]:
+		for key in ["database", "user", "password", "host", "port", "sslmode"]:
 			if getattr(self, key):
 				res[key] = getattr(self, key)
-		if not res:
+		if res.keys()==["sslmode"]:
 			raise utils.logOldExc(utils.StructureError("Insufficient information"
 			" to connect to the database in profile '%s'."%(
 				self.profileName)))
@@ -191,7 +194,8 @@ class ProfileParser(object):
 	Traceback (most recent call last):
 	ProfileParseError: "x", line 1: unexpected end of file (missing line feed?)
 	"""
-	profileKeys = set(["host", "port", "database", "user", "password"])
+	profileKeys = set(["host", "port", "database", "user", "password",
+		"sslmode"])
 
 	def __init__(self, sourcePath=["."]):
 		self.commands = {
