@@ -73,6 +73,21 @@ tables and the RDs the tables come from. -->
 		<primary>tableName,fieldName</primary>
 	</table>
 
+	<table id="metastore" onDisk="True" system="True" primary="key"
+			forceUnique="True" dupePolicy="overwrite">
+		<meta name="description">A table for storing all kinds of key-value
+			pairs.  Key starting with an underscore are for use by user RDs.
+
+			Only one pair per key is supported, newer keys overwrite older ones.
+		</meta>
+
+		<column name="key" type="text" description="A key; everything that
+			starts with an underscore is user defined."/>
+		<column name="value" type="text" description="A value; no serialization
+			 format is defined here, but you are encouraged to use python literals
+			 for non-strings."/>
+	</table>
+
 	<rowmaker id="fromColumnList">
 		<!-- turns a rawrec with column, colInd, tableName keys into a
 		columnmeta row -->
@@ -94,6 +109,14 @@ tables and the RDs the tables come from. -->
 	<data id="import">
 		<make table="tablemeta"/>
 		<make table="columnmeta"/>
+		<make table="metastore">
+			<script lang="python" type="postCreation">
+				from gavo.user import upgrade
+				from gavo import base
+				base.setDBMeta(table.connection, 
+					"schemaversion", upgrade.CURRENT_SCHEMAVERSION)
+			</script>
+		</make>
 	</data>
 
 	<outputTable id="metaRowdef" namePath="columnmeta">

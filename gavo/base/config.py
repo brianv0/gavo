@@ -585,6 +585,14 @@ def getGroupId():
 			" user (usually, 'gavo').  Just do it now and re-run this program.")
 
 
+def getVersion():
+	"""returns (as a string) the DaCHS version running.
+
+	The information is obtained from setuptools.
+	"""
+	return pkg_resources.require("gavodachs")[0].version
+
+
 def main():
 	try:
 		if len(sys.argv)==1:

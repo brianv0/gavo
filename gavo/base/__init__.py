@@ -58,7 +58,8 @@ from gavo.base.sqlsupport import (getDBConnection,
 	connectionConfiguration,
 	getUntrustedConn,
 	getTableConn, getAdminConn, getUntrustedConn,
-	getWritableTableConn, getWritableAdminConn, getWritableUntrustedConn)
+	getWritableTableConn, getWritableAdminConn, getWritableUntrustedConn,
+	setDBMeta, getDBMeta)
 
 from gavo.base.structure import (Structure, ParseableStructure, 
 	DataContent, makeStruct, RestrictionMixin)
@@ -77,6 +78,8 @@ from gavo.base.unitconv import (
 	IncompatibleUnits, BadUnit)
 
 from gavo.base.xmlstruct import parseFromString, parseFromStream, feedTo
+
+__version__ = config.getVersion()
 
 DEBUG = False
 IS_DACHS_SERVER = False

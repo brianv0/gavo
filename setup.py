@@ -6,9 +6,12 @@ import sys
 
 from setuptools import setup, find_packages, Extension
 
+VERSION = "0.8.2"
+
+
 install_requires = []
 # Theoretically, we could define dependencies here, more or less like this:
-# install_requires = ["pyfits", "numpy", "pyparsing", "psycopg2"]
+# install_requires = ["pyfits", "numpy", "psycopg2"]
 # -- but we don't, since in practice it seems it's more trouble than it's
 # worth.
 
@@ -29,7 +32,7 @@ SETUP_ARGS = {
 			'gavo = gavo.user.cli:main',
 		]
 	},
-	"version": "0.8.2",
+	"version": VERSION,
 }
 
 if __name__=="__main__":

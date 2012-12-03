@@ -38,6 +38,7 @@ functions = [
 	("show", ("user.show", "main")),
 	("taprun", ("protocols.taprunner", "main")),
 	("validate", ("user.validation", "main")),
+	("upgrade", ("user.upgrade", "upgrade")),
 # init is special cased, but we want it in here for help generation
 	("init", ("initdachs.info", "main")),
 ]
@@ -57,6 +58,16 @@ def _enablePDB():
 def _enableDebug(*args):
 	from gavo import base
 	base.DEBUG = True
+
+
+def _printVersion(*args):
+	from gavo import base
+	from gavo.user import upgrade
+	print "Software (%s) Schema (%s/%s)"%(
+		base.__version__,
+		upgrade.CURRENT_SCHEMAVERSION,
+		upgrade.getDBSchemaVersion())
+	sys.exit(0)
 
 
 def _parseCLArgs():
@@ -90,6 +101,8 @@ def _parseCLArgs():
 		dest="suppressLog")
 	parser.add_option("--debug", help="Produce debug info as appropirate.",
 		action="callback", callback=_enableDebug)
+	parser.add_option("--version", help="Print DaCHS version and exit",
+		action="callback", callback=_printVersion)
 
 	opts, args = parser.parse_args()
 	if len(args)<1:

@@ -4,6 +4,7 @@ Tests for event propagation and user interaction.
 
 import contextlib
 import os
+import re
 import sys
 import traceback
 
@@ -121,6 +122,13 @@ class MiscCLITest(testhelpers.VerboseTest):
 			expectedRetcode=1,
 			expectedStderr=lambda msg: 
 				"The DD 'bla' you are trying to import" in msg)
+
+	def testVersion(self):
+		self.assertOutput(cli.main, argList=["--version"],
+			expectedRetcode=0,
+			expectedStdout=lambda msg: re.match(
+				r"Software \(\d+\.\d+(\.\d+)?\)"
+				r" Schema \(\d+/-?\d+\)" "\n", msg))
 
 
 class ImportTest(testhelpers.VerboseTest):

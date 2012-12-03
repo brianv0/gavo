@@ -163,6 +163,15 @@ class GAVOConnection(psycopg2.extensions.connection):
 				yield row
 		finally:
 			cursor.close()
+	
+	def execute(self, query, args={}):
+		"""executes query in a cursor; returns nothing.
+		"""
+		cursor = self.cursor()
+		try:
+			cursor.execute(query, args)
+		finally:
+			cursor.close()
 
 
 class DebugConnection(GAVOConnection):
@@ -726,6 +735,36 @@ class AdhocQuerier(QuerierMixin):
 	def __exit__(self, *args):
 		self.connection = None
 		return self._cm.__exit__(*args)
+
+
+def setDBMeta(conn, key, value):
+	"""adds/overwrites (key, value) in the dc.metastore table within
+	conn.
+
+	conn must be an admin connection; this does not commit.
+
+	key must be a string, value something unicodeable.
+	"""
+	conn.execute(
+		"INSERT INTO dc.metastore (key, value) VALUES (%(key)s, %(value)s)", {
+		'key': key,
+		'value': unicode(value)})
+
+
+def getDBMeta(key):
+	"""returns the value for key from within dc.metastore.
+
+	This always returns a unicode string.  Type conversions are the client's
+	business.
+
+	If no value exists, this raises a KeyError.
+	"""
+	with getTableConn() as conn:
+		res = list(conn.query("SELECT value FROM dc.metastore WHERE"
+			" key=%(key)s", {"key": key}))
+		if not res:
+			raise KeyError(key)
+		return res[0][0]
 
 
 @contextlib.contextmanager

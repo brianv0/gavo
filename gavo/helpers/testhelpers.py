@@ -93,6 +93,11 @@ else:
 				" before trying again.\n"%(base.getConfig("rootDir")))
 			sys.exit(1)
 
+	else:
+		# run any pending upgrades (that's a test for them, too... of sorts)
+		from gavo.user import upgrade
+		upgrade.upgrade()
+
 	# the following only needs to be set correctly if you run 
 	# twisted trial-based tests
 	testsDir = TEST_BASE
