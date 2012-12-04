@@ -445,11 +445,14 @@ class FormMixin(formal.ResourceMixin):
 		self._addQueryFields(form)
 		self._addMetaFields(form, queryMeta)
 		self._addDefaults(ctx, form)
-		if self.name=="form":
+
+		if (self.name=="form" 
+				and not hasattr(self.service.core, "HACK_RETURNS_DOC")):
 			form.addField("_OUTPUT", formal.String, 
 				formal.widgetFactory(serviceresults.OutputFormat, 
 				self.service, queryMeta),
 				label="Output format")
+
 		form.addAction(self.submitAction, label="Go")
 		form.actionMaterial = self._getFormLinks()
 		self.form = form

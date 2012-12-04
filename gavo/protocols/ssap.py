@@ -36,9 +36,18 @@ class SSAPCore(svcs.DBCore):
 
 	outputTableXML = """
 		<outputTable verbLevel="30">
+			<property name="virtual">True</property>
 			<FEED source="//ssap#coreOutputAdditionals"/>
 		</outputTable>"""
 
+	def wantsTableWidget(self):
+		# we only return XML, and we have a custom way of doing limits.
+		return False
+
+	# The following is evaluated by the form renderer to suppress the
+	# format selection widget.  We should really furnish cores with
+	# some way to declare what they're actually returning.
+	HACK_RETURNS_DOC = True
 
 	################ Helper methods
 
