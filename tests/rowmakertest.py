@@ -292,6 +292,12 @@ class VarTest(testhelpers.VerboseTest):
 		mapper = dd.rowmakers[0].compileForTableDef(td)
 		self.assertEqual(mapper({}, None), {'si': 57})
 
+	def testRaising(self):
+		dd, td = makeDD('  <column name="si" type="smallint"/>',
+			'  <map dest="si" nullExcs="ZeroDivisionError">1/0</map>')
+		mapper = dd.rowmakers[0].compileForTableDef(td)
+		self.assertEqual(mapper({}, None), {'si': None})
+
 
 class PredefinedTest(testhelpers.VerboseTest):
 	"""tests for procedures from //procs.

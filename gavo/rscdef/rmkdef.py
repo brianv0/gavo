@@ -25,29 +25,13 @@ class Error(base.Error):
 	pass
 
 
-class _NotGiven(object):
-	"""is a sentinel for MapRule defaults.
+class MappedExpression(base.Structure):
+	"""a base class for map and var.
+
+	You must give a destDict class attribute to make these work.
 	"""
-
-
-
-class MapRule(base.Structure):
-	"""A mapping rule.
-
-	To specify the source of a mapping, you can either
 	
-	- grab a value from what's emitted by the grammar or defined using var via
-		the source attribute.  The value given for source is converted to a 
-		python value and stored.
-	- or give a python expression in the body.  In that case, no further
-	  type conversion will be attempted.
-
-	If neither source or a body is given, map uses the key attribute as its
-	source attribute.
-
-	The map rule generates a key/value pair in the result record.
-	"""
-	name_ = "map"
+	destDict = None
 	restrictedMode = False
 
 	_dest = base.UnicodeAttribute("key", 
@@ -55,7 +39,7 @@ class MapRule(base.Structure):
 		description="Name of the column the value is to end up in.",
 		copyable=True, 
 		strip=True, 
-		aliases=["dest"])
+		aliases=["dest", "name"])
 
 	_src = base.UnicodeAttribute("source", 
 		default=None,
@@ -101,19 +85,29 @@ class MapRule(base.Structure):
 		"""checks that code content is a parseable python expression and that
 		the destination exists in the tableDef
 		"""
-		self._validateNext(MapRule)
+		self._validateNext(MappedExpression)
+
 		if (self.content_ and self.source) or not (self.content_ or self.source):
 			raise base.StructureError("Map must have exactly one of source attribute"
 				" or element content")
+
+		if not utils.identifierPattern.match(self.key):
+			raise base.LiteralParseError("name", self.key,
+				hint="Var keys must be valid python"
+				" identifiers, and '%s' is not"%self.key)
+
 		if self.source:
 			if not utils.identifierPattern.match(self.source):
 				raise base.LiteralParseError("source", self.source,
 					hint="Map sources must be (python)"
 					" identifiers, and '%s' is not"%self.source)
+
 		if self.nullExpr is not base.NotGiven:
 			utils.ensureExpression(self.nullExpr)
+
 		if self.content_:
 			utils.ensureExpression(common.replaceRMKAt(self.content_), self.name_)
+
 		if self.nullExcs is not base.NotGiven:
 			utils.ensureExpression(self.nullExcs, "%s.nullExcs"%(self.name_))
 
@@ -123,11 +117,12 @@ class MapRule(base.Structure):
 		code = []
 
 		if self.content_:
-			code.append('result["%s"] = %s'%(self.key, self.content_))
+			code.append('%s["%s"] = %s'%(self.destDict, self.key, self.content_))
 		else:
 			colDef = columns.getColumnByName(self.key)
 			try:
-				code.append('result["%s"] = %s'%(self.key, 
+				code.append('%s["%s"] = %s'%(self.destDict,
+					self.key, 
 					base.sqltypeToPythonCode(colDef.type)%'vars["%s"]'%self.source))
 			except base.ConversionError:
 				raise base.ui.logOldExc(base.LiteralParseError("map", colDef.type,
@@ -135,57 +130,56 @@ class MapRule(base.Structure):
 					" no default map for %s is known"%(self.key, colDef.type)))
 
 		if self.nullExpr is not base.NotGiven:
-			code.append('\nif result["%s"]==%s: result["%s"] = None'%(
-				self.key, self.nullExpr, self.key))
+			code.append('\nif %s["%s"]==%s: %s["%s"] = None'%(
+				self.destDict,
+				self.key, 
+				self.nullExpr, 
+				self.destDict,
+				self.key))
 		code = "".join(code)
 
 		if self.nullExcs is not base.NotGiven:
-			code = 'try:\n%s\nexcept (%s): result["%s"] = None'%(
-				re.sub("(?m)^", "  ", code), self.nullExcs, self.key)
+			code = 'try:\n%s\nexcept (%s): %s["%s"] = None'%(
+				re.sub("(?m)^", "  ", code), 
+				self.nullExcs, 
+				self.destDict,
+				self.key)
 		return code
 
 
-class VarDef(base.Structure, base.RestrictionMixin):
+class MapRule(MappedExpression):
+	"""A mapping rule.
+
+	To specify the source of a mapping, you can either
+	
+	- grab a value from what's emitted by the grammar or defined using var via
+		the source attribute.  The value given for source is converted to a 
+		python value and stored.
+	- or give a python expression in the body.  In that case, no further
+	  type conversion will be attempted.
+
+	If neither source or a body is given, map uses the key attribute as its
+	source attribute.
+
+	The map rule generates a key/value pair in the result record.
+	"""
+	name_ = "map"
+	destDict = "result"
+
+
+class VarDef(MappedExpression):
 	"""A definition of a rowmaker variable.
 
 	It consists of a name and a python expression, including function
 	calls.  The variables are entered into the input row coming from
 	the grammar.
+
+	var elements are evaluated before apply elements, in the sequence
+	they are in the RD.  You can refer to keys defined by vars already
+	evaluated in the usual @key manner.
 	"""
 	name_ = "var"
-	
-	_name = base.UnicodeAttribute("key", 
-		default=base.Undefined, 
-		description="Name of the variable (under which it can later be"
-			" referred to", 
-		copyable=True, 
-		strip=True,
-		aliases=["name"])
-
-	_expr = base.DataContent(copyable=True, 
-		description="A python expression."
-		" Its value is accessible under the key name in the input row.",
-		strip=True)
-
-	def completeElement(self, ctx):
-		if self.content_ and "\\" in self.content_:
-			self.content_ = self.parent.expand(self.content_)
-		self._completeElementNext(VarDef, ctx)
-
-	def validate(self):
-		"""checks that code content is a parseable python expression and that
-		name is a valid python identifier.
-		"""
-		self._validateNext(VarDef)
-		if self.content_:
-			utils.ensureExpression(common.replaceRMKAt(self.content_), self.name_)
-		if not utils.identifierPattern.match(self.key):
-			raise base.LiteralParseError("name", self.key,
-				hint="Var keys must be valid python"
-				" identifiers, and '%s' is not"%self.key)
-
-	def getCode(self):
-		return 'vars["%s"] = %s'%(self.key, self.content_)
+	destDict = "vars"
 
 
 class ApplyDef(procdef.ProcApp):
@@ -375,7 +369,7 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 				"  raise IgnoreThisRow(vars)",
 				line, "Checking ignore")
 		for v in self.vars:
-			line = appendToSource(v.getCode(), line, "assigning "+v.key)
+			line = appendToSource(v.getCode(columns), line, "assigning "+v.key)
 		for a in self.apps:
 			line = appendToSource(
 				"%s(vars, result, targetTable)"%a.name, 
