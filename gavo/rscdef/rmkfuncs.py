@@ -140,22 +140,24 @@ def makeTimestamp(date, time):
 
 
 @utils.document
-def parseAngle(literal, format):
+def parseAngle(literal, format, sepChar=None):
 	"""converts the various forms angles might be encountered to degrees.
 
-	format is one of hms, dms, fracHour.
+	format is one of hms, dms, fracHour.  For sexagesimal/time angles, 
+	you can pass a sepChar (default: split at blanks) that lets you
+	specify what separates hours/degrees, minutes, and seconds.
 
 	>>> str(parseAngle("23 59 59.95", "hms"))
 	'359.999791667'
-	>>> "%10.5f"%parseAngle("-20 31 05.12", "dms")
+	>>> "%10.5f"%parseAngle("-20:31:05.12", "dms", sepChar=":")
 	' -20.51809'
 	>>> "%010.6f"%parseAngle("21.0209556", "fracHour")
 	'315.314334'
 	"""
 	if format=="dms":
-		return utils.dmsToDeg(literal)
+		return utils.dmsToDeg(literal, sepChar=sepChar)
 	elif format=="hms":
-		return utils.hmsToDeg(literal)
+		return utils.hmsToDeg(literal, sepChar=sepChar)
 	elif format=="fracHour":
 		return utils.fracHoursToDeg(literal)
 	else:
