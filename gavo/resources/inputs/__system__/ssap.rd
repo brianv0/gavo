@@ -689,7 +689,9 @@
 			<inputKey name="REQUEST" type="text" tablehead="Request type"
 				description='This is queryData for the default operation; some
 					services support getData as well' std="True"
-				required="True"/>
+				required="True">
+				<property key="defaultForForm">queryData</property>
+			</inputKey>
 			<inputKey name="TOP" type="integer" tablehead="#Best"
 				description='Only return the TOP "best" records' std="True"/>
 			<inputKey name="MAXREC" type="integer" tablehead="Limit"

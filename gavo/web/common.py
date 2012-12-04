@@ -9,6 +9,7 @@ from nevow import tags as T, entities as E
 from nevow import loaders
 from nevow import inevow
 from nevow import rend
+from nevow import static
 try:
     from twisted.web import http
 except ImportError:
@@ -20,6 +21,31 @@ from gavo import svcs
 from gavo import utils
 from gavo.base import meta
 from gavo.protocols import creds
+
+
+# monkeypatching static's mime magic
+static.File.contentTypes[".ascii"] = "application/octet-stream"
+static.File.contentTypes[".f"] = "text/x-fortran"
+static.File.contentTypes[".vot"] = "application/x-votable+xml"
+static.File.contentTypes[".rd"] = "application/x-gavo-descriptor+xml"
+static.File.contentTypes[".f90"] = "text/x-fortran"
+# this one is for co-operation with ifpages
+static.File.contentTypes[".shtml"] = "text/nevow-template"
+
+
+@utils.memoized
+def getExtForMime(mime):
+	"""returns an extension (with dot) for a mime type.
+
+	This is the first that matches in the mime registry in of 
+	nevow.static.File and thus may change between runs of the software.
+
+	If no extension matches, ".bin" is returned.
+	"""
+	for ext, type in static.File.contentTypes.iteritems():
+		if mime==type:
+			return ext
+	return ".bin"
 
 
 def escapeForHTML(aString):

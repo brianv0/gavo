@@ -25,6 +25,10 @@ class InputKey(column.ParamBase):
 
 	Some of the DDL-type attributes (e.g., references) only make sense here
 	if columns are being defined from the InputKey.
+
+	You can give a "defaultForForm" property on inputKeys to supply
+	a string literal default that will be pre-filled in the form
+	renderer and is friends but not for other renderers (like S*AP).
 	"""
 	name_ = "inputKey"
 

@@ -20,6 +20,7 @@ from gavo.imp import formal
 from gavo.imp.formal import iformal
 from gavo.svcs import customwidgets
 from gavo.svcs import streaming
+from gavo.web import common
 from gavo.web import grend
 from gavo.web import serviceresults
 
@@ -202,6 +203,8 @@ def getFieldArgsForInputKey(inputKey):
 		res["default"] = unicode(inputKey.values.default)
 	if inputKey.value:
 		res["default"] = unicode(inputKey.value)
+	if inputKey.hasProperty("defaultForForm"):
+		res["default"] = inputKey.getProperty("defaultForForm")
 
 	return res
 
@@ -545,6 +548,17 @@ class Form(FormMixin,
 		This is basically nevow's rend.Page._renderHTTP, changed to
 		provide less blocks.
 		"""
+		request = inevow.IRequest(ctx)
+
+		if isinstance(res.original, tuple):
+			# core returned a complete document (mime and string)
+			mime, payload = res.original
+			request.setHeader("content-type", mime)
+			request.setHeader('content-disposition', 
+				'attachment; filename=result%s'%common.getExtForMime(mime))
+			return streaming.streamOut(lambda f: f.write(payload), 
+				request)
+
 		self.result = res
 		if "response" in self.service.templates:
 			self.customTemplate = self.service.getTemplate("response")
@@ -554,7 +568,7 @@ class Form(FormMixin,
 		doc = self.docFactory.load(ctx)
 		ctx =  context.WovenContext(ctx, T.invisible[doc])
 
-		return deliverYielding(doc, ctx, inevow.IRequest(ctx))
+		return deliverYielding(doc, ctx, request)
 
 
 
