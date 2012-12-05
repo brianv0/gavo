@@ -22,56 +22,58 @@
 			document.addEventListener("keydown", watchKey, true);
 		}
 
-	function makeConnection(onSuccess) {
-	// sets up a connection to the SAMP hub; if the hub is reachable, onSuccess
-	// is called.  The function sets things up such that the connection is
-	// closed when the page is left.
-		var meta = {
-			"samp.name": "DaCHS Web",
-			"samp.description": "A form in a web interface at "+document.URL,
-			"samp.icon.url": 
-				"http://"+window.location.host+"/static/img/logo_tiny.png"
-			};
-		var connector = new samp.Connector("DaCHS Web", meta);
-		connector.register(
-			onSuccess,
-			function(err) {
-				alert("Could not connect to SAMP hub: "+err);
-			});
-	}
+		function _makeSAMPSuccessHandler(sampButton, tableSource) {
+			// returns the callback for a successful hub connection
+			return function(conn) {
+				conn.declareMetadata([{
+					"samp.description": "A form in a web interface at "+document.URL,
+					"samp.icon.url": 
+						"http://"+window.location.host+"/static/img/logo_tiny.png"
+				}]);
 
+				// set the button up so clicks send again without reconnection.
+				sampButton.unbind("click");
+				sampButton.click(function(e) {
+					sendSAMP(conn, tableSource);
+				});
 
-	function connectAndSendSAMP(sampButton, tableSource) {
-		makeConnection(function(conn) {
-			sampButton.unbind("click");
-			$(window).unload(function() {
-				conn.unregister();
-			});
-			sampButton.click(function(e) {
+				// make sure we unregister when the user leaves the page
+				$(window).unload(function() {
+					conn.unregister();
+				});
+
+				// send the stuff once (since the connection has been established
+				// in response to a click alread)
 				sendSAMP(conn, tableSource);
-			});
-			sendSAMP(conn, tableSource);
+			};
+		}
+
+		function connectAndSendSAMP(sampButton, tableSource) {
+			samp.register("DaCHS Web",
+				_makeSAMPSuccessHandler(sampButton, tableSource),
+				function(err) {
+					alert("Could not connect to SAMP hub: "+err);
+				}
+			);
+		}
+
+		function sendSAMP(conn, tableSource) {
+			var tableURL = getFormQuery(tableSource, 
+				{'_FORMAT': 1})+"&_FORMAT=VOTable";
+			var msg = new samp.Message("table.load.votable", {
+				"table-id": "DaCHSResult",
+				"url": tableURL,
+				"name": "DaCHS result"});
+			conn.notifyAll([msg]);
+		}
+
+		$(document).ready(function() {
+			var sampButton = $('#sendViaSAMP');
+			var tableSource = document.getElementById('genForm');
+			sampButton.click(function (e) {
+				connectAndSendSAMP(sampButton, tableSource);
+			})
 		});
-	}
-
-
-	function sendSAMP(conn, tableSource) {
-		var tableURL = getFormQuery(tableSource, {'_FORMAT': 1})+"&_FORMAT=VOTable";
-		var msg = new samp.Message("table.load.votable", {
-			"table-id": "DaCHSResult",
-			"url": tableURL,
-			"name": "DaCHS result"});
-		conn.notifyAll([msg]);
-	}
-
-
-	$(document).ready(function() {
-		var sampButton = $('#sendViaSAMP');
-		var tableSource = document.getElementById('genForm');
-		sampButton.click(function (e) {
-			connectAndSendSAMP(sampButton, tableSource);
-		})
-	});
 	//]]></script>
 	<style type="text/css" n:render="servicestyle"/>
 </head>
