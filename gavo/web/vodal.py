@@ -177,7 +177,7 @@ class DALRenderer(grend.ServiceBasedPage):
 		except AttributeError:
 			msg = "Error(s) in given Parameters: %s"%"; ".join(
 				[formatError(e) for e in errors])
-		return self._writeErrorTable(ctx, msg, 400)
+		return self._writeErrorTable(ctx, msg, 200)
 
 
 class SCSRenderer(DALRenderer):
