@@ -431,9 +431,6 @@
 			>accref</mixinPar>
 		<mixinPar name="did" description="Global identifier of the data set.  
 			Leave $COMPUTE for tables mixing in products.">$COMPUTE</mixinPar>
-		<mixinPar name="creatorDID" description="Global identifier of the
-			data set assigned by the creator.  Leave NULL unless the creator
-			actually assigned an IVO id himself.">NULL</mixinPar>
 		<mixinPar name="accessURL" description="URL at which the product
 			can be obtained.  Leave at $COMPUTE for tables mixing in products."
 			>$COMPUTE</mixinPar>
@@ -463,7 +460,7 @@
 			parameters.
 
 			Some items are filled from product interface fields automatically.
-			You must change these if you obscore-publish tables noch mixin
+			You must change these if you obscore-publish tables not mixin
 			in products.
 		</doc>
 		<mixinPar name="productType" description="Data product type; one
@@ -495,6 +492,10 @@
 			resolution within the data set, in arcsecs">NULL</mixinPar>
 		<mixinPar name="instrumentName" description="The instrument that produced
 			the data">NULL</mixinPar>
+		<mixinPar name="creatorDID" description="Global identifier of the
+			data set assigned by the creator.  Leave NULL unless the creator
+			actually assigned an IVO id herself.">NULL</mixinPar>
+
 		<LFEED source="_publishProduct"/>
 		<LFEED source="_publishCommon"/>
 	</mixinDef>
@@ -544,9 +545,54 @@
 			>pixelScale[1]*3600</mixinPar>
 		<mixinPar name="instrumentName" description="The instrument that produced
 			the data">instId</mixinPar>
+		<mixinPar name="creatorDID" description="Global identifier of the
+			data set assigned by the creator.  Leave NULL unless the creator
+			actually assigned an IVO id herself.">NULL</mixinPar>
 
 		<LFEED source="_publishProduct"/>
 		<LFEED source="_publishCommon"/>
 
+	</mixinDef>
+
+	<mixinDef id="publishSSAPHCD">
+		<doc>
+			Publish a table mixing in //ssap#hcd to ObsTAP.
+
+			This works like //obscore#publish except some defaults apply
+			that copy fields that work analoguously in SSAP and in ObsTAP.
+
+			For special situations, you can, of course, override any
+			of the parameters, but most of them should already be all right.
+			To find out what the parameters described as "preset for SSAP"
+			mean, refer to //obscore#publish.
+		</doc>
+
+		<mixinPar name="coverage"
+			>NULL</mixinPar>
+		<!-- TODO: fix pgsphere to know how to cast scircles to spolys
+			>scircle(ssa_location, ssa_aperture*pi()/180.)</mixinPar> -->
+		<mixinPar name="collection">\getParam{ssa_collection}{NULL}</mixinPar>
+		<mixinPar name="creatorDID">ssa_creatorDID</mixinPar>
+		<mixinPar name="dec">lat(ssa_location)</mixinPar>
+		<mixinPar name="ra">long(ssa_location)</mixinPar>
+		<mixinPar name="emMax">ssa_specstart</mixinPar>
+		<mixinPar name="emMin">ssa_specend</mixinPar>
+		<mixinPar name="expTime">\getParam{ssa_timeExt}{NULL}</mixinPar>
+		<mixinPar name="fov">ssa_aperture</mixinPar>
+		<mixinPar name="instrumentName">\getParam{ssa_instrument}{NULL}</mixinPar>
+		<mixinPar name="oUCD">'\getParam{ssa_fluxucd}'</mixinPar>
+		<mixinPar name="productType">'spectrum'</mixinPar>
+		<mixinPar name="sResolution">\getParam{ssa_spaceRes}{NULL}/3600.</mixinPar>
+		<mixinPar name="tMax">NULL</mixinPar>
+		<mixinPar name="tMin">NULL</mixinPar>
+<!-- TODO: define a TO_MJD function in our postgresses
+		<mixinPar name="tMax">ssa_dateObs+ssa_timeExt/2</mixinPar>
+		<mixinPar name="tMin">ssa_dateObs-ssa_timeExt/2</mixinPar>-->
+		<mixinPar name="targetName">ssa_targname</mixinPar>
+		<mixinPar name="targetClass">ssa_targclass</mixinPar>
+		<mixinPar name="title">ssa_targname</mixinPar>
+
+		<LFEED source="_publishProduct"/>
+		<LFEED source="_publishCommon"/>
 	</mixinDef>
 </resource>

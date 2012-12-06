@@ -198,7 +198,7 @@
 		<param name="ssa_fluxunit" type="text" required="True"
 			utype="ssa:Char.FluxAxis.Unit"
 			tablehead="unit(flux)" verbLevel="25" 
-			description="UCD of the flux column">\fluxSI</param>
+			description="Unit of the flux column">\fluxSI</param>
 		<param name="ssa_fluxucd" type="text" required="True"
 			utype="ssa:Char.FluxAxis.Ucd"
 			tablehead="UCD(flux)" verbLevel="25" 

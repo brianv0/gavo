@@ -145,7 +145,31 @@ class RDMacroTest(testhelpers.VerboseTest):
 			\internallink{h/e/l/l}</meta></resource>""")
 		self.failUnless("</a>" in 
 			rd.getMeta("testing").getContent(targetFormat="html", macroPackage=rd))
-	
+
+
+class TableMacroTest(testhelpers.VerboseTest):
+	def testgetParamNull(self):
+		t = base.parseFromString(rscdef.TableDef,
+			"""<table id="test"><param name="foo"/></table>""")
+		self.assertEqual(t.expand("\getParam{foo}"), "NULL")
+
+	def testGetNonexPar(self):
+		t = base.parseFromString(rscdef.TableDef,
+			"""<table id="test"><param name="foo"/></table>""")
+		self.assertEqual(t.expand("\getParam{bar}"), "")
+
+	def testGetFloatPar(self):
+		t = base.parseFromString(rscdef.TableDef,
+			"""<table id="test"><param name="foo">0.3</param></table>""")
+		self.assertEqual(t.expand("\getParam{foo}"), "0.3")
+
+	def testGetDatePar(self):
+		t = base.parseFromString(rscdef.TableDef,
+			"""<table id="test"><param name="foo" type="timestamp"
+				>1975-03-02</param></table>""")
+		self.assertEqual(t.expand("\getParam{foo}"), "1975-03-02")
+
+
 
 if __name__=="__main__":
-	testhelpers.main(RDMacroTest)
+	testhelpers.main(TableMacroTest)

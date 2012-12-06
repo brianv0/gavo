@@ -713,6 +713,29 @@ class TableDef(base.Structure, base.ComputedMetaMixin, common.PrivilegesMixin,
 		"""
 		return self.getColumnByUCDs(*(s.strip() for s in ucds.split("|"))).name
 
+	def macro_getParam(self, parName, default=""):
+		"""returns the string representation of the parameter parName.
+
+		This is the parameter as given in the table definition.  Any changes
+		to an instance are not reflected here.
+
+		If the parameter named does not exist, an empty string is returned.
+		NULLs/Nones are rendered as NULL; this is mainly a convenience
+		for obscore-like applications and should not be exploited otherwise,
+		since it's ugly and might change at some point.
+
+		If a default is given, it will be returned for both NULL and non-existing
+		params.
+		"""
+		try:
+			param = self.params.getColumnByName(parName)
+		except base.NotFoundError:
+			return default
+		if param.content_ is base.NotGiven or param.value is None:
+			return default or "NULL"
+		else:
+			return param.content_
+
 	@staticmethod
 	def disambiguateColumns(columns):
 		"""returns a sequence of columns without duplicate names.
