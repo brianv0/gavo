@@ -281,16 +281,15 @@ def query(querier, query, timeout=15, metaProfile=None, tdsForUploads=[],
 		hardLimit=hardLimit)
 	addTuple = _getTupleAdder(table)
 	oldTimeout = querier.getTimeout()
-	try:
-		querier.setTimeout(timeout)
-		# XXX Hack: this is a lousy fix for postgres' seqscan love with
-		# limit.  See if we still want this with newer postgres...
-		querier.configureConnection([("enable_seqscan", False)])
+	querier.setTimeout(timeout)
+	# XXX Hack: this is a lousy fix for postgres' seqscan love with
+	# limit.  See if we still want this with newer postgres...
+	querier.configureConnection([("enable_seqscan", False)])
 
-		for tuple in querier.query(query):
-			addTuple(tuple)
-	finally:
-		querier.setTimeout(oldTimeout)
+	for tuple in querier.query(query):
+		addTuple(tuple)
+	querier.setTimeout(oldTimeout)
+
 	if len(table)==int(table.tableDef.setLimit):
 		table.addMeta("_warning", "Your result is probably incomplete due"
 			" to your match limit of %s kicking in"%table.tableDef.setLimit)

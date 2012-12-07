@@ -410,13 +410,15 @@ def processSource(data, source, feeder, opts, connection=None):
 
 
 def makeData(dd, parseOptions=common.parseNonValidating,
-		forceSource=None, connection=None, data=None):
+		forceSource=None, connection=None, data=None, runCommit=True):
 	"""returns a data instance built from dd.
 
 	It will arrange for the parsing of all tables generated from dd's grammar.
 	If connection is passed in, the the entire operation will run within a 
 	single transaction within this connection.  The connection will be
-	rolled back or committed depending on the success of the operation.
+	rolled back or committed depending on the success of the operation
+	(unless you pass runCommit=False, in which case a successful
+	import will not be committed)..
 
 	You can pass in a data instance created by yourself in data.  This
 	makes sense if you want to, e.g., add some meta information up front.
@@ -445,7 +447,8 @@ def makeData(dd, parseOptions=common.parseNonValidating,
 		else:
 			processSource(res, forceSource, feeder, parseOptions, connection)
 
-	res.commitAll()
+	if runCommit:
+		res.commitAll()
 	res.nAffected = feeder.getAffected()
 
 	if parseOptions.buildDependencies:

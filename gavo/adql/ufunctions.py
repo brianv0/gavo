@@ -122,6 +122,36 @@ def _hashlist_has(args):
 	return None
 
 
+@userFunction("gavo_to_mjd",
+	"(d TIMESTAMP) -> DOUBLE PRECISION",
+	"""
+	The function converts a postgres timestamp to modified julian date.
+	This is naive; no corrections for timezones, let alone time
+	scales or the like are done; you can thus not expect this to be
+	good to second-precision unless you are careful in the construction
+	of the timestamp.
+	""")
+def _to_mjd(args):
+	if len(args)!=1:
+		raise UfuncError("gavo_to_mjd takes exactly one timestamp argument")
+	return "ts_to_mjd(%s)"%nodes.flatten(args[0])
+
+
+@userFunction("gavo_to_jd",
+	"(d TIMESTAMP) -> DOUBLE PRECISION",
+	"""
+	The function converts a postgres timestamp to julian date.
+	This is naive; no corrections for timezones, let alone time
+	scales or the like are done; you can thus not expect this to be
+	good to second-precision unless you are careful in the construction
+	of the timestamp.
+	""")
+def _to_mjd(args):
+	if len(args)!=1:
+		raise UfuncError("gavo_to_jd takes exactly one timestamp argument")
+	return "ts_to_jd(%s)"%nodes.flatten(args[0])
+
+
 class UserFunction(nodes.FunctionNode):
 	"""A node processing user defined functions.
 

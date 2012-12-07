@@ -191,6 +191,20 @@ of where we messed up, and we'll try to improve.
 					END IF;
 				END;
 				$func$ LANGUAGE plpgsql;
+
+				CREATE OR REPLACE FUNCTION ts_to_mjd(value TIMESTAMP)
+				RETURNS DOUBLE PRECISION AS $func$
+				BEGIN
+					RETURN to_char(value, 'J')::double precision-2400000.5;
+				END;
+				$func$ LANGUAGE plpgsql;
+
+				CREATE OR REPLACE FUNCTION ts_to_jd(value TIMESTAMP)
+				RETURNS DOUBLE PRECISION AS $func$
+				BEGIN
+					RETURN to_char(value, 'J')::double precision;
+				END;
+				$func$ LANGUAGE plpgsql;
 			]]></script>
 		</make>
 	</data>

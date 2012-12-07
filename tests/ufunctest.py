@@ -93,9 +93,21 @@ class UfuncDefTest(testhelpers.VerboseTest):
 			[0.])
 
 
+class _UfuncTestbed(tresc.RDDataResource):
+	"""A table that contains test material for ufuncs.
+
+	If you write queries against this, make sure you survive schema
+	*and data* extensions.  They are sure to come as new UDFs need exercise.
+	Use the kind column as necessary.
+	"""
+	rdName = "ufuncex.rd"
+	dataId = "import"
+
+
 class BuiltinUfuncTest(testhelpers.VerboseTest):
 	resources = [
 		("ssaTestTable", tresc.ssaTestTable),
+		("ufuncTestTable", _UfuncTestbed()),
 		("querier", adqltest.adqlQuerier)]
 
 	def testHaswordQuery(self):
@@ -139,6 +151,18 @@ class BuiltinUfuncTest(testhelpers.VerboseTest):
 			"select ssa_targname FROM test.hcdtest"
 				" WHERE 1=ivo_nocasematch(ssa_targname, 'BOOGER%')").rows),
 			2)
+	
+	def testToMJD(self):
+		self.assertEqual(adqlglue.query(self.querier,
+			"select gavo_to_mjd(dt) as mjd from test.ufuncex where testgroup='jd'"
+			).rows, [{'mjd': 45917.5}])
+
+	def testToJD(self):
+		self.assertEqual(adqlglue.query(self.querier,
+			"select gavo_to_jd(dt) as jd from test.ufuncex where testgroup='jd'"
+			).rows, [{'jd': 2445918.0}])
+
+
 
 
 class RegionTest(unittest.TestCase):

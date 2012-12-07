@@ -14,10 +14,12 @@ with the code (or so I hope).
 """
 
 from gavo import base
+from gavo import rsc
+from gavo import rscdesc
 from gavo import utils
 
 
-CURRENT_SCHEMAVERSION = 0
+CURRENT_SCHEMAVERSION = 1
 
 
 def getDBSchemaVersion():
@@ -104,12 +106,19 @@ class To0Upgrader(Upgrader):
 	@classmethod
 	def u_010_makeMetastore(cls, connection):
 		"""create the meta store."""
-		from gavo import rsc
-		from gavo import rscdesc
-
 		td = base.caches.getRD("//dc_tables").getById("metastore")
 		table = rsc.TableForDef(td, create=True, connection=connection)
 
+
+class To1Upgrader(Upgrader):
+	version = 0
+
+	@classmethod
+	def u_000_update_funcs(cls, connection):
+		"""update GAVO server-side functions."""
+		rsc.makeData(base.caches.getRD("//adql").getById("make_udfs"),
+			connection=connection)
+		
 
 def iterStatements(startVersion, endVersion=CURRENT_SCHEMAVERSION, 
 		upgraders=None):
@@ -126,14 +135,18 @@ def iterStatements(startVersion, endVersion=CURRENT_SCHEMAVERSION,
 			yield statement
 
 
-def upgrade():
+def upgrade(forceDBVersion=None):
 	"""runs all updates necessary to bring a database to the
 	CURRENT_SCHEMAVERSION.
 
 	Everything is run in one transaction.  Errors lead to the rollback of
 	the whole thing.
 	"""
-	startVersion = getDBSchemaVersion()
+	if forceDBVersion is None:
+		startVersion = getDBSchemaVersion()
+	else:
+		startVersion = forceDBVersion
+
 	if startVersion==CURRENT_SCHEMAVERSION:
 		return
 
@@ -147,3 +160,18 @@ def upgrade():
 				print "...executing %s"%utils.makeEllipsis(statement, 60)
 				conn.query(statement)
 		conn.commit()
+
+
+def parseCommandLine():
+	from gavo.imp import argparse
+	parser = argparse.ArgumentParser()
+	parser.add_argument("--force-dbversion", help="assume this as the"
+		" database's schema version.  If you don't develop DaCHS, you"
+		" almost certainly should stay clear of this flag", type=int,
+		dest="forceDBVersion", default=None)
+	return parser.parse_args()
+
+
+def main():
+	args = parseCommandLine()
+	upgrade(args.forceDBVersion)

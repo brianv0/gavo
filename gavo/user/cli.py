@@ -38,7 +38,7 @@ functions = [
 	("show", ("user.show", "main")),
 	("taprun", ("protocols.taprunner", "main")),
 	("validate", ("user.validation", "main")),
-	("upgrade", ("user.upgrade", "upgrade")),
+	("upgrade", ("user.upgrade", "main")),
 # init is special cased, but we want it in here for help generation
 	("init", ("initdachs.info", "main")),
 ]
