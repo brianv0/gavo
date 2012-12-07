@@ -138,8 +138,8 @@ _registerHTMLMF(_stringWrapMF(valuemappers.datetimeMapperFactory))
 
 
 def humanDatesFactory(colDesc):
-	format, unit = {"humanDatetime": ("%Y-%m-%d %H:%M:%S", "Y-M-D h:m:s"),
-		"humanDate": ("%Y-%m-%d", "Y-M-D"), }.get(
+	format, unit = {"humanDate": ("%Y-%m-%d %H:%M:%S", ""),
+		"humanDay": ("%Y-%m-%d", "") }.get(
 			colDesc["displayHint"].get("type"), (None, None))
 	if format and colDesc["dbtype"] in ("date", "timestamp"):
 		colDesc["unit"] = unit
@@ -147,6 +147,9 @@ def humanDatesFactory(colDesc):
 			if val is None:
 				return "N/A"
 			else:
+				colDesc["datatype"], colDesc["arraysize"] = "char", "*"
+				colDesc["xtype"] = "adql:TIMESTAMP"
+				colDesc["unit"] = ""
 				try:
 					return val.strftime(format)
 				except ValueError:  # probably too old a date, fall back to a hack
@@ -175,17 +178,26 @@ _registerHTMLMF(humanTimesFactory)
 
 
 def jdMapperFactory(colDesc):
-	"""maps JD columns to human-readable datetimes.
+	"""maps JD, MJD, unix timestamp, and julian year columns to 
+	human-readable datetimes.
 
 	MJDs are caught by inspecting the UCD.
 	"""
 	if (colDesc["displayHint"].get("type")=="humanDate"
-			and colDesc["dbtype"] in ("double precision", "real")
-			and colDesc["unit"]=="d"):
-		if "mjd" in colDesc["ucd"].lower():
-			converter = stc.mjdToDateTime
+			and colDesc["dbtype"] in ("double precision", "real")):
+
+		if colDesc["unit"]=="d":
+			if "mjd" in colDesc["ucd"].lower() or colDesc["xtype"]=="mjd":
+				converter = stc.mjdToDateTime
+			else:
+				converter = stc.jdnToDateTime
+		elif colDesc["unit"]=="s":
+			converter = datetime.datetime.utcfromtimestamp
+		elif colDesc["unit"]=="yr":
+			converter = stc.jYearToDateTime
 		else:
-			converter = stc.jdnToDateTime
+			return None
+
 		def fun(val):
 			if val is None:
 				return "N/A"

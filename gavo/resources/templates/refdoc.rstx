@@ -594,7 +594,12 @@ type
     display the value as a link to an ADS bibcode query.
 
   humanDate
-    display a timestamp value as an ISO string.
+    display a timestamp value or a real number in either yr (julian
+    year), d (JD, or MJD if xtype is mjd), or s (unix timestamp) as 
+    an ISO string.
+
+  humanDay
+    display a timestamp or date value as an ISO string without time.
 
   keephtml
     lets you include raw HTML.  In VOTables, tags are removed.
