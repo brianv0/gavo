@@ -20,7 +20,7 @@ jobs (e.g., `using TAPHandle`_ within your browser).
 To learn what ADQL is or for further information on this implementation, see the
 \RSTservicelink{/__system__/adql/query/info}{service info}.  
 
-.. _TAPHandle: http://saada.unistra.fr/taphandle/?url=\internallink{/tap}
+.. _using TAPHandle: http://saada.unistra.fr/taphandle/?url=\internallink{/tap}
 ]]>	
 	</meta>
 	<meta name="_bottominfo" format="rst">
