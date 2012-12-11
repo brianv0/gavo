@@ -60,12 +60,12 @@
 				n:render="rootlink" class="logo"/>
 			<h1 id="pagehead" n:render="prependsite"/>
 		</div>
-		<p>Welcome to the GAVO data center, provided by 
-		<a href="http://www.zah.uni-hd.de">Zentrum für Astronomie
-		Heidelberg</a> on behalf of the 
-		<a href="http://www.g-vo.org">German Astrophysical Virtual 
-		Observatory</a>.</p>
-		<p>In addition to the services listed below, we offer access to
+		<p>Welcome to this data center.  The operators have not yet customized
+		their root.html template, which is why your're reading this template
+		text.</p>
+
+		<p>In addition to the services listed below, on this site you
+		probably can access
 		<a href="/__system__/dc_tables/list/form">numerous tables</a> using
 		<a href="/tap">TAP</a> or <a href="/adql">form-based ADQL</a>.</p>
 		<p>Please check out our <a href="/static/help.shtml">site help</a>.</p>
@@ -149,13 +149,11 @@
 		</div>
 		</div>
 
-		<p><a href="http://www.g-vo.org/www/Products/Products">Further 
-			services</a> developed by GAVO are available on the 
-			<a href="http://www.g-vo.org">GAVO home page</a>.</p>
-		<p>Please review the data center's 
-			<a href="/static/doc/privpol.shtml" n:render="rootlink">Privacy Policy</a> and our <a href="/static/doc/disclaimer.shtml">Disclaimer</a>.</p>
 		<p class="attribution">
-			<a href="mailto:gavo@ari.uni-heidelberg.de">Contact us</a>
+			<a>
+				<n:attr name="href">mailto:<n:invisible render="meta"
+					>contact.address</n:invisible></n:attr
+				>Contact us</a>
 			<a href="/__system__/services/overview/form" n:render="rootlink">[s]</a>
 		</p>
   </body>

@@ -56,7 +56,7 @@ def getGroupId():
 			" user (usually, 'gavo').  Just do it now and re-run this program.")
 
 
-def makeDirVerbose(path, setGroupTo=None):
+def makeDirVerbose(path, setGroupTo, makeWritable):
 	if not os.path.isdir(path):
 		try:
 			os.makedirs(path)
@@ -71,7 +71,8 @@ def makeDirVerbose(path, setGroupTo=None):
 		if stats.st_mode&0060!=060 or stats.st_gid!=setGroupTo:
 			try:
 				os.chown(path, -1, setGroupTo)
-				os.chmod(path, stats.st_mode | 0060)
+				if makeWritable:
+					os.chmod(path, stats.st_mode | 0060)
 			except Exception, msg:
 				bailOut("Cannot set %s to group ownership %s, group writable"%(
 					path, setGroupTo),
@@ -94,10 +95,7 @@ _GAVO_WRITABLE_DIRS = set([
 
 def makeDirForConfig(configKey, gavoGrpId):
 	path = base.getConfig(configKey)
-	if configKey in _GAVO_WRITABLE_DIRS:
-		makeDirVerbose(path, gavoGrpId)
-	else:
-		makeDirVerbose(path)
+	makeDirVerbose(path, gavoGrpId, configKey in _GAVO_WRITABLE_DIRS)
 
 
 def makeDefaultMeta():
@@ -139,8 +137,9 @@ def makeDefaultMeta():
 	config.makeFallbackMeta()
 
 
-def prepareWeb():
-	makeDirVerbose(os.path.join(base.getConfig("webDir"), "nv_static"))
+def prepareWeb(groupId):
+	makeDirVerbose(os.path.join(base.getConfig("webDir"), "nv_static"),
+		groupId, False)
 
 
 def _genPW():
@@ -196,10 +195,11 @@ def createFSHierarchy(dsn, userPrefix=""):
 	for configKey in ["configDir", "inputsDir", "cacheDir", "logDir", 
 			"tempDir", "webDir", "stateDir"]:
 		makeDirForConfig(configKey, grpId)
-	makeDirVerbose(os.path.join(base.getConfig("inputsDir"), "__system"))
+	makeDirVerbose(os.path.join(base.getConfig("inputsDir"), "__system"),
+		grpId, False)
 	makeDefaultMeta()
 	makeProfiles(dsn, userPrefix)
-	prepareWeb()
+	prepareWeb(grpId)
 
 
 ###################### DB interface
@@ -345,7 +345,10 @@ def _doLocalSetup(dsn):
 # When adding stuff here, fix docs/install.rstx, "Owner-only db setup"
 	conn = psycopg2.connect(dsn.full)
 	for statement in [
-			"CREATE OR REPLACE LANGUAGE plpgsql"]:
+# pg >=9.0 can do this, saving on an gavo init diagnostics.
+# TODO: figure out the pg version and select accordingly.
+#			"CREATE OR REPLACE LANGUAGE plpgsql"]:
+			"CREATE LANGUAGE plpgsql"]:
 		cursor = conn.cursor()
 		try:
 			cursor.execute(statement)

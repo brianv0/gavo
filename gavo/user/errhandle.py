@@ -89,9 +89,10 @@ def raiseAndCatch(opts=None, output=outputError):
 		retval = 2
 	except grammars.ParseError, msg:
 		if msg.location:
-			messages.append("Parse error at %s: %s"%(msg.location, unicode(msg)))
+			messages.append("Parse error at %s: %s"%(msg.location, 
+				utils.safe_str(msg)))
 		else:
-			messages.append("Parse error: %s"%unicode(msg))
+			messages.append("Parse error: %s"%utils.safe_str(msg))
 		if msg.record:
 			messsages.append("")
 			messages.append("Offending input was:\n")
@@ -137,14 +138,14 @@ def raiseAndCatch(opts=None, output=outputError):
 			messages.append("Snafu in %s, %s\n"%(msg.excRow, msg.excCol))
 			messages.append("")
 		messages.append("Oops.  Unhandled exception %s.\n"%msg.__class__.__name__)
-		messages.append("Exception payload: %s"%unicode(msg))
+		messages.append("Exception payload: %s"%utils.safe_str(msg))
 		if getattr(opts, "enablePDB", False):
 			raise
 		else:
 			if not getattr(opts, "alwaysTracebacks", False):
 				traceback.print_exc()
 	if messages:
-		errTx = unicode("*** Error: "+"\n".join(messages))
+		errTx = utils.safe_str("*** Error: "+"\n".join(messages))
 		output(reformatMessage(errTx)+"\n")
 	if getattr(opts, "showHints", True) and getattr(msg, "hint", None):
 		output(reformatMessage("Hint: "+msg.hint)+"\n")
