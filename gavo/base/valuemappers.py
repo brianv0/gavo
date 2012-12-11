@@ -125,11 +125,6 @@ _registerDefaultMF(_timeMapperFactory)
 def datetimeMapperFactory(colDesc):
 	import time
 
-	def dtToMJdn(val):
-		"""returns the modified julian date number for the dateTime instance val.
-		"""
-		return stc.dateTimeToJdn(val)-2400000.5
-
 # This is too gruesome.  We want some other way of handling this...
 # Simplify this, and kick out all the mess we don't want.
 	if (colDesc["dbtype"]=="timestamp"
@@ -143,9 +138,10 @@ def datetimeMapperFactory(colDesc):
 				or colDesc.get("xtype")=="adql:TIMESTAMP"):
 			fun = lambda val: (val and val.isoformat()) or None
 			destType = ("char", "*")
-		elif colDesc["ucd"] and "MJD" in colDesc["ucd"]:  # like VOX:Image_MJDateObs
+		elif (colDesc["ucd"] and "MJD" in colDesc["ucd"].upper()
+				) or colDesc["xtype"]=="mjd":
 			colDesc["unit"] = "d"
-			fun = lambda val: (val and dtToMJdn(val))
+			fun = lambda val: (val and stc.dateTimeToMJD(val))
 			destType = ("double", '1')
 		elif unit=="yr" or unit=="a":
 			fun = lambda val: (val and stc.dateTimeToJYear(val))
