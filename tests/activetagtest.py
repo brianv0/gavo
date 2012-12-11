@@ -469,7 +469,15 @@ class MixinTest(testhelpers.VerboseTest):
 				<param name="u">\aa</param></events></mixinDef>
 				<table mixin="bla"/></resource>""")
 			self.assertEqual(res.tables[0].params[0].value, None)
-	
+
+	def testEmptyDefault(self):
+			res = base.parseFromString(rscdesc.RD,
+			r"""<resource schema="test"><mixinDef id="bla">
+				<mixinPar key="aa">__EMPTY__</mixinPar><events>
+				<param name="u" unit=""/></events></mixinDef>
+				<table mixin="bla"/></resource>""")
+			self.assertEqual(res.tables[0].params[0].unit, "")
+
 	def testNestedFeeds(self):
 		res = base.parseFromString(rscdesc.RD,
 			r"""<resource schema="test">

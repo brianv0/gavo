@@ -44,12 +44,18 @@ class MixinPar(procdef.RDParameter):
 	The (optional) body provides a default for the parameter.
 	"""
 	name_ = "mixinPar"
-	_expr = base.DataContent(
-		default=base.NotGiven,
-		description="The default for the parameter.",
-		null=None, 
-		copyable=True, 
-		strip=True)
+
+	_expr = base.DataContent(description="The default for the parameter."
+		" A __NULL__ here does not directly mean None/NULL, but since the"
+		" content will frequently end up in attributes, it will ususally work"
+		" as presetting None."
+		" An empty content means a non-preset parameter, which must be filled"
+		" in applications.  The magic value __EMPTY__ allows presetting an"
+		" empty string.",
+		# mixinPars must not evaluate __NULL__; this stuff ends up in
+		# macro expansions, where an actual None is not desirable.
+		null=None,
+		copyable=True, strip=True, default=base.NotGiven)
 
 	def validate(self):
 		self._validateNext(MixinPar)
@@ -141,10 +147,10 @@ class MixinDef(activetags.ReplayBase):
 		for p in self.pars:
 			if p.key in fillers:
 				self.macroExpansions[p.key] = fillers.pop(p.key)
-			elif p.content_ is base.NotGiven:
-				raise base.StructureError("Mixin parameter %s mandatory"%p.key)
-			else:
+			elif p.isDefaulted():
 				self.macroExpansions[p.key] = p.content_
+			else:
+				raise base.StructureError("Mixin parameter %s mandatory"%p.key)
 		if fillers:
 			raise base.StructureError("The attribute(s) %s is/are not allowed"
 				" on this mixin"%(",".join(fillers)))

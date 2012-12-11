@@ -34,21 +34,30 @@ class RDParameter(base.Structure):
 	_descr = base.NWUnicodeAttribute("description", default=None,
 		description="Some human-readable description of what the"
 		" parameter is about", copyable=True, strip=True)
-	_expr = base.DataContent(description="The default for the parameter.",
-		copyable=True, strip=True)
+	_expr = base.DataContent(description="The default for the parameter."
+		" The special value __NULL__ indicates a NULL (python None) as usual."
+		" An empty content means a non-preset parameter, which must be filled"
+		" in applications.  The magic value __EMPTY__ allows presetting an"
+		" empty string.",
+		copyable=True, strip=True, default=base.NotGiven)
 	_late = base.BooleanAttribute("late", default=False,
-		description="Bind the name not at setup time but while applying"
-		" the procedure.  This allows you to refer to procedure arguments"
-		" like vars or rowIter in the bindings.")
+		description="Bind the name not at setup time but at applying"
+		" time.  In rowmaker procedures, for example, this allows you to"
+		" refer to variables like vars or rowIter in the bindings.")
 
 	def isDefaulted(self):
-		return self.content_!=""
+		return self.content_ is not base.NotGiven
 
 	def validate(self):
 		self._validateNext(RDParameter)
 		if not utils.identifierPattern.match(self.key):
 			raise base.LiteralParseError("name", self.key, hint=
 				"The name you supplied was not defined by any procedure definition.")
+
+	def completeElement(self, ctx):
+		if self.content_=="__EMPTY__":
+			self.content_ = ""
+		self._completeElementNext(RDParameter, ctx)
 
 
 class ProcPar(RDParameter):
