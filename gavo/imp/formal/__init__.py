@@ -26,13 +26,14 @@ def widgetFactory(widgetClass, *a, **k):
 try:
     import pkg_resources
 except ImportError:
+		# this is broken from within DaCHS
     import os.path
     defaultCSS = static.File(os.path.join(os.path.split(__file__)[0], 'formal.css'))
     formsJS = static.File(os.path.join(os.path.split(__file__)[0], 'js'))
 else:
     from gavo.imp.formal.util import LazyResource
-    defaultCSS = LazyResource(lambda: static.File(pkg_resources.resource_filename('gavo', 'imp/formal/formal.css')))
-    formsJS = LazyResource(lambda: static.File(pkg_resources.resource_filename('gavo', 'imp/formal/js')))
+    defaultCSS = LazyResource(lambda: static.File(pkg_resources.resource_filename('gavo', 'resources/web/css/formal.css')))
+    formsJS = LazyResource(lambda: static.File(pkg_resources.resource_filename('gavo', 'resources/web/js/formal.js')))
 
 # Register standard adapters
 from twisted.python.components import registerAdapter

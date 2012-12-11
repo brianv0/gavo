@@ -324,7 +324,7 @@ ArchiveService.addStatic("robots.txt", makeDynamicPage(ifpages.RobotsTxt))
 ArchiveService.addStatic("getRR", metarender.ResourceRecordMaker())
 
 ArchiveService.addStatic('formal.css', formal.defaultCSS)
-ArchiveService.addStatic('js', formal.formsJS)
+ArchiveService.addStatic('formal.js', formal.formsJS)
 
 if base.getConfig("web", "enabletests"):
 	from gavo.web import webtests

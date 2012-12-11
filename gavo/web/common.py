@@ -147,7 +147,7 @@ class CommonRenderers(object):
 			T.script(src=base.makeSitePath("/static/js/jquery-gavo.js"), 
 				type="text/javascript"),
 			T.script(type='text/javascript', src=base.makeSitePath(
-				'/js/formal.js')),
+				'/formal.js')),
 			T.script(src=base.makeSitePath("/static/js/gavo.js"),
 				type="text/javascript"),
 			originalChildren,
