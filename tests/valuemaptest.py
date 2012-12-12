@@ -21,7 +21,7 @@ from gavo.web import htmltable
 class AnnotationTest(testhelpers.VerboseTest):
 	def testBasic(self):
 		col = valuemappers.AnnotatedColumn(base.parseFromString(rscdef.Column,
-			'<column name="abc" type="integer" displayHint="sf=2"/>'))
+			'<column name="abc" type="integer" displayHint="sf=2" required="True"/>'))
 		self.assertEqual(col.original.name, "abc")
 		self.assertEqual(col["name"], "abc")
 		self.failUnless(col["displayHint"] is col.original.displayHint)
@@ -92,7 +92,7 @@ class StandardMapperTest(_EnumeratedMapperTest):
 # 5
 		('name="d" type="date" unit="yr">',
 			None, None),
-		('name="d" type="integer">',
+		('name="d" type="integer"><values nullLiteral="-1"/>',
 			None, None),
 		('name= "b" type= "sbox">', pgsphere.SBox(
 			pgsphere.SPoint(0.2, -0.1), pgsphere.SPoint(0.5, 0.2)),
@@ -111,6 +111,9 @@ class StandardMapperTest(_EnumeratedMapperTest):
 		('name="d" unit="d" type="timestamp">', 
 			datetime.datetime(2000, 12, 31, 11, 59, 59),
 			2451909.999988426),
+		('name="d" unit="d" xtype="mjd">',
+			54320.2,
+			54320.2),
 	]
 
 

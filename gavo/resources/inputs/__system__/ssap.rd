@@ -86,7 +86,7 @@
 			unit="d"
 			utype="ssa:Char.TimeAxis.Coverage.Location.Value" ucd="time.epoch"
 			verbLevel="5" tablehead="Date Obs."
-			description="Midpoint of exposure (MJD)"
+			description="Midpoint of exposure"
 			displayHint="type=humanDate"
 			xtype="mjd"/>
 		<column name="ssa_timeExt"

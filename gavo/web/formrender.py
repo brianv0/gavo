@@ -148,6 +148,7 @@ class ToFormalConverter(typesystems.FromSQLConverter):
 		"vexpr-float": (formal.String, customwidgets.NumericExpressionField),
 		"vexpr-date": (formal.String, customwidgets.DateExpressionField),
 		"vexpr-string": (formal.String, customwidgets.StringExpressionField),
+		"vexpr-mjd": (formal.String, customwidgets.DateExpressionField),
 		"pql-string": (formal.String, formal.TextInput),
 		"pql-int": (formal.String, formal.TextInput),
 		"pql-float": (formal.String, formal.TextInput),

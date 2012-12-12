@@ -179,6 +179,15 @@ class DebugConnection(GAVOConnection):
 		kwargs["cursor_factory"] = DebugCursor
 		return psycopg2.extensions.connection.cursor(self, *args, **kwargs)
 
+	def commit(self):
+		print "Commit %s"%id(self)
+		return GAVOConnection.commit(self)
+	
+	def rollback(self):
+		print "Rollback %s"%id(self)
+		return GAVOConnection.rollback(self)
+
+
 	def getPID(self):
 		cursor = self.cursor()
 		cursor.execute("SELECT pg_backend_pid()")

@@ -20,7 +20,7 @@ In fact, we use a couple of extensions:
 	- file -- this corresponds to a file upload from the web (i.e., a pair
 		(filename, file object)).  It would be conceivable to turn this into
 		blobs at some point, but right now we simply don't touch it.
-	- vexpr-float, -text, -date -- vizier-like expressions coming in from
+	- vexpr-float, -text, -date, -mjd -- vizier-like expressions coming in from
 		the web.  These are always strings.
 	- raw -- handed right through, whatever it is.  For target formats that
 		can't do this, usually strings are used.
@@ -97,6 +97,7 @@ class ToVOTableConverter(FromSQLConverter):
 		"timestamp": ("char", "*"),
 		"time": ("char", "*"),
 		"box": ("double", "*"),
+		"vexpr-mjd": ("double", "1"),
 		"vexpr-string": ("char", "*"),
 		"vexpr-date": ("char", "*"),
 		"vexpr-float": ("double", "1"),
@@ -187,6 +188,7 @@ class ToXSDConverter(FromSQLConverter):
 		"timestamp": "dateTime",
 		"time": "time",
 		"raw": "string",
+		"vexpr-mjd": "string",
 		"vexpr-date": "string",
 		"vexpr-float": "string",
 		"vexpr-string": "string",
@@ -287,6 +289,7 @@ class ToPythonBase(FromSQLConverter):
 		"raw": "identity",
 		"file": "identity",
 		"box": "identity",
+		"vexpr-mjd": "identity",
 		"vexpr-string": "identity",
 		"vexpr-float": "identity",
 		"vexpr-date": "identity",

@@ -34,8 +34,9 @@ class _DataFeeder(table._Feeder):
 	commit if all went well, rollback otherwise).
 	"""
 	def __init__(self, data, batchSize=1024, dispatched=False,
-			connection=None):
+			runCommit=True, connection=None):
 		self.data, self.batchSize = data, batchSize
+		self.runCommit = runCommit
 		self.nAffected = 0
 		self.connection = connection
 		if dispatched:
@@ -136,7 +137,7 @@ class _DataFeeder(table._Feeder):
 			except:
 				base.ui.notifyError("Ignored exception while exiting data feeder"
 					" on error.")
-		if self.connection:
+		if self.connection and self.runCommit:
 			self.connection.rollback()
 	
 	def _exitSuccess(self):
@@ -146,7 +147,8 @@ class _DataFeeder(table._Feeder):
 		If one of the exit methods fails, we run _exitFailing and re-raise
 		the exception.
 
-		If all went well and we control a connection, we commit it.
+		If all went well and we control a connection, we commit it (unless
+		clients explicitely forbid it).
 		"""
 		affected = []
 		for feeder in self.feeders:
@@ -157,7 +159,7 @@ class _DataFeeder(table._Feeder):
 				raise
 			affected.append(feeder.getAffected())
 
-		if self.connection:
+		if self.connection and self.runCommit:
 			self.connection.commit()
 
 		if affected:
@@ -431,7 +433,7 @@ def makeData(dd, parseOptions=common.parseNonValidating,
 		res = data
 	res.recreateTables(connection)
 	
-	feederOpts = {"batchSize": parseOptions.batchSize}
+	feederOpts = {"batchSize": parseOptions.batchSize, "runCommit": runCommit}
 	if dd.grammar and dd.grammar.isDispatching:
 		feederOpts["dispatched"] = True
 

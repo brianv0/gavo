@@ -13,13 +13,22 @@ upgrade does everything required to bring the what's in the database in sync
 with the code (or so I hope).
 """
 
+import sys
+
 from gavo import base
 from gavo import rsc
 from gavo import rscdesc
 from gavo import utils
 
 
-CURRENT_SCHEMAVERSION = 1
+CURRENT_SCHEMAVERSION = 2
+
+
+def showProgress(msg):
+	"""outputs msg to stdout without lf "immediately".
+	"""
+	sys.stdout.write(msg)
+	sys.stdout.flush()
 
 
 def getDBSchemaVersion():
@@ -47,6 +56,10 @@ class Upgrader(object):
 	must not commit this connection.  You must not swallow exceptions
 	that have left the connection unready (i.e., require a rollback).
 
+	Note that if you run rsc.makeData, you MUST pass both 
+	connection=connection and runCommit=False in order to avoid messing
+	people's lives up.
+
 	The individual upgrader classmethods will be run in the sequence
 	given by the sequence number.
 
@@ -60,7 +73,7 @@ class Upgrader(object):
 	@classmethod
 	def updateSchemaversion(cls, connection):
 # no docstring, we output our info ourselves
-		print "...update schemaversion to %s"%(cls.version+1)
+		showProgress("...update schemaversion to %s..."%(cls.version+1))
 		base.setDBMeta(connection, "schemaversion", cls.version+1)
 
 	@classmethod
@@ -84,7 +97,7 @@ class To0Upgrader(Upgrader):
 
 	@classmethod
 	def u_000_addauthor(cls, connection):
-		"""add an author column to dc.services if necessary."""
+		"""add an author column to dc.services if necessary"""
 		if "authors" in list(connection.queryToDicts(
 				"SELECT * FROM dc.resources LIMIT 1"))[0]:
 			return
@@ -105,7 +118,7 @@ class To0Upgrader(Upgrader):
 
 	@classmethod
 	def u_010_makeMetastore(cls, connection):
-		"""create the meta store."""
+		"""create the meta store"""
 		td = base.caches.getRD("//dc_tables").getById("metastore")
 		table = rsc.TableForDef(td, create=True, connection=connection)
 
@@ -115,10 +128,45 @@ class To1Upgrader(Upgrader):
 
 	@classmethod
 	def u_000_update_funcs(cls, connection):
-		"""update GAVO server-side functions."""
+		"""update GAVO server-side functions"""
 		rsc.makeData(base.caches.getRD("//adql").getById("make_udfs"),
-			connection=connection)
-		
+			connection=connection, runCommit=False)
+
+
+class To2Upgrader(Upgrader):
+	version = 1
+
+	@classmethod
+	def _upgradeTable(cls, td, colName, connection):
+		col = td.getColumnByName(colName)
+		if not col.type=='double precision' or not col.xtype=='mjd':
+			# this is not done via the mixin, it appears; give up
+			return
+
+		showProgress(td.getQName()+", ")
+		connection.execute("ALTER TABLE %s ALTER COLUMN %s"
+			" SET DATA TYPE DOUBLE PRECISION USING ts_to_mjd(%s)"%
+			(td.getQName(), colName, colName))
+		rsc.TableForDef(td, connection=connection, create=False
+			).updateMeta()
+
+
+	@classmethod
+	def u_000_siapDateObsToMJD(cls, connection):
+		"""change SIAP and SSAP dateObs columns to MJD"""
+		mth = base.caches.getMTH(None)
+		connection.execute("DROP VIEW IF EXISTS ivoa.obscore")
+
+		for tableName, fieldName in connection.query(
+				"SELECT tableName, fieldName FROM dc.columnmeta"
+				" WHERE type='timestamp' AND"
+				" fieldName LIKE '%%dateObs'"):
+			cls._upgradeTable(mth.getTableDefForTable(tableName), fieldName,
+				connection)
+
+		from gavo import rscdesc, rsc
+		rsc.makeData(base.caches.getRD("//obscore").getById("create"),
+			connection=connection, runCommit=False)
 
 def iterStatements(startVersion, endVersion=CURRENT_SCHEMAVERSION, 
 		upgraders=None):
@@ -135,7 +183,7 @@ def iterStatements(startVersion, endVersion=CURRENT_SCHEMAVERSION,
 			yield statement
 
 
-def upgrade(forceDBVersion=None):
+def upgrade(forceDBVersion=None, dryRun=False):
 	"""runs all updates necessary to bring a database to the
 	CURRENT_SCHEMAVERSION.
 
@@ -154,12 +202,16 @@ def upgrade(forceDBVersion=None):
 		for statement in iterStatements(startVersion, CURRENT_SCHEMAVERSION):
 			if callable(statement):
 				if statement.__doc__:
-					print "...%s"%statement.__doc__
+					showProgress("> %s..."%statement.__doc__)
+				# if no docstring is present, we assume the function will output
+				# custom user feedback
 				statement(conn)
 			else:
-				print "...executing %s"%utils.makeEllipsis(statement, 60)
+				showProgress("> executing %s ..."%utils.makeEllipsis(statement, 60))
 				conn.query(statement)
-		conn.commit()
+			showProgress(" ok\n")
+		if dryRun:
+			conn.rollback()
 
 
 def parseCommandLine():
@@ -169,9 +221,12 @@ def parseCommandLine():
 		" database's schema version.  If you don't develop DaCHS, you"
 		" almost certainly should stay clear of this flag", type=int,
 		dest="forceDBVersion", default=None)
+	parser.add_argument("--dry-run", help="do not commit at the end of"
+		" the upgrade; this will not change anything in the database",
+		dest="dryRun", action="store_true")
 	return parser.parse_args()
 
 
 def main():
 	args = parseCommandLine()
-	upgrade(args.forceDBVersion)
+	upgrade(args.forceDBVersion, args.dryRun)

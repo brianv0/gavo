@@ -526,10 +526,10 @@
 			>coverage</mixinPar>
 		<mixinPar name="tMin" description="preset for SIAP; if you want,
 			change this to start of observation as available."
-			>ts_to_mjd(dateObs)</mixinPar>
+			>dateObs</mixinPar>
 		<mixinPar name="tMax" description="preset for SIAP; if you want,
 			change this to end of observation as available."
-			>ts_to_mjd(dateObs)</mixinPar>
+			>dateObs</mixinPar>
 		<mixinPar name="emMin" description="preset for SIAP"
 			>bandpassLo</mixinPar>
 		<mixinPar name="emMax" description="preset for SIAP"
@@ -584,8 +584,8 @@
 		<mixinPar name="sResolution">\getParam{ssa_spaceRes}{NULL}/3600.</mixinPar>
 		<mixinPar name="tMax">NULL</mixinPar>
 		<mixinPar name="tMin">NULL</mixinPar>
-		<mixinPar name="tMax">ts_to_mjd(ssa_dateObs)+ssa_timeExt/2</mixinPar>
-		<mixinPar name="tMin">ts_to_mjd(ssa_dateObs)-ssa_timeExt/2</mixinPar>
+		<mixinPar name="tMax">ssa_dateObs+ssa_timeExt/2</mixinPar>
+		<mixinPar name="tMin">ssa_dateObs-ssa_timeExt/2</mixinPar>
 		<mixinPar name="targetName">ssa_targname</mixinPar>
 		<mixinPar name="targetClass">ssa_targclass</mixinPar>
 		<mixinPar name="title">ssa_targname</mixinPar>

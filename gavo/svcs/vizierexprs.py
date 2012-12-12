@@ -11,8 +11,9 @@ from gavo.imp.pyparsing import (Word, Literal, Optional, Forward, Group,
 	ZeroOrMore, nums, Suppress, ParseException, StringEnd, Regex,
 	OneOrMore, Or, MatchFirst, CharsNotIn)
 
-from gavo import utils
 from gavo import base
+from gavo import stc
+from gavo import utils
 from gavo.base import literals
 from gavo.base import sqlmunge
 from gavo.base import typesystems
@@ -281,8 +282,13 @@ def parseFloat(s, pos, tok):
 floatLiteral = Regex(utils.floatRE).addParseAction(parseFloat)
 
 # XXX TODO: be a bit more lenient in what you accept as a date
-dateLiteral = Regex(r"\d\d\d\d-\d\d-\d\d(T\d\d:\d\d:\d\d)?").addParseAction(
+_DATE_REGEX = r"\d\d\d\d-\d\d-\d\d(T\d\d:\d\d:\d\d)?"
+_DATE_LITERAL_DT = Regex(_DATE_REGEX).addParseAction(
 			lambda s, pos, tok: literals.parseDefaultDatetime(tok[0]))
+_DATE_LITERAL_MJD = Regex(_DATE_REGEX).addParseAction(
+			lambda s, pos, tok: stc.dateTimeToMJD(
+				literals.parseDefaultDatetime(tok[0])))
+
 
 
 def parseNumericExpr(str, baseSymbol=getComplexGrammar(floatLiteral, 
@@ -292,12 +298,20 @@ def parseNumericExpr(str, baseSymbol=getComplexGrammar(floatLiteral,
 	return utils.pyparseString(baseSymbol, str)[0]
 
 
-def parseDateExpr(str, baseSymbol=getComplexGrammar(dateLiteral,
+def parseDateExpr(str, baseSymbol=getComplexGrammar(_DATE_LITERAL_DT,
 		_makeDatePmNode, floatLiteral)):
 	"""returns a parse tree for vizier-like expressions over ISO dates.
 
 	Note that the semantic validity of the date (like, month<13) is not
 	checked by the grammar.
+	"""
+	return utils.pyparseString(baseSymbol, str)[0]
+
+
+def parseDateExprToMJD(str, baseSymbol=getComplexGrammar(_DATE_LITERAL_MJD,
+		_makePmNode, floatLiteral)):
+	"""returns a parse tree for vizier-like expression of ISO dates with
+	parsed values in MJD.
 	"""
 	return utils.pyparseString(baseSymbol, str)[0]
 
@@ -391,6 +405,8 @@ sqlmunge.registerSQLFactory("vexpr-float",
 	_makeFactory(parseNumericExpr))
 sqlmunge.registerSQLFactory("vexpr-date",
 	_makeFactory(parseDateExpr))
+sqlmunge.registerSQLFactory("vexpr-mjd",
+	_makeFactory(parseDateExprToMJD))
 sqlmunge.registerSQLFactory("vexpr-string",
 	_makeFactory(parseStringExpr))
 
@@ -447,6 +463,8 @@ def adaptInputKey(inputKey):
 	# manually check for things that need to change the whole condDesc.
 	if inputKey.type=='spoint':
 		raise base.Replace(makeConeSearchFor(inputKey))
+	if inputKey.xtype=="mjd":
+		return inputKey.change(type="vexpr-mjd")
 
 	try:
 		return inputKey.change(

@@ -1,3 +1,17 @@
+Version 0.8.4 (2013-XX-XX)
+
+  * New gavo upgrade command -- run this after every svn update or other
+    upgrade (Debian packages to that automatically), and you should not
+    have to worry about schema changes.
+
+  * SIAP and SSAP dateObs columns are now MJD.  Unless you have custom
+    web interfaces or feed the tables by some other means than the
+    setMeta proc applys, you should not notice (after a gavo upgrade).
+    If your SIAP/SSAP tables are part of any views except ivoa.obscore,
+    drop those views before running gavo upgrade, and check those services 
+    after upgrading, anyway.
+
+
 Version 0.8 (2012-08-15)
 
 	* The schema for the DaCHS-internal metadata tables changed.  To adapt
