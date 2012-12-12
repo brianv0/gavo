@@ -59,7 +59,7 @@
 
 		function sendSAMP(conn, tableSource) {
 			var tableURL = getFormQuery(tableSource, 
-				{'_FORMAT': 1})+"&_FORMAT=VOTable";
+				{'_FORMAT': 1})+"&_FORMAT=VOTable&VERB=3";
 			var msg = new samp.Message("table.load.votable", {
 				"table-id": "DaCHSResult",
 				"url": tableURL,
