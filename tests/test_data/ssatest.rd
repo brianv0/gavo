@@ -41,7 +41,7 @@
 			</rowfilter>
 		</keyValueGrammar>
 		<make table="hcdtest" role="primary">
-			<rowmaker idmaps="*">
+			<rowmaker idmaps="*" id="makeRow">
 				<apply procDef="//ssap#setMeta">
 					<bind name="pubDID">"ivo://test.inv/"+@id</bind>
 					<LOOP listItems="dstitle specstart specend bandpass alpha delta

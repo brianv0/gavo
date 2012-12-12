@@ -53,6 +53,66 @@ class RDTest(testhelpers.VerboseTest):
 				).description)
 
 
+class _SSATestRowmaker(testhelpers.TestResource):
+	def make(self, ignored):
+		rd = testhelpers.getTestRD("ssatest")
+		td = rd.getById("hcdtest").change(onDisk=False)
+		rowmaker = rd.getById("makeRow").compileForTableDef(td)
+		vars = {"dstitle": "testing",
+			"id": "f",
+			"specstart": 10,
+			"specend": 20,
+			"bandpass": "ultracool",
+			"alpha": 1,
+			"delta": -81.,
+			"dateObs": 2455000.3,
+			"targetName": "f star",
+			"prodtblAccref": "test/junk",
+			"prodtblOwner": None,
+			"prodtblEmbargo": None,
+			"prodtblPath": "/a/b/c",
+			"prodtblTable": "test.none",
+			"prodtblMime": "text/wirr",
+			"prodtblFsize": -23,
+		}
+
+		def wrappedRowmaker(updates):
+			actualVars = vars.copy()
+			actualVars.update(updates)
+			return rowmaker(actualVars, td)
+
+		return wrappedRowmaker
+
+
+class ProcTest(testhelpers.VerboseTest):
+	resources = [("rowmaker", _SSATestRowmaker())]
+
+	def testObsDateMJD(self):
+		self.assertEqual(self.rowmaker({"dateObs": 54200.25})["ssa_dateObs"],
+			54200.25)
+
+	def testObsDateJD(self):
+		self.assertEqual(self.rowmaker({"dateObs": 2454200.25})["ssa_dateObs"],
+			54199.75)
+
+	def testObsDateISO(self):
+		self.assertAlmostEqual(self.rowmaker({"dateObs": "1998-10-23T05:04:02"})[
+			"ssa_dateObs"],
+			51109.211134259123)
+
+	def testObsDateTimestamp(self):
+		self.assertAlmostEqual(self.rowmaker({"dateObs": 
+			datetime.datetime(1998, 10, 23, 05, 04, 02)})[
+			"ssa_dateObs"],
+			51109.211134259123)
+
+	def testObsDateNULL(self):
+		self.assertEqual(self.rowmaker({"dateObs": None})["ssa_dateObs"],
+			None)
+
+
+
+
 class _WithSSATableTest(testhelpers.VerboseTest):
 	resources = [("ssaTable", tresc.ssaTestTable)]
 
@@ -66,6 +126,7 @@ class ImportTest(_WithSSATableTest):
 	def testLocation(self):
 		row = self.ssaTable.getRow("data/spec1.ssatest")
 		self.assertAlmostEqual(row["ssa_location"].x, 10.1*DEG)
+
 
 
 class CoreQueriesTest(_WithSSATableTest):
@@ -425,8 +486,8 @@ class SSATableTest(testhelpers.VerboseTest):
 		fields = self.docAndTree[1].findall("RESOURCE/TABLE/FIELD")
 		for field in fields:
 			if field.attrib["name"]=="ssa_dateObs":
-				self.assertEqual(field.attrib["xtype"], "adql:TIMESTAMP")
-				self.assertEqual(field.attrib["datatype"], "char")
+				self.assertEqual(field.attrib["xtype"], "mjd")
+				self.assertEqual(field.attrib["datatype"], "double")
 				break
 	
 	def testAccrefPresent(self):

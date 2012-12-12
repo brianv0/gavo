@@ -15,6 +15,8 @@ from gavo import utils
 from gavo.stc.common import *
 
 
+JD_MJD = 2400000.5
+
 def parseISODT(value):
 	try:
 		return utils.parseISODT(value)
@@ -36,7 +38,7 @@ def mjdToDateTime(mjd):
 	Beware: This loses a couple of significant digits due to transformation
 	to jd.
 	"""
-	return jdnToDateTime(mjd+2400000.5)
+	return jdnToDateTime(mjd+JD_MJD)
 
 
 @utils.document
@@ -81,7 +83,7 @@ def dateTimeToJdn(dt):
 def dateTimeToMJD(dt):
 	"""returns a modified julian date for a datetime instance.
 	"""
-	return dateTimeToJdn(dt)-2400000.5
+	return dateTimeToJdn(dt)-JD_MJD
 
 def dateTimeToBYear(dt):
 	return (dateTimeToJdn(dt)-2415020.31352)/tropicalYear+1900.0

@@ -27,6 +27,7 @@ import re
 import urllib
 
 from gavo import base
+from gavo import stc
 from gavo import utils
 from gavo.base import literals
 from gavo.base import sqlmunge
@@ -378,9 +379,14 @@ class PQLIntPar(PQLPar):
 
 
 class PQLDatePar(PQLPar):
-	"""a PQL parameter containing an integer.
+	"""a PQL parameter containing a date.
 
 	steps in ranges are allowed.
+
+	There's an additional complication here: in the database, dates can be
+	represented in various forms.  To save the day, getSQL takes an
+	additional optional parameter and transfroms the input values as
+	appropriate before passing them to the database.
 	"""
 	nullvalue = ""
 	valParser = staticmethod(literals.parseDefaultDatetime)
@@ -388,6 +394,31 @@ class PQLDatePar(PQLPar):
 	@staticmethod
 	def stepParser(val):
 		return datetime.timedelta(days=float(val))
+
+	def getSQL(self, colName, sqlPars, convert=None):
+		"""returns an SQL condition expressing the PQL constraint for colName.
+
+		In addition to the usual parameters, we here accept an additonal
+		argument convert with possible values None (meaning timestamp, 
+		which is the default) mjd, jd, and jy, which represents how the 
+		datetimes are represented in the database.  
+		"""
+		converter = {
+			None: utils.identity,
+			"mjd": stc.dateTimeToMJD,
+			"jd": stc.dateTimeToJdn,
+			"jy": stc.dateTimeToJYear,}[convert]
+
+		oldKeys = set(sqlPars.keys())
+		res = PQLPar.getSQL(self, colName, sqlPars)
+
+		# now update all keys we are responsible for
+		if converter:
+			for key in sqlPars:
+				if key not in oldKeys:
+					if sqlPars[key] is not None:
+						sqlPars[key] = converter(sqlPars[key])
+		return res
 
 
 class PQLPositionPar(PQLPar):

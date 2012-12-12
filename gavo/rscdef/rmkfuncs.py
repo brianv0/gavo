@@ -133,6 +133,28 @@ def parseTimestamp(literal, format="%Y-%m-%dT%H:%M:%S"):
 
 
 @utils.document
+def toMJD(literal):
+	"""returns a modified julian date made from some datetime representation.
+
+	Valid representations include:
+
+	* MJD (a float smaller than 1e6)
+	* JD (a float larger than 1e6)
+	* datetime.datetime instances
+	* ISO time strings.
+	"""
+	if literal is None:
+		return None
+	elif isinstance(literal, str):
+		return stc.dateTimeToMJD(parseTimestamp(literal))
+	elif isinstance(literal, datetime.datetime):
+		return stc.dateTimeToMJD(literal)
+	elif literal>1e6:
+		return literal-stc.JD_MJD
+	else:
+		return literal
+
+@utils.document
 def makeTimestamp(date, time):
 	"""makes a datetime instance from a date and a time.
 	"""

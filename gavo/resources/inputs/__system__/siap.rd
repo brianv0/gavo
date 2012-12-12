@@ -20,9 +20,10 @@
 			type="text" tablehead="Instrument" verbLevel="15"
 			description="Identifier of the originating instrument"/>
 		<column name="dateObs"  ucd="VOX:Image_MJDateObs"
-			type="timestamp" unit="d" tablehead="Obs. date"
+			type="double precision" unit="d" tablehead="Obs. date"
 			verbLevel="0" description="Epoch at midpoint of observation"
-			displayHint="type=humanDate"/>
+			displayHint="type=humanDate"
+			xtype="mjd"/>
 		<column name="nAxes"  ucd="VOX:Image_Naxes"
 			type="integer" verbLevel="20" tablehead="#axes"
 			description="Number of axes in data">
@@ -88,7 +89,7 @@
 				- (certain) FITS WCS headers 
 				- imageTitle (interpolateString should come in handy for these)
 				- instId -- some id for the instrument used
-				- dateObs -- a timestamp of the "characteristic" observation time
+				- dateObs -- MJD of the "characteristic" observation time
 				- the bandpass* values.  You're on your own with them...
 				- the values of the //products#table mixin.  
 				- mimetype -- the mime type of the product.
@@ -132,7 +133,7 @@
 				- (certain) FITS WCS headers 
 				- imageTitle (interpolateString should come in handy for these)
 				- instId -- some id for the instrument used
-				- dateObs -- a timestamp of the "characteristic" observation time
+				- dateObs -- MJD of the "characteristic" observation time
 				- the bandpass* values.  You're on your own with them...
 				- the values of the product mixin.  
 				- mimetype -- the mime type of the product.
@@ -305,7 +306,9 @@
 			<par key="instrument" late="True" description="a short identifier
 				for the instrument used">None</par>
 			<par key="dateObs" late="True" description="the midpoint of the 
-				observation (a datetime)">None</par>
+				observation; this can either be a datetime instance, or
+				a float>1e6 (a julian date) or something else (which is then
+				interpreted as an MJD)">None</par>
 			<par key="bandpassId" late="True" description="a rough indicator
 				of the bandpass, like Johnson bands">None</par>
 			<par key="bandpassUnit" late="True" description="the unit of
@@ -322,9 +325,9 @@
 				(see spec)">None</par>
 		</setup>
 		<code>
+			result["dateObs"] = toMJD(dateObs)
 			result["imageTitle"] = title
 			result["instId"] = instrument
-			result["dateObs"] = dateObs
 			result["bandpassId"] = bandpassId
 			result["bandpassUnit"] = bandpassUnit
 			result["bandpassRefval"] = bandpassRefval

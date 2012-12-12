@@ -40,14 +40,23 @@
 
 		<setup>
 			<par name="consCol" description="Name of the database column
-				constrained by the input value.  Must be a date or a timestamp."/>
+				constrained by the input value."/>
+			<par name="consColKind" description="The kind of date specification
+				of consCol; this can be timestamp (also good for dates), jd, mjd,
+				or jy (julian year).">"timestamp"</par>
 		</setup>
 
 		<code>
-			key = inputKeys[0].name
+			inputKey = inputKeys[0]
+			if consColKind=="timestamp":
+				convertTo = None
+			else:
+				convertTo = consColKind
+
+			key = inputKey.name
 			parsed = pql.PQLDatePar.fromLiteral(inPars.get(key, None), key)
 			if parsed is not None:
-				yield parsed.getSQL(consCol, outPars)
+				yield parsed.getSQL(consCol, outPars, convertTo)
 		</code>
 	</procDef>
 

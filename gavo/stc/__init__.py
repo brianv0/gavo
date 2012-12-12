@@ -32,7 +32,8 @@ from gavo.stc.times import (parseISODT,
 	jYearToDateTime, dateTimeToJYear,
 	bYearToDateTime, dateTimeToBYear,
 	jdnToDateTime, dateTimeToJdn,
-	mjdToDateTime, dateTimeToMJD)
+	mjdToDateTime, dateTimeToMJD,
+	JD_MJD)
 
 # hardcore stc only from 2.5 upwards
 if sys.version_info[0]>=2 and sys.version_info[1]>4:  

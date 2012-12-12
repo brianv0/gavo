@@ -82,11 +82,13 @@
 			utype="ssa:Char.SpatialAxis.Coverage.Bounds.Extent" ucd="instr.fov"
 			verbLevel="15" tablehead="Aperture" unit="deg"
 			description="Angular diameter of aperture"/>
-		<column name="ssa_dateObs" type="timestamp"
+		<column name="ssa_dateObs" type="double precision"
+			unit="d"
 			utype="ssa:Char.TimeAxis.Coverage.Location.Value" ucd="time.epoch"
 			verbLevel="5" tablehead="Date Obs."
-			description="Midpoint of exposure"
-			xtype="adql:TIMESTAMP"/>
+			description="Midpoint of exposure (MJD)"
+			displayHint="type=humanDate"
+			xtype="mjd"/>
 		<column name="ssa_timeExt"
 			utype="ssa:Char.TimeAxis.Coverage.Bounds.Extent" ucd="time.duration"
 			verbLevel="5" tablehead="Exp. Time"
@@ -346,7 +348,8 @@
 				aperture (expected in degrees);
 				ssa:Char.SpatialAxis.Coverage.Bounds.Extent">None</par>
 			<par key="dateObs" late="True" description="observation midpoint
-				(datetime or iso format)">None</par>
+				(you can give a datetime, a string in iso format, a jd, or an mjd,
+				the latter two being told apart by comparing against 1e6)">None</par>
 			<par key="timeExt" late="True" description="exposure time
 				(in seconds); ssa:Char.TimeAxis.Coverage.Bounds.Extent">None</par>
 			<par key="specmid" late="True" description="central wavelength
@@ -366,11 +369,12 @@
 			<code>
 				copiedKWs = ['dstitle', 'creatorDID', 'pubDID', 'cdate', 
 					'pdate', 'bandpass', 'cversion', 'targname', 'targclass', 
-					'redshift', 'snr', 'aperture', 'dateObs', 'timeExt', 
+					'redshift', 'snr', 'aperture', 'timeExt', 
 					'specmid', 'specext', 'specstart', 'specend', 'length']
 			</code>
 		</setup>
 		<code>
+			vars["ssa_dateObs"] = toMJD(dateObs)
 			userPars = locals()
 			for kw in copiedKWs:
 				vars["ssa_"+kw] = userPars[kw]
@@ -548,6 +552,7 @@
 				type="text" std="True"/>
 			<phraseMaker procDef="//pql#dateParameter">
 				<bind name="consCol">"ssa_dateObs"</bind>
+				<bind name="consColKind">"mjd"</bind>
 			</phraseMaker>
 		</condDesc>
 
