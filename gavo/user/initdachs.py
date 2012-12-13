@@ -90,7 +90,8 @@ _GAVO_WRITABLE_DIRS = set([
 	"stateDir",
 	"cacheDir",
 	"logDir",
-	"tempDir",])
+	"tempDir",
+	"uwsWD",])
 
 
 def makeDirForConfig(configKey, gavoGrpId):
