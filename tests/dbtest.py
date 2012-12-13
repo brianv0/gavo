@@ -4,10 +4,13 @@ Some tests for the database interface.
 This only works with psycopg2.
 """
 
+import contextlib
 import datetime
 import os
 import sys
 import unittest
+
+import numpy
 
 from gavo.helpers import testhelpers
 
@@ -101,29 +104,70 @@ class ConnectionsTest(testhelpers.VerboseTest):
 			cursor.close()
 
 
+@contextlib.contextmanager
+def digestedTable(connection, name, columns, values):
+	"""a context manager to have a temporary table with ddl and values,
+	also providing the whole table after digestion by the database.
+
+	Values is a list of dicts sutable for for INSERT statements.
+
+	ddl is a string that is pasted behind create temp table.
+
+	None of the inputs is validated in any way, so this function must
+	never receive untrusted input.
+	"""
+	connection.execute("CREATE TEMP TABLE %s %s"%(name, columns))
+	for row in values:
+		connection.execute("INSERT INTO %s (%s) VALUES (%s)"%(
+			name, ", ".join(row), ", ".join("%%(%s)s"%s for s in row)),
+			row)
+	yield list(connection.queryToDicts("SELECT * FROM %s"%name))
+	connection.rollback()
+
+
 class TestTypes(testhelpers.VerboseTest):
 	"""Tests for some special adapters we provide.
 	"""
 	resources = [("conn", tresc.dbConnection)]
 
-	def setUp(self):
-		testhelpers.VerboseTest.setUp(self)
-		dd = testhelpers.getTestRD().getById("boxTest")
-		self.data = rsc.makeData(dd, forceSource=[{"box": coords.Box(1,2,3,4)}],
-			connection=self.conn)
-		self.table = self.data.tables["misctypes"]
-
-	def tearDown(self):
-		self.data.dropTables(rsc.parseNonValidating)
-		testhelpers.VerboseTest.tearDown(self)
-
 	def testBoxUnpack(self):
-		rows = [r for r in 
-			self.table.iterQuery(
-				svcs.OutputTableDef.fromTableDef(self.table.tableDef, None), 
-				"box IS NOT NULL")]
-		self.assertEqual(rows[0]["box"][0], (2,4))
-		self.assertEqual(rows[0]["box"][1], (1,3))
+		with digestedTable(self.conn, "b_a_t", "(b BOX)",
+				[{"b": coords.Box(1,2,3,4)}]) as rows:
+			box = rows[0]["b"]
+			self.assertEqual(box[0], (2,4))
+			self.assertEqual(box[1], (1,3))
+
+	def testNumpyFloat(self):
+		with digestedTable(self.conn, "n_a_t", "(b REAL)",
+				[{"b": numpy.float(0.25)}]) as rows:
+			self.assertEqual(rows[0]["b"], 0.25)
+
+	def testNumpyFloat32(self):
+		with digestedTable(self.conn, "n_a_t", "(b REAL)",
+				[{"b": numpy.float32(0.25)}]) as rows:
+			self.assertEqual(rows[0]["b"], 0.25)
+
+	def testNumpyFloat64(self):
+		with digestedTable(self.conn, "n_a_t", "(b REAL)",
+				[{"b": numpy.float64(0.25)}]) as rows:
+			self.assertEqual(rows[0]["b"], 0.25)
+
+	def testNumpyInt8(self):
+		with digestedTable(self.conn, "n_a_t", "(b BIGINT)",
+				[{"b": numpy.int8(10)}]) as rows:
+			self.assertEqual(rows[0]["b"], 10)
+
+	def testNumpyInt64(self):
+		with digestedTable(self.conn, "n_a_t", "(b BIGINT)",
+				[{"b": numpy.int64(388290102316)}]) as rows:
+			self.assertEqual(rows[0]["b"], 388290102316)
+
+	def testNumpyInteger(self):
+		with digestedTable(self.conn, "n_a_t", "(b BIGINT)",
+				[{"b": numpy.int(302316)}]) as rows:
+			self.assertEqual(rows[0]["b"], 302316)
+
+
 
 
 class TestWithTableCreation(testhelpers.VerboseTest):

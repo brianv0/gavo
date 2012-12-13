@@ -170,16 +170,6 @@
 		<column name="box" type="box"/>
 	</table>
 
-	<data id="boxTest">
-	 	<dictlistGrammar/>
-		<make table="misctypes">
-			<rowmaker id="bT_misctypes">
-				<map dest="box">@box</map>
-			</rowmaker>
-		</make>
-	</data>
-
-
 	<data id="viziertest">
 		<dictlistGrammar/>
 		<table id="vizierstrings" onDisk="true">

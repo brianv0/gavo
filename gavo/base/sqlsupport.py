@@ -14,6 +14,8 @@ import sys
 import threading
 from itertools import *
 
+import numpy
+
 from gavo import utils
 from gavo.base import caches
 from gavo.base import config
@@ -91,10 +93,45 @@ class SqlArrayAdapter(object):
 	__str__ = getquoted
 
 
+class FloatableAdapter(object):
+	"""An adapter for things that do "float", in particular numpy.float*
+	"""
+	def __init__(self, val):
+		self.val = float(val)
+
+	def prepare(self, conn):
+		pass
+
+	def getquoted(self):
+		return repr(self.val)
+
+	__str__ = getquoted
+
+
+class IntableAdapter(object):
+	"""An adapter for things that do "int", in particular numpy.int*
+	"""
+	def __init__(self, val):
+		self.val = int(val)
+
+	def prepare(self, conn):
+		pass
+
+	def getquoted(self):
+		return str(self.val)
+
+	__str__ = getquoted
+
+
 psycopg2.extensions.register_adapter(tuple, SqlArrayAdapter)
 psycopg2.extensions.register_adapter(list, SqlSetAdapter)
 psycopg2.extensions.register_adapter(set, SqlSetAdapter)
 psycopg2.extensions.register_adapter(frozenset, SqlSetAdapter)
+
+for floatType in [numpy.float32, numpy.float64, numpy.float96]:
+	psycopg2.extensions.register_adapter(floatType, FloatableAdapter)
+for intType in [numpy.int8, numpy.int16, numpy.int32, numpy.int64]:
+	psycopg2.extensions.register_adapter(intType, IntableAdapter)
 
 from psycopg2 import (OperationalError, DatabaseError, IntegrityError,
 	ProgrammingError, InterfaceError, DataError)
@@ -194,7 +231,6 @@ class DebugConnection(GAVOConnection):
 		pid = list(cursor)[0][0]
 		cursor.close()
 		return pid
-
 
 
 def getDBConnection(profile, debug=debug, autocommitted=False):
