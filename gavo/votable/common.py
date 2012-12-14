@@ -73,3 +73,60 @@ def iterflattened(arr):
 				yield subval
 		else:
 			yield val
+
+
+class NULLFlags(object):
+	"""an interface to the BINARY2 NULL flags.
+
+	Construct it with the number of fields, then use
+	"""
+	masks = [0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01]
+
+	def __init__(self, nFields):
+		self.nFields = nFields
+		self.nBytes = (self.nFields+7)/8
+	
+	def serialize(self, nullMap):
+		"""returns null bytes for nullMap, which is a sequence of booleans
+		with Trues where the field is NULL.
+
+		It is an error to pass in nullMaps with lengths!=nFields.
+		"""
+		assert len(nullMap)==self.nFields
+		bytes, curBits, val = [], 0, 0
+		for isNull in nullMap:
+			if isNull:
+				val = (val<<1)+1
+			else:
+				val <<= 1
+			curBits += 1
+			if curBits==8:
+				bytes.append(chr(val))
+				curBits, val = 0, 0
+
+		if curBits:
+			val <<= (8-curBits)
+			bytes.append(chr(val))
+		return "".join(bytes)
+	
+	def serializeFromRow(self, row):
+		"""returns null bytes for a row, which is a sequence of values.  
+		Everything that's None is flagged as NULL.
+		"""
+		return self.serialize([v is None for v in row])
+	
+	def deserialize(self, bytes):
+		"""returns a sequence of booleans giving for each element in a row
+		if there's a NULL there.
+		"""
+		nulls = []
+		for char in bytes:
+			byte = ord(char)
+			for mask in self.masks:
+				if mask&byte:
+					nulls.append(True)
+				else:
+					nulls.append(False)
+				if len(nulls)==self.nFields:
+					break
+		return nulls

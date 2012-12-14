@@ -14,6 +14,35 @@ from gavo.votable import V
 from gavo.utils.plainxml import iterparse
 
 
+class NullFlagsSerTest(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		nFields, nullMap, expected = sample
+		self.assertEqual(common.NULLFlags(nFields).serialize(nullMap), expected)
+	
+	samples = [
+		(1, [True], "\x80"),
+		(1, [False], "\x00"),
+		(8, [True, False, True, False, False, False, False, False], "\xa0"),
+		(9, [True, False, True, False, False, False, False, False, False], 
+			"\xa0\x00"),
+		(12, [False]*4+[True]*2+[False]*5+[True], "\x0c\x10"),
+		(16, [False]*15+[True], "\x00\x01"),
+		(65, [False]*64+[True], "\x00\x00\x00\x00\x00\x00\x00\x00\x80"),
+	]
+
+
+class NullFlagsDeserTest(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		nFields, expected, input = sample
+		self.assertEqual(common.NULLFlags(nFields).deserialize(input), 
+			expected)
+	
+	samples = NullFlagsSerTest.samples
+
 
 class IterParseTest(testhelpers.VerboseTest):
 	"""tests for our custom iterparser.
@@ -564,6 +593,121 @@ class BinaryReadTest(testhelpers.VerboseTest):
 			'\x00\x00\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05',
 			[[(0,1,2,3,4,5)]],
 		)]
+
+
+class Binary2WriteTest(testhelpers.VerboseTest):
+	"""tests for serializing BINARY2 VOTables.
+	"""
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		fielddefs, input, expected = sample
+		vot = V.VOTABLE[V.RESOURCE[votable.DelayedTable(
+			V.TABLE[fielddefs], input, V.BINARY2)]]
+		mat = re.search('(?s)<STREAM encoding="base64">(.*)</STREAM>', 
+			votable.asString(vot))
+		content = mat and mat.group(1)
+		self.assertEqual(content.decode("base64"), expected)
+
+	samples = [(
+			[V.FIELD(datatype="float")],
+			[[1.],[None],[common.NaN]],
+			struct.pack("!BfBfBf", 0, 1., 0x80, common.NaN, 0, common.NaN)
+		), (
+			[V.FIELD(datatype="double")],
+			[[1.],[None],[common.NaN]],
+			struct.pack("!BdBdBd", 0, 1., 0x80, common.NaN, 0, common.NaN)
+		), (
+			[V.FIELD(datatype="boolean")],
+			[[True],[False],[None]],
+			"\x001\x000\x80?"
+		), (
+			[V.FIELD(datatype="bit")],
+			[[1],[0]],
+			"\x00\x01\x00\x00"
+		), (
+			[V.FIELD(datatype="unsignedByte")],
+			[[20], [None]],
+			"\x00\x14\x80\x00"
+		), (  # 5
+			[V.FIELD(datatype="unsignedByte")[V.VALUES(null="23")]],
+			[[20], [None]],
+			"\x00\x14\x80\x00"
+		), (
+			[V.FIELD(datatype="short")],
+			[[20],[None]],
+			"\x00\x00\x14\x80\x00\x00"
+		), (
+			[V.FIELD(datatype="int")],
+			[[-20], [None]],
+			"\x00\xff\xff\xff\xec\x80\x00\x00\x00\x00"
+		), (
+			[V.FIELD(datatype="long")],
+			[[-20], [None]],
+			"\x00\xff\xff\xff\xff\xff\xff\xff\xec\x80\x00\x00\x00\x00\x00\x00\x00\x00"
+		), (
+			[V.FIELD(datatype="char")[V.VALUES(null="x")]],
+			[['a'], [None]],
+			"\x00a\x80\x00"
+		), (  # 10
+			[V.FIELD(datatype="unicodeChar")[V.VALUES(null=u"\udead")]],
+			[['a'], ['\xe4'.decode("iso-8859-1")], [None]],
+			"\x00\x00a\x00\x00\xe4\x80\x00\x00"
+		), (
+			[V.FIELD(datatype="floatComplex")],
+			[[6+7j], [None]],
+			struct.pack("!Bff", 0,  6, 7)+struct.pack(
+				"!Bff", 0x80, common.NaN, common.NaN)
+		), (
+			[V.FIELD(datatype="bit", arraysize="17")],
+			[[1], [2**25-1], [None]],
+			"\x00\x00\x00\x01\x00\xff\xff\xff\x80\x00\x00\x00\x00"
+		), (
+			[V.FIELD(datatype="bit", arraysize="*")],
+			[[1],[2**25-1], [None]],
+			"\x00\x00\x00\x00\x08\x01"
+			"\x00\x00\x00\x00\x20\x01\xff\xff\xff"
+			"\x80\x00\x00\x00\x00"
+		), (
+			[V.FIELD(datatype="unsignedByte", arraysize="*")],
+			[[[]], [[1]], [[0, 1, 2]], [None]],
+			"\x00\x00\x00\x00\x00"
+			"\x00\x00\x00\x00\x01\x01"
+			"\x00\x00\x00\x00\x03\x00\x01\x02"
+			"\x80\x00\x00\x00\x00"
+		), ( # 15
+			[V.FIELD(datatype="unsignedByte", arraysize="2")[V.VALUES(null="255")]],
+			[[[]], [[1]], [[0, 1, 2]], [None]],
+			"\x00\x00\x00"
+			"\x00\x01\x00"
+			"\x00\x00\x01"
+			"\x80\x00\x00"
+		), (
+			[V.FIELD(datatype="short", arraysize="2*")],
+			[[[]], [[1]], [[0, 1, 2]], [None]],
+			"\x00\x00\x00\x00\x00"
+			"\x00\x00\x00\x00\x01\x00\x01"
+			"\x00\x00\x00\x00\x03\x00\x00\x00\x01\x00\x02"
+			"\x80\x00\x00\x00\x00"
+		), (
+			[V.FIELD(datatype="char", arraysize="2")],
+			[["abc"], ["a"], [None]],
+			"\x00ab\x00a\x00\x80\x00\x00"
+		), (
+			[V.FIELD(datatype="char", arraysize="*")],
+			[["abc"], ["a"], [None]],
+			"\x00\0\0\0\x03abc\x00\0\0\0\x01a\x80\0\0\0\0"
+		), (
+			[V.FIELD(datatype="unicodeChar", arraysize="2")],
+			[[u"\u00e4bc"], [u"\u00e4"], [None]],
+			'\x00\x00\xe4\x00b\x00\x00\xe4\x00\x00\x80\0\0\0\0'
+		), ( #20
+			[V.FIELD(datatype="short", arraysize="3x2")],
+			[[[1,2,3,4,5,6]], [None]],
+			'\x00\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06'
+			'\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+		),
+	]
 
 
 class NDArrayTest(testhelpers.VerboseTest):

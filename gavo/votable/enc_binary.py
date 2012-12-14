@@ -62,36 +62,44 @@ def _makeBooleanEncoder(field):
 	]
 
 
-def _makeBitEncoder(field):
+def _makeBitEncoder(field, allowNULL=False):
 	# bits and bit arrays are just (possibly long) integers
 	# length may be None for var length.
 	length = field.getLength()
-	src = [
-		"if val is None:",
-		"  raise common.BadVOTableData('Bits have no NULL value', None,",
-		"    '%s')"%field.getDesignation(),
-		"tmp = []",
-		"curByte, rest = val%256, val//256",
-		"while curByte:",
-		"  tmp.append(chr(curByte))",
-		"  curByte, rest = rest%256, rest//256",
-		"if not tmp:",   # make sure we leave somthing even for 0
-		"  tmp.append(chr(0))",
-		"tmp.reverse()",]
+	if allowNULL:
+		src = [
+			"if val is None:"
+			"  tokens.append('\\0\\0\\0\\0')",]
+	else:
+		src = [
+			"if val is None:",
+			"  raise common.BadVOTableData('Bits have no NULL value', None,",
+			"    '%s')"%field.getDesignation(),]
+
+	src.extend([
+		"else:",
+		"  tmp = []",
+		"  curByte, rest = val%256, val//256",
+		"  while curByte:",
+		"    tmp.append(chr(curByte))",
+		"    curByte, rest = rest%256, rest//256",
+		"  if not tmp:",   # make sure we leave somthing even for 0
+		"    tmp.append(chr(0))",
+		"  tmp.reverse()",])
 
 	if length!=1:  # this not just a single bit
 		if length is None:  # variable length: dump number of bits
 			src.extend([
-				"tokens.append(struct.pack('!i', len(tmp)*8))"])
+				"  tokens.append(struct.pack('!i', len(tmp)*8))"])
 		else:  # crop/expand as necesary
 			numBytes = int(length)//8+(not not int(length)%8)
 			src.extend([
-				"if len(tmp)<%d: tmp = [chr(0)]*(%d-len(tmp))+tmp"%(
+				"  if len(tmp)<%d: tmp = [chr(0)]*(%d-len(tmp))+tmp"%(
 					numBytes, numBytes),
-				"if len(tmp)>%d: tmp = tmp[-%d:]"%(numBytes, numBytes)])
+				"  if len(tmp)>%d: tmp = tmp[-%d:]"%(numBytes, numBytes)])
 	
 	src.extend([
-		"tokens.append(struct.pack('%ds'%len(tmp), ''.join(tmp)))"])
+		"  tokens.append(struct.pack('%ds'%len(tmp), ''.join(tmp)))"])
 	return src
 
 
@@ -175,10 +183,7 @@ def _makeCharArrayEncoder(field):
 				str(coding.trimString(nullvalue, field.getLength()))))
 		# no predefined nullvalue for constant-length strings
 
-	if field.datatype=="char":
-		src.append(
-			"if isinstance(val, unicode): val = val.encode('iso-8859-1')")
-	else:
+	if field.datatype=="unicodeChar":
 		src.append("val = val.encode('utf-16be')")
 
 	src.append("tokens.append(struct.pack('%ds'%len(val), val))")
@@ -248,5 +253,5 @@ def getPostamble(tableDefinition):
 		"return ''.join(tokens)"]
 
 
-def getGlobals():
+def getGlobals(tableDefinition):
 	return globals()

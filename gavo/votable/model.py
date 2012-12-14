@@ -123,7 +123,9 @@ class VOTable(object):
 			raise NotImplementedError("This _ContentElement cannot write yet")
 
 
-	class BINARY(_ContentElement):
+	class _BinaryDataElement(_ContentElement):
+		"""a base class for both BINARY and BINARY2.
+		"""
 		_childSequence = ["STREAM"]
 		encoding = "base64"
 		
@@ -132,7 +134,7 @@ class VOTable(object):
 			# of base64's block size until the stream is finished.
 			blockSize = 57
 			buf, bufFil, flushThreshold = [], 0, blockSize*20
-			file.write('<BINARY>')
+			file.write('<%s>'%self.name_)
 			file.write('<STREAM encoding="base64">')
 			for data in self.iterSerialized():
 				buf.append(data)
@@ -144,8 +146,13 @@ class VOTable(object):
 					buf = [curData[curBlockLen:]]
 			file.write("".join(buf).encode("base64"))
 			file.write("</STREAM>")
-			file.write('</BINARY>')
+			file.write('</%s>'%self.name_)
 
+	class BINARY(_BinaryDataElement):
+		pass
+
+	class BINARY2(_BinaryDataElement):
+		pass
 
 	class COOSYS(_VOTElement):
 		_a_ID = None
@@ -154,7 +161,7 @@ class VOTable(object):
 		_a_system = None
 
 	class DATA(_VOTElement):
-		_childSequence = ["INFO", "TABLEDATA", "BINARY", "FITS"]
+		_childSequence = ["INFO", "TABLEDATA", "BINARY", "BINARY2", "FITS"]
 	
 	class DEFINITIONS(_VOTElement):
 		pass

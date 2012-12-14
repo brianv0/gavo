@@ -165,5 +165,5 @@ def getPostamble(tableDefinition):
 		"return '<TR>%s</TR>'%(''.join('<TD>%s</TD>'%v for v in tokens))"]
 
 
-def getGlobals():
+def getGlobals(tableDefinition):
 	return globals()

@@ -8,12 +8,14 @@ from gavo.utils import stanxml
 from gavo.votable import coding
 from gavo.votable import common
 from gavo.votable import enc_binary
+from gavo.votable import enc_binary2
 from gavo.votable import enc_tabledata
 from gavo.votable.model import VOTable
 
 _encoders = {
 	VOTable.TABLEDATA: enc_tabledata,
 	VOTable.BINARY: enc_binary,
+	VOTable.BINARY2: enc_binary2,
 }
 
 

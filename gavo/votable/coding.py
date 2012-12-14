@@ -22,6 +22,12 @@ def getRowEncoderSource(tableDefinition, encoderModule):
 		"def codec(tableRow):", 
 		"  tokens = []",
 		"  val = None"]
+
+	source.extend(
+		indentList(
+			getattr(encoderModule, "getPreamble", lambda td: [])(
+				tableDefinition), "  "))
+
 	for index, field in enumerate(
 			tableDefinition.iterChildrenOfType(VOTable.FIELD)):
 		source.extend([
@@ -52,10 +58,9 @@ def buildCodec(source, env):
 	try:
 		exec source in ns
 	except:
-		import sys, traceback
-		sys.stderr.write("Oomph, internal error.  Source:\n")
-		sys.stderr.write(source)
-		traceback.print_exc()
+		utils.sendUIEvent("Error", 
+			"Error when compling VOTable codec (source in dcInfo)")
+		utils.sendUIEvent("Info", "The failing source code was:\n"+source)
 		raise
 	return ns["codec"]
 
@@ -63,7 +68,7 @@ def buildCodec(source, env):
 def buildEncoder(tableDefinition, encoderModule):
 	return buildCodec(
 		getRowEncoderSource(tableDefinition, encoderModule),
-		encoderModule.getGlobals())
+		encoderModule.getGlobals(tableDefinition))
 
 
 def buildDecoder(tableDefinition, decoderModule):
@@ -136,12 +141,12 @@ def trim(seq, arraysize, padder):
 	return list(common.iterflattened(seq))
 
 
-def trimString(aString, length):
+def trimString(aString, length, padChar=" "):
 	"""returns aString padded with blanks/cropped to length.
 	"""
 	l = len(aString)
 	if l<length:
-		return aString+" "*(length-l)
+		return aString+padChar*(length-l)
 	elif l>length:
 		return aString[:length]
 	else:
