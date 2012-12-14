@@ -901,6 +901,11 @@ class CustomConnectionPool(psycopg2.pool.ThreadedConnectionPool):
 				# fallback for old psycopg2
 				conn.set_isolation_level(
 					psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+			except ProgrammingError, ex:
+				utils.sendUIEvent("Warning", "Uncommitted transaction escaped; please"
+					" investigate and fix")
+				conn.commit()
+
 
 		if key is not None:
 			self._used[key] = conn
@@ -950,9 +955,7 @@ def _makeConnectionManager(profileName, minConn=3, maxConn=20,
 				# Connection already closed
 				pass
 			except Exception, msg:
-				print "Oops"
-				import code;code.interact(local=locals())
-
+				utils.sendUIEvent("Error", "Disaster: %s while putting connection"%msg)
 			raise
 
 		else:
