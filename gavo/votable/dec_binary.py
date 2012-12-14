@@ -92,13 +92,16 @@ def _makeBitDecoder(field):
 	# it's basically the same thing for arrays and single values.
 	src = _getArraysizeCode(field)
 	src.extend([
-		'numBytes = arraysize/8+(not not arraysize%8)',
-		'topMask = (1<<(arraysize%8))-1',  # mask for payload in topmost byte
-		'if topMask==0: topMask = 0xff',
-		'bytes = struct.unpack("%dB"%numBytes, inF.read(numBytes))',
-		'res = bytes[0]&topMask',
-		'for b in bytes[1:]:',
-		'  res = (res<<8)+b',
+		'if arraysize==0:',
+		'  res = []',
+		'else:',
+		'  numBytes = (arraysize+7)/8',
+		'  topMask = (1<<(arraysize%8))-1',  # mask for payload in topmost byte
+		'  if topMask==0: topMask = 0xff',
+		'  bytes = struct.unpack("%dB"%numBytes, inF.read(numBytes))',
+		'  res = bytes[0]&topMask',
+		'  for b in bytes[1:]:',
+		'    res = (res<<8)+b',
 		'row.append(res)'])
 	return src
 
@@ -238,5 +241,5 @@ def getRowDecoderSource(tableDefinition):
 	return "\n".join(source)
 
 
-def getGlobals():
+def getGlobals(tableDefinition):
 	return globals()

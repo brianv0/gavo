@@ -54,7 +54,7 @@ def buildCodec(source, env):
 	"""
 	ns = {}
 	ns.update(env)
-	#with open("/tmp/votcode.py", "w") as f: f.write(source)
+	with open("/tmp/votcode.py", "w") as f: f.write(source)
 	try:
 		exec source in ns
 	except:
@@ -74,7 +74,7 @@ def buildEncoder(tableDefinition, encoderModule):
 def buildDecoder(tableDefinition, decoderModule):
 	return buildCodec(
 		decoderModule.getRowDecoderSource(tableDefinition),
-		decoderModule.getGlobals())
+		decoderModule.getGlobals(tableDefinition))
 
 
 def indentList(lines, indent):

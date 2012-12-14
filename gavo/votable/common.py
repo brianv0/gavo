@@ -130,3 +130,10 @@ class NULLFlags(object):
 				if len(nulls)==self.nFields:
 					break
 		return nulls
+	
+	def getFromFile(self, file):
+		"""returns a sequence of booleans  giving for each element in a row
+		if there's a NULL there.
+		"""
+		return self.deserialize(file.read(self.nBytes))
+

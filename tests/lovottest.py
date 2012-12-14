@@ -710,6 +710,131 @@ class Binary2WriteTest(testhelpers.VerboseTest):
 	]
 
 
+class Binary2ReadTest(testhelpers.VerboseTest):
+	"""tests for deserializing BINARY VOTables.
+	"""
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		fielddefs, stuff, expected = sample
+		table = votable.parseString((
+			'<VOTABLE><RESOURCE><TABLE>'+
+			fielddefs+
+			'<DATA><BINARY2><STREAM encoding="base64">'+
+			stuff.encode("base64")+
+			'</STREAM></BINARY2></DATA>'
+			'</TABLE></RESOURCE></VOTABLE>').encode("utf-8")).next()
+		self.assertEqual(list(table), expected)
+
+	samples = [(
+			'<FIELD datatype="boolean"/>',
+			"\x001\x000\x80?",
+			[[True],[False],[None]],
+		), (
+			'<FIELD datatype="bit"/>',
+			"\x00\x01\x00\x00\x00\xff\x80\x00",
+			[[1],[0],[1], [None]],
+		), (
+			'<FIELD datatype="bit" arraysize="9"/>',
+			"\x00\x01\x00\x00\xff\xff\x80\x00\x00",
+			[[256],[511], [None]],
+		), (
+			'<FIELD datatype="bit" arraysize="*"/>',
+			"\x00\x00\x00\x00\x03\xff\x00\x00\x00\x00\x45"
+				"\xff\x00\x00\x00\x00\x00\x00\x00\x01\x80\x00\x00\x00\x00",
+			[[7],[0x1f0000000000000001], [None]],
+		), (
+			'<FIELD datatype="char"><VALUES null="a"/></FIELD>',
+			"\x00x\x00\x00\x00a\x80\x00",
+			[['x'],['\x00'], [None], [None]],
+		), ( 
+# 05
+			'<FIELD datatype="unicodeChar"><VALUES null="&#xbabe;"/></FIELD>',
+			"\x00\x00a\x00\x23\x42\x00\xba\xbe\x80\x00\x00",
+			[['a'],[u'\u2342'], [None], [None]],
+		), (
+			'<FIELD datatype="unsignedByte"><VALUES null="12"/></FIELD>'
+				'<FIELD datatype="short"><VALUES null="12"/></FIELD>'
+				'<FIELD datatype="int"><VALUES null="12"/></FIELD>'
+				'<FIELD datatype="long"><VALUES null="12"/></FIELD>',
+			"\x00\x0c\x00\x0c\x00\x00\x00\x0c\x00\x00\x00\x00\x00\x00\x00\x0c"
+			"\xf0\x0c\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+			"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+			"\x00\x0d\x0d\x0d\x00\x0d\x0d\x0c\x00\xdd\x00\x00\x00\x00\x00\x0c", [
+				[None, None, None, None],
+				[None, None, None, None],
+				[0, 0, 0, 0],
+				[13, 3341, 855308, 62205969853054988L]]
+		), (
+			'<FIELD datatype="float"/>',
+			"\x00\x7f\xc0\x00\x00\x00:\x80\x00\x00\x80\x00\x00\x00\x00",
+			[[None], [0.0009765625], [None]]
+		), (
+			'<FIELD datatype="double"/>',
+			"\x00\x7f\xf8\x00\x00\x00\x00\x00\x00\x00?P\x00\x01\x00\x00\x00\x00",
+			[[None], [0.00097656343132257462]]
+		), (
+			'<FIELD datatype="doubleComplex"/>',
+			"\x00\x7f\xf8\x00\x00\x00\x00\x00\x00?P\x00\x01\x00\x00\x00\x00"
+			'\x00@\x04\x00\x00\x00\x00\x00\x00?\xe0\x00\x00\x00\x00\x00\x00'
+			'\x80@\x04\x00\x00\x00\x00\x00\x00?\xe0\x00\x00\x00\x00\x00\x00',
+			[[None], [2.5+0.5j], [None]]
+		), (
+# 10
+			'<FIELD datatype="char" arraysize="4"><VALUES null="x"/></FIELD>',
+			"\x00abcd\x80\x00\x00\x00\x00",
+			[["abcd"], [None]]
+		), (
+			'<FIELD datatype="char" arraysize="*"/>',
+			"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x03abc\x80\x00\x00\x00\x00",
+			[[""], ["abc"], [None]]
+		), (
+			'<FIELD datatype="unicodeChar" arraysize="*"/>',
+			"\x00\x00\x00\x00\x03\x00a\x23\x42bc",
+			[[u"a\u2342\u6263"]]
+		), (
+			'<FIELD datatype="unicodeChar" arraysize="2"/>',
+			"\x00\x00a\x23\x42\x80\x00\x00\x00\x00",
+			[[u"a\u2342"], [None]]
+		), (
+			'<FIELD datatype="unsignedByte" arraysize="2"/>',
+			'\x00\x00\x01\x80\x00\x00',
+			[[(0, 1)], [None]],
+		), (  
+# 15
+			'<FIELD datatype="short" arraysize="*"><VALUES null="16"/></FIELD>',
+			'\x00\x00\x00\x00\x03\x00\x01\x00\x10\x00\x02'
+			'\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
+			[[(1, None, 2)], [None], [()]],
+		), (
+			'<FIELD datatype="int" arraysize="2"/>',
+			'\x00\x00\x00\x00\x03\x00\x01\x00\x10\x80\0\0\0\0\0\0\0\0',
+			[[(3, 0x10010)], [None]],
+		), (
+			'<FIELD datatype="float" arraysize="2"/>',
+			'\x00\x7f\xc0\x00\x00:\x80\x00\x00',
+			[[(None, 0.0009765625)]],
+		), (
+			'<FIELD datatype="double" arraysize="*"/>',
+			'\x00\x00\x00\x00\x02\x7f\xf8\x00\x00\x00\x00\x00\x00'
+				'?P\x00\x01\x00\x00\x00\x00',
+			[[(None, 0.00097656343132257462)]]
+		), (
+			'<FIELD datatype="float" arraysize="2"><VALUES null="2"/></FIELD>',
+			'\x00\x7f\xc0\x00\x00:\x80\x00\x00',
+			[[(None, 0.0009765625)]],
+		), (
+			'<FIELD datatype="floatComplex" arraysize="2"/>',
+			'\x00\x7f\xc0\x00\x00:\x80\x00\x00'
+				'A\x80\x00\x00A\x0c\x00\x00',
+			[[(None, 16+8.75j)]],
+		), (
+			'<FIELD datatype="short" arraysize="2x3"/>',
+			'\x00\x00\x00\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05',
+			[[(0,1,2,3,4,5)]],
+		)]
+
+
 class NDArrayTest(testhelpers.VerboseTest):
 	"""tests for the (non-existing) support for multi-D arrays.
 	"""

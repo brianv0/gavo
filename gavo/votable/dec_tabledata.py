@@ -219,5 +219,5 @@ def getRowDecoderSource(tableDefinition):
 	return source
 
 
-def getGlobals():
+def getGlobals(tableDefinition):
 	return globals()

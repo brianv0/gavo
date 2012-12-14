@@ -8,6 +8,7 @@ events (utils.iterparse doesn't).
 from gavo.votable import coding
 from gavo.votable import common
 from gavo.votable import dec_binary
+from gavo.votable import dec_binary2
 from gavo.votable import dec_tabledata
 
 
@@ -100,8 +101,6 @@ class _StreamData(object):
 		for evtype, element, payload in self.nodeIterator:
 			if evtype!="data":
 				break
-		# if the following assertion doesn't hold, expat has messed up.
-		assert element=="BINARY" and evtype=="end"
 		self._eof = True
 
 	def _fillBuffer(self, nBytes):
@@ -165,14 +164,13 @@ class _StreamData(object):
 		return self._eof and self.fPos==len(self.curChunk)
 
 
-class BinaryIterator(DataIterator):
-	"""An internal class used by Rows to actually iterate over rows
-	in BINARY serialization.
+class BinaryIteratorBase(DataIterator):
+	"""A base class used by Rows to actually iterate over rows
+	in BINARY(2) serialization.
 
 	Since the VOTable binary serialization has no framing, we need to 
 	present the data stream coming from the parser as a file to the decoder.  
 	"""
-	decoderModule = dec_binary
 
 	# I need to override __iter__ since we're not actually doing XML parsing
 	# here; almost all of our work is done within the stream element.
@@ -193,6 +191,14 @@ class BinaryIterator(DataIterator):
 				yield row
 
 
+class BinaryIterator(BinaryIteratorBase):
+	decoderModule = dec_binary
+
+
+class Binary2Iterator(BinaryIteratorBase):
+	decoderModule = dec_binary2
+
+
 def _makeTableIterator(elementName, tableDefinition, nodeIterator):
 	"""returns an iterator for the rows contained within node.
 	"""
@@ -200,9 +206,13 @@ def _makeTableIterator(elementName, tableDefinition, nodeIterator):
 		return iter(TableDataIterator(tableDefinition, nodeIterator))
 	elif elementName=='BINARY':
 		return iter(BinaryIterator(tableDefinition, nodeIterator))
+	elif elementName=='BINARY2':
+		return iter(Binary2Iterator(tableDefinition, nodeIterator))
+
 	else:
 		raise common.VOTableError("Unknown table serialization: %s"%
-			elementName, hint="We only support TABLEDATA and BINARY coding")
+			elementName, hint="We only support TABLEDATA, BINARY2,"
+				" and BINARY coding")
 
 
 class Rows(object):
