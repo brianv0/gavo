@@ -128,10 +128,20 @@ psycopg2.extensions.register_adapter(list, SqlSetAdapter)
 psycopg2.extensions.register_adapter(set, SqlSetAdapter)
 psycopg2.extensions.register_adapter(frozenset, SqlSetAdapter)
 
-for floatType in [numpy.float32, numpy.float64, numpy.float96]:
-	psycopg2.extensions.register_adapter(floatType, FloatableAdapter)
-for intType in [numpy.int8, numpy.int16, numpy.int32, numpy.int64]:
-	psycopg2.extensions.register_adapter(intType, IntableAdapter)
+for numpyType, adapter in [
+		("float32", FloatableAdapter), 
+		("float64", FloatableAdapter), 
+		("float96", FloatableAdapter), 
+		("int8", IntableAdapter),
+		("int16", IntableAdapter),
+		("int32", IntableAdapter),
+		("int64", IntableAdapter),]:
+	try:
+		psycopg2.extensions.register_adapter(
+			getattr(numpy, numpyType), adapter)
+	except AttributeError:
+		# what's not there we don't need to adapt
+		pass
 
 from psycopg2 import (OperationalError, DatabaseError, IntegrityError,
 	ProgrammingError, InterfaceError, DataError)
