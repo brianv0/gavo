@@ -166,6 +166,10 @@ def _getArrayDecoderLines(field):
 	"""returns lines that decode arrays of literals.
 
 	Unfortunately, the spec is plain nuts, so we need to pull some tricks here.
+
+	As per VOTable 1.3, we translate empty strings to Nones; we use the
+	liberty that empty and NULL arrays are not distinguished to return
+	empty strings as empty strings, though.
 	"""
 	type = field.datatype
 
@@ -184,7 +188,11 @@ def _getArrayDecoderLines(field):
 	src.extend(coding.indentList(_decoders[type](field), "  "))
 	src.append("fullRow.append(tuple(row))")
 	src.append("row = fullRow")
-	return src
+
+	return [
+		"if val=='':",
+		"  row.append(None)",
+		"else:"]+coding.indentList(src, "  ")
 
 
 def getLinesFor(field):

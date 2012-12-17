@@ -208,24 +208,24 @@ class TabledataReadTest(testhelpers.VerboseTest):
 		), (
 			'<FIELD name="x" datatype="unsignedByte"/>'
 			'<FIELD name="y" datatype="unsignedByte"><VALUES null="16"/></FIELD>',
-			[['',   ''],   ['0x10', '0x10'], ['10', '16']],
-			[[None, None], [16,     16],     [10,    None]]
+			[['',   ''],   ['0x10', '0x10'], ['10', '16'], ['', '']],
+			[[None, None], [16,     16],     [10,    None], [None, None]]
 		), (
 			'<FIELD name="x" datatype="char"/>',
-			[[''],   ['a'], ['&apos;'], [u'\xe4'], ['&#xe4;']],
-			[[None], ['a'], ["'"],      [u'\xe4'], [u'\xe4']],
+			[[''],   ['a'], ['&apos;'], [u'\xe4'], ['&#xe4;'], ['']],
+			[[None], ['a'], ["'"],      [u'\xe4'], [u'\xe4'], [None]],
 		), (
 			'<FIELD name="x" datatype="short"><VALUES null="0"/></FIELD>'
 			'<FIELD name="y" datatype="int"/>'
 			'<FIELD name="z" datatype="long"><VALUES null="222399322"/></FIELD>',
-			[['0', '0', '0'], ['-3', '-300', '222399322'], ['0xff', '0xcafebabe', '0xcafebabedeadbeef',]],
-			[[None, 0,  0],   [-3,    -300,  None],        [255,    -889275714,   -3819410105021120785L]]
+			[['0', '0', '0'], ['-3', '-300', '222399322'], ['0xff', '0xcafebabe', '0xcafebabedeadbeef'], ['', '', '']],
+			[[None, 0,  0],   [-3,    -300,  None],        [255,    -889275714,   -3819410105021120785L], [None, None, None]]
 		), (
 			'<FIELD name="x" datatype="float"><VALUES null="-999."/></FIELD>'
 			'<FIELD name="y" datatype="float"/>',
 			[['1', '0.5e10'], ['-999.', '']],
 			[[1.0, 5e09],     [None, None]]
-		), (
+		), ( # 05
 			'<FIELD name="x" datatype="floatComplex"><VALUES null="-999. 0"/></FIELD>'
 			'<FIELD name="y" datatype="floatComplex"/>',
 			[['1 1', '0.5e10 -2e5'], ['-999. 0', '20']],
@@ -233,24 +233,24 @@ class TabledataReadTest(testhelpers.VerboseTest):
 		), (
 			'<FIELD name="x" datatype="boolean" arraysize="*"/>',
 			[['true false ? T'],        [' T'], ['']],
-			[[(True, False, None, True)], [(True,)], [()]]
+			[[(True, False, None, True)], [(True,)], [None]]
 		), (
 			'<FIELD name="y" datatype="unsignedByte" arraysize="*">'
 			' <VALUES null="16"/></FIELD>',
-			[['10 0x10\t 16 \n 0x16']],
-			[[(10, 16, None, 22)]]
+			[['10 0x10\t 16 \n 0x16'], ['']],
+			[[(10, 16, None, 22)], [None]]
 		), (
 			'<FIELD name="x" datatype="char" arraysize="4"/>',
-			[[''], ['auto'], ['&apos;xx&quot;'], [u'\xe4'], ['&#xe4;']],
-			[[None], ['auto'], ["'xx\""],          [u'\xe4'], [u'\xe4']],
+			[[''], ['auto'], ['&apos;xx&quot;'], [u'\xe4'], ['&#xe4;'], ['']],
+			[[None], ['auto'], ["'xx\""], [u'\xe4'], [u'\xe4'], [None]],
 		), (
 			'<FIELD name="x" datatype="short" arraysize="*"><VALUES null="0"/></FIELD>',
-			[['1 2 3 0 1']], 
-			[[(1,2,3,None,1)]]
+			[['1 2 3 0 1'], [""]], 
+			[[(1,2,3,None,1)], [None]]
 		), (
 			'<FIELD name="y" datatype="floatComplex" arraysize="*"/>',
-			[['1 1 0.5e10 -2e5']],
-			[[((1+1j), 5e09-2e5j)]]
+			[['1 1 0.5e10 -2e5'], [""]],
+			[[((1+1j), 5e09-2e5j)], [None]]
 		), (
 			'<FIELD datatype="short" arraysize="2x3"/>',
 			[['0 1 2 3 4 5']],
@@ -353,7 +353,7 @@ class TabledataWriteTest(testhelpers.VerboseTest):
 			[V.FIELD(datatype="unsignedByte", arraysize="2")[V.VALUES(null="0xff")]],
 			[[[]], [[2]], [None], [[2, 3, 4]]],
 		'<TR><TD>0xff 0xff</TD></TR><TR><TD>2 0xff</TD></TR>'
-		'<TR><TD>0xff 0xff</TD></TR><TR><TD>2 3</TD></TR>'
+		'<TR><TD></TD></TR><TR><TD>2 3</TD></TR>'
 		), (
 			[V.FIELD(datatype="bit", arraysize="*")],
 			[[430049293488]],

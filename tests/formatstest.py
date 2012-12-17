@@ -338,8 +338,7 @@ class ExplicitNullValueTest(testhelpers.VerboseTest):
 		# are at it...
 		def assertion(data):
 			self.failUnless('<VALUES null="-1"' in data)
-			self.failUnless('<TR><TD>-1</TD><TD>xxy</TD><TD>xxy</TD>'
-				'</TR>' in data)
+			self.failUnless('<TR><TD>-1</TD><TD></TD><TD></TD></TR>' in data)
 		self._runTestForFormat("votabletd", assertion)
 
 	def testBinVOTable(self):

@@ -522,7 +522,7 @@ class TabledataNullValueTest(VOTableRenderTest):
 		self._assertVOTContains('<column name="x" type="text">'
 				'<values nullLiteral="&quot;not given&quot;"/></column>', [
 			'<VALUES null="&quot;not given&quot;">',
-			'<TR><TD>"not given"</TD></TR>'])
+			'<TR><TD></TD></TR>'])
 	
 	def testTextNullAuto(self):
 		self._assertVOTContains('<column name="x" type="text"/>',[

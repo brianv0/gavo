@@ -120,7 +120,7 @@ _encoders = {
 }
 
 
-def _getArrayEncoderLines(field):
+def _getArrayEncoderLinesNotNULL(field):
 	"""returns python lines to encode array values of field.
 
 	Again, the specs are a bit nuts, so we end up special casing almost 
@@ -149,6 +149,16 @@ def _getArrayEncoderLines(field):
 	src.append("tokens = fullTokens")
 	return src
 
+
+def _getArrayEncoderLines(field):
+	"""returns python lines to encode array values of field.
+
+	This will encode NULL array as empty strings.
+	"""
+	return [
+		"if val is None:",
+		"  tokens.append('')",
+		"else:",]+coding.indentList(_getArrayEncoderLinesNotNULL(field), " ")
 
 def getLinesFor(field):
 	"""returns a sequence of python source lines to encode values described
