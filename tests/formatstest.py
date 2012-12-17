@@ -273,6 +273,22 @@ class NullValueTest(testhelpers.VerboseTest):
 				'\x00\x00\x00\x00']))
 		self._runTestForFormat("votable", assertion)
 
+	def testBin2VOTable(self):
+		def assertion(data):
+			self.failUnless('<VALUES null="-2147483648"' in data)
+			decoded = re.search(
+				'(?s)<STREAM encoding="base64">(.*)</STREAM>',
+				data).group(1).decode("base64")
+			self.assertEqual(decoded, "".join([
+				'\xfc\x00\x00\x00\x00', 
+				'\x7f\xc0\x00\x00', 
+				'\x7f\xf8\x00\x00\x00\x00\x00\x00', 
+				'\x00\x00\x00\x00', 
+				'\x00\x00\x00\x00', 
+				'\x00\x00\x00\x00']))
+		self._runTestForFormat("votableb2", assertion)
+
+
 	def testCSV(self):
 		def assertion(data):
 			self.assertEqual(",,,,,", data.strip())

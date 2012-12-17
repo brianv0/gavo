@@ -33,6 +33,7 @@ class Error(base.Error):
 tableEncoders = {
 	"td": V.TABLEDATA,
 	"binary": V.BINARY,
+	"binary2": V.BINARY2,
 }
 
 
@@ -45,7 +46,7 @@ class VOTableContext(utils.IdManagerMixin):
 	VOTableContexts optionally take
 
 		- a value mapper registry (by default, valuemappers.defaultMFRegistry)
-		- the tablecoding (currently, td or binary)
+		- the tablecoding (currently, td, binary, or binary2)
 		- version=(1,1) to order a 1.1-version VOTable
 		- acquireSamples=False to suppress reading some rows to get
 		  samples for each column
@@ -482,5 +483,8 @@ def format(data, outputFile, **ctxargs):
 
 common.registerDataWriter("votable", format, 
 	"application/x-votable+xml")
+common.registerDataWriter("votableb2", functools.partial(
+	format, tablecoding="binary2"),
+	"application/x-votable+xml;serialization=BINARY2")
 common.registerDataWriter("votabletd", functools.partial(
 	format, tablecoding="td"), "text/xml")
