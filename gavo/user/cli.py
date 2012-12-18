@@ -118,6 +118,10 @@ def _parseCLArgs():
 
 def main():
 
+	# we want to preserve group-writability in all our operations;  hence
+	# this prominent place for overriding a user decision...
+	os.umask(002)
+
 	if len(sys.argv)>1 and sys.argv[1]=="init":  
 		# Special case: initial setup, no api working yet
 		del sys.argv[1]
