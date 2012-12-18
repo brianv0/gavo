@@ -184,6 +184,15 @@ class SyncQueryTest(TAPRenderTest):
 			}, [
 				'2.0\t14.0'])
 
+	def testBin2Table(self):
+		return self.assertGETHasStrings("/sync", {
+				"REQUEST": "doQuery",
+				"LANG": "ADQL",
+				"QUERY": 'SELECT alpha, delta FROM test.adql WHERE alpha<3',
+				"FORMAT": "application/x-votable+xml;serialization=BINARY2"
+			}, [
+				'BINARY2', 'AEAAAABBYAAA'])
+
 	def testBadUploadSyntax(self):
 		return self.assertPOSTHasStrings("/sync", {
 				"REQUEST": "doQuery",

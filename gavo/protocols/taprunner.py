@@ -112,9 +112,15 @@ def _makeDataFor(resultTable):
 def writeResultTo(format, res, outF):
 	# special-case votable formats to handle overflow conditions and such
 	if format.startswith("votable"):
-		enc = "binary"
-		if format.endswith("td"):
-			enc = "td"
+		# the following duplicates a mapping from votablewrite; that's
+		# bad, and I should figure out a way to teach formats.format
+		# whatever is needed to let it do what we're doing here.  Meanwhile:
+		enc = {
+			"votable": "binary",
+			"votableb2": "binary2",
+			"votabletd": "td",
+		}.get(format, "td")
+
 		oe = None
 		if getattr(res, "setLimit", None) is not None:
 			oe = votable.OverflowElement(res.setLimit,

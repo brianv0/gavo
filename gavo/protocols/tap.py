@@ -45,13 +45,17 @@ FORMAT_CODES = {
 	"text/xml": 
 		("votable", "text/xml", "VOTable, binary",
 			"ivo://ivoa.net/std/TAPRegExt#output-votable-binary"),
+	"votable": 
+		("votable", "application/x-votable+xml", "VOTable, binary",
+			"ivo://ivoa.net/std/TAPRegEXT#output-votable-binary"),
 	"application/x-votable+xml;serialization=binary2": 
 		("votableb2", "application/x-votable+xml;serialization=binary2", 
 			"VOTable, new binary", 
 			"ivo://ivoa.net/std/TAPRegExt#output-votable-binary2"),
-	"votable": 
-		("votable", "application/x-votable+xml", "VOTable, binary",
-			"ivo://ivoa.net/std/TAPRegEXT#output-votable-binary"),
+	"votable/b2": 
+		("votableb2", "application/x-votable+xml;serialization=binary2", 
+			"VOTable, new binary", 
+			"ivo://ivoa.net/std/TAPRegExt#output-votable-binary2"),
 	"application/x-votable+xml;serialization=tabledata":
 		("votabletd", "application/x-votable+xml;serialization=tabledata", 
 			"VOTable, tabledata",
