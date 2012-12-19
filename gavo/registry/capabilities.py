@@ -7,8 +7,6 @@ Thus, in the module we mostly deal with publication objects.  If you
 need the service object, use publication.parent.
 """
 
-_TMP_TAPREGEXT_HACK = True
-
 from gavo import base
 from gavo import svcs
 from gavo import utils
@@ -316,12 +314,14 @@ class TAPCapabilityMaker(CapabilityMaker):
 	def _makeCapability(self, publication):
 		res = CapabilityMaker._makeCapability(self, publication)
 		
-		if _TMP_TAPREGEXT_HACK:
+		with base.getTableConn() as conn:
 			service = publication.parent
 			from gavo.protocols import tap
 			from gavo.adql import ufunctions
-			res[
-				_tapModelBuilder.build(service),
+			res[[
+					TR.dataModel(ivoId=dmivorn)[dmname]
+					for dmname, dmivorn in conn.query(
+						"select dmname, dmivorn from tap_schema.supportedmodels")],
 				# Once we support more than one language, we'll have to
 				# revisit this -- the optional features must then become
 				# a property of the language.

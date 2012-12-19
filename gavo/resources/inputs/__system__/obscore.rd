@@ -7,6 +7,11 @@
 		<!-- the view creation statement is bogus; in reality, we create
 		the view creation statement from the _obscoresources table in the
 		data create -->
+
+		<property key="supportsModel">Obscore 1.0</property>
+		<property key="supportsModelURI"
+			>ivo://ivoa.net/std/ObsCore-1.0</property>
+
 		<viewStatement>
 			create view \qName (\colNames) as (select * from (VALUES(
 				NULL, NULL, NULL, NULL, NULL,

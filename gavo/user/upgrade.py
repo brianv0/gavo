@@ -21,7 +21,7 @@ from gavo import rscdesc
 from gavo import utils
 
 
-CURRENT_SCHEMAVERSION = 2
+CURRENT_SCHEMAVERSION = 3
 
 
 def showProgress(msg):
@@ -73,7 +73,7 @@ class Upgrader(object):
 	@classmethod
 	def updateSchemaversion(cls, connection):
 # no docstring, we output our info ourselves
-		showProgress("...update schemaversion to %s..."%(cls.version+1))
+		showProgress("> update schemaversion to %s..."%(cls.version+1))
 		base.setDBMeta(connection, "schemaversion", cls.version+1)
 
 	@classmethod
@@ -167,6 +167,28 @@ class To2Upgrader(Upgrader):
 		from gavo import rscdesc, rsc
 		rsc.makeData(base.caches.getRD("//obscore").getById("create"),
 			connection=connection, runCommit=False)
+
+
+class To3Upgrader(Upgrader):
+	version = 2
+
+	@classmethod
+	def u_000_tapSchema(cls, connection):
+		"""add supportedmodels table to tap_schema"""
+		rsc.makeData(base.caches.getRD("//tap").getById("createSchema"),
+			connection=connection, runCommit=False)
+	
+	@classmethod
+	def u_010_declareObscoreModel(cls, connection):
+		"""declare obscore data model if the obscore table is present"""
+		if list(connection.query(
+				"select * from dc.tablemeta where tablename='ivoa.ObsCore'")):
+			from gavo.protocols import tap
+			rd = base.caches.getRD("//obscore")
+			tap.publishToTAP(rd, connection)
+		else:
+			showProgress(" (not present)")
+
 
 def iterStatements(startVersion, endVersion=CURRENT_SCHEMAVERSION, 
 		upgraders=None):

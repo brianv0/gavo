@@ -214,6 +214,18 @@
 			query does."/>
 	</table>
 
+	<table id="supportedmodels" onDisk="True" primary="dmivorn"
+			forceUnique="True" dupePolicy="overwrite" system="True">
+		<meta name="description">
+			Standard data models supported by this service.
+		</meta>
+		<column original="tables.sourceRD"/>
+		<column name="dmname" type="text"
+			description="Human-readable name of the data model"/>
+		<column name="dmivorn" type="text"
+			description="IVORN of the data model"/>
+	</table>
+
 	<data id="importTablesFromRD" auto="False">
 		<embeddedGrammar>
 			<iterator>
@@ -243,6 +255,8 @@
 							"table_utype": base.getMetaText(table, "utype",
 								propagate=False),
 							"sourceRD": rd.sourceId,
+							"dmname": table.getProperty("supportsModel", None),
+							"dmivorn": table.getProperty("supportsModelURI", None),
 						}
 				</code>
 			</iterator>
@@ -263,6 +277,9 @@
 			</simplemaps>
 		</rowmaker>
 
+		<rowmaker id="make_models" idmaps="*">
+			<ignoreOn><keyNull key="dmivorn"/></ignoreOn>
+		</rowmaker>
 
 		<make table="schemas" rowmaker="make_schemas"/>
 		<make table="tables" rowmaker="make_tables">
@@ -272,6 +289,15 @@
 					{"sourceRD": sourceToken.sourceId})
 			</script>
 		</make>
+
+		<make table="supportedmodels" rowmaker="make_models">
+			<script type="newSource" lang="python" id="removeStale"
+					notify="False" name="delete stale models">
+				table.deleteMatching("sourceRD=%(sourceRD)s",
+					{"sourceRD": sourceToken.sourceId})
+			</script>
+		</make>
+
 	</data>
 
 	<data id="importColumnsFromRD" auto="False">
@@ -406,6 +432,7 @@
 		<make table="columns"/>
 		<make table="keys"/>
 		<make table="groups"/>
+		<make table="supportedmodels"/>
 		<make table="key_columns">
 			<!-- this script is for bootstrapping.  Since TAP_SCHEMA isn't
 			finished when the tables are created, they cannot be added
@@ -438,7 +465,6 @@
 		<make table="examples"/>
 	</data>
 
-
 <!--********************* TAP UWS job table ******************-->
 
 <table id="tapjobs" system="True">
@@ -460,8 +486,6 @@
 	<service id="run" core="null" allowed="tap">
 		<meta name="shortName">\metaString{authority.shortName} TAP</meta>
 		<meta name="title">\getConfig{web}{sitename} TAP service</meta>
-		<meta name="supportsModel">ObsCore 1.0</meta>
-		<meta name="supportsModel.ivoId">ivo://ivoa.net/std/ObsCore-1.0</meta>
 
 		<meta name="_longdoc" format="rst"><![CDATA[
 		This service speaks TAP, a protocol designed to allow the exchange of

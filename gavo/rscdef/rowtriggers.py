@@ -71,6 +71,18 @@ class KeyMissing(KeyedCondition):
 registerTrigger(KeyMissing)
 
 
+class KeyNull(KeyedCondition):
+	"""A trigger firing if a certain key is missing or NULL/None
+	"""
+	name_ = "keyNull"
+
+	def __call__(self, dict):
+		return dict.get(self.key) is None
+
+registerTrigger(KeyNull)
+
+
+
 class KeyIs(KeyedCondition):
 	"""A trigger firing when the value of key in row is equal to the value given.
 
