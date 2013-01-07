@@ -75,6 +75,7 @@ class GuardedFunctionFactory(object):
 					" before next instance came around"%execDef.title)
 				return
 			t = threading.Thread(name=execDef.title, target=innerFunction)
+			base.ui.notifyInfo("Spawning thread for cron job %s"%execDef.title)
 			t.daemon = True
 			t.start()
 
