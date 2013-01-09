@@ -489,7 +489,7 @@ class DataResourceMaker(DataCollectionResourceMaker):
 
 	def _makeResource(self, dd, setNames):
 		return DataCollectionResourceMaker._makeResourceForSchemas(
-			self, dd, [(dd.rd, list(dd.iterTableDefs()))], setNames)
+			self, dd, [(dd.rd, set(dd.iterTableDefs()))], setNames)
 
 
 _getResourceMaker = utils.buildClassResolver(ResourceMaker, 
