@@ -406,8 +406,9 @@ class RegistryResourceMaker(ResourceMaker):
 					],
 					VOG.maxRecords[base.getMetaText(registry, "maxRecords")],
 				],
-				VOG.full["false"],
-				VOG.managedAuthority[base.getConfig("ivoa", "authority")],
+				VOG.full[base.getMetaText(registry, "full", "false")],
+				VOG.managedAuthority[base.getMetaText(registry, "managedAuthority",
+					base.getConfig("ivoa", "authority"))],
 			]
 
 

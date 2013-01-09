@@ -151,6 +151,9 @@ class OAIHTTPInterface(InterfaceMaker):
 	renderer = "pubreg.xml"
 	interfaceClass = VOG.OAIHTTP
 
+	def _makeInterface(self, publication):
+		return InterfaceMaker._makeInterface(self, publication)(role="std")
+
 
 class WebBrowserInterface(InterfaceMaker):
 	"""An InterfaceMaker on a publication to be consumed by a web browser.
