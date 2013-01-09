@@ -318,6 +318,7 @@ class ArchiveService(rend.Page):
 
 ArchiveService.addStatic("login", makeDynamicPage(ifpages.LoginPage))
 ArchiveService.addStatic("static", ifpages.StaticServer())
+ArchiveService.addStatic("manhole", ifpages.Manhole())
 ArchiveService.addStatic("robots.txt", makeDynamicPage(ifpages.RobotsTxt))
 
 # make these self-registering?  Or write them out somewhere?

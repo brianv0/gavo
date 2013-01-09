@@ -15,6 +15,7 @@ that's usually just reactor.callLater registred by the web server.
 from __future__ import with_statement
 
 import calendar
+import datetime
 import heapq
 import os
 import sys
@@ -200,7 +201,6 @@ class Queue(object):
 					# spurious wakeup, forget about it
 					pass
 				else:
-					utils.sendUIEvent("Debug", "Running job %s"%job.name)
 					job.lastStarted = time.time()
 					job.run()
 		finally:
@@ -248,6 +248,16 @@ class Queue(object):
 
 	def clearScheduleFunction(self):
 		self.scheduleFunction = None
+
+	def getQueueRepr(self):
+		"""returns a sequence of (startDateTime local, job name) pairs.
+
+		This is for inspection/debug purposes.
+		"""
+		with self.lock:
+			schedule = self.jobs[:]
+		return [(datetime.datetime.fromtimestamp(jobTime), job.name)
+			for jobTime, job in schedule]
 
 
 _queue = Queue()

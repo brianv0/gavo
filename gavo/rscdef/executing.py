@@ -62,8 +62,8 @@ class GuardedFunctionFactory(object):
 					callable(execDef.rd, execDef)
 				except Exception, msg:
 					base.ui.notifyError("Uncaught exception in timed job %s."
-						" Trying to send traceback to the maintainer."%execDef.title)
-					cron.sendMailToAdmin("DaCHS Job %s failed"%execDef.title,
+						" Trying to send traceback to the maintainer."%execDef.jobName)
+					cron.sendMailToAdmin("DaCHS Job %s failed"%execDef.jobName,
 						"".join(traceback.format_exception(*sys.exc_info())))
 			finally:
 				serializingLock.release()
@@ -72,7 +72,7 @@ class GuardedFunctionFactory(object):
 			self._reapOldThreads()
 			if not serializingLock.acquire(False):
 				base.ui.notifyWarning("Timed job %s has not finished"
-					" before next instance came around"%execDef.title)
+					" before next instance came around"%execDef.jobName)
 				return
 			t = threading.Thread(name=execDef.title, target=innerFunction)
 			base.ui.notifyInfo("Spawning thread for cron job %s"%execDef.title)
@@ -209,13 +209,14 @@ class Execute(base.Structure):
 				times.append((hour, minute))
 			self.parsedAt = times
 
+		self.jobName = "%s#%s"%(self.rd.sourceId, self.title)
+
 	def onElementComplete(self):
 		self._onElementCompleteNext(Execute)
 		callable = _guardedFunctionFactory.makeGuardedThreaded(
 			self.job.compile(), self)
 
-		jobName = "%s#%s"%(self.rd.sourceId, self.title)
 		if self.at is not base.NotGiven:
-			cron.repeatAt(self.parsedAt, jobName, callable)
+			cron.repeatAt(self.parsedAt, self.jobName, callable)
 		else:
-			cron.runEvery(self.every, jobName, callable)
+			cron.runEvery(self.every, self.jobName, callable)
