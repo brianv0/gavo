@@ -24,6 +24,7 @@ except ImportError:
 	from elementtree import ElementTree
 
 from gavo.utils import autonode
+from gavo.utils import excs
 from gavo.utils import misctricks
 from gavo.utils import texttricks
 
@@ -439,7 +440,6 @@ class NSRegistry(object):
 			if not "xsi" in prefixes:
 				yield "xmlns:xsi", cls._registry["xsi"]
 			yield "xsi:schemaLocation", " ".join(schemaLocations)
-
 
 	@classmethod
 	def addNamespaceDeclarationsETree(cls, root, prefixes, prefixForEmpty=None,
