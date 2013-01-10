@@ -754,17 +754,9 @@ class ResumptionTokenTest(testhelpers.VerboseTest):
 
 	def testBadTokenFailsProperly(self):
 		self.assertRaisesWithMsg(oaiinter.BadResumptionToken,
-			"Incorrect padding",
+			"Odd-length string",
 			oaiinter.parseResumptionToken,
 			({"resumptionToken": "xyz"},))
-
-	def testFailsWithDifferingVerb(self):
-		self.assertRaisesWithMsg(oaiinter.BadResumptionToken,
-			"Trying to resume with a different verb",
-			oaiinter.parseResumptionToken,
-			({"verb": "ListSets", "resumptionToken": "eJzLS60o8U9LK04tsTUyUCss"
-				"TS2qdEksSbU1NDaysDA3NTc01DM3UitLLUqy9cksLglKTc4vSilWy00tSUxJLEk"
-				"MKEpNy6ywzSzLjy/LLwIA+dsbFQ=="},))
 
 
 class MetaExpandedTest(testhelpers.VerboseTest):

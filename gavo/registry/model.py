@@ -72,7 +72,8 @@ class OAI(object):
 	
 	class ListMetadataFormats(OAIElement): pass
 
-	class ListSets(OAIElement): pass
+	class ListSets(OAIElement):
+			_mayBeEmpty = True
 
 	class header(OAIElement):
 		_a_status = None
@@ -118,6 +119,8 @@ class OAI(object):
 	class setSpec(OAIElement): pass
 	
 	class setName(OAIElement): pass
+
+	class setDescription(OAIElement): pass
 
 	class resumptionToken(OAIElement): pass
 		# optional attributes not supported here

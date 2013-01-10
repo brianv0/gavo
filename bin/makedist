@@ -17,5 +17,5 @@ distName="gavodachs-${distVersion}.tar.gz"
 
 python setup.py sdist
 scp "dist/$distName" ${DIST_SERVER}:${SERVER_DIR}
-ssh $DIST_SERVER "ln -sf $SERVER_DIR\'$distName\' $SERVER_DIR/gavodachs-latest.tar.gz"
+ssh $DIST_SERVER "ln -sf $SERVER_DIR/$distName $SERVER_DIR/gavodachs-latest.tar.gz"
 cp "dist/$distName" ~/gavo/tarballs/"gavodachs_$distVersion.orig.tar.gz"

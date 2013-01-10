@@ -74,7 +74,7 @@ def runPMH(pars, builders):
 
 
 ########################### parsing and generating resumption tokens
-# In our implementation, the resumptionToken is a base64-encoded
+# In our implementation, the resumptionToken is a hex-encoded
 # zlibbed query string made from the parameters, plus information
 # on the offset and the time the resumption token was issued.
 
@@ -85,7 +85,7 @@ def makeResumptionToken(pars, nextOffset):
 	toEncode = pars.copy()
 	toEncode["nextOffset"] = str(nextOffset)
 	toEncode["queryDate"] = time.time()
-	return urllib.urlencode(toEncode).encode("zlib").encode("base64"
+	return urllib.urlencode(toEncode).encode("zlib").encode("hex"
 		).replace("\n", "")
 
 
@@ -103,7 +103,7 @@ def parseResumptionToken(pars):
 	"""
 	try:
 		newPars = dict(urlparse.parse_qsl(
-			pars["resumptionToken"].decode("base64").decode("zlib")))
+			pars["resumptionToken"].decode("hex").decode("zlib")))
 		queryDate = float(newPars.pop("queryDate"))
 		offset = int(newPars.pop("nextOffset"))
 	except KeyError, item:
@@ -113,6 +113,12 @@ def parseResumptionToken(pars):
 
 	if newPars.get("verb", 1)!=pars.get("verb", 2):
 		raise BadResumptionToken("Trying to resume with a different verb")
+
+	if pars.get("metadataPrefix"):
+#		if newPars.get("metadataPrefix")!=pars.get("metadataPrefix"):
+		raise BadResumptionToken("Trying to resume with a"
+			" different metadata prefix")
+
 	if int(queryDate)<int(base.caches.getRD("//services").loadedAt):
 		raise BadResumptionToken("Service table has changed")
 
@@ -258,6 +264,7 @@ def getMatchingRows(pars, rscTableDef, getSetFilter):
 			# there's probably more data, request a resumption token
 			res.append(OAI.resumptionToken[
 				makeResumptionToken(pars, offset+len(res))])
+			res[-1].addChild = lambda:0
 
 	except base.DBError:
 		raise base.ui.logOldExc(BadArgument("Bad syntax in some parameter value"))
