@@ -1,0 +1,21 @@
+#!/bin/sh
+# Make a monolithic DaCHS distribution and put it on GAVO's software
+# distribution page.
+# This is probably not useful outside GAVO development.
+# Call this from the root of a repo checkout.
+
+DIST_SERVER=soft.g-vo.org
+SERVER_DIR=/var/www/soft/dist
+
+if [ ! -f setup.py ]; then
+	echo "This must be called from the root of a repository checkout."
+	exit 1
+fi
+
+distVersion=`python setup.py --version`
+distName="gavodachs-${distVersion}.tar.gz"
+
+python setup.py sdist
+scp "dist/$distName" ${DIST_SERVER}:${SERVER_DIR}
+ssh $DIST_SERVER "ln -sf $SERVER_DIR\'$distName\' $SERVER_DIR/gavodachs-latest.tar.gz"
+cp "dist/$distName" ~/gavo/tarballs/"gavodachs_$distVersion.orig.tar.gz"
