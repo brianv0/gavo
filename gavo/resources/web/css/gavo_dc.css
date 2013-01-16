@@ -632,6 +632,12 @@ a.servicelink:hover {
 	content: ' (\231A)';
 }
 
+.hbox {
+	white-space:nowrap;
+	margin-left: 1ex;
+}
+
+
 input.formkey_min {width:4em}
 input.formkey_max {width:4em}
 span.formkey_min:before { content:" between "; }
@@ -639,7 +645,7 @@ span.formkey_max:before { content:" and "; }
 
 /* fairly simple tabs (see develNotes) */
 ul#tabset_tabs {
-	height: 1em;
+	display: block;
 	list-style: none;
 	margin-bottom: 0px;
 	padding-left: 0px;
@@ -649,20 +655,18 @@ ul#tabset_tabs {
 
 ul#tabset_tabs li {
 	cursor: pointer;
-	float: left;
+	display: inline-block;
 	line-height: 1;
 	margin-right: 0.245em;
 	background: #DADDE3 url(/static/img/tab-tl.png) no-repeat top left;
-	border-bottom: 1px solid #CBD0DB;
 }
 
 ul#tabset_tabs li.selected {
 	background: #EAEBEE url(/static/img/round-tl.png) no-repeat top left;
-	border-bottom: 1px solid #EAEBEE;
 }
 
 ul#tabset_tabs li.selected a {
-	height: 1.4em;
+	height: 1.5em;
 	color: #1f2126;
 	background: #EAEBEE url(/static/img/round-tr.png) no-repeat top right;
 }
@@ -672,7 +676,7 @@ ul#tabset_tabs li span {
 }
 
 ul#tabset_tabs li a {
-	height: 1.4em;
+	height: 1.5em;
 	color: #365D95;
 	display: block;
 	padding: 0.515em 1.3em 0.215em 0.8em;

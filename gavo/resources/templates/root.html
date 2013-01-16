@@ -7,50 +7,33 @@
     <title n:render="prependsite"> Home</title>
     <n:invisible n:render="commonhead"/>
 
-		<style type="text/css">
-		#listselector {margin-bottom: 0px;margin-left:0px;padding-left:0px;}
-		#listselector li {
-			display: table-cell; 
-			padding: 4px;
-			border-top:1px solid grey;
-			border-left:1px solid grey;
-			border-right:1px solid grey;
-			border-collapse:collapse;
-		}
-		.pane {
+	<style type="text/css">
+		.panel {
+			position: relative;
+			background-color: #EAEBEE;
+			margin-top: 0px;
+			min-height:70ex;
+			margin-left: 5px;
 			padding: 5px;
-			background-color: #DDDDEE;
-		}
-		.hbox {
-			white-space:nowrap;
-			margin-left: 1ex;
 		}
 	</style>
 
 	<script type="text/javascript">
-		function hideElement(element) {
-			element.style.visibility = 'hidden';
-			element.style.position = 'fixed';
+		function makePanelShower(panelId) {
+			return function (){
+				$(".panel").css("display", "none");
+				$("#"+panelId).css("display", "block");
+			}
 		}
-
-		function unhideElement(element) {
-			element.style.visibility = 'visible';
-			element.style.position = 'static';
-		}
-
-		function showSubjects() {
-			hideElement(document.getElementById("servicelist"));
-			unhideElement(document.getElementById("subjectlist"));
-			document.getElementById("subjsel").style.background = '#DDDDEE';
-			document.getElementById("titlesel").style.background = '#FFFFFF';
-		}
-
-		function showTitles() {
-			unhideElement(document.getElementById("servicelist"));
-			hideElement(document.getElementById("subjectlist"));
-			document.getElementById("titlesel").style.background = '#DDDDEE';
-			document.getElementById("subjsel").style.background = '#FFFFFF';
-		}
+			
+		$(document).ready(function() {
+			$("#tabset_tabs li").bind("click", makeTabCallback({
+				'by-subject': makePanelShower("subject-list"),
+				'by-title': makePanelShower("title-list"),
+			}));
+			$("#tabset_tabs li a").removeAttr("href");
+			makePanelShower("title-list")();
+		});
 	</script>
 
   </head>
@@ -73,15 +56,13 @@
 		<h2>Services available here</h2>
 
 		<div class="container">
-		<ul id="listselector">
-			<li style="background-color:#DDDDEE" onclick="showSubjects()"
-				id="subjsel">By subject</li>
-			<li id="titlesel" onclick="showTitles()">By title</li>
+		<ul id="tabset_tabs">
+        <li class="selected"><a href="#title-list" name="by-title"><span>By Title</span></a></li>
+        <li><a href="#subject-list" name="by-subject"><span>By Subject</span></a></li>
 		</ul>
 
-
-		<div id="servicelist" style="visibility:hidden; position:fixed" 
-				n:data="chunkedServiceList" n:render="sequence" class="pane">
+		<div id="title-list"
+				n:data="chunkedServiceList" n:render="sequence" class="panel">
 			<n:invisible n:pattern="item">
 				<h3><n:invisible n:render="string" n:data="0"/>...</h3>
 				<ul n:data="1" n:render="sequence">
@@ -111,8 +92,8 @@
 			</n:invisible>
 		</div>
 
-		<div id="subjectlist" n:data="subjectServiceList" n:render="sequence"
-				style="position:static" class="pane">
+		<div id="subject-list" n:data="subjectServiceList" n:render="sequence"
+				style="position:static" class="panel">
 			<n:invisible n:pattern="item" n:render="mapping">
 				<h3><n:slot name="subject"/></h3>
 				<ul n:data="chunk" n:render="sequence">
