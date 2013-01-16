@@ -637,6 +637,63 @@ input.formkey_max {width:4em}
 span.formkey_min:before { content:" between "; }
 span.formkey_max:before { content:" and "; }
 
+/* fairly simple tabs (see develNotes) */
+ul#tabset_tabs {
+	height: 1em;
+	list-style: none;
+	margin-bottom: 0px;
+	padding-left: 0px;
+	margin-left: 5px;
+	max-width: none;
+}
+
+ul#tabset_tabs li {
+	cursor: pointer;
+	float: left;
+	line-height: 1;
+	margin-right: 0.245em;
+	background: #DADDE3 url(/static/img/tab-tl.png) no-repeat top left;
+	border-bottom: 1px solid #CBD0DB;
+}
+
+ul#tabset_tabs li.selected {
+	background: #EAEBEE url(/static/img/round-tl.png) no-repeat top left;
+	border-bottom: 1px solid #EAEBEE;
+}
+
+ul#tabset_tabs li.selected a {
+	height: 1.4em;
+	color: #1f2126;
+	background: #EAEBEE url(/static/img/round-tr.png) no-repeat top right;
+}
+
+ul#tabset_tabs li span {
+	color: #616571;
+}
+
+ul#tabset_tabs li a {
+	height: 1.4em;
+	color: #365D95;
+	display: block;
+	padding: 0.515em 1.3em 0.215em 0.8em;
+	background: #DADDE3 url(/static/img/tab-tr.png) no-repeat top right;
+	margin-left: 0.5em;
+	font-size: 0.9em;
+	font-weight: bold;
+	text-decoration: none;
+}
+
+ul#tabset_tabs li a:hover, ul#tabset_tabs li a:active {
+	color: #1f2126;
+}
+
+ul#tabset_tabs li a:hover span, ul#tabset_tabs li a:active span {
+	color: #3d424f;
+}
+
+ul#tabset_tabs li.selected span {
+	color: #5d6371;
+}
 
 /* jquery css */
 

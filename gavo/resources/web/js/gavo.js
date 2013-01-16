@@ -43,6 +43,36 @@ function getJYear(date) {
 }
 
 
+///////////// Micro templating.  See develNotes
+function htmlEscape(str) {
+	return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+		.replace(/'/g, '&apos;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+(function () {
+	var _tmplCache = {}
+	this.renderTemplate = function (templateId, data) {
+   	 var err = "";
+   	 var func = _tmplCache[templateId];
+   	 if (!func) {
+				str = document.getElementById(templateId).innerHTML;
+       	 var strFunc =
+       	 "var p=[],print=function(){p.push.apply(p,arguments);};" +
+                   	 "with(obj){p.push('" +
+       	 str.replace(/[\r\t\n]/g, " ")
+          	.split("'").join("\\'")
+          	.split("\t").join("'")
+          	.replace(/\$([a-zA-Z]+)/g, "',htmlEscape($1),'")
+          	+ "');}return p.join('');";
+       	 func = new Function("obj", strFunc);
+       	 _tmplCache[str] = func;
+   	 }
+   	 return func(data);
+	}
+})()
+
+
+
 ///////////// Code handling previews
 
 function insertPreviewURL(node, previewHref) {
@@ -355,6 +385,19 @@ $(document).ready(
 ///////////////// jquery-dependent code (TODO: move the rest of the
 /// stuff from plain js to jquery, too)
 
+
+function makeTabCallback(handlers) {
+// see develNotes
+	return function (ev) {
+		$("#tabset_tabs > li").removeClass("selected");
+		var curTab = $(ev.currentTarget);
+		curTab.addClass("selected");
+		var mainId = curTab.find("a").attr("name");
+		handlers[mainId]($('#mainbox'));
+	}
+}
+
+
 function popupInnerWindow(content, parent, onClose) {
 // puts content into a thing that looks like a window and can be
 // dragged and resized.  Parent is the element the container
@@ -437,6 +480,10 @@ function output_hide(el) {
 		$(el).detach();
 	}
 }
+
+
+/////////////////////////////////////////////////////////////////////
+// Plotting code -- move (most of this) to something loaded on demand
 
 DATE_RE = /^(\d\d\d\d)-(\d\d)-(\d\d)[T ](\d\d):(\d\d):(\d\d.?\d*)$/
 function _getValue(s) {
