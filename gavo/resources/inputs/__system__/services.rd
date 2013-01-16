@@ -304,11 +304,18 @@
 		<meta name="publisher">The staff at the \getConfig{web}{sitename}</meta>
 	</service>
 
-	<nullCore id="null"/>
+	<service id="root" allowed="fixed">
+		<!-- this is just a placeholder for render functions the root
+		page may need.  There are basically two rather different of
+		those; the old, more static one, uses the chunkedServiceList
+		and subjectServiceList DFs; the other the titleList (and lots
+		of javascript and stuff in web/jsonquery.py -->
 
-	<service id="root" core="null" allowed="fixed">
 		<template key="fixed">//root.html</template>
 		<meta name="title">\getConfig{web}{sitename}</meta>
+
+		<nullCore/>
+
 		<customDF name="chunkedServiceList">
 			rd = base.caches.getRD("__system__/services")
 			if not hasattr(rd, "chunkedServiceList"):
@@ -316,6 +323,19 @@
 				rd.chunkedServiceList = servicelist.getChunkedServiceList()
 			return rd.chunkedServiceList
 		</customDF>
+
+		<customDF name="titleList">
+			rd = base.caches.getRD("__system__/services")
+			if True:  # not hasattr(rd, "portal__titleList"):
+				with base.getTableConn() as conn:
+					rd.portal__titleList = list(conn.queryToDicts("SELECT"
+						" title, dateUpdated, accessURL, referenceURL, browseable, owner,"
+						" sourceRD, resId"
+						" FROM dc.resources_join WHERE setName='local'"
+						" ORDER BY title"))
+			return rd.portal__titleList
+		</customDF>
+
 		<customDF name="subjectServiceList">
 			rd = base.caches.getRD("__system__/services")
 			if not hasattr(rd, "subjectServiceList"):
@@ -323,6 +343,7 @@
 				rd.subjectServiceList = servicelist.querySubjectsList()
 			return rd.subjectServiceList
 		</customDF>
+
 		<customRF name="ifprotected">
 			if data["owner"]:
 				return ctx.tag

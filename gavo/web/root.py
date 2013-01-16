@@ -29,6 +29,7 @@ from gavo.web import caching
 from gavo.web import common
 from gavo.web import grend
 from gavo.web import ifpages
+from gavo.web import jsonquery
 from gavo.web import metarender
 from gavo.web import weberrors
 
@@ -326,6 +327,10 @@ ArchiveService.addStatic("getRR", metarender.ResourceRecordMaker())
 
 ArchiveService.addStatic('formal.css', formal.defaultCSS)
 ArchiveService.addStatic('formal.js', formal.formsJS)
+
+# Let's see how many more of such JSON things we want to have; for now,
+# since it's just one, let's do it manually
+ArchiveService.addStatic('_portaljs', jsonquery.PortalPage())
 
 if base.getConfig("web", "enabletests"):
 	from gavo.web import webtests
