@@ -2,7 +2,7 @@
 
 input#textsearch {
 	width: 12em;
-	height: 1.8ex;
+	height: 0.9em;
 }
 
 dl.resrec {
@@ -10,7 +10,8 @@ dl.resrec {
 }
 
 #mainbox {
-	position: relative;
+	overflow: hidden;
+	display: block;
 	color: navy;
 	background-color: #EAEBEE;
 	margin-left: 5px;

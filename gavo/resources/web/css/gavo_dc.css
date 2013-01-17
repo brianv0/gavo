@@ -645,12 +645,15 @@ span.formkey_max:before { content:" and "; }
 
 /* fairly simple tabs (see develNotes) */
 ul#tabset_tabs {
+	position: relative;
 	display: block;
 	list-style: none;
-	margin-bottom: 0px;
 	padding-left: 0px;
+	padding-bottom: 0px;
+	margin-bottom: 0px;
 	margin-left: 5px;
 	max-width: none;
+	overflow: hidden;
 }
 
 ul#tabset_tabs li {
@@ -659,6 +662,7 @@ ul#tabset_tabs li {
 	line-height: 1;
 	margin-right: 0.245em;
 	background: #DADDE3 url(/static/img/tab-tl.png) no-repeat top left;
+	vertical-align: top;
 }
 
 ul#tabset_tabs li.selected {
@@ -685,18 +689,11 @@ ul#tabset_tabs li a {
 	font-size: 0.9em;
 	font-weight: bold;
 	text-decoration: none;
+	overflow: hidden;
 }
 
 ul#tabset_tabs li a:hover, ul#tabset_tabs li a:active {
 	color: #1f2126;
-}
-
-ul#tabset_tabs li a:hover span, ul#tabset_tabs li a:active span {
-	color: #3d424f;
-}
-
-ul#tabset_tabs li.selected span {
-	color: #5d6371;
 }
 
 /* jquery css */
