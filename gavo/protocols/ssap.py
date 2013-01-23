@@ -29,6 +29,10 @@ class SSAPCore(svcs.DBCore):
 	This core knows about metadata queries, version negotiation, and 
 	dispatches on REQUEST.  Thus, it may return formatted XML data
 	under certain circumstances.
+
+	SSAPCores also know how to handle getData requests according to the 2012
+	draft.  To enable getData support, add a tablesource property to the 
+	embedding service and read `SSAP getData Support`_
 	"""
 	name_ = "ssapCore"
 

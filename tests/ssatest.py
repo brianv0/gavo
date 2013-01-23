@@ -340,6 +340,13 @@ class GetDataTest(_WithSSATableTest):
 				"FORMAT": "text/plain", 
 				"FLUXCALIB": "ferpotschket"}, "ssap.xml"))
 
+	def testBadPubDID(self):
+		self.assertRaisesWithMsg(svcs.UnknownURI,
+			"No spectrum with pubdid ivo://test.inv/bad known here",
+			getRD().getById("c").runFromDict,
+				({"REQUEST": "getData", "PUBDID": 'ivo://test.inv/bad'}, 
+					"ssap.xml"))
+
 
 class CoreNullTest(_WithSSATableTest):
 # make sure empty parameters of various types are just ignored.

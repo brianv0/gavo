@@ -122,7 +122,7 @@ def makeSDMDataForPUBDID(pubDID, ssaTD, spectrumData):
 			"ssa_pubdid=%(pubdid)s", {"pubdid": pubDID}))
 		if not matchingRows:
 			raise svcs.UnknownURI("No spectrum with pubdid %s known here"%
-				inputTable.getParam("pubdid"))
+				pubDID)
 	return makeSDMDataForSSARow(matchingRows[0], spectrumData)
 
 
@@ -412,13 +412,13 @@ def mangle_fluxcalib(sdmTable, newCalib):
 class SDMCore(svcs.Core):
 	"""A core for making (VO)Tables according to the Spectral Data Model.
 
-	Here, the input table consists of the accref of the table to be generated.
+	Here, the input table consists of the accref of the data to be generated.
 	The data child of an SDMVOTCore prescribes how to come up with the
 	table.  The output table is the (primary) table of the data instance.
 
-	You'll want to use these with the sdm renderer; it knows some little
-	tricks we still need to add some attributes across the VOTable, and it will
-	know how to create FITS files some day.
+	If you find yourself using this, please let the authors know.  We
+	tend to believe SDMCores should no longer be necessary in the presence
+	of getData, and hence we might want to remove this at some point.
 	"""
 	name_ = "sdmCore"
 	inputTableXML = """<inputTable id="inFields">
