@@ -275,6 +275,7 @@ class GetDataTest(_WithSSATableTest):
 			{"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
 				"FORMAT": "text/plain"}, "ssap.xml")
 		mime, payload = res.original
+		self.failUnless(isinstance(payload, str))
 		self.failUnless("1754.0\t1754.0\n1755.0\t1753.0\n"
 			"1756.0\t1752.0" in payload)
 

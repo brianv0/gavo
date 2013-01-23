@@ -343,6 +343,8 @@ def tryServiceReload():
 	if pw=="":
 		base.ui.notifyWarning("Not reloading services RD on server since"
 			" no admin password available.")
+		return
+
 	try:
 		f = utils.urlopenRemote(base.makeAbsoluteURL("/seffe/__system__/services"),
 			urllib.urlencode({"__nevow_form__": "adminOps", "submit": "Reload RD"}),

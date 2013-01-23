@@ -319,7 +319,7 @@ def formatSDMData(sdmData, format, queryMeta=svcs.emptyQueryMeta):
 	"""returns a pair of mime-type and payload for a rendering of the SDM
 	Data instance sdmData in format.
 	"""
-	destMime =  format or "application/x-votable+xml"
+	destMime =  str(format or "application/x-votable+xml")
 	if queryMeta["tdEnc"] and destMime=="application/x-votable+xml":
 		destMime = "application/x-votable+xml;encoding=tabledata"
 	formatId = GETDATA_FORMATS.get(destMime, None)

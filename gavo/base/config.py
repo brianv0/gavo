@@ -389,7 +389,7 @@ _config = Configuration(
 			description="webDir-relative location of global nevow templates"),
 		StringConfigItem("adminpasswd", default="",
 			description="Password for online administration, leave empty to disable"),
-		StringConfigItem("sitename", "GAVO data center",
+		StringConfigItem("sitename", "Unnamed data center",
 			"A short name for your site"),
 		RelativeURL("voplotCodeBase", "None",
 			"Deprecated and ignored."),
@@ -450,14 +450,14 @@ _config = Configuration(
 
 	Section('db', 'Settings concerning database access.',
 		StringConfigItem("interface", "psycopg2", "Don't change"),
-		PathConfigItem("profilePath", " ~/.gavo:$configDir",
+		PathConfigItem("profilePath", "~/.gavo:$configDir",
 			"Path for locating DB profiles"),
 		StringConfigItem("msgEncoding", "utf-8", "Encoding of the"
 			" messages coming from the database"),
 		SetConfigItem("maintainers", "admin", "Name(s) of profiles"
-			" that should have full access to gavoimp-created tables by default"),
+			" that should have full access to gavo imp-created tables by default"),
 		SetConfigItem("queryProfiles", "trustedquery", "Name(s) of profiles that"
-			" should be able to read gavoimp-created tables by default"),
+			" should be able to read gavo imp-created tables by default"),
 		SetConfigItem("adqlProfiles", "untrustedquery", "Name(s) of profiles that"
 			" get access to tables opened for ADQL"),
 		IntConfigItem("defaultLimit", "100", "Default match limit for DB queries"),

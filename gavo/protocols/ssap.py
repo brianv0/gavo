@@ -32,7 +32,7 @@ class SSAPCore(svcs.DBCore):
 
 	SSAPCores also know how to handle getData requests according to the 2012
 	draft.  To enable getData support, add a tablesource property to the 
-	embedding service and read `SSAP getData Support`_
+	embedding service and read `getData Support`_
 	"""
 	name_ = "ssapCore"
 
@@ -116,6 +116,9 @@ class SSAPCore(svcs.DBCore):
 	############### Implementation of the service operations
 
 	def _run_getData(self, service, inputTable, queryMeta):
+		"""returns mime and payload for a getData operation on the parameters
+		defined in inputTable.
+		"""
 		tablesourceId = service.getProperty("tablesource", None)
 		if tablesourceId is None:
 			raise base.ValidationError("No getData support on %s"%
