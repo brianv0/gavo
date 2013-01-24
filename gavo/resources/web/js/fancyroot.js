@@ -113,10 +113,10 @@ function _makeToggler(dataAdder) {
 		}
 
 		if (isOpen) {
-			ob.attr("class", "arrow-e");
+			ob.find(".handlearrow").attr("src", "/static/img/arr-e.png");
 			childMeta.css("display", "none");
 		} else {
-			ob.attr("class", "arrow-s");
+			ob.find(".handlearrow").attr("src", "/static/img/arr-s.png");
 			childMeta.css("display", "block");
 		}
 	}

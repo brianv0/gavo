@@ -37,8 +37,9 @@ probably can access
 		
 <ul class="servicelist" n:render="sequence" n:data="titleList">
 	<li n:pattern="item" n:render="mapping">
-		<a class="arrow-e" onclick="toggleDetails(this)">
+		<a onclick="toggleDetails(this)">
 			<n:attr name="name"><n:slot name="sourcerd"/>,<n:slot name="resid"/></n:attr>
+			<img src="/static/img/arr-e.png" alt="&gt;" class="handlearrow"/>
 		</a>
 		<span n:render="ifprotected">[P]</span>
 		<a>
@@ -79,7 +80,8 @@ probably can access
 <!-- Templates for renderTemplate -->
 <script type="text/html" id="tmpl_resHead">
 	<li>
-		<a class="arrow-e" name="$sourcerd,$resid" onclick="toggleDetails(this)"/>
+		<a name="$sourcerd,$resid" onclick="toggleDetails(this)">
+		<img src="/static/img/arr-e.png" alt="&gt;" class="handlearrow"/></a>
 		<a href="$accessurl">$title</a>
 		<span class="hbox">
 			<a class="linkicon" href="$referenceurl">
@@ -98,7 +100,8 @@ probably can access
 
 <script type="text/html" id="tmpl_resHeadNobrowse">
 	<li>
-		<a class="arrow-e" name="$sourcerd,$resid" onclick="toggleDetails(this)"/>
+		<a name="$sourcerd,$resid" onclick="toggleDetails(this)">
+		<img src="/static/img/arr-e.png" alt="&gt;" class="handlearrow"/></a>
 		<a href="$referenceurl">$title</a>
 		<span class="hbox">
 			<a class="linkicon" href="$referenceurl">
@@ -124,17 +127,19 @@ probably can access
 
 <script type="text/html" id="tmpl_subjectHeader">
 	<li>
-		<a class="arrow-e" onclick="toggleSubjectResources(this)" name="$subject"/>
+		<a onclick="toggleSubjectResources(this)" name="$subject">
+		<img src="/static/img/arr-e.png" alt="&gt;" class="handlearrow"/>
 		<span class="data">$subject</span>
-		($nummatch)
+		($nummatch)</a>
 	</li>
 </script>
 
 <script type="text/html" id="tmpl_authorHeader">
 	<li>
-		<a class="arrow-e" onclick="toggleAuthorResources(this)" name="$author"/>
+		<a onclick="toggleAuthorResources(this)" name="$author">
+		<img src="/static/img/arr-e.png" alt="&gt;" class="handlearrow"/>
 		<span class="data">$author</span>
-		($nummatch)
+		($nummatch)</a>
 	</li>
 </script>
 

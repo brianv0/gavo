@@ -299,6 +299,33 @@ class VarTest(testhelpers.VerboseTest):
 		self.assertEqual(mapper({}, None), {'si': None})
 
 
+class SimpleMapsTest(testhelpers.VerboseTest):
+	def testBasic(self):
+		dd, td = makeDD('<column name="si" type="smallint"/>'
+			'<column name="bi" type="smallint"/>',
+			'  <simplemaps>si:x, bi:y</simplemaps>')
+		mapper = dd.rowmakers[0].compileForTableDef(td)
+		self.assertEqual(mapper({'x': 57, 'y':'28'}, None), 
+			{'si': 57, 'bi': 28})
+
+	def testFromAttribute(self):
+		dd = base.parseFromString(rscdef.DataDescriptor,
+			'<data><table id="foo"><column name="z" type="date"/></table>'
+			'<dictlistGrammar/><make table="foo">'
+			'<rowmaker simplemaps="z:ds"/></make></data>')
+		td = dd.getTableDefById("foo")
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
+		self.assertEqual(mapper({'ds': '2010-01-03'}, None), 
+			 {'z': datetime.date(2010, 1, 3)})
+	
+	def testMissingTargetFails(self):
+		dd, td = makeDD('<column name="si" type="smallint"/>',
+			'  <simplemaps>bi:y</simplemaps>')
+		self.assertRaisesWithMsg(base.NotFoundError,
+			"column u'bi' could not be located in table foo's columns",
+			dd.rowmakers[0].compileForTableDef, (td,))
+
+
 class PredefinedTest(testhelpers.VerboseTest):
 	"""tests for procedures from //procs.
 	"""

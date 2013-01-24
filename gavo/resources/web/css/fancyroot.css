@@ -20,34 +20,6 @@ dl.resrec {
 	min-height:70ex;
 }
 
-.arrow-e,
-.arrow-s {
-	border-style: dashed;
-	border-color: transparent;
-	border-width: 0.53em;
-	display: inline-block;
-	font-size: 10px;
-	height: 0pt;
-	line-height: 0pt;
-	position: relative;
-	vertical-align: middle;
-	width: 0pt;
-}
-
-.arrow-e {
-	border-left-width: 1em;
-	border-left-style: solid;
-	border-left-color: navy;
-	left: 0.25em;
-}
-                    
-.arrow-s {
-	border-top-width: 1em;
-	border-top-style: solid;
-	border-top-color: navy;
-	top: 0.25em;
-}
-
 ul.servicelist {
 	list-style-type: none;
 	padding-top: 1ex;
@@ -60,4 +32,9 @@ ul.servicelist {
 
 .servicelist li a {
 	text-decoration: none;
+}
+
+img.handlearrow {
+	position: relative;
+	top: 5px;
 }
