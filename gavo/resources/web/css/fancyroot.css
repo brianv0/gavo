@@ -38,6 +38,8 @@ button {
 	background-color: transparent;
 	border: 0px solid white;
 	font-size: 11pt;
+	text-align:left;
+	white-space:nowrap;
 }
 
 button .data {
