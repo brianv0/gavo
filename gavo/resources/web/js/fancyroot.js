@@ -76,7 +76,7 @@ function makeMatchAdder(queryURL, keyName) {
 		destElement = $("<ul class='servicelist fold'/>");
 		handle.parent().append(destElement);
 		pars = {};
-		pars[keyName] = handle.attr("name");
+		pars[keyName] = handle.attr("value");
 		$.getJSON(queryURL, pars,
 			function(data, textStatus, xhr) {
 				data.map(function(row) {destElement.append(formatResourceHeader(row))});
@@ -89,7 +89,7 @@ addResForAuthors = makeMatchAdder(JSONROOT+'byAuthor', 'author')
 
 function addServiceInfo(handle) {
 	// adds extended service metadata to handle's parent
-	var parts = handle.attr("name").split(',');
+	var parts = handle.attr("value").split(',');
 	var destElement = handle.parent();
 	$.getJSON(JSONROOT+'serviceInfo',
 		{'resId': parts[1], 'sourceRD': parts[0]},
@@ -113,10 +113,10 @@ function _makeToggler(dataAdder) {
 		}
 
 		if (isOpen) {
-			ob.find(".handlearrow").attr("src", "/static/img/arr-e.png");
+			ob.find(".handlearrow").html("&#x25B6");
 			childMeta.css("display", "none");
 		} else {
-			ob.find(".handlearrow").attr("src", "/static/img/arr-s.png");
+			ob.find(".handlearrow").html("&#x25BC");
 			childMeta.css("display", "block");
 		}
 	}

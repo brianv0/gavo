@@ -37,10 +37,10 @@ probably can access
 		
 <ul class="servicelist" n:render="sequence" n:data="titleList">
 	<li n:pattern="item" n:render="mapping">
-		<a onclick="toggleDetails(this)">
-			<n:attr name="name"><n:slot name="sourcerd"/>,<n:slot name="resid"/></n:attr>
-			<img src="/static/img/arr-e.png" alt="&gt;" class="handlearrow"/>
-		</a>
+		<button class="handle" onclick="toggleDetails(this)">
+			<n:attr name="value"><n:slot name="sourcerd"/>,<n:slot name="resid"/></n:attr>
+			<span class="handlearrow">&#x25B6;</span>
+		</button>
 		<span n:render="ifprotected">[P]</span>
 		<a>
 			<n:attr name="href"><n:slot name="accessurl"/></n:attr>
@@ -80,8 +80,8 @@ probably can access
 <!-- Templates for renderTemplate -->
 <script type="text/html" id="tmpl_resHead">
 	<li>
-		<a name="$sourcerd,$resid" onclick="toggleDetails(this)">
-		<img src="/static/img/arr-e.png" alt="&gt;" class="handlearrow"/></a>
+		<button class="handle" value="$sourcerd,$resid" 
+			onclick="toggleDetails(this)">&#x25B6;</button>
 		<a href="$accessurl">$title</a>
 		<span class="hbox">
 			<a class="linkicon" href="$referenceurl">
@@ -100,8 +100,9 @@ probably can access
 
 <script type="text/html" id="tmpl_resHeadNobrowse">
 	<li>
-		<a name="$sourcerd,$resid" onclick="toggleDetails(this)">
-		<img src="/static/img/arr-e.png" alt="&gt;" class="handlearrow"/></a>
+		<button class="handle" value="$sourcerd,$resid" 
+			onclick="toggleDetails(this)">
+			&#x25B6;</button>
 		<a href="$referenceurl">$title</a>
 		<span class="hbox">
 			<a class="linkicon" href="$referenceurl">
@@ -127,19 +128,21 @@ probably can access
 
 <script type="text/html" id="tmpl_subjectHeader">
 	<li>
-		<a onclick="toggleSubjectResources(this)" name="$subject">
-		<img src="/static/img/arr-e.png" alt="&gt;" class="handlearrow"/>
-		<span class="data">$subject</span>
-		($nummatch)</a>
+		<button onclick="toggleSubjectResources(this)" value="$subject"
+				class="handle">
+			<span class="handlearrow">&#x25B6;</span>
+			<span class="data">$subject</span>
+			($nummatch)</button>
 	</li>
 </script>
 
 <script type="text/html" id="tmpl_authorHeader">
 	<li>
-		<a onclick="toggleAuthorResources(this)" name="$author">
-		<img src="/static/img/arr-e.png" alt="&gt;" class="handlearrow"/>
-		<span class="data">$author</span>
-		($nummatch)</a>
+		<button onclick="toggleAuthorResources(this)" value="$author"
+				class="handle">
+			<span class="handlearrow">&#x25B6;</span>
+			<span class="data">$author</span>
+			($nummatch)</button>
 	</li>
 </script>
 

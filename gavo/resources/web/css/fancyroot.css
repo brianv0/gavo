@@ -34,7 +34,12 @@ ul.servicelist {
 	text-decoration: none;
 }
 
-img.handlearrow {
-	position: relative;
-	top: 5px;
+button {
+	background-color: transparent;
+	border: 0px solid white;
+	font-size: 11pt;
+}
+
+button .data {
+	color: #000099;
 }
