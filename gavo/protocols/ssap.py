@@ -158,8 +158,8 @@ class SSAPCore(svcs.DBCore):
 				band.start or -1, band.stop or 1e308)
 			handledArguments.add("BAND")
 
-		unhandledArguments = set(par.name
-			for par in inputTable.iterParams() if par.value is not None
+		unhandledArguments = set(name.upper()
+			for name, value in queryMeta.ctxArgs.iteritems() if value
 				)-handledArguments
 		if unhandledArguments:
 			raise base.ValidationError("The following parameter(s) are not"

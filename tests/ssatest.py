@@ -348,6 +348,13 @@ class GetDataTest(_WithSSATableTest):
 				({"REQUEST": "getData", "PUBDID": 'ivo://test.inv/bad'}, 
 					"ssap.xml"))
 
+	def testRandomParamFails(self):
+		self.assertRaisesWithMsg(base.ValidationError,
+			"The following parameter(s) are not accepted by this service: WARP",
+			getRD().getById("c").runFromDict,
+			({"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
+				"warp": "infinity"}, "ssap.xml"))
+
 
 class CoreNullTest(_WithSSATableTest):
 # make sure empty parameters of various types are just ignored.

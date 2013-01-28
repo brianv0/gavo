@@ -37,11 +37,9 @@ function textsearchKey(ev) {
 }
 
 
-function makeMainFetcher(dataSource, recordFormatter) {
-	// returns a function getting json from datasource and formatting it
-	// to the main list via recordFormatter
+function makeMainFetcher(dataURL, recordFormatter) {
 	return function () {
-		fetchIntoMain(dataSource, recordFormatter);
+		fetchIntoMain(dataURL, recordFormatter);
 	}
 }
 
@@ -84,9 +82,6 @@ function makeMatchAdder(queryURL, keyName) {
 	}
 }
 
-addResForSubjects = makeMatchAdder(JSONROOT+'bySubject', 'subject')
-addResForAuthors = makeMatchAdder(JSONROOT+'byAuthor', 'author')
-
 function addServiceInfo(handle) {
 	// adds extended service metadata to handle's parent
 	var parts = handle.attr("value").split(',');
@@ -122,10 +117,11 @@ function _makeToggler(dataAdder) {
 	}
 }
 
-
 toggleDetails = _makeToggler(addServiceInfo);
-toggleSubjectResources = _makeToggler(addResForSubjects);
-toggleAuthorResources = _makeToggler(addResForAuthors);
+toggleSubjectResources = _makeToggler(
+	makeMatchAdder(JSONROOT+'bySubject', 'subject'));
+toggleAuthorResources = _makeToggler(
+	makeMatchAdder(JSONROOT+'byAuthor', 'author'));
 
 $(document).ready(function() {
 	$("#tab_placeholder").replaceWith(
