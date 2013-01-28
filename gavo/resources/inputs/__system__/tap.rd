@@ -2,6 +2,7 @@
 	<meta name="creationDate">2009-12-01T10:00:00</meta>
 	<meta name="subject">Virtual observatory</meta>
 	<meta name="subject">Catalogs</meta>
+	<meta name="subject">ADQL</meta>
 
 	<meta name="description">
 		\getConfig{web}{sitename}'s Table Access Protocol
