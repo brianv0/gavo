@@ -223,6 +223,20 @@ class SSAPCapabilityTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 			capabilities.getCapabilityElement,
 			(publication,))
 
+	def testNestedMeta(self):
+		with testtricks.testFile(
+				os.path.join(base.getConfig("inputsDir"), "data", "tmp.rd"),
+			"""<resource schema="test" resdir=".">
+				<service id="t" original="data/ssatest#s">
+				<publish render="ssap.xml"/>
+				<meta name="ssap">
+					<meta name="dataSource">you bet</meta>
+					<meta name="testQuery">HAHA.</meta>
+				</meta></service></resource>"""):
+			res = capabilities.getCapabilityElement(testhelpers.getTestRD("tmp"
+				).getById("t").publications[0]).render()
+			self.failUnless('<dataSource>you bet</dataSource>' in res)
+
 
 class AuthorityTest(testhelpers.VerboseTest):
 # This test will fail until defaultmeta.txt has the necessary entries

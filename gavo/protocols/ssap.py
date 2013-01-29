@@ -98,20 +98,21 @@ class SSAPCore(svcs.DBCore):
 		calibrations.add("relative")
 
 		resElement[
-			V.TABLE(name="generationParameters") [
-				V.PARAM(name="BAND", datatype="float", unit="m")[
-					V.VALUES[
-						V.MIN(value=specMin),
-						V.MAX(value=specMax)]],
+			V.RESOURCE(name="getDataMeta")[
+				V.TABLE(name="generationParameters") [
+					V.PARAM(name="BAND", datatype="float", unit="m")[
+						V.VALUES[
+							V.MIN(value=specMin),
+							V.MAX(value=specMax)]],
 
-				V.PARAM(name="FLUXCALIB", datatype="char", arraysize="*") [
-					V.VALUES[
-						[V.OPTION(value=c) for c in calibrations]]],
-					
-    		V.PARAM(name="FORMAT", datatype="char", arraysize="*",
-			      value="application/x-votable+xml") [
-		      V.VALUES[[
-		      	V.OPTION(value=mime) for mime in sdm.GETDATA_FORMATS]]]]]
+					V.PARAM(name="FLUXCALIB", datatype="char", arraysize="*") [
+						V.VALUES[
+							[V.OPTION(value=c) for c in calibrations]]],
+						
+    			V.PARAM(name="FORMAT", datatype="char", arraysize="*",
+			      	value="application/x-votable+xml") [
+		      	V.VALUES[[
+		      		V.OPTION(value=mime) for mime in sdm.GETDATA_FORMATS]]]]]]
 
 	############### Implementation of the service operations
 
