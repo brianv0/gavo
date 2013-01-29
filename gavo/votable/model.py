@@ -216,14 +216,18 @@ class VOTable(object):
 		_a_inclusive = None
 		_a_value = None
 		_childSequence = []
-		_mayBeEmpty = True
+
+		def isEmpty(self):
+			return self.value is None
 
 
 	class MIN(_VOTElement):
 		_a_inclusive = None
 		_a_value = None
 		_childSequence = []
-		_mayBeEmpty = True
+
+		def isEmpty(self):
+			return self.value is None
 
 
 	class OPTION(_VOTElement):
