@@ -341,7 +341,7 @@ class TAPTransitions(uws.UWSTransitions):
 
 		However, if startTime is NULL, taprunner is still starting up.  Sending
 		a kill -INT may to many things, and most of them we don't want.
-		So, in this case we kill -TERM the child, to state management ourselves
+		So, in this case we kill -TERM the child, do state management ourselves
 		and hope for the best.
 		"""
 		try:

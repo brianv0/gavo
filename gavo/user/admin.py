@@ -123,6 +123,22 @@ def cleantap(querier, args):
 		includeForgotten=args.includeForgotten)
 
 
+@exposedFunction([
+	Arg("jobId", help="id of the job to abort"),
+	Arg("helpMsg", help="A helpful message to add to the abort message")],
+	help="manually abort a TAP job and send some message to a user")
+def tapabort(querier, args):
+	from gavo.protocols import tap
+
+	tap.workerSystem.changeToPhase(args.jobId, uws.ERROR, 
+			"Job aborted by an administrator, probably because the query\n"
+			" should be written differently to be less of a resource hog.\n"
+			"  Here's what the administrator had to say:\n\n"+args.helpMsg+
+			"\n\nIf you have further questions, just send a mail to "+
+			base.getMetaText(base.caches.getRD("//tap").getById("run"), 
+				"contact.email"))
+
+
 @exposedFunction(help="Re-import column information from all RDs"
 	" (incl. TAP_SCHEMA; like gavo imp -m <all rds>)")
 def allcols(querier, args):
