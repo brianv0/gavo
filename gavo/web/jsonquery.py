@@ -116,6 +116,15 @@ class ServiceInfo(JSONQuery):
 		"  AND resId=%(resId)s and sourceRd=%(sourceRD)s")
 
 
+class ResourcesByService(JSONQuery):
+	query = (
+		"SELECT res_title, updated, access_url"
+		"  FROM rr.capability"
+		"    NATURAL JOIN rr.resource"
+		"    NATURAL JOIN rr.interface"
+		"  WHERE standard_id=%(standardId)s")
+
+
 class PortalPage(rend.Page):
 	child_titles = Titles()
 	child_subjects = Subjects()
@@ -124,3 +133,4 @@ class PortalPage(rend.Page):
 	child_byAuthor = ByAuthor()
 	child_byFulltext = ByFulltext()
 	child_serviceInfo = ServiceInfo()
+	child_resourcesByService = ResourcesByService()
