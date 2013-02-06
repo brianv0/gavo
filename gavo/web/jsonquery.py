@@ -117,25 +117,13 @@ class ServiceInfo(JSONQuery):
 		"  AND resId=%(resId)s and sourceRd=%(sourceRD)s")
 
 
-"""
 class ResourcesByStandard(JSONQuery):
 	query = (
 		"SELECT res_title, access_url"
 		"  FROM rr.capability"
 		"    NATURAL JOIN rr.resource"
 		"    NATURAL JOIN rr.interface"
-		"  WHERE standard_id LIKE '%%sia%%'"
-		"  ORDER BY res_title")
-"""
-
-
-class ResourcesByStandard(JSONQuery):
-	query = (
-		"SELECT res_title, access_url"
-		"  FROM rr.capability"
-		"    NATURAL JOIN rr.resource"
-		"    NATURAL JOIN rr.interface"
-		"  WHERE standard_id='ivo://ivoa.net/std/sia'"
+		"  WHERE standard_id=%(standardId)s"
 		"  ORDER BY res_title")
 
 
