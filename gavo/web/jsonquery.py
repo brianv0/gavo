@@ -17,6 +17,7 @@ from gavo import base
 RESMETA_FIELDS = ("title, accessurl, referenceurl,"
 	" sourcerd, resid, owner, browseable")
 
+
 class JSONQuery(rend.Page):
 	"""A resource returning Json for the database query given in the
 	query class attribute (and potentially some arguments).
@@ -116,13 +117,26 @@ class ServiceInfo(JSONQuery):
 		"  AND resId=%(resId)s and sourceRd=%(sourceRD)s")
 
 
-class ResourcesByService(JSONQuery):
+"""
+class ResourcesByStandard(JSONQuery):
 	query = (
-		"SELECT res_title, updated, access_url"
+		"SELECT res_title, access_url"
 		"  FROM rr.capability"
 		"    NATURAL JOIN rr.resource"
 		"    NATURAL JOIN rr.interface"
-		"  WHERE standard_id=%(standardId)s")
+		"  WHERE standard_id LIKE '%%sia%%'"
+		"  ORDER BY res_title")
+"""
+
+
+class ResourcesByStandard(JSONQuery):
+	query = (
+		"SELECT res_title, access_url"
+		"  FROM rr.capability"
+		"    NATURAL JOIN rr.resource"
+		"    NATURAL JOIN rr.interface"
+		"  WHERE standard_id='ivo://ivoa.net/std/sia'"
+		"  ORDER BY res_title")
 
 
 class PortalPage(rend.Page):
@@ -133,4 +147,4 @@ class PortalPage(rend.Page):
 	child_byAuthor = ByAuthor()
 	child_byFulltext = ByFulltext()
 	child_serviceInfo = ServiceInfo()
-	child_resourcesByService = ResourcesByService()
+	child_resourcesByStandard = ResourcesByStandard()

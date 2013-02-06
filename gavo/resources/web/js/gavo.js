@@ -46,7 +46,8 @@ function getJYear(date) {
 ///////////// Micro templating.  See develNotes
 function htmlEscape(str) {
 	return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;')
-		.replace(/'/g, '&apos;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+		.replace(/'/g, '&apos;').replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;').replace(/_/g, '&#95;');
 }
 
 (function () {
@@ -62,7 +63,7 @@ function htmlEscape(str) {
        	 str.replace(/[\r\t\n]/g, " ")
           	.split("'").join("\\'")
           	.split("\t").join("'")
-          	.replace(/\$([a-zA-Z]+)/g, "',htmlEscape($1),'")
+          	.replace(/\$([a-zA-Z_]+)/g, "',htmlEscape($1),'")
           	+ "');}return p.join('');";
        	 func = new Function("obj", strFunc);
        	 _tmplCache[str] = func;
