@@ -119,12 +119,23 @@ class ServiceInfo(JSONQuery):
 
 class ResourcesByStandard(JSONQuery):
 	query = (
-		"SELECT res_title, access_url"
+		"SELECT ivoid, res_title"
 		"  FROM rr.capability"
 		"    NATURAL JOIN rr.resource"
 		"    NATURAL JOIN rr.interface"
 		"  WHERE standard_id=%(standardId)s"
 		"  ORDER BY res_title")
+
+
+class ResByStandardInfo(JSONQuery):
+	query = (
+		"SELECT access_url,"
+		"	to_char(updated, 'YYYY-MM-DD') as lastupdate, res_description"
+		"  FROM rr.capability"
+		"    NATURAL JOIN rr.resource"
+		"    NATURAL JOIN rr.interface"
+		"  WHERE standard_id=%(standardId)s"
+		"  AND ivoid=%(ivoId)s")
 
 
 class PortalPage(rend.Page):
@@ -136,3 +147,4 @@ class PortalPage(rend.Page):
 	child_byFulltext = ByFulltext()
 	child_serviceInfo = ServiceInfo()
 	child_resourcesByStandard = ResourcesByStandard()
+	child_resByStandardInfo = ResByStandardInfo()
