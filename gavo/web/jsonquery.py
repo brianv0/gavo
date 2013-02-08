@@ -130,12 +130,10 @@ class ResourcesByStandard(JSONQuery):
 class ResByStandardInfo(JSONQuery):
 	query = (
 		"SELECT access_url,"
-		"	to_char(updated, 'YYYY-MM-DD') as lastupdate, res_description"
-		"  FROM rr.capability"
-		"    NATURAL JOIN rr.resource"
+		"	to_char(updated, 'YYYY-MM-DD') AS lastupdate, res_description"
+		"  FROM rr.resource"
 		"    NATURAL JOIN rr.interface"
-		"  WHERE standard_id=%(standardId)s"
-		"  AND ivoid=%(ivoId)s")
+		"  WHERE ivoid=%(ivoId)s")
 
 
 class PortalPage(rend.Page):

@@ -47,7 +47,7 @@ function getJYear(date) {
 function htmlEscape(str) {
 	return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;')
 		.replace(/'/g, '&apos;').replace(/</g, '&lt;')
-		.replace(/>/g, '&gt;').replace(/_/g, '&#95;');
+		.replace(/>/g, '&gt;');
 }
 
 (function () {
