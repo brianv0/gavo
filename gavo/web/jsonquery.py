@@ -117,36 +117,6 @@ class ServiceInfo(JSONQuery):
 		"  AND resId=%(resId)s and sourceRd=%(sourceRD)s")
 
 
-class ResourcesByStandard(JSONQuery):
-	query = (
-		"SELECT ivoid, res_title"
-		"  FROM rr.capability"
-		"    NATURAL JOIN rr.resource"
-		"    NATURAL JOIN rr.interface"
-		"  WHERE standard_id=%(standardId)s"
-		"  ORDER BY res_title")
-
-
-class ResByStandardInfo(JSONQuery):
-	query = (
-		"SELECT access_url,"
-		"    to_char(updated, 'YYYY-MM-DD') AS lastupdate, res_description"
-		"  FROM rr.resource"
-		"    NATURAL JOIN rr.interface"
-		"  WHERE ivoid=%(ivoId)s")
-
-
-class UserDefinedResList(JSONQuery):
-	query = (
-		"SELECT ivoid, res_title, access_url,"
-		"    to_char(updated, 'YYYY-MM-DD') AS lastupdate, res_description"
-		"  FROM rr.resource"
-		"    NATURAL JOIN rr.capability"
-		"    NATURAL JOIN rr.interface"
-		"    NATURAL JOIN rr.subject"
-		"  WHERE %(constraint)s %(operator)s '%(value)s'")
-
-
 class PortalPage(rend.Page):
 	child_titles = Titles()
 	child_subjects = Subjects()
@@ -155,6 +125,3 @@ class PortalPage(rend.Page):
 	child_byAuthor = ByAuthor()
 	child_byFulltext = ByFulltext()
 	child_serviceInfo = ServiceInfo()
-	child_resourcesByStandard = ResourcesByStandard()
-	child_resByStandardInfo = ResByStandardInfo()
-	child_userDefinedResList = UserDefinedResList()
