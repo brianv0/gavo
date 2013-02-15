@@ -131,14 +131,13 @@ def getPertainingDDs(rd, selectedIds):
 		dds = _getAutoDDIds(rd)
 	if not dds:
 		if not rd.dds:
-			hint = ("There is no data element in your RD.  This is almost"
-			 " never what you want (see the tutorial)")
+			base.ui.notifyWarning("There is no data element"
+				" in the RD %s; is that all right?"%rd.sourceId)
 		else:
-			hint = ("All data elements have auto=False.  You have to"
-				" explicitely name one or more data to import (names"
-				" available: %s)"%(", ".join(dd.id or "(anon)" for dd in rd.dds)))
-		raise base.ReportableError(
-			"Neither automatic not manual data selected from RD %s "%rd.sourceId,
-			hint=hint)
+			raise base.ReportableError(
+				"Neither automatic not manual data selected from RD %s "%rd.sourceId,
+				hint="All data elements have auto=False.  You have to"
+					" explicitely name one or more data to import (names"
+					" available: %s)"%(", ".join(dd.id or "(anon)" for dd in rd.dds)))
 	return dds
 

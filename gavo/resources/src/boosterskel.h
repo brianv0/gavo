@@ -52,6 +52,8 @@ typedef struct Field_s {
 	F(fi)->type=VAL_SHORT; F(fi)->val.c_int16 = value;}
 #define MAKE_INT(fi, value) {\
 	F(fi)->type=VAL_INT; F(fi)->val.c_int32 = value;}
+#define MAKE_BIGINT(fi, value) {\
+	F(fi)->type=VAL_BIGINT; F(fi)->val.c_int64 = value;}
 #define MAKE_CHAR(fi, value) {\
 	F(fi)->type=VAL_CHAR; F(fi)->val.c_int8 = value;}
 #define MAKE_BYTE(fi, value) {\

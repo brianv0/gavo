@@ -162,9 +162,12 @@ class SSAPCore(svcs.DBCore):
 				band.start or -1, band.stop or 1e308)
 			handledArguments.add("BAND")
 
+		# Hack alert: the renderer inserts some silly keys right now (it
+		# shouldn't do that).  While it does, ignore keys with an underscore
+		# in front
 		unhandledArguments = set(name.upper()
 			for name, value in queryMeta.ctxArgs.iteritems() if value
-				)-handledArguments
+				and not name.startswith("_"))-handledArguments
 		if unhandledArguments:
 			raise base.ValidationError("The following parameter(s) are not"
 				" accepted by this service: %s"%", ".join(unhandledArguments),
