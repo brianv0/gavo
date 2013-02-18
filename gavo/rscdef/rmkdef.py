@@ -226,7 +226,7 @@ class RowmakerMacroMixin(base.StandardMacroMixin):
 		"""returns an expression giving the number of records already 
 		ingested for this source.
 		"""
-		return 'raise NotImplementedError("Cannot compute #rows yet")'
+		return 'vars["parser_"].recordNumber'
 
 	def macro_property(self, property):
 		"""returns an expression giving the property on the current DD.
