@@ -21,7 +21,7 @@ from gavo.protocols import products
 from gavo.utils import pyfits
 
 
-# MIME types we can generate from SDM-compliant data; the values are
+# MIME types we can generate *from* SDM-compliant data; the values are
 # either keys for formats.formatData, or None if we have special
 # handling below.
 GETDATA_FORMATS = {
@@ -29,8 +29,7 @@ GETDATA_FORMATS = {
 	"application/x-votable+xml;encoding=tabledata": "votabletd",
 	"text/plain": "tsv",
 	"text/csv": "csv",
-	"application/fits": None,
-	"image/fits": None,}
+	"application/fits": None,}
 
 
 _SSA_SPEC_EXCEPTIONS = {
