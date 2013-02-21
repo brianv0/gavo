@@ -298,7 +298,14 @@ def _iterSTC(tableDef, serManager):
 	tableDef.
 	"""
 	def getIdFor(colRef):
-		return serManager.getColumnByName(colRef.dest)["id"]
+		try:
+			return serManager.getColumnByName(colRef.dest)["id"]
+		except KeyError:
+			# in ADQL processing, names are lower-cased, and there's not
+			# terribly much we can do about it without breaking other things.
+			# Hence, let's try and see whether our target is there with 
+			# case normalization:
+			return serManager.getColumnByName(colRef.dest.lower())["id"]
 	for ast in tableDef.getSTCDefs():
 		yield modelgroups.marshal_STC(ast, getIdFor)
 
