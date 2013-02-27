@@ -296,6 +296,7 @@ class SSACapabilityMaker(CapabilityMaker):
 			SSAP.dataSource[service.getMeta("ssap.dataSource", raiseOnFail=True)],
 			SSAP.creationType[service.getMeta("ssap.creationType", 
 				default="archival")],
+			SSAP.supportedFrame["ICRS"],
 			SSAP.maxSearchRadius["180"],
 			SSAP.maxRecords[str(base.getConfig("ivoa", "dalHardLimit"))],
 			SSAP.defaultMaxRecords[str(base.getConfig("ivoa", "dalDefaultLimit"))],
