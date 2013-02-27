@@ -1053,8 +1053,8 @@ read stuff from the resource directory is
 ``table.rd.openRes("res/some_file)``.
 
 Some types of scripts may have additional names available.  Currently,
-newSource has the name sourceToken – which is the sourceToken as passed
-to the grammar.
+newSource and sourceDone have the name sourceToken – which is the
+sourceToken as passed to the grammar.
 
 Script types
 ''''''''''''
@@ -1063,10 +1063,16 @@ The type of a script corresponds to the event triggering its execution.
 The following types are defined right now:
 
 * preImport -- before anything is written to the table
-* newSource -- every time a new source is started
 * preIndex -- before the indices on the table are built
 * postCreation -- after the table (incl. indices) is finished
 * beforeDrop -- when the table is about to be dropped
+* newSource -- every time a new source is started
+* sourceDone -- every time a source has been processed
+
+Note that preImport, preIndex, and postCreation scripts are not executed
+when a table is updated, in particular, in data items with
+``updating="True"``.  The only way to run scripts in such circumstances
+is to use newSource and sourceDone scripts.
 
 
 Examples

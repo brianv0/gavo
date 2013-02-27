@@ -325,8 +325,8 @@ class Data(base.MetaMixin, common.ParamMixin):
 		return _DataFeeder(self, **kwargs)
 
 	def runScripts(self, phase, **kwargs):
-		for t in self:
-			t.runScripts(phase, **kwargs)
+		for make in self.dd.makes:
+			make.getRunner()(self.tables[make.table.id], phase, **kwargs)
 
 
 class _EnoughRows(base.ExecutiveAction):
@@ -370,11 +370,12 @@ def _processSourceReal(data, source, feeder, opts):
 			raise
 		except Exception, msg:
 			raise base.ui.logOldExc(
-				base.SourceParseError(str(msg), 
+				base.SourceParseError(str(msg),
 					source=utils.makeEllipsis(unicode(source), 80),
 					location=srcIter.getLocator()))
 	else:  # magic grammars (like those of boosters) return a callable
 		srcIter(data)
+	data.runScripts("sourceDone", sourceToken=source)
 
 
 def processSource(data, source, feeder, opts, connection=None):
@@ -408,7 +409,6 @@ def processSource(data, source, feeder, opts, connection=None):
 					" (%s)"%utils.safe_str(ex))
 		else:
 			cursor.execute("RELEASE SAVEPOINT thisSource")
-
 
 
 def makeData(dd, parseOptions=common.parseNonValidating,

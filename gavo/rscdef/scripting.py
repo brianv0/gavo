@@ -191,7 +191,7 @@ class Script(base.Structure, base.RestrictionMixin):
 	_type = base.EnumeratedUnicodeAttribute("type", default=base.Undefined,
 		description="Point of time at which script is to run.", 
 		validValues=["preImport", "newSource", "preIndex", "postCreation",
-			"beforeDrop"], copyable=True)
+			"beforeDrop", "sourceDone"], copyable=True)
 	_name = base.UnicodeAttribute("name", default="anonymous",
 		description="A human-consumable designation of the script.",
 		copyable=True)

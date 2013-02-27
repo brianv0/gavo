@@ -185,16 +185,6 @@ class ImportTest(testhelpers.VerboseTest):
 		finally:
 			self.assertOutput(cli.main, argList=["purge", "test.adql"])
 
-	def testNoDataImpError(self):
-		with testtricks.testFile(
-				os.path.join(base.getConfig("inputsDir"), "empty.rd"),
-				"""<resource schema="test"><table id="foo"/></resource>"""):
-			self.assertOutput(cli.main, argList=["--hints", "imp", "empty"],
-				expectedRetcode=1, expectedStderr='*** Error: Neither automatic'
-					" not manual data selected from RD empty\nHint: There is no"
-					" data element in your RD.  This is almost never what\nyou want"
-					' (see the tutorial)\n')
-
 	def testNonExistingDataImpError(self):
 		with testtricks.testFile(
 				os.path.join(base.getConfig("inputsDir"), "empty.rd"),

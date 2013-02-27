@@ -626,7 +626,7 @@ class View(DBTable):
 	but trying to actually feed anything will raise a DataError.
 
 	On import, views only run postCreation scripts;
-	since there are no indices, no preIndex scripts are run, since
+	since there are no indices, no preIndex scripts are not run, since
 	no import takes place, there's no preImport or newSource.
 	"""
 

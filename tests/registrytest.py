@@ -167,7 +167,7 @@ class _SSACapabilityElement(testhelpers.TestResource):
 		publication = testhelpers.getTestRD("ssatest"
 			).getById("s").publications[0]
 		res = capabilities.getCapabilityElement(publication).render()
-		#os.popen("xmlstarlet fo", "w").write(res)
+		os.popen("xmlstarlet fo", "w").write(res)
 		return res, ElementTree.fromstring(res)
 
 
