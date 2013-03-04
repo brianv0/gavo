@@ -77,6 +77,15 @@ def _makeBooleanEncoder(field):
 		"  tokens.append('0')",]
 
 
+def _makeUByteEncoder(field):
+	return _addNullvalueCode(field, [
+		"if isinstance(val, int):",
+		'  tokens.append(str(val))',
+		"else:",
+		'  tokens.append(str(ord(val)))',], 
+		common.validateVOTInt, "")
+
+
 def _makeIntEncoder(field):
 	return _addNullvalueCode(field, [
 		"tokens.append(str(val))"],
@@ -107,7 +116,7 @@ def _makeCharEncoder(field):
 _encoders = {
 	'boolean': _makeBooleanEncoder,
 	'bit': _makeIntEncoder,
-	'unsignedByte': _makeIntEncoder,
+	'unsignedByte': _makeUByteEncoder,
 	'short': _makeIntEncoder,
 	'int': _makeIntEncoder,
 	'long': _makeIntEncoder,

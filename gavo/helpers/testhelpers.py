@@ -59,7 +59,8 @@ else:
 		from gavo.user import initdachs
 		try:
 			dsn = initdachs.DSN(dbname)
-			subprocess.call(["createdb", "--encoding=UTF-8", dbname])
+			subprocess.call(["createdb", "--template=template0", 
+				"--encoding=UTF-8", dbname])
 			initdachs.createFSHierarchy(dsn, "test")
 
 			with open(os.path.join(base.getConfig("configDir"), "defaultmeta.txt"),

@@ -569,6 +569,37 @@ class TypesSerializationTest(VOTableRenderTest):
 				rows=[{"x": u"f\u00fcr"}])))
 		self.assertEqual(data[0][0], u"f\u00fcr")
 
+	def testUnicodeBin(self):
+		data, metadata = votable.load(
+			StringIO(self._getAsVOTable('<column name="x" type="unicode"/>', 
+				rows=[{"x": u"f\u00fcr"}], tablecoding="binary")))
+		self.assertEqual(data[0][0], u"f\u00fcr")
+
+	def testByteaBin(self):
+		data, metadata = votable.load(
+			StringIO(self._getAsVOTable('<column name="x" type="bytea"/>', 
+				rows=[{"x": "u"}], tablecoding="binary")))
+		self.assertEqual(data[0][0], 117)
+
+	def testByteaBin2(self):
+		data, metadata = votable.load(
+			StringIO(self._getAsVOTable('<column name="x" type="bytea"/>', 
+				rows=[{"x": "u"}], tablecoding="binary2")))
+		self.assertEqual(data[0][0], 117)
+
+	def testBytea(self):
+		data, metadata = votable.load(
+			StringIO(self._getAsVOTable('<column name="x" type="bytea"/>', 
+				rows=[{"x": "u"}], tablecoding="td")))
+		self.assertEqual(data[0][0], 117)
+
+	def testBytearr(self):
+		data, metadata = votable.load(
+			StringIO(self._getAsVOTable('<column name="x" type="bytea"/>', 
+				rows=[{"x": "u"}], tablecoding="td")))
+		self.assertEqual(data[0][0], 117)
+
+
 
 class ValuesParsedTest(testhelpers.VerboseTest):
 	def testNull(self):

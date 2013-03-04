@@ -133,6 +133,18 @@ def _generateIntEncoderMaker(fmtCode):
 	return makeIntEncoder
 
 
+def _makeUnsignedByteEncoder(field):
+# allow these to come from strings, too (db type bytea)
+	nullvalue = coding.getNullvalue(field, int)
+	if nullvalue is not None:
+		nullvalue = repr(struct.pack("B", int(nullvalue)))
+	return _addNullvalueCode(field, nullvalue,[
+		"if isinstance(val, int):",
+		"  tokens.append(struct.pack('B', val))",
+		"else:",
+		"  tokens.append(struct.pack('c', val))"])
+
+
 def _makeCharEncoder(field):
 	nullvalue = coding.getNullvalue(field, lambda _: True)
 	if nullvalue is not None:
@@ -193,7 +205,7 @@ def _makeCharArrayEncoder(field):
 _encoders = {
 		"boolean": _makeBooleanEncoder,
 		"bit": _makeBitEncoder,
-		"unsignedByte": _generateIntEncoderMaker('B'),
+		"unsignedByte": _makeUnsignedByteEncoder,
 		"short": _generateIntEncoderMaker('!h'),
 		"int": _generateIntEncoderMaker('!i'),
 		"long": _generateIntEncoderMaker('!q'),

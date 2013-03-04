@@ -628,11 +628,11 @@ class Binary2WriteTest(testhelpers.VerboseTest):
 		), (
 			[V.FIELD(datatype="unsignedByte")],
 			[[20], [None]],
-			"\x00\x14\x80\x00"
+			"\x00\x14\x80\xff"
 		), (  # 5
 			[V.FIELD(datatype="unsignedByte")[V.VALUES(null="23")]],
 			[[20], [None]],
-			"\x00\x14\x80\x00"
+			"\x00\x14\x80\xff"
 		), (
 			[V.FIELD(datatype="short")],
 			[[20],[None]],
@@ -678,10 +678,10 @@ class Binary2WriteTest(testhelpers.VerboseTest):
 		), ( # 15
 			[V.FIELD(datatype="unsignedByte", arraysize="2")[V.VALUES(null="255")]],
 			[[[]], [[1]], [[0, 1, 2]], [None]],
-			"\x00\x00\x00"
-			"\x00\x01\x00"
+			"\x00\xff\xff"
+			"\x00\x01\xff"
 			"\x00\x00\x01"
-			"\x80\x00\x00"
+			"\x80\xff\xff"
 		), (
 			[V.FIELD(datatype="short", arraysize="2*")],
 			[[[]], [[1]], [[0, 1, 2]], [None]],

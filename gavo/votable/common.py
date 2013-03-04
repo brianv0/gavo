@@ -53,7 +53,12 @@ def validateTDComplex(val):
 
 def validateVOTInt(val):
 	"""raise an error if val is not a legal int for VOTables.
+
+	Actually, this is for tabledata, and after the relaxed 1.3 rules, we allow
+	the empty string ("NULL"), too.
 	"""
+	if val=="":
+		return 
 	try:
 		int(val[2:], 16)
 	except ValueError:

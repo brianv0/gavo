@@ -54,10 +54,20 @@ def _makeUnicodeCharEncoder(field):
 		"	tokens.append(struct.pack('%ds'%len(coded), coded))"]
 
 
+def _makeUnsignedByteEncoder(field):
+	return [
+		"if isinstance(val, int):",
+		"  tokens.append(struct.pack('B', val))",
+		"elif val is None:",
+		"  tokens.append('\xff')",
+		"else:",
+		"  tokens.append(struct.pack('c', val))"]
+
+
 _encoders = {
 		"boolean": enc_binary._makeBooleanEncoder,
 		"bit": enc_binary._makeBitEncoder,
-		"unsignedByte": _generateIntEncoderMaker('B'),
+		"unsignedByte": _makeUnsignedByteEncoder,
 		"short": _generateIntEncoderMaker('!h'),
 		"int": _generateIntEncoderMaker('!i'),
 		"long": _generateIntEncoderMaker('!q'),
