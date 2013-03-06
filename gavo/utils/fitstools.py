@@ -20,8 +20,9 @@ import os
 import re
 import sys
 import tempfile
+import warnings
 
-
+from gavo.utils import excs
 from gavo.utils import misctricks
 from gavo.utils import ostricks
 
@@ -40,13 +41,24 @@ except ImportError:
 else:
 	# I need some parts of pyfits' internals, and it's version-dependent
 	# where they are found
-	_TempHDU = None
+	def _TempHDU(*args):
+		raise excs.ReportableError("Incompatible pyfits version."
+			"  Please complain to the maintainers.")
+
 	if hasattr(pyfits, "core") and hasattr(pyfits.core, "_TempHDU"):
 		_TempHDU = pyfits.core._TempHDU
-	else:
+	elif hasattr(pyfits, "_TempHDU"):
 		_TempHDU = pyfits._TempHDU
+	elif hasattr(pyfits.Header, "fromstring"):
+		class _TempHDU(object):
+			"""a wrapper around modern pyfits to provide some ancient whacko
+			functionality."""
+			def __init__(self):
+				self._raw = ""
 
-
+			def setupHDU(self):
+				self.header = pyfits.Header.fromstring(self._raw)
+				return self
 
 
 CARD_SIZE = 80
@@ -59,6 +71,13 @@ FITS_BLOCK_SIZE = CARD_SIZE*36
 class FITSError(Exception):
 	pass
 
+
+# pyfits is a bit too liberal in throwing depreciation warnings.  Filter them
+# for now
+warnings.filterwarnings('ignore', category=DeprecationWarning,
+	module="gavo.(utils.fitstools|protocols.sdm)")
+warnings.filterwarnings('ignore', category=DeprecationWarning,
+	module="astLib.*")
 
 def padCard(input, length=CARD_SIZE):
 	"""pads input (a string) with blanks until len(result)%80=0
@@ -117,11 +136,8 @@ def readPrimaryHeaderQuick(f):
 
 	This function is adapted from pyfits.
 	"""
-	if _TempHDU is None:
-		raise Exception("pyfits 3 is unsupported here.  FIXME in utils.fitstools")
 	hdu = _TempHDU()
 	hdu._raw = readHeaderBytes(f)
-	_size, hdu.name = hdu._getsize(hdu._raw)
 	hdu._extver = 1  # We only do PRIMARY
 
 	hdu._new = 0
@@ -157,7 +173,7 @@ def serializeHeader(hdr):
 	"""
 	parts = []
 	for card in hdr.ascardlist():
-		r = repr(card)
+		r = card.ascardimage('ignore')
 		assert not len(r)%CARD_SIZE
 		parts.append(r)
 	serForm = "".join(parts)+padCard('END')
