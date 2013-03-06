@@ -41,14 +41,13 @@ class TDContext(object):
 
 # For columns of types that have no automatic VOTable null value,
 # we make up some when we don't have any yet.  This is governed by
-# the following dictionary (plus, there's special handling for
-# bytea in _makeColumnFromFieldInfo: single byteas get promoted to shorts)
+# the following dictionary.
 # All this is in particular for columns that came into being from
 # expressions.
 #
 # This largely follows what Mark Taylor does in topcat.
 _artificialNULLs = {
-	"bytea": "-32768",
+	"bytea": "255",
 	"smallint": "-32768",
 	"integer": "-2147483648",
 	"bigint": "-9223372036854775808",
@@ -111,8 +110,6 @@ def _makeColumnFromFieldInfo(ctx, colName, fi):
 			and (
 				not (res.values and res.values.nullLiteral)
 				or fi.tainted)):
-		if res.type=="bytea":
-			res.type = "smallint"
 		nullLiteral = _artificialNULLs[res.type]
 		if res.values:
 			res.feedObject("values", res.values.change(nullLiteral=nullLiteral))

@@ -47,7 +47,7 @@ class _ADQLTestTable(testhelpers.TestResource):
 		self.rd = testhelpers.getTestRD()
 		ds = rsc.makeData(self.rd.getById("ADQLTest"),
 				forceSource=[
-				{"alpha": 22, "delta": 23, "mag": -27, "rV": 0},],
+				{"alpha": 22, "delta": 23, "mag": -27, "rV": 0, "tinyflag": "a"},],
 				connection=deps["adqlQuerier"].connection).commitAll()
 		return ds
 	
@@ -588,7 +588,7 @@ crazyFields = [
 	MS(rscdef.Column, name="wot", type="bigint", 
 		values=MS(rscdef.Values, nullLiteral="-1")),
 	MS(rscdef.Column, name="wotb", type="bytea", 
-		values=MS(rscdef.Values, nullLiteral="255")),
+		values=MS(rscdef.Values, nullLiteral="254")),
 	MS(rscdef.Column, name="mass", ucd="event;using.incense"),
 	MS(rscdef.Column, name="name", type="unicode"),
 	MS(rscdef.Column, name="version", type="text"),
@@ -1629,14 +1629,16 @@ class GlueTest(testhelpers.VerboseTest):
 	def testPureByteaNotPromoted(self):
 		td = adqlglue._getTableDescForOutput(
 			parseWithArtificialTable("select wotb from crazy"))
-		self.assertEqual(td.columns[0].values.nullLiteral, '255')
+		self.assertEqual(td.columns[0].values.nullLiteral, '254')
 		self.assertEqual(td.columns[0].type, 'bytea')
 
-	def testTaintedByteaPromoted(self):
+	def testByteaInMultiplication(self):
+# This probably behaviour that doesn't work with postgres anyway. 
+# Fix the whole unsignedByte mess by not linking it to bytea.
 		td = adqlglue._getTableDescForOutput(
 			parseWithArtificialTable("select 2*wotb from crazy"))
-		self.assertEqual(td.columns[0].values.nullLiteral, "-32768")
 		self.assertEqual(td.columns[0].type, 'smallint')
+		self.assertEqual(td.columns[0].values.nullLiteral, "-32768")
 
 
 class QueryTest(testhelpers.VerboseTest):
@@ -1678,7 +1680,7 @@ class QueryTest(testhelpers.VerboseTest):
 		res = self.runQuery("select * from %s where mag<-10"%
 			self.tableName)
 		self.assertEqual(len(res.rows), 1)
-		self.assertEqual(len(res.rows[0]), 4)
+		self.assertEqual(len(res.rows[0]), 5)
 		fields = res.tableDef.columns
 		self._assertFieldProperties(fields[0], [("ucd", 'pos.eq.ra;meta.main'),
 			("description", 'A sample RA'), ("unit", 'deg'), 
@@ -1689,13 +1691,15 @@ class QueryTest(testhelpers.VerboseTest):
 		self._assertFieldProperties(fields[3], [
 			("ucd", 'phys.veloc;pos.heliocentric'),
 			("description", 'A sample radial velocity'), ("unit", 'km/s')])
-	
+		self._assertFieldProperties(fields[4], [
+			("ucd", ''), ("description", ''), ("unit", '')])
+
 	def testQualifiedStarSelect(self):
 		res = self.runQuery("select %s.* from %s, %s as q1 where q1.mag<-10"%(
 			self.tableName, self.tableName, self.tableName))
 		self.assertEqual(res.tableDef.id, "adql_q1")
 		self.assertEqual(len(res.rows), 1)
-		self.assertEqual(len(res.rows[0]), 4)
+		self.assertEqual(len(res.rows[0]), 5)
 		fields = res.tableDef.columns
 		self._assertFieldProperties(fields[0], [("ucd", 'pos.eq.ra;meta.main'),
 			("description", 'A sample RA'), ("unit", 'deg'), 

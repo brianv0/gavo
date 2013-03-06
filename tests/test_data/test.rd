@@ -122,10 +122,13 @@
 		<column name="rV" unit="km/s" ucd="phys.veloc;pos.heliocentric"
 			description="A sample radial velocity"
 			type="double precision" verbLevel="25"/>
+		<column name="tinyflag" type="bytea" verbLevel="30">
+			<values nullLiteral="0"/>
+		</column>
 	</table>
 
 	<data id="ADQLTest">
-		<rowmaker id="AT_adql" idmaps="alpha,delta,mag,rV"/>
+		<rowmaker id="AT_adql" idmaps="alpha,delta,mag,rV,tinyflag"/>
 		<dictlistGrammar/>
 		<make table="adql" rowmaker="AT_adql"/>
 	</data>

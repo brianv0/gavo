@@ -250,7 +250,7 @@ class TAP_SchemaTest(testhelpers.VerboseTest):
 			(q.query("select column_name from TAP_SCHEMA.columns where sourcerd"
 			" = %(rdid)s", {"rdid": self.rd.sourceId})))
 		self.assertEqual(columns, 
-			set([u'alpha', u'rv', u'foo', u'mag', u'delta']))
+			set([u'alpha', u'rv', u'foo', u'mag', u'delta', u'tinyflag']))
 		fkeys = set(q.query("select from_table, target_table"
 				" from TAP_SCHEMA.keys where sourcerd"
 				" = %(rdid)s", {"rdid": self.rd.sourceId}))

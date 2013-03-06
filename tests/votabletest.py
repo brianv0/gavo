@@ -578,8 +578,8 @@ class TypesSerializationTest(VOTableRenderTest):
 	def testByteaBin(self):
 		data, metadata = votable.load(
 			StringIO(self._getAsVOTable('<column name="x" type="bytea"/>', 
-				rows=[{"x": "u"}], tablecoding="binary")))
-		self.assertEqual(data[0][0], 117)
+				rows=[{"x": "\0"}], tablecoding="binary")))
+		self.assertEqual(data[0][0], 0)
 
 	def testByteaBin2(self):
 		data, metadata = votable.load(
@@ -587,10 +587,12 @@ class TypesSerializationTest(VOTableRenderTest):
 				rows=[{"x": "u"}], tablecoding="binary2")))
 		self.assertEqual(data[0][0], 117)
 
-	def testBytea(self):
+	def testByteaWithType(self):
 		data, metadata = votable.load(
-			StringIO(self._getAsVOTable('<column name="x" type="bytea"/>', 
+			StringIO(self._getAsVOTable('<column name="x" type="bytea"'
+				' required="true"/>', 
 				rows=[{"x": "u"}], tablecoding="td")))
+		self.assertEqual(metadata[0].datatype, "unsignedByte")
 		self.assertEqual(data[0][0], 117)
 
 	def testBytearr(self):
@@ -598,7 +600,6 @@ class TypesSerializationTest(VOTableRenderTest):
 			StringIO(self._getAsVOTable('<column name="x" type="bytea"/>', 
 				rows=[{"x": "u"}], tablecoding="td")))
 		self.assertEqual(data[0][0], 117)
-
 
 
 class ValuesParsedTest(testhelpers.VerboseTest):
@@ -715,7 +716,7 @@ class GroupWriteTest(testhelpers.VerboseTest):
 def _getTableWithSimpleSTC():
 	td = testhelpers.getTestRD().getById("adql").change(onDisk=False)
 	return rsc.TableForDef(td, rows=[
-		{'alpha': 10, 'delta': -10, 'mag': -1, 'rV': -4}])
+		{'alpha': 10, 'delta': -10, 'mag': -1, 'rV': -4, 'tinyflag': "\x80"}])
 
 
 class STCEmbedTest(testhelpers.VerboseTest):
