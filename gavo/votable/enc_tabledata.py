@@ -82,7 +82,7 @@ def _makeUByteEncoder(field):
 		"if isinstance(val, int):",
 		'  tokens.append(str(val))',
 		"else:",
-		'  tokens.append(str(ord(val)))',], 
+		'  tokens.append(str(ord(val[:1])))',], 
 		common.validateVOTInt, "")
 
 

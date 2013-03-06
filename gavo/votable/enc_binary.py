@@ -142,7 +142,7 @@ def _makeUnsignedByteEncoder(field):
 		"if isinstance(val, int):",
 		"  tokens.append(struct.pack('B', val))",
 		"else:",
-		"  tokens.append(struct.pack('c', val))"])
+		"  tokens.append(struct.pack('c', val[:1]))"])
 
 
 def _makeCharEncoder(field):
