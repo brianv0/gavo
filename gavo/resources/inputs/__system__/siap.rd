@@ -209,14 +209,7 @@
 						self.pixelScale = coords.getPixelSizeDeg(wcs)
 						offCenterPos = coords.pix2sky(wcs,
 							(centerPix[0]+1, centerPix[1]+1))
-						self._computeCDs(self.centerPos[0]-offCenterPos[0], 
-							self.centerPos[1]-offCenterPos[1])
-
-					def _computeCDs(self, da, dd):
-						dAngle = math.atan2(da, dd)
-						self.cds = (
-							(da*math.cos(dAngle), da*math.sin(dAngle)),
-							(dd*math.sin(dAngle), dd*math.cos(dAngle)))
+						
 
 				def copyFromWCS(vars, wcs, result):
 					"""adds the "simple" WCS keys from the wcstools instance wcs to
@@ -239,7 +232,8 @@
 						result["wcs_projection"] = result["wcs_projection"][5:8]
 					result["wcs_refPixel"] = tuple(wcs.wcs.crpix)
 					result["wcs_refValues"] = tuple(wcs.wcs.crval)
-					result["wcs_cdmatrix"] = pixelGauge.cds[0]+pixelGauge.cds[1]
+					result["wcs_cdmatrix"] = tuple(
+						(wcs.wcs.get_pc()*wcs.wcs.get_cdelt()).ravel())
 					result["wcs_equinox"] = vars.get("EQUINOX", None)
 
 				def nullOutWCS(result, additionalKeys):

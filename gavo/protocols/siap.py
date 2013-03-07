@@ -260,8 +260,8 @@ class SIAPCutoutCore(SIAPCore):
 		"""inserts estimates for WCS values into a cutout record.
 		"""
 		wcsFields = coords.getWCS({
-			"CUNIT1": "deg", "CUNIT2": "deg", "CTYPE1": "-----TAN",
-			"CTYPE2": "-----TAN", 
+			"CUNIT1": "deg", "CUNIT2": "deg", "CTYPE1": "RA---TAN",
+			"CTYPE2": "DEC--TAN", 
 			"CRVAL1": record["wcs_refValues"][0],
 			"CRVAL2": record["wcs_refValues"][1],
 			"CRPIX1": record["wcs_refPixel"][0],

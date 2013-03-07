@@ -102,13 +102,9 @@ def getWCS(wcsFields):
 			and not wcsFields.has_key("PC1_1")):
 		return None
 	
-	wcsList = pywcs.find_all_wcs(wcsFields, relax=True)
-	if wcsList:
-		wcsObj = wcsList[0]
-		wcsObj._dachs_header = wcsFields
-		return wcsObj
-
-	return None
+	wcsObj = pywcs.WCS(wcsFields, relax=True)
+	wcsObj._dachs_header = wcsFields
+	return wcsObj
 
 
 def pix2sky(wcsFields, pixels):
