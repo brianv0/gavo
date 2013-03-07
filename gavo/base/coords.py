@@ -5,6 +5,7 @@ between them.
 Basically all of this should be taken over by stc and astropysics.
 """
 
+import functools
 import math
 from math import sin, cos, pi
 import re
@@ -17,16 +18,16 @@ from gavo.utils import pgsphere
 from gavo.utils import pyfits
 
 
-class AstWCSLoader(object):
-	"""A quick hack to save time on startup: delay (slow) loading of astWCS
+class PyWCSLoader(object):
+	"""A quick hack to save time on startup: delay (slow) loading of pywcs
 	until it is used (which it may not be at all in many GAVO programs).
 	"""
 	def __getattr__(self, *args):
-		from astLib import astWCS
-		globals()["astWCS"] = astWCS
-		return getattr(astWCS, *args)
+		import pywcs
+		globals()["pywcs"] = pywcs
+		return getattr(pywcs, *args)
 
-astWCS = AstWCSLoader()
+pywcs = PyWCSLoader()
 
 
 fitsKwPat = re.compile("[A-Z0-9_-]{1,8}$")
@@ -81,14 +82,68 @@ def getWCS(wcsFields):
 	"""returns a WCS instance from wcsFields
 	
 	wcsFields can be either a dictionary or a pyfits header giving
-	some kind of WCS information, or an astWCS.WCS instance that is
+	some kind of WCS information, or an pywcs.WCS instance that is
 	returned verbatim.
+
+	This will return None if no (usable) WCS information is found in the header.
+
+	This also hacks in _dachs_header, the header this was constructed
+	from.
 	"""
-	if isinstance(wcsFields, astWCS.WCS):
+	if isinstance(wcsFields, pywcs.WCS):
 		return wcsFields
 	if isinstance(wcsFields, dict):
 		wcsFields = makePyfitsFromDict(wcsFields)
-	return astWCS.WCS(wcsFields, mode="pyfits")
+
+	# pywcs will invent identity transforms if no WCS keys are present.
+	# Hence. we do some sanity checking up front to weed those out.
+	if (not wcsFields.has_key("CD1_1") 
+			and not wcsFields.has_key("CDELT1")
+			and not wcsFields.has_key("PC1_1")):
+		return None
+	
+	wcsList = pywcs.find_all_wcs(wcsFields, relax=True)
+	if wcsList:
+		wcsObj = wcsList[0]
+		wcsObj._dachs_header = wcsFields
+		return wcsObj
+
+	return None
+
+
+def pix2sky(wcsFields, pixels):
+	"""returns the sky coordindates for the 2-sequence pixels.
+
+	(this is a thin wrapper intended to abstract for pix2sky's funky
+	calling convention; also, we fix on the silly "0 pixel is 1 convention")
+	"""
+	val = getWCS(wcsFields).all_pix2sky((pixels[0],), (pixels[1],), 1)
+	return val[0][0], val[1][0]
+
+
+def sky2pix(wcsFields, longLat):
+	"""returns the pixel coordindates for the 2-sequence longLad.
+
+	(this is a thin wrapper intended to abstract for sky2pix's funky
+	calling convention; also, we fix on the silly "0 pixel is 1 convention")
+	"""
+	val = getWCS(wcsFields).wcs_sky2pix((longLat[0],), (longLat[1],), 1)
+	return val[0][0], val[1][0]
+
+
+def getPixelSizeDeg(wcsFields):
+	"""returns the sizes of a pixel at roughly the center of the image for
+	wcsFields.
+
+	There's probably an issue here at the stitching line.  TODO: unit test
+	and fix.
+	"""
+	wcs = getWCS(wcsFields)
+	width, height = wcs._dachs_header["NAXIS1"], wcs._dachs_header["NAXIS2"]
+	p0 = pix2sky(wcs, (width/2, height/2))
+	p1 = pix2sky(wcs, (width/2+1, height/2))
+	p2 = pix2sky(wcs, (width/2, height/2+1))
+	return abs(p1[0]-p0[0]), abs(p2[1]-p0[1])
 
 
 def getWCSTrafo(wcsFields):
@@ -96,7 +151,8 @@ def getWCSTrafo(wcsFields):
 
 	wcsFields is passed to getWCS, see there for legal types.
 	"""
-	return getWCS(wcsFields).pix2wcs
+	wcs = getWCS(wcsFields)
+	return lambda x, y: pix2sky(wcs, (x, y))
 
 
 def getInvWCSTrafo(wcsFields):
@@ -104,18 +160,29 @@ def getInvWCSTrafo(wcsFields):
 
 	wcsFields is passed to getWCS, see there for legal types.
 	"""
-	return getWCS(wcsFields).wcs2pix
+	wcs = getWCS(wcsFields)
+	return lambda ra, dec: sky2pix(wcs, (ra,dec))
 
 
 def getBboxFromWCSFields(wcsFields):
 	"""returns a bbox and a field center for WCS FITS header fields.
 
 	wcsFields is passed to getWCS, see there for legal types.
+
+	Warning: this is different from wcs.calcFootprint in that
+	we keep negative angles if the stitching line is crossed; also,
+	no distortions or anything like that are taken into account.
+
+	This code is only used for bboxSIAP, and you must not use it
+	for anything else; it's going to disappear with it.
 	"""
-	wcs = getWCS(wcsFields)
-	width, height = float(wcs.header["NAXIS1"]), float(wcs.header["NAXIS2"])
-	cA, cD = wcs.pix2wcs(width/2., height/2.)
-	wA, wD = wcs.getHalfSizeDeg()
+ 	wcs = getWCS(wcsFields)
+	width, height = float(wcs._dachs_header["NAXIS1"]
+		), float(wcs._dachs_header["NAXIS2"])
+	cA, cD = pix2sky(wcs, (width/2., height/2.))
+	wA, wD = getPixelSizeDeg(wcs)
+	wA *= width/2.
+	wD *= height/2.
 	# Compute all "corners" to ease handling of corner cases
 	bounds = [(cA+wA, cD+wD), (cA-wA, cD-wD), (cA+wA, cD-wD),
 		(cA-wA, cD+wD)]
@@ -127,18 +194,6 @@ def getBboxFromWCSFields(wcsFields):
 	return bbox
 
 
-def _iterWCSCorners(wcs):
-	"""iterates over the four corners of a WCS spec.
-
-	The items returned are pgsphere.SPoints.
-	"""
-	width, height = float(wcs.header["NAXIS1"]), float(wcs.header["NAXIS2"])
-	yield pgsphere.SPoint.fromDegrees(*wcs.pix2wcs(0, 0))
-	yield pgsphere.SPoint.fromDegrees(*wcs.pix2wcs(0, height))
-	yield pgsphere.SPoint.fromDegrees(*wcs.pix2wcs(width, height))
-	yield pgsphere.SPoint.fromDegrees(*wcs.pix2wcs(width, 0))
-
-
 def getSpolyFromWCSFields(wcsFields):
 	"""returns a pgsphere spoly corresponding to wcsFields
 
@@ -148,13 +203,19 @@ def getSpolyFromWCSFields(wcsFields):
 	assuming a rectangular image.
 	"""
 	wcs = getWCS(wcsFields)
-	return pgsphere.SPoly(list(_iterWCSCorners(wcs)))
+	return pgsphere.SPoly([pgsphere.SPoint.fromDegrees(*p)
+		for p in wcs.calcFootprint(wcs._dachs_header)])
 
 
 def getCenterFromWCSFields(wcsFields):
 	"""returns RA and Dec of the center of an image described by wcsFields.
+
+	Well, this isn't very general; actually, we just use the first two axes.
+	This should probably be fixed once we might get to see cubes here.
 	"""
-	return getWCS(wcsFields).getCentreWCSCoords()
+	wcs = getWCS(wcsFields)
+	return pix2sky(wcs, (wcs._dachs_header["NAXIS1"]/2., 
+		wcs._dachs_header["NAXIS2"]/2.))
 
 
 # let's do a tiny vector type.  It's really not worth getting some dependency

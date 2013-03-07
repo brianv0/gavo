@@ -48,8 +48,6 @@ class TestWCSTrafos(unittest.TestCase):
 					self.assertAlmostEqual(y, pixpos[1], 5)
 
 	def testInvertibility(self):
-		"""tests if transformations from/to WCS are invertible.
-		"""
 		self._testInvertibilityReal()
 		self.wcs["CD2_1"] = 0.001
 		self._testInvertibilityReal()
@@ -113,8 +111,6 @@ class TestWCSBbox(unittest.TestCase):
 				" %s doesn't really enclose %s"%(refbox, box))
 
 	def testEnclosures(self):
-		"""tests for bbox enclosure when growing a field.
-		"""
 		for ra, dec in self._testCoords:
 			self._testEnclosure(ra, dec)
 
@@ -161,8 +157,6 @@ class TestWCSBbox(unittest.TestCase):
 				" at %s, offsets %s"%((ra, dec), (da, dd)))
 
 	def testOverlap(self):
-		"""tests for bbox overlaps when moving a field around.
-		"""
 		for ra, dec in self._testCoords:
 			self._testOverlap(ra, dec)
 

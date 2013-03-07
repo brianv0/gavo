@@ -200,14 +200,15 @@
 				class PixelGauge(object):
 					"""is a container for information about pixel sizes.
 
-					It is constructed with an astWCS.WCS instance and an (x, y)
+					It is constructed with an pywcs.WCS instance and an (x, y)
 					pair of pixel coordinates that should be close to the center 
 					of the frame.
 					"""
 					def __init__(self, wcs, centerPix):
-						self.centerPos = wcs.pix2wcs(*centerPix)
-						self.pixelScale = wcs.getPixelSizeDeg()
-						offCenterPos = wcs.pix2wcs(centerPix[0]+1, centerPix[1]+1)
+						self.centerPos = coords.pix2sky(wcs, centerPix)
+						self.pixelScale = coords.getPixelSizeDeg(wcs)
+						offCenterPos = coords.pix2sky(wcs,
+							(centerPix[0]+1, centerPix[1]+1))
 						self._computeCDs(self.centerPos[0]-offCenterPos[0], 
 							self.centerPos[1]-offCenterPos[1])
 
@@ -231,16 +232,13 @@
 						for i in axeInds)
 					pixelGauge = PixelGauge(wcs, (dims[0]/2., dims[1]/2.))
 					result["pixelSize"] = dims
-					result["pixelScale"] = (abs(wcs.WCSStructure.xinc),
-						abs(wcs.WCSStructure.yinc))
+					result["pixelScale"] = pixelGauge.pixelScale
 	
 					result["wcs_projection"] = vars.get("CTYPE1")
 					if result["wcs_projection"]:
 						result["wcs_projection"] = result["wcs_projection"][5:8]
-					result["wcs_refPixel"] = (
-						wcs.WCSStructure.xref, wcs.WCSStructure.yref)
-					result["wcs_refValues"] = (wcs.WCSStructure.xrefpix, 
-						wcs.WCSStructure.yrefpix)
+					result["wcs_refPixel"] = tuple(wcs.wcs.crpix)
+					result["wcs_refValues"] = tuple(wcs.wcs.crval)
 					result["wcs_cdmatrix"] = pixelGauge.cds[0]+pixelGauge.cds[1]
 					result["wcs_equinox"] = vars.get("EQUINOX", None)
 
@@ -252,7 +250,7 @@
 
 				def addWCS(vars, result, additionalKeys, addCoverage):
 					wcs = coords.getWCS(vars)
-					if wcs.WCSStructure is None:
+					if wcs is None:
 						if missingIsError:
 							raise base.DataError("No WCS information")
 						else:
