@@ -16,7 +16,6 @@ from gavo.protocols import simbadinterface
 from gavo.utils import DEG
 from gavo.utils import pgsphere
 
-
 MS = base.makeStruct
 
 
@@ -305,7 +304,13 @@ class SIAPCutoutCore(SIAPCore):
 		else:
 			sra = 360
 		for record in res:
-			self._fixRecord(record, sqlPars["_ra"], sqlPars["_dec"], sra, sdec)
+			try:
+				self._fixRecord(record, sqlPars["_ra"], sqlPars["_dec"], sra, sdec)
+			except ValueError:
+				# pywcs derives its (hidden) InvalidTransformError from ValueError.
+				# Anwyway, deliver slightly botched records rather
+				# than none at all, but warn the operators:
+				base.ui.notifyWarning("Botched WCS in the record %s"%record)
 		return res
 
 
