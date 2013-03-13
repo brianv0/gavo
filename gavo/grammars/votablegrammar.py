@@ -23,7 +23,7 @@ class VOTableRowIterator(common.RowIterator):
 		if self.grammar.gunzip:
 			inF = gzip.open(sourceToken)
 		else:
-			inF = sourceToken
+			inF = open(sourceToken)
 		self.rowSource = votable.parse(inF).next()
 
 	def _iterRows(self):
