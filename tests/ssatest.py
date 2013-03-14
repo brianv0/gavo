@@ -642,8 +642,8 @@ class SDMFITSTest(testhelpers.VerboseTest):
 	
 	def testColumnUtype(self):
 		hdr = self.hdus[1].header
-		self.assertEqual(hdr["TUTYP0"], 'spec:spectrum.data.spectralaxis.value')
-		self.assertEqual(hdr["TUTYP1"], 'spec:spectrum.data.fluxaxis.value')
+		self.assertEqual(hdr["TUTYP1"], 'spec:spectrum.data.spectralaxis.value')
+		self.assertEqual(hdr["TUTYP2"], 'spec:spectrum.data.fluxaxis.value')
 
 	def testValues(self):
 		wl, flux = self.hdus[1].data[1]

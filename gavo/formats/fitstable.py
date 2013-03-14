@@ -95,7 +95,7 @@ def _makeExtension(serMan):
 
 	hdu = pyfits.new_table(pyfits.ColDefs(columns))
 	for colInd, utype in utypes:
-		hdu.header.update("TUTYP%d"%colInd, utype)
+		hdu.header.update("TUTYP%d"%(colInd+1), utype)
 	return hdu
 	
 
