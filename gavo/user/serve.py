@@ -119,7 +119,7 @@ def _reloadConfig():
 def _dropPrivileges():
 	uid = None
 	user = base.getConfig("web", "user")
-	if user:
+	if user and os.getuid()==0:
 		try:
 			uid = pwd.getpwnam(user)[2]
 		except KeyError:

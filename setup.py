@@ -6,7 +6,7 @@ import sys
 
 from setuptools import setup, find_packages, Extension
 
-VERSION = "0.8.6"
+VERSION = "0.8.7"
 
 
 install_requires = []

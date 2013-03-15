@@ -66,10 +66,10 @@ subpkgs = {
 	"utils": {
 		"name":"gavoutils",
 		"description": "DaCHS basic helper modules.",
-		"packages": ["gavo", "gavo.utils"],
+		"packages": ["gavo", "gavo.utils", "gavo.imp"],
 		"install_requires": [],
 		"dependency_links": [],
-		"MAIN_TREE_FILES": ["gavo/utils", "gavo/__init__.py"],
+		"MAIN_TREE_FILES": ["gavo/imp", "gavo/utils", "gavo/__init__.py"],
 		"DEBIAN_NAME": "python-gavoutils",
 	},
 
@@ -77,7 +77,7 @@ subpkgs = {
 		"name": "gavostc",
 		"description": "A library for processing IVOA STC information",
 		"packages": ["gavo", "gavo.stc"],
-		"install_requires": ["gavoutils", "pyparsing"],
+		"install_requires": ["gavoutils"],
 		"dependency_links": ["http://vo.ari.uni-heidelberg.de/soft/dist"],
 		"MAIN_TREE_FILES": [
 			"tests/"+n for n in os.listdir("../tests") if n.startswith("stc")]
