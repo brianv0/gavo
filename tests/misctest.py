@@ -916,5 +916,24 @@ class CronTest(testhelpers.VerboseTest):
 			(16, 28))
 
 
+import grp
+from gavo.base import osinter
+
+class OSInterTest(testhelpers.VerboseTest):
+	def testMakeSharedDir(self):
+		path = os.path.join(base.getConfig("inputsDir"), "_dir_form_unit_test_")
+		try:
+			osinter.makeSharedDir(path, writable=True)
+			stats = os.stat(path)
+			self.assertEqual(stats.st_mode&0060, 060)
+			self.assertEqual(grp.getgrgid(stats.st_gid).gr_name, "gavo")
+
+			os.chown(path, -1, os.getgid())
+			osinter.makeSharedDir(path, writable=True)
+			self.assertEqual(grp.getgrgid(stats.st_gid).gr_name, "gavo")
+		finally:
+			os.rmdir(path)
+
+
 if __name__=="__main__":
 	testhelpers.main(KVLMakeTest)
