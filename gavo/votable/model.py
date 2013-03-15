@@ -6,7 +6,8 @@ import re
 
 from gavo import utils
 from gavo.utils import ElementTree
-from gavo.utils.stanxml import Element, registerPrefix, getPrefixInfo, schemaURL
+from gavo.utils.stanxml import (
+	Element, registerPrefix, getPrefixInfo, schemaURL, escapePCDATA)
 
 
 NAMESPACES = {
@@ -136,17 +137,19 @@ class VOTable(object):
 			buf, bufFil, flushThreshold = [], 0, blockSize*20
 			file.write('<%s>'%self.name_)
 			file.write('<STREAM encoding="base64">')
-			for data in self.iterSerialized():
-				buf.append(data)
-				bufFil += len(data)
-				if bufFil>flushThreshold:
-					curData = ''.join(buf)
-					curBlockLen = (len(curData)//blockSize)*blockSize
-					file.write(curData[:curBlockLen].encode("base64"))
-					buf = [curData[curBlockLen:]]
-			file.write("".join(buf).encode("base64"))
-			file.write("</STREAM>")
-			file.write('</%s>'%self.name_)
+			try:
+				for data in self.iterSerialized():
+					buf.append(data)
+					bufFil += len(data)
+					if bufFil>flushThreshold:
+						curData = ''.join(buf)
+						curBlockLen = (len(curData)//blockSize)*blockSize
+						file.write(curData[:curBlockLen].encode("base64"))
+						buf = [curData[curBlockLen:]]
+			finally:
+				file.write("".join(buf).encode("base64"))
+				file.write("</STREAM>")
+				file.write('</%s>'%self.name_)
 
 	class BINARY(_BinaryDataElement):
 		pass
@@ -256,6 +259,13 @@ class VOTable(object):
 			"PARAM", "LINK", "TABLE", "INFO_atend", "RESOURCE", "stub"]
 		# (stub for delayed overflow warnings and such)
 
+		def writeErrorElement(self, outputFile, exception):
+			outputFile.write(
+				"""<INFO name="QUERY_STATUS" value="ERROR">%s</INFO>"""%
+					escapePCDATA("Error while serializing VOTable,"
+						" content is probably incomplete: %s"%
+						utils.safe_str(exception)))
+			
 
 	class STREAM(_VOTElement):
 		_a_actuate = None
@@ -310,9 +320,11 @@ class VOTable(object):
 		def write(self, file):
 			file.write("<TABLEDATA>")
 			enc = self.encoding
-			for row in self.iterSerialized():
-				file.write(row.encode(enc))
-			file.write("</TABLEDATA>")
+			try:
+				for row in self.iterSerialized():
+					file.write(row.encode(enc))
+			finally:
+				file.write("</TABLEDATA>")
 		
 
 	class TD(_VOTElement):

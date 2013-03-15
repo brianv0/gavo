@@ -219,7 +219,6 @@ def getRowDecoderSource(tableDefinition):
 			"    val = rawRow[%d]"%index,]+
 			coding.indentList(getLinesFor(field), "    ")+[
 			"  except:",
-			"    traceback.print_exc()",
 			"    raise common.BadVOTableLiteral('%s', val)"%field.datatype])
 	source.append("  return row")
 	return "\n".join(source)

@@ -38,7 +38,6 @@ def getRowEncoderSource(tableDefinition, encoderModule):
 			"  except common.VOTableError:",
 			"    raise",
 			"  except Exception, ex:",
-			"    traceback.print_exc()",
 			"    raise common.BadVOTableData(unicode(ex), repr(val), '%s')"%
 				field.getDesignation()])
 	source.extend(indentList(

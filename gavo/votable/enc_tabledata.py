@@ -169,6 +169,7 @@ def _getArrayEncoderLines(field):
 		"  tokens.append('')",
 		"else:",]+coding.indentList(_getArrayEncoderLinesNotNULL(field), " ")
 
+
 def getLinesFor(field):
 	"""returns a sequence of python source lines to encode values described
 	by field into tabledata.

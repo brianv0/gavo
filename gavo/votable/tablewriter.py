@@ -4,6 +4,7 @@ Writing tabular data within VOTables.
 
 from cStringIO import StringIO
 
+from gavo import utils
 from gavo.utils import stanxml
 from gavo.votable import coding
 from gavo.votable import common
@@ -22,9 +23,9 @@ _encoders = {
 def write(root, outputFile, xmlDecl=True):
 	"""writes a VOTable to outputFile.
 
-	This is a compatiblity function that's here mainly for historical reasons.
-	It's basically stanxml.write, except that the prefix of the root element
-	will be the empty prefix.
+	This is a compatiblity function that's in this place mainly for historical
+	reasons.  It's basically stanxml.write, except that the prefix of the root
+	element will be the empty prefix.
 	"""
 	return stanxml.write(root, outputFile, xmlDecl=xmlDecl,
 		prefixForEmpty=root._prefix)
@@ -34,7 +35,15 @@ def asString(root, xmlDecl=False):
 	"""returns the V.VOTABLE root as a string.
 	"""
 	res = StringIO()
-	write(root, res, xmlDecl=xmlDecl)
+	try:
+		write(root, res, xmlDecl=xmlDecl)
+	except Exception, ex:
+		# something bad happened while generating the VOTable.  We probably
+		# have unwound the element stack and left an error INFO, so probably
+		# the document is all right.  Let's return it, but try to report an
+		# error anyway if there's the infrastructure to do that
+		utils.sendUIEvent("Error", "Exception during VOTable write (delivering"
+			" the document anyway)")
 	return res.getvalue()
 
 

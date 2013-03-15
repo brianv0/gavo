@@ -234,7 +234,6 @@ def getRowDecoderSource(tableDefinition):
 			"      return None",
 			"    raise",
 			"  except:",
-			"    traceback.print_exc()",
 			"    raise common.BadVOTableLiteral('%s', repr(inF.lastRes))"%(
 				field.datatype)])
 	source.append("  return row")

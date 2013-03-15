@@ -364,7 +364,7 @@ def _writePanicInfo(ctx, failure, secErr=None):
 		request.write(_formatFailure(failure))
 	except:
 		request.write("<h1>Ouch</h1><p>There has been an error that in"
-			" addition breaks the toplevel error catching code.  Complan.</p>")
+			" addition breaks the toplevel error catching code.  Complain.</p>")
 	base.ui.notifyError("Error while processing failure: %s"%secErr)
 	request.write("</body></html>")
 	request.finishRequest(False)

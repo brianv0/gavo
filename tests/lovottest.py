@@ -8,6 +8,7 @@ from cStringIO import StringIO
 
 from gavo.helpers import testhelpers
 
+from gavo import base
 from gavo import votable
 from gavo.votable import common
 from gavo.votable import V
@@ -956,6 +957,59 @@ class StanXMLText(testhelpers.VerboseTest):
 		vot = V.VOTABLE[
 			V.INFO(name="QUERY_STATUS", value="ERROR")["Nothing, testing"]]
 		self.assertEqual(vot.render(), '<VOTABLE version="1.2" xmlns="http://www.ivoa.net/xml/VOTable/v1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.ivoa.net/xml/VOTable/v1.2 http://vo.ari.uni-heidelberg.de/docs/schemata/VOTable-1.2.xsd"><INFO name="QUERY_STATUS" value="ERROR">Nothing, testing</INFO></VOTABLE>')
+
+
+class _BOMB(V._VOTElement):
+	def isEmpty(self):
+		return False
+
+	def write(self, outputFile):
+		raise base.ReportableError("This element is a VOTable Bomb.")
+
+
+class StackUnwindingTest(testhelpers.VerboseTest):
+# these are test that even if there's an ugly error during VOTable
+# serialization, some semblance of VOTable results, and also that 
+# there's an appropriate error message
+	def testErrorWhileMeta(self):
+		vot = V.VOTABLE[
+			V.RESOURCE(type="results")[
+				V.TABLE[
+					V.FIELD(name="junk"),],
+				V.DEFINITIONS[_BOMB()]]]
+		result = votable.asString(vot)
+		self.failUnless("</INFO></RESOURCE></VOTABLE>" in result)
+		self.failUnless("content is probably incomplete" in result)
+		self.failUnless("This element is a VOTable Bomb")
+	
+	def testErrorWhileTABLEData(self):
+		vot = V.VOTABLE[
+			V.RESOURCE(type="results")[
+				votable.DelayedTable(
+					V.TABLE[
+						V.FIELD(name="junk", datatype="float"),],
+					[[0.2], ["abc"]], V.TABLEDATA)]]
+		result = votable.asString(vot)
+		self.failUnless("<TD>0.2" in result)
+		self.failUnless("content is probably incomplete" in result)
+		self.failUnless("invalid literal" in result)
+		self.failUnless("</TABLEDATA>" in result)
+		self.failUnless("</RESOURCE></VOTABLE>" in result)
+
+	def testErrorWhileBINARY(self):
+		vot = V.VOTABLE[
+			V.RESOURCE(type="results")[
+				votable.DelayedTable(
+					V.TABLE[
+						V.FIELD(name="junk", datatype="float"),],
+					[[0.2], ["abc"]], V.BINARY)]]
+		result = votable.asString(vot)
+		self.failUnless("PkzMzQ==" in result)
+		self.failUnless("content is probably incomplete" in result)
+		self.failUnless("is not a float" in result)
+		self.failUnless("</BINARY>" in result)
+		self.failUnless("</RESOURCE></VOTABLE>" in result)
+
 
 
 if __name__=="__main__":

@@ -945,7 +945,6 @@ class LinkTest(testhelpers.VerboseTest):
 		self.assertEqual(tree.xpath("RESOURCE/TABLE/LINK/@name")[1], 
 			"offlink")
 
-	
 
 if __name__=="__main__":
 	testhelpers.main(LinkTest)

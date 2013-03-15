@@ -590,15 +590,22 @@ def _makeVisitor(outputFile, prefixForEmpty):
 				outputFile.write("<%s%s/>"%(name, attrRepr))
 		else:
 			outputFile.write("<%s%s>"%(name, attrRepr))
-			if text:
-				outputFile.write(escapePCDATA(text).encode("utf-8"))
+			try:
+				try:
+					if text:
+						outputFile.write(escapePCDATA(text).encode("utf-8"))
 
-			for c in childIter:
-				if hasattr(c, "write"):
-					c.write(outputFile)
-				else:
-					c.apply(visit)
-			outputFile.write("</%s>"%name)
+					for c in childIter:
+						if hasattr(c, "write"):
+							c.write(outputFile)
+						else:
+							c.apply(visit)
+				except Exception, ex:
+					if hasattr(node, "writeErrorElement"):
+						node.writeErrorElement(outputFile, ex)
+					raise
+			finally:
+				outputFile.write("</%s>"%name)
 
 	return visit
 
