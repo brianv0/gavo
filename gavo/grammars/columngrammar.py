@@ -17,18 +17,24 @@ class SplitLineIterator(FileRowIterator):
 		FileRowIterator.__init__(self, grammar, sourceToken, **kwargs)
 		for i in range(self.grammar.topIgnoredLines):
 			self.inputFile.readline()
-		self.lineNo = self.grammar.topIgnoredLines+1
+		self.lineNo = self.grammar.topIgnoredLines
 
 	def _iterRows(self):
 		while True:
+			self.lineNo += 1
 			inputLine = self.inputFile.readline()
 			if not inputLine:
 				break
+
+			if (self.grammar.commentIntroducer is not base.NotGiven
+					and inputLine.startswith(self.grammar.commentIntroducer)):
+				continue
+
 			res = self._parse(inputLine)
 			res["parser_"] = self
 			yield res
-			self.lineNo += 1
 			self.recNo += 1
+
 		self.inputFile.close()
 		self.grammar = None
 	
@@ -99,6 +105,10 @@ class ColumnGrammar(Grammar, FileRowAttributes):
 		" source keys to column ranges.", itemAttD=ColRangeAttribute("col"))
 	_colDefs = base.ActionAttribute("colDefs", description="Shortcut"
 		" way of defining cols", methodName="_parseColDefs")
+	_commentIntroducer = base.UnicodeAttribute("commentIntroducer",
+		default=base.NotGiven, description="A character sequence"
+		" that, when found at the beginning of a line makes this line"
+		" ignored")
 
 	def _getColDefGrammar(self):
 		with utils.pyparsingWhitechars("\n\t\r "):

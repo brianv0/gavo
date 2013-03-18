@@ -266,7 +266,25 @@ class ColDefTest(testhelpers.VerboseTest):
 				"Expected end of text (at char 5), (line:1, col:6)"))
 		else:
 			self.fail("LiteralParseError not raised")
-		 
+
+
+class ColumnGrammarTest(testhelpers.VerboseTest):
+	def testWithComment(self):
+		g = base.parseFromString(columngrammar.ColumnGrammar,
+			'<columnGrammar commentIntroducer="#"><colDefs>a:1-</colDefs>'
+			'</columnGrammar>')
+		res = list(g.parse(StringIO("#Anfang\nMitte\n#Ende")))
+		self.assertEqual(len(res), 1)
+		self.assertEqual(res[0]['a'], 'Mitte')
+
+	def testWithoutComment(self):
+		g = base.parseFromString(columngrammar.ColumnGrammar,
+			'<columnGrammar><colDefs>a:1-</colDefs>'
+			'</columnGrammar>')
+		res = list(g.parse(StringIO("#Anfang\nMitte\n#Ende")))
+		self.assertEqual(len(res), 3)
+		self.assertEqual(res[0]['a'], "#Anfang")
+
 
 class BinaryRecordTest(testhelpers.VerboseTest):
 	def testTypes(self):

@@ -10,6 +10,7 @@ $(TARGET): fitspreview.o
 	$(CC) $(CFLAGS) -o $(TARGET) $^ $(LDFLAGS)
 
 install: $(TARGET)
+	mkdir -p `gavo config inputsDir`/__system/bin
 	cp $(TARGET) `gavo config inputsDir`/__system/bin
 
 clean:
