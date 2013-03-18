@@ -18,6 +18,8 @@ class REIterator(FileRowIterator):
 	def _iterInRecords(self):
 		for i in range(self.grammar.topIgnoredLines):
 			self.inputFile.readline()
+			self.curLine += 1
+
 		curPos = 0
 		splitPat = self.grammar.recordSep
 		buffer = ""
@@ -79,6 +81,10 @@ class REIterator(FileRowIterator):
 class REGrammar(Grammar, FileRowAttributes):
 	"""A grammar that builds rowdicts from records and fields specified
 	via REs separating them.
+
+	There is also a simple facility for "cleaning up" records.  This can be
+	used to remove standard shell-like comments; use 
+	``recordCleaner="(?:#.*)?(.*)"``.
 	"""
 	name_ = "reGrammar"
 

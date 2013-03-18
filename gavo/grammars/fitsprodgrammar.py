@@ -65,7 +65,7 @@ class FITSProdIterator(RowIterator):
 
 
 class FITSProdGrammar(Grammar):
-	"""A grammar that returns FITS-headers as dictionaries.
+	r"""A grammar that returns FITS-headers as dictionaries.
 
 	This is the grammar you want when one FITS file corresponds to one
 	row in the destination table.
@@ -75,7 +75,7 @@ class FITSProdGrammar(Grammar):
 	keywords is replaced with an underscore for easier @-referencing.
 	You can use a mapKeys element to effect further name cosmetics.
 
-	The original header is preserved as the value of the header_ key.  This
+	The original header is preserved as the value of the header\_ key.  This
 	is mainly intended for use WCS use, as in ``pywcs.WCS(@header_)``.
 
 	If you have more complex structures in your FITS files, you can get access

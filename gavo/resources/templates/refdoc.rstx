@@ -628,6 +628,10 @@ type
   url
     makes value a link in HTML tables.
 
+  imageURL
+    makes value the src of an image.  Add width to force a certain
+    image size.
+
 noxml
   if 'true' (exactly like this), do not include this column in VOTables.
 

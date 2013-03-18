@@ -525,9 +525,9 @@ makeFallbackMeta()
 
 
 ##########################################################
-# A few utility functions -- we should have a better
-# place for them, really.
+# A few utility functions -- TODO: move these to base.osinter
 
+@utils.document
 def makeSitePath(path):
 	"""returns a rooted local part for a server-internal URL.
 
@@ -536,6 +536,7 @@ def makeSitePath(path):
 	return str(get("web", "nevowRoot")+path.lstrip("/"))
 
 
+@utils.document
 def makeAbsoluteURL(path):
 	"""returns a fully qualified URL for a rooted local part.
 	"""

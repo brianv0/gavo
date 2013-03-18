@@ -309,6 +309,21 @@ def _keepHTMLMapperFactory(colDesc):
 _registerHTMLMF(_keepHTMLMapperFactory)
 
 
+def _imageURLMapperFactory(colDesc):
+	if colDesc["displayHint"].get("type")!="imageURL":
+		return
+	width = colDesc["displayHint"].get("width")
+	def coder(data):
+		if data:
+			res = T.img(src=data, alt="Image at %s"%data)
+			if width:
+				res(width=width)
+			return res
+		return ""
+	return coder
+_registerHTMLMF(_imageURLMapperFactory)
+
+
 def _urlMapperFactory(colDesc):
 	if colDesc["displayHint"].get("type")!="url":
 		return

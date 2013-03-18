@@ -246,7 +246,7 @@ def hmsToDeg(hms, sepChar=None):
 	'335.84708333'
 	>>> hmsToDeg("junk")
 	Traceback (most recent call last):
-	ValueError: Invalid time with sepchar None: 'junk'
+	ValueError: Invalid time with sepChar None: 'junk'
 	"""
 	hms = hms.strip()
 	try:
@@ -263,7 +263,7 @@ def hmsToDeg(hms, sepChar=None):
 			raise ValueError("Too many parts")
 		timeSeconds = int(hours)*3600+float(minutes)*60+float(seconds)
 	except ValueError:
-		raise ValueError("Invalid time with sepchar %s: %s"%(
+		raise ValueError("Invalid time with sepChar %s: %s"%(
 			repr(sepChar), repr(hms)))
 	return timeSeconds/3600/24*360
 
@@ -281,7 +281,7 @@ def dmsToDeg(dmsAngle, sepChar=None):
 	'-45.50211111'
 	>>> dmsToDeg("junk")
 	Traceback (most recent call last):
-	ValueError: Invalid dms declination with sepchar None: 'junk'
+	ValueError: Invalid dms value with sepChar None: 'junk'
 	"""
 	dmsAngle = dmsAngle.strip()
 	sign = 1
@@ -304,7 +304,7 @@ def dmsToDeg(dmsAngle, sepChar=None):
 		arcSecs = sign*(int(deg)*3600+float(min)*60+float(sec))
 	except ValueError:
 		raise misctricks.logOldExc(
-			ValueError("Invalid dms declination with sepchar %s: %s"%(
+			ValueError("Invalid dms value with sepChar %s: %s"%(
 				repr(sepChar), repr(dmsAngle))))
 	return arcSecs/3600
 

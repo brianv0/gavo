@@ -20,6 +20,7 @@ from gavo import base
 from gavo import stc
 from gavo import utils
 from gavo.base import coords, parseBooleanLiteral, parseInt, sqlmunge
+from gavo.base.config import makeAbsoluteURL, makeSitePath
 from gavo.base.literals import *
 from gavo.stc import parseSimpleSTCS
 from gavo.stc.times import (dateTimeToJdn, dateTimeToMJD, dateTimeToJYear,

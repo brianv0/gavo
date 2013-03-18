@@ -32,7 +32,7 @@ class SSAPCore(svcs.DBCore):
 
 	SSAPCores also know how to handle getData requests according to the 2012
 	draft.  To enable getData support, add a tablesource property to the 
-	embedding service and read `getData Support`_
+	embedding service and read `Supporting getData`_
 	"""
 	name_ = "ssapCore"
 

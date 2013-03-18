@@ -142,7 +142,7 @@ def parseCooPair(soup):
 	['183.877083333', '52.3076388889']
 	>>> parseCooPair("3.39 -12 39")
 	Traceback (most recent call last):
-	ValueError: Invalid time with sepchar None: '3.39'
+	ValueError: Invalid time with sepChar None: '3.39'
 	>>> parseCooPair("12 15 30.5 +52 18 27.5e")
 	Traceback (most recent call last):
 	ValueError: 12 15 30.5 +52 18 27.5e has no discernible position in it
