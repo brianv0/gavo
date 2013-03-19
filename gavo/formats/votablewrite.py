@@ -382,7 +382,6 @@ def makeTable(ctx, table):
 		# may need to add ids to the respective items.  XSD-correct ordering of 
 		# the elements is done by xmlstan.
 		V.DESCRIPTION[base.getMetaText(table, "description")],
-		_tableMetaBuilder.build(table),
 		_iterGroups(table.tableDef, sm),
 		_iterFields(sm),
 		_iterTableParams(sm),
@@ -391,7 +390,8 @@ def makeTable(ctx, table):
 		]
 
 	if ctx.version>(1,1):
-		result[_iterSTC(table.tableDef, sm)]
+		result[_iterSTC(table.tableDef, sm),
+			_tableMetaBuilder.build(table)]
 
 	return votable.DelayedTable(result,
 		sm.getMappedTuples(),
