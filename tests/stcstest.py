@@ -336,6 +336,12 @@ class STCSPhraseTest(STCSTreeParseTestBase):
 		("stcsPhrase", "Position ECLIPTIC System TT-ICRS-TOPO",
 			{'libSystem': 'TT-ICRS-TOPO', 'space': 
 				{'frame': 'ECLIPTIC', 'type': 'Position'}}),
+		("stcsPhrase", 'Position ICRS Epoch J2000.0 \n 20 21',
+			{'space': {
+					'frame': 'ICRS', 
+					'type': 'Position', 
+					'epoch': 'J2000.0', 
+					'pos': [20.0, 21.0]}}),
 	]
 
 
@@ -570,6 +576,7 @@ class ColrefTest(testhelpers.VerboseTest):
 	def testErrorRadius(self):
 		tree = stc.parseQSTCS('Position ICRS Error "p1" "p1"')
 		self.assertEqual(tree.place.error.radii[0].dest, "p1")
+
 
 
 class SyslibTest(testhelpers.VerboseTest):

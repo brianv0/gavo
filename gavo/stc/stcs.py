@@ -453,22 +453,24 @@ def getSymbols(_exportAll=False, _colrefLiteral=None,
 		_addGeoReferences=False):
 	"""returns an STC-S grammar with terminal values.
 	"""
-	_exactNumericRE = r"[+-]?\d+(\.(\d+)?)?|[+-]?\.\d+"
-	exactNumericLiteral = Regex(_exactNumericRE)
-	numberLiteral = Regex(r"(?i)(%s)(E[+-]?\d+)?"%_exactNumericRE
-		).addParseAction(lambda s,p,toks: float(toks[0]))
+	with utils.pyparsingWhitechars("\n\t\r "):
+		_exactNumericRE = r"[+-]?\d+(\.(\d+)?)?|[+-]?\.\d+"
+		exactNumericLiteral = Regex(_exactNumericRE)
+		numberLiteral = Regex(r"(?i)(%s)(E[+-]?\d+)?"%_exactNumericRE
+			).addParseAction(lambda s,p,toks: float(toks[0]))
 
-	jdLiteral = (Suppress( Literal("JD") ) + exactNumericLiteral
-		).addParseAction(lambda s,p,toks: times.jdnToDateTime(float(toks[0])))
-	mjdLiteral = (Suppress( Literal("MJD") ) + exactNumericLiteral
-		).addParseAction(lambda s,p,toks: times.mjdToDateTime(float(toks[0])))
-	isoTimeLiteral = Regex(r"\d\d\d\d-?\d\d-?\d\d(T\d\d:?\d\d:?\d\d(\.\d*)?Z?)?"
-		).addParseAction(lambda s,p,toks: times.parseISODT(toks[0]))
-	timeLiteral = (isoTimeLiteral | jdLiteral | mjdLiteral)
+		jdLiteral = (Suppress( Literal("JD") ) + exactNumericLiteral
+			).addParseAction(lambda s,p,toks: times.jdnToDateTime(float(toks[0])))
+		mjdLiteral = (Suppress( Literal("MJD") ) + exactNumericLiteral
+			).addParseAction(lambda s,p,toks: times.mjdToDateTime(float(toks[0])))
+		isoTimeLiteral = Regex(r"\d\d\d\d-?\d\d-?\d\d(T\d\d:?\d\d:?\d\d(\.\d*)?Z?)?"
+			).addParseAction(lambda s,p,toks: times.parseISODT(toks[0]))
+		timeLiteral = (isoTimeLiteral | jdLiteral | mjdLiteral)
 
-	if _colrefLiteral:
-		numberLiteral = _colrefLiteral ^ numberLiteral
-		timeLiteral = _colrefLiteral ^ timeLiteral
+		if _colrefLiteral:
+			numberLiteral = _colrefLiteral ^ numberLiteral
+			timeLiteral = _colrefLiteral ^ timeLiteral
+
 	res = _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll,
 		_addGeoReferences=_addGeoReferences)
 	res.update(_makeSymDict(locals(), _exportAll))
@@ -484,8 +486,9 @@ def getColrefSymbols():
 	"""
 	def makeColRef(s, p, toks):
 		return ColRef(toks[0][1:-1])
-	atomicColRef = Regex('"[A-Za-z_][A-Za-z_0-9]*"').addParseAction(
-		makeColRef)
+	with utils.pyparsingWhitechars("\n\t\r "):
+		atomicColRef = Regex('"[A-Za-z_][A-Za-z_0-9]*"').addParseAction(
+			makeColRef)
 	return getSymbols(_colrefLiteral=atomicColRef, _addGeoReferences=True)
 
 
@@ -527,5 +530,5 @@ if __name__=="__main__":
 #	print getCST("PositionInterval ICRS 1 2 3 4")
 	enableDebug(syms)
 	pprint.pprint(makeTree(syms["stcsPhrase"].parseString(
-		"Position ICRS Velocity 1 2 unit deg/s"
+		"Position ICRS Epoch J2000.0 20 21"
 		, parseAll=True)))
