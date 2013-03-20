@@ -20,6 +20,7 @@ from gavo.base import common
 from gavo.base import complexattrs
 from gavo.base import config
 from gavo.base import meta
+from gavo.base import osinter
 from gavo.base import structure
 
 
@@ -182,19 +183,19 @@ class StandardMacroMixin(MacroPackage):
 		"""
 		if title is None:
 			title = serviceId
-		return "`%s <%s>`_"%(title, config.makeSitePath(serviceId))
+		return "`%s <%s>`_"%(title, osinter.makeSitePath(serviceId))
 
 	def macro_RSTtable(self, tableName):
 		"""adds an reStructured test link to a tableName pointing to its table
 		info.
 		"""
 		return "`%s <%s>`_"%(tableName, 
-			config.makeSitePath("tableinfo/%s"%tableName))
+			osinter.makeSitePath("tableinfo/%s"%tableName))
 
 	def macro_internallink(self, relPath):
 		"""an absolute URL from a path relative to the DC root.
 		"""
-		return config.makeAbsoluteURL(relPath)
+		return osinter.makeAbsoluteURL(relPath)
 
 	def macro_urlquote(self, string):
 		"""wraps urllib.quote.

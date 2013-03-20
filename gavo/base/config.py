@@ -8,7 +8,6 @@ import ConfigParser
 import cStringIO
 import grp
 import os
-import pkg_resources
 import re
 import shlex
 import sys
@@ -381,7 +380,9 @@ _config = Configuration(
 			" this user."),
 		EnsureTrailingSlashesItem("nevowRoot", default="/",
 			description="Path fragment to the server's root for operation off the"
-				" server's root"),
+				" server's root; this must end with a slash (and, frankly, if"
+				" you must use this feature, you'll probably encounter some bugs."
+				" we want to fix those, though.)"),
 		StringConfigItem("realm", default="X-Unconfigured", 
 			description="Authentication realm to be used (currently,"
 			" only one, server-wide, is supported)"),
@@ -522,76 +523,6 @@ def makeFallbackMeta(reload=False):
 	meta.parseMetaStream(meta.configMeta, content, clearItems=reload)
 
 makeFallbackMeta()
-
-
-##########################################################
-# A few utility functions -- TODO: move these to base.osinter
-
-@utils.document
-def makeSitePath(path):
-	"""returns a rooted local part for a server-internal URL.
-
-	uri itself needs to be server-absolute (i.e., start with a slash).
-	"""
-	return str(get("web", "nevowRoot")+path.lstrip("/"))
-
-
-@utils.document
-def makeAbsoluteURL(path):
-	"""returns a fully qualified URL for a rooted local part.
-	"""
-	return str(get("web", "serverURL")+makeSitePath(path))
-
-
-def getBinaryName(baseName):
-	"""returns the name of a binary it thinks is appropriate for the platform.
-
-	To do this, it asks config for the platform name, sees if there's a binary
-	<bin>-<platname> if platform is nonempty.  If it exists, it returns that name,
-	in all other cases, it returns baseName unchanged.
-	"""
-	platform = get("platform")
-	if platform:
-		platName = baseName+"-"+platform
-		if os.path.exists(platName):
-			return platName
-	return baseName
-
-
-def openDistFile(name):
-	"""returns an open file for a "dist resource", i.e., a file distributed
-	with DaCHS.
-
-	This is like pkg_resources, except it also checks in 
-	$GAVO_DIR/override/<name> and returns that file if present.  Thus, you
-	can usually override DaCHS built-in files (but there's not too many
-	places in which that's used so far).
-	"""
-	userPath = os.path.join(get("rootDir"), "overrides/"+name)
-	if os.path.exists(userPath):
-		return open(userPath)
-	else:
-		return pkg_resources.resource_stream('gavo', "resources/"+name)
-
-
-def getGroupId():
-	"""returns the numerical group id of the GAVO group.
-	"""
-	gavoGroup = _config.get("group")
-	try:
-		return grp.getgrnam(gavoGroup)[2]
-	except KeyError, ex:
-		raise utils.ReportableError("Group %s does not exist"%str(ex),
-			"You should have created this (unix) group when you created the server"
-			" user (usually, 'gavo').  Just do it now and re-run this program.")
-
-
-def getVersion():
-	"""returns (as a string) the DaCHS version running.
-
-	The information is obtained from setuptools.
-	"""
-	return pkg_resources.require("gavodachs")[0].version
 
 
 def main():

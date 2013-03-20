@@ -46,16 +46,6 @@ def makeRoot():
 			" as root and grant it to your user id.")
 
 
-def getGroupId():
-	gavoGroup = base.getConfig("group")
-	try:
-		return grp.getgrnam(gavoGroup)[2]
-	except KeyError, ex:
-		bailOut("Group %s does not exist"%str(ex),
-			"You should have created this (unix) group when you created the server"
-			" user (usually, 'gavo').  Just do it now and re-run this program.")
-
-
 def makeDirVerbose(path, setGroupTo, makeWritable):
 	if not os.path.isdir(path):
 		try:
@@ -192,7 +182,7 @@ def createFSHierarchy(dsn, userPrefix=""):
 	userPrefix is for use of the test infrastructure.
 	"""
 	makeRoot()
-	grpId = getGroupId()
+	grpId = base.getGroupId()
 	for configKey in ["configDir", "inputsDir", "cacheDir", "logDir", 
 			"tempDir", "webDir", "stateDir"]:
 		makeDirForConfig(configKey, grpId)

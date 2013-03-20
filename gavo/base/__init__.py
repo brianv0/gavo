@@ -18,9 +18,7 @@ from gavo.base.complexattrs import *
 
 from gavo.base.config import(
 	get as getConfig, set as setConfig,
-	getDBProfile,
-	makeSitePath, makeAbsoluteURL, getBinaryName,
-	openDistFile, getGroupId)
+	getDBProfile)
 
 from gavo.base.coords import Box
 
@@ -47,6 +45,9 @@ from gavo.base.meta import (
 from gavo.base.metavalidation import MetaValidationError, validateStructure
 
 from gavo.base.observer import ObserverBase, listensTo
+
+from gavo.base.osinter import (getGroupId, makeSharedDir, makeSitePath,
+	getBinaryName, makeAbsoluteURL, openDistFile, getVersion)
 
 from gavo.base.parsecontext import (
 	IdAttribute, OriginalAttribute, ReferenceAttribute, ParseContext,
@@ -79,7 +80,7 @@ from gavo.base.unitconv import (
 
 from gavo.base.xmlstruct import parseFromString, parseFromStream, feedTo
 
-__version__ = config.getVersion()
+__version__ = getVersion()
 
 DEBUG = False
 IS_DACHS_SERVER = False

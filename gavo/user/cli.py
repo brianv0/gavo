@@ -64,7 +64,7 @@ def _printVersion(*args):
 	from gavo import base
 	from gavo.user import upgrade
 	print "Software (%s) Schema (%s/%s)"%(
-		base.__version__,
+		base.getVersion(),
 		upgrade.CURRENT_SCHEMAVERSION,
 		upgrade.getDBSchemaVersion())
 	sys.exit(0)
@@ -101,8 +101,8 @@ def _parseCLArgs():
 		dest="suppressLog")
 	parser.add_option("--debug", help="Produce debug info as appropirate.",
 		action="callback", callback=_enableDebug)
-	parser.add_option("--version", help="Print DaCHS version and exit",
-		action="callback", callback=_printVersion)
+	parser.add_option("--version", help="Write software version to stdout"
+		" and exit", action="callback", callback=_printVersion)
 
 	opts, args = parser.parse_args()
 	if len(args)<1:
