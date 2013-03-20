@@ -7,16 +7,16 @@ function decodeGetPars(queryString) {
 // an incredibly crappy approach to getting whatever was in the query string
 // into javascript.
 	var pars = new Object();
-  var pairs = queryString.slice(1).split("&");
-  for (var ind in pairs) {
+	var pairs = queryString.slice(1).split("&");
+	for (var ind in pairs) {
 		var pair = pairs[ind].split("=");
 		var key = 'arg'+unescape(pair[0]).replace("+", " ");
-    var value = unescape(pair[1]).replace("+", " ");
+		var value = unescape(pair[1]).replace("+", " ");
 		if (pars[key]==undefined) {
-	    pars[key] = new Array();
+			pars[key] = new Array();
 		}
 		pars[key].push(value);
-  }
+	}
 	return pars;
 }
 
@@ -51,24 +51,25 @@ function htmlEscape(str) {
 }
 
 (function () {
-	var _tmplCache = {}
+	var _tmplCache = {};
 	this.renderTemplate = function (templateId, data) {
-   	 var err = "";
-   	 var func = _tmplCache[templateId];
-   	 if (!func) {
-				str = document.getElementById(templateId).innerHTML;
-       	 var strFunc =
-       	 "var p=[],print=function(){p.push.apply(p,arguments);};" +
-                   	 "with(obj){p.push('" +
-       	 str.replace(/[\r\t\n]/g, " ")
-          	.split("'").join("\\'")
-          	.split("\t").join("'")
-          	.replace(/\$([a-zA-Z_]+)/g, "',htmlEscape($1),'")
-          	+ "');}return p.join('');";
-       	 func = new Function("obj", strFunc);
-       	 _tmplCache[str] = func;
-   	 }
-   	 return func(data);
+		var err = "";
+		var func = _tmplCache[templateId];
+		if (!func) {
+			str = document.getElementById(templateId).innerHTML;
+			var strFunc =
+				"var p=[],print=function(){p.push.apply(p,arguments);};"
+				+ "with(obj){p.push('"
+				+ str.replace(/[\r\t\n]/g, " ")
+				.split("'").join("\\'")
+				.split("\t").join("'")
+				.replace(/\$([a-zA-Z_]+)/g, "',htmlEscape($1),'")
+				.replace(/\$!([a-zA-Z_]+)/g, "',$1,'")
+				+ "');}return p.join('');";
+				func = new Function("obj", strFunc);
+				_tmplCache[str] = func;
+		}
+		return func(data);
 	}
 })()
 
