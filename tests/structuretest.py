@@ -48,12 +48,14 @@ class Palette(structure.ParseableStructure):
 class PalCollection(structure.ParseableStructure):
 	name_ = "pals"
 	_pals = base.StructListAttribute("pals", childFactory=Palette)
-# End of test struct defs
 
 class Image(structure.ParseableStructure):
 	name_ = "image"
 	_pal = base.ReferenceAttribute("pal", forceType=Palette, copyable=True)
+	_calib = base.ListOfAtomsAttribute("calibs",
+		itemAttD=base.UnicodeAttribute("calib"), copyable=True)
 	_orig = base.OriginalAttribute()
+
 
 class Root(structure.ParseableStructure):
 	name_ = "root"
@@ -61,6 +63,7 @@ class Root(structure.ParseableStructure):
 	_pals = base.StructListAttribute("pals", childFactory=Palette, 
 		copyable=True)
 
+# End of test struct defs
 
 class SimpleStructureTest(unittest.TestCase):
 	"""tests for very basic structures.
@@ -406,6 +409,14 @@ class IterEventsTest(testhelpers.VerboseTest):
 		self.assertEqual(
 			list(stuff.iterEvents()).count(('value', 'pal', 'pal1')),
 			2)
+
+	def testAtomList(self):
+		stuff = base.parseFromString(Image, 
+			'<image><calib>abc</calib><calib>def</calib></image>')
+		evs = list(stuff.iterEvents())
+		self.assertEqual(len(evs), 6)
+		self.assertEqual(evs[1], ('value', 'content_', u'abc'))
+		self.assertEqual(evs[2], ('end', 'calib', None))
 
 
 if __name__=="__main__":

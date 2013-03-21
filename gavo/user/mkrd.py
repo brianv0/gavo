@@ -21,6 +21,7 @@ from gavo import rscdef
 from gavo import votable
 from gavo import utils
 from gavo.base import typesystems
+from gavo.grammars import fitsprodgrammar
 from gavo.formats import votableread
 from gavo.utils import ElementTree
 from gavo.utils import fitstools
@@ -30,9 +31,9 @@ MS = base.makeStruct
 
 ignoredFITSHeaders = set(["COMMENT", "SIMPLE", "BITPIX", "EXTEND", 
 	"NEXTEND", "SOFTNAME", "SOFTVERS", "SOFTDATE", "SOFTAUTH", "SOFTINST",
-	"HISTORY", "BZERO"])
+	"HISTORY", "BZERO", "BSCALE", "DATAMIN", "DATAMAX"])
 wcsKey = re.compile("CD.*|CRVAL.*|CDELT.*|NAXIS.*|CRPIX.*|CTYPE.*|CUNIT.*"
-	"|CROTA.*|RADECSYS|EQUINOX")
+	"|CROTA.*|RADECSYS|AP?_\d_\d|BP?_\d_\d|LATPOLE|LONPOLE")
 
 
 def isIgnoredKeyword(kw):
@@ -63,6 +64,10 @@ def structToETree(aStruct):
 				if elName=="content_":
 					nodeStack[-1].text = value
 				else:
+					if not isinstance(value, basestring):
+						# TODO: figure out if something is a reference by inspecting
+						# the attribute definition; meanwhile, just assume it is:
+						value = value.id
 					nodeStack[-1].set(elName, value)
 			else:
 				raise base.Error("Invalid struct event: %s"%evType)
@@ -73,56 +78,26 @@ def structToETree(aStruct):
 	return nodeStack[-1]
 
 
-class EventStorage(object):
-	"""is a stand-in for a Structure during parsing.
-
-	It records events coming in from the parser and can later
-	replay them.
-
-	It has a name_ attribute and feeds it from the first start event
-	it receives.
-	"""
-	name_ = "events"
-
-	def __init__(self, parent, **kwargs):
-		self.parent, self.name_ = parent, None
-		self.events, self.handlerStack = [], []
-		for k,v in kwargs.iteritems():
-			self.feedEvent("value", k, v)
-		self.handlerStack.append(parent)
-	
-	def finishElement(self, ctx=None):
-		return self
-	
-	def feedEvent(self, ctx, type, name, val):
-		if type=="start":
-			if self.name_ is None:  # enclosing element, baptize me
-				self.name_ = name
-				self.handlerStack.append(self)
-			else:  # memorize we've swallowed an element
-				self.handlerStack.append(self.feedEvent)
-		self.events.append((type, name, val))
-		if type=="end":
-			return self.handlerStack.pop()
-		return self
-	
-	def iterEvents(self):
-		return islice(self.events, 1, len(self.events)-1)
-
-
 def makeTableFromFITS(rd, srcName, opts):
-	def getHeaderKeys(srcName):
-		header = fitstools.openFits(srcName)[0].header
-		return header.ascardlist()
-
 	keyMappings = []
 	table = rscdef.TableDef(rd, id=opts.tableName, onDisk=True)
-	for index, card in enumerate(getHeaderKeys(srcName)):
+	headerCards = fitstools.openFits(srcName)[0].header.ascardlist()
+	for index, card in enumerate(headerCards):
 		if isIgnoredKeyword(card.key):
 			continue
-		colName = card.key.lower()
+		colName = re.sub("[^a-z]", "_", card.key.lower())
+		if not colName:
+			continue
+
+		if isinstance(card.value, basestring):
+			type = "text"
+		elif isinstance(card.value, int):
+			type = "integer"
+		else:
+			type = "real"
+
 		table.feedObject("column", MS(rscdef.Column,
-			name=colName, unit="FILLIN", ucd="FILLIN", type="FILLIN",
+			name=colName, unit="FILLIN", ucd="FILLIN", type=type,
 			description=card.comment))
 		keyMappings.append((colName, card.key))
 	rd.setProperty("mapKeys", ", ".join("%s:%s"%(k,v) for k,v in keyMappings))
@@ -132,20 +107,23 @@ def makeTableFromFITS(rd, srcName, opts):
 def makeDataForFITS(rd, srcName, opts):
 	targetTable = rd.tables[0]
 	dd = rscdef.DataDescriptor(rd, id="import_"+opts.tableName)
-	grammar = grammars.FITSProdGrammar(dd)
+	grammar = fitsprodgrammar.FITSProdGrammar(dd)
 	grammar.feedObject("qnd", True)
-	rowgen = base.parseFromString(EventStorage, """<events>
-		<rowgen procDef="//products#define">
-				<arg key="table">"%s"</arg>
-				<arg key="owner">"FILLIN"</arg>
-				<arg key="embargo">"FILLIN"</arg>
-		</rowgen></events>"""%(targetTable.getQName()))
-	grammar.feedObject("rowgen", rowgen)
+	rowfilter = base.parseFromString(grammars.Rowfilter, """
+		<rowfilter procDef="//products#define">
+				<bind key="table">"%s"</bind>
+				<bind key="owner">"FILLIN"</bind>
+				<bind key="embargo">"FILLIN"</bind>
+		</rowfilter>"""%(targetTable.getQName()))
+	grammar.feedObject("rowfilter", rowfilter)
 	grammar.feedObject("mapKeys", MS(grammars.MapKeys,
 		content_=rd.getProperty("mapKeys")))
 	grammar.finishElement()
 	dd.grammar = grammar
-	dd.feedObject("make", MS(rscdef.Make, table=targetTable))
+	dd.feedObject("sources", MS(rscdef.SourceSpec, 
+		pattern=["*.fits"], recurse=True))
+	dd.feedObject("rowmaker", MS(rscdef.RowmakerDef, idmaps="*", id="gen_rmk"))
+	dd.feedObject("make", MS(rscdef.Make, table=targetTable, id="gen_rmk"))
 	return dd
 
 
@@ -185,16 +163,33 @@ dataMakers = {
 
 def makeRD(args, opts):
 	from gavo import rscdesc
-	rd = rscdesc.RD(None, schema=os.path.basename(os.getcwd()))
+	rd = rscdesc.RD(None, schema=os.path.basename(opts.resdir),
+		resdir=opts.resdir)
 	rd.feedObject("table", tableMakers[opts.srcForm](rd, args[0], opts))
 	rd.feedObject("data", dataMakers[opts.srcForm](rd, args[0], opts))
 	return rd.finishElement()
 
 
-def writePrettyPrintedXML(eTree):
-	f = os.popen("xmlstarlet fo", "w")
-	ElementTree.ElementTree(eTree).write(f, encoding="utf-8")
-	f.close()
+def indent(elem, level=0):
+	i = "\n" + level*"\t"
+	if len(elem):
+		if not elem.text or not elem.text.strip():
+			elem.text = i + "\t"
+		if not elem.tail or not elem.tail.strip():
+			elem.tail = i
+		for child in elem:
+			indent(child, level+1)
+		if not child.tail or not child.tail.strip():
+			child.tail = i
+		if not elem.tail or not elem.tail.strip():
+			elem.tail = i
+	else:
+		if level and (not elem.tail or not elem.tail.strip()):
+			elem.tail = i
+
+def writePrettyPrintedXML(root):
+	indent(root)
+	ElementTree.ElementTree(root).write(sys.stdout, encoding="utf-8")
 
 
 def parseCommandLine():
@@ -205,6 +200,8 @@ def parseCommandLine():
 		action="store", type="str")
 	parser.add_option("-t", "--table-name", help="Name of the generated table",
 		dest="tableName", default="main", action="store", type="str")
+	parser.add_option("-r", "--resdir", help="Override resdir (and schema)",
+		dest="resdir", default=os.getcwd(), action="store", type="str")
 	opts, args = parser.parse_args()
 	if len(args)!=1:
 		parser.print_help()
@@ -228,15 +225,9 @@ def main():
 	rscdef.DataDescriptor._id.copyable = True
 	opts, args = parseCommandLine()
 	rd = makeRD(args, opts)
-	writePrettyPrintedXML(structToETree(rd))
+	eTree = structToETree(rd)
+	writePrettyPrintedXML(eTree)
 
 
 if __name__=="__main__":
-	#main()
-	base.parseFromString(EventStorage, """<events>
-		<rowgen procDef="//products#define">
-				<arg key="table">"%s"</arg>
-				<arg key="owner">"FILLIN"</arg>
-				<arg key="embargo">"FILLIN"</arg>
-		</rowgen></events>"""%("xyz"))
-
+	main()

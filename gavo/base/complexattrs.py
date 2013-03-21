@@ -39,7 +39,7 @@ class CollOfAtomsAttribute(attrdef.AtomicAttribute):
 	def iterEvents(self, instance):
 		for item in getattr(instance, self.name_):
 			yield ("start", self.xmlName_, None)
-			yield ("value", self.xmlName_, self.itemAttD.unparse(item))
+			yield ("value", "content_", self.itemAttD.unparse(item))
 			yield ("end", self.xmlName_, None)
 
 

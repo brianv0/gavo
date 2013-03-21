@@ -321,14 +321,13 @@ def sortHeaders(header, commentFilter=None, historyFilter=None):
 	return _enforceHeaderConstraints(newCards)
 
 
-def openGz(fitsName):
+def openGz(fitsName, tempDir=None):
 	"""returns the hdus for the gzipped fits fitsName.
 
 	Scrap that as soon as we have gzipped fits support (i.e. newer pyfits)
 	in debian.
 	"""
-	handle, pathname = tempfile.mkstemp(suffix="fits", 
-		dir=base.getConfig("tempDir"))
+	handle, pathname = tempfile.mkstemp(suffix="fits", dir=tempDir)
 	f = os.fdopen(handle, "w")
 	f.write(gzip.open(fitsName).read())
 	f.close()

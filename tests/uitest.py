@@ -5,6 +5,7 @@ Tests for event propagation and user interaction.
 import contextlib
 import os
 import re
+import subprocess
 import sys
 import traceback
 
@@ -257,6 +258,40 @@ class SystemImportTest(testhelpers.VerboseTest):
 			expectedRetcode=0, expectedStderr="", expectedStdout="")
 		with base.AdhocQuerier() as q:
 			self.failIf(q.tableExists("test.fromclitest"))
+
+
+class _FITSGeneratedRD(testhelpers.TestResource):
+	def make(self, ignored):
+		p = testhelpers.ForkingSubprocess(
+			["test harness", "--debug", "mkrd", "-r", 
+				str(os.path.join(base.getConfig("inputsDir"), "data")),
+				"test_data/ex.fits"],
+			executable=cli.main, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		out, err = p.communicate(input=input)
+		retcode = p.wait()
+		if err or retcode:
+			sys.stderr.write("panic: generating RD failed, bailing out.\n%s\n"%
+				err)
+			sys.exit(0)
+		return out
+
+
+class MkRDTest(testhelpers.VerboseTest):
+	resources = [("fitsrd", _FITSGeneratedRD())]
+
+	def testFITSRDLooksOk(self):
+		for frag in [
+				'<column name="color" type="text"',
+				'description="Effective exposure time [seconds]"',
+				'<map key="EXPTIME">exptime</map>']:
+			self.failUnless(frag in self.fitsrd, "%s missing"%frag)
+	
+	def testRunImp(self):
+		with testhelpers.testFile(os.path.join(base.getConfig("inputsDir"),
+				"gen.rd"), self.fitsrd):
+			self.assertOutput(cli.main, ["imp", "gen"], expectedStderr="",
+				expectedStdout=lambda s: "Columns affected: 1", expectedRetcode=0)
+			self.assertOutput(cli.main, ["drop", "gen"])
 
 
 class _MyRDResource(tresc.FileResource):
