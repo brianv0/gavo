@@ -15,6 +15,22 @@ from gavo import user  # oops -- we should keep interfaces somewhere else.
 from gavo.user import common
 
 
+class RetvalWatcher(base.ObserverBase):
+	"""an Observer giving approproate program return values.
+
+	Basically, we want to return an error signature even if we managed
+	to import things if at least once there was an error notification.
+
+	We define this "error occurred but we manage" code to 101 here.  I'm
+	sure we can do better than that.
+	"""
+	retval = 0
+
+	@base.listensTo("Error")
+	def fixRetVal(self, msg):
+		self.retval = 101
+
+
 def process(opts, args):
 	"""imports the data set described by args governed by opts.
 
@@ -26,6 +42,7 @@ def process(opts, args):
 	main's parseOption function below.
 	"""
 	# process manages its dependencies itself
+	retvalWatcher = RetvalWatcher(base.ui)
 	opts.buildDependencies = False
 
 	src, selectedIds = args[0], args[1:]
@@ -58,6 +75,8 @@ def process(opts, args):
 	rsc.makeDependentsFor(dds, opts, connection)
 	connection.commit()
 	rd.touchTimestamp()
+
+	return retvalWatcher.retval
 
 
 def main():
@@ -127,7 +146,7 @@ def main():
 
 
 	opts, args = parseCmdline()
-	process(opts, args)
+	sys.exit(process(opts, args))
 
 
 if __name__=="__main__":
