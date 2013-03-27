@@ -103,6 +103,22 @@ class ReplayMacroTest(testhelpers.VerboseTest):
 			return
 		self.fail("MacroError not raised")
 
+	def testWithUnicodeValue(self):
+		input = """<?xml version="1.0" encoding="iso-8859-1"?>
+			<table id="gack"><STREAM id="foo">
+			<column name="\\na" description="\\de\\+m"/></STREAM>
+			<FEED source="foo" na="bla" de="foo \xb5"/></table>"""
+		res = base.parseFromString(rscdef.TableDef, input)
+		self.assertEqual(res.columns[0].description, u"foo \u00b5m")
+
+	def testWithUnicodeStream(self):
+		input = """<?xml version="1.0" encoding="iso-8859-1"?>
+			<table id="gack"><STREAM id="foo">
+			<column name="\\na" description="\xb5m"/></STREAM>
+			<FEED source="foo" na="bla"/></table>"""
+		res = base.parseFromString(rscdef.TableDef, input)
+		self.assertEqual(res.columns[0].description, u"\u00b5m")
+
 
 class NestedTest(testhelpers.VerboseTest):
 	def testDoubleNest(self):
@@ -299,19 +315,22 @@ class EditTest(testhelpers.VerboseTest):
 class LoopTest(testhelpers.VerboseTest):
 	def testBasic(self):
 		res = base.parseFromString(rscdef.DataDescriptor, 
-			"""<data><STREAM id="foo">
-			<column name="c_\\name" type="\\type"/></STREAM>
+			"""<?xml version="1.0" encoding="iso-8859-1"?><data><STREAM id="foo">
+			<column name="c_\\name" description="\\count, \\desc" 
+				verbLevel="\\count"/>
+			</STREAM>
 			<table id="gook">
 			<LOOP source="foo"><csvItems>
-				name,type
-				anInt,integer
-				aString,text
+				name,desc,count
+				anInt,m\xf6rkel,2
+				aString,sth,3
 				</csvItems>
 				</LOOP></table></data>""")
 		cols = list(res.tables[0])
 		self.assertEqual(len(cols), 2)
 		self.assertEqual(cols[0].name, "c_anInt")
-		self.assertEqual(cols[1].type, "text")
+		self.assertEqual(cols[0].description, u"2, m\u00f6rkel")
+		self.assertEqual(cols[1].verbLevel, 3)
 
 	def testEmbedded(self):
 		res = base.parseFromString(rscdef.DataDescriptor, 

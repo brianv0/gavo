@@ -532,10 +532,16 @@ class Loop(ReplayedEventsWithFreeAttributesBase):
 	def _makeRowIteratorFromCSV(self):
 		if self.csvItems is None:
 			return None
-		# I'd rather not do the encode below, but 2.5 csv throws a weird
-		# exception if I pass unicode strings...
+		# I'd rather not do the encode below, but 2.7 csv can't handle
+		# unicode.  We'll need to decode stuff again.
 		src = self.maybeExpand(self.csvItems).strip().encode("utf-8")
-		return iter(csv.DictReader(StringIO(src), skipinitialspace=True))
+
+		def encodeValues(row):
+			return dict((key, str(val).decode("utf-8"))
+				for key, val in row.iteritems())
+
+		return (encodeValues(row) 
+			for row in csv.DictReader(StringIO(src), skipinitialspace=True))
 
 	def _makeRowIteratorFromCode(self):
 		if self.codeItems is None:
