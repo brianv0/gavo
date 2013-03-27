@@ -319,6 +319,14 @@ void parseChar(char *src, Field *field, int srcInd)
 	}
 }
 
+int sscanfWithNULL(char *source, char *format, Field *field, void *dest) {
+	if (*source==0) { /* empty string, make thing NULL */
+		field->type = VAL_NULL;
+		return 1;
+	}
+	return sscanf(source, format, dest);
+}
+		
 void real_fieldscanf(char *str, Field *f, valType type, char *fieldName, ...)
 {
 	int itemsMatched=1;
@@ -342,19 +350,19 @@ void real_fieldscanf(char *str, Field *f, valType type, char *fieldName, ...)
 			f->val.c_int8 = *str;
 			break;
 		case VAL_SHORT:
-			itemsMatched = sscanf(str, "%hd", &(f->val.c_int16));
+			itemsMatched = sscanfWithNULL(str, "%hd", f, &(f->val.c_int16));
 			break;
 		case VAL_INT:
-			itemsMatched = sscanf(str, "%d", &(f->val.c_int32));
+			itemsMatched = sscanfWithNULL(str, "%d", f, &(f->val.c_int32));
 			break;
 		case VAL_FLOAT:
-			itemsMatched = sscanf(str, "%f", &(f->val.c_float));
+			itemsMatched = sscanfWithNULL(str, "%f", f, &(f->val.c_float));
 			break;
 		case VAL_DOUBLE:
-			itemsMatched = sscanf(str, "%lf", &(f->val.c_double));
+			itemsMatched = sscanfWithNULL(str, "%lf", f, &(f->val.c_double));
 			break;
 		case VAL_BIGINT:
-			itemsMatched = sscanf(str, "%Ld", &(f->val.c_int64));
+			itemsMatched = sscanfWithNULL(str, "%Ld", f, &(f->val.c_int64));
 			break;
 		case VAL_TEXT:
 			f->val.c_ptr = str;
@@ -640,6 +648,24 @@ double jYearToJDN(double jYear)
 	return (jYear-2000)*365.25+2451545.0;
 }
 
+
+char *strtok_u(char *arg, char *separator) {
+/* like strtok, but doesn't merge adjacent separators */
+	static char *cur;
+	char *next, *res;
+
+	if (arg!=NULL) {
+		cur = arg;
+	}
+	next = strstr(cur, separator);
+	if (next==NULL) {
+		return NULL;
+	}
+	*next = 0;
+	res = cur;
+	cur = next+strlen(separator);
+	return res;
+}
 
 int main(int argc, char **argv)
 {

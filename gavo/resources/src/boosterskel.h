@@ -105,6 +105,8 @@ int degToHms(double deg,
 	int *hours_out, int *minutes_out, double *seconds_out);
 double jYearToJDN(double jYear);
 
+char *strtok_u(char *arg, char *separator);
+
 // functions for creating dump files
 void writeHeader(void *destination);
 void handleBadRecord(char *format, ...);
