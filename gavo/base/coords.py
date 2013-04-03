@@ -102,6 +102,11 @@ def getWCS(wcsFields):
 			and not wcsFields.has_key("PC1_1")):
 		return None
 	
+	# workaround for a bug in pywcs 1.11: .*_ORDER=0 must not happen
+	for key in ["AP_ORDER", "BP_ORDER", "A_ORDER", "B_ORDER"]:
+		if wcsFields[key]==0:
+			del wcsFields[key]
+	
 	wcsObj = pywcs.WCS(wcsFields, relax=True)
 	wcsObj._dachs_header = wcsFields
 	return wcsObj
@@ -113,7 +118,8 @@ def pix2sky(wcsFields, pixels):
 	(this is a thin wrapper intended to abstract for pix2sky's funky
 	calling convention; also, we fix on the silly "0 pixel is 1 convention")
 	"""
-	val = getWCS(wcsFields).all_pix2sky((pixels[0],), (pixels[1],), 1)
+	wcsObj = getWCS(wcsFields)
+	val = wcsObj.all_pix2sky((pixels[0],), (pixels[1],), 1)
 	return val[0][0], val[1][0]
 
 
