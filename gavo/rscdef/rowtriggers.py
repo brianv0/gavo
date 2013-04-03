@@ -120,7 +120,8 @@ class ConditionBase(TriggerBase):
 	_triggers = base.MultiStructListAttribute("triggers", 
 		childFactory=getTrigger, childNames=_triggerRegistry,
 		description=("One or more conditions joined by an implicit logical or."
-			"  See Triggers_ for information on what can stand here."))
+			"  See Triggers_ for information on what can stand here."),
+		copyable=True)
 
 	def __call__(self, dict):
 		for t in self.triggers:

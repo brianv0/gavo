@@ -104,7 +104,7 @@ def getWCS(wcsFields):
 	
 	# workaround for a bug in pywcs 1.11: .*_ORDER=0 must not happen
 	for key in ["AP_ORDER", "BP_ORDER", "A_ORDER", "B_ORDER"]:
-		if wcsFields[key]==0:
+		if wcsFields.get(key)==0:
 			del wcsFields[key]
 	
 	wcsObj = pywcs.WCS(wcsFields, relax=True)
