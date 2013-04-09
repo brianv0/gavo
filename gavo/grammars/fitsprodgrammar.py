@@ -49,7 +49,8 @@ class FITSProdIterator(RowIterator):
 			f = gzip.open(fName)
 		else:
 			f = open(fName)
-		header = fitstools.readPrimaryHeaderQuick(f)
+		header = fitstools.readPrimaryHeaderQuick(f, 
+			maxHeaderBlocks=self.grammar.maxHeaderBlocks)
 		f.close()
 		yield self._buildDictFromHeader(header)
 
@@ -96,6 +97,11 @@ class FITSProdGrammar(Grammar):
 	_hdusAttr = base.UnicodeAttribute("hdusField", default=None,
 		description="If set, the complete pyfits HDU list for the FITS"
 		" file is returned in this grammar field.", copyable="True")
+	_maxHeaderBlocks = base.IntAttribute("maxHeaderBlocks",
+		default=40, copyable=True, description="Stop looking for"
+		" FITS END cards and raise an error after this many blocks."
+		" You may need to raise this for people dumping obscene amounts"
+		" of data of history into headers.")
 
 	rowIterator = FITSProdIterator
 

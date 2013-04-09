@@ -126,7 +126,7 @@ def readHeaderBytes(f, maxHeaderBlocks=40):
 	return "".join(parts)
 
 
-def readPrimaryHeaderQuick(f):
+def readPrimaryHeaderQuick(f, maxHeaderBlocks=40):
 	"""returns a pyfits header for the primary hdu of the opened file f.
 
 	This is mostly code lifted from pyfits._File._readHDU.  The way
@@ -137,7 +137,7 @@ def readPrimaryHeaderQuick(f):
 	This function is adapted from pyfits.
 	"""
 	hdu = _TempHDU()
-	hdu._raw = readHeaderBytes(f)
+	hdu._raw = readHeaderBytes(f, maxHeaderBlocks)
 	hdu._extver = 1  # We only do PRIMARY
 
 	hdu._new = 0
