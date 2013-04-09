@@ -252,6 +252,23 @@ class MetaAttribute(attrdef.AttributeDef):
 		return ("**meta** -- a piece of meta information, giving at least a name"
 			" and some content.  See Metadata_ on what is permitted here.")
 
+	def iterEvents(self, instance):
+		def doIter(metaDict):
+			for key, item in metaDict.iteritems():
+				for value in item:
+					yield ("start", "meta", None)
+					yield ("value", "key", key)
+					if value.getContent():
+						yield ("value", "content_", value.getContent())
+
+					if value.meta_:
+						for ev in doIter(value.meta_):
+							yield ev
+					yield ("end", "meta", None)
+
+		for ev in doIter(instance.meta_):
+			yield ev
+
 
 class MetaMixin(object):
 	"""is a mixin for entities carrying meta information.

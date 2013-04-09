@@ -10,6 +10,7 @@ VOTables.
 # We probably want to turn this around and first create the RD and pass
 # that around so the individual analyzers can add, e.g. global metadata.
 
+import datetime
 import os
 import re
 import sys
@@ -161,10 +162,33 @@ dataMakers = {
 	"VOT": makeDataForVOTable,
 }
 
+
+
 def makeRD(args, opts):
 	from gavo import rscdesc
 	rd = rscdesc.RD(None, schema=os.path.basename(opts.resdir),
 		resdir=opts.resdir)
+
+	for key, value in [
+			("title", "FILL-IN"),
+    	("creationDate", utils.formatISODT(datetime.datetime.utcnow())),
+    	("description", "FILL-IN a long text (and maybe do format='plain'"
+    		" or even format='rst'"),
+    	("copyright", "Free to use."),
+    	("creator.name", "Author, S."),
+    	("creator", ""),
+    	("creator.name", "Other, A"),
+    	("subject", "One Keyword"),
+    	("subject", "Two Words"),
+    	("content.type", "Catalog")]:
+		rd.addMeta(key, value)
+	rd.addMeta("coverage.waveband", "Optical")
+	rd.addMeta("coverage.profile", "AllSky ICRS")
+
+#    <meta name="coverage">
+#      <meta name="waveband">Optical</meta>
+#    </meta>
+
 	rd.feedObject("table", tableMakers[opts.srcForm](rd, args[0], opts))
 	rd.feedObject("data", dataMakers[opts.srcForm](rd, args[0], opts))
 	return rd.finishElement()
@@ -221,10 +245,12 @@ def parseCommandLine():
 
 def main():
 	# hack to make id and onDisk copyable so we see them on iterEvent
+	from gavo.base.meta import MetaMixin
 	rscdef.TableDef._id.copyable = rscdef.TableDef._onDisk.copyable = True
 	rscdef.DataDescriptor._id.copyable = True
 	opts, args = parseCommandLine()
 	rd = makeRD(args, opts)
+	rd._metaAttr.copyable = True
 	eTree = structToETree(rd)
 	writePrettyPrintedXML(eTree)
 
