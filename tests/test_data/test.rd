@@ -13,7 +13,10 @@
 	<table id="pgs_siaptable" mixin="//siap#pgs" onDisk="True"/>
 
 	<service id="pgsiapsvc">
-		<siapCore queriedTable="pgs_siaptable"/>
+		<dbCore queriedTable="pgs_siaptable">
+			<condDesc original="//siap#protoInput"/>
+			<condDesc original="//siap#humanInput"/>
+		</dbCore>
 	</service>
 
 	<data id="siap_base" auto="False">
@@ -282,10 +285,8 @@
 	</rowmaker>
 
 	<data id="productimport">
-		<!-- Sources are in tests/data, so you need to fix inputsDir to
-		./tests to import this -->
 		<sources><pattern>data/*.imp</pattern></sources>
-		<keyValueGrammar>
+		<keyValueGrammar id="pi-gram">
 			<rowfilter procDef="//products#define">
         <bind key="owner">"X_test"</bind>
         <bind key="embargo">row["embargo"]</bind>
@@ -295,6 +296,23 @@
 		</keyValueGrammar>
 		<rowmaker id="pi_rmk" original="prodrowbase"/>
 		<make table="prodtest" rowmaker="pi_rmk"/>
+	</data>
+
+	<data id="productimport-skip">
+		<sources><pattern>data/[ab].imp</pattern></sources>
+		<keyValueGrammar>
+			<rowfilter procDef="//products#define">
+     		<bind key="table">"test.prodskip"</bind>
+     	</rowfilter>
+		</keyValueGrammar>
+		<make>
+			<table id="prodskip" onDisk="True" mixin="//products#table">
+				<column name="object" type="text"/>
+			</table>
+			<rowmaker id="pi_rmk" idmaps="*">
+				<ignoreOn><keyIs key="object" value="michael"/></ignoreOn>
+			</rowmaker>
+		</make>
 	</data>
 
 	<data id="productimportdefaults">

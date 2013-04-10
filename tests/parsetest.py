@@ -135,6 +135,42 @@ class TestProductsImport(RowsetTest):
 			base.parseFromString, (rscdesc.RD, 
 				'<resource schema="test"><table id="foo" mixin="//products#table">'
 					'</table></resource>',))
+	
+	def testImportWithBadFails(self):
+		dd = testhelpers.getTestRD().getById("productimport")
+		self.assertRaisesWithMsg(base.SourceParseError,
+			"At unspecified location: Not a key value pair: 'kaputt.'",
+			rsc.makeData,
+			(dd,),
+			parseOptions=rsc.parseValidating, connection=self.conn)
+
+
+class ProductsSkippingTest(RowsetTest):
+	resources = [("conn", tresc.dbConnection)]
+
+	def _testImportWithSkipBehavesConsistently(self, parseOptions):
+# This is of course crappy behaviour we don't want, but it's hard
+# to fix this, and actually sometimes this "skip just one table"
+# might be what people want.  Anyway, we need to be consistent.
+		dd = testhelpers.getTestRD().getById("productimport-skip")
+		data = rsc.makeData(dd, 
+			parseOptions=parseOptions, connection=self.conn)
+		try:
+			self.assertQueryReturns("select object from test.prodskip",
+				[(u'gabriel',)])
+			self.assertQueryReturns("select accref from dc.products where"
+				" sourceTable='test.prodskip'",
+				[(u'data/a.imp',), (u'data/b.imp',)])
+		finally:
+			data.dropTables(parseOptions)
+
+	def testImportWithSkipBehavesKeepGoing(self):
+		self._testImportWithSkipBehavesConsistently(rsc.parseValidating.change(
+			keepGoing=True))
+
+	def testImportWithSkipBehavesNormal(self):
+		self._testImportWithSkipBehavesConsistently(rsc.parseValidating.change(
+			keepGoing=False))
 
 
 class _WildResource(testhelpers.TestResource):

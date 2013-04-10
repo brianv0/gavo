@@ -101,7 +101,7 @@ def makeTableFromFITS(rd, srcName, opts):
 			name=colName, unit="FILLIN", ucd="FILLIN", type=type,
 			description=card.comment))
 		keyMappings.append((colName, card.key))
-	rd.setProperty("mapKeys", ", ".join("%s:%s"%(k,v) for k,v in keyMappings))
+	rd.setProperty("mapKeys", ", ".join("%s:%s"%(v,k) for k,v in keyMappings))
 	return table.finishElement()
 
 
@@ -124,7 +124,7 @@ def makeDataForFITS(rd, srcName, opts):
 	dd.feedObject("sources", MS(rscdef.SourceSpec, 
 		pattern=["*.fits"], recurse=True))
 	dd.feedObject("rowmaker", MS(rscdef.RowmakerDef, idmaps="*", id="gen_rmk"))
-	dd.feedObject("make", MS(rscdef.Make, table=targetTable, id="gen_rmk"))
+	dd.feedObject("make", MS(rscdef.Make, table=targetTable, rowmaker="gen_rmk"))
 	return dd
 
 
@@ -177,17 +177,13 @@ def makeRD(args, opts):
     	("copyright", "Free to use."),
     	("creator.name", "Author, S."),
     	("creator", ""),
-    	("creator.name", "Other, A"),
+    	("creator.name", "Other, A."),
     	("subject", "One Keyword"),
     	("subject", "Two Words"),
     	("content.type", "Catalog")]:
 		rd.addMeta(key, value)
 	rd.addMeta("coverage.waveband", "Optical")
 	rd.addMeta("coverage.profile", "AllSky ICRS")
-
-#    <meta name="coverage">
-#      <meta name="waveband">Optical</meta>
-#    </meta>
 
 	rd.feedObject("table", tableMakers[opts.srcForm](rd, args[0], opts))
 	rd.feedObject("data", dataMakers[opts.srcForm](rd, args[0], opts))

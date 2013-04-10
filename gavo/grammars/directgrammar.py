@@ -381,7 +381,10 @@ def buildSource(td, opts):
 		'#include <errno.h>',
 		'#include "boosterskel.h"',
 		'',
-		'#define USAGE "Usage: don\'t."\n#define INPUT_LINE_MAX 2000']
+		'#define USAGE "Usage: don\'t."\n#define INPUT_LINE_MAX 2000',
+		"",
+		"/* delete the next line for POSIX strtok */",
+		"#define strtok strtok_u"]
 	
 	code.extend(getEnum(td, opts))
 	code.extend(getGetTuple(td,opts))

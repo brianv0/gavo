@@ -257,7 +257,7 @@ class MetaAttribute(attrdef.AttributeDef):
 			for key, item in metaDict.iteritems():
 				for value in item:
 					yield ("start", "meta", None)
-					yield ("value", "key", key)
+					yield ("value", "name", key)
 					if value.getContent():
 						yield ("value", "content_", value.getContent())
 

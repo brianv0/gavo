@@ -63,7 +63,8 @@ class ProdtestTable(testhelpers.TestResource):
 		rd = testhelpers.getTestRD()
 		self.tableDef = rd.getById("prodtest")
 		dd = rd.getDataDescById("productimport")
-		self.data = rsc.makeData(dd, parseOptions=rsc.parseValidating, 
+		self.data = rsc.makeData(dd, 
+			parseOptions=rsc.parseValidating.change(keepGoing=True), 
 			connection=self.conn)
 		return self.conn
 

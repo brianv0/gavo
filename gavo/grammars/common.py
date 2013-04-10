@@ -514,7 +514,10 @@ class Grammar(base.Structure, GrammarMacroMixin):
 		description="Row filters for this grammar.", 
 		childFactory=Rowfilter, copyable=True)
 	_ignoreOn = base.StructAttribute("ignoreOn", default=None, copyable=True,
-		description="Conditions for ignoring certain input records.",
+		description="Conditions for ignoring certain input records.  These"
+			" triggers drop an input record entirely.  If you feed multiple"
+			" tables and just want to drop a row from a specific table, you"
+			" can use ignoreOn in a rowmaker.",
 		childFactory=rowtriggers.IgnoreOn)
 	_sourceFields = base.StructAttribute("sourceFields", default=None,
 		copyable=True, description="Code returning a dictionary of values"

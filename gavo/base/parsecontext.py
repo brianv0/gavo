@@ -272,6 +272,8 @@ class ReferenceAttribute(attrdef.AtomicAttribute):
 			return None
 		if hasattr(value, "qualifiedId"):
 			return value.qualifiedId
+		elif isinstance(value, basestring):
+			return value
 		else: # See HACK notice in feed
 			setattr(value, "unparse-approved-anonymous", True)
 			return value

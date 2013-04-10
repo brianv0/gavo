@@ -208,28 +208,7 @@ def getQuery(queriedTable, parameters, sqlPars, prefix="sia"):
 	return query
 
 
-class SIAPCore(svcs.DBCore):
-	"""A core doing SIAP queries.
-
-	The main difference to a plain DB core is that we start off with
-	the basic SIAP fields in the query result and a SIAP Condition in
-	the condDescs.
-	"""
-	name_ = "siapCore"
-
-	# columns required in a SIAP answer
-	copiedCols = ["centerAlpha", "centerDelta", "imageTitle", "instId",
-		"dateObs", "nAxes", "pixelSize", "pixelScale", "mime",
-		"refFrame", "wcs_equinox", "wcs_projection", "wcs_refPixel",
-		"wcs_refValues", "wcs_cdmatrix", "bandpassId", "bandpassUnit",
-		"bandpassHi", "bandpassLo", "pixflags"]
-
-	def __init__(self, parent, **kwargs):
-		self.siapTable = base.caches.getRD("__system__/siap").getById("SIAPbase")
-		svcs.DBCore.__init__(self, parent, **kwargs)
-
-
-class SIAPCutoutCore(SIAPCore):
+class SIAPCutoutCore(svcs.DBCore):
 	"""A core doing SIAP plus cutouts.
 	
 	It has, by default, an additional column specifying the desired size of
@@ -244,6 +223,12 @@ class SIAPCutoutCore(SIAPCore):
 	# This should become a property or something once we 
 	# compress the stuff or have images with bytes per pixel != 2
 	bytesPerPixel = 2
+
+	copiedCols = ["centerAlpha", "centerDelta", "imageTitle", "instId",
+		"dateObs", "nAxes", "pixelSize", "pixelScale", "mime",
+		"refFrame", "wcs_equinox", "wcs_projection", "wcs_refPixel",
+		"wcs_refValues", "wcs_cdmatrix", "bandpassId", "bandpassUnit",
+		"bandpassHi", "bandpassLo", "pixflags"]
 
 	def getQueryCols(self, service, queryMeta):
 		cols = svcs.DBCore.getQueryCols(self, service, queryMeta)

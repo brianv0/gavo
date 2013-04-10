@@ -54,7 +54,6 @@ CORE_REGISTRY = {
 #	elementName -> module (without gavo.), class name
 	"adqlCore": ("protocols.adqlglue", "ADQLCore"),
 	"productCore": ("protocols.products", "ProductCore"),
-	"siapCore": ("protocols.siap", "SIAPCore"),
 	"siapCutoutCore": ("protocols.siap", "SIAPCutoutCore"),
 	"registryCore": ("registry.oaiinter", "RegistryCore"),
 	"computedCore": ("svcs.computedcore", "ComputedCore"),

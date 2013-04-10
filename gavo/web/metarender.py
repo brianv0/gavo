@@ -219,6 +219,16 @@ class RendExplainer(object):
 			" without a specialized client."]
 
 	@classmethod
+	def _explain_pubreg_xml(cls, service):
+		return T.invisible["an interface for the OAI-PMH protocol, typically"
+			" this site's publishing registry (but possibly some other"
+			" registry-like thing). This endpoint is usually accessed"
+			" by harvesters, but with an XML-enabled browser you can"
+			" also try the access URL at ",
+			T.a(href=service.getURL("pubreg.xml"))[service.getURL("pubreg.xml")],
+			"."]
+
+	@classmethod
 	def _explain_qp(cls, service):
 		return T.invisible["an interface that uses the last path element"
 			" to query the column %s in the underlying table."%

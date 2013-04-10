@@ -312,8 +312,10 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		copyable=True)
 	_ignoreOn = base.StructAttribute("ignoreOn", default=None,
 		childFactory=rowtriggers.IgnoreOn, description="Conditions on the"
-		" input record (as delivered by the grammar) to cause the input"
-		" record to be dropped by the rowmaker.", copyable=True)
+		" input record coming from the grammar to cause the input"
+		" record to be dropped by the rowmaker, i.e., for this specific"
+		" table.  If you need to drop a row for all tables being fed,"
+		" use a trigger on the grammar.", copyable=True)
 	_original = base.OriginalAttribute()
 
 	@classmethod

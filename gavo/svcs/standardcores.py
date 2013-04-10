@@ -359,7 +359,9 @@ class TableBasedCore(core.Core):
 		# if no outputTable has been given, make it up from the columns
 		# of the queried table unless a prototype is defined (which is
 		# handled by core itself).
-		if self.outputTableXML is None and self.outputTable is base.NotGiven:
+		if (self.outputTableXML is None 
+				and self.outputTable is base.NotGiven
+				and self.queriedTable):
 			self.outputTable = outputdef.OutputTableDef.fromTableDef(
 				self.queriedTable, ctx)
 

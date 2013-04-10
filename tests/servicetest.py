@@ -26,6 +26,18 @@ import tresc
 import trialhelpers
 
 
+class ErrorMsgTest(testhelpers.VerboseTest):
+	def testMissingQueriedTable(self):
+		self.assertRaisesWithMsg(base.StructureError,
+			'At [<resource schema="test">\\n\\...],'
+			' (2, 22): You must set queriedTable on dbCore elements',
+			base.parseFromString,
+			(rscdesc.RD,
+			"""<resource schema="test">
+				<dbCore id="foo"/>
+			</resource>"""))
+
+
 class PlainDBServiceTest(testhelpers.VerboseTest):
 	"""tests for working db-based services, having defaults for everything.
 	"""

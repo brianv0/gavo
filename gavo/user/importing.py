@@ -67,7 +67,7 @@ def process(opts, args):
 			base.ui.notifyInfo("Making data %s"%dd.id)
 			res = rsc.makeData(dd, parseOptions=opts, connection=connection)
 		if hasattr(res, "nAffected"):
-			base.ui.notifyInfo("Columns affected: %s"%res.nAffected)
+			base.ui.notifyInfo("Rows affected: %s"%res.nAffected)
 	# We're committing here so that we don't lose all importing
 	# work just because some dependent messes up.
 	connection.commit()

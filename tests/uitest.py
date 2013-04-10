@@ -137,8 +137,9 @@ class ImportTest(testhelpers.VerboseTest):
 		with base.AdhocQuerier() as querier:
 			self.assertOutput(cli.main, 
 				argList=["--suppress-log",
-					"imp", "data/test", "productimport"],
-				stdoutStrings=["Columns affected: 2"])
+					"imp", "-c", "data/test", "productimport"],
+				stdoutStrings=["Rows affected: 2"],
+				expectedRetcode=101)
 
 			self.failUnless(querier.tableExists("test.prodtest"))
 			self.failIf(querier.tableExists("test.typesTable"))
@@ -283,14 +284,14 @@ class MkRDTest(testhelpers.VerboseTest):
 		for frag in [
 				'<column name="color" type="text"',
 				'description="Effective exposure time [seconds]"',
-				'<map key="EXPTIME">exptime</map>']:
+				'<map key="exptime">EXPTIME</map>']:
 			self.failUnless(frag in self.fitsrd, "%s missing"%frag)
 	
 	def testRunImp(self):
 		with testhelpers.testFile(os.path.join(base.getConfig("inputsDir"),
 				"gen.rd"), self.fitsrd):
 			self.assertOutput(cli.main, ["imp", "gen"], expectedStderr="",
-				expectedStdout=lambda s: "Columns affected: 1", expectedRetcode=0)
+				expectedStdout=lambda s: "Rows affected: 1", expectedRetcode=0)
 			self.assertOutput(cli.main, ["drop", "gen"])
 
 

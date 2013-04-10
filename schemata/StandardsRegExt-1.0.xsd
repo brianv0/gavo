@@ -5,7 +5,7 @@
            xmlns:vstd="http://www.ivoa.net/xml/StandardsRegExt/v1.0" 
            xmlns:vm="http://www.ivoa.net/xml/VOMetadata/v0.1"
            elementFormDefault="unqualified" attributeFormDefault="unqualified"
-           version="1.0wd0" >
+           version="1.0pr3" >
 
    <xs:annotation>
       <xs:appinfo>
@@ -14,7 +14,9 @@
         <vm:targetPrefix>vstd</vm:targetPrefix>
       </xs:appinfo>
       <xs:documentation>
-        This is a core schema for describing IVOA Standards themselves
+        This is a core schema for describing IVOA Standards themselves.
+        See complete specification at 
+        http://www.ivoa.net/Documents/latest/StandardsRegExt.html.  
       </xs:documentation>
    </xs:annotation>
 
@@ -46,6 +48,20 @@
                      More than one version can be listed, indicating
                      that any of these versions are recognized as
                      acceptable for use.  
+                   </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+
+              <xs:element name="schema" type="vstd:Schema" 
+                          minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                   <xs:documentation>
+                     a description and pointer to a schema document
+                     defined by this standard.
+                   </xs:documentation>
+                   <xs:documentation>
+                     This is most typically an XML Schema, but it need
+                     not be strictly.  
                    </xs:documentation>
                 </xs:annotation>
               </xs:element>
@@ -85,7 +101,14 @@
            <xs:attribute name="status" default="n/a">
              <xs:annotation>
                <xs:documentation>
-                 the IVOA status level of this verison of the standard.
+                 the IVOA status level of this version of the standard.
+               </xs:documentation>
+               <xs:documentation>
+                 For values of "rec", "pr", "wd", and "note", the
+                 record's referenceURL element should point to the
+                 official specification document in the IVOA Document
+                 Repository; if the document does not appear there,
+                 these values should not be used. 
                </xs:documentation>
              </xs:annotation>
 
@@ -98,7 +121,7 @@
                          </xs:documentation>
                       </xs:annotation>
                    </xs:enumeration>
-                   <xs:enumeration value="prop">
+                   <xs:enumeration value="pr">
                       <xs:annotation>
                          <xs:documentation>
                             an IVOA Proposed Recommendation
@@ -109,6 +132,20 @@
                       <xs:annotation>
                          <xs:documentation>
                             an IVOA Working Draft
+                         </xs:documentation>
+                      </xs:annotation>
+                   </xs:enumeration>
+                   <xs:enumeration value="iwd">
+                      <xs:annotation>
+                         <xs:documentation>
+                            an internal Working Draft of an IVOA Working Group
+                         </xs:documentation>
+                      </xs:annotation>
+                   </xs:enumeration>
+                   <xs:enumeration value="note">
+                      <xs:annotation>
+                         <xs:documentation>
+                            a published IVOA Note
                          </xs:documentation>
                       </xs:annotation>
                    </xs:enumeration>
@@ -147,7 +184,7 @@
                    <xs:enumeration value="deprecated">
                       <xs:annotation>
                          <xs:documentation>
-                            a versions whose use is now discouraged
+                            a version whose use is now discouraged
                             because a newer version is preferred.  
                          </xs:documentation>
                       </xs:annotation>
@@ -160,10 +197,73 @@
       </xs:simpleContent>
    </xs:complexType>
 
-<!-- I am not sure if this can really be used with the interface defined as below, as the that element has an accessURL, which can really only refer to a particular instance of a service
-Paul Harrison -->
-<!-- See the 4th comment to the interface element in the documentation below
-Ray Plante -->
+   <xs:complexType name="Schema">
+      <xs:annotation>
+         <xs:documentation>
+           a description of a schema definition
+         </xs:documentation>
+      </xs:annotation>
+
+      <xs:sequence>
+         <xs:element name="location" type="xs:anyURI" 
+                     minOccurs="1" maxOccurs="1">
+            <xs:annotation>
+               <xs:documentation>
+                  A URL pointing to a document that formally defines
+                  the schema.
+               </xs:documentation>
+               <xs:documentation>
+                  The document should be in a machine-parsable format
+                  when applicable.  For example, when refering to an
+                  XML schema, the document should be an XML Schema or 
+                  similar document that can be used to validate an 
+                  instance document.  
+               </xs:documentation>
+            </xs:annotation>
+         </xs:element>
+         <xs:element name="description" type="xs:token" 
+                     minOccurs="0" maxOccurs="1" >
+            <xs:annotation>
+               <xs:documentation>
+                  A human-readable description of what the schema
+                  defines or is used for.
+               </xs:documentation>
+               <xs:documentation>
+                  A brief description--e.g. one statement--is
+                  recommended for display purposes.  
+               </xs:documentation>
+            </xs:annotation>
+         </xs:element>
+         <xs:element name="example" type="xs:anyURI" 
+                     minOccurs="0" maxOccurs="unbounded">
+            <xs:annotation>
+               <xs:documentation>
+                  A URL pointing to a sample document that illustrates 
+                  the use of the schema.
+               </xs:documentation>
+               <xs:documentation>
+                  When applicable (e.g. XML), the document should be
+                  in the format defined by the schema document.
+               </xs:documentation>
+            </xs:annotation>
+         </xs:element>
+      </xs:sequence>
+
+      <xs:attribute name="namespace" type="xs:token" use="required">
+          <xs:annotation>
+             <xs:documentation>
+               an identifier for the schema being described.  Each instance 
+               of this attribute must be unique within the resourse description.
+             </xs:documentation>
+             <xs:documentation>
+               For XML schemas, this should be the schema's namespace URI.
+               Otherwise, it should be a unique label to distinguish it from 
+               other schemas described in the same resource description. 
+             </xs:documentation>
+          </xs:annotation>
+      </xs:attribute>
+   </xs:complexType>
+
    <xs:complexType name="ServiceStandard">
       <xs:annotation>
          <xs:documentation>
@@ -225,7 +325,7 @@ Ray Plante -->
             A registered set of related keys.  Each key can be
             uniquely identified by combining the IVOA identifier of
             this resource with the key name separated by the URI
-            fragment delimiter, #, as in: ivoa-identifiery#key-name
+            fragment delimiter, #, as in: ivoa-identifier#key-name
          </xs:documentation>
       </xs:annotation>
       <xs:complexContent>
