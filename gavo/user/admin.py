@@ -198,7 +198,7 @@ def declaredel(querier, args):
 
 @exposedFunction([Arg(help="rd#table-id for the table containing the"
 	" products that should get cached previews", dest="tableId"),
-	Arg("-w", type=int,
+	Arg("-w", type=str,
 		help="width to compute the preview for", dest="width", default="200"),],
 	help="Precompute previews for the product interface columns in a table.")
 def cacheprev(querier, args):
@@ -217,7 +217,7 @@ def cacheprev(querier, args):
 		try:
 			row = rows.next()
 			res = PreviewCacheManager.getPreviewFor(row["mime"],
-				[os.path.join(basePath, row["accref"]), args.width]
+				[str(os.path.join(basePath, row["accref"])), str(args.width)]
 			)
 
 			if getattr(res, "result", None): # don't add a callback on a 

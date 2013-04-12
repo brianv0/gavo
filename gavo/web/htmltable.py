@@ -551,7 +551,7 @@ class HTMLTableFragment(HTMLDataRenderer):
 		We don't use stan here since we can concat all those tr/td much faster
 		ourselves.
 		"""
-		rowAttrsIterator = itertools.cycle(["", ' class="even"'])
+		rowAttrsIterator = itertools.cycle([' class="data"', ' class="data even"'])
 		formatRow = self._getRowFormatter()
 		rendered = []
 		yield T.xml("<tbody>")

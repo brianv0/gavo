@@ -513,7 +513,7 @@ function _doLinePlot(table, xInd, yInd, style) {
 	var data = new Array();
 	var options = {"series": {}};
 
-	table.find('tr').each(function(index, row) {
+	table.find('tr.data').each(function(index, row) {
 		var tds = $(row).children();
 		var x = _getValue(tds[xInd].firstChild.data); 
 		var y = _getValue(tds[yInd].firstChild.data);
@@ -559,7 +559,7 @@ function _makeHistogram(data, numBins) {
 
 function _doHistogramPlot(table, colInd) {
 	var data = new Array();
-	table.find('tr').each(function(index, row) {
+	table.find('tr.data').each(function(index, row) {
 		var val = _getValue($(row).children()[colInd].firstChild.data);
 		if (val!=null) {
 			data.push(val);

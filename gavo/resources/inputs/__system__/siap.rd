@@ -190,12 +190,16 @@
 		<setup>
 			<par name="missingIsError" description="Throw an exception when
 				no WCS information can be located.">True</par>
+			<par name="naxis" description="Comma-separated list of integer
+				axis indices (1=first) to be considered for WCS">"1,2"</par>
 			<code>
 				from gavo.protocols import siap
 
 				wcskeys = ["centerAlpha", "centerDelta",
 					"nAxes",  "pixelSize", "pixelScale", "wcs_projection",
 					"wcs_refPixel", "wcs_refValues", "wcs_cdmatrix", "wcs_equinox"]
+
+				naxis = map(int, naxis.split(","))
 
 				class PixelGauge(object):
 					"""is a container for information about pixel sizes.
@@ -220,7 +224,6 @@
 						] = coords.getCenterFromWCSFields(wcs)
 					result["nAxes"] = int(vars["NAXIS"])
 					axeInds = range(1, result["nAxes"]+1)
-					assert len(axeInds)==2   # probably not strictly necessary
 					dims = tuple(int(vars["NAXIS%d"%i]) 
 						for i in axeInds)
 					pixelGauge = PixelGauge(wcs, (dims[0]/2., dims[1]/2.))
@@ -241,9 +244,9 @@
 					"""
 					for key in wcskeys+additionalKeys:
 						result[key] = None
-
+				
 				def addWCS(vars, result, additionalKeys, addCoverage):
-					wcs = coords.getWCS(vars)
+					wcs = coords.getWCS(vars, naxis=naxis)
 					if wcs is None:
 						if missingIsError:
 							raise base.DataError("No WCS information")
@@ -290,6 +293,9 @@
 			obscore, make sure bandpassUnit is m.  Also, typically you
 			will fill in bandpassId and then let the getBandpassFromFilter
 			apply do the job.
+
+			Do *not* use ``idmaps="*"`` when using this procDef; it writes
+			directly into result, and you would be clobbering what it does.
 		</doc>
 		<setup>
 			<par key="title" late="True" description="image title.  This
@@ -395,7 +401,7 @@
 		</code>
 	</procDef>
 
-	<condDesc id="siapBase">
+	<condDesc id="siapCondBase">
 		<!-- This just contains some components the real SIAP conditions build
 		upon.  Do not inherit from this, do not instanciate it. -->
 		<phraseMaker>
