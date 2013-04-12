@@ -198,7 +198,7 @@ def declaredel(querier, args):
 
 @exposedFunction([Arg(help="rd#table-id for the table containing the"
 	" products that should get cached previews", dest="tableId"),
-	Arg("-w", 
+	Arg("-w", type=int,
 		help="width to compute the preview for", dest="width", default="200"),],
 	help="Precompute previews for the product interface columns in a table.")
 def cacheprev(querier, args):
@@ -213,19 +213,26 @@ def cacheprev(querier, args):
 	select = [td.getColumnByName("accref"), td.getColumnByName("mime")]
 	rows = table.iterQuery(select , "")
 
-	def runNext(ignored):
+	def runNext(token):
 		try:
 			row = rows.next()
-			return PreviewCacheManager.getPreviewFor(row["mime"],
+			res = PreviewCacheManager.getPreviewFor(row["mime"],
 				[os.path.join(basePath, row["accref"]), args.width]
-			).addCallback(runNext
-			).addErrback(runNext)
+			)
+
+			if getattr(res, "result", None): # don't add a callback on a 
+					# fired deferred or you'll exhaust the stack
+				reactor.callLater(0.1, runNext, "continue")
+			else:
+				res.addCallback(runNext)
+			return res
 		except StopIteration:
 			pass
 		except:
 			import traceback
 			traceback.print_exc()
 		reactor.stop()
+		return ""
 
 	reactor.callLater(0, runNext, "startup")
 	reactor.run()
