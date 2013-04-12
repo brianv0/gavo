@@ -5,6 +5,9 @@ to give an idea what's on the image.  We only want to do one
 pass over the input FITS.  Therefore, we scale into an array of floats
 and then adapt something like the gamma of that.  From that array, the final
 jpeg is generated.
+
+This program should work with NAXIS>2 and will provide a preview of
+the image along the fits two axes.
 */
 
 #include <stdio.h>
@@ -16,13 +19,18 @@ jpeg is generated.
 
 #define DEFAULT_TARGETWIDTH 200
 #define GAMMA_HIST_SIZE 10
+/* maximal number of naxis before we bail out */
+#define MAXDIM 20 
 
 #define SQR(x) (x)*(x)
+#define FITSCATCH(x) if (x) {fatalFitsError(status);}
 
 
 typedef struct imageDesc_s {
 	int pixelType;
-	long shape[2];
+	int naxis;
+	long shape[MAXDIM];
+	long fpixel[MAXDIM];
 	int targetShape[2]; /* filled out by computeScale */
 	fitsfile *fptr;
 	double *scaledData;
@@ -34,7 +42,7 @@ char *progName;
 void fatalFitsError(int status)
 {
 	if (status==0) { /* sometimes the functions return !=0 but still have
-		status !=0 -- weird... */
+		status ==0 -- weird... */
 		return;
 	}
 	fits_report_error(stderr, status);
@@ -55,21 +63,25 @@ void fatalError(char *msg)
 
 imageDesc *openFits(char *fName)
 {
-	int naxis;
+	int i;
 	imageDesc *iD=malloc(sizeof(imageDesc));
 	int status=0;
 
 	if (!iD) {
 		fatalLibError("Allocating image descriptor");
 	}
-	if (fits_open_file(&(iD->fptr), fName, READONLY, &status) ||
-		fits_get_img_param(iD->fptr, 2, &(iD->pixelType), &naxis, 
-			iD->shape, &status)) {
-		fatalFitsError(status);
+
+	for (i=0; i<MAXDIM; i++) {
+		iD->fpixel[i] = 1;
 	}
-	if (naxis!=2) {
-		fatalError("Can only work with naxis in {1,2}");
+
+	FITSCATCH(fits_open_file(&(iD->fptr), fName, READONLY, &status));
+	FITSCATCH(fits_get_img_dim(iD->fptr, &(iD->naxis),  &status));
+	if (iD->naxis>MAXDIM) {
+		fatalError("NAXIS too large; if this is real, increase MAXDIM.");
 	}
+	FITSCATCH(fits_get_img_param(iD->fptr, 2, &(iD->pixelType), 
+		&(iD->naxis), iD->shape, &status));
 	return iD;
 }
 
@@ -104,7 +116,6 @@ averaging
 This assumes that each source pixel only influence at most four
 destination pixels, in other word that we're scaling down. */
 {
-	long fpixel[2] = {1, 1};
 	int i;
 	int status=0;
 	double *dp;
@@ -153,11 +164,14 @@ destination pixels, in other word that we're scaling down. */
 	suppressed.
 	*/
 
-	while (fpixel[1]<=nSourceY) {  /* caution: fpixel counts like fortran */
+	iD->fpixel[0] = 1;
+	iD->fpixel[1] = 1;
+
+	while (iD->fpixel[1]<=nSourceY) {  /* caution: fpixel counts like fortran */
 		int dummy, x;
 		/* lo = left, hi = right in the application of the recipe in y */
-		double loBoundY = (double)(fpixel[1]-1)/nSourceY*nDestY;
-		double hiBoundY = (double)fpixel[1]/nSourceY*nDestY;
+		double loBoundY = (double)(iD->fpixel[1]-1)/nSourceY*nDestY;
+		double hiBoundY = (double)iD->fpixel[1]/nSourceY*nDestY;
 		int yDestInd = (int)floor(loBoundY);
 		double loPart = yDestInd+1-loBoundY;
 		double hiPart =  hiBoundY-(yDestInd+1);
@@ -169,7 +183,7 @@ destination pixels, in other word that we're scaling down. */
 			yDest1Weight = hiPart/(hiPart+loPart);
 		}
 		
-		if (fits_read_pix(iD->fptr, TFLOAT, fpixel,  iD->shape[0],
+		if (fits_read_pix(iD->fptr, TFLOAT, iD->fpixel,  iD->shape[0],
 				NULL, pixBuf, &dummy, &status)) {
 			fatalFitsError(status);
 		}
@@ -208,7 +222,7 @@ destination pixels, in other word that we're scaling down. */
 					pixBuf[x]*xDest1Weight*yDest1Weight;
 			}
 		}
-		fpixel[1] += 1;
+		iD->fpixel[1] += 1;
 	}
 }
 
