@@ -325,6 +325,16 @@ class SixVectorTestBase(testhelpers.VerboseTest):
 		self.assertAlmostEqual(res.velocity.value[2], rv1, places=places-3)
 
 
+class SimpleTrafoTest(testhelpers.VerboseTest):
+	def testBasic(self):
+		conv = stc.getSimple2Converter(
+			stc.parseSTCS("Position GALACTIC"), 
+			stc.parseSTCS("Position ICRS"))
+		ra, dec = conv(4, 40)
+		self.assertAlmostEqual(ra, 234.99533124940731)
+		self.assertAlmostEqual(dec, -2.1043398500407746)
+
+
 # This mess creates tests from the samples in stcgroundtruth;
 # see the globals in there; the tests are called Test<varname>
 for sampleName in dir(stcgroundtruth):

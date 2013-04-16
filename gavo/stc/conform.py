@@ -131,3 +131,22 @@ def conform(baseSTC, sysSTC, **kwargs):
 		return conformUnits(baseSTC, sysSTC)
 	else:
 		return conformSystems(baseSTC, sysSTC, **kwargs)
+
+
+def getSimple2Converter(srcSTC, destSTC, slaComp=True):
+	"""returns a function that transforms lat and long in srcSTC to lat and
+	long in destSTC.
+
+	srcSTC and destSTC are ASTs.  Of course, all this
+	only works if srcSTC and destSTC are both SPHER2-flavored.
+	"""
+	sixTrans = sphermath.SVConverter.fromSTC(srcSTC, slaComp=slaComp)
+	trafo = spherc.getTrafoFunction(srcSTC.place.frame.asTriple(),
+		destSTC.place.frame.asTriple(), sixTrans)
+
+	def convert(ra, dec):
+		pos, vel = sixTrans.from6(
+			trafo(sixTrans.to6((ra, dec), None), sixTrans))
+		return pos[0], pos[1]
+	
+	return convert

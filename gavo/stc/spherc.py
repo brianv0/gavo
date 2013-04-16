@@ -7,8 +7,7 @@ Spherical sky coordinates and helpers.
 #c This program is free software, covered by the GNU GPL.  See COPYING.
 
 # XXX TODO: Replace the actual transformations performed here with
-# stuff from kapteyn, or astropysics, after clarifying their licenses
-# and getting the stuff packaged up.
+# stuff from astropy.
 
 from itertools import *
 from math import sin, cos, tan, atan, acos
