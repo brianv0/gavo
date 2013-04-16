@@ -478,7 +478,5 @@ def computeColumnConversions(newColumns, oldColumns):
 
 if __name__=="__main__":
 	g = getUnitGrammar()
-	res = g.parseString("ms")[0]
-	print res
-	res.normalize()
+	res = g.parseString("10**-1 J/(m**2*s*m)")[0]
 	print res

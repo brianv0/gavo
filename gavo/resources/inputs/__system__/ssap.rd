@@ -149,10 +149,28 @@
 			tablehead="[Spectral]"
 			description="Unit of frequency or wavelength"
 			>\spectralSI</param>
+		<param name="ssa_spectralucd" type="text" required="True"
+			utype="ssa:Char.SpectralAxis.Ucd"
+			tablehead="UCD(spectral)" verbLevel="25" 
+			description="UCD of the spectral column">\spectralUCD</param>
+
 		<param name="ssa_fluxSI" type="text"
 			utype="ssa:Dataset.FluxSI"
 			tablehead="[Flux]"
 			description="Unit of flux/magnitude">\fluxSI</param>
+		<param name="ssa_fluxucd" type="text" required="True"
+			utype="ssa:Char.FluxAxis.Ucd"
+			tablehead="UCD(flux)" verbLevel="25" 
+			description="UCD of the flux column">\fluxUCD</param>
+		<param name="ssa_fluxunit" type="text" required="True"
+			utype="ssa:Char.FluxAxis.Unit"
+			tablehead="unit(flux)" verbLevel="25" 
+			description="Unit of the flux column">\fluxSI</param>
+		<param name="ssa_spectralunit" type="text" required="True"
+			utype="ssa:Char.SpectralAxis.Unit"
+			tablehead="unit(spectral)" verbLevel="25" 
+			description="Unit of the spectral column">\spectralSI</param>
+
 	</STREAM>
 
 	<STREAM id="hcd_outpars">
@@ -207,22 +225,6 @@
 			tablehead="Ref." verbLevel="25" 
 			description="URL or bibcode of a publication describing this data."
 			>\reference</param>
-		<param name="ssa_fluxunit" type="text" required="True"
-			utype="ssa:Char.FluxAxis.Unit"
-			tablehead="unit(flux)" verbLevel="25" 
-			description="Unit of the flux column">\fluxSI</param>
-		<param name="ssa_fluxucd" type="text" required="True"
-			utype="ssa:Char.FluxAxis.Ucd"
-			tablehead="UCD(flux)" verbLevel="25" 
-			description="UCD of the flux column">\fluxUCD</param>
-		<param name="ssa_spectralunit" type="text" required="True"
-			utype="ssa:Char.SpectralAxis.Unit"
-			tablehead="unit(spectral)" verbLevel="25" 
-			description="Unit of the spectral column">\spectralSI</param>
-		<param name="ssa_spectralucd" type="text" required="True"
-			utype="ssa:Char.SpectralAxis.Ucd"
-			tablehead="UCD(spectral)" verbLevel="25" 
-			description="UCD of the spectral column">\spectralUCD</param>
 		<param name="ssa_fluxStatError" 
 			unit="\fluxSI" utype="ssa:Char.FluxAxis.Accuracy.StatError"
 			ucd="stat.error;phot.flux.density;em"
@@ -299,6 +301,10 @@
 						if (pars["name"] in ["ssa_spaceRes", "ssa_spaceCalib",
 								"ssa_spaceError"]):
 							# would anyone *ever* miss those?
+							continue
+						if pars["name"].endswith("unit") or pars["name"].endswith("ucd"):
+							# these must be parameters since they end up in the table
+							# metadata
 							continue
 						rec = {}
 						rec.update(defaults)
@@ -501,7 +507,7 @@
 			
 			for copiedName in ["dstype", "collection", "dataSource", 
 				"creationType", "fluxCalib", "specCalib", "specres"]:
-				vars["ssa_"+copiedName] = inVars[copiedName]
+				vars["ssa_"+copiedName.lower()] = inVars[copiedName]
 		</code>
 	</procDef>
 

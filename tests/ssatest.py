@@ -722,7 +722,7 @@ class MixcTableTest(testhelpers.VerboseTest):
 		try:
 			rows = list(self.conn.queryToDicts(
 				"select ssa_dstitle, ssa_instrument, ssa_pubdid,"
-				" ssa_reference, ssa_fluxunit, ssa_publisher from test.mixctest"))
+				" ssa_reference, ssa_publisher from test.mixctest"))
 			self.assertEqual(len(rows), 3)
 			id = rows[0]["ssa_pubdid"].split("/")[-1]
 			self.assertEqual(rows[0]["ssa_publisher"], "ivo://x-unregistred")

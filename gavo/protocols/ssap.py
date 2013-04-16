@@ -92,8 +92,8 @@ class SSAPCore(svcs.DBCore):
 		# fluxcalib is a param in hcd
 		try:
 			calibrations = set([ssaTable.getParam("ssa_fluxcalib").lower()])
-		except NotFoundError:
-			calibrations = set(row["ssa_fluxcalib"].lower()
+		except base.NotFoundError:
+			calibrations = set((row["ssa_fluxcalib"] or "").lower()
 				for row in ssaTable.rows)
 		calibrations.add("relative")
 
