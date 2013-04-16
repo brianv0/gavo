@@ -244,8 +244,8 @@ class NullValueTest(testhelpers.VerboseTest):
 	def testHTML(self):
 		def assertion(data):
 			self.assertEqual(
-				re.search("<tr>(<td>.*)</tr>", data).group(0),
-				"<tr><td>N/A</td><td>N/A</td><td>N/A</td>"
+				re.search('<tr class="data">(<td>.*)</tr>', data).group(0),
+				'<tr class="data"><td>N/A</td><td>N/A</td><td>N/A</td>'
 					"<td>N/A</td><td>N/A</td><td>N/A</td></tr>")
 		self._runTestForFormat("html", assertion)
 	
@@ -329,8 +329,8 @@ class ExplicitNullValueTest(testhelpers.VerboseTest):
 	def testHTML(self):
 		def assertion(data):
 			self.assertEqual(
-				re.search("<tr>(<td>.*)</tr>", data).group(0),
-					'<tr><td>N/A</td><td>N/A</td><td>N/A</td></tr>')
+				re.search('<tr class="data">(<td>.*)</tr>', data).group(0),
+					'<tr class="data"><td>N/A</td><td>N/A</td><td>N/A</td></tr>')
 		self._runTestForFormat("html", assertion)
 	
 	def testTDVOTable(self):  

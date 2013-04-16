@@ -10,6 +10,7 @@ from gavo.helpers import testhelpers
 
 from gavo import api
 from gavo import base
+from gavo import rsc
 from gavo import svcs
 from gavo import votable
 from gavo.formats import votablewrite
@@ -687,6 +688,49 @@ class SEDTableTest(testhelpers.VerboseTest):
 		self.assertEqual(spectField.get("utype"), 
 			"sed:Segment.Points.Flux.Value")
 
+
+class MixcTableTest(testhelpers.VerboseTest):
+	resources = [("conn", tresc.dbConnection)]
+
+	def testColumns(self):
+		table = getRD().getById("mixctest")
+		col = table.getColumnByName("ssa_fluxcalib")
+		for attName, expected in [
+			("utype", "ssa:Char.FluxAxis.Calibration"),
+			("verbLevel", 15)]:
+			self.assertEqual(getattr(col, attName), expected)
+		col = table.getColumnByName("ssa_spectStatError")
+		for attName, expected in [
+			("utype", "ssa:Char.SpectralAxis.Accuracy.StatError"),
+			("unit", "Hz"),
+			("verbLevel", 15)]:
+			self.assertEqual(getattr(col, attName), expected)
+
+	def testUndefinedOnPar(self):
+		col = getRD().getById("mixctest").getColumnByName("ssa_fluxunit")
+		self.assertEqual(col.unit, None)
+
+	def testSkippedColumnsGone(self):
+		td = getRD().getById("mixctest")
+		colNames = set(c.name for c in td.columns)
+		for name in ["ssa_timeSI", "ssa_spaceCalib"]:
+			self.assertRaises(base.NotFoundError, td.getColumnByName, (name))
+
+	def testFilling(self):
+		data = rsc.makeData(getRD().getById("test_mixc"), connection=self.conn,
+			runCommit=False)
+		try:
+			rows = list(self.conn.queryToDicts(
+				"select ssa_dstitle, ssa_instrument, ssa_pubdid,"
+				" ssa_fluxunit, ssa_publisher from test.mixctest"))
+			self.assertEqual(len(rows), 3)
+			id = rows[0]["ssa_pubdid"].split("/")[-1]
+			self.assertEqual(rows[0]["ssa_publisher"], "ivo://x-unregistred")
+			self.assertEqual(rows[0]["ssa_instrument"], "Bruce Astrograph")
+			self.assertEqual(rows[0]["ssa_fluxunit"], "milli"+id)
+			self.assertEqual(rows[0]["ssa_dstitle"], "junk from "+id)
+		finally:
+			self.conn.rollback()
 
 if __name__=="__main__":
 	base.DEBUG = True

@@ -21,12 +21,12 @@ from gavo.base import structure
 
 PUBLIC_MIXINS = ["//products#table", "//scs#positions", "//scs#q3cindex",
 	"//siap#bbox", "//siap#pgs", "//ssap#hcd", "//obscore#publish",
-	"//obscore#publishSIAP", "//ssap#sdm-instance"]
+	"//obscore#publishSIAP", "//ssap#sdm-instance", "//ssap#mixc"]
 
 PUBLIC_APPLYS = ["//procs#simpleSelect", "//procs#resolveObject",
 	"//procs#mapValue", "//procs#fullQuery", "//siap#computePGS",
 	"//siap#computeBbox", "//siap#setMeta", "//ssap#setMeta",
-	"//siap#getBandFromFilter"]
+	"//siap#getBandFromFilter", "//ssap#setMixcMeta"]
 
 PUBLIC_ROWFILTERS = ["//procs#expandComma", "//procs#expandDates",
 	"//products#define", "//procs#expandIntegers"]

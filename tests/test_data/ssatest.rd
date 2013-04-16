@@ -22,6 +22,12 @@
 		</column>
 	</table>
 
+	<table id="mixctest" onDisk="True" primary="accref">
+		<mixin
+			fluxSI="Jy"
+			spectralSI="Hz">//ssap#mixc</mixin>
+	</table>
+
 	<data id="test_import">
 		<sources pattern="data/*.ssatest"/>
 		<keyValueGrammar>
@@ -56,6 +62,28 @@
 		</make>
 	</data>
 
+	<data id="test_mixc">
+		<sources pattern="data/*.ssatest"/>
+		<keyValueGrammar>
+			<rowfilter procDef="//products#define">
+				<bind name="table">"\schema.hcdtest"</bind>
+			</rowfilter>
+		</keyValueGrammar>
+		<make table="mixctest" role="primary">
+			<rowmaker idmaps="*">
+				<apply procDef="//ssap#setMeta">
+					<bind name="pubDID">"ivo://test.inv/"+@id</bind>
+					<bind name="dstitle">"junk from "+@id</bind>
+					<bind name="targname">@targetName</bind>
+				</apply>
+				<apply procDef="//ssap#setMixcMeta">
+					<bind name="fluxunit">"milli"+@id</bind>
+					<bind name="instrument">"Bruce Astrograph"</bind>
+				</apply>
+			</rowmaker>
+		</make>
+	</data>
+	
 	<table id="spectrum">
 		<mixin ssaTable="hcdtest">//ssap#sdm-instance</mixin>
 	</table>
