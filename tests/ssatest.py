@@ -707,7 +707,7 @@ class MixcTableTest(testhelpers.VerboseTest):
 			self.assertEqual(getattr(col, attName), expected)
 
 	def testUndefinedOnPar(self):
-		col = getRD().getById("mixctest").getColumnByName("ssa_fluxunit")
+		col = getRD().getById("mixctest").getColumnByName("ssa_reference")
 		self.assertEqual(col.unit, None)
 
 	def testSkippedColumnsGone(self):
@@ -722,12 +722,12 @@ class MixcTableTest(testhelpers.VerboseTest):
 		try:
 			rows = list(self.conn.queryToDicts(
 				"select ssa_dstitle, ssa_instrument, ssa_pubdid,"
-				" ssa_fluxunit, ssa_publisher from test.mixctest"))
+				" ssa_reference, ssa_fluxunit, ssa_publisher from test.mixctest"))
 			self.assertEqual(len(rows), 3)
 			id = rows[0]["ssa_pubdid"].split("/")[-1]
 			self.assertEqual(rows[0]["ssa_publisher"], "ivo://x-unregistred")
 			self.assertEqual(rows[0]["ssa_instrument"], "Bruce Astrograph")
-			self.assertEqual(rows[0]["ssa_fluxunit"], "milli"+id)
+			self.assertEqual(rows[0]["ssa_reference"], "Paper on "+id)
 			self.assertEqual(rows[0]["ssa_dstitle"], "junk from "+id)
 		finally:
 			self.conn.rollback()

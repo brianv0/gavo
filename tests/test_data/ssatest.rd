@@ -25,7 +25,9 @@
 	<table id="mixctest" onDisk="True" primary="accref">
 		<mixin
 			fluxSI="Jy"
-			spectralSI="Hz">//ssap#mixc</mixin>
+			spectralSI="Hz"
+			fluxUCD="whatever.junk"
+			spectralUCD="frequency">//ssap#mixc</mixin>
 	</table>
 
 	<data id="test_import">
@@ -77,7 +79,7 @@
 					<bind name="targname">@targetName</bind>
 				</apply>
 				<apply procDef="//ssap#setMixcMeta">
-					<bind name="fluxunit">"milli"+@id</bind>
+					<bind name="reference">"Paper on "+@id</bind>
 					<bind name="instrument">"Bruce Astrograph"</bind>
 				</apply>
 			</rowmaker>

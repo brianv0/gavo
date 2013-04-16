@@ -464,16 +464,6 @@
 			<par key="reference" late="True" description="URL or bibcode of 
 				a publication describing this data.">"Take from RD"</par>
 
-			<par key="fluxunit" late="True" description="Flux unit used,
-				VO syntax; ssa:Char.FluxAxis.Unit">None</par>
-			<par key="fluxucd" late="True" 
-				description="UCD of flux column; ssa:Char.FluxAxis.Ucd">None</par>
-			<par key="spectralunit" late="True" description="Spectral unit used
-				in the described file, VO syntax; ssa:Char.SpectralAxis.Unit">None</par>
-			<par key="spectralucd" late="True" 
-				description="UCD of spectral column; ssa:Char.SpectralAxis.Ucd"
-				>None</par>
-
 			<par key="binSize" late="True" description="Bin size on the
 				spectral axis in units of spectralSI">None</par>
 			<par key="fluxStatError" late="True" description="Statistical
@@ -510,8 +500,7 @@
 					vars["ssa_"+parName] = inVars[parName]
 			
 			for copiedName in ["dstype", "collection", "dataSource", 
-				"creationType", "fluxunit", "fluxucd", "spectralunit", "spectralucd",
-				"fluxCalib", "specCalib", "specres"]:
+				"creationType", "fluxCalib", "specCalib", "specres"]:
 				vars["ssa_"+copiedName] = inVars[copiedName]
 		</code>
 	</procDef>
@@ -613,6 +602,13 @@
 			Rowmakers for tables using this mixin should use the `//ssap#setMeta`_
 			and the `//ssap#setMixcMeta`_ proc applications.
 
+			There are some limitations to the variability; in particular, all
+			spectra must have the same types of axes (i.e., frequency, wavelength,
+			or energy) with identical units.  If you don't have that,
+			either leave the respective metadata empty or homogenize it
+			in the rowmaker.  Anything else cannot be sensibly declared,
+			not to mention searched.
+
 			Do not forget to call the `//products#define`_ row filter in grammars
 			feeding tables mixing this in.  At the very least, you need to
 			say::
@@ -637,6 +633,11 @@
 			not agree on time units, you probably want to set this NULL and
 			hope that clients are not too badly confused; alternatively,
 			you might want to homogenize the temporal errors.">d</mixinPar>
+		<mixinPar key="fluxUCD"
+			description="UCD of flux column; ssa:Char.FluxAxis.Ucd"/>
+		<mixinPar key="spectralUCD"
+			description="UCD of spectral column; ssa:Char.SpectralAxis.Ucd"/>
+			
 
 		<FEED source="//products#hackProductsData"/>
 		<events>
