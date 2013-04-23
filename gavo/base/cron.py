@@ -194,15 +194,18 @@ class Queue(object):
 		If the wakeup time of the next job is too far in the future,
 		this does essentially nothing.
 		"""
+		with self.lock:
+			if not self.jobs:
+				return
+			jobTime, job = heapq.heappop(self.jobs)
+
 		try:
-			with self.lock:
-				jobTime, job = heapq.heappop(self.jobs)
-				if jobTime>time.time()+1:
-					# spurious wakeup, forget about it
-					pass
-				else:
-					job.lastStarted = time.time()
-					job.run()
+			if jobTime>time.time()+1:
+				# spurious wakeup, forget about it
+				pass
+			else:
+				job.lastStarted = time.time()
+				job.run()
 		finally:
 			self._rescheduleJob(job)
 	

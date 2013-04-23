@@ -838,15 +838,16 @@ class CronTest(testhelpers.VerboseTest):
 		t1 = time.gmtime(job.getNextWakeupTime(t0))
 		self.assertEqual(t1[2:5], (3, 21, 30))
 
-	def testSuccessfulEveryInRD(self):
-		rd = base.parseFromString(rscdesc.RD, """<resource schema="test">
+	def testEveryInRD(self):
+		rd = base.parseFromString(rscdesc.RD, r"""<resource schema="test">
+			<macDef name="flog">hop</macDef>
 			<execute title="seir" every="1">
 				<job><code>
-						rd.flum = 31
+						rd.flum = "how\\n\flog"
 				</code></job></execute></resource>""")
-		self.threads[-1].join(0.1)
+		self.threads[-1].join()
 		del self.threads[-1]
-		self.assertEqual(rd.flum, 31)
+		self.assertEqual(rd.flum, "how\nhop")
 
 	def testRescheduleUnschedules(self):
 		rd = base.parseFromString(rscdesc.RD, """<resource schema="test">

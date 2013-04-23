@@ -354,7 +354,10 @@
 		<mixinPar name="expTime" description="Total time of event counting.
 			This simply is tMax-tMin for simple exposures.">NULL</mixinPar>
 		<mixinPar name="polStates" description="List of polarization
-			states present in the data">NULL</mixinPar>
+			states present in the data; if you give something, use the convention
+			of choosing the appropriate from  {I Q U V RR LL RL LR XX YY XY YX 
+			POLI POLA} and write them with / separators, e.g. /I/Q/XX/"
+			>NULL</mixinPar>
 		<mixinPar name="facilityName" description="The institute or observatory
 			at which the data was produced">NULL</mixinPar>
 

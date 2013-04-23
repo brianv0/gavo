@@ -104,6 +104,17 @@ class MacroExpander(object):
 			return literalBackslash | suppressedLF | glue | macro
 
 
+class ExpansionDelegator(object):
+	"""A mixin to make a class expand macros by delegating everything to
+	its parent.
+
+	This is intended for base.Structures that have a parent attribute;
+	by mixing this in, they use their parents to expand macros for them.
+	"""
+	def expand(self, aString):
+		return self.parent.expand(aString)
+
+
 class MacroPackage(object):
 	r"""is a function dispatcher for MacroExpander.
 

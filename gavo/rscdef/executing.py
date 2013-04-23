@@ -113,7 +113,7 @@ class CronJob(procdef.ProcApp):
 	formalArgs = "rd, execDef"
 
 
-class Execute(base.Structure):
+class Execute(base.Structure, base.ExpansionDelegator):
 	"""a container for calling code.
 
 	This is a cron-like functionality.  The jobs are run in separate
