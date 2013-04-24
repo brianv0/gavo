@@ -22,41 +22,48 @@ class _listWithMessage(list):
 	lastMessage = None
 
 
+class _Scheduler(object):
+	"""helper class for _TestScheduleFunction.
+	"""
+	def __init__(self):
+		self.curTimer = None
+	
+	def schedule(self, delay, callable):
+		if self.curTimer is not None:
+			if self.curTimer.isAlive():
+				self.curTimer.cancel()
+		self.curTimer = threading.Timer(delay/10., callable)
+		self.curTimer.daemon = 1
+		self.curTimer.start()
+
+	def storeAMail(self, subject, message):
+		self.lastMessage = subject+"\n"+message
+
+	def finalize(self):
+		if self.curTimer.isAlive():
+			self.curTimer.cancel()
+		cron.sendMailToAdmin = self.oldMailFunction
+
+	def wait(self):
+		self.curTimer.join(1)
+
+
 class _TestScheduleFunction(testhelpers.TestResource):
 	def make(self, deps):
-		spawnedThreads = _listWithMessage()
+		s = _Scheduler()
+		cron.registerScheduleFunction(s.schedule)
+		s.oldMailFunction = cron.sendMailToAdmin
+		cron.sendMailToAdmin = s.storeAMail
+		return s
 
-		def schedule(delay, callable):
-			t = threading.Timer(delay/10., callable)
-			t.daemon = 1
-			t.start()
-			spawnedThreads.append(t)
-
-		cron.registerScheduleFunction(schedule)
-
-		def storeAMail(subject, message):
-			spawnedThreads.lastMessage = subject+"\n"+message
-
-		self.oldMailFunction = cron.sendMailToAdmin
-		cron.sendMailToAdmin = storeAMail
-
-		return spawnedThreads
-	
-	def clean(self, spawnedThreads):
+	def clean(self, scheduler):
+		cron.sendMailToAdmin = scheduler.oldMailFunction
 		cron.clearScheduleFunction()
-		for t in spawnedThreads:
-			if t.isAlive():
-				try:
-					t.cancel()
-				except:
-					import traceback
-					traceback.print_exc()
-			t.join(0.001)
-		cron.sendMailToAdmin = self.oldMailFunction
+		scheduler.finalize()
 
 
 class CronTest(testhelpers.VerboseTest):
-	resources = [("threads", _TestScheduleFunction())]
+	resources = [("scheduler", _TestScheduleFunction())]
 
 	def testDailyReschedulePre(self):
 		job = cron.DailyJob([(15, 20)], "testing#testing", None)
@@ -102,9 +109,7 @@ class CronTest(testhelpers.VerboseTest):
 				<job><code>
 						rd.flum = "how\\n\flog"
 				</code></job></execute></resource>""")
-		self.threads[-1].join(1)
-		self.failIf(self.threads[-1].isAlive())
-		del self.threads[-1]
+		self.scheduler.wait()
 		self.assertEqual(rd.flum, "how\nhop")
 
 	def testRescheduleUnschedules(self):
@@ -115,18 +120,13 @@ class CronTest(testhelpers.VerboseTest):
 				</code></job></execute></resource>""")
 		self.assertEqual(len([j for _, j in cron._queue.jobs
 			if j.name=="None#seir"]), 1)
-		self.threads[-1].join(0.2)
-		self.failIf(self.threads[-1].isAlive())
-		del self.threads[-1]
 
 		rd = base.parseFromString(rscdesc.RD, """<resource schema="test">
 			<execute title="seir" every="1">
 				<job><code>
 						rd.flum = 32
 				</code></job></execute></resource>""")
-		self.threads[-1].join(0.2)
-		self.failIf(self.threads[-1].isAlive())
-		del self.threads[-1]
+		self.scheduler.wait()
 		self.assertEqual(rd.flum, 32)
 		self.assertEqual(len([j for _, j in cron._queue.jobs
 			if j.name=="None#seir"]), 1)
@@ -138,9 +138,7 @@ class CronTest(testhelpers.VerboseTest):
 					execDef.spawn(["ls", "/does/not/exist"])
 					execDef.ran = 1
 				</code></job></execute></resource>""")
-		self.threads[-1].join()
-		self.failIf(self.threads[-1].isAlive())
-		del self.threads[-1]
+		self.scheduler.wait()
 		for i in range(100):
 			if hasattr(rd.jobs[0], "ran"):
 				break
@@ -148,9 +146,9 @@ class CronTest(testhelpers.VerboseTest):
 		else:
 			raise AssertionError("spawned ls did not come around")
 		self.failUnless("A process spawned by seir failed with 2"
-			in self.threads.lastMessage)
+			in self.scheduler.lastMessage)
 		self.failUnless("Output of ['ls', '/does/not/exist']:"
-			in self.threads.lastMessage)
+			in self.scheduler.lastMessage)
 
 	def testAtFromRDBad(self):
 		self.assertRaisesWithMsg(base.LiteralParseError,
@@ -171,9 +169,7 @@ class CronTest(testhelpers.VerboseTest):
 				</code></job></execute></resource>""")
 		self.assertEqual(rd.jobs[0].parsedAt[0], (16, 28))
 		self.assertEqual(len(rd.jobs[0].parsedAt), 1)
-		self.threads[-1].cancel()
-		self.threads[-1].join(0.01)
-		self.failIf(self.threads[-1].isAlive())
+		self.scheduler.wait()
 		self.assertEqual(time.gmtime([j for _, j in cron._queue.jobs 
 			if j.name=="None#seir"][0].getNextWakeupTime(time.time()))[3:5],
 			(16, 28))

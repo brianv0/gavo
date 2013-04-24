@@ -79,7 +79,7 @@
 		</property>
 	</service>
 
-	<service id="grouptest">
+	<service id="grouptest" allowed="form,static">
 		<dbCore queriedTable="data/test#adql">
 			<condDesc>
 				<inputKey original="rV"/>
