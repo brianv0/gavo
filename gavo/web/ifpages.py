@@ -246,20 +246,3 @@ class RobotsTxt(rend.Page):
 
 	def locateChild(self, segments):
 		return None
-
-
-class Manhole(rend.Page):
-	"""a for now experimental page that dumps some debug info to the log.
-	"""
-	def renderHTTP(self, ctx):
-		from gavo.base import cron
-		base.ui.notifyInfo("Manhole dumping cron jobs:")
-		base.ui.notifyInfo("\n".join(
-			"%s %s"%(utils.formatISODT(dt), title) 
-				for dt, title in cron._queue.getQueueRepr()))
-		request = inevow.IRequest(ctx)
-		request.setHeader("content-type", "text/plain")
-		return "Check dcInfos for manhole messages."
-			
-	def locateChild(self, segments):
-		return None
