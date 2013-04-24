@@ -335,12 +335,18 @@ class Service(base.Structure, base.ComputedMetaMixin,
 
 		if self.core is base.Undefined:
 			# undefined cores are only allowed with custom pages
+			# (Deprecated)
 			if self.customPage:
 				self.core = core.getCore("nullCore")(self.rd).finishElement(None)
+				base.ui.notifyWarning("Custom page service %s without nullCore."
+					"  This is deprecated, please fix"%self.id)
 			else:
 				raise base.StructureError("Services must have cores (add <nullCore/>"
 					" if you really do not want a core, e.g., with fixed renderers).")
 
+		# if there's only one renderer on this service, make it the default
+		if self.defaultRenderer is None and len(self.allowed)==1:
+			self.defaultRenderer = list(self.allowed)[0]
 		# empty output tables are filled from the core
 		if self.outputTable is base.NotGiven:
 			self.outputTable = self.core.outputTable
