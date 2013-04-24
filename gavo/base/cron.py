@@ -6,10 +6,15 @@ There's a singleton of the queue created below, and the methods of that
 singleton are exposed as module-level functions.
 
 To make the jobs actually execute, the running program has to call 
-registerScheduler(schedulerFunction).  Only the first registration is relevant.
-The schedulerFunction has the signature sf(delay, callable) and has to
-arrange for callable to be called delay seconds in the future.  In reality,
-that's usually just reactor.callLater registred by the web server.
+registerSchedulerFunction(schedulerFunction).  Only the first 
+registration is relevant.  The schedulerFunction has the signature 
+sf(delay, callable) and has to arrange for callable to be called delay 
+seconds in the future; twisted's reactor.callLater works like this.
+
+However, you should arrange for previous callLaters to be canceled when 
+a new one comes in.  There is no management to make sure only one
+queue reaper runs at any time (it doesn't hurt much if more than one
+run, but it's a waste of resources).
 """
 
 from __future__ import with_statement

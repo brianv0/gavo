@@ -42,7 +42,7 @@ def setupServer(rootPage):
 		from gavo.protocols import tap
 		tap.workerSystem.cleanupJobsTable()
 	else:
-		cron.registerScheduleFunction(_scheduleJob)
+		cron.registerScheduleFunction(_Scheduler.scheduleJob)
 
 
 
@@ -180,11 +180,22 @@ def _preloadRDs():
 			base.ui.notifyError("Error while preloading %s."%rdId)
 
 
-def _scheduleJob(wakeTime, job):
-	"""puts job on the reactor's queue for execution in wakeTime seconds.
+class _Scheduler(object):
+	"""An internal singleton (use as a class) housing a twisted base
+	scheduling function for base.cron.
 	"""
-	base.ui.notifyWarning("Scheduling %s after %s seconds"%(job, wakeTime))
-	reactor.callLater(wakeTime, job)
+	lastDelayedCall = None
+
+	@classmethod
+	def scheduleJob(cls, wakeTime, job):
+		"""puts job on the reactor's queue for execution in wakeTime seconds.
+		"""
+		if cls.lastDelayedCall is not None and cls.lastDelayedCall.active():
+			base.ui.notifyWarning("Cancelling schedule at %s"%cls.lastDelayedCall.getTime())
+			cls.lastDelayedCall.cancel()
+
+		base.ui.notifyWarning("Waking up after %s seconds"%(wakeTime))
+		cls.lastDelayedCall = reactor.callLater(wakeTime, job)
 
 
 def _startServer():

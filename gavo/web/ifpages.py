@@ -260,7 +260,6 @@ class Manhole(rend.Page):
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "text/plain")
 		return "Check dcInfos for manhole messages."
-	
 			
 	def locateChild(self, segments):
 		return None

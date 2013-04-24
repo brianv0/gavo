@@ -268,6 +268,8 @@ class ArchiveService(rend.Page):
 			raise UnknownURI("No such service: %s"%subId, rd=rd)
 		if rendName is None:
 			rendName = service.defaultRenderer
+		if rendName is None and len(service.allowed)==1:
+			rendName = list(service.allowed)[0]
 		if rendName is None:
 			raise UnknownURI("No renderer given and service has no default")
 		try:

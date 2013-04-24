@@ -21,60 +21,6 @@ from gavo.user import cli
 import tresc
 
 
-class Tell(Exception):
-	"""is raised by some listeners to show they've been called.
-	"""
-
-
-class EventDispatcherTest(testhelpers.VerboseTest):
-	def testNoNotifications(self):
-		"""tests for the various notifications not bombing out by themselves.
-		"""
-		ed = events.EventDispatcher()
-		ed.notifyError("Something")
-
-	def testNotifyError(self):
-		def callback(ex):
-			raise Exception(ex)
-		ed = events.EventDispatcher()
-		ed.subscribeError(callback)
-		fooMsg = "WumpMessage"
-		try:
-			ed.notifyError(fooMsg)
-		except Exception, foundEx:
-			self.assertEqual(fooMsg, foundEx.args[0])
-
-	def testUnsubscribe(self):
-		res = []
-		def callback(arg):
-			res.append(arg)
-		ed = events.EventDispatcher()
-		ed.subscribeInfo(callback)
-		ed.notifyInfo("a")
-		ed.unsubscribeInfo(callback)
-		ed.notifyInfo("b")
-		self.assertEqual(res, ["a"])
-
-	def testObserver(self):
-		ed = events.EventDispatcher()
-		class Observer(base.ObserverBase):
-			@base.listensTo("NewSource")
-			def gotNewSource(self, sourceName):
-				raise Tell(sourceName)
-		o = Observer(ed)
-		ex = None
-		try:
-			ed.notifyNewSource("abc")
-		except Tell, ex:
-			pass
-		self.assertEqual(ex.args[0], "abc")
-		try:
-			ed.notifyNewSource(range(30))
-		except Tell, ex:
-			pass
-		self.assertEqual(ex.args[0], '[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 1')
-
-
 class MiscCLITest(testhelpers.VerboseTest):
 	def testUnhandledException(self):
 		self.assertOutput(cli.main, argList=["raise"], 
