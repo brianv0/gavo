@@ -8,7 +8,7 @@
 		the view creation statement from the _obscoresources table in the
 		data create -->
 
-		<property key="supportsModel">Obscore 1.0</property>
+		<property key="supportsModel">Obscore-1.0</property>
 		<property key="supportsModelURI"
 			>ivo://ivoa.net/std/ObsCore-1.0</property>
 

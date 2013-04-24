@@ -42,7 +42,7 @@ def setupServer(rootPage):
 		from gavo.protocols import tap
 		tap.workerSystem.cleanupJobsTable()
 	else:
-		cron.registerScheduleFunction(reactor.callLater)
+		cron.registerScheduleFunction(_scheduleJob)
 
 
 
@@ -178,6 +178,13 @@ def _preloadRDs():
 			base.caches.getRD(rdId)
 		except:
 			base.ui.notifyError("Error while preloading %s."%rdId)
+
+
+def _scheduleJob(wakeTime, job):
+	"""puts job on the reactor's queue for execution in wakeTime seconds.
+	"""
+	base.ui.notifyWarning("Scheduling %s after %s seconds"%(job, wakeTime))
+	reactor.callLater(wakeTime, job)
 
 
 def _startServer():
