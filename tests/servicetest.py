@@ -257,7 +257,7 @@ class InputFieldSelectionTest(testhelpers.VerboseTest):
 			[(k.name, k.type) for k in self.service.getInputKeysFor("scs.xml")],
 			[('RA', 'double precision'), ('DEC', 'double precision'), 
 				('SR', 'real'), ('MAXREC', 'integer'),
-				("mag", "real"), (u'rV', u'vexpr-float')])
+				("mag", "pql-float"), (u'rV', u'vexpr-float')])
 
 
 class InputTableGenTest(testhelpers.VerboseTest):
@@ -290,7 +290,7 @@ class InputTableGenTest(testhelpers.VerboseTest):
 	def testEnumeratedBadValues(self):
 		service = testhelpers.getTestRD("cores").getById("enums")
 		self.assertRaisesWithMsg(base.ValidationError,
-			"3 is not a valid value for b",
+			"'3' is not a valid value for b",
 			service._makeInputTableFor,
 			("form", {'b':"3"}))
 

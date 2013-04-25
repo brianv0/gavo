@@ -406,6 +406,7 @@ class ColumnBase(base.Structure, base.MetaMixin):
 				raise base.ValidationError(
 					"Field %s is empty but non-optional"%self.name, self.name)
 			return
+
 		vals = self.values
 		if vals:
 			if vals.options:
@@ -620,7 +621,7 @@ class ParamBase(ColumnBase):
 
 		if not self.values.validateOptions(self._parse(val)):
 			raise base.ValidationError("%s is not a valid value for %s"%(
-				val, self.name), self.name)
+				repr(val), self.name), self.name)
 
 		self.content_ = val
 

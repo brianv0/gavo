@@ -468,7 +468,8 @@ def adaptInputKey(inputKey):
 
 	try:
 		return inputKey.change(
-			type=getVexprFor(inputKey.type))
+			type=getVexprFor(inputKey.type),
+			values=None)
 	except base.ConversionError:  # No vexpr type, leave things
 		pass
 	return inputKey

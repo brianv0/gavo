@@ -78,7 +78,7 @@ def _getSQLForSequence(field, val, sqlPars):
 	if len(val)==0 or (len(val)==1 and val[0] is None):
 		return ""
 	return "%s IN %%(%s)s"%(field.name, getSQLKey(field.name,
-		val, sqlPars))
+		set(val), sqlPars))
 
 
 def _getSQLForSimple(field, val, sqlPars):
@@ -112,6 +112,9 @@ def getSQLForField(field, inPars, sqlPars):
 	val = inPars.get(field.name)
 	if val is None:
 		return None
+	if isinstance(val, (list, set, tuple)) and len(val)==1:
+		val = val[0]
+
 	factory = _getSQLFactory(field.type, val)
 	return factory(field, val, sqlPars)
 

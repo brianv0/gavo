@@ -1,7 +1,5 @@
 """
-Some tests for the database interface.
-
-This only works with psycopg2.
+Some tests for the database interface and the surrounding helper code.
 """
 
 import contextlib
@@ -26,6 +24,41 @@ from gavo.base import sqlsupport
 from gavo.utils import pgsphere
 
 import tresc
+
+
+class GetSQLTest(testhelpers.VerboseTest):
+# this is for "dumb" fields.  See also viziertest and pqltest for advanced
+# SQL generation from stuff coming in from the web.
+	def _assertSQLGenerated(self, ikArgs, inputPars, fragment, sqlPars):
+		foundPars = {}
+		inputKey = base.makeStruct(svcs.InputKey, **ikArgs)
+		foundFragment = base.getSQLForField(inputKey, inputPars, foundPars)
+		self.assertEqual(fragment, foundFragment)
+		self.assertEqual(sqlPars, foundPars)
+
+	def testSimpleString(self):
+		self._assertSQLGenerated(
+			{"name": "foo", "type": "text"}, 
+			{"foo": ["';"]}, 
+			'foo=%(foo0)s',	{'foo0': u"';"})
+	
+	def testEmptyString(self):
+		self._assertSQLGenerated(
+			{"name": "foo", "type": "text"}, 
+			{"foo": [""]},
+			'foo=%(foo0)s', {'foo0': u""})
+
+	def testMissingString(self):
+		self._assertSQLGenerated(
+			{"name": "foo", "type": "text"},
+			{},
+			None, {})
+
+	def testIntSeq(self):
+		self._assertSQLGenerated(
+			{"name": "foo", "type": "integer"}, 
+			{"foo": map(int, "1 2 3 4".split())},
+			'foo IN %(foo0)s', {'foo0': set([1,2,3,4])})
 
 
 class ProfileTest(testhelpers.VerboseTest):

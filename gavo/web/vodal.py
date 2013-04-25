@@ -97,7 +97,7 @@ class DALRenderer(grend.ServiceBasedPage):
 	implements(inevow.ICanHandleException)
 
 	resultType = "application/x-votable+xml"
-	parameterStyle = "dal"
+	parameterStyle = "pql"
 	urlUse = "base"
 
 	def __init__(self, ctx, *args, **kwargs):
