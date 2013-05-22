@@ -418,7 +418,8 @@ class NamePathAttribute(base.AtomicAttribute):
 			if np is None and instance.parent:
 				np = getattr(instance.parent, "namePath", None)
 			if np is None:
-				raise base.StructureError("No namePath here")
+				raise base.NotFoundError(id, "Element with name", repr(self),
+					hint="No namePath here")
 			res = context.resolveId(np+"."+id)
 			return res
 		yield "resolveName", resolveName

@@ -165,15 +165,16 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 		"""returns true if the RD on disk has a timestamp newer than
 		loadedAt.
 		"""
+		if isinstance(self.srcPath, PkgResourcePath):
+			# stuff from the resource package should not change underneath us.
+			return False
+
 		try:
 			if self.srcPath is not None:
 				return os.path.getmtime(self.srcPath)>self.loadedAt
 		except os.error:
-			# this could mean the file went away (in which case we should
-			# be dirty), but mostly it's something from pkg_resources which
-			# isn't supposed to change.  So, most of the time returning false
-			# should be all right...
-			return False
+			# this will ususally mean the file went away
+			return True
 		return False
 
 	def importModule(self, ctx):
@@ -219,8 +220,8 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 		try:
 			res = self.idmap[id]
 		except KeyError:
-			raise base.ui.logOldExc(base.StructureError(
-				"No element with id '%s' found in RD %s"%(id, self.sourceId)))
+			raise base.ui.logOldExc(base.NotFoundError(
+				id, "Element with id", "RD %s"%(self.sourceId)))
 		if forceType:
 			if not isinstance(res, forceType):
 				raise base.StructureError("Element with id '%s' is not a %s"%(
@@ -334,6 +335,13 @@ class RDParseContext(base.ParseContext):
 		base.ParseContext.__init__(self, restricted, forRD)
 
 
+class PkgResourcePath(str):
+	"""A sentinel class used to mark an RD as coming from pkg_resources.
+	"""
+	def __str__(self):
+		return self
+
+
 def canonicalizeRDId(srcId):
 	"""returns a standard rd id for srcId.
 
@@ -390,7 +398,8 @@ def getRDInputStream(srcId):
 			return fName, open(fName)
 		if (pkg_resources.resource_exists('gavo', fName)
 				and not pkg_resources.resource_isdir('gavo', fName)):
-			return fName, pkg_resources.resource_stream('gavo', fName)
+			return (PkgResourcePath(fName), 
+				pkg_resources.resource_stream('gavo', fName))
 	raise base.RDNotFound(srcId)
 
 
@@ -412,6 +421,32 @@ def setRDDateTime(rd, inputFile):
 		rd.timestampUpdated)
 
 
+
+class _UserConfigFakeRD(object):
+	"""A fake object that's in the RD cache as "%".
+
+	This is used by the id resolvers in parsecontext; this certainly is
+	of no use as an RD otherwise.
+	"""
+	def getById(self, id, forceType=None):
+		"""returns an item from userconfig.
+
+		This first tries to resolve id in gavo/etc/userconfig.rd, then in the
+		fallback //userconfig.rd.
+		"""
+		try:
+			try:
+				return base.caches.getRD(
+					os.path.join(base.getConfig("configDir"), "userconfig.rd")
+					).getById(id, forceType=forceType)
+			except base.NotFoundError:
+				return base.caches.getRD("//userconfig"
+						).getById(id, forceType=forceType)
+		except base.NotFoundError:
+			raise base.NotFoundError(id, "Element with id", 
+				"etc/userconfig.rd")
+
+
 def getRD(srcId, forImport=False, doQueries=True, 
 		dumpTracebacks=False, restricted=False, useRD=None):
 	"""returns a ResourceDescriptor for srcId.
@@ -425,6 +460,9 @@ def getRD(srcId, forImport=False, doQueries=True,
 	The useRD parameter is for _loadRDIntoCache exclusively and is
 	used by it internally.  It is strictly an ugly implementation detail.
 	"""
+	if srcId=='%':
+		return _UserConfigFakeRD()
+
 	if useRD is None:
 		rd = RD(canonicalizeRDId(srcId))
 	else:
@@ -432,7 +470,10 @@ def getRD(srcId, forImport=False, doQueries=True,
 
 	srcPath, inputFile = getRDInputStream(rd.sourceId)
 	context = RDParseContext(forImport, doQueries, dumpTracebacks, restricted)
-	rd.srcPath = context.srcPath = os.path.abspath(srcPath)
+
+	if not isinstance(srcPath, PkgResourcePath):
+		srcPath = os.path.abspath(srcPath)
+	rd.srcPath = context.srcPath = srcPath
 	context.forRD = rd.sourceId
 	rd.idmap = context.idmap
 
@@ -475,6 +516,9 @@ class CachedException(object):
 		if self.sourcePath is None:
 			# see above
 			return False
+		if not os.path.exists(self.sourcePath): 
+			# someone has removed the file, kill cache
+			return True
 		return os.path.getmtime(self.sourcePath)>self.timestamp
 	
 	def raiseAgain(self):

@@ -230,9 +230,8 @@ class ApplyTest(testhelpers.VerboseTest):
 		self.assertEqual(mapper({"src": 23}, None), {'si': 253})
 	
 	def testRaising(self):
-		self.assertRaisesWithMsg(base.StructureError,
-			'At [<data><table id="foo"></tab...], (1, 50):'
-			" Reference to unknown item 'quatsch'.",
+		self.assertRaisesWithMsg(base.NotFoundError,
+			"Element with id u'quatsch' could not be located in parse context",
 			makeDD, ('', '<apply name="xy" procDef="quatsch"/>'))
 
 	def testArgExpansion(self):

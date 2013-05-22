@@ -391,6 +391,12 @@ class CachesTest(testhelpers.VerboseTest):
 		else:
 			self.fail("This should have raised?")
 
+	def testClearOnRm(self):
+		with testhelpers.testFile("temp.rd",
+				"<resource schema='look'/>") as rdName:
+			rd = base.caches.getRD(rdName)
+			self.assertEqual(rd.schema, "look")
+		self.assertRaises(base.RDNotFound, base.caches.getRD, rdName)
 
 class RecreateAfterTest(testhelpers.VerboseTest):
 	resources = [("conn", tresc.dbConnection)]
@@ -421,7 +427,8 @@ class RecreateAfterTest(testhelpers.VerboseTest):
 			base.ui.unsubscribe("Warning", handler)
 		self.assertEqual(len(msgs), 1)
 		self.assertEqual(msgs[0], "Ignoring dependent data/test#foobarmatic"
-			" of None (No element with id 'foobarmatic' found in RD data/test)")
+			" of None (Element with id u'foobarmatic' could not be located"
+			" in RD data/test)")
 
 	def testRecursiveDepedency(self):
 		rd = base.parseFromString(rscdesc.RD, """

@@ -300,9 +300,8 @@ class CopyTest(testhelpers.VerboseTest):
 			'<color r="2"><original>xy</original></color></pal>'))
 
 	def testBadId(self):
-		self.assertRaisesWithMsg(base.StructureError, 
-			'At [<pal><color original="xy"/>...], (1, 5):'
-			" Reference to unknown item 'xy'.",
+		self.assertRaisesWithMsg(base.NotFoundError, 
+			"Element with id u'xy' could not be located in parse context",
 			xmlstruct.parseFromString, (Palette, '<pal><color original="xy"/>'
 			'</pal>'))
 

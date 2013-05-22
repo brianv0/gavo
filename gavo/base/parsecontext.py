@@ -34,11 +34,12 @@ def resolveCrossId(id, forceType):
 		raise common.LiteralParseError("id", id, hint="There must be exactly"
 			" one hash sign ('#') in cross ids, separating the rd identifier"
 			" from the rd-internal id")
+
 	try:
 		srcRd = caches.getRD(rdId)
 	except common.RDNotFound:
-		raise common.StructureError("Reference to %s cannot be resolved since"
-			" the RD referenced could not be opened."%id)
+		raise common.NotFoundError(id, "Element with id", "RD "+rdId,
+			hint="The RD referenced cannot be opened")
 	return resolveId(srcRd, rest, forceType=forceType)
 
 
@@ -46,13 +47,13 @@ def resolveNameBased(container, id, forceType=None):
 	"""Tries to find a thing with name id within container.
 
 	If container defines a method getElementForName, it will be called; it
-	must either return some element with this name or raise a StructureError.
+	must either return some element with this name or raise a NotFoundError.
 
 	If no such method exists, the function iterates over container until
 	it finds an element with el.name==id.  If no such element exists,
-	it again raises a StructureError.
+	it again raises a NotFoundError.
 
-	The function raises a StructureError when no such thing exists.
+	The function raises a NotFoundError when no such thing exists.
 	"""
 	if hasattr(container, "getElementForName"):
 		return container.getElementForName(id)
@@ -64,13 +65,16 @@ def resolveNameBased(container, id, forceType=None):
 				return assertType(id, ob, forceType)
 	except TypeError:
 		if ob is None:
-			raise utils.logOldExc(common.StructureError("Cannot access %s"
-				" name-based since it is not iterable"%repr(container)))
+			raise utils.logOldExc(common.NotFoundError(id, "Element with name",
+				"container %s"%repr(container),
+				hint="The container, %s, is not iterable"%repr(container)))
 		else:
-			raise utils.logOldExc(common.StructureError("Element %s is of type %s"
-				" and thus unsuitable for name path"%(ob.name, type(ob))))
-	raise common.StructureError("Element %s has no child with name %s"%(
-		container.id, id))
+			raise utils.logOldExc(common.NotFoundError(id, "Element with name",
+				"container %s"%repr(container),
+				hint="Element %s is of type %s and thus unsuitable"
+					" for name path"%(ob.name, type(ob))))
+	raise common.NotFoundError(id, "Element with name",
+		"container %s"%container.id)
 
 
 def resolveComplexId(ctx, id, forceType=None):
@@ -93,7 +97,7 @@ def _resolveOnNamepath(ctx, id, instance):
 	if (instance and instance.parent and 
 			hasattr(instance.parent, "resolveName")):
 		return instance.parent.resolveName(ctx, id)
-	raise common.StructureError("No such name on name path: %s"%id)
+	raise common.NotFoundError(id, "Element with id or name", "name path")
 
 
 def resolveId(ctx, id, instance=None, forceType=None):
@@ -110,15 +114,15 @@ def resolveId(ctx, id, instance=None, forceType=None):
 	(#) if id has a dot in it, split at the first dot to get a pair of
 	id and name.  Iterate over the element with id, and look for something
 	with a "name" attribute valued name.  If this fails, raise a 
-	StructureError.
+	NotFoundError.
 
 	(#) if instance is not None and has a resolveName method or has a parent, and
 	that parent has a resolveName method, pass id to it.  If it does not raise a
-	structure error, return the result.  This is for parents with a
+	NotFoundError, return the result.  This is for parents with a
 	rscdef.NamePathAttribute.
 
 	(#) ask the ParseContext ctx's getById method to resolve id, not
-	catching the StructureError this will raise if the id is not known.
+	catching the NotFoundError this will raise if the id is not known.
 	"""
 	if "#" in id:
 		return resolveCrossId(id, forceType)
@@ -132,7 +136,8 @@ def resolveId(ctx, id, instance=None, forceType=None):
 	if instance is not None:
 		try:
 			srcOb = _resolveOnNamepath(ctx, id, instance)
-		except common.StructureError:  # no such named element, try element with id
+		except common.NotFoundError:  
+			# no such named element, try element with id
 			pass
 	if srcOb is None and ctx is not None:
 		srcOb = ctx.getById(id, forceType)
@@ -451,7 +456,7 @@ class ParseContext(object):
 		resource descriptor resolution.
 		"""
 		if id not in self.idmap:
-			raise common.StructureError("Reference to unknown item '%s'."%id,
+			raise common.NotFoundError(id, "Element with id", "parse context",
 				hint="Elements referenced must occur lexically (i.e., within the"
 					" input file) before the reference.  If this actually gives"
 					" you trouble, contact the authors.  Usually, though, this"
