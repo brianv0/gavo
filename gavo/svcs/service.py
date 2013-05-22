@@ -677,6 +677,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		"""
 		res = rsc.TableForDef(self.getCoreFor(renderer).inputTable)
 		missingRequired = []
+
 		for par in res.iterParams():
 			# check "None" to avoid clobbering defaults (querying for NULLs
 			# is a difficult matter anyway)
@@ -689,6 +690,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 						par.name))
 			if par.required and par.value is None:
 				missingRequired.append(par.name)
+
 		if missingRequired:
 			raise base.ValidationError("Mandatory field(s) %s empty"%
 				", ".join(missingRequired), missingRequired[0])

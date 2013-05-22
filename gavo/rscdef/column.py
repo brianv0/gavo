@@ -547,8 +547,9 @@ class Column(ColumnBase):
 					base.ui.notifyWarning("Somwhere near %s: "
 						" Column %s may be null but has no explicit"
 						" null value."%(pos, self.name))
-				except ValueError:
-					# This is stealVar's ValueError, we have no context in stack.
+				except (ValueError, AttributeError):
+					# This is stealVar's ValueError, we have no context in stack (or 
+					# it's a context var not from our parsing code).
 					# Seems we're not parsing from a file, so the user probably
 					# can't help it anyway.  Don't complain.
 					pass

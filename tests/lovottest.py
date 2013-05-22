@@ -992,7 +992,7 @@ class StackUnwindingTest(testhelpers.VerboseTest):
 		result = votable.asString(vot)
 		self.failUnless("<TD>0.2" in result)
 		self.failUnless("content is probably incomplete" in result)
-		self.failUnless("invalid literal" in result)
+		self.failUnless("could not convert string to float: abc" in result)
 		self.failUnless("</TABLEDATA>" in result)
 		self.failUnless("</RESOURCE></VOTABLE>" in result)
 

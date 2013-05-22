@@ -21,6 +21,7 @@ of internal structure, add methods
 
 from gavo.base import attrdef
 from gavo.base import common
+from gavo.base import literals
 from gavo.base import structure
 
 
@@ -110,27 +111,42 @@ class SetOfAtomsAttribute(CollOfAtomsAttribute):
 
 
 class _DictAttributeParser(common.Parser):
+	"""a parser for DictAttributes.
+
+	These need a custom parser since they accept some exotic features, as 
+	discussed in DictAttribute's docstring.
+
+	The parser keeps state in the _key and _adding attributes and needs to
+	be _reset after use.
+	"""
 	def __init__(self, dict, nextParser, parseValue, keyName, inverted=False):
 		self.dict, self.nextParser, self.parseValue = (
 			dict, nextParser, parseValue)
-		self.key, self.keyName = attrdef.Undefined, keyName
-		self.inverted = inverted
+		self.keyName, self.inverted = keyName, inverted
+		self._reset()
+
+	def _reset(self):
+		self._key, self._adding = attrdef.Undefined, False
 
 	def addPair(self, key, value):
 		if self.inverted:
-			self.dict[value] = key
+			key, value = value, key
+		if self._adding:
+			self.dict[key] = self.dict.get(key, "")+value
 		else:
 			self.dict[key] = value
 
 	def value_(self, ctx, name, value):
 		if name=="key" or name==self.keyName:
-			self.key = value
+			self._key = value
+		elif name=="cumulate":
+			self._adding = literals.parseBooleanLiteral(value)
 		elif name=="content_":
-			if self.key is attrdef.Undefined:
+			if self._key is attrdef.Undefined:
 				raise common.StructureError("Content '%s' has no %s attribute"%(
 					value, self.keyName))
-			self.addPair(self.key, self.parseValue(value))
-			self.key = attrdef.Undefined
+			self.addPair(self._key, self.parseValue(value))
+			self._reset()
 		else:
 			raise common.StructureError("No %s attributes on mappings"%name)
 		return self
@@ -139,14 +155,35 @@ class _DictAttributeParser(common.Parser):
 		raise common.StructureError("No %s elements in mappings"%name)
 	
 	def end_(self, ctx, name, value):
-		if self.key is not attrdef.Undefined:
-			self.addPair(self.key, None)
-			self.key = attrdef.Undefined
+		if self._key is not attrdef.Undefined:
+			self.addPair(self._key, None)
+			self._reset()
 		return self.nextParser
 
 
 class DictAttribute(attrdef.AttributeDef):
-	"""defines defaults on the input keys the mapper receives.
+	"""an attribute containing a mapping.
+
+	DictAttributes are fairly complex beasts supporting a number of input
+	forms.
+
+	The input to those looks like <d key="foo">abc</d>; they are constructed
+	with an itemAttD (like StructAttributes), but the name on those
+	is ignored; they are just used for parsing from the strings in the
+	element bodies, which means that itemAttDs must be derived from 
+	AtomicAttribute.
+	
+	You can give a different keyNames; the key attribute is always
+	accepted, though.
+
+	For sufficiently exotic situations, you can construct DictAttributes
+	with inverted=True; the resulting dictionary will then have the keys as 
+	values and vice versa (this is a doubtful feature; let us know when
+	you use it).
+
+	You can also add to existing values using the cumulate XML attribute;
+	<d key="s">a</d><d key="s" cumulate="True">bc</a> will leave
+	abc in s.
 	"""
 	def __init__(self, name, description="Undocumented", 
 			itemAttD=attrdef.UnicodeAttribute("value"), 
@@ -201,9 +238,14 @@ class DictAttribute(attrdef.AttributeDef):
 class PropertyAttribute(DictAttribute):
 	"""adds the property protocol to the parent instance.
 
-	The property protocol is just two methods, setProperty(name, value),
-	and getProperty(name, default=Undefined), where getProperty works like
-	dict.get, except it will raise a KeyError without a default.
+	The property protocol consists of the methods 
+	- setProperty(name, value),
+	- getProperty(name, default=Undefined)
+	- clearProperty(name)
+	- hasProperty(name)
+	
+	getProperty works like dict.get, except it will raise a KeyError 
+	without a default.
 
 	This is provided for user information and, to some extent, some 
 	DC-internal purposes.

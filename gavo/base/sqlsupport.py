@@ -144,7 +144,7 @@ for numpyType, adapter in [
 		pass
 
 from psycopg2 import (OperationalError, DatabaseError, IntegrityError,
-	ProgrammingError, InterfaceError, DataError)
+	ProgrammingError, InterfaceError, DataError, InternalError)
 from psycopg2.extensions import QueryCanceledError
 from psycopg2 import Error as DBError
 

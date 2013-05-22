@@ -40,7 +40,7 @@
 	</service>
 
 
-	<fixedQueryCore id="resetcore" 
+	<fixedQueryCore id="resetcore" writable="True"
 		query="delete from tests.files where name='c'">
 		<outputTable/>
 	</fixedQueryCore>

@@ -103,7 +103,7 @@ class OtherCoordIntervalTest(STCMappingTest):
 		self.assertMapsto("TimeInterval TT 2009-03-10T09:56:10.015625"
 			" SpectralInterval 1e10 1e11 unit Hz"
 			" RedshiftInterval VELOCITY 1000 7500 unit km/s", 
-			'<V ><AstroCoordSystem ><TimeFrame ><TimeScale>TT</TimeScale><UNKNOWNRefPos /></TimeFrame><SpectralFrame ><UNKNOWNRefPos /></SpectralFrame><RedshiftFrame value_type="VELOCITY"><DopplerDefinition>OPTICAL</DopplerDefinition><UNKNOWNRefPos /></RedshiftFrame></AstroCoordSystem><AstroCoordArea ><TimeInterval ><StartTime><ISOTime>2009-03-10T09:56:10.015625</ISOTime></StartTime></TimeInterval><SpectralInterval unit="Hz"><LoLimit>10000000000.0</LoLimit><HiLimit>100000000000.0</HiLimit></SpectralInterval><RedshiftInterval unit="km" vel_time_unit="s"><LoLimit>1000.0</LoLimit><HiLimit>7500.0</HiLimit></RedshiftInterval></AstroCoordArea></V>')
+			'<V ><AstroCoordSystem ><TimeFrame ><TimeScale>TT</TimeScale><UNKNOWNRefPos /></TimeFrame><SpectralFrame ><UNKNOWNRefPos /></SpectralFrame><RedshiftFrame value_type="VELOCITY"><DopplerDefinition>OPTICAL</DopplerDefinition><UNKNOWNRefPos /></RedshiftFrame></AstroCoordSystem><AstroCoordArea ><TimeInterval ><StartTime><ISOTime>2009-03-10T09:56:10.015625</ISOTime></StartTime></TimeInterval><SpectralInterval unit="Hz"><LoLimit>10000000000.0</LoLimit><HiLimit>1e+11</HiLimit></SpectralInterval><RedshiftInterval unit="km" vel_time_unit="s"><LoLimit>1000.0</LoLimit><HiLimit>7500.0</HiLimit></RedshiftInterval></AstroCoordArea></V>')
 
 	def testTimeWithError(self):
 		self.assertMapsto("TimeInterval TT 2009-03-10T09:56:10 2009-03-10T09:57:10 Error"
@@ -112,7 +112,7 @@ class OtherCoordIntervalTest(STCMappingTest):
 
 	def testSpectralWithError(self):
 		self.assertMapsto("SpectralInterval 1e10 1e11 unit Hz Error 1 2",
-			'<V ><AstroCoordSystem ><SpectralFrame ><UNKNOWNRefPos /></SpectralFrame></AstroCoordSystem><AstroCoords ><Spectral unit="Hz"><Error>1.0</Error><Error>2.0</Error></Spectral></AstroCoords><AstroCoordArea ><SpectralInterval unit="Hz"><LoLimit>10000000000.0</LoLimit><HiLimit>100000000000.0</HiLimit></SpectralInterval></AstroCoordArea></V>')
+			'<V ><AstroCoordSystem ><SpectralFrame ><UNKNOWNRefPos /></SpectralFrame></AstroCoordSystem><AstroCoords ><Spectral unit="Hz"><Error>1.0</Error><Error>2.0</Error></Spectral></AstroCoords><AstroCoordArea ><SpectralInterval unit="Hz"><LoLimit>10000000000.0</LoLimit><HiLimit>1e+11</HiLimit></SpectralInterval></AstroCoordArea></V>')
 
 
 class SpaceCoordIntervalTest(STCMappingTest):

@@ -265,6 +265,8 @@
 			verbLevel="15">
 			<property name="std">1</property>
 		</column>
+
+		<!-- <FEED source="%#obscore-extracolumns"/>-->
 	</table>
 
 	<table id="_obscoresources" onDisk="True" forceUnique="True"
@@ -397,6 +399,7 @@
 						CAST(\facilityName AS text) AS facility_name,
 						CAST(\instrumentName AS text) AS instrument_name
 			</property>
+			<!-- <FEED source="%#obscore-extraevents"/> -->
 		</events>
 
 		<processLate>

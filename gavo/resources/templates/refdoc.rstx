@@ -23,20 +23,21 @@ Each element description gives a general introduction to the element's
 use (complain if it's too technical; it's not unlikely that it is since
 these texts are actually the defining classes' docstrings).
 
-What follows is a list of "atomic" children – these are essentially
-element properties that can (but need) be written in XML attributes,
-i.e., as a single string.  Their types are given in parentheses after
-the attribute name along with a default value.
+Within RDs, element properties that can (but need not) be written in XML
+attributes, i.e., as a single string, are called "atomic".  Their types
+are given in parentheses after the attribute name along with a default
+value.
 
-In general, items defaulting to Undefined are mandatory.  Failing to
-give a value will result in a parse error.
+In general, items defaulted to Undefined are mandatory.  Failing to
+give a value will result in an error at RD parse time.
 
-Within RD XML documents, you can give atomic children either as XML
-attribute (``att="abc"``) or as child elements (``<att>abc</abc>``).
-Some of the "atomic" attributes actually contain lists of items.  For
-those, you should normally write multiple child elements
-(``<att>val1</att><att>val2</att>``), although sometimes it's allowed to
-mash together the individual list items using a variety of separators.
+Within RD XML documents, you can (almost always) give atomic children
+either as XML attribute (``att="abc"``) or as child elements
+(``<att>abc</abc>``).  Some of the "atomic" attributes actually contain
+lists of items.  For those, you should normally write multiple child
+elements (``<att>val1</att><att>val2</att>``), although sometimes it's
+allowed to mash together the individual list items using a variety of
+separators.
 
 Here are some short words about the types you may encounter, together
 with valid literals:
@@ -56,7 +57,21 @@ with valid literals:
   values could be mashed together with commas, but prefer multiple child
   elements.
 
-Most elements can also have "structure children".  These correspond to
+There are also "Dict-like" attributes.  These are built from XML like::
+
+  <d key="ab">val1</d>
+  <d key="cd">val2</d>
+
+In addition to key, other (possibly more descriptive) attributes for the
+key within these mappings may also be allowed.  In special circumstances
+(in particular with properties) it may be useful to add to a value::
+
+  <property key="brokencols">ab,cd</property>
+  <property key="brokencols" cumulative="True">,x</property>
+
+will leave ``ab,cd,x`` in brokencols.
+
+Many elements can also have "structure children".  These correspond to
 compound things with attributes and possibly children of their own.
 The name given at the start of each description is irrelevant to the
 pure user; it's the attribute name you'd use when you have the

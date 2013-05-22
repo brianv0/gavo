@@ -261,11 +261,12 @@ class TestRoleSetting(TestPrivs):
 		# We need a private querier here since we must squeeze those
 		# users in before TestPriv's setup
 		try:
-			with base.AdhocQuerier(base.getAdminConn) as querier:
+			with base.AdhocQuerier(base.getWritableAdminConn) as querier:
 				querier.query("create user privtestuser")
 				querier.query("create user testadmin")
 		except base.DBError: # probably left over from a previous crash
 			sys.stderr.write("Test roles already present?  Rats.\n")
+			raise
 		
 		self.profDir = base.getConfig("configDir") 
 		with open(os.path.join(self.profDir, "privtest"), "w") as f:
@@ -294,7 +295,7 @@ class AdhocQuerierTest(testhelpers.VerboseTest):
 				"select * from %s limit 1"%self.table.tableDef.getQName()))))
 
 	def testAdminQuerier(self):
-		with base.AdhocQuerier(base.getAdminConn) as q:
+		with base.AdhocQuerier(base.getWritableAdminConn) as q:
 			self.assertRuns(q.query,
 				("create role dont",))
 			self.assertRuns(q.query,
@@ -302,7 +303,9 @@ class AdhocQuerierTest(testhelpers.VerboseTest):
 	
 	def testNoAdminQuerier(self):
 		with base.AdhocQuerier() as q:
-			self.assertRaises(sqlsupport.ProgrammingError, q.query,
+			self.assertRaises(
+				(sqlsupport.ProgrammingError, sqlsupport.InternalError),
+				q.query,
 				"create role dont")
 
 	def testReopen(self):

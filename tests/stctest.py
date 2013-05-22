@@ -440,7 +440,7 @@ class STCSRoundtripTest(testhelpers.VerboseTest):
 			" SpectralInterval 1e10 1e11 unit Hz"
 			" RedshiftInterval VELOCITY 1000 7500 unit km/s",
 			"StartTime TT 2009-03-10T09:56:10.015625\nSpectralInterval"
-			" 10000000000.0 100000000000.0\nRedshiftInterval VELOCITY 1000.0 7500.0"),
+			" 10000000000.0 1e+11\nRedshiftInterval VELOCITY 1000.0 7500.0"),
 		("Time TT 2009-03-10T09:56:10.015625",
 			"Time TT 2009-03-10T09:56:10.015625"),
 		("Time TDT 2009-03-10T09:56:10.015625 unit s"

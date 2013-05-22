@@ -17,6 +17,43 @@ from gavo.base import parsecontext
 from gavo.rscdef import scripting
 
 
+class DictAttributeTest(testhelpers.VerboseTest):
+	def testBasic(self):
+		class X(base.Structure):
+			name_ = "X"
+			_s = base.DictAttribute("s")
+		res = base.parseFromString(X, """<X><s key="bla">nork</s>
+			<s key="foo">por</s></X>""")
+		self.assertEqual(res.s, {'foo': 'por', 'bla': 'nork'})
+	
+	def testItemAtt(self):
+		class FooAttribute(base.UnicodeAttribute):
+			def parse(self, value):
+				return "%%%s%%"%value
+		class X(base.Structure):
+			name_ = "X"
+			_s = base.DictAttribute("s", itemAttD=FooAttribute("foo"))
+		res = base.parseFromString(X, """<X><s key="bla">nork</s>
+			<s key="foo">por</s></X>""")
+		self.assertEqual(res.s, {'foo': '%por%', 'bla': '%nork%'})
+
+	def testAdding(self):
+		class X(base.Structure):
+			name_ = "X"
+			_s = base.DictAttribute("s")
+		res = base.parseFromString(X, """<X><s key="bla">nork</s>
+			<s key="bla">por</s><s key="u">a</s><s key="u" cumulate="True">bc</s>
+			<s key="v" cumulate="True">l</s></X>""")
+		self.assertEqual(res.s, {'bla': 'por', 'u': 'abc', 'v': 'l'})
+
+	def testKeyname(self):
+		class X(base.Structure):
+			name_ = "X"
+			_s = base.DictAttribute("s", keyName="name")
+		res = base.parseFromString(X, """<X><s key="bla">nork</s>
+			<s name="foo">por</s></X>""")
+		self.assertEqual(res.s, {'foo': 'por', 'bla': 'nork'})
+
 
 class ColumnTest(testhelpers.VerboseTest):
 	"""tests the rscdef.Column class.

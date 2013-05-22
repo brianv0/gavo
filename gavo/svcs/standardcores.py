@@ -542,6 +542,8 @@ class FixedQueryCore(core.Core, base.RestrictionMixin):
 	_query = base.UnicodeAttribute("query", default=base.Undefined,
 		description="The query to be executed.  You must define the"
 			" output fields in the core's output table.")
+	_writable = base.BooleanAttribute("writable", default=False,
+		description="Use a writable DB connection?")
 
 	def completeElement(self, ctx):
 		if self.inputTable is base.NotGiven:
@@ -549,7 +551,11 @@ class FixedQueryCore(core.Core, base.RestrictionMixin):
 		self._completeElementNext(FixedQueryCore, ctx)
 
 	def run(self, service, inputTable, queryMeta):
-		with base.AdhocQuerier(base.getTableConn) as querier:
+		if self.writable:
+			connFactory = base.getWritableTableConn
+		else:
+			connFactory = base.getTableConn
+		with base.AdhocQuerier(connFactory) as querier:
 			try:
 				cursor = querier.query(self.query, timeout=self.timeout)
 				if cursor.description is None:

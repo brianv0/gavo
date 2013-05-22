@@ -171,8 +171,8 @@ class FITSWriteTest(testhelpers.VerboseTest):
 		self.assertEqual(serialized[:9], "LONGVAL =")
 		self.assertEqual(serialized[80:89], "CONTINUE ")
 		self.assertEqual(serialized[160:169], "CONTINUE ")
-		self.assertEqual(serialized[240:249], "COMMENT =")
-		self.assertEqual(serialized[320:329], "CONTINUE ")
+		self.assertEqual(serialized[240:249], "COMMENT T")
+		self.assertEqual(serialized[320:331], "COMMENT  a ")
 		self.assertEqual(serialized[400:409], "COMMENT T")
 		self.assertEqual(serialized[480:489], "END      ")
 

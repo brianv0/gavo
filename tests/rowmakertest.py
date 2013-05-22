@@ -54,7 +54,7 @@ class RowmakerDefTest(testhelpers.VerboseTest):
 	def testBadSourceRaises(self):
 		self.assertRaisesWithMsg(base.BadCode,
 			'At [<data><table id="foo"><colu...], (1, 83): Bad source'
-			" code in expression (unexpected EOF while parsing (line 1))",
+			" code in expression (invalid syntax (line 1))",
 			makeDD, ('<column name="x"/>', '<map dest="x">-</map>'))
 	
 	def testPleonasticRaises(self):
@@ -189,8 +189,8 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 	def testBadNullExpr(self):
 		self.assertRaisesWithMsg(base.BadCode,
 			'At [<data><table id="foo"><colu...], (1, 133):'
-			" Bad source code in expression (unexpected EOF"
-			" while parsing (line 1))",
+			" Bad source code in expression (invalid syntax"
+			" (line 1))",
 			makeDD,
 			('<column name="foo" type="integer"/>',
 				'<map dest="foo" nullExpr="22-">parseInt(@bar)+22</map>'))

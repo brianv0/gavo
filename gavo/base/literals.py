@@ -49,7 +49,7 @@ def parseFloat(literal):
 	>>> parseFloat("  ")
 	>>> parseFloat("wobbadobba")
 	Traceback (most recent call last):
-	ValueError: invalid literal for float(): wobbadobba
+	ValueError: could not convert string to float: wobbadobba
 	"""
 	if (literal is None or 
 			(isinstance(literal, basestring) and not literal.strip())):
