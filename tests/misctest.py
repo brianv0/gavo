@@ -524,6 +524,65 @@ class ObscorePublishedTest(testhelpers.VerboseTest):
 			in votablewrite.getAsVOTable(res, tablecoding="td"))
 
 
+class _ModifiedObscoreTables(testhelpers.TestResource):
+	
+	def make(self, dependents):
+		self.userConfigPath = os.path.join(
+			base.getConfig("configDir"), "userconfig.rd")
+		base.caches.clearForName(self.userConfigPath[:-3])
+		with open(self.userConfigPath, "w") as f:
+			f.write("""<resource schema="__system">
+				<STREAM id="obscore-extraevents">
+					<property name="obscoreClause" cumulate="True">
+						,
+						CAST(\\\\plutoLong AS real) AS pluto_long,
+						CAST(\\\\plutoLat AS real) AS pluto_lat
+					</property>
+				</STREAM>
+				<STREAM id="obscore-extracolumns">
+					<column name="pluto_long" tablehead="lambda_Pluto"/>
+					<column name="pluto_lat"/>
+				</STREAM>
+			</resource>""")
+
+		base.caches.clearForName("__system__/obscore")
+		with testhelpers.testFile("ex.rd", """
+				<resource schema="__system">
+					<mixinDef original="//obscore#publishSSAPHCD"
+						id="hurx">
+						<mixinPar name="plutoLong"/>
+						<mixinPar name="plutoLat">22</mixinPar>
+					</mixinDef>
+					<table id="instable" onDisk="yes">
+						<mixin plutoLong="56">hurx</mixin>
+					</table>
+				</resource>
+			""") as fName:
+			insTable = base.caches.getRD(fName).getById("instable")
+		ocTable = base.caches.getRD("//obscore").getById("ObsCore")
+		os.unlink(self.userConfigPath)
+		base.caches.clearForName("__system__/obscore")
+		return insTable, ocTable
+
+	
+
+class ObscoreModificationTest(testhelpers.VerboseTest):
+	
+	resources = [("tables", _ModifiedObscoreTables())]
+
+	def testObscoreTableChanged(self):
+		_, obscoreTD = self.tables
+		self.assertEqual(obscoreTD.getColumnByName("pluto_long").tablehead,
+			"lambda_Pluto")
+
+	def testSubstrateChanged(self):
+		substrateTD, _ = self.tables
+		self.failUnless("CAST(56 AS real) AS pluto_long" in
+			substrateTD.getProperty("obscoreClause"))
+		self.failUnless("CAST(22 AS real) AS pluto_lat" in
+			substrateTD.getProperty("obscoreClause"))
+
+
 @contextlib.contextmanager
 def _fakeHTTPLib(respData="", respStatus=200, 
 		mime="application/x-votable", exception=None):

@@ -466,17 +466,17 @@ class TableDef(base.Structure, base.ComputedMetaMixin, common.PrivilegesMixin,
 	def getElementForName(self, name):
 		"""returns the first of column and param having name name.
 
-		The function raises a StructureError if neiter column nor param with
-		name exists; this is for base.parsecontext.resolveNameBased's sake.
+		The function raises a NotFoundError if neiter column nor param with
+		name exists.
 		"""
 		try:
-			return self.columns.getColumnByName(name)
-		except base.NotFoundError:
 			try:
-				return self.params.getColumnByName(name)
+				return self.columns.getColumnByName(name)
 			except base.NotFoundError:
-				raise base.StructureError("No column or param with name %s with"
-					" table %s"%(name, self.id))
+				return self.params.getColumnByName(name)
+		except base.NotFoundError, ex:
+			ex.within = "table %s"%self.id
+			raise
 
 	def _resolveSTC(self):
 		"""adds STC related attributes to this tables' columns.

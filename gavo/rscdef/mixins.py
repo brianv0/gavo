@@ -107,14 +107,18 @@ class MixinDef(activetags.ReplayBase):
 	_processEarly = base.StructAttribute("processEarly", 
 		default=None, 
 		childFactory=ProcessEarly,
-		description="Code executed at element fixup.")
+		description="Code executed at element fixup.",
+		copyable=True)
 	_processLate = base.StructAttribute("processLate", 
 		default=None, 
 		childFactory=ProcessLate,
-		description="Code executed resource fixup.")
+		description="Code executed resource fixup.",
+		copyable=True)
 	_pars = base.StructListAttribute("pars",
 		childFactory=MixinPar,
-		description="Parameters available for this mixin.")
+		description="Parameters available for this mixin.",
+		copyable=True)
+	_original = base.OriginalAttribute()
 
 	def completeElement(self, ctx):
 		# we want to double-expand macros in mixins.  Thus, reset all

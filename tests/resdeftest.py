@@ -419,9 +419,9 @@ class TableNameResolutionTest(testhelpers.VerboseTest):
 		res = parsecontext.resolveNameBased(self.td, "foo")
 		self.failUnless(res is self.td.columns[0])
 
-	def testFailureIsStruct(self):
-		self.assertRaisesWithMsg(base.StructureError,
-		"No column or param with name crazy_mess with table restest",
+	def testFailureIsNotFound(self):
+		self.assertRaisesWithMsg(base.NotFoundError,
+		"column 'crazy_mess' could not be located in table restest",
 		parsecontext.resolveNameBased,
 		(self.td, "crazy_mess"))
 

@@ -139,11 +139,11 @@ def raiseAndCatch(opts=None, output=outputError):
 			messages.append("")
 		messages.append("Oops.  Unhandled exception %s.\n"%msg.__class__.__name__)
 		messages.append("Exception payload: %s"%utils.safe_str(msg))
-		if getattr(opts, "enablePDB", False):
-			raise
-		else:
-			if not getattr(opts, "alwaysTracebacks", False):
-				traceback.print_exc()
+
+	if getattr(opts, "enablePDB", False):
+		raise
+	elif getattr(opts, "alwaysTracebacks", False):
+			traceback.print_exc()
 	if messages:
 		errTx = utils.safe_str("*** Error: "+"\n".join(messages))
 		output(reformatMessage(errTx)+"\n")
