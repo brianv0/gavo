@@ -335,12 +335,12 @@
 		<outputField name="location_ra"
 			ucd="pos.eq.ra;meta.main"
 			utype="ssa:Char.SpatialAxis.Coverage.Location.Value.C1"
-			tablehead="RA" verbLevel="25"
+			tablehead="RA" verbLevel="15"
 			select="degrees(long(ssa_location))"/>
 		<outputField name="location_dec"
 			ucd="pos.eq.dec;meta.main"
 			utype="ssa:Char.SpatialAxis.Coverage.Location.Value.C2"
-			tablehead="Dec" verbLevel="25"
+			tablehead="Dec" verbLevel="15"
 			select="degrees(lat(ssa_location))"/>
 		<outputField name="location_arr" type="real(2)"
 			ucd="pos.eq"
@@ -354,6 +354,9 @@
 			tablehead="SSA Target Pos."
 			select="array[degrees(long(ssa_targetpos)),degrees(lat(ssa_targetpos))]"
 			verbLevel="15"/>
+		<stc>
+			Position ICRS "location_ra" "location_dec"
+		</stc>
 	</STREAM>
 
 	<table id="instance" onDisk="False">
