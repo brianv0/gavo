@@ -250,8 +250,8 @@ _SDM_HEADER_MAPPING = {
 		"SKY_FILL",
 	
 	# special handling through functions
-	"target.pos": _add_target_pos_cards,
-	"char.spatialaxis.coverage.location.value": _add_location_cards,
+	"target.pos.spoint": _add_target_pos_cards,
+	"astrocoords.position2d.value2": _add_location_cards,
 }
 
 def makeBasicSDMHeader(sdmData):

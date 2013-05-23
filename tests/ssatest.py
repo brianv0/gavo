@@ -465,18 +465,12 @@ class _RenderedSSAResponse(testhelpers.TestResource):
 
 	def make(self, deps):
 		res = getRD().getById("c").runFromDict(
-			{"REQUEST": "queryData", "TOP": "3", "MAXREC": "1"}, "ssap.xml")
+			{"REQUEST": "queryData", "TOP": "4", "MAXREC": "4",
+				"FORMAT": "votable", "_DBOPTIONS_ORDER": ["ssa_targname"]}, "ssap.xml")
 		rawVOT = res.original[-1]
 		return rawVOT, testhelpers.getXMLTree(rawVOT, debug=False)
 
 _renderedSSAResponse = _RenderedSSAResponse()
-
-
-def _pprintEtree(root):
-	import subprocess
-	p = subprocess.Popen(["xmlstarlet", "fo"], stdin=subprocess.PIPE)
-	ElementTree.ElementTree(root).write(p.stdin)
-	p.stdin.close()
 
 
 class SSATableTest(testhelpers.VerboseTest):
@@ -492,7 +486,7 @@ class SSATableTest(testhelpers.VerboseTest):
 		infoEl = self.docAndTree[1].xpath(
 			"//RESOURCE/INFO[@name='QUERY_STATUS']")[0]
 		self.assertEqual(infoEl.attrib["value"], "OVERFLOW")
-		self.assertEqual(infoEl.text, "Exactly 1 rows were returned.  This means your query probably reached the match limit.  Increase MAXREC.")
+		self.assertEqual(infoEl.text, "Exactly 4 rows were returned.  This means your query probably reached the match limit.  Increase MAXREC.")
 	
 	def testSSAUtype(self):
 		table = self.docAndTree[1].find("RESOURCE/TABLE")
@@ -512,6 +506,27 @@ class SSATableTest(testhelpers.VerboseTest):
 	def testEverythingExpanded(self):
 		self.failIf("\\" in self.docAndTree[0])
 
+	def testLocationArray(self):
+		locationField = self.docAndTree[1].xpath(
+			"//FIELD[@utype='ssa:Char.SpatialAxis.Coverage.Location.Value']")[0]
+		self.assertEqual(locationField.attrib["name"], "location_arr")
+
+		arrIndex = list(f for f in locationField.getparent().iterchildren()
+				if f.tag=='FIELD').index(locationField)
+		valEl = self.docAndTree[1].xpath(
+			"//TABLEDATA/TR[1]/TD[%s]"%(arrIndex+1))[0]
+		self.failUnless(re.match("10.10000[0-9]* 15.199999[0-9]*", valEl.text))
+
+		valEl = self.docAndTree[1].xpath(
+			"//TABLEDATA/TR[4]/TD[%s]"%(arrIndex+1))[0]
+		self.failUnless(re.match("NaN NaN", valEl.text))
+
+		valEl = self.docAndTree[1].xpath(
+			"//TABLEDATA/TR[4]/TD[%s]"%(arrIndex-1))[0]
+		self.failUnless(re.match("NaN", valEl.text))
+		valEl = self.docAndTree[1].xpath(
+			"//TABLEDATA/TR[4]/TD[%s]"%(arrIndex))[0]
+		self.failUnless(re.match("NaN", valEl.text))
 
 class SDMRenderTest(testhelpers.VerboseTest):
 	resources = [("ssatable", tresc.ssaTestTable)]
@@ -731,6 +746,7 @@ class MixcTableTest(testhelpers.VerboseTest):
 			self.assertEqual(rows[0]["ssa_dstitle"], "junk from "+id)
 		finally:
 			self.conn.rollback()
+
 
 if __name__=="__main__":
 	base.DEBUG = True

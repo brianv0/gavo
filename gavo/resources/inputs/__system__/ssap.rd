@@ -66,7 +66,7 @@
 			tablehead="z" verbLevel="25"
 			description="Redshift of target object"/>
 		<column name="ssa_targetpos" type="spoint"
-			utype="ssa:Target.pos" ucd="pos.eq;src"
+			utype="ssa:Target.pos.spoint" ucd="pos.eq;src"
 			tablehead="Obj. pos" verbLevel="25"
 			description="Equatorial (ICRS) position of the target object."/>
 		<column name="ssa_snr" 
@@ -74,7 +74,7 @@
 			tablehead="SNR" verbLevel="25"
 			description="Signal-to-noise ratio estimated for this dataset"/>
 		<column name="ssa_location" type="spoint"
-			utype="ssa:Char.SpatialAxis.Coverage.Location.Value"
+			utype="stc:AstroCoords.Position2D.Value2"
 			ucd="pos.eq"
 			verbLevel="5" tablehead="Location"
 			description="ICRS location of aperture center" unit="deg"/>
@@ -332,6 +332,28 @@
 			<description>A measure of how closely the record matches your
 				query.  Higher numbers mean better matches.</description>
 		</outputField>
+		<outputField name="location_ra"
+			ucd="pos.eq.ra;meta.main"
+			utype="ssa:Char.SpatialAxis.Coverage.Location.Value.C1"
+			tablehead="RA" verbLevel="25"
+			select="degrees(long(ssa_location))"/>
+		<outputField name="location_dec"
+			ucd="pos.eq.dec;meta.main"
+			utype="ssa:Char.SpatialAxis.Coverage.Location.Value.C2"
+			tablehead="Dec" verbLevel="25"
+			select="degrees(lat(ssa_location))"/>
+		<outputField name="location_arr" type="real(2)"
+			ucd="pos.eq"
+			utype="ssa:Char.SpatialAxis.Coverage.Location.Value"
+			tablehead="SSA Pos."
+			select="array[degrees(long(ssa_location)),degrees(lat(ssa_location))]"
+			verbLevel="15"/>
+		<outputField name="target_arr" type="real(2)"
+			ucd="pos.eq;src"
+			utype="ssa:Target.Pos"
+			tablehead="SSA Target Pos."
+			select="array[degrees(long(ssa_targetpos)),degrees(lat(ssa_targetpos))]"
+			verbLevel="15"/>
 	</STREAM>
 
 	<table id="instance" onDisk="False">

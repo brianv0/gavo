@@ -1,7 +1,7 @@
 dstitle:test spectrum 3
 id: test3
-alpha: 100
-delta: -20
+alpha:
+delta:
 specstart: 7e-7
 specend: 8e-7
 bandpass: R
