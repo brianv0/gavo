@@ -420,7 +420,8 @@ function popupInnerWindow(content, parent, onClose) {
 	parent.append(container);
 	// XXX TODO: Why doesn't container expand to content size in the first place?
 	container.css({"width": content.width(),
-		"height": content.height()+titlebar.height()});
+		"height": content.height()+titlebar.height(),
+		"position": "absolute"});
 
 	closer = function(ignored) {
 		container.hide();
