@@ -21,7 +21,7 @@ from gavo import rscdesc
 from gavo import utils
 
 
-CURRENT_SCHEMAVERSION = 3
+CURRENT_SCHEMAVERSION = 4
 
 
 def showProgress(msg):
@@ -189,6 +189,16 @@ class To3Upgrader(Upgrader):
 		else:
 			showProgress(" (not present)")
 
+
+class To4Upgrader(Upgrader):
+	version = 3
+
+	@classmethod
+	def u_000_adqlfunctions(cls, connection):
+		"""update ADQL GAVO-defined functions for the postgres planner's benefit"""
+		rsc.makeData(base.caches.getRD("//adql").getById("make_udfs"),
+			connection=connection, runCommit=False)
+	
 
 def iterStatements(startVersion, endVersion=CURRENT_SCHEMAVERSION, 
 		upgraders=None):
