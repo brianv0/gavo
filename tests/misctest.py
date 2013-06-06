@@ -876,12 +876,5 @@ class OSInterTest(testhelpers.VerboseTest):
 			os.rmdir(path)
 
 
-from gavo.helpers import testtricks
-
-class XSDValidatorTest(testhelpers.VerboseTest):
-	def testInvalid(self):
-		val = testtricks.getDefaultValidator()
-
-
 if __name__=="__main__":
 	testhelpers.main(KVLMakeTest)

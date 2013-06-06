@@ -156,55 +156,43 @@ of where we messed up, and we'll try to improve.
 		<make table="empty">
 			<script lang="SQL" type="postCreation" name="create_user_functions">
 				<![CDATA[
+
 				CREATE OR REPLACE FUNCTION ivo_hasword(haystack TEXT, needle TEXT)
 				RETURNS INTEGER AS $func$
-				BEGIN
-					IF to_tsvector(haystack) @@ plainto_tsquery(needle) THEN
-						RETURN 1;
-					ELSE
-						RETURN 0;
-					END IF;
-				END;
-				$func$ LANGUAGE plpgsql;
+					SELECT CASE WHEN to_tsvector($1) @@ plainto_tsquery($2) 
+						THEN 1 
+						ELSE 0 
+					END
+				$func$ LANGUAGE SQL;
 
 				CREATE OR REPLACE FUNCTION ivo_hashlist_has(hashlist TEXT, item TEXT)
 				RETURNS INTEGER AS $func$
-				BEGIN
 					-- postgres can't RE-escape a user string; hence, we'll have
 					-- to work on the hashlist (this assumes hashlist is already
 					-- lowercased).
-					IF lower(item) = ANY(string_to_array(hashlist, '#')) THEN
-						RETURN 1;
-					ELSE
-						RETURN 0;
-					END IF;
-				END;
-				$func$ LANGUAGE plpgsql;
+					SELECT CASE WHEN lower($2) = ANY(string_to_array($1, '#'))
+						THEN 1 
+						ELSE 0 
+					END
+				$func$ LANGUAGE SQL;
 
 				CREATE OR REPLACE FUNCTION ivo_nocasematch(value TEXT, pattern TEXT)
 				RETURNS INTEGER AS $func$
-				BEGIN
-					IF value ILIKE pattern THEN
-						RETURN 1;
-					ELSE
-						RETURN 0;
-					END IF;
-				END;
-				$func$ LANGUAGE plpgsql;
+					SELECT CASE WHEN $1 ILIKE $2
+						THEN 1 
+						ELSE 0 
+					END
+				$func$ LANGUAGE SQL;
 
 				CREATE OR REPLACE FUNCTION ts_to_mjd(value TIMESTAMP)
 				RETURNS DOUBLE PRECISION AS $func$
-				BEGIN
-					RETURN to_char(value, 'J')::double precision-2400000.5;
-				END;
-				$func$ LANGUAGE plpgsql;
+					SELECT to_char($1, 'J')::double precision-2400000.5
+				$func$ LANGUAGE SQL;
 
 				CREATE OR REPLACE FUNCTION ts_to_jd(value TIMESTAMP)
 				RETURNS DOUBLE PRECISION AS $func$
-				BEGIN
-					RETURN to_char(value, 'J')::double precision;
-				END;
-				$func$ LANGUAGE plpgsql;
+					SELECT to_char($1, 'J')::double precision
+				$func$ LANGUAGE SQL;
 			]]></script>
 		</make>
 	</data>
