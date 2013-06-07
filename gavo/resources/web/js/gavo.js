@@ -414,9 +414,10 @@ function popupInnerWindow(content, parent, onClose) {
 		"<p class='innerTitle'><span class='closer'>x&nbsp;</span></p>");
 	container.append(titlebar);
 	container.append(content);
+	content.addClass("innerBody");
 	content.show();
 
-	container.draggable();
+	container.draggable({cancel: ".innerBody"});
 	parent.append(container);
 	// XXX TODO: Why doesn't container expand to content size in the first place?
 	container.css({"width": content.width(),
