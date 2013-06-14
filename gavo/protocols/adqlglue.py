@@ -245,7 +245,6 @@ def morphADQL(query, metaProfile=None, tdsForUploads=[],
 			t.setLimit = str(base.getConfig("adql", "webDefaultLimit"))
 		else:
 			t.setLimit = str(int(externalLimit))
-	q3cstatus, t = adql.insertQ3Calls(t)
 
 	table = rsc.TableForDef(_getTableDescForOutput(t))
 	if hardLimit and int(t.setLimit)>hardLimit:
@@ -254,8 +253,6 @@ def morphADQL(query, metaProfile=None, tdsForUploads=[],
 		t.setLimit = str(hardLimit)
 
 	morphStatus, morphedTree = adql.morphPG(t)
-	for warning in q3cstatus.warnings:
-		table.addMeta("_warning", warning)
 	for warning in morphStatus.warnings:
 		table.addMeta("_warning", warning)
 

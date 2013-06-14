@@ -1378,50 +1378,50 @@ class Q3CMorphTest(unittest.TestCase):
 		self.grammar = adql.getGrammar()
 	
 	def testCircleIn(self):
-		t = adql.parseToTree("select alphaFloat, deltaFloat from ppmx.data"
+		s, t = morphpg.morphPG(
+			adql.parseToTree("select alphaFloat, deltaFloat from ppmx.data"
 			" where contains(point('ICRS', alphaFloat, deltaFloat), "
-				" circle('ICRS', 23, 24, 0.2))=1")
-		s, t = adql.insertQ3Calls(t)
+				" circle('ICRS', 23, 24, 0.2))=1"))
 		self.assertEqual(adql.flatten(t),
 			"SELECT alphaFloat, deltaFloat FROM ppmx.data WHERE"
-				"  (q3c_join(23, 24, alphaFloat, deltaFloat, 0.2))")
+				" q3c_join(23, 24, alphaFloat, deltaFloat, 0.2)")
 	
 	def testCircleOut(self):
-		t = adql.parseToTree("select alphaFloat, deltaFloat from ppmx.data"
+		s, t = morphpg.morphPG(
+			adql.parseToTree("select alphaFloat, deltaFloat from ppmx.data"
 			" where 0=contains(point('ICRS', alphaFloat, deltaFloat),"
-				" circle('ICRS', 23, 24, 0.2))")
-		s, t = adql.insertQ3Calls(t)
+				" circle('ICRS', 23, 24, 0.2))"))
 		self.assertEqual(adql.flatten(t),
 			"SELECT alphaFloat, deltaFloat FROM ppmx.data WHERE"
-				" NOT (q3c_join(23, 24, alphaFloat, deltaFloat, 0.2))")
+				" NOT q3c_join(23, 24, alphaFloat, deltaFloat, 0.2)")
 
 	def testConstantsFirst(self):
-		t = adql.parseToTree("select alphaFloat, deltaFloat from ppmx.data"
+		s, t = morphpg.morphPG(
+			adql.parseToTree("select alphaFloat, deltaFloat from ppmx.data"
 			" where 0=contains(point('ICRS', 23, 24),"
-				" circle('ICRS', alphaFloat, deltaFloat, 0.2))")
-		s, t = adql.insertQ3Calls(t)
+				" circle('ICRS', alphaFloat, deltaFloat, 0.2))"))
 		self.assertEqual(adql.flatten(t),
 			"SELECT alphaFloat, deltaFloat FROM ppmx.data WHERE"
-				" NOT (q3c_join(23, 24, alphaFloat, deltaFloat, 0.2))")
+				" NOT q3c_join(23, 24, alphaFloat, deltaFloat, 0.2)")
 
 	def _parseAnnotating(self, query):
 		return adql.parseAnnotating(query, _sampleFieldInfoGetter)[1]
 
 	def testCircleAnnotated(self):
-		t = self._parseAnnotating("SELECT TOP 10 * FROM spatial"
+		s, t = morphpg.morphPG(
+			self._parseAnnotating("SELECT TOP 10 * FROM spatial"
 			" WHERE 1=CONTAINS(POINT('ICRS', ra1, ra2),"
-			"  CIRCLE('ICRS', 10, 10, 0.5))")
-		s, t = adql.insertQ3Calls(t)
+			"  CIRCLE('ICRS', 10, 10, 0.5))"))
 		self.assertEqual(adql.flatten(t),
-			"SELECT TOP 10 * FROM spatial WHERE  (q3c_join(10, 10, ra1, ra2, 0.5))")
+			"SELECT * FROM spatial WHERE q3c_join(10, 10, ra1, ra2, 0.5) LIMIT 10")
 
 	def testMogrifiedIntersect(self):
-		t = self._parseAnnotating("SELECT TOP 10 * FROM spatial"
+		s, t = morphpg.morphPG(
+			self._parseAnnotating("SELECT TOP 10 * FROM spatial"
 			" WHERE 1=INTERSECTS(CIRCLE('ICRS', 10, 10, 0.5),"
-				"POINT('ICRS', ra1, ra2))")
-		s, t = adql.insertQ3Calls(t)
+				"POINT('ICRS', ra1, ra2))"))
 		self.assertEqual(adql.flatten(t),
-			"SELECT TOP 10 * FROM spatial WHERE  (q3c_join(10, 10, ra1, ra2, 0.5))")
+			"SELECT * FROM spatial WHERE q3c_join(10, 10, ra1, ra2, 0.5) LIMIT 10")
 
 
 class PQMorphTest(unittest.TestCase):
@@ -1512,15 +1512,14 @@ class PQMorphTest(unittest.TestCase):
 			" TAP_UPLOAD.user_table WHERE (1=CONTAINS(POINT('ICRS',"
 			" usnob.data.raj2000, usnob.data.dej2000), CIRCLE('ICRS',"
 			" TAP_UPLOAD.user_table.ra2000, a.dec2000, 0.016666666666666666)))",
-			'SELECT user_table.ra FROM user_table WHERE (  ((spoint(RADIANS('
-			'usnob.data.raj2000), RADIANS(usnob.data.dej2000))) @ (scircle('
-			'spoint(RADIANS(user_table.ra2000), RADIANS(a.dec2000)), RADIANS('
-			'0.016666666666666666)))) )')
+			'SELECT user_table.ra FROM user_table WHERE ( q3c_join('
+			"user_table.ra2000, a.dec2000, usnob.data.raj2000,"
+			" usnob.data.dej2000, 0.016666666666666666) )")
 
 	def testSTCSSingle(self):
 		self._testMorph(
 			"select * from foo where 1=CONTAINS(REGION('Position ICRS 1 2'), x)",
-			"SELECT * FROM foo WHERE "
+			"SELECT * FROM foo WHERE"
 			" ((spoint '(0.0174532925,0.0349065850)') @ (x))")
 
 	def testSTCSExpr(self):
@@ -1529,12 +1528,13 @@ class PQMorphTest(unittest.TestCase):
 				"REGION('Union ICRS (Position 1 2 Intersection"
 				" (circle  1 2 3 box 1 2 3 4 circle 30 40 2))'),"
 				" REGION('circle GALACTIC 1 2 3'))",
-			"SELECT * FROM foo WHERE  ((spoint '(0.0174532925,0.0349065850)' @ ((scircle '< (0.0174532925, 0.0349065850), 0.0523598776 >')+strans(1.346356,-1.097319,0.574771))) OR ((scircle '< (0.0174532925, 0.0349065850), 0.0523598776 >' @ ((scircle '< (0.0174532925, 0.0349065850), 0.0523598776 >')+strans(1.346356,-1.097319,0.574771))) AND (spoly '{(-0.0087266463,0.0000000000),(-0.0087266463,0.0698131701),(0.0436332313,0.0698131701),(0.0436332313,0.0000000000)}' @ ((scircle '< (0.0174532925, 0.0349065850), 0.0523598776 >')+strans(1.346356,-1.097319,0.574771))) AND (scircle '< (0.5235987756, 0.6981317008), 0.0349065850 >' @ ((scircle '< (0.0174532925, 0.0349065850), 0.0523598776 >')+strans(1.346356,-1.097319,0.574771)))))")
+				"SELECT * FROM foo WHERE ((spoint '(0.0174532925,0.0349065850)' @ ((scircle '< (0.0174532925, 0.0349065850), 0.0523598776 >')+strans(1.346356,-1.097319,0.574771)))) OR (((scircle '< (0.0174532925, 0.0349065850), 0.0523598776 >' @ ((scircle '< (0.0174532925, 0.0349065850), 0.0523598776 >')+strans(1.346356,-1.097319,0.574771)))) AND ((spoly '{(-0.0087266463,0.0000000000),(-0.0087266463,0.0698131701),(0.0436332313,0.0698131701),(0.0436332313,0.0000000000)}' @ ((scircle '< (0.0174532925, 0.0349065850), 0.0523598776 >')+strans(1.346356,-1.097319,0.574771)))) AND ((scircle '< (0.5235987756, 0.6981317008), 0.0349065850 >' @ ((scircle '< (0.0174532925, 0.0349065850), 0.0523598776 >')+strans(1.346356,-1.097319,0.574771)))))")
+# TODO: Have a long, close look at this
 
 	def testSTCSNotRegion(self):
 		self._testMorph(
 			"select * from foo where 1=INTERSECTS(REGION('NOT (circle  1 2 3)'), x)",
-			"SELECT * FROM foo WHERE  (NOT (scircle '< (0.0174532925, 0.0349065850), 0.0523598776 >' && (x)))")
+			"SELECT * FROM foo WHERE NOT ((scircle '< (0.0174532925, 0.0349065850), 0.0523598776 >' && (x)))")
 
 	def testIsNotNull(self):
 		self._testMorph(
@@ -1577,6 +1577,7 @@ class PGSMorphTest(testhelpers.VerboseTest):
 				" Intersects(circle('ICRS', alpha, delta,"
 				" margin*margin), polygon('ICRS', 1, 12, 3, 4, 5, 6, 7, 8))=0",
 				"SELECT alpha FROM foo WHERE NOT ((scircle(spoint(RADIANS(alpha), RADIANS(delta)), RADIANS(margin * margin))) && ((SELECT spoly(q.p) FROM (VALUES (0, spoint(RADIANS(1), RADIANS(12))), (1, spoint(RADIANS(3), RADIANS(4))), (2, spoint(RADIANS(5), RADIANS(6))), (3, spoint(RADIANS(7), RADIANS(8))) ORDER BY column1) as q(ind,p))))"),
+# 5
 		("select alpha from foo where"
 				" contains(circle('ICRS', alpha, delta,"
 				" margin*margin), box('ICRS', lf, up, ri, lo))=0",
@@ -1596,16 +1597,17 @@ class PGSMorphTest(testhelpers.VerboseTest):
 			"SELECT (SELECT spoly(q.p) FROM (VALUES (0, spoint(RADIANS(alphaFloat)-RADIANS(pmra * 100)/2, RADIANS(deltaFloat)-RADIANS(pmde * 100)/2)), (1, spoint(RADIANS(alphaFloat)-RADIANS(pmra * 100)/2, RADIANS(deltaFloat)+RADIANS(pmde * 100)/2)), (2, spoint(RADIANS(alphaFloat)+RADIANS(pmra * 100)/2, RADIANS(deltaFloat)+RADIANS(pmde * 100)/2)), (3, spoint(RADIANS(alphaFloat)+RADIANS(pmra * 100)/2, RADIANS(deltaFloat)-RADIANS(pmde * 100)/2)) ORDER BY column1) as q(ind,p)) FROM ppmx.data WHERE pmra != 0 AND pmde != 0"),
 		("select * from data where 1=contains(point('fk4', 1,2),"
 			" circle('Galactic',2,3,4))",
-			'SELECT * FROM data WHERE  (((spoint(RADIANS(1), RADIANS(2)))-strans(1.565186,-0.004859,-1.576368)+strans(1.346356,-1.097319,0.574771)) @ (scircle(spoint(RADIANS(2), RADIANS(3)), RADIANS(4))))'),	
+			'SELECT * FROM data WHERE (((spoint(RADIANS(1), RADIANS(2)))-strans(1.565186,-0.004859,-1.576368)+strans(1.346356,-1.097319,0.574771)) @ (scircle(spoint(RADIANS(2), RADIANS(3)), RADIANS(4))))'),	
+# 10
 		("select * from data where 1=contains(point('UNKNOWN', ra,de),"
 			" circle('Galactic',2,3,4))", 
-			"SELECT * FROM data WHERE  ((spoint(RADIANS(ra), RADIANS(de))) @ (scircle(spoint(RADIANS(2), RADIANS(3)), RADIANS(4))))"),
+			"SELECT * FROM data WHERE q3c_join(2, 3, ra, de, 4)"),
 		("select * from data where 1=intersects(coverage,"
 			"circle('icrs', 10, 10, 1))",
-			"SELECT * FROM data WHERE  ((coverage) && (scircle(spoint(RADIANS(10), RADIANS(10)), RADIANS(1))))"),
+			"SELECT * FROM data WHERE ((coverage) && (scircle(spoint(RADIANS(10), RADIANS(10)), RADIANS(1))))"),
 		("select * from data where 1=intersects(\"coVerage\","
 			"circle('icrs', 10, 10, 1))",
-			"SELECT * FROM data WHERE  ((\"coVerage\") && (scircle(spoint(RADIANS(10), RADIANS(10)), RADIANS(1))))"),
+			"SELECT * FROM data WHERE ((\"coVerage\") && (scircle(spoint(RADIANS(10), RADIANS(10)), RADIANS(1))))"),
 			]
 
 

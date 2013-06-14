@@ -27,7 +27,7 @@ from gavo.imp.formal import widgetFactory
 
 
 class DBOptions(object):
-	"""is a widget that offers limit and sort options for db based cores.
+	"""A widget that offers limit and sort options for db based cores.
 
 	This is for use in a formal form and goes together with the FormalDict
 	type below.

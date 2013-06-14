@@ -213,9 +213,14 @@ class StartEndHandler(ContentHandler):
 	def getResult(self):
 		return self.contentsStack[0][0]
 
-	def getParentTag(self):
+	def getParentTag(self, depth=1):
+		"""Returns the name of the parent element.
+
+		This only works as written here in end handlers.  In start handlers,
+		you have to path depth=2 (since their tag already is on the stack.
+		"""
 		if self.elementStack:
-			return self.elementStack[-1][0]
+			return self.elementStack[-depth][0]
 	
 	def parse(self, stream):
 		xml.sax.parse(stream, self)

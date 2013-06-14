@@ -86,7 +86,8 @@ class CAP(object):
 	class CAPElement(Element):
 		_prefix = "cap"
 	
-	class capabilities(CAPElement): pass
+	class capabilities(CAPElement):
+		_mayBeEmpty = True
 
 
 SF = meta.stanFactory
@@ -124,7 +125,10 @@ class VOSICapabilityRenderer(VOSIRenderer):
 	"""
 	name = "capabilities"
 
-	vosiSet = set(['ivo_managed'])
+	# experimental is for stuff that's not supposed to go to the VO
+	# registry proper but still look like it is.
+	# However: Would we want unpublished services to have VOSI?
+	vosiSet = set(['ivo_managed', 'experimental'])
 
 	def _getTree(self, request):
 		root = CAP.capabilities[[

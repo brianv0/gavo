@@ -18,8 +18,7 @@ from gavo.adql.grammar import (
 	ParseException, ParseSyntaxException)
 
 from gavo.adql.morphpg import (
-	morphPG,
-	insertQ3Calls)
+	morphPG)
 
 from gavo.adql.fieldinfo import getSubsumingType, FieldInfo
 

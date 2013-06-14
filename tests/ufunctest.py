@@ -103,11 +103,13 @@ class _UfuncTestbed(tresc.RDDataResource):
 	rdName = "ufuncex.rd"
 	dataId = "import"
 
+_ufuncTestbed = _UfuncTestbed()
+
 
 class BuiltinUfuncTest(testhelpers.VerboseTest):
 	resources = [
 		("ssaTestTable", tresc.ssaTestTable),
-		("ufuncTestTable", _UfuncTestbed()),
+		("ufuncTestTable", _ufuncTestbed),
 		("querier", adqltest.adqlQuerier)]
 
 	def testHaswordQuery(self):
@@ -163,8 +165,6 @@ class BuiltinUfuncTest(testhelpers.VerboseTest):
 			).rows, [{'jd': 2445918.0}])
 
 
-
-
 class RegionTest(unittest.TestCase):
 	"""tests for sane parsing of our default region expressions.
 	"""
@@ -190,6 +190,15 @@ class RegionTest(unittest.TestCase):
 		self.assertRaises(adql.RegionError, adql.parseToTree,
 			"SELECT x FROM y WHERE 1=CONTAINS("
 			"REGION('simbad Wozzlfoo7xx'), CIRCLE('ICRS', 10, 10, 1))")
+
+
+class RRFunctionsTest(testhelpers.VerboseTest):
+	resources = [("ufuncTestTable", _ufuncTestbed)]
+	def testHaswordMorphed(self):
+		adql.parseToTree("select testgroup from test.ufuncex where"
+			" 1=ivo_hasword(testgroup, 'abc')")
+	
+# select ivo_hasword(testgroup, 'abc') from test.ufuncex
 
 
 if __name__=="__main__":

@@ -18,47 +18,62 @@ class State(object):
 	
 	We might need stacks at some point, too...
 
-	Here's what attributes are taken; more can be used by individual morphers:
-
-	killParentComparison -- used by contains to tell the comparison somewhere
-	up the tree to replace the comparison by the simple function call.
+	Right now, we just keep warnings here.  Maybe we should do away
+	with this after all?
 	"""
 	def __init__(self):
 		self.warnings = []
 
 
-def killGeoBooleanOperator(node, state):
-	"""turns a comparison expression into a boolean function call
-	if killParentOperator is in state.
+# Handler functions for booleanizeComparisons
+_BOOLEANOID_FUNCTIONS = {}
 
-	As a side effect, it resets killParentOperator.
+def registerBooleanizer(funcName, handler):
+	"""registers handler as a booleanizer for ADQL functions called
+	funcName.
 
-	This is for the incredibly stupid geometric function of
-	ADQL that return 0 or 1.  To cope with that, nodes can set a
-	killParentOperator attribute.  If it's present in the arguments
-	of a comparsion, the system checks if we're comparing against
-	a 0 or a 1 and converts the whole thing into a boolean query or
-	bombs out.
+	funcName must be for this to work all-uppercase.  handler(node,
+	operand, operator) is a function that receive a function node
+	and the operand and operator of the comparison and either returns
+	None to say it can't handle it, or something else; that something
+	else is what the entire comparison node is morphed into.
 
-	The other operand must be a string, supposed to contain the boolean
-	function.
+	You can call multiple booleanizers for the same function; they will
+	be tried in sequence.  Hence, make sure you get your import sequences
+	right if you do this.
 	"""
-	if not hasattr(state, "killParentOperator"):
-		return node
-	delattr(state, "killParentOperator")
-	if isinstance(node.op1, basestring):
+	_BOOLEANOID_FUNCTIONS.setdefault(funcName, []).append(handler)
+
+
+def booleanizeComparisons(node, state):
+	"""turns a comparison expression that's really a boolean
+	expression into a boolean expression.
+
+	This is for things like the geometry predicates (CONTAINS,
+	INTERSECTS) or stuff like ivo_hasword and such.  Embedding these
+	as booleans helps the query planner a lot (though it might change
+	semantics slightly in the presence of NULLs).
+
+	The way this works is that morphing code can call
+	registerBooleanizer with the function name and callable
+	that receives the function node, the operator, and the operand.
+	If that function returns non-None, that result is used instead
+	of the current node.
+	"""
+	if isinstance(node.op1, nodes.FunctionNode):
 		fCall, opd = node.op1, node.op2
-	else:
+	elif isinstance(node.op2, nodes.FunctionNode):
 		fCall, opd = node.op2, node.op1
-	opd = nodes.flatten(opd)
-	if opd not in ['1', '0']:
-		raise MorphError("Pseudo-Booleans in ADQL may only be compared"
-			" against 0 or 1")
-	if node.opr not in ["=", "!="]:
-		raise MorphError("Pseudo-Booleans in ADQL may only be compared"
-			" using = or !=")
-	return "%s (%s)"%({("=", "1"): "", ("!=", "0"): "",
-		("!=", "1"): "NOT", ("=", "0"): "NOT"}[node.opr, opd], fCall)
+	else:
+		# no function call, leave things alone
+		return node
+
+	for morpher in _BOOLEANOID_FUNCTIONS.get(fCall.funName, []):
+		res = morpher(fCall, node.opr, nodes.flatten(opd))
+		if res is not None:
+			node = res
+			break
+	return node
 
 
 
@@ -75,9 +90,15 @@ class Morpher(object):
 	The main entry point is morph(origTree) -> state, tree.  origTree is not 
 	modified, the return value can be flattened but can otherwise be severely 
 	damaged.
+
+	For special effects, there's also earlyMorphers.  These will be called
+	when traversal reaches the node for the first time.  If these return
+	None, traversal continues as usual, if not, their result will be
+	added to the tree and *not* further traversed.
 	"""
-	def __init__(self, morphers):
+	def __init__(self, morphers, earlyMorphers={}):
 		self.morphers = morphers
+		self.earlyMorphers = earlyMorphers
 
 	def _getChangedForSeq(self, value, state):
 		newVal, changed = [], False
@@ -111,6 +132,11 @@ class Morpher(object):
 			yield name, newVal
 
 	def _traverse(self, node, state):
+		if node.type in self.earlyMorphers:
+			res = self.earlyMorphers[node.type](newNode, state)
+			if res is not None:
+				return res
+
 		changes = []
 		for name, value in node.iterAttributes():
 			changes.extend(self._getChanges(name, value, state))

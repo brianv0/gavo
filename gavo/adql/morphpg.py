@@ -24,61 +24,89 @@ class PostgresMorphError(morphhelpers.MorphError):
 	pass
 
 
+_BOOLEANIZER_TABLE = {
+	('=', '0'): "NOT ",
+	('!=', '1'): "NOT ",
+	('=', '1'): "",
+	('!=', '0'): "",}
+
+def addNotToBooleanized(expr, operator, operand):
+	"""prepends a NOT to expr if operator and operand suggest there should
+	be one for ADQL integerized boolean expressions.
+
+	The function will return None for unknown combinatins of operator and
+	operand, and it will simply hand through Nones for expr, so calling 
+	functions can just return addNotToBooleanized(...).
+	"""
+	if expr is None:
+		return expr
+
+	prefix = _BOOLEANIZER_TABLE.get((operator, operand), None)
+	if prefix is None:
+		# weird non-boolean-looking condition
+		return None
+	
+	return prefix+expr
+
+
 ######## Begin q3c specials
+# q3c morphing must happen before pgsphere morphs all the mess to
+# become spoints and stuff (at least the way we built things so far).
+# Hence, this is written as a fairly freaky early morpher.
 
 def _flatAndMorph(node):
 # This helper flattens a node after applying standard morphs on it.
 # I need this for the arguments of q3c stuff, since there may
 # be ADQL specifics in there (like, say, TAP_UPLOAD references, or
-# weird functions.
+# weird functions).
 	return nodes.flatten(morphPG(node)[1])
 
-def _containsToQ3c(node, state):
-	if node.funName!='CONTAINS':
-		return node
-	args = node.args
+
+def _booleanizeContainsQ3C(node, operator, operand):
+	"""turns ADQL CONTAINS calls into q3c expressions if appropriate.
+
+	This will only work if the arguments have been morphed into pgsphere
+	geometries already.  It will leave alone anything it doesn't understand,
+	hopefully for pgsphere to pick it up.
+	"""
+	args = []
+	for arg in node.args:
+		if hasattr(arg, "original"): # recover pre-pgsphere-morph object
+			args.append(arg.original)
+		else:
+			args.append(arg)
 
 	# leave morphing to someone else if we don't check for point in shape
 	# or if system transformations are required.
-	if len(args)!=2 or nodes.getType(args[0])!="point":
-		return node
+	if len(args)!=2:
+		return None
 	if not hasattr(args[0], "cooSys") or not hasattr(args[1], "cooSys"):
 		# arguments do not look like geometries; leave it to someone else
 		# to blow up
-		return node
+		return None
 	if tapstc.getPGSphereTrafo(args[0].cooSys, args[1].cooSys) is not None:
 		# we'll need a transform; q3c cannot do this.
-		return node
+		return None
+	
 
+	expr = None
 	p, shape = args
 	if shape.type=="circle":
-		state.killParentOperator = True
 		# The pg planner works much smoother if you have constants first.
 		if p.x.type=='columnReference':
-			return ("q3c_join(%s, %s, %s, %s, %s)"%tuple(map(_flatAndMorph,
+			expr = ("q3c_join(%s, %s, %s, %s, %s)"%tuple(map(_flatAndMorph,
 				(shape.x, shape.y, p.x, p.y, shape.radius))))
 		else:
-			return ("q3c_join(%s, %s, %s, %s, %s)"%tuple(map(_flatAndMorph, 
+			expr = ("q3c_join(%s, %s, %s, %s, %s)"%tuple(map(_flatAndMorph, 
 				(p.x, p.y, shape.x, shape.y, shape.radius))))
 	elif shape=="polygon":
-		state.killParentOperator = True
-		return "q3c_poly_query(%s, %s, ARRAY[%s])"%(
+		expr = "q3c_poly_query(%s, %s, ARRAY[%s])"%(
 			_flatAndMorph(p.x), _flatAndMorph(p.y), ",".join([
 				"%s,%s"%(_flatAndMorph(x), _flatAndMorph(y)) for x,y in shape.coos]))
-	else:
-		return node
 
+	return addNotToBooleanized(expr, operator, operand)
 
-_q3Morphers = {
-	'predicateGeometryFunction': _containsToQ3c,
-	'comparisonPredicate': morphhelpers.killGeoBooleanOperator,
-}
-
-
-#	This has to run *before* morphPG since otherwise what we deal with
-# here has already been morphed to pgSphere.
-insertQ3Calls = morphhelpers.Morpher(_q3Morphers).morph
-
+morphhelpers.registerBooleanizer("CONTAINS", _booleanizeContainsQ3C)
 
 ######### End q3c specials
 
@@ -90,11 +118,16 @@ insertQ3Calls = morphhelpers.Morpher(_q3Morphers).morph
 class PgSphereCode(object):
 	"""A node that contains serialized pgsphere expressions plus
 	a coordinate system id for cases in which we must conform.
+
+	Pass the optional original (the node that generates the stuff)
+	to allow code like the q3c booleanizer above to still work on
+	things if necessary.
 	"""
 	type = "pgsphere literal"
 
-	def __init__(self, cooSys, content):
+	def __init__(self, cooSys, content, original=None):
 		self.cooSys, self.content = cooSys, content
+		self.original = original
 	
 	def flatten(self):
 		return self.content
@@ -103,26 +136,29 @@ class PgSphereCode(object):
 def _morphCircle(node, state):
 	return PgSphereCode(node.cooSys,
 		"scircle(spoint(RADIANS(%s), RADIANS(%s)), RADIANS(%s))"%tuple(flatten(a)
-			for a in (node.x, node.y, node.radius)))
+			for a in (node.x, node.y, node.radius)),
+		original=node)
 
 
 def _morphPoint(node, state):
 	return PgSphereCode(node.cooSys,
 		"spoint(RADIANS(%s), RADIANS(%s))"%tuple(
-			flatten(a) for a in (node.x, node.y)))
+			flatten(a) for a in (node.x, node.y)),
+		original=node)
 
 
-def _makePoly(cooSys, points):
+def _makePoly(cooSys, points, node):
 # helper for _morph(Polygon|Box)
 	return PgSphereCode(cooSys,
 		"(SELECT spoly(q.p) FROM (VALUES %s ORDER BY column1) as q(ind,p))"%", ".join(
-			'(%d, %s)'%(i, p) for i, p in enumerate(points)))
+			'(%d, %s)'%(i, p) for i, p in enumerate(points)),
+		original=node)
 
 
 def _morphPolygon(node, state):
 	points = ['spoint(RADIANS(%s), RADIANS(%s))'%(flatten(a[0]), flatten(a[1]))
 		for a in node.coos]
-	return _makePoly(node.cooSys, points)
+	return _makePoly(node.cooSys, points, node)
 
 
 def _morphBox(node, state):
@@ -133,7 +169,7 @@ def _morphBox(node, state):
 		"spoint(%s-%s/2, %s+%s/2)"%args,
 		"spoint(%s+%s/2, %s+%s/2)"%args,
 		"spoint(%s+%s/2, %s-%s/2)"%args]
-	return _makePoly(node.cooSys, points)
+	return _makePoly(node.cooSys, points, node)
 
 
 def _getSystem(node):
@@ -141,7 +177,7 @@ def _getSystem(node):
 
 
 def _transformSystems(pgLiteral, fromSystem, toSystem):
-# a helper to _morphGeometryPredicate
+# a helper to _booleanizeGeoPredsPGS
 	if fromSystem!=toSystem:
 		trafo = tapstc.getPGSphereTrafo(fromSystem, toSystem)
 		if trafo is not None:
@@ -149,31 +185,38 @@ def _transformSystems(pgLiteral, fromSystem, toSystem):
 	return pgLiteral
 
 
-def _morphGeometryPredicate(node, state):
+def _booleanizeGeoPredsPGS(node, operator, operand):
+	"""morphs contains and intersects to pgsphere expressions when
+	they are arguments to a suitable comparison.
+	"""
 	if node.funName=="CONTAINS":
-		state.killParentOperator = True
-		operator = "@"
+		geoOp = "@"
 	elif node.funName=="INTERSECTS":
-		state.killParentOperator = True
-		operator = "&&"
+		geoOp = "&&"
 	else:
-		return node # Leave mess to someone else
+		return None
 
+	expr = None
 	sys1, sys2 = _getSystem(node.args[0]), _getSystem(node.args[1])
 	if isinstance(node.args[0], tapstc.GeomExpr):
 		if isinstance(node.args[1], tapstc.GeomExpr):
 			raise NotImplementedError("Cannot have compound regions in both"
 				" arguments of a geometry predicate")
 		arg2Str = _transformSystems(flatten(node.args[1]), sys1, sys2)
-		return node.args[0].asLogic("%%s %s (%s)"%(operator, arg2Str))
+		expr = node.args[0].asLogic("(%%s %s (%s))"%(geoOp, arg2Str))
 	elif isinstance(node.args[1], tapstc.GeomExpr):
 		arg1Str = _transformSystems(flatten(node.args[0]), sys2, sys1)
-		return node.args[0].asLogic("(%s) %s (%%s)"%(arg1Str, operator))
+		expr = node.args[0].asLogic("((%s) %s (%%s))"%(arg1Str, geoOp))
 	else: # both arguments plain
 		arg1Str = _transformSystems(flatten(node.args[0]), sys1, sys2)
 		arg2Str = flatten(node.args[1])
-		return "(%s) %s (%s)"%(arg1Str, operator, arg2Str)
+		expr = "((%s) %s (%s))"%(arg1Str, geoOp, arg2Str)
 
+	return addNotToBooleanized(expr, operator, operand)
+
+
+morphhelpers.registerBooleanizer("CONTAINS", _booleanizeGeoPredsPGS)
+morphhelpers.registerBooleanizer("INTERSECTS", _booleanizeGeoPredsPGS)
 
 
 def _computePointFunction(node, state):
@@ -225,8 +268,6 @@ _pgsphereMorphers = {
 	'point': _morphPoint,
 	'box': _morphBox,
 	'polygon': _morphPolygon,
-	'predicateGeometryFunction': _morphGeometryPredicate,
-	'comparisonPredicate': morphhelpers.killGeoBooleanOperator,
 	"pointFunction": _computePointFunction,
 	"distanceFunction": _distanceToPG,
 	"centroid": _centroidToPG,
@@ -339,6 +380,7 @@ def _insertPGQS(node, state):
 
 _syntaxMorphers = {
 	"querySpecification": _insertPGQS,
+	'comparisonPredicate': morphhelpers.booleanizeComparisons,
 }
 
 # Warning: if ever there are two Morphers for the same type, this will
