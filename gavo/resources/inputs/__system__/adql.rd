@@ -151,7 +151,7 @@ of where we messed up, and we'll try to improve.
 
 <!-- definition of user defined functions -->
 	<data id="make_udfs">
-		<!-- HACK: I need a table that's make on disk for the script to run. -->
+		<!-- HACK: I need a table that's on disk for the script to run. -->
 		<table id="empty" onDisk="True" temporary="True"/>
 		<make table="empty">
 			<script lang="SQL" type="postCreation" name="create_user_functions">
@@ -159,11 +159,11 @@ of where we messed up, and we'll try to improve.
 
 				CREATE OR REPLACE FUNCTION ivo_hasword(haystack TEXT, needle TEXT)
 				RETURNS INTEGER AS $func$
-					SELECT CASE WHEN to_tsvector($1) @@ plainto_tsquery($2) 
+					SELECT CASE WHEN to_tsvector('english', $1) @@ plainto_tsquery($2) 
 						THEN 1 
 						ELSE 0 
 					END
-				$func$ LANGUAGE SQL;
+				$func$ LANGUAGE SQL STABLE;
 
 				CREATE OR REPLACE FUNCTION ivo_hashlist_has(hashlist TEXT, item TEXT)
 				RETURNS INTEGER AS $func$
@@ -174,7 +174,7 @@ of where we messed up, and we'll try to improve.
 						THEN 1 
 						ELSE 0 
 					END
-				$func$ LANGUAGE SQL;
+				$func$ LANGUAGE SQL STABLE;
 
 				CREATE OR REPLACE FUNCTION ivo_nocasematch(value TEXT, pattern TEXT)
 				RETURNS INTEGER AS $func$
@@ -182,17 +182,17 @@ of where we messed up, and we'll try to improve.
 						THEN 1 
 						ELSE 0 
 					END
-				$func$ LANGUAGE SQL;
+				$func$ LANGUAGE SQL STABLE;
 
 				CREATE OR REPLACE FUNCTION ts_to_mjd(value TIMESTAMP)
 				RETURNS DOUBLE PRECISION AS $func$
 					SELECT to_char($1, 'J')::double precision-2400000.5
-				$func$ LANGUAGE SQL;
+				$func$ LANGUAGE SQL STABLE;
 
 				CREATE OR REPLACE FUNCTION ts_to_jd(value TIMESTAMP)
 				RETURNS DOUBLE PRECISION AS $func$
 					SELECT to_char($1, 'J')::double precision
-				$func$ LANGUAGE SQL;
+				$func$ LANGUAGE SQL STABLE;
 			]]></script>
 		</make>
 	</data>
