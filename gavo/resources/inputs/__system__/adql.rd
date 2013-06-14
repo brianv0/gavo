@@ -148,6 +148,24 @@ of where we messed up, and we'll try to improve.
 		<publish render="form" sets="local,ivo_managed"/>
 	</service>
 
+	<macDef name="containsBody">
+		RETURNS INTEGER AS $func$
+			SELECT CASE WHEN $1 @ $2
+				THEN 1 
+				ELSE 0 
+			END
+		$func$ LANGUAGE SQL;
+	</macDef>
+
+	<macDef name="intersectsBody">
+		RETURNS INTEGER AS $func$
+			SELECT CASE WHEN $1 &amp;&amp; $2
+				THEN 1 
+				ELSE 0 
+			END
+		$func$ LANGUAGE SQL;
+	</macDef>
+
 
 <!-- definition of user defined functions -->
 	<data id="make_udfs">
@@ -156,6 +174,39 @@ of where we messed up, and we'll try to improve.
 		<make table="empty">
 			<script lang="SQL" type="postCreation" name="create_user_functions">
 				<![CDATA[
+
+				-- ADQL geometry functions -- these are morphed into
+				-- boolean expressions in the python ADQL adapter.  The
+				-- guys here are for use in select lists.  Note that these
+				-- do not do any system adaptation, and intersects does not
+				-- decay to contains for points.  At least the latter could
+				-- be fixed, but I consider this something fairly exotic in
+				--  the first place.
+
+				CREATE OR REPLACE FUNCTION contains(spoint, anyelement)
+					\containsBody
+
+				CREATE OR REPLACE FUNCTION contains(scircle, anyelement)
+					\containsBody
+
+				CREATE OR REPLACE FUNCTION contains(spoly, anyelement)
+					\containsBody
+
+				CREATE OR REPLACE FUNCTION intersects(spoint, anyelement)
+					\containsBody
+
+				CREATE OR REPLACE FUNCTION intersects(scircle, anyelement)
+					\intersectsBody
+
+				CREATE OR REPLACE FUNCTION intersects(spoly, anyelement)
+					\intersectsBody
+
+
+				-- text matching functions for the relational registry.
+				-- The in-db functions do *not* profit from the indices, which is why
+				-- they are replaced by the actual expressions when used in query
+				-- expressions.  The functions here are fallbacks for when morphing
+				-- does not take place for one reason or another
 
 				CREATE OR REPLACE FUNCTION ivo_hasword(haystack TEXT, needle TEXT)
 				RETURNS INTEGER AS $func$
@@ -183,6 +234,8 @@ of where we messed up, and we'll try to improve.
 						ELSE 0 
 					END
 				$func$ LANGUAGE SQL STABLE;
+
+				-- miscellaneous local functions
 
 				CREATE OR REPLACE FUNCTION ts_to_mjd(value TIMESTAMP)
 				RETURNS DOUBLE PRECISION AS $func$

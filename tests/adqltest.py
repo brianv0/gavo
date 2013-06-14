@@ -1608,6 +1608,8 @@ class PGSMorphTest(testhelpers.VerboseTest):
 		("select * from data where 1=intersects(\"coVerage\","
 			"circle('icrs', 10, 10, 1))",
 			"SELECT * FROM data WHERE ((\"coVerage\") && (scircle(spoint(RADIANS(10), RADIANS(10)), RADIANS(1))))"),
+		("select contains(coverage, circle('', 10, 10, 1)) from data",
+			"SELECT CONTAINS(coverage, scircle(spoint(RADIANS(10), RADIANS(10)), RADIANS(1))) FROM data"),
 			]
 
 
@@ -1742,13 +1744,25 @@ class QueryTest(testhelpers.VerboseTest):
 			"   circle('icrs', alpha, delta, 1))"%self.tableName)
 		self.assertEqual(list(res)[0]["mag"], -27.0)
 
-	def testSTCSOutput(self):
+	def testGeometryInSelect(self):
 		res = self.runQuery(
-			"select rv, point('icrs', alpha, delta) as p, mag from %s"
-			%self.tableName)
-		self.assertEqual(list(res)[0]["p"], 
+			"select rv, point('icrs', alpha, delta) as p, mag, alpha, delta,"
+			" contains(point('', alpha, delta), circle('', 10, 10, 1)) as c,"
+			" contains(point('', alpha, delta), circle('', 22, 23, 1.1)) as c1,"
+			" intersects(point('', alpha, delta), circle('', 22, 23, 1.1)) as i1,"
+			" intersects(circle('', alpha, delta, 1.5), circle('', 22, 25, 1.1)) as i2,"
+			" intersects(circle('', alpha, delta, 1), circle('', 22, 26, 1.1)) as i3"
+			" from %s"%self.tableName)
+		rows = list(res)
+
+		self.assertEqual(rows[0]["p"], 
 			'Position ICRS 22. 23.')
-		self.assertEqual(list(res)[0]["rv"], 0)
+		self.assertEqual(rows[0]["rv"], 0)
+		self.assertEqual(rows[0]["c"], 0)
+		self.assertEqual(rows[0]["c1"], 1)
+		self.assertEqual(rows[0]["i1"], 1)
+		self.assertEqual(rows[0]["i2"], 1)
+		self.assertEqual(rows[0]["i3"], 0)
 		self.assertEqual(res.tableDef.getColumnByName("p").xtype,
 			"adql:POINT")
 
