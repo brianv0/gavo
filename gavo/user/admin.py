@@ -251,6 +251,6 @@ def indexStatements(querier, args):
 
 
 def main():
-	with base.AdhocQuerier(base.getAdminConn) as querier:
+	with base.AdhocQuerier(base.getWritableAdminConn) as querier:
 		args = makeParser(globals()).parse_args()
 		args.subAction(querier, args)
