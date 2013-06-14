@@ -12,6 +12,7 @@ from gavo import utils
 from gavo.adql import common
 from gavo.adql import grammar
 from gavo.adql import fieldinfo
+from gavo.adql import morphhelpers
 from gavo.adql import nodes
 from gavo.adql import tree
 
@@ -59,6 +60,25 @@ def userFunction(name, signature, doc, returntype="double precision",
 	return deco
 
 
+def _makeBooleanizer(funcName, booleanExpr):
+	"""makes and registers a booleanizer for funcName.
+
+	booleanExpr is the postgres expression the function should be booleanized
+	to.  Refer to the two arguments as %(1)s and %(2)s
+	"""
+	def _booleanizeThis(node, operator, operand):
+		if len(node.args)!=2:
+			raise UfuncError("%s takes exactly two arguments"%funcName)
+		return morphhelpers.addNotToBooleanized(
+			booleanExpr%{
+				'1': nodes.flatten(node.args[0]), 
+				'2': nodes.flatten(node.args[1])},
+			operator, operand)
+
+	morphhelpers.registerBooleanizer(funcName.upper(), _booleanizeThis)
+
+
+
 @userFunction("gavo_match",
 	"(pattern TEXT, string TEXT) -> INTEGER",
 	"""
@@ -88,6 +108,9 @@ def _hasword(args):
 		raise UfuncError("ivo_hasword takes exactly two arguments")
 	return None
 
+_makeBooleanizer("ivo_hasword", 
+	"to_tsvector(%(1)s) @@ plainto_tsquery(%(2)s)")
+
 
 @userFunction("ivo_nocasematch",
 	"(value TEXT, pattern TEXT) -> INTEGER",
@@ -103,6 +126,8 @@ def _nocasematch(args):
 	if len(args)!=2:
 		raise UfuncError("ivo_nocasematch takes exactly two arguments")
 	return None
+
+_makeBooleanizer("ivo_nocasematch", "%(1)s ilike %(2)s")
 
 
 @userFunction("ivo_hashlist_has",
@@ -120,6 +145,9 @@ def _hashlist_has(args):
 	if len(args)!=2:
 		raise UfuncError("ivo_haslist_has takes exactly two arguments")
 	return None
+
+_makeBooleanizer("ivo_hashlist_has", 
+	"lower(%(2)s) = ANY(string_to_array(%(1)s, '#')")
 
 
 @userFunction("gavo_to_mjd",

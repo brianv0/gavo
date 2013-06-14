@@ -24,30 +24,6 @@ class PostgresMorphError(morphhelpers.MorphError):
 	pass
 
 
-_BOOLEANIZER_TABLE = {
-	('=', '0'): "NOT ",
-	('!=', '1'): "NOT ",
-	('=', '1'): "",
-	('!=', '0'): "",}
-
-def addNotToBooleanized(expr, operator, operand):
-	"""prepends a NOT to expr if operator and operand suggest there should
-	be one for ADQL integerized boolean expressions.
-
-	The function will return None for unknown combinatins of operator and
-	operand, and it will simply hand through Nones for expr, so calling 
-	functions can just return addNotToBooleanized(...).
-	"""
-	if expr is None:
-		return expr
-
-	prefix = _BOOLEANIZER_TABLE.get((operator, operand), None)
-	if prefix is None:
-		# weird non-boolean-looking condition
-		return None
-	
-	return prefix+expr
-
 
 ######## Begin q3c specials
 # q3c morphing must happen before pgsphere morphs all the mess to
@@ -104,7 +80,7 @@ def _booleanizeContainsQ3C(node, operator, operand):
 			_flatAndMorph(p.x), _flatAndMorph(p.y), ",".join([
 				"%s,%s"%(_flatAndMorph(x), _flatAndMorph(y)) for x,y in shape.coos]))
 
-	return addNotToBooleanized(expr, operator, operand)
+	return morphhelpers.addNotToBooleanized(expr, operator, operand)
 
 morphhelpers.registerBooleanizer("CONTAINS", _booleanizeContainsQ3C)
 
@@ -212,7 +188,7 @@ def _booleanizeGeoPredsPGS(node, operator, operand):
 		arg2Str = flatten(node.args[1])
 		expr = "((%s) %s (%s))"%(arg1Str, geoOp, arg2Str)
 
-	return addNotToBooleanized(expr, operator, operand)
+	return morphhelpers.addNotToBooleanized(expr, operator, operand)
 
 
 morphhelpers.registerBooleanizer("CONTAINS", _booleanizeGeoPredsPGS)

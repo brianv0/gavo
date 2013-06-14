@@ -192,13 +192,33 @@ class RegionTest(unittest.TestCase):
 			"REGION('simbad Wozzlfoo7xx'), CIRCLE('ICRS', 10, 10, 1))")
 
 
+def getMorphed(query):
+	return nodes.flatten(adql.morphPG(adql.parseToTree(query))[1])
+
+
 class RRFunctionsTest(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
 	resources = [("ufuncTestTable", _ufuncTestbed)]
-	def testHaswordMorphed(self):
-		adql.parseToTree("select testgroup from test.ufuncex where"
-			" 1=ivo_hasword(testgroup, 'abc')")
+	def _runTest(self, sample):
+		query, expected = sample
+		self.assertEqual(getMorphed(query), expected)
 	
-# select ivo_hasword(testgroup, 'abc') from test.ufuncex
+	samples = [
+		("select testgroup from test.ufuncex where 1=ivo_hasword(testgroup, 'abc')",
+			"SELECT testgroup FROM test.ufuncex WHERE to_tsvector(testgroup)"
+				" @@ plainto_tsquery('abc')"),
+ 		("select ivo_hasword(testgroup, 'abc') from test.ufuncex",
+ 			"SELECT IVO_HASWORD(testgroup, 'abc') FROM test.ufuncex"),
+		("select testgroup from test.ufuncex where"
+			" 1=ivo_hashlist_has('a#b#c', testgroup)",
+			"SELECT testgroup FROM test.ufuncex WHERE lower(testgroup) ="
+			" ANY(string_to_array('a#b#c', '#')"),
+		("select testgroup from test.ufuncex where"
+			" 1=ivo_nocasematch('honk%', testgroup)",
+			"SELECT testgroup FROM test.ufuncex WHERE 'honk%' ilike testgroup"),
+	]
+	
 
 
 if __name__=="__main__":
