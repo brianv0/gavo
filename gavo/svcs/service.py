@@ -379,10 +379,8 @@ class Service(base.Structure, base.ComputedMetaMixin,
 				modNs, moddesc = utils.loadPythonModule(self.customPage)
 				page = modNs.MainPage
 			except ImportError, msg:
-				import traceback
-				traceback.print_exc()
 				raise base.LiteralParseError("customPage", self.customPage, 
-					"While loading the custom page you specified, the following"
+					hint="While loading the custom page you specified, the following"
 					" error was raised: '%s'.  See the log for a traceback."%
 					unicode(msg))
 			self.customPageCode = page, (os.path.basename(self.customPage),)+moddesc

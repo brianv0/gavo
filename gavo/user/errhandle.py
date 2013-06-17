@@ -133,6 +133,7 @@ def raiseAndCatch(opts=None, output=outputError):
 		if getattr(msg, "row", None):
 			messages.append("Row %s"%str(msg.row))
 		messages.append(str(msg).decode("iso-8859-1", "ignore"))
+
 	except Exception, msg:
 		if hasattr(msg, "excRow"):
 			messages.append("Snafu in %s, %s\n"%(msg.excRow, msg.excCol))
