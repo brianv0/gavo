@@ -1,23 +1,12 @@
-DaCHS-related javascript; the general policy is that we blindly pull 
-javascript blobs from upstream.  This, admittedly, stinks, and we may
-want to change that at some point.
+DaCHS-related javascript; there's a chapter on this in develNotes.rstx
 
-Anyway, here's where the stuff comes from:
+Here's when wi last pulled the stuff (source URLs are in develNotes)
 
-samp.js -- https://github.com/astrojs/sampjs.git, last updated 2012-12
-jquery-gavo.js -- jquery.com, this is a minified jquery with the ui plugin,
-  last updated 2011-09
-jquery.flog.js -- http://www.flotcharts.org/, last updated 2011-11
+samp.js -- 2012-12
+jquery-gavo.js -- 2011-09
+jquery.flog.js -- 2011-11
 
+NOTE: locally developed code has .src.js extensions and is *not* (usually)
+served to the net.  All standard templates use the versions without src.  
 
-
-JS that didn't come minified (samp.js, currently) was minified using *cough*
-google's online "closure compiler"; I've operated it using curl, like so:
-
-curl -dcompilation_level=SIMPLE_OPTIMIZATIONS -doutput_format=text \
-	-doutput_info=compiled_code \
-	--data-urlencode js_code@../../../../../src/sampjs/samp.js \
-	http://closure-compiler.appspot.com/compile
-
-
-I guess I should be minifying gavo.js at some point...
+To update what's going out to the web, run ``make``.
