@@ -109,7 +109,7 @@ def _hasword(args):
 	return None
 
 _makeBooleanizer("ivo_hasword", 
-	"to_tsvector(%(1)s) @@ plainto_tsquery(%(2)s)")
+	"(to_tsvector(%(1)s) @@ plainto_tsquery(%(2)s))")
 
 
 @userFunction("ivo_nocasematch",
@@ -127,7 +127,7 @@ def _nocasematch(args):
 		raise UfuncError("ivo_nocasematch takes exactly two arguments")
 	return None
 
-_makeBooleanizer("ivo_nocasematch", "%(1)s ilike %(2)s")
+_makeBooleanizer("ivo_nocasematch", "(%(1)s ilike %(2)s)")
 
 
 @userFunction("ivo_hashlist_has",
@@ -147,7 +147,7 @@ def _hashlist_has(args):
 	return None
 
 _makeBooleanizer("ivo_hashlist_has", 
-	"lower(%(2)s) = ANY(string_to_array(%(1)s, '#')")
+	"lower(%(2)s) = ANY(string_to_array(%(1)s, '#'))")
 
 
 @userFunction("gavo_to_mjd",
