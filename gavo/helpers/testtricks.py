@@ -61,12 +61,21 @@ def testFile(name, content, writeGz=False):
 
 	With writeGz=True, content is gzipped on the fly (don't do this if
 	the data already is gzipped).
+
+	You can pass in name=None to get a temporary file name if you don't care
+	about the name.
 	"""
-	destName = os.path.join(base.getConfig("tempDir"), name)
+	if name is None:
+		handle, destName = tempfile.mkstemp(dir=base.getConfig("tempDir"))
+		os.close(handle)
+	else:
+		destName = os.path.join(base.getConfig("tempDir"), name)
+
 	if writeGz:
 		f = gzip.GzipFile(destName, mode="wb")
 	else:
 		f = open(destName, "w")
+
 	f.write(content)
 	f.close()
 	try:

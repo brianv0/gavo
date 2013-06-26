@@ -2,6 +2,8 @@
 Tests for various parts of the server infrastructure, using trial.
 """
 
+import os
+
 from gavo.helpers import testhelpers
 
 from gavo import api
@@ -203,23 +205,65 @@ class StreamingTest(ArchiveTest):
 		).addCallback(assertResult)
 
 
+_TEMPLATE_TEMPLATE = """
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns:n="http://nevow.com/ns/nevow/0.1" 
+		xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>Template test</title>
+		<n:invisible n:render="commonhead"/>
+	</head>
+	<body>
+		%s
+	</body>
+</html>
+"""
+
 class TemplatingTest(ArchiveTest):
-	def testContentDelivered(self):
+# These must not run in parallel since they're sharing a file name
+# (and it's hard to change this since the clean up would have
+# to take place in the test callback)
+
+	commonTemplatePath = os.path.join(
+		api.getConfig("tempDir"), "trialtemplate")
+
+	def cleanUp(self):
+		try:
+			os.unlink(self.commonTemplatePath)
+		except os.error:
+			pass
+
+	def _assertTemplateRendersTo(self, templateBody, args, strings):
+		with open(self.commonTemplatePath, "w") as f:
+			f.write(_TEMPLATE_TEMPLATE%templateBody)
+
+		api.getRD("//tests").getById("dyntemplate").templates[
+			"fixed"] = self.commonTemplatePath
 		return self.assertGETHasStrings("//tests/dyntemplate/fixed", 
+			args, strings)
+
+	def testContentDelivered(self):
+		return self._assertTemplateRendersTo(
+			'<p>stuff: <n:invisible n:render="data" n:data="parameter foo"/></p>',
 			{"foo": "content delivered test"},
-			["here:content delivered test", 'href="/static/css/gavo_dc.css'])
+			["<p>stuff: content delivered test", 'href="/static/css/gavo_dc.css'])
 	
 	def testNoParOk(self):
-		return self.assertGETHasStrings("//tests/dyntemplate/fixed", {},
-			["stuff here:</p>"])
+		return self._assertTemplateRendersTo(
+			'<p>stuff: <n:invisible n:render="data" n:data="parameter foo"/></p>',
+			{},
+			["stuff: </p>"])
 	
 	def testEightBitClean(self):
-		return self.assertGETHasStrings("//tests/dyntemplate/fixed", 
+		return self._assertTemplateRendersTo(
+			'<p>stuff: <n:invisible n:render="data" n:data="parameter foo"/></p>',
 			{"foo": u"\u00C4".encode("utf-8")},
-			["stuff here:\xc3\x84</p>"])
+			["stuff: \xc3\x84</p>"])
 
 	def testMessEscaped(self):
-		return self.assertGETHasStrings("//tests/dyntemplate/fixed", 
+		return self._assertTemplateRendersTo(
+			'<p>stuff: <n:invisible n:render="data" n:data="parameter foo"/></p>',
 			{"foo": '<script language="nasty&"/>'},
 			['&lt;script language="nasty&amp;"/&gt;'])
 

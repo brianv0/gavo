@@ -251,6 +251,14 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 			],
 		]
 
+	def data_rd(self, ctx, data):
+		"""returns the RD referenced in the body (or None if the RD is not there)
+		"""
+		try:
+			return base.caches.getRD(ctx.tag.children[0])
+		except base.NotFoundError:
+			return None
+
 
 class HTMLResultRenderMixin(object):
 	"""is a mixin with render functions for HTML tables and associated 

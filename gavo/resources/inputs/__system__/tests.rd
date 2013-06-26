@@ -70,4 +70,5 @@
 		<nullCore/>
 		<template key="fixed">//tpltest.html</template>
 	</service>
+
 </resource>
