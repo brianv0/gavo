@@ -22,9 +22,9 @@
 	</ul>
 
 	<n:invisible n:render="sequence" n:data="examples">
-		<div typeof="Example" n:pattern="item">
+		<div typeof="example" n:pattern="item">
 			<n:attr name="id" n:render="string" n:data="id"/>
-			<n:attr name="about"
+			<n:attr name="resource"
 				>#<n:invisible n:render="string" n:data="id"/></n:attr>
 			<h2 n:render="string" n:data="name" property="name"/>
 			<n:invisible n:data="renderedDescription" n:render="xml"/>
