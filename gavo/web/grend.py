@@ -44,10 +44,12 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 	"""A mixin with renderers useful throughout the data center.
 
 	Rendering of meta information:
+
 	* <tag n:render="meta">METAKEY</tag> or
 	* <tag n:render="metahtml">METAKEY</tag>
 
 	Rendering internal links (important for off-root operation):
+
 	* <tag href|src="/foo" n:render="rootlink"/>
 
 	Rendering the sidebar --
@@ -56,6 +58,7 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 	and knows how to generate URLs).
 
 	Conditional rendering:
+
 	* ifmeta
 	* imownmeta
 	* ifdata
@@ -63,6 +66,12 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 	* ifslot
 	* ifnoslot
 	* ifadmin
+
+	Obtaining system info
+
+	* rd <rdId> -- makes the referenced RD the current data (this is
+	  not too useful right now, but it lets you check of the existence
+	  of RDs already)
 	"""
 	_sidebar = svcs.loadSystemTemplate("sidebar.html")
 
@@ -251,11 +260,11 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 			],
 		]
 
-	def data_rd(self, ctx, data):
+	def data_rd(self, rdId):
 		"""returns the RD referenced in the body (or None if the RD is not there)
 		"""
 		try:
-			return base.caches.getRD(ctx.tag.children[0])
+			return base.caches.getRD(rdId)
 		except base.NotFoundError:
 			return None
 

@@ -34,8 +34,14 @@
 		</div>
 	</n:invisible>
 
-<!-- if we have rr/q, guess that the relational registry is exposed here,
-and add examples for it -->
+
+	<div n:data="rd rr/q" n:render="ifdata">
+	<h1>RegTAP examples</h1>
+
+	<p>This site carries the relational
+		registry and hence understands all
+		<a property="continuation" resource=""
+     href="http://volute.googlecode.com/svn/trunk/projects/registry/regtap/RegTAP-fmt.html#sample_queries">RegTAP queries</a>.</p>
+  </div>
 </body>
 </html>
-

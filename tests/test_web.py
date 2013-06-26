@@ -238,8 +238,10 @@ class TemplatingTest(ArchiveTest):
 		with open(self.commonTemplatePath, "w") as f:
 			f.write(_TEMPLATE_TEMPLATE%templateBody)
 
-		api.getRD("//tests").getById("dyntemplate").templates[
-			"fixed"] = self.commonTemplatePath
+		svc = api.getRD("//tests").getById("dyntemplate")
+		if "fixed" in svc._loadedTemplates:
+			del svc._loadedTemplates["fixed"]
+		svc.templates["fixed"] = self.commonTemplatePath
 		return self.assertGETHasStrings("//tests/dyntemplate/fixed", 
 			args, strings)
 
@@ -267,6 +269,19 @@ class TemplatingTest(ArchiveTest):
 			{"foo": '<script language="nasty&"/>'},
 			['&lt;script language="nasty&amp;"/&gt;'])
 
+	def testRDData(self):
+		return self._assertTemplateRendersTo(
+			'<p n:data="rd //tap" n:render="string"/>',
+			{},
+			['<p>&lt;resource descriptor for __system__/tap'])
+
+	def testNoRDData(self):
+		return self._assertTemplateRendersTo(
+			'<div n:data="rd /junky/path/that/leads/nowhere">'
+			'<p n:render="ifnodata">No junky weirdness here</p></div>',
+			{},
+			['<div><p>No junky weirdness'])
+	
 
 class PathResoutionTest(ArchiveTest):
 	def testDefaultRenderer(self):
