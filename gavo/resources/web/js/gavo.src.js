@@ -65,7 +65,7 @@ function htmlEscape(str) {
 				.split("\t").join("'")
 				.replace(/\$([a-zA-Z_]+)/g, "',htmlEscape($1),'")
 				.replace(/\$!([a-zA-Z_]+)/g, "',$1,'")
-				+ "');}return p.join('');";
+				+ "');}return $.trim(p.join(''));";
 				func = new Function("obj", strFunc);
 				_tmplCache[str] = func;
 		}

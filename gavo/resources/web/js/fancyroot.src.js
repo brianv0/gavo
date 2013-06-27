@@ -125,7 +125,7 @@ toggleAuthorResources = _makeToggler(
 
 $(document).ready(function() {
 	$("#tab_placeholder").replaceWith(
-		$(document.getElementById("tabbar_store").innerHTML));
+		$($.trim(document.getElementById("tabbar_store").innerHTML)));
 	$("#tabset_tabs li").bind("click", makeTabCallback({
 		'by-subject': fetchSubjects,
 		'by-author': fetchAuthors,
