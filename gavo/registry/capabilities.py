@@ -278,7 +278,7 @@ class SCSCapabilityMaker(CapabilityMaker):
 			SCS.testQuery[
 				SCS.ra[service.getMeta("testQuery.ra", raiseOnFail=True)],
 				SCS.dec[service.getMeta("testQuery.dec", raiseOnFail=True)],
-				SCS.sr["0.001"],
+				SCS.sr[service.getMeta("testQuery.sr", default="0.001")],
 			],
 		]
 
