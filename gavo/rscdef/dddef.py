@@ -223,11 +223,7 @@ class Make(base.Structure, scripting.ScriptingMixin):
 
 	def onParentComplete(self):
 		if self.rowmaker is base.NotGiven:
-			if (self.parent and self.parent.grammar and 
-					self.parent.grammar.yieldsTyped):
-				self.rowmaker = rmkdef.RowmakerDef.makeTransparentFromTable(self.table)
-			else:
-				self.rowmaker = rmkdef.RowmakerDef.makeIdentityFromTable(self.table)
+			self.rowmaker = rmkdef.RowmakerDef.makeIdentityFromTable(self.table)
 
 	def getExpander(self):
 		"""used by the scripts of expanding their source.

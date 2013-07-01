@@ -127,8 +127,11 @@ class InputTable(rscdef.TableDef):
 class ContextRowIterator(grammars.RowIterator):
 	"""is a row iterator over "contexts", i.e. single dictionary-like objects.
 
-	Since it's useful in the service context, they return their dictionary
-	as *both* parameters and a single row.
+	The param row will contain *sequences* of individual values, which the
+	param make needs to correctly parse.  It sucks, but all alternatives 
+	I can think of are worse.
+
+	The rows returned are constructed by outer-joining the input sequences.
 	"""
 	def __init__(self, grammar, sourceToken, **kwargs):
 		grammars.RowIterator.__init__(self, grammar, sourceToken, **kwargs)
@@ -164,12 +167,12 @@ class ContextGrammar(grammars.Grammar):
 	CondDescs.  Thus, only for other cores will you ever need to bother
 	with ContextGrammars.
 
-	The source tokens for context grammars are typed dictionaries, usually
-	computed by nevow formal.
+	The source tokens for context grammars are dictionaries; these are either
+	typed dictionaries from nevow, where the values usually are atomic,
+	or, preferably, the dictionaries of lists from requrest.args.  Even
+	in the latter case, 
 	"""
 	name_ = "contextGrammar"
-
-	yieldsTyped = True
 
 	_inputKeys = rscdef.ColumnListAttribute("inputKeys", 
 		childFactory=InputKey, description="Definition of the service's input"

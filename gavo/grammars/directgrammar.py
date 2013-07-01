@@ -127,7 +127,6 @@ class DirectGrammar(base.Structure, base.RestrictionMixin):
 	the C boosters used by direct grammars.
 	"""
 	name_ = "directGrammar"
-	yieldsTyped = True # doesn't matter since it doesn't yield anything.
 
 	_cbooster = rscdef.ResdirRelativeAttribute("cBooster", default=base.Undefined,
 		description="resdir-relative path to the booster C source.")

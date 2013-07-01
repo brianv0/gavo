@@ -506,7 +506,6 @@ class Grammar(base.Structure, GrammarMacroMixin):
 	and set the rowIterator class attribute to it.
 	"""
 	name_ = "grammar"
-	yieldsTyped = False
 
 	_encoding = base.UnicodeAttribute("enc", default=None, description=
 		"Encoding of strings coming in from source.", copyable=True)
