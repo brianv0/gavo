@@ -254,12 +254,14 @@ class ColumnList(list):
 		return fieldName in self.nameIndex
 
 	def __eq__(self, other):
-		if isinstance(other, DataFieldList):
+		if isinstance(other, ColumnList):
 			myFields = set([f.name for f in self 
 				if f.name not in self.internallyUsedFields])
 			otherFields = set([f.name for f in other 
 				if f.name not in self.internallyUsedFields])
 			return myFields==otherFields
+		elif other==[] and len(self)==0:
+			return True
 		return False
 
 	def deepcopy(self, newParent):

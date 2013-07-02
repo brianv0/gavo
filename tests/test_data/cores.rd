@@ -21,16 +21,14 @@
 				<names>a,b,c,d,e</names>
 			</reGrammar>
 			<make table="abcd">
-				<rowmaker idmaps="a,b,c,d,e"/>
+				<rowmaker idmaps="a,b,c,d,e" id="parseProcessedRows"/>
 			</make>
 		</data>
 	</computedCore>
 
 	<service id="basiccat" core="abccatcore">
 		<inputDD id="forceQuo">
-			<make table="abcd">
-				<rowmaker idmaps="*"/>
-			</make>
+			<contextGrammar inputTable="abcd" rowKey="a"/>
 		</inputDD>
 	</service>
 
@@ -114,5 +112,6 @@
 			</condDesc>
 		</dbCore>
 	</service>
-	
+
+	<dbCore id="typescore" queriedTable="data/test#typesTable"/>
 </resource>

@@ -658,6 +658,34 @@ interpreted.  The interpretation is greedy, and only one formatter at a
 time attempts to interpret display hints.
 
 
+Building Service Interfaces
+===========================
+
+Within DaCHS, a request is processed as follows:
+
+1) The core is adapted to the renderer; this means that condDescs with
+   buildFrom are converted to inputKeys according to the rules of the
+   renderer.  The form renderer generates VizieR-like expressions,
+   protocol renderers make PQL parameters, etc.  Also, onlyForRenderer
+   and notForRenderer inputKeys are selected or deselected
+2) From the core's inputTable, the service builds an input data
+   descriptor (unless the service has an inputDD defined already, of
+   course).  Most standard cores only get an input table's parameters
+   (the exception being the computedCore), and hence the automatic
+   inputDD will only have a parmaker.  The inputDD will have a
+   ContextGrammar, which does not yield rows.
+3) The service will build the input table using its inputDD.  The input
+   is either nevow request.args, mapping each key to a sequence of strings, or
+   a dictionary containing parsed values coming from nevow formal.
+4) The input table is passed to the core, which produces either a table,
+   a data instance, or a pair of mime-type and content.
+5) From the core result, an SvcResult is built.  This is relevant when
+   the service has an outputTable defined, in which case the table
+   structure is adapted if the input actually is a table.
+6) The renderer formats the SvcResult according to its wishes.
+
+TBC: multiplicity
+
 Writing Custom Cores
 ====================
 

@@ -276,7 +276,7 @@ class Values(base.Structure):
 
 		if self.validValues is None:
 			return True
-		if isinstance(value, (list, tuple)):
+		if isinstance(value, (list, tuple, set)):
 			for val in value:
 				if val and not val in self.validValues:
 					return False
@@ -652,7 +652,7 @@ class ParamBase(ColumnBase):
 		Plus, right now, for sequences we're not doing anything.  We probably
 		should.
 		"""
-		if isinstance(value, (list, tuple)):
+		if isinstance(value, (list, tuple, set)):
 			return value
 		if value is None:
 			return self.values.nullLiteral

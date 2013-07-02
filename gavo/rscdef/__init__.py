@@ -25,7 +25,7 @@ from gavo.rscdef.mixins import MixinDef
 
 from gavo.rscdef.procdef import ProcDef, ProcApp
 
-from gavo.rscdef.rmkdef import RowmakerDef, MapRule
+from gavo.rscdef.rmkdef import RowmakerDef, ParmakerDef, MapRule
 
 from gavo.rscdef.rmkfuncs import addProcDefObject, IgnoreThisRow
 

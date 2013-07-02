@@ -261,6 +261,43 @@ def parseWithNull(literal, baseParser, nullLiteral=base.Undefined,
 	return res
 
 
+@utils.document
+def getHTTPPar(inputData, parser, single=False, forceUnique=False):
+	"""returns a parsed value from inputData.
+
+	inputData may be
+
+	* None -- the function will return None
+	* an empty set -- the function will return None
+	* a value other than a set -- as if it were a list of length 1
+	* a set -- the function will return a set of parsed items
+
+	This is of conveniently and robustly pulling out data from stuff coming
+	out of inputKeys without multiplicity.
+
+	If you pass single=True, you'll get exactly one value (or None).  There's
+	not telling what value from a sequence will be chosen.
+
+	If you pass forceUnique=True, a ValueError will be raised if
+	inputData is longer than one.
+	"""
+	if inputData is None:
+		return None
+	if not isinstance(inputData, set):
+		inputData = set([inputData])
+	if len(inputData)==0:
+		return None
+
+	if forceUnique and len(inputData)>1:
+		raise ValueError("Inputs for this parameter must not have more than"
+			" one value; hovever, %s was passed in."%str(inputData))
+
+	if single:
+		return parser(inputData.pop())
+	else:
+		return set(parser(v) for v in inputData)
+
+
 def addProcDefObject(name, func):
 	globals()[name] = func
 

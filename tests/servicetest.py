@@ -14,6 +14,7 @@ from gavo.helpers import testhelpers
 
 from gavo import base
 from gavo import rsc
+from gavo import rscdef
 from gavo import rscdesc
 from gavo import protocols
 from gavo import svcs
@@ -26,6 +27,9 @@ import tresc
 import trialhelpers
 
 
+MS = base.makeStruct
+
+
 class ErrorMsgTest(testhelpers.VerboseTest):
 	def testMissingQueriedTable(self):
 		self.assertRaisesWithMsg(base.StructureError,
@@ -36,6 +40,104 @@ class ErrorMsgTest(testhelpers.VerboseTest):
 			"""<resource schema="test">
 				<dbCore id="foo"/>
 			</resource>"""))
+
+
+class InputDDTest(testhelpers.VerboseTest):
+	def _assertPartialDict(self, partialExpectation, result):
+		"""checks that all key/value pairs in partialExpectation are present in
+		result.
+		"""
+		for key, value in partialExpectation.iteritems():
+			self.assertEqual(value, result[key])
+
+	def _getDDForInputKey(self, **keyPars):
+		return MS(svcs.InputDescriptor, 
+			grammar=MS(svcs.ContextGrammar, inputKeys=[
+				MS(svcs.InputKey, name="x", **keyPars)]))
+				
+	def _getTableForInputKey(self, source, **keyPars):
+		return rsc.makeData(
+			self._getDDForInputKey(**keyPars),
+			forceSource=source).getPrimaryTable()
+
+	def testTypedIntDefaultSet(self):
+		t = self._getTableForInputKey({"x": ["22", "24"]},
+			type="integer")
+		self._assertPartialDict({"x": set([22, 24])}, t.getParamDict())
+		self.assertEqual(len(t.rows), 0)
+
+	def testTypedIntDefaultVal(self):
+		t = self._getTableForInputKey({"x": "22"},
+			type="integer")
+		self._assertPartialDict({"x": set([22])}, t.getParamDict())
+
+	def testTypedSingle(self):
+		t = self._getTableForInputKey({"x": ["-22"]},
+				type="real", multiplicity="single")
+		self._assertPartialDict({"x": -22}, t.getParamDict())
+
+	def testBadLiteralRejected(self):
+		self.assertRaises(base.ValidationError,
+			self._getTableForInputKey,
+			{"x": "gogger"}, type="integer")
+	
+	def testMultipleRejected(self):
+		self.assertRaises(base.ValidationError,
+			self._getTableForInputKey,
+			{"x": ["-22", "30"]},
+			type="real", multiplicity="forced-single")
+
+	def testRows(self):
+		dd = MS(svcs.InputDescriptor, 
+			grammar=MS(svcs.ContextGrammar, rowKey="x",
+				inputKeys=[
+					MS(svcs.InputKey, name="x", type="integer"),
+					MS(svcs.InputKey, name="y", type="text",
+						values=MS(rscdef.Values, default="uhu")),
+					MS(svcs.InputKey, name="z", type="integer")]))
+		res = rsc.makeData(dd, 
+			forceSource={"x": range(4), "y": None, "z": range(2)})
+		self.assertEqual(res.getPrimaryTable().rows, [
+			{'x': 0, 'y': u'uhu', 'z': 0},
+			{'x': 1, 'y': u'uhu', 'z': 1},
+			{'x': 2, 'y': u'uhu', 'z': 0},
+			{'x': 3, 'y': u'uhu', 'z': 1}])
+
+# XXX TODO test some other funky properties of rows generating ContextGrammars.
+# XXX TODO test singleton inputs into ContextGrammar
+
+class _AutoBuiltParameters(testhelpers.TestResource):
+# XXX TODO: more types: unicode, spoint...
+	def make(self, ignored):
+		core = testhelpers.getTestRD("cores").getById("typescore")
+		inputDD = svcs.makeAutoInputDD(core)
+		return rsc.makeData(inputDD, forceSource={
+				"anint": ["22"],
+				"afloat": ["-2e-7"],
+				"adouble": ["-2"],
+				"atext": ["foo", "bar"],
+				"adate": ["2013-05-04", "2005-02-02"]
+			}).getPrimaryTable().getParamDict()
+
+
+class AutoInputDDTest(testhelpers.VerboseTest):
+	resources = [("resPars", _AutoBuiltParameters())]
+
+	def testInteger(self):
+		self.assertEqual(self.resPars["anint"], set([22]))
+
+	def testFloat(self):
+		self.assertEqual(self.resPars["afloat"], -2e-7)
+
+	def testDouble(self):
+		self.assertEqual(self.resPars["adouble"], -2)
+
+	def testText(self):
+		self.assertEqual(self.resPars["atext"], set(["foo", "bar"]))
+
+	def testDate(self):
+		self.assertEqual(self.resPars["adate"], 
+			set([datetime.date(2013, 5, 4), datetime.date(2005, 2, 2)]))
 
 
 class PlainDBServiceTest(testhelpers.VerboseTest):
@@ -112,14 +214,16 @@ class ComputedServiceTest(testhelpers.VerboseTest):
 	def testMappedOutput(self):
 		svc = self.rd.getById("convcat")
 		res = svc.runFromDict({"a": "xy", "b": "3", "c": "4", "d": "5",
-			"e": "2005-10-12T12:23:01"})
-		self.assertDatafields(res.original.getPrimaryTable().tableDef.columns, ["a", "b", "d"])
-		self.assertEqual(res.original.getPrimaryTable().tableDef.columns[0].verbLevel, 15)
+			"e": ["2005-10-12T12:23:01"]})
+		self.assertDatafields(res.original.getPrimaryTable().tableDef.columns, 
+			["a", "b", "d"])
+		self.assertEqual(res.original.getPrimaryTable().
+			tableDef.columns[0].verbLevel, 15)
 		self.assertEqual(res.original.getPrimaryTable().rows[0]['d'], 5000.)
 
 	def testAdditionalFields(self):
 		svc = self.rd.getById("convcat")
-		res = svc.runFromDict({"a": "xy", "b": "3", "c": "4", "d": "5",
+		res = svc.runFromDict({"a": ["xy"], "b": "3", "c": "4", "d": "5",
 			"e": "2005-10-12T12:23:01", "_ADDITEM":["c", "e"]})
 		self.assertDatafields(res.original.getPrimaryTable().tableDef.columns, 
 			["a", "b", "d", "c", "e"])
@@ -261,8 +365,6 @@ class InputFieldSelectionTest(testhelpers.VerboseTest):
 
 
 class InputTableGenTest(testhelpers.VerboseTest):
-	# Tests for the entire way from input definition to the finished param
-	# dict.
 	def testDefaulting(self):
 		service = testhelpers.getTestRD("cores").getById("cstest")
 		it = service._makeInputTableFor("form", {

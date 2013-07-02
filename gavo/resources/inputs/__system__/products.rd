@@ -267,7 +267,7 @@ machinery -->
 		-->
 		<meta name="title">Tar deliverer</meta>
 		<inputDD>
-			<contextGrammar>
+			<contextGrammar rowKey="pattern">
 				<inputKey name="pattern" type="text" description="Product pattern
 					in the form tablePattern#filePatterns, where both parts
 					are interpreted as SQL patterns." required="True"/>
