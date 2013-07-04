@@ -285,8 +285,9 @@ def query(querier, query, timeout=15, metaProfile=None, tdsForUploads=[],
 	querier.setTimeout(oldTimeout)
 
 	if len(table)==int(table.tableDef.setLimit):
-		table.addMeta("_warning", "Your result is probably incomplete due"
-			" to your match limit of %s kicking in"%table.tableDef.setLimit)
+		table.addMeta("_warning", "Query result probably incomplete due"
+			" to the the match limit kicking in.  Add a TOP clause"
+			" to your query and/or increase MAXREC to retrieve more data.")
 	return table
 
 
@@ -337,10 +338,6 @@ class ADQLCore(svcs.Core, base.RestrictionMixin):
 # connection" plan for this kind of streaming?
 			res.noPostprocess = True
 			queryMeta["Matched"] = len(res.rows)
-			if len(res.rows)==base.getConfig("adql", "webDefaultLimit"):
-				res.addMeta("_warning", "Query result probably incomplete due"
-					" to the default match limit kicking in.  Add a TOP clause"
-					" to your query to retrieve more data.")
 			return res
 		except:
 			mapADQLErrors(*sys.exc_info())

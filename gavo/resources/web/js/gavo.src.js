@@ -489,19 +489,26 @@ function output_hide(el) {
 /////////////////////////////////////////////////////////////////////
 // Plotting code -- move (most of this) to something loaded on demand
 
-DATE_RE = /^(\d\d\d\d)-(\d\d)-(\d\d)[T ](\d\d):(\d\d):(\d\d.?\d*)$/
+DATETIME_RE = /^(\d\d\d\d)-(\d\d)-(\d\d)[T ](\d\d):(\d\d):(\d\d.?\d*)$/
+DATE_RE = /^(\d\d\d\d)-(\d\d)-(\d\d)$/
 function _getValue(s) {
 // tries to make some kind of number from a string s
 // if s looks like a datetime, return a julian year
 // TODO: do something with hours/sexagesimal angles
 // if s looks like a float number, return a float
 // else return null.
-	var dm = DATE_RE.exec(s);
+	var dm = DATETIME_RE.exec(s);
 	if (dm!=null) {
 		var dt = new Date(parseFloat(dm[1]), parseFloat(dm[2]), parseFloat(dm[3]),
 			parseFloat(dm[4]), parseFloat(dm[5]), parseFloat(dm[6]));
 		return getJYear(dt);
 	}
+	var dm = DATE_RE.exec(s);
+	if (dm!=null) {
+		var dt = new Date(parseFloat(dm[1]), parseFloat(dm[2]), parseFloat(dm[3]));
+		return getJYear(dt);
+	}
+
 	var num = parseFloat(s);
 	if (num==num) { // not NaN
 		return num;

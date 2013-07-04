@@ -60,6 +60,17 @@ else:
 				self.header = pyfits.Header.fromstring(self._raw)
 				return self
 
+	# various pyfits versions muck around with python's warnings system,
+	# and they invariably get it wrong.  Take pyfits out of warnings
+	# if that's necessary
+	try:
+		from pyfits import core as pyfitscore
+		warnings.showwarning = pyfitscore.showwarning
+		warnings.formatwarning = pyfitscore.formatwarning
+	except (ImportError, AttributeError), ex:
+		# let's hope we have a non-affected version
+		pass
+
 
 CARD_SIZE = 80
 
