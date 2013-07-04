@@ -245,7 +245,8 @@ machinery -->
 	<productCore id="core" queriedTable="products">
 		<!-- core used for the product delivery service -->
 		<condDesc>
-			<inputKey original="accref" id="coreKey" type="raw"/>
+			<inputKey original="accref" id="coreKey" type="raw"
+				multiplicity="single"/>
 		</condDesc>
 
 		<outputTable id="pCoreOutput">

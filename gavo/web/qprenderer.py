@@ -57,7 +57,7 @@ class QPRenderer(grend.HTMLResultRenderMixin,
 				" query-based service.  You have to give a valid value in the"
 				" path.")
 		data = {self.service.getProperty("queryField"): self.queryValue}
-		return self.runServiceWithContext(data, ctx
+		return self.runServiceWithFormalData(data, ctx
 			).addCallback(self._formatOutput, ctx
 			).addErrback(self._handleError, ctx)
 	

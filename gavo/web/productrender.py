@@ -193,7 +193,7 @@ class ProductRenderer(grend.ServiceBasedPage):
 				products.RAccref.fromRequest(self.pathFromSegments, request)}
 		except base.NotFoundError:
 			raise base.ui.logOldExc(svcs.UnknownURI("No product specified"))
-		return self.runServiceWithContext(data, ctx
+		return self.runServiceWithFormalData(data, ctx
 			).addCallback(self._deliver, ctx)
 	
 	def _deliver(self, result, ctx):

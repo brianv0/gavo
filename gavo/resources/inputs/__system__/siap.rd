@@ -443,18 +443,21 @@
 		</phraseMaker>
 
 		<inputKey id="base_POS" name="POS" type="text" unit="deg"
+			multiplicity="single"
 			ucd="pos.eq"
 			description="ICRS Position, RA,DEC decimal degrees (e.g., 234.234,-32.46)"
 			tablehead="Position" required="True">
 		</inputKey>
 
 		<inputKey name="SIZE" type="text" unit="deg" id="base_SIZE"
+			multiplicity="single"
 			description="Size in decimal degrees (e.g., 0.2 or 1,0.1)"
 			tablehead="Field size" required="True">
 		</inputKey>
 
 		<inputKey name="INTERSECT" id="base_INTERSECT" type="text" description=
 			"Relation of image and specified Region of Interest."
+			multiplicity="single"
 			tablehead="Intersection type" required="False">
 			<values default="OVERLAPS" id="base_INTERSECT_values">
 				<option title="Image overlaps RoI">OVERLAPS</option>
@@ -466,6 +469,7 @@
 
 		<inputKey name="FORMAT" id="base_FORMAT" type="text" required="False"
 			description="Requested format of the image data"
+			multiplicity="single"
 			tablehead="Output format">
 			<values default="image/fits"/>
 		</inputKey>

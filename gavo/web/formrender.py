@@ -460,10 +460,12 @@ class FormMixin(formal.ResourceMixin):
 		return form
 	
 	def _realSubmitAction(self, ctx, form, data):
-		"""is a helper for submitAction that does the real work.
+		"""helps submitAction by doing the real work.
 
 		It is here so we can add an error handler in submitAction.
 		"""
+		# TODO: There's significant overlap here with 
+		# grend.runServiceWithFormalData; refactor?
 		queryMeta = svcs.QueryMeta.fromContext(ctx)
 		queryMeta["formal_data"] = data
 		if (self.service.core.outputTable.columns and 
@@ -475,7 +477,7 @@ class FormMixin(formal.ResourceMixin):
 		else:
 			resultWriter = serviceresults.getFormat(queryMeta["format"])
 		if resultWriter.compute:
-			d = self.runService(data, queryMeta)
+			d = self.runService(svcs.PreparsedInput(data), queryMeta)
 		else:
 			d = defer.succeed(None)
 		return d.addCallback(resultWriter._formatOutput, ctx)
@@ -545,7 +547,6 @@ class Form(FormMixin,
 
 		return streaming.streamOut(produceData, inevow.IRequest(ctx))
 
-
 	def _formatOutput(self, res, ctx):
 		"""actually delivers the whole document.
 
@@ -573,8 +574,6 @@ class Form(FormMixin,
 		ctx =  context.WovenContext(ctx, T.invisible[doc])
 
 		return deliverYielding(doc, ctx, request)
-
-
 
 	defaultDocFactory = svcs.loadSystemTemplate("defaultresponse.html")
 

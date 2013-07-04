@@ -281,7 +281,7 @@ class Values(base.Structure):
 				if val and not val in self.validValues:
 					return False
 		else:
-			return value in self.validValues
+			return value in self.validValues or value is None
 		return True
 
 

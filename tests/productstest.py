@@ -34,7 +34,7 @@ class TarTest(_TestWithProductsTable):
 		self.tarService = self.service.rd.getById("getTar")
 
 	def _getTar(self, inDict, qm=None):
-		res = self.tarService.runFromDict(inDict, "form", queryMeta=qm)
+		res = self.tarService.run("form", inDict, queryMeta=qm)
 		dest = StringIO()
 		producttar.getTarMaker()._productsToTar(res.original, dest)
 		return dest.getvalue()
@@ -85,14 +85,14 @@ class RaccrefTest(_TestWithProductsTable):
 
 	def	testBadConstructurVals(self):
 		self.assertRaisesWithMsg(base.ValidationError,
-			"Invalid value for constructor argument to RAccref:"
+			"Field accref: Invalid value for constructor argument to RAccref:"
 				" scale='klonk'",
 			products.RAccref,
 			("testing", {"scale": "klonk"}))
 
 	def testKeyMandatory(self):
 		self.assertRaisesWithMsg(base.ValidationError,
-			"Must give key when constructing RAccref",
+			"Field accref: Must give key when constructing RAccref",
 			products.RAccref.fromRequest,
 			("/", _FakeRequest(scale="2")))
 
@@ -131,13 +131,14 @@ class RaccrefTest(_TestWithProductsTable):
 	
 	def testBadFromString(self):
 		self.assertRaisesWithMsg(base.ValidationError,
-			"Invalid value for constructor argument to RAccref: sra='huhu'",
+			"Field accref: Invalid value for constructor argument to RAccref:"
+			" sra='huhu'",
 			products.RAccref.fromString,
 			("worz?sra=huhu",))
 
 	def testProductsRowRaises(self):
 		nonExProd = products.RAccref("junkomatix/@@ridiculosa")
-		self.assertRaisesWithMsg(base.NotFoundError,
+		self.assertRaisesWithMsg(base.NotFoundError, 
 			"accref 'junkomatix/@@ridiculosa' could not be located in product table",
 			lambda: nonExProd.productsRow,
 			())
@@ -155,10 +156,10 @@ class RaccrefTest(_TestWithProductsTable):
 
 class ProductsCoreTest(_TestWithProductsTable):
 	def _getProductFor(self, accref, moreFields={}):
-		inData = {"accref": products.RAccref.fromString(accref)}
+		inData = {"accref": [products.RAccref.fromString(accref)]}
 		inData.update(moreFields)
 		svc = base.caches.getRD("//products").getById("p")
-		rows = svc.runFromDict(inData, renderer="get"
+		rows = svc.run("get", inData, 
 			).original.getPrimaryTable().rows
 		self.assertEqual(len(rows), 1)
 		return rows[0]["source"]
@@ -235,7 +236,7 @@ class ProductsCoreTest(_TestWithProductsTable):
 	
 	def testCutoutProduct(self):
 		self.assertRaisesWithMsg(base.ValidationError,
-			"Cannot generate cutouts for anything but FITS yet.",
+			"Field accref: Cannot generate cutouts for anything but FITS yet.",
 			self._getProductFor,
 			("data/b.imp?ra=3&dec=4&sra=2&sdec=4",))
 

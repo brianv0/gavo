@@ -518,7 +518,7 @@ class ParamTest(testhelpers.VerboseTest):
 
 	def testBadLiteral(self):
 		self.assertRaisesWithMsg(base.ValidationError,
-			"u'nothing' is not a valid literal for u",
+			"Field u: u'nothing' is not a valid literal for u",
 			base.parseFromString,
 			(rscdef.Param,
 			'<param name="u" type="integer">nothing</param>'))

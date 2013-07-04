@@ -136,11 +136,11 @@ def prepareWeb(groupId):
 def _genPW():
 	"""returns a random string that may be suitable as a database password.
 
-	The entropy of the generated passwords should be close to 80 bits, so
+	The entropy of the generated passwords should be close to 160 bits, so
 	the passwords themselves would probably not be a major issue.  Of course,
 	within DaCHS they are stored in the file system in clear text...
 	"""
-	return os.urandom(10).encode("hex")
+	return os.urandom(20).encode("base64")
 
 
 def makeProfiles(dsn, userPrefix=""):

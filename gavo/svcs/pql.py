@@ -262,7 +262,7 @@ class PQLPar(object):
 	def __init__(self, ranges, qualifier=None, destName=None):
 		self.qualifier = qualifier
 		self.ranges = ranges
-		self.destName = None
+		self.destName = destName
 
 	def __eq__(self, other):
 		return (isinstance(other, PQLPar)

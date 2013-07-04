@@ -123,7 +123,7 @@ class SyncQueryTest(TAPRenderTest):
 				"LANG": "Furz",
 				"QUERY": 'SELECT alpha FROM test.adql WHERE alpha<3'
 			}, [
-				'<INFO name="QUERY_STATUS" value="ERROR">This service does'
+				'<INFO name="QUERY_STATUS" value="ERROR">Field LANG: This service does'
 				' not support the query language Furz'])
 
 	def testSimpleQuery(self):
@@ -154,8 +154,8 @@ class SyncQueryTest(TAPRenderTest):
 				"QUERY": 'SELECT alpha FROM test.adql WHERE alpha<2',
 				"FORMAT": 'xls'
 			}, [
-				'<INFO name="QUERY_STATUS" value="ERROR">Unsupported format \'xls\'',
-				'Legal format codes include'])
+				'<INFO name="QUERY_STATUS" value="ERROR">Field FORMAT:'
+				' Unsupported format \'xls\'', 'Legal format codes include'])
 
 	def testClearVOT(self):
 		return self.assertGETHasStrings("/sync", {
@@ -237,7 +237,8 @@ class SyncQueryTest(TAPRenderTest):
 			"UPLOAD": "http://fit://file://x.ab",
 			"LANG": "ADQL",
 			"QUERY": 'SELECT * FROM test.adql'}, [
-			'<INFO name="QUERY_STATUS" value="ERROR">Syntax error in UPLOAD parameter'
+			'<INFO name="QUERY_STATUS" value="ERROR">Field UPLOAD:'
+			' Syntax error in UPLOAD parameter'
 			])
 
 	def testInlineUploadFromArgsWorks(self):

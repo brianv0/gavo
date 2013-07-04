@@ -716,10 +716,10 @@
 			<!-- condCond is combining to let the client specify SIZE but
 			not POS (as splat does); pql#coneParameter can handle that. -->
 			<inputKey name="POS" type="text" description="ICRS position of target
-				object" unit="deg" std="True"
+				object" unit="deg" std="True" multiplicity="single"
 				utype="ssa:Char.SpatialAxis.Coverage.Location.Value"/>
 			<inputKey name="SIZE" description="Size of the region of
-				interest around POS" std="True" 
+				interest around POS" std="True" multiplicity="single"
 				unit="deg"
 				utype="ssa:Char.SpatialAxis.Coverage.Bounds.Extent"/>
 			<phraseMaker procDef="//pql#coneParameter">
@@ -730,6 +730,7 @@
 		<condDesc id="bandCond">
 			<inputKey name="BAND" type="text" description="Wavelength (range)
 				of interest (or symbolic bandpass names)" unit="m"
+				multiplicity="single"
 				std="True" utype="ssa:DataId.Bandpass"/>
 			<phraseMaker>
 				<code>
@@ -754,7 +755,7 @@
 
 		<condDesc id="timeCond">
 			<inputKey original="//ssap#instance.ssa_dateObs" name="TIME" unit=""
-				type="text" std="True"/>
+				type="text" std="True" multiplicity="single"/>
 			<phraseMaker procDef="//pql#dateParameter">
 				<bind name="consCol">"ssa_dateObs"</bind>
 				<bind name="consColKind">"mjd"</bind>
@@ -763,7 +764,7 @@
 
 		<condDesc id="formatCond">
 			<inputKey original="//ssap#instance.mime" name="FORMAT" type="text"
-				std="True"/>
+				std="True" multiplicity="single"/>
 			<phraseMaker>
 				<setup>
 					<par name="compliantFormats">frozenset([
@@ -840,7 +841,7 @@
 			<events>
 				<condDesc id="\keyName\+_cond">
 					<inputKey original="//ssap#instance.\matchCol" name="\keyName"
-						type="text" std="True"/>
+						type="text" std="True" multiplicity="single"/>
 					<phraseMaker procDef="\procDef">
 						<bind name="consCol">"\matchCol"</bind>
 					</phraseMaker>
@@ -862,7 +863,7 @@
 			<events>
 				<condDesc id="\keyName\+_cond">
 					<inputKey original="//ssap#instance.\matchCol" name="\keyName"
-						type="text" std="True"/>
+						type="text" std="True" multiplicity="single"/>
 					<phraseMaker procDef="//ssap#parablePQLPar">
 						<bind name="consCol">"\matchCol"</bind>
 						<bind name="parClass">\parClass</bind>
@@ -881,7 +882,8 @@
 			<events>
 				<condDesc id="\keyName\+_cond">
 					<inputKey name="\keyName" type="text" tablehead="Name Pattern"
-						description="Shell pattern of target observed"/>
+						description="Shell pattern of target observed"
+						multiplicity="single"/>
 					<phraseMaker>
 						<code>
 							parsed = pql.\parClass.fromLiteral(
@@ -899,18 +901,23 @@
 			<inputKey name="REQUEST" type="text" tablehead="Request type"
 				description='This is queryData for the default operation; some
 					services support getData as well' std="True"
+				multiplicity="single"
 				required="True">
 				<property key="defaultForForm">queryData</property>
 			</inputKey>
 			<inputKey name="TOP" type="integer" tablehead="#Best"
+				multiplicity="single"
 				description='Only return the TOP "best" records' std="True"/>
 			<inputKey name="MAXREC" type="integer" tablehead="Limit"
+				multiplicity="single"
 				description="Do not return more than MAXREC records"
 				std="True">\\getConfig{ivoa}{dalDefaultLimit}</inputKey>
 			<inputKey name="COMPRESS" type="boolean" tablehead="Compress?"
+				multiplicity="single"
 				description="Return compressed results?"
 				std="True">True</inputKey>
 			<inputKey name="RUNID" type="text" tablehead="Run id"
+				multiplicity="single"
 				description="An identifier for a certain run.  Opaque to the service"
 				std="True"/>
 			<phraseMaker> <!-- done by the core code for these -->

@@ -79,7 +79,7 @@ class SOAPRenderer(grend.ServiceBasedPage):
 		inputPars = dict(zip(
 			[f.name for f in self.service.getInputKeysFor(self)],
 			args))
-		return self.runServiceWithContext(inputPars, ctx)
+		return self.runServiceWithFormalData(inputPars, ctx)
 
 	def renderHTTP(self, ctx):
 		"""returns the WSDL for service.

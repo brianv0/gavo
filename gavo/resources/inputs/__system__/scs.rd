@@ -213,15 +213,18 @@
 	<condDesc id="protoInput" required="True">
 		<inputKey name="RA" type="double precision" unit="deg" ucd="pos.eq.ra"
 			description="Right Ascension (ICRS decimal)" tablehead="Alpha (ICRS)"
+			multiplicity="single"
 			std="True">
 			<property name="onlyForRenderer">scs.xml</property>
 		</inputKey>
 		<inputKey name="DEC" type="double precision" unit="deg" ucd="pos.eq.dec"
 			description="Declination (ICRS decimal)" tablehead="Delta (ICRS)"
+			multiplicity="single"
 			std="True">
 			<property name="onlyForRenderer">scs.xml</property>
 		</inputKey>
 		<inputKey name="SR" type="real" unit="deg" description="Search radius"
+			multiplicity="single"
 			tablehead="Search Radius" std="True">
 			<property name="onlyForRenderer">scs.xml</property>
 		</inputKey>
@@ -235,10 +238,12 @@
 
 	<condDesc id="humanInput">
 		<inputKey name="hscs_pos" type="text"
+			multiplicity="single"
 			description= "Coordinates (as h m s, d m s or decimal degrees), or SIMBAD-resolvable object" tablehead="Position/Name">
 			<property name="notForRenderer">scs.xml</property>
 		</inputKey>
 		<inputKey name="hscs_sr" description="Search radius in arcminutes"
+			multiplicity="single"
 			tablehead="Search radius">
 			<property name="notForRenderer">scs.xml</property>
 		</inputKey>
@@ -276,10 +281,12 @@
 
 		<condDesc>
 			<inputKey name="pos_\matchColumn" type="text"
+				multiplicity="single"
 				description= "Coordinates (as h m s, d m s or decimal degrees), 
 					or SIMBAD-resolvable object" tablehead="\tablehead">
 			</inputKey>
 			<inputKey name="sr_\matchColumn" 
+				multiplicity="single"
 				description="Search radius in arcminutes"
 				unit="arcmin"
 				tablehead="Search radius for \tablehead">
@@ -333,6 +340,7 @@
 		<condDesc silent="True">
 			<inputKey name="MAXREC" type="integer" tablehead="Limit"
 				description="Do not return more than MAXREC records"
+				multiplicity="single"
 					>\\getConfig{ivoa}{dalDefaultLimit}
 					<property name="onlyForRenderer">scs.xml</property></inputKey>
 		</condDesc>

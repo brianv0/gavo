@@ -98,10 +98,10 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 			'<map dest="x">int(@src)</map>')
 		mapper = dd.rowmakers[0].compileForTableDef(td)
 		self.assertRaisesWithMsg(base.ValidationError,
-			"While building x in _foo: Key 'src' not found in a mapping.",
+			"Field x: While building x in _foo: Key 'src' not found in a mapping.",
 			mapper, ({}, None))
 		self.assertRaisesWithMsg(base.ValidationError,
-			"While building x in _foo: invalid literal for int()"
+			"Field x: While building x in _foo: invalid literal for int()"
 				" with base 10: 'ab c'",
 			mapper, ({"src": "ab c"}, None))
 	
@@ -114,10 +114,10 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 		mapper = dd.rowmakers[0].compileForTableDef(td)
 		self.assertEqual(mapper({"src": '-20'}, None), {"x": -20, "y": 'foobar-20'})
 		self.assertRaisesWithMsg(base.ValidationError,
-			"While building x in _foo: invalid literal for int() with base 10: '3x3'",
+			"Field x: While building x in _foo: invalid literal for int() with base 10: '3x3'",
 			mapper, ({"src": "3x3"}, None))
 		self.assertRaisesWithMsg(base.ValidationError,
-			"While building y in _foo: 'utf8' codec can't decode byte 0x98 in position 0:"
+			"Field y: While building y in _foo: 'utf8' codec can't decode byte 0x98 in position 0:"
 				" invalid start byte",
 			mapper, ({"src": "\x98x"}, None))
 
@@ -431,7 +431,7 @@ class ToParameterTest(testhelpers.VerboseTest):
 			'<dictlistGrammar/>',
 			'<parmaker><map dest="u" src="bar"/></parmaker>')
 		self.assertRaisesWithMsg(base.ValidationError,
-			"While building u in None: Key 'bar' not found in a mapping.",
+			"Field u: While building u in None: Key 'bar' not found in a mapping.",
 			rsc.makeData,
 			(dd, rsc.parseNonValidating, []))
 

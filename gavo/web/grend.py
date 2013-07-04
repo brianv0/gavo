@@ -558,20 +558,28 @@ class ServiceBasedPage(ResourceBasedPage):
 			base.ui.notifyError("Formatting of request args failed.")
 
 
-	def processData(self, rawData, queryMeta):
-		return self.service.runWithData(self, rawData, queryMeta)
+	def processData(self, rawData, queryMeta=None):
+		"""calls the actual service.
+
+		This will run in the current thread; you will ususally
+		want to use runService from the main nevow event loop unless you know
+		the service is quick or actually works asynchronously.
+		"""
+		return self.service.run(self, rawData, queryMeta)
 	
-	def runService(self, rawData, queryMeta):
+	def runService(self, rawData, queryMeta=None):
 		"""takes raw data and returns a deferred firing the service result.
+
+		This will process everything in a thread.
 		"""
 		return threads.deferToThread(self.processData, rawData, queryMeta)
 
-	def runServiceWithContext(self, rawData, context):
-		"""calls runService, first making a queryMeta from nevow context.
+	def runServiceWithFormalData(self, rawData, context):
+		"""runs 
 		"""
 		queryMeta = svcs.QueryMeta.fromContext(context)
 		queryMeta["formal_data"] = rawData
-		return self.runService(rawData, queryMeta)
+		return self.runService(svcs.PreparsedInput(rawData), queryMeta)
 
 	def data_serviceURL(self, renderer):
 		"""returns a relative URL for this service using the renderer.

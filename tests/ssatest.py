@@ -12,13 +12,13 @@ from gavo import api
 from gavo import base
 from gavo import rsc
 from gavo import svcs
+from gavo import utils
 from gavo import votable
 from gavo.formats import votablewrite
 from gavo.protocols import products
 from gavo.protocols import sdm
 from gavo.protocols import ssap
 from gavo.utils import DEG, ElementTree, pyfits
-from gavo.web import vodal
 
 import tresc
 
@@ -117,6 +117,9 @@ class ProcTest(testhelpers.VerboseTest):
 class _WithSSATableTest(testhelpers.VerboseTest):
 	resources = [("ssaTable", tresc.ssaTestTable)]
 
+	def runService(self, id, params):
+		return getRD().getById(id).run("ssap.xml", params)
+
 
 class ImportTest(_WithSSATableTest):
 
@@ -136,7 +139,7 @@ class CoreQueriesTest(_WithSSATableTest):
 	def _runTest(self, sample):
 		inDict, ids = sample
 		inDict["REQUEST"] = "queryData"
-		res = getRD().getById("s").runFromDict(inDict, "ssap.xml")
+		res = self.runService("s", inDict)
 		self.assertEqual(
 			set([row["ssa_pubDID"].split("/")[-1] 
 				for row in res.original.getPrimaryTable()]),
@@ -223,15 +226,15 @@ class CoreMiscTest(_WithSSATableTest):
 		inDict= {"POS": "12,12",
 			"SIZE": "1"}
 		self.assertRaisesWithMsg(base.ValidationError,
-			"Missing or invalid value for REQUEST.",
-			getRD().getById("s").runFromDict,
-			(inDict, "ssap.xml"))
+			"Field REQUEST: Missing or invalid value for REQUEST.",
+			self.runService,
+			("s", inDict))
 
 
 class GetDataTest(_WithSSATableTest):
 	def testGetdataDeclared(self):
-		res = getRD().getById("c").runFromDict(
-			{"REQUEST": "queryData"}, "ssap.xml")
+		res = self.runService("c",
+			{"REQUEST": "queryData"})
 		tree = testhelpers.getXMLTree(res.original[1])
 		gpTable = tree.xpath('//TABLE[@name="generationParameters"]')[0]
 
@@ -252,19 +255,19 @@ class GetDataTest(_WithSSATableTest):
 
 	def testNormalServicesReject(self):
 		self.assertRaisesWithMsg(base.ValidationError,
-			"No getData support on ivo://x-unregistred/data/ssatest/s",
-			getRD().getById("s").runFromDict,
-			({"REQUEST": "getData"}, "ssap.xml"))
+			"Field REQUEST: No getData support on ivo://x-unregistred/data/ssatest/s",
+			self.runService,
+			("s", {"REQUEST": "getData"}))
 
 	def testRejectWithoutPUBDID(self):
 		self.assertRaisesWithMsg(base.ValidationError,
-			"PUBDID mandatory for getData",
-			getRD().getById("c").runFromDict,
-			({"REQUEST": "getData"}, "ssap.xml"))
+			"Field PUBDID: PUBDID mandatory for getData",
+			self.runService,
+			("c", {"REQUEST": "getData"}))
 
 	def testGetdataVOT(self):
-		res = getRD().getById("c").runFromDict(
-			{"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1'}, "ssap.xml")
+		res = self.runService("c",
+			{"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1'})
 		mime, payload = res.original
 		self.assertEqual(mime, "application/x-votable+xml")
 		self.failUnless('xmlns:spec="http://www.ivoa.net/xml/SpectrumModel/v1.01'
@@ -272,28 +275,28 @@ class GetDataTest(_WithSSATableTest):
 		self.failUnless('QJtoAAAAAABAm2g' in payload)
 
 	def testGetdataText(self):
-		res = getRD().getById("c").runFromDict(
+		res = self.runService("c",
 			{"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
-				"FORMAT": "text/plain"}, "ssap.xml")
+				"FORMAT": "text/plain"})
 		mime, payload = res.original
 		self.failUnless(isinstance(payload, str))
 		self.failUnless("1754.0\t1754.0\n1755.0\t1753.0\n"
 			"1756.0\t1752.0" in payload)
 
 	def testCutoutFull(self):
-		res = getRD().getById("c").runFromDict(
+		res = self.runService("c",
 			{"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
-				"FORMAT": "text/plain", "BAND": "1.762e-7/1.764e-7"}, "ssap.xml")
+				"FORMAT": "text/plain", "BAND": "1.762e-7/1.764e-7"})
 		mime, payload = res.original
 		self.assertEqual(payload, 
 			'1762.0\t1746.0\n1763.0\t1745.0\n1764.0\t1744.0\n')
 		self.failIf('<TR><TD>1756.0</TD>' in payload)
 
 	def testCutoutHalfopen(self):
-		res = getRD().getById("c").runFromDict(
+		res = self.runService("c",
 			{"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
 				"FORMAT": "application/x-votable+xml;encoding=tabledata", 
-				"BAND": "1.927e-7/"}, "ssap.xml")
+				"BAND": "1.927e-7/"})
 		mime, payload = res.original
 		self.failUnless('xmlns:spec="http://www.ivoa.net/xml/SpectrumModel/v1.01'
 			in payload)
@@ -309,24 +312,24 @@ class GetDataTest(_WithSSATableTest):
 
 	def testEmptyCutoutFails(self):
 		self.assertRaisesWithMsg(base.ValidationError,
-			"Spectrum is empty.",
-			getRD().getById("c").runFromDict,
-			({"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
+			"Field (various): Spectrum is empty.",
+			self.runService,
+			("c", {"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
 				"FORMAT": "application/x-votable+xml",
-				"BAND": "/1.927e-8"}, "ssap.xml"))
+				"BAND": "/1.927e-8"}))
 
 	def testOriginalCalibOk(self):
-		mime, payload = getRD().getById("c").runFromDict(
+		mime, payload = self.runService("c",
 			{"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
 				"FORMAT": "text/plain", 
-				"FLUXCALIB": "uncalibrated"}, "ssap.xml").original
+				"FLUXCALIB": "uncalibrated"}).original
 		self.failUnless(payload.endswith("1928.0	1580.0\n"))
 
 	def testNormalize(self):
-		mime, payload = getRD().getById("c").runFromDict(
+		mime, payload = getRD().getById("c").run("ssap.xml",
 			{"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
 				"FORMAT": "application/x-votable+xml;encoding=tabledata", 
-				"BAND": "1.9e-7/1.92e-7", "FLUXCALIB": "relative"}, "ssap.xml").original
+				"BAND": "1.9e-7/1.92e-7", "FLUXCALIB": "relative"}).original
 		self.failUnless("<TD>1900.0</TD><TD>0.91676" in payload)
 		tree = testhelpers.getXMLTree(payload, debug=False)
 		self.assertEqual(tree.xpath(
@@ -336,25 +339,26 @@ class GetDataTest(_WithSSATableTest):
 
 	def testBadCalib(self):
 		self.assertRaisesWithMsg(base.ValidationError,
-			"Do not know how to turn a UNCALIBRATED spectrum into a ferpotschket one.",
-			getRD().getById("c").runFromDict,
-			({"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
+			"Field FLUXCALIB: Do not know how to turn a"
+			" UNCALIBRATED spectrum into a ferpotschket one.",
+			self.runService,
+			("c", {"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
 				"FORMAT": "text/plain", 
-				"FLUXCALIB": "ferpotschket"}, "ssap.xml"))
+				"FLUXCALIB": "ferpotschket"}))
 
 	def testBadPubDID(self):
 		self.assertRaisesWithMsg(svcs.UnknownURI,
 			"No spectrum with pubdid ivo://test.inv/bad known here",
-			getRD().getById("c").runFromDict,
-				({"REQUEST": "getData", "PUBDID": 'ivo://test.inv/bad'}, 
-					"ssap.xml"))
+			self.runService,
+				("c", {"REQUEST": "getData", "PUBDID": 'ivo://test.inv/bad'}))
 
 	def testRandomParamFails(self):
 		self.assertRaisesWithMsg(base.ValidationError,
-			"The following parameter(s) are not accepted by this service: WARP",
-			getRD().getById("c").runFromDict,
-			({"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
-				"warp": "infinity"}, "ssap.xml"))
+			"Field (various): The following parameter(s) are"
+			" not accepted by this service: WARP",
+			self.runService,
+			("c", {"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
+				"warp": "infinity"}))
 
 
 class CoreNullTest(_WithSSATableTest):
@@ -363,7 +367,7 @@ class CoreNullTest(_WithSSATableTest):
 
 	def _getNumMatches(self, inDict):
 		inDict["REQUEST"] = "queryData"
-		return len(getRD().getById("s").runFromDict(inDict, "ssap.xml"
+		return len(self.runService("s", inDict,
 			).original.getPrimaryTable().rows)
 	
 	def testSomeNULLs(self):
@@ -383,37 +387,37 @@ class CoreNullTest(_WithSSATableTest):
 class MetaKeyTest(_WithSSATableTest):
 # these are like CoreQueries except they exercise custom logic
 	def testTOP(self):
-		res = getRD().getById("s").runFromDict(
-			{"REQUEST": "queryData", "TOP": 1}, "ssap.xml")
+		res = self.runService("s",
+			{"REQUEST": "queryData", "TOP": 1})
 		self.assertEqual(len(res.original.getPrimaryTable()), 1)
 
 	def testMAXREC(self):
-		res = getRD().getById("s").runFromDict(
-			{"REQUEST": "queryData", "TOP": "3", "MAXREC": "1"}, "ssap.xml")
+		res = self.runService("s",
+			{"REQUEST": "queryData", "TOP": "3", "MAXREC": "1"})
 		self.assertEqual(len(res.original.getPrimaryTable()), 1)
 
 	def testMTIMEInclusion(self):
 		aMinuteAgo = datetime.datetime.utcnow()-datetime.timedelta(seconds=60)
-		res = getRD().getById("s").runFromDict(
-			{"REQUEST": "queryData", "MTIME": "%s/"%aMinuteAgo}, "ssap.xml")
+		res = self.runService("s",
+			{"REQUEST": "queryData", "MTIME": "%s/"%aMinuteAgo})
 		self.assertEqual(len(res.original.getPrimaryTable()), 6)
 
 	def testMTIMEExclusion(self):
 		aMinuteAgo = datetime.datetime.utcnow()-datetime.timedelta(seconds=60)
-		res = getRD().getById("s").runFromDict(
-			{"REQUEST": "queryData", "MTIME": "/%s"%aMinuteAgo}, "ssap.xml")
+		res = self.runService("s",
+			{"REQUEST": "queryData", "MTIME": "/%s"%aMinuteAgo})
 		self.assertEqual(len(res.original.getPrimaryTable()), 0)
 
 	def testInsensitive(self):
 		aMinuteAgo = datetime.datetime.utcnow()-datetime.timedelta(seconds=60)
-		res = getRD().getById("s").runFromDict(
-			vodal.CaseSemisensitiveDict(
-				{"rEQueST": "queryData", "mtime": "/%s"%aMinuteAgo}), "ssap.xml")
+		res = self.runService("s",
+			utils.CaseSemisensitiveDict(
+				{"rEQueST": "queryData", "mtime": "/%s"%aMinuteAgo}))
 		self.assertEqual(len(res.original.getPrimaryTable()), 0)
 
 	def testMetadata(self):
-		res = getRD().getById("s").runFromDict(
-			{"REQUEST": "queryData", "FORMAT": "Metadata"}, "ssap.xml")
+		res = self.runService("s",
+			{"REQUEST": "queryData", "FORMAT": "Metadata"})
 		self.assertEqual(res.original[0], "application/x-votable+xml")
 		val = res.original[1]
 		self.failUnless("<VOTABLE" in val)
@@ -429,44 +433,39 @@ class MetaKeyTest(_WithSSATableTest):
 
 
 class CoreFailuresTest(_WithSSATableTest):
-	def setUp(self):
-		_WithSSATableTest.setUp(self)
-		self.service = getRD().getById("s")
-
 	def testBadRequestRejected(self):
-		self.assertRaises(api.ValidationError, self.service.runFromDict,
-			{"REQUEST": "folly"}, "ssap.xml")
+		self.assertRaises(api.ValidationError, self.runService, "s",
+			{"REQUEST": "folly"})
 
 	def testBadBandRejected(self):
-		self.assertRaises(api.ValidationError, self.service.runFromDict,
-			{"REQUEST": "queryData", "BAND": "1/2/0.4"}, "ssap.xml")
+		self.assertRaises(api.ValidationError, self.runService, "s",
+			{"REQUEST": "queryData", "BAND": "1/2/0.4"})
 
 	def testBadCustomInputRejected(self):
-		self.assertRaises(api.ValidationError, self.service.runFromDict,
-			{"REQUEST": "queryData", "excellence": "banana"}, "ssap.xml")
+		self.assertRaises(api.ValidationError, self.runService, "s",
+			{"REQUEST": "queryData", "excellence": "banana"})
 
 	def testSillyFrameRejected(self):
 		self.assertRaisesWithMsg(api.ValidationError,
-			"Cannot match against coordinates given in EGOCENTRIC frame",
-			self.service.runFromDict,
-			({"REQUEST": "queryData", "POS": "0,0;EGOCENTRIC", "SIZE": "1"}, 
-				"ssap.xml"))
+			"Field POS: Cannot match against coordinates given in EGOCENTRIC frame",
+			self.runService,
+			("s", {"REQUEST": "queryData", "POS": "0,0;EGOCENTRIC", "SIZE": "1"}))
 
 	def testMalformedSize(self):
 		self.assertRaisesWithMsg(api.ValidationError,
-			"'all' is not a valid literal for SIZE",
-			self.service.runFromDict,
-			({"REQUEST": "queryData", "POS": "0,0", "SIZE": "all"}, 
-				"ssap.xml"))
+			"Field SIZE: While building SIZE in parameter parser:"
+			" could not convert string to float: all",
+			self.runService,
+			("s", {"REQUEST": "queryData", "POS": "0,0", "SIZE": "all"}))
 
 
 class _RenderedSSAResponse(testhelpers.TestResource):
 	resources = [("ssatable", tresc.ssaTestTable)]
 
 	def make(self, deps):
-		res = getRD().getById("c").runFromDict(
+		res = getRD().getById("c").run("ssap.xml",
 			{"REQUEST": "queryData", "TOP": "4", "MAXREC": "4",
-				"FORMAT": "votable", "_DBOPTIONS_ORDER": ["ssa_targname"]}, "ssap.xml")
+				"FORMAT": "votable", "_DBOPTIONS_ORDER": ["ssa_targname"]})
 		rawVOT = res.original[-1]
 		return rawVOT, testhelpers.getXMLTree(rawVOT, debug=False)
 

@@ -60,16 +60,16 @@ class InputDDTest(testhelpers.VerboseTest):
 			self._getDDForInputKey(**keyPars),
 			forceSource=source).getPrimaryTable()
 
-	def testTypedIntDefaultSet(self):
+	def testTypedIntSet(self):
 		t = self._getTableForInputKey({"x": ["22", "24"]},
 			type="integer")
-		self._assertPartialDict({"x": set([22, 24])}, t.getParamDict())
+		self._assertPartialDict({"x": 22}, t.getParamDict())
 		self.assertEqual(len(t.rows), 0)
 
-	def testTypedIntDefaultVal(self):
+	def testTypedIntVal(self):
 		t = self._getTableForInputKey({"x": "22"},
 			type="integer")
-		self._assertPartialDict({"x": set([22])}, t.getParamDict())
+		self._assertPartialDict({"x": 22}, t.getParamDict())
 
 	def testTypedSingle(self):
 		t = self._getTableForInputKey({"x": ["-22"]},
@@ -91,9 +91,8 @@ class InputDDTest(testhelpers.VerboseTest):
 		dd = MS(svcs.InputDescriptor, 
 			grammar=MS(svcs.ContextGrammar, rowKey="x",
 				inputKeys=[
-					MS(svcs.InputKey, name="x", type="integer"),
-					MS(svcs.InputKey, name="y", type="text",
-						values=MS(rscdef.Values, default="uhu")),
+					MS(svcs.InputKey, name="x", type="integer", multiplicity="multiple"),
+					MS(svcs.InputKey, name="y", type="text", content_="uhu"),
 					MS(svcs.InputKey, name="z", type="integer")]))
 		res = rsc.makeData(dd, 
 			forceSource={"x": range(4), "y": None, "z": range(2)})
@@ -124,7 +123,7 @@ class AutoInputDDTest(testhelpers.VerboseTest):
 	resources = [("resPars", _AutoBuiltParameters())]
 
 	def testInteger(self):
-		self.assertEqual(self.resPars["anint"], set([22]))
+		self.assertEqual(self.resPars["anint"], 22)
 
 	def testFloat(self):
 		self.assertEqual(self.resPars["afloat"], -2e-7)
@@ -133,11 +132,49 @@ class AutoInputDDTest(testhelpers.VerboseTest):
 		self.assertEqual(self.resPars["adouble"], -2)
 
 	def testText(self):
-		self.assertEqual(self.resPars["atext"], set(["foo", "bar"]))
+		self.assertEqual(self.resPars["atext"], "foo")
 
 	def testDate(self):
-		self.assertEqual(self.resPars["adate"], 
-			set([datetime.date(2013, 5, 4), datetime.date(2005, 2, 2)]))
+		self.assertEqual(self.resPars["adate"], datetime.date(2013, 5, 4))
+
+
+class InputTableGenTest(testhelpers.VerboseTest):
+	def testDefaulting(self):
+		service = testhelpers.getTestRD("cores").getById("cstest")
+		it = service._makeInputTableFor("form", svcs.PreparsedInput({
+				"hscs_pos": "Aldebaran", "hscs_SR": "0.25"}))
+		self.assertEqual(it.getParamDict(), {
+			'rV': '-100 .. 100', 'hscs_sr': 0.25, 'mag': None, 
+			'hscs_pos': 'Aldebaran'})
+
+	def testInvalidLiteral(self):
+		service = testhelpers.getTestRD("cores").getById("cstest")
+		try:
+			it = service._makeInputTableFor("form", {
+				"hscs_pos": "Aldebaran", "hscs_sr": "a23"})
+		except base.ValidationError, ex:
+			self.assertEqual(ex.colName, "hscs_sr")
+			return
+		raise AssertionError("ValidationError not raised")
+
+	def testEnumeratedNoDefault(self):
+		service = testhelpers.getTestRD("cores").getById("enums")
+		it = service._makeInputTableFor("form", {})
+		self.assertEqual(it.getParamDict(), {'a': None, 'b': None,
+			'c':[1]})
+
+	def testCaseFolding(self):
+		service = testhelpers.getTestRD("cores").getById("enums")
+		it = service._makeInputTableFor("form", {"B": 2})
+		self.assertEqual(it.getParamDict(), {'a': None, 'b': [2],
+			'c':[1]})
+
+	def testEnumeratedBadValues(self):
+		service = testhelpers.getTestRD("cores").getById("enums")
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Field b: [3] is not a valid value for b",
+			service._makeInputTableFor,
+			("form", {'b':"3"}))
 
 
 class PlainDBServiceTest(testhelpers.VerboseTest):
@@ -150,70 +187,81 @@ class PlainDBServiceTest(testhelpers.VerboseTest):
 
 	def testEmptyQuery(self):
 		svc = self.rd.getById("basicprod")
-		res = svc.runFromDict({})
+		res = svc.run("get", {})
 		namesFound = set(r["object"] for r in res.original.getPrimaryTable().rows)
 		self.assert_(set(["gabriel", "michael"])<=namesFound)
 
 	def testOneParameterQuery(self):
 		svc = self.rd.getById("basicprod")
-		res = svc.runFromDict({"accref": "~ *a.imp"})
+		res = svc.run("form", {"accref": ["~ *a.imp"]})
 		namesFound = set(r["object"] for r in res.original.getPrimaryTable().rows)
 		self.assert_("gabriel" in namesFound)
 		self.assert_("michael" not in namesFound)
 
 	def testTwoParametersQuery(self):
 		svc = self.rd.getById("basicprod")
-		res = svc.runFromDict({"accref": "~ *a.imp", "embargo": "< 2000-03-03"})
+		res = svc.run("form", {"accref": "~ *a.imp", "embargo": "< 2000-03-03"})
 		namesFound = set(r["object"] for r in res.original.getPrimaryTable().rows)
 		self.assert_("gabriel" not in namesFound)
 		self.assert_("michael" not in namesFound)
 
 
-class ComputedServiceTest(testhelpers.VerboseTest):
-	"""tests a simple service with a computed core.
-	"""
-	def setUp(self):
-		self.rd = testhelpers.getTestRD("cores.rd")
-
+class _DatafieldsTestMixin(object):
 	def assertDatafields(self, columns, names):
 		self.assertEqual(len(columns), len(names), "Wrong number of columns"
 			" returned, expected %d, got %s"%(len(names), len(columns)))
 		for c, n in zip(columns, names):
 			self.assertEqual(c.name, n, "Got column %s instead of %s"%(c.name, n))
 
+
+
+class VerblevelBasicTest(testhelpers.VerboseTest, _DatafieldsTestMixin):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		inData, expected = sample
+		svc = testhelpers.getTestRD("cores.rd").getById("basiccat")
+		resTable = svc.run("form", inData).original.getPrimaryTable()
+		self.assertDatafields(resTable.tableDef.columns, expected)
+
+	samples = [
+		({"a": "xy", "b": "3", "c": "4", "d": "5",
+			"e": "2005-10-12T12:23:01", "verbosity": "2", "_FORMAT": "VOTable"},
+			["a"]),
+		({"a": "xy", "b": "3", "c": "4", "d": "5",
+			"e": "2005-10-12T12:23:01", "VERB": "1", "_FORMAT": "VOTable"},
+			["a", "b"]),
+		({"a": "xy", "b": "3", "c": "4", "d": "5",
+			"e": "2005-10-12T12:23:01", "_VERB": "2", "_FORMAT": "VOTable"},
+			["a", "b", "c", "d"]),
+		({"a": "xy", "b": "3", "c": "4", "d": "5",
+			"e": "2005-10-12T12:23:01", "_VERB": "3", "_FORMAT": "VOTable"},
+				["a", "b", "c", "d", "e"]),
+		({"a": "xy", "b": "3", "c": "4", "d": "5",
+			"e": "2005-10-12T12:23:01", "_VERB": "HTML", "_FORMAT": "VOTable"},
+			["a", "b", "c", "d", "e"]),
+		({"a": "xy", "b": "3", "c": "4", "d": "5",
+			"e": "2005-10-12T12:23:01", "_FORMAT": "VOTable"},
+			["a", "b", "c", "d"])]
+
+
+class ComputedServiceTest(testhelpers.VerboseTest, _DatafieldsTestMixin):
+	"""tests a simple service with a computed core.
+	"""
+	def setUp(self):
+		self.rd = testhelpers.getTestRD("cores.rd")
+
 	def testStraightthrough(self):
 		svc = self.rd.getById("basiccat")
-		res = svc.runFromDict({"a": "xy", "b": "3", "c": "4", "d": "5",
+		res = svc.run("form", {"a": "xy", "b": "3", "c": "4", "d": "5",
 			"e": "2005-10-12T12:23:01"})
-		self.assertEqual(res.original.getPrimaryTable().rows, [{'a': u'xy', 'c': 4, 'b': 3, 
-			'e': datetime.datetime(2005, 10, 12, 12, 23, 1), 'd': 5}])
-
-	def testVerblevelBasic(self):
-		svc = self.rd.getById("basiccat")
-		res = svc.runFromDict({"a": "xy", "b": "3", "c": "4", "d": "5",
-			"e": "2005-10-12T12:23:01", "verbosity": "2", "_FORMAT": "VOTable"})
-		self.assertDatafields(res.original.getPrimaryTable().tableDef.columns, ["a"])
-		res = svc.runFromDict({"a": "xy", "b": "3", "c": "4", "d": "5",
-			"e": "2005-10-12T12:23:01", "VERB": "1", "_FORMAT": "VOTable"})
-		self.assertDatafields(res.original.getPrimaryTable().tableDef.columns, ["a", "b"])
-		res = svc.runFromDict({"a": "xy", "b": "3", "c": "4", "d": "5",
-			"e": "2005-10-12T12:23:01", "_VERB": "2", "_FORMAT": "VOTable"})
-		self.assertDatafields(res.original.getPrimaryTable().tableDef.columns, ["a", "b", "c", "d"])
-		res = svc.runFromDict({"a": "xy", "b": "3", "c": "4", "d": "5",
-			"e": "2005-10-12T12:23:01", "_VERB": "3", "_FORMAT": "VOTable"})
-		self.assertDatafields(res.original.getPrimaryTable().tableDef.columns, 
-			["a", "b", "c", "d", "e"])
-		res = svc.runFromDict({"a": "xy", "b": "3", "c": "4", "d": "5",
-			"e": "2005-10-12T12:23:01", "_VERB": "HTML", "_FORMAT": "VOTable"})
-		self.assertDatafields(res.original.getPrimaryTable().tableDef.columns, 
-			["a", "b", "c", "d", "e"])
-		res = svc.runFromDict({"a": "xy", "b": "3", "c": "4", "d": "5",
-			"e": "2005-10-12T12:23:01", "_FORMAT": "VOTable"})
-		self.assertDatafields(res.original.getPrimaryTable().tableDef.columns, ["a", "b", "c", "d"])
+		self.assertEqual(res.original.getPrimaryTable().rows, [
+			{'a': u'xy', 'c': 4, 'b': 3, 
+				'e': datetime.datetime(2005, 10, 12, 12, 23, 1), 'd': 5}])
 
 	def testMappedOutput(self):
 		svc = self.rd.getById("convcat")
-		res = svc.runFromDict({"a": "xy", "b": "3", "c": "4", "d": "5",
+		res = svc.run("form", {"a": "xy", "b": "3", "c": "4", "d": "5",
 			"e": ["2005-10-12T12:23:01"]})
 		self.assertDatafields(res.original.getPrimaryTable().tableDef.columns, 
 			["a", "b", "d"])
@@ -223,7 +271,7 @@ class ComputedServiceTest(testhelpers.VerboseTest):
 
 	def testAdditionalFields(self):
 		svc = self.rd.getById("convcat")
-		res = svc.runFromDict({"a": ["xy"], "b": "3", "c": "4", "d": "5",
+		res = svc.run("form", {"a": ["xy"], "b": "3", "c": "4", "d": "5",
 			"e": "2005-10-12T12:23:01", "_ADDITEM":["c", "e"]})
 		self.assertDatafields(res.original.getPrimaryTable().tableDef.columns, 
 			["a", "b", "d", "c", "e"])
@@ -363,38 +411,6 @@ class InputFieldSelectionTest(testhelpers.VerboseTest):
 				('SR', 'real'), ('MAXREC', 'integer'),
 				("mag", "pql-float"), (u'rV', u'vexpr-float')])
 
-
-class InputTableGenTest(testhelpers.VerboseTest):
-	def testDefaulting(self):
-		service = testhelpers.getTestRD("cores").getById("cstest")
-		it = service._makeInputTableFor("form", {
-				"hscs_pos": "Aldebaran", "hscs_sr": "0.25"})
-		self.assertEqual(it.getParamDict(), {
-			u'rV': u'-100 .. 100', u'hscs_sr': 0.25, u'mag': None, 
-			u'hscs_pos': u'Aldebaran'})
-
-	def testInvalidLiteral(self):
-		service = testhelpers.getTestRD("cores").getById("cstest")
-		try:
-			it = service._makeInputTableFor("form", {
-				"hscs_pos": "Aldebaran", "hscs_sr": "a23"})
-		except base.ValidationError, ex:
-			self.assertEqual(ex.colName, "hscs_sr")
-			return
-		raise AssertionError("ValidationError not raised")
-
-	def testEnumeratedNoDefault(self):
-		service = testhelpers.getTestRD("cores").getById("enums")
-		it = service._makeInputTableFor("form", {})
-		self.assertEqual(it.getParamDict(), {'a': None, 'b': None,
-			'c':1})
-
-	def testEnumeratedBadValues(self):
-		service = testhelpers.getTestRD("cores").getById("enums")
-		self.assertRaisesWithMsg(base.ValidationError,
-			"'3' is not a valid value for b",
-			service._makeInputTableFor,
-			("form", {'b':"3"}))
 
 
 class GroupingTest(testhelpers.VerboseTest):

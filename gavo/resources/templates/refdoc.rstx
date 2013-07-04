@@ -684,7 +684,8 @@ Within DaCHS, a request is processed as follows:
    structure is adapted if the input actually is a table.
 6) The renderer formats the SvcResult according to its wishes.
 
-TBC: multiplicity
+TBC: multiplicity, param values as defaults,
+
 
 Writing Custom Cores
 ====================

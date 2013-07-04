@@ -240,7 +240,7 @@ class CondDesc(base.Structure):
 		if not self.required and not keysFound:
 			return False
 		if self.required:
-			raise base.ValidationError("A value is necessary here", 
+			raise base.ValidationError("is mandatory but was not provided.", 
 				colName=keysMissing[0].name)
 
 		# we're optional, but a value was given and others are missing

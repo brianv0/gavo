@@ -364,8 +364,8 @@ class SIAPTestResponse(testhelpers.TestResource):
 
 	def make(self, deps):
 		svc = testhelpers.getTestRD().getById("pgsiapsvc")
-		data = svc.runFromDict({"POS": "0, 0", "SIZE": "180,180"}, 
-			renderer="siap.xml").original
+		data = svc.run("siap.xml", {"POS": "0, 0", "SIZE": "180,180"}, 
+			).original
 		vot = votablewrite.getAsVOTable(data,
 			tablecoding="td", suppressNamespace=True)
 		return vot, testhelpers.getXMLTree(vot)

@@ -129,6 +129,10 @@ class QueryMeta(dict):
 		"""
 		args = {}
 		for key, value in nevowArgs.iteritems():
+			# defense against broken legacy code: listify if necessay
+			if not isinstance(value, list):
+				value = [value]
+
 			if key in cls.listKeys:
 				args[key] = value
 			else:

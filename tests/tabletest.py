@@ -73,7 +73,7 @@ class UniqueForcedTest(tresc.TestWithDBConnection):
 			[{"x": "aba", "y": "bab"}, {"x": "xyx", "y": "yxy"}],
 			connection=self.conn, create=True)
 		self.assertRaisesWithMsg(base.ValidationError, 
-			"Differing rows for primary key ('aba',); bax vs. bab",
+			"Field y: Differing rows for primary key ('aba',); bax vs. bab",
 			t.addRow, ({"x": "aba", "y": "bax"},))
 
 	def testDrop(self):

@@ -53,7 +53,7 @@ class JpegRenderer(formrender.FormMixin, grend.ServiceBasedPage,
 			args = inevow.IRequest(ctx).args
 			args.setdefault("_ADDITEM", []).append(
 						data["plotField"])
-		return self.runServiceWithContext(data, ctx
+		return self.runServiceWithFormalData(data, ctx
 			).addCallback(self._formatOutput, ctx)
 
 	def submitAction(self, ctx, form, data):

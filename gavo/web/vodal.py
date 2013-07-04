@@ -36,54 +36,6 @@ MS = base.makeStruct
 __docformat__ = "restructuredtext en"
 
 
-class CaseSemisensitiveDict(dict):
-	"""A dictionary allowing case-insensitive access to its content.
-
-	This is used for DAL renderers which, unfortunately, are supposed
-	to be case insensitive.  Since case insensitivity is at least undesirable
-	for service-specific keys, we go a semi-insenstitve approach here:
-	First, we try literal matches, if that does not work, we try matching
-	against an all-uppercase version.
-
-	Name clashes resulting from different names being mapped to the
-	same normalized version are handled in some random way.  Don't do this.
-	And don't rely on case normalization if at all possible.
-
-	Only strings are allowed as keys here.  This class is not concerned
-	with the values.
-	>>> d = CaseSemisensitiveDict({"a": 1, "A": 2, "b": 3})
-	>>> d["a"], d["A"], d["b"], d["B"]
-	(1, 2, 3, 3)
-	>>> d["B"] = 9; d["b"], d["B"]
-	(3, 9)
-	>>> del d["b"]; d["b"], d["B"]
-	(9, 9)
-	"""
-	def __init__(self, *args, **kwargs):
-		dict.__init__(self, *args, **kwargs)
-		self.normCased = None
-
-	def __getitem__(self, key):
-		try:
-			return dict.__getitem__(self, key)
-		except KeyError:
-			pass # try again with normalized case.
-		return self._getNormCased()[key.upper()]
-
-	def __setitem__(self, key, value):
-		self.normCased = None
-		dict.__setitem__(self, key, value)
-
-	def __contains__(self, key):
-		return dict.__contains__(self, key) or key.upper() in self._getNormCased()
-
-	def _getNormCased(self):
-		if self.normCased is None:
-			self.normCased = dict((k.upper(), v) 
-				for k, v in self.iteritems())
-		return self.normCased
-
-
 class DALRenderer(grend.ServiceBasedPage):
 	"""is a base class for renderers for the usual IVOA DAL protocols.
 
@@ -128,11 +80,7 @@ class DALRenderer(grend.ServiceBasedPage):
 			).addErrback(self._handleRandomFailure, ctx)
 
 	def _runService(self, ctx):
-		contextData = CaseSemisensitiveDict()
-		for key, val in inevow.IRequest(ctx).args.iteritems():
-			if val:
-				contextData[key] = val[-1]
-		return self.runServiceWithContext(contextData, ctx
+		return self.runService(inevow.IRequest(ctx).args
 			).addCallback(self._formatOutput, ctx)
 
 	def _writeErrorTable(self, ctx, errmsg, code=200):
@@ -432,7 +380,8 @@ class RegistryRenderer(grend.ServiceBasedPage):
 		# Make a robust (unchecked) pars dict for error rendering; real
 		# parameter checking happens in getPMHResponse
 		inData = {"args": inevow.IRequest(ctx).args}
-		return self.runServiceWithContext(inData, ctx
+		return self.runService(inData, 
+			queryMeta=svcs.QueryMeta.fromNevowArgs(inData["args"])
 			).addCallback(self._renderResponse, ctx
 			).addErrback(self._renderError, ctx, inData["args"])
 

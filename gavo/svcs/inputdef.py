@@ -13,15 +13,10 @@ import itertools
 from gavo import base
 from gavo import grammars
 from gavo import rscdef
+from gavo import utils
 from gavo.rscdef import column
 
 MS = base.makeStruct
-
-
-# these are the types for which by default, no sequences are supported
-# (basically, any for which set membership makes little or no sense)
-_SINGLETON_TYPES = set([
-	"real", "double precision", "boolean"])
 
 
 class InputKey(column.ParamBase):
@@ -55,15 +50,17 @@ class InputKey(column.ParamBase):
 		description="Is this input key part of a standard interface for"
 		" registry purposes?",
 		copyable=True)
-	_multiplicity = base.UnicodeAttribute("multiplicity", default="multiple",
+	_multiplicity = base.UnicodeAttribute("multiplicity", default=None,
 		copyable=True,
 		description="Set"
 			" this to single to have an atomic value (chosen at random"
 			" if multiple input values are given),"
 			" forced-single to have an atomic value"
 			" and raise an exception if multiple values come in, or"
-			" multiple to receive sets.  On the form renderer, this is"
-			" ignored, and the values are what nevow formal passes in.")
+			" emit to receive lists.  On the form renderer, this is"
+			" ignored, and the values are what nevow formal passes in."
+			" If not given, it is single unless there is a values element with"
+			" options, in which case it's multiple.")
 
 	# Don't validate meta for these -- while they are children
 	# of validated structures (services), they don't need any
@@ -82,6 +79,12 @@ class InputKey(column.ParamBase):
 		self.scaling = None
 		if self.inputUnit:
 			self.scaling = base.computeConversionFactor(self.inputUnit, self.unit)
+	
+		if self.multiplicity is None:
+			self.multiplicity = "single"
+			if self.isEnumerated():
+				# these almost always want lists returned.
+				self.multiplicity = "multiple"
 	
 	def onParentComplete(self):
 		if self.parent and hasattr(self.parent, "required"):
@@ -105,8 +108,8 @@ class InputKey(column.ParamBase):
 		instance = cls(None)
 		instance.feedObject("original", column)
 
-		if column.type in _SINGLETON_TYPES:
-			instance.feedObject("multiplicity", "single")
+		if column.isEnumerated():
+			instance.feedObject("multiplicity", "multiple")
 
 		for k,v in kwargs.iteritems():
 			instance.feed(k, v)
@@ -159,18 +162,23 @@ class InputTable(rscdef.TableDef):
 class ContextRowIterator(grammars.RowIterator):
 	"""is a row iterator over "contexts", i.e. single dictionary-like objects.
 	"""
+	def __init__(self, grammar, sourceToken, **kwargs):
+		grammars.RowIterator.__init__(self, grammar,
+			utils.CaseSemisensitiveDict(sourceToken),
+			**kwargs)
+
 	def _completeRow(self, rawRow):
+		caseNormalized = dict((k.lower(),v) for k, v in rawRow.iteritems())
 		procRow = {}
+
 		for ik in self.grammar.inputTable.params:
 			if ik.name in rawRow:
 				val = rawRow[ik.name]
 			else:
 				val = self.grammar.defaults.get(ik.name, None)
 
-			if val is not None:
-				if not isinstance(val, list):
-					val = [val]
-				val = set(val)
+			if val is not None and not isinstance(val, list):
+				val = [val]
 
 			procRow[ik.name] = val
 
@@ -236,6 +244,10 @@ class ContextGrammar(grammars.Grammar):
 	corresponding to the source dictionary possibly completed with
 	defaults, where non-requried input keys get None defaults where not
 	given.  Missing required parameters yield errors.
+
+	Since most VO protocols require case-insensitive matching of parameter
+	names, matching of input key names and the keys of the input dictionary
+	is attempted first literally, then disregarding case.
 	"""
 	name_ = "contextGrammar"
 
@@ -261,7 +273,8 @@ class ContextGrammar(grammars.Grammar):
 					" must be given in a context grammar")
 			else:
 				if self.rowKey:
-					self.inputKeys = self.inputTable.columns
+					self.inputKeys = [InputKey.fromColumn(c) 
+						for c in self.inputTable.columns]
 				else:
 					self.inputKeys = self.inputTable.params
 
@@ -280,14 +293,14 @@ class ContextGrammar(grammars.Grammar):
 		for ik in self.iterInputKeys():
 			if not ik.required:
 				self.defaults[ik.name] = None
-			if ik.values and ik.values.default is not None:
-				self.defaults[ik.name] = ik.values.default
+			if ik.value is not None:
+				self.defaults[ik.name] = ik.value
 		self._onElementCompleteNext(ContextGrammar)
 
 	def iterInputKeys(self):
 		for ik in self.inputKeys:
 			yield ik
-	
+
 
 _OPTIONS_FOR_MULTIS = {
 	"forced-single": ", single=True, forceUnique=True",
@@ -309,8 +322,7 @@ def makeAutoParmaker(inputTable):
 			_OPTIONS_FOR_MULTIS[par.multiplicity])
 		maps.append(MS(rscdef.MapRule, dest=par.name, content_=makeValue))
 
-	return MS(rscdef.ParmakerDef, maps=maps, 
-		id="Generated Parmaker for %s"%inputTable.id)
+	return MS(rscdef.ParmakerDef, maps=maps, id="parameter parser")
 
 
 class InputDescriptor(rscdef.DataDescriptor):

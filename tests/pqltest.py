@@ -134,19 +134,19 @@ class PQLClausesTest(testhelpers.VerboseTest):
 class PQLPositionsTest(testhelpers.VerboseTest):
 	def testNoStep(self):
 		self.assertRaisesWithMsg(api.ValidationError,
-			"Ranges are not allowed as cone centers",
+			"Field POS: Ranges are not allowed as cone centers",
 			pql.PQLPositionPar.fromLiteral("12,12/14", "POS").getConeSQL,
 			("POS", {}, 0.1))
 
 	def testRequiresTwo(self):
 		self.assertRaisesWithMsg(api.ValidationError,
-			"PQL position values must be lists of length divisible by 2.",
+			"Field POS: PQL position values must be lists of length divisible by 2.",
 			pql.PQLPositionPar.fromLiteral("12", "POS").getConeSQL,
 			("POS", {}, 0.1))
 	
 	def testWhackoFrameRejected(self):
 		self.assertRaisesWithMsg(api.ValidationError,
-			"Cannot match against coordinates given in WHACKO frame",
+			"Field POS: Cannot match against coordinates given in WHACKO frame",
 			pql.PQLPositionPar.fromLiteral("12,13;WHACKO", "POS").getConeSQL,
 			("POS", {}, 0.1))
 	

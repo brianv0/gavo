@@ -80,6 +80,17 @@ def adaptTable(origTable, newColumns):
 	return rsc.wrapTable(newTable, rdSource=origTable.tableDef)
 
 
+class PreparsedInput(dict):
+	"""a sentinel class signalling to the service that its input already
+	is parsed.
+
+	This is for for stuff coming from nevow formal rather than request.args,
+	and to be fed into service.run.
+
+	Construct with a dictionary.
+	"""
+
+
 class SvcResult(object):
 	"""is a nevow.IContainer that has the result and also makes the
 	input dataset accessible.
@@ -351,8 +362,9 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		if self.outputTable is base.NotGiven:
 			self.outputTable = self.core.outputTable
 
-		# store references to cores for renderers
+		# cache all kinds of things expensive to create and parse
 		self._coresCache = {}
+		self._inputDDCache = {}
 		self._loadedTemplates = {}
 			
 	def onElementComplete(self):
@@ -653,80 +665,86 @@ class Service(base.Structure, base.ComputedMetaMixin,
 			self._coresCache[renderer.name] = self.core.adaptForRenderer(renderer)
 		return self._coresCache[renderer.name]
 
+	def getInputDDFor(self, renderer):
+		"""returns an inputDD for renderer.
+
+		If service has a custom inputDD, it will be used for all renderers;
+		otherwise, this is an automatic inputDD for the core's inputTable.
+		"""
+		if self.inputDD:
+			return self.inputDD
+		else:
+			core = self.getCoreFor(renderer)
+			if id(core) not in self._inputDDCache:
+				self._inputDDCache[id(core)] = inputdef.makeAutoInputDD(
+					self.getCoreFor(renderer))
+		return self._inputDDCache[id(core)]
+
 	def getInputKeysFor(self, renderer):
 		"""returns a sequence of input keys, adapted for certain renderers.
 
 		The renderer argument may either be a renderer name, a renderer
 		class or a renderer instance.
-
-		If the service has an inputDD, the result is the context grammar's
-		input keys.  Otherwise, it will be a subset of the core's input
-		fields as determined by the renderer.
 		"""
-		if self.inputDD is not base.NotGiven:
-			return self.inputDD.grammar.inputKeys
-		return self.getCoreFor(renderer).inputTable.params
+		return self.getInputDDFor(renderer).grammar.inputKeys
 
-	def _makeDefaultInputTable(self, renderer, contextData):
-		"""turns contextData into the parameters of the core's input table.
-
-		This is what builds the core input table when the service
-		does not define an inputDD.
+	def _hackInputTableFromPreparsed(self, renderer, args):
+		"""returns an input table from dictionaries as produced by nevow formal.
 		"""
-		res = rsc.TableForDef(self.getCoreFor(renderer).inputTable)
-		missingRequired = []
+		args = utils.CaseSemisensitiveDict(args)
+		inputDD = self.getInputDDFor(renderer)
+		inputTable = rsc.TableForDef(inputDD.makes[0].table)
 
-		for par in res.iterParams():
-			# check "None" to avoid clobbering defaults (querying for NULLs
-			# is a difficult matter anyway)
-			if par.name in contextData and contextData[par.name] is not None:
-				try:
-					par.set(contextData[par.name])
-					_ = par.value  # validate input
-				except ValueError, ex:
-					raise base.ui.logOldExc(base.ValidationError(unicode(ex),
-						par.name))
-			if par.required and par.value is None:
-				missingRequired.append(par.name)
+		for ik in inputDD.grammar.iterInputKeys():
+			if ik.name in args:
+				if args[ik.name] is not None:
+					inputTable.setParam(ik.name, args[ik.name])
+			else:
+				inputTable.setParam(ik.name, ik.value)
 
-		if missingRequired:
-			raise base.ValidationError("Mandatory field(s) %s empty"%
-				", ".join(missingRequired), missingRequired[0])
-		return res
+		return inputTable
 
-	def _makeInputTableFor(self, renderer, contextData):
+	def _makeInputTableFor(self, renderer, args):
 		"""returns an input table for the core, filled from contextData and
 		adapted for renderer.
 		"""
-		if self.inputDD:
-			return rsc.makeData(self.inputDD,
-				parseOptions=rsc.parseValidating, forceSource=contextData
+		if isinstance(args, PreparsedInput) and not self.inputDD:
+			return self._hackInputTableFromPreparsed(renderer, args)
+		else:
+			return rsc.makeData(self.getInputDDFor(renderer),
+				parseOptions=rsc.parseValidating, forceSource=args
 					).getPrimaryTable()
-		return self._makeDefaultInputTable(renderer, contextData)
 
-	def runWithData(self, renderer, contextData, queryMeta):
-		"""runs the service, returning an SvcResult.
+	def _runWithInputTable(self, renderer, inputTable, queryMeta):
+		"""runs the core and formats an SvcResult.
 
-		This is the main entry point.  contextData usually is what
-		the nevow machinery delivers or simply a dictionary, but if
-		service has an inputDD, it can be anything the grammar can
-		grok.
+		This is an internal method.
 		"""
-		inputTable = self._makeInputTableFor(renderer, contextData)
 		coreRes = self.getCoreFor(renderer).run(self, inputTable, queryMeta)
 		res = SvcResult(coreRes, inputTable, queryMeta, self)
 		return res
 
-	def runFromDict(self, contextData, renderer="form", queryMeta=None):
-		"""runs the service with a dictionary input and within a given renderer.
+	def run(self, renderer, args, queryMeta=None):
+		"""runs the service, returning an SvcResult.
 
-		This is mainly a convenience method for unit tests, supplying some
-		defaults.
+		This is the main entry point for protocol renderers; args is
+		a dict of lists as provided by request.args.
+
+		Form-based renderers use runWithFormalData instead, bypassing the
+		ContextGrammar parsing (as the equivalent of that has already been
+		done by nevow formal).
+
+		Pass in queryMeta if convenient or if args is not simply request.args
+		(but, e.g., nevow formal data).  Otherwise, it will be constructed
+		from args.
 		"""
 		if queryMeta is None:
-			queryMeta = common.QueryMeta(contextData)
-		return self.runWithData(renderer, contextData, queryMeta)
-		
+			queryMeta = common.QueryMeta.fromNevowArgs(args)
+
+		return self._runWithInputTable(renderer,
+			self._makeInputTableFor(renderer, args),
+			queryMeta)
+
 
 	#################### meta and such
 

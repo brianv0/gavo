@@ -35,7 +35,7 @@ from gavo.svcs.renderers import RENDERER_REGISTRY, getRenderer
 
 from gavo.svcs.runner import runWithData
 
-from gavo.svcs.service import (Service, SvcResult, Publication)
+from gavo.svcs.service import (Service, SvcResult, Publication, PreparsedInput)
 
 from gavo.svcs.standardcores import (DBCore, CondDesc,
 	mapDBErrors)

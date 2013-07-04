@@ -58,7 +58,7 @@ class SimpleParseTest(testhelpers.VerboseTest):
 		with _inputFile("testInput.txt", "xxxxxabc, xxxx\n"):
 			dd = self._getDD()
 			self.assertRaisesWithMsg(base.ValidationError,
-				"While building x in bla_foo: invalid literal for int()"
+				"Field x: While building x in bla_foo: invalid literal for int()"
 					" with base 10: 'x'",
 				rsc.makeData, (dd,))
 	
@@ -73,7 +73,7 @@ class SimpleParseTest(testhelpers.VerboseTest):
 				'<make table="foo" rowmaker="bla_foo"/></data>')
 			rsc.makeData(dd, rsc.parseNonValidating)
 			self.assertRaisesWithMsg(base.ValidationError,
-				"Column y missing",
+				"Field y: Column y missing",
 				rsc.makeData, (dd, rsc.parseValidating))
 
 	def testNonExistingSource(self):

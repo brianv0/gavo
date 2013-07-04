@@ -246,10 +246,10 @@ def getfirst(args, key, default=Undefined):
 	1
 	>>> getfirst({'x': []}, 'x')
 	Traceback (most recent call last):
-	ValidationError: Missing mandatory parameter x
+	ValidationError: Field x: Missing mandatory parameter x
 	>>> getfirst({'x': []}, 'y')
 	Traceback (most recent call last):
-	ValidationError: Missing mandatory parameter y
+	ValidationError: Field y: Missing mandatory parameter y
 	>>> print(getfirst({'x': []}, 'y', None))
 	None
 	"""
@@ -380,6 +380,57 @@ def rstxToHTML(source, **userOverrides):
 		destination_path=destinationPath,
 		writer_name='html', settings_overrides=overrides)
 	return parts["fragment"]
+
+
+class CaseSemisensitiveDict(dict):
+	"""A dictionary allowing case-insensitive access to its content.
+
+	This is used for DAL renderers which, unfortunately, are supposed
+	to be case insensitive.  Since case insensitivity is at least undesirable
+	for service-specific keys, we go a semi-insenstitve approach here:
+	First, we try literal matches, if that does not work, we try matching
+	against an all-uppercase version.
+
+	Name clashes resulting from different names being mapped to the
+	same normalized version are handled in some random way.  Don't do this.
+	And don't rely on case normalization if at all possible.
+
+	Only strings are allowed as keys here.  This class is not concerned
+	with the values.
+	>>> d = CaseSemisensitiveDict({"a": 1, "A": 2, "b": 3})
+	>>> d["a"], d["A"], d["b"], d["B"]
+	(1, 2, 3, 3)
+	>>> d["B"] = 9; d["b"], d["B"]
+	(3, 9)
+	>>> del d["b"]; d["b"], d["B"]
+	(9, 9)
+	>>> "B" in d, "b" in d, "u" in d
+	(True, True, False)
+	"""
+	def __init__(self, *args, **kwargs):
+		dict.__init__(self, *args, **kwargs)
+		self._normCasedCache = None
+
+	def __getitem__(self, key):
+		try:
+			return dict.__getitem__(self, key)
+		except KeyError:
+			pass # try again with normalized case.
+		return self._normCased[key.upper()]
+
+	def __setitem__(self, key, value):
+		self._normCasedCache = None
+		dict.__setitem__(self, key, value)
+
+	def __contains__(self, key):
+		return dict.__contains__(self, key) or key.upper() in self._normCased
+
+	@property
+	def _normCased(self):
+		if self._normCasedCache is None:
+			self._normCasedCache = dict((k.upper(), v) 
+				for k, v in self.iteritems())
+		return self._normCasedCache
 
 
 ####################### Pyparsing hacks
