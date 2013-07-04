@@ -164,6 +164,10 @@ class HTMLMapperTest(testhelpers.VerboseTest):
 			datetime.date(2001, 9, 9),
 			"2001-09-09",
 			{"xtype": "adql:TIMESTAMP", "arraysize": "*", "unit": ""}),
+		('name="d" type="double precision" displayHint="type=dms,sf=3">',
+			245.3002,
+			"+245 18 00.720",
+			{"unit": "d:m:s"}),
 
 	]
 

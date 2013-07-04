@@ -65,7 +65,7 @@ _registerHTMLMF(_sfMapperFactory)
 def _hmsMapperFactory(colDesc):
 	if colDesc["displayHint"].get("type")!="hms":
 		return
-	colDesc["unit"] = ""
+	colDesc["unit"] = "h:m:s"
 	sepChar = colDesc["displayHint"].get("sepChar", " ")
 	sf = int(colDesc["displayHint"].get("sf", 2))
 	def coder(val):
@@ -80,7 +80,7 @@ _registerHTMLMF(_hmsMapperFactory)
 def _dmsMapperFactory(colDesc):
 	if colDesc["displayHint"].get("type")!="dms":
 		return
-	colDesc["unit"] = ""
+	colDesc["unit"] = "d:m:s"
 	sepChar = colDesc["displayHint"].get("sepChar", " ")
 	sf = int(colDesc["displayHint"].get("sf", 2))
 	def coder(val):
