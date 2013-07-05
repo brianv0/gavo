@@ -661,7 +661,7 @@ time attempts to interpret display hints.
 Building Service Interfaces
 ===========================
 
-Within DaCHS, a request is processed as follows:
+Within DaCHS, an HTTP request is processed as follows:
 
 1) The core is adapted to the renderer; this means that condDescs with
    buildFrom are converted to inputKeys according to the rules of the
@@ -670,13 +670,16 @@ Within DaCHS, a request is processed as follows:
    and notForRenderer inputKeys are selected or deselected
 2) From the core's inputTable, the service builds an input data
    descriptor (unless the service has an inputDD defined already, of
-   course).  Most standard cores only get an input table's parameters
-   (the exception being the computedCore), and hence the automatic
-   inputDD will only have a parmaker.  The inputDD will have a
-   ContextGrammar, which does not yield rows.
+   course).  Most standard cores only take input from an input table's
+   parameters (the exception being the computedCore), and hence the
+   automatic inputDD will only have a parmaker.  The automatic
+   inputDD will parse using ContextGrammar without a rowKey (i.e.,
+   no rows will be produced).  The parmaker within the automatic inputDD
+   parses the input with the default parsers and using the getHTTPPar
+   rowmaker function.
 3) The service will build the input table using its inputDD.  The input
-   is either nevow request.args, mapping each key to a sequence of strings, or
-   a dictionary containing parsed values coming from nevow formal.
+   must be like nevow request.args, mapping each key to a sequence of
+   strings.
 4) The input table is passed to the core, which produces either a table,
    a data instance, or a pair of mime-type and content.
 5) From the core result, an SvcResult is built.  This is relevant when
@@ -684,8 +687,227 @@ Within DaCHS, a request is processed as follows:
    structure is adapted if the input actually is a table.
 6) The renderer formats the SvcResult according to its wishes.
 
-TBC: multiplicity, param values as defaults,
+There is special handling for the form renderer, which does its parsing
+using nevow formal.  For it, the input table is built by just putting
+the values of the dictionary nevow formal produces into the input table
+params.
 
+
+TBD: multiplicity, param values as defaults,
+
+
+Table-based cores
+'''''''''''''''''
+
+You will usually deal with cores querying database tables – dbCore,
+ssapCore, etc.  For these, there should not be a need to define an
+inputDD; the one generated from the condDescs should work fine.
+
+To create simple constraints, just ``buildFrom`` the columns queried::
+
+  <condDesc buildFrom="myColumn"/>
+
+(the names are resolved in the core's queried table).  This pattern has
+the advantage that the concrete parameter style is adapted to the
+renderer – in the web interface, there are vizier-like expressions, in
+protocol interfaces, you get fields understanding expressions as in
+SSAP's "PQL", plus in addition "structured parameters" (like FOO_MIN and
+FOO_MAX) where applicable.
+
+This will generate query fields that work against data as stored in the
+database, with some exceptions (columns containing MJDs will, for
+example, be turned into VizieR-like date expressions for web forms).
+For protocol input, this is, in general, what you want.  In web forms,
+you may want to customize the apprearance, for example, to adapt to
+user's unit preferences.  For this latter use case, there is the
+``inputUnit`` attribute::
+
+    <condDesc>
+      <inputKey original="minDist" inputUnit="arcsec"
+        type="vexpr-float"
+        onlyForRenderer="form"/>
+      <inputKey original="minDist" 
+        type="pql-float"
+        notForRenderer="form"/>
+    </condDesc>
+
+Note how in this case we adapted the types of the input keys to provide
+interfaces suitable to the various renderers.  For HTML forms, we
+recommend one of
+
+* vexpr-float
+* vexpr-date (dates with timestamps in the database)
+* vexpr-mjd (dates with MJD in the database)
+* vexpr-string (though for those, frequently generating options is
+  preferable, see below)
+
+For protocol input, the types available are
+
+* pql-int
+* pql-float
+* pql-string
+* pql-date (where timestamps are in the database; MHD works fine with
+  pql-float since date input is not really desirable for protocol input
+  anyway).
+
+Note that you can, of course, also keep the default types where that
+provides a better interface.  Flag-like integers, for example, are
+classic examples where giving the possible values is preferable to
+allowing parameter expressions.
+
+For object lists and similar, it is frequently desirable to give the
+possible values (unless there are too many of those; these will be
+translated to option lists in forms and to metadata items for protocol
+services and hence be user visible)::
+
+   <condDesc>
+      <inputKey original="source">
+        <values fromdb="source from plc.data"/>
+      </inputKey>
+    </condDesc>
+
+
+All these generate the default SQL, which is equality (or set membership
+for multiple values for a parameter).  To generate custom SQL, give a
+phraseMaker, like this::
+
+   <condDesc>
+      <inputKey original="confirmed" multiplicity="single"/>
+      <phraseMaker>
+        <code>
+          if inPars.get(inputKeys[0].name, False):
+            yield "confirmed"
+        </code>
+      </phraseMaker>
+    </condDesc>
+
+PhraseMakers work like other code embedded in RDs (and thus may have
+setup).  ``inPars`` gives a dictionary of the input parameters as parsed
+by the inputDD according to multiplicity (or as delivered by nevow
+formal – use the ``getHTTPPar`` rowmaker function if there can be input
+with differing multiplicities).  ``inputKeys`` contains a sequence of
+the condDesc's inputKeys.  By using their names as above, your code will
+not break if the parameters are renamed.
+
+PhraseMakers must yield zero or more SQL fragments; multiple SQL
+fragments are joined in conjunctions (i.e., end up in ANDed conditions
+in the WHERE clause).
+
+Since you are dealing with raw SQL here, *never* include material from
+inPars directly in the query strings you return – this would immediately
+let people to SQL injections at least when the inputKey's type is
+string.  Instead, use getSQLKey as in this example::
+
+		<condDesc>
+			<inputKey original="hdwl" multiplicity="single"/>
+			<phraseMaker>
+				<code>
+					ik = inputKeys[0]
+					destRE = "^%s\\.[0-9]*$"%inPars[ik.name]
+					yield "%s ~ (%%(%s)s)"%(ik.name,
+						base.getSQLKey("destRE", destRE, outPars))
+				</code>
+			</phraseMaker>
+		</condDesc>
+
+``getSQLKey`` takes a suggested name, a value and a dictionary, which
+within phraseMakers always is ``outPars``. It will enter value with the
+suggested name as key into outPars or change the suggested name if there
+is a name clash.  The generated name will be returned, and that is what
+is entered in the SQL statement.
+
+The ``outPars`` dictionary is shared between all condDescs entering into
+a query.  Hence, if you do anything with it except passing it to
+``base.getSQLKey``, you're voiding your entire warranty.
+
+Here's how to define a condDesc doing a full text search in a column::
+
+	<condDesc>
+		<inputKey original="source" description="Words from the catalog
+			description, e.g., author names or title words."/>
+		<phraseMaker>
+			<code>
+				yield ("to_tsvector('english', source)"
+					" @@ plainto_tsquery('english', %%(%s)s)")%(
+				base.getSQLKey("source", inPars["source"], outPars))
+			</code>
+		</phraseMaker>
+	</condDesc>
+
+Incidentally, this would go with an index definition like::
+
+	<index columns="source" method="gin"
+		>to_tsvector('english', source)</index>
+
+For the HTML form interface, you can influence the widgets chosen by the
+renderer to some extent.  To get an options list allowing multiple
+selections, say::
+
+		<condDesc>
+			<inputKey original="carsfield" multipliticy="multiple">
+				<values fromdb="carsfield from carsarcs.meta order by carsfield"/>
+			</inputKey>
+		</condDesc>
+
+Use the ``showItems="n"`` attribute of inputKeys to determine how many
+items in the selector are shown at one time.
+
+For special effects, you can group inputKeys.  This will make them show
+up under a common label and in a single line in HTML forms.  Here's an
+example for a simple range selector::
+
+	<condDesc>
+		<inputKey name="el" type="text" tablehead="Element"/>
+
+		<inputKey name="mfmin" tablehead="Min. Mass Fraction \item">
+			<property name="cssClass">a_min</property>
+		</inputKey>
+
+		<inputKey name="mfmax" tablehead="Max. Mass Fraction \item">
+			<property name="cssClass">a_max</property>
+		</inputKey>
+
+		<group name="mf">
+			<description>Mass fraction of an element. You may leave out
+				either upper or lower bound.</description>
+			<property name="label">Mass Fraction between...</property>
+			<property name="style">compact</property>
+		</group>
+	</condDesc>
+
+You will probably want to style the result of this effort using the
+``service`` element's ``customCSS`` property, maybe like this::
+
+  <service...>
+  	<property name="customCSS">
+			input.a_min {width: 5em}
+			input.a_max {width: 5em}
+			input.formkey_min {width: 6em!important}
+			input.formkey_max {width: 6em!important}
+			span.a_min:before { content:" between "; }
+			span.a_max:before { content:" and "; }
+			tr.mflegend td {
+				padding-top: 0.5ex;
+				padding-bottom: 0.5ex;
+				border-bottom: 1px solid black;
+			}
+		</property>
+  </service>
+
+See also the entries on `multi-line input`_, `selecting input fields
+with a widget`_, and `customizing generated SCS conditions`_.
+
+.. _multi-line input: howDoI.html#get-a-multi-line-text-input-for-an-input-key
+.. _selecting input fields with a widget: howDoI.html#make-an-input-widget-to-select-which-columns-appear-in-the-output-table
+.. _customizing generated SCS conditions: howDoI.html#change-the-query-issued-on-scs-queries
+
+TBD: Say something about required.  Do we even want to mention
+widgetFactory?
+
+Formatting the output
+'''''''''''''''''''''
+
+TBD
 
 Writing Custom Cores
 ====================

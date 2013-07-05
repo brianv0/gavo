@@ -210,8 +210,8 @@ class Values(base.Structure):
 		" i.e., you can and should choose null values independently of your"
 		" your source.  Again, for reals, floats and (mostly) text you probably"
 		" do not want to do this.", copyable=True)
-	_multiOk = BooleanAttribute("multiOk", False, "Allow selection of"
-		" multiple options", copyable=True)
+	_multiOk = BooleanAttribute("multiOk", False, "Deprecated, use"
+		" multiplicity=multiple instead.", copyable=True)
 	_fromDB = ActionAttribute("fromdb", "_evaluateFromDB", description=
 		"A query fragment returning just one column to fill options from (will"
 		" add to options if some are given).  Do not write SELECT or anything,"
