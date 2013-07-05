@@ -464,7 +464,7 @@ def adaptInputKey(inputKey):
 	if inputKey.type=='spoint':
 		raise base.Replace(makeConeSearchFor(inputKey))
 	if inputKey.xtype=="mjd":
-		return inputKey.change(type="vexpr-mjd")
+		return inputKey.change(type="vexpr-mjd", unit="")
 
 	try:
 		return inputKey.change(
