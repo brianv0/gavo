@@ -6,18 +6,20 @@ them can be passed in via the solverParameters argument to getWCSFieldsFor,
 a dictionary with keys including:
 
 indices
-  (no default; astrometry.net can guess indices from the scales) --
-  the file names from anet's index directory you want to have used.
+  (default: "index-*.fits", meaning all indices in your default index dir)
+  The file names from anet's index directory you want to have used.
+  glob patterns are expanded, but no recursion takes place.
+
   This could be something like::
   
-    ["index-207.fits", "index-208.fits", "index-209.fits"]
+    ["index-4211.fits", "index-4210.fits", "index-4209.fits"]
   
   for largeish images or::
 
-    ["index-200-%02d.fits"%i for i in range(12)]
+    ["index-4203-*.fits", "index-4202-*.fits"]
   
   for small ones.  You can also give absolute path names for custom
-	(i.e., non astrometry.net-provided) indices.
+	indices that live, e.g., in your resource directory.
 
 total_timelimit
   (defaults to 600) -- number of seconds after which the anet run
@@ -52,6 +54,7 @@ plots
 
 from __future__ import with_statement
 
+import glob
 import gzip
 import os
 import shutil
@@ -234,7 +237,9 @@ def _solveField(fName, solverParameters, sexControl, objectFilter,
 	if "indices" in solverParameters:
 		with open("backend.cfg", "w") as backendCfg:
 			for indF in solverParameters["indices"]:
-				backendCfg.write("index %s\n"%os.path.join(anetIndexPath, indF))
+				fullPath = os.path.join(anetIndexPath, indF)
+				for fName in glob.glob(fullPath):
+					backendCfg.write("index %s\n"%fName)
 			backendCfg.write("inparallel")
 		args.extend(["--backend-config", "backend.cfg"])
 

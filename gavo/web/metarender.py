@@ -523,7 +523,7 @@ class RDInfoPage(grend.CustomTemplateMixin, grend.ResourceBasedPage):
 			key=lambda s: base.getMetaText(s, "title", default=s.id))
 	
 	def data_tables(self, ctx, data):
-		return sorted((t for t in self.rd.tables if t.onDisk),
+		return sorted((t for t in self.rd.tables if t.onDisk and not t.temporary),
 			key=lambda t: t.id)
 
 	def data_clientRdId(self, ctx, data):
