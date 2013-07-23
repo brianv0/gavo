@@ -192,7 +192,7 @@ class ProcDef(base.Structure, base.RestrictionMixin):
 		"The type of the procedure definition.  The procedure applications"
 		" will in general require certain types of definitions.",
 		validValues=["t_t", "apply", "rowfilter", "sourceFields", "mixinProc",
-			"phraseMaker"], 
+			"phraseMaker", "descriptorGenerator"], 
 			copyable=True,
 		strip=True)
 	_original = base.OriginalAttribute()
@@ -240,7 +240,7 @@ class ProcApp(ProcDef):
 	_name = base.UnicodeAttribute("name", default=base.NotGiven,
 		description="A name of the proc.  ProcApps compute their (python)"
 		" names to be somwhat random strings.  Set a name manually to"
-		" receive easier decipherable error messages.  If you do that,"
+		" receive more easily decipherable error messages.  If you do that,"
 		" you have to care about name clashes yourself, though.", strip=True)
 
 	requiredType = None

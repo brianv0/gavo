@@ -12,7 +12,9 @@ from gavo.helpers import testhelpers
 
 from gavo import api
 from gavo import base
+from gavo import rscdef
 from gavo import svcs
+from gavo.protocols import datalink
 from gavo.protocols import products
 from gavo.utils import fitstools
 from gavo.web import producttar
@@ -268,6 +270,23 @@ class MangledFITSProductsTest(testhelpers.VerboseTest):
 #	def testCutoutFITS(self):
 #		prod = products.getProductForRAccref("data/ex.fits?ra=168.24389&dec=22.21526&sra=0.0085&sdec=0.0142")
 #		open("zw.fits", "w").write("".join(prod.iterData()))
+
+
+class DatalinkElementTest(testhelpers.VerboseTest):
+	resources = [("prodtestTable", tresc.prodtestTable)]
+
+	def testStandardDescGenWorks(self):
+		ivoid = rscdef.getStandardPubDID(
+			os.path.join(base.getConfig("inputsDir"), 
+				"data/a.imp"))
+		dg = base.parseFromString(datalink.DescriptorGenerator,
+			'<descriptorGenerator procDef="//products#fromStandardPubDID"/>'
+			).compile(self)
+		res = dg(ivoid, {})
+		self.assertEqual(res.accref, "data/a.imp")
+		self.assertEqual(res.owner, "X_test")
+		self.assertEqual(res.mime, "text/plain")
+		self.assertEqual(res.accessPath, "data/a.imp")
 
 if __name__=="__main__":
 	testhelpers.main(RaccrefTest)

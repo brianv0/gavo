@@ -308,6 +308,23 @@ machinery -->
 		<column name="sdec"/>
 	</table>
 
+	<procDef type="descriptorGenerator" id="fromStandardPubDID">
+		<doc>This descriptor generator builds a datalink
+		ProductDescriptor when the PubDID has been built by getStandardsPubDID
+		(i.e., the path part of the IVORN is a tilda followed by the 
+		products table accref).
+		</doc>
+		<setup>
+			<code>
+				from gavo.protocols import datalink
+			</code>
+		</setup>
+		<code>
+			return datalink.ProductDescriptor.fromAccref(
+				"/".join(pubdid.split("/")[4:]))
+		</code>
+	</procDef>
+
 	<service id="p" core="core" allowed="get, form">
 		<meta name="description">The main product deliverer</meta>
 	</service>

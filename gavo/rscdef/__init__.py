@@ -14,7 +14,8 @@ from gavo.rscdef.column import (Column, Option, Values, makeOptions,
 	Param)
 
 from gavo.rscdef.common import (RDAttribute, ResdirRelativeAttribute,
-	ColumnListAttribute, NamePathAttribute, ColumnList, IVOMetaMixin)
+	ColumnListAttribute, NamePathAttribute, ColumnList, IVOMetaMixin,
+	getStandardPubDID, getInputsRelativePath)
 
 from gavo.rscdef.dddef import (DataDescriptor, Make,
 	SourceSpec)

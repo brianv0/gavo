@@ -23,7 +23,7 @@ from gavo.utils.codetricks import (silence, ensureExpression, compileFunction,
 	addDefaults, iterDerivedClasses, iterDerivedObjects, iterConsecutivePairs,
 	importModule, loadInternalObject, printFrames, memoizeOn, sandbox,
 	in_dir, memoizedMethod, getTracebackAsString,
-	Infimum, Supremum)
+	Infimum, Supremum, NullObject)
 
 from gavo.utils.excs import *
 

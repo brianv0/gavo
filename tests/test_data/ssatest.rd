@@ -85,7 +85,26 @@
 			</rowmaker>
 		</make>
 	</data>
-	
+
+	<data id="test_macros">
+		<!-- some scaffolding to test SSA-related macros; expand as required;
+		no disk table is created here. -->
+		<sources pattern="data/*.ssatest"/>
+		<keyValueGrammar>
+			<rowfilter procDef="//products#define">
+				<bind name="table">"test.junk"</bind>
+			</rowfilter>
+		</keyValueGrammar>
+		<make>
+			<table id="junk">
+				<column name="pubDID" type="text"/>
+			</table>
+			<rowmaker idmaps="*">
+				<map key="pubDID">\standardPubDID</map>
+			</rowmaker>
+		</make>
+	</data>
+
 	<table id="spectrum">
 		<mixin ssaTable="hcdtest">//ssap#sdm-instance</mixin>
 	</table>

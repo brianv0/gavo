@@ -442,3 +442,38 @@ def replaceRMKAt(src):
 	there and in procApps).
 	"""
 	return _atPattern.sub(r'vars["\1"]', src)
+
+
+@utils.document
+def getStandardPubDID(absPath):
+	"""returns the "standard DaCHS PubDID" for absPath
+
+	The publisher dataset identifier (PubDID) is important in protocols like
+	SSAP and obscore.  If you use this function, the PubDID will be your
+	authority, the path compontent ~, and the inputs-relative path of 
+	the input file.
+
+	You *can* define your PubDIDs in a different way, but you'd then need
+	to provide a custom descriptorGenerator to datalink services (and
+	might need other tricks).  If your data comes from plain files, use 
+	this function.
+
+	In a rowmaker, you'll usually use the \\standardPubDID macro.
+	"""
+	return "ivo://%s/~/%s"%(
+		base.getConfig("ivoa", "authority"), 
+		getInputsRelativePath(absPath, liberalChars=False))
+
+
+@utils.document
+def getInputsRelativePath(absPath, liberalChars=True):
+	"""returns absath relative to the DaCHS inputsDir.
+
+	If absPath is not below inputsDir, a ValueError results.  On liberalChars,
+	see getRelativePath.
+
+	In rowmakers and rowfilters, you'll usually use the macro
+	\inputRelativePath that inserts the appropriate code.
+	"""
+	return utils.getRelativePath(absPath,
+		base.getConfig("inputsDir"), liberalChars=liberalChars)
