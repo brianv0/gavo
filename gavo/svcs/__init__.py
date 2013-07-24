@@ -26,7 +26,7 @@ from gavo.svcs.customwidgets import (DBOptions, FormalDict,
 	ScalingTextArea)
 
 from gavo.svcs.inputdef import (
-	InputKey, ContextGrammar, InputDescriptor,
+	InputTable, InputKey, ContextGrammar, InputDescriptor,
 	makeAutoInputDD)
 
 from gavo.svcs.outputdef import OutputField, OutputTableDef

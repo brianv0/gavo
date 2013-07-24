@@ -288,5 +288,27 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 		self.assertEqual(res.mime, "text/plain")
 		self.assertEqual(res.accessPath, "data/a.imp")
 
+	def testProductsGenerator(self):
+		svc = base.parseFromString(svcs.Service, """<service id="foo">
+			<datalinkCore>
+				<dataGenerator procDef="//products#makeProduct"/></datalinkCore>
+			</service>""")
+		res = svc.run("form", {"PUBDID": rscdef.getStandardPubDID(
+			"data/b.imp")}).original
+		self.assertEqual("".join(res.iterData()), 'alpha: 03 34 33.45'
+			'\ndelta: 42 34 59.7\nobject: michael\nembargo: 2003-12-31\n')
+
+	def testProductsGeneratorMimecheck(self):
+		svc = base.parseFromString(svcs.Service, """<service id="foo">
+			<datalinkCore>
+				<dataGenerator procDef="//products#makeProduct">
+					<bind name="requireMimes">["image/fits"]</bind>
+				</dataGenerator></datalinkCore>
+			</service>""")
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Field PUBDID: Document type not supported: text/plain",
+			svc.run,
+			("form", {"PUBDID": rscdef.getStandardPubDID("data/b.imp")}))
+
 if __name__=="__main__":
 	testhelpers.main(RaccrefTest)

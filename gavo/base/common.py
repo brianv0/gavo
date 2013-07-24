@@ -64,3 +64,12 @@ class Parser(object):
 			return self.end_(ctx, name, value)
 		else:
 			raise StructureError("Illegal event type while building: '%s'"%type)
+
+
+class StructParseDebugMixin(object):
+	"""put this before Parser in the parent class list of a struct,
+	and you'll see the events coming in to your parser.
+	"""
+	def feedEvent(self, ctx, type, name, value):
+		print type, name, value, self
+		return Parser.feedEvent(self, ctx, type, name, value)

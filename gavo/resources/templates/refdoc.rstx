@@ -931,20 +931,23 @@ pre-provided building blocks).
 A datalink core consists of 
 
 * exactly one descriptor generator,
-* zero or one table generators with parameter definitions, 
-* zero or more table filters with parameter definitions, 
-* zero or one formatters (required when there's a table generator), 
-  possibly again with parameter definitions, 
+* zero or one data generators with parameter definitions, 
+* zero or more data filters with parameter definitions, 
+* zero or one formatters, possibly again with parameter definitions, 
 * and zero or more link makers.
 
 Here's how they work together in providing the Datalink functionality:
 
 To generate the Datalink document, the descriptor generator is passed
 the PUBDID and is expected to return a ``datalink.ProductDescriptor``
-instance (or None, in which case the Datalink request will be rejected
-by a 404).
+instance (or None, in which case the datalink request will be rejected
+by a 404).  In addition to attributes named like the columns of the
+product table (and potentially other attributes added by deriving from
+the base ProductDescriptor), it has an attribute ``data`` defaulting to
+``None``, intended to be filled by the core's data generator on data
+processing runs.
 
-This object is then passed, in turn, to the link makers, which yield
+The descriptor is then passed, in turn, to the link makers, which yield
 ``datalink.LinkDef`` instances providing links to static documents related
 to whatever PUBDID describes (alternative formats, ancillary data,...).
 
@@ -957,21 +960,29 @@ These are then formatted to a proper Datalink description and returned.
 
 When a request for processed data comes in, the descriptor generator is
 again used to make a product descriptor.  This time, it is passed to the
-table generator, which must return an ``rsc.InMemoryTable`` instance.
-This will usually be fed from a database, pixels in FITS files, or the
-like.
+data generator.  This must fill out the ``data`` attribute of the
+descriptor or raise a ValidationError for the PUBDID; leaving it as None
+results in a 500 server errror.  Descriptor.data, typically will be an
+``rsc.InMemoryTable``, but as long as generator, filter, and formatter
+agree on what it is, anything goes.  It will usually be fed from a
+database, pixels in FITS files, or the like.
 
-This table is then handed through all table filters; these change the
-table in place or create a new one as convenient and return the result
-as applicable.
+This object is then handed through all data filters; these change the
+data in place or create a new one as convenient and return the result
+as applicable.  It is a design descision which manipulations are done in
+the data generator and which are in later filters.  The advantage of
+filters is that they are more flexible and can more easily be reused,
+while doing it things in the data generator itself will usually be more
+efficient, sometimes much so (e.g., sums being computed within a
+database rather than in a filter).
 
-Finally, the table etners the formatter, which actually generates the
+Finally, the data enters the formatter, which actually generates the
 output, returning a pair of mime type and string to be delivered.
 
 All code in a request for processed data is also passed the input
 parameters as processed by the context grammar.  Hence, the code can
 rely on whatever contract is implicit in the context grammar, but not
-more.  In particular, a table filter will be called even if to input for
+more.  In particular, a data filter will be called even if to input for
 it was provided.  It should, in general, return the table unchanged in
 that case.
 

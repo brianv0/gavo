@@ -53,19 +53,20 @@ from gavo.svcs import outputdef
 CORE_REGISTRY = {
 #	elementName -> module (without gavo.), class name
 	"adqlCore": ("protocols.adqlglue", "ADQLCore"),
-	"productCore": ("protocols.products", "ProductCore"),
-	"siapCutoutCore": ("protocols.siap", "SIAPCutoutCore"),
-	"registryCore": ("registry.oaiinter", "RegistryCore"),
 	"computedCore": ("svcs.computedcore", "ComputedCore"),
 	"customCore": ("svcs.customcore", "CustomCore"),
-	"fancyQueryCore": ("svcs.standardcores", "FancyQueryCore"),
+	"datalinkCore": ("protocols.datalink", "DatalinkCore"),
 	"dbCore": ("svcs.standardcores", "DBCore"),
+	"editCore": ("svcs.uploadcores", "EditCore"),
+	"fancyQueryCore": ("svcs.standardcores", "FancyQueryCore"),
 	"fixedQueryCore": ("svcs.standardcores", "FixedQueryCore"),
 	"nullCore": ("svcs.standardcores", "NullCore"),
-	"uploadCore": ("svcs.uploadcores", "UploadCore"),
-	"editCore": ("svcs.uploadcores", "EditCore"),
-	"ssapCore": ("protocols.ssap", "SSAPCore"),
+	"productCore": ("protocols.products", "ProductCore"),
+	"registryCore": ("registry.oaiinter", "RegistryCore"),
 	"sdmCore": ("protocols.sdm", "SDMCore"),
+	"siapCutoutCore": ("protocols.siap", "SIAPCutoutCore"),
+	"ssapCore": ("protocols.ssap", "SSAPCore"),
+	"uploadCore": ("svcs.uploadcores", "UploadCore"),
 
 # Temporary hack to avoid validation errors on ccd700 in development
 	"ssapProcessCore": ("protocols.ssap", "SSAPProcessCore"),

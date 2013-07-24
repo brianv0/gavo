@@ -3,6 +3,7 @@ Common items used by resource definition objects.
 """
 
 import datetime
+import os
 import re
 
 from gavo import base
@@ -445,13 +446,16 @@ def replaceRMKAt(src):
 
 
 @utils.document
-def getStandardPubDID(absPath):
-	"""returns the "standard DaCHS PubDID" for absPath
+def getStandardPubDID(path):
+	"""returns the "standard DaCHS PubDID" for path.
 
 	The publisher dataset identifier (PubDID) is important in protocols like
 	SSAP and obscore.  If you use this function, the PubDID will be your
 	authority, the path compontent ~, and the inputs-relative path of 
 	the input file.
+
+	path can be relative, in which case it is interpreted relative to
+	the DaCHS inputsDir.
 
 	You *can* define your PubDIDs in a different way, but you'd then need
 	to provide a custom descriptorGenerator to datalink services (and
@@ -460,9 +464,15 @@ def getStandardPubDID(absPath):
 
 	In a rowmaker, you'll usually use the \\standardPubDID macro.
 	"""
+	#	Why add inputsDir first and remove it again?  Well, I want to keep
+	# getInputRelativePath in the look since it does some validation
+	# and may, at some point, do more.
+	if path[0]!="/":
+		path = os.path.join(base.getConfig("inputsDir"), path)
+
 	return "ivo://%s/~/%s"%(
 		base.getConfig("ivoa", "authority"), 
-		getInputsRelativePath(absPath, liberalChars=False))
+		getInputsRelativePath(path, liberalChars=False))
 
 
 @utils.document
