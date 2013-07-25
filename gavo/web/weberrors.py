@@ -202,8 +202,10 @@ class AuthenticatePage(ErrorPage):
 			T.title(render=T.directive("titlemessage"))],
 		T.body[
 			T.p["The resource you are trying to access is protected."
-				"  Please enter your credentials or contact"
-				" the DC staff."]]])
+				"  Please enter your credentials (by reloading this page), contact"
+				" the data center staff or go back to ",
+				T.a(href="/", render=T.directive("rootlink"))["the root page"],
+				"."]]])
 
 
 class BadMethodPage(ErrorPage):

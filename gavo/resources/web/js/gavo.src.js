@@ -486,6 +486,24 @@ function output_hide(el) {
 }
 
 
+function logoff() {
+	// a callback for the logoff link to easily enter wrong credentials.
+	// Without this, we don't clear the browser's credential cache.
+	$.ajax({
+		username: 'bad',
+		password: 'badToo',
+		url: window.location.href,
+		type: 'GET',
+		beforeSend: function(xhr) {
+			xhr.setRequestHeader("Authorization", "Basic AAAAAAAAAAAAAAAAAAA=");
+		},
+		error: function(err) {
+			window.location = window.location.href;
+		}
+  });
+  return false;
+}
+
 /////////////////////////////////////////////////////////////////////
 // Plotting code -- move (most of this) to something loaded on demand
 

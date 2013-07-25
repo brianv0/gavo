@@ -48,10 +48,6 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 	* <tag n:render="meta">METAKEY</tag> or
 	* <tag n:render="metahtml">METAKEY</tag>
 
-	Rendering internal links (important for off-root operation):
-
-	* <tag href|src="/foo" n:render="rootlink"/>
-
 	Rendering the sidebar --
 	<body n:render="withsidebar">.  This will only work if the renderer
 	has a service attribute that's enough of a service (i.e., carries meta
@@ -118,15 +114,6 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 	def render_metahtml(self, ctx, data):
 		return self._doRenderMeta(ctx)
 		
-	def render_rootlink(self, ctx, data):
-		tag = ctx.tag
-		def munge(key):
-			if tag.attributes.has_key(key):
-			 tag.attributes[key] = base.makeSitePath(tag.attributes[key])
-		munge("src")
-		munge("href")
-		return tag
-
 	def render_ifmeta(self, metaName, propagate=True):
 		# accept direct parent as "own" meta as well.
 		if propagate:
@@ -233,12 +220,14 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 		request = inevow.IRequest(ctx)
 		nextURL = str(url.URL.fromContext(ctx))
 		targetURL = url.URL.fromString("/login").add("nextURL", nextURL)
-		anchorText = "Log in"
 		if request.getUser():
-			anchorText = "Log out %s"%request.getUser()
 			targetURL = targetURL.add("relog", "True")
-		return ctx.tag[T.a(href=str(targetURL))[
-			anchorText]]
+			return ctx.tag[T.a(href=str(targetURL),
+					onclick="return logoff()")[
+				"Log out %s"%request.getUser()]]
+		else:
+			return ctx.tag[T.a(href=str(targetURL))[
+				"Log in"]]
 
 	def render_prependsite(self, ctx, data):
 		"""prepends a site id to the body.

@@ -129,7 +129,20 @@ class CommonRenderers(object):
 
 	Including standard stylesheets/js/whatever:
 	<head n:render="commonhead">...</head>
+
+	Rendering internal links (important for off-root operation):
+
+	* <tag href|src="/foo" n:render="rootlink"/>
+
 	"""
+	def render_rootlink(self, ctx, data):
+		tag = ctx.tag
+		def munge(key):
+			if tag.attributes.has_key(key):
+			 tag.attributes[key] = base.makeSitePath(tag.attributes[key])
+		munge("src")
+		munge("href")
+		return tag
 
 	def render_commonhead(self, ctx, data):
 		#	we do not want to blindly append these things to the tag since user-

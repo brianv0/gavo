@@ -61,7 +61,7 @@ class ReloadPage(grend.GavoRenderMixin, rend.Page):
 
 
 class LoginPage(rend.Page, grend.GavoRenderMixin):
-	"""is a page that logs people in or out.
+	"""a page that logs people in or out.
 
 	You should usually give a nextURL parameter in the context, the page
 	the user is returned to afte login.
@@ -91,7 +91,8 @@ class LoginPage(rend.Page, grend.GavoRenderMixin):
 		return self.request.getUser()
 
 	def renderHTTP(self, ctx):
-		relogging = self.request.args.get("relog", None)
+		relogging = base.parseBooleanLiteral(utils.getfirst(
+			self.request.args, "relog", default="False"))
 		if self.request.getUser():  # user is logged in...
 			if relogging: # ...and wants to log out: show login dialog...
 				raise svcs.Authenticate()
