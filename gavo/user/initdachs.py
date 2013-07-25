@@ -336,10 +336,7 @@ def _doLocalSetup(dsn):
 # When adding stuff here, fix docs/install.rstx, "Owner-only db setup"
 	conn = psycopg2.connect(dsn.full)
 	for statement in [
-# pg >=9.0 can do this, saving on an gavo init diagnostics.
-# TODO: figure out the pg version and select accordingly.
-#			"CREATE OR REPLACE LANGUAGE plpgsql"]:
-			"CREATE LANGUAGE plpgsql"]:
+			"CREATE OR REPLACE LANGUAGE plpgsql"]:
 		cursor = conn.cursor()
 		try:
 			cursor.execute(statement)

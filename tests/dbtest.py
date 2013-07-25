@@ -77,6 +77,16 @@ class ProfileTest(testhelpers.VerboseTest):
 			self.parser.parse,
 			("test2", "internal", "database=gavo\nhsot=bar\n"))
 
+	def testWhitespace(self):
+		profile = self.parser.parse("foo", None, stream="""
+			user = honk
+
+			password="secre t  "  
+			
+			""")
+		self.assertEqual(profile.user, "honk")
+		self.assertEqual(profile.password, "secre t  ")
+
 
 class ConnectionsTest(testhelpers.VerboseTest):
 	resources = [("conn", tresc.dbConnection)]

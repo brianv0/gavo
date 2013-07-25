@@ -1,3 +1,31 @@
+Version 0.8.9 (2013-07-13)
+
+	* We now officially require postgres >9.0.  If this hurts you, tell
+	  us, this is mainly a convenience matter.
+
+	* DaCHS now supports the new BINARY2 VOTable encoding
+
+  * Internal rework of web-facing parameter processing.  If you use
+    custom condDescs, test those services throughly (though we've
+    tried to maintain backwards compatibility)
+
+  * TAP examples are now DALI compliant
+
+  * There's now a facility to add custom columns to the ObsCore table.
+
+  * SIAP processing rework.  If you have SIAP services, you should probably
+ 	  re-import them, since the old SIAP processing sometimes was a bit
+ 	  too lenient.
+
+ 	* SIAP and SCS now count as "PQL" renderers, as SSAP before.  This
+ 	  means custom parameters created via buildFrom will allow range and list
+ 	  syntaxes as for SSAP.
+
+ 	* Many minor updates, fixes, and compatibility improvements.
+
+ 	* New root-tree.html template that you can optionally use as the
+ 	  root page; it provides some ajaxy alternative to the old root page.
+
 Version 0.8.4 (2012-12-17)
 
   * New gavo upgrade command -- run this after every svn update or other

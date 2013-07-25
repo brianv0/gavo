@@ -232,6 +232,9 @@ class ProfileParser(object):
 	def _state_init(self, token):
 		if token in self.commands:
 			return self.commands[token]
+		elif token=="\n":
+			return self._state_init
+
 		if not re.match("[A-Za-z][\w]+$", token):
 			self._raiseError("invalid identifier %s"%repr(token))
 		self.tokenStack.append(token)
