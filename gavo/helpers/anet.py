@@ -50,6 +50,11 @@ upper_pix
 
 plots
 	(defaults to False) -- generate all kinds of pretty plots?
+
+downsample
+	(defaults to not given) -- factor to downsample the image before
+	trying to solve.  This may be necessary when not using sextractor,
+	and it should be something like 2, 3, or 4.
 """
 
 from __future__ import with_statement
@@ -198,6 +203,7 @@ _PARAMETER_MAP = [
 	("upper_pix", "--scale-high"),
 	("pix_units", "--scale-units"),
 	("endob", "--depth"),
+	("downsample", "--downsample"),
 ]
 	
 def _addArgsFor(actPars, args):
@@ -231,7 +237,7 @@ def _solveField(fName, solverParameters, sexControl, objectFilter,
 				"--use-sextractor",
 				"--width", str(width), "--height", str(height)])
 			objectSource = "img.axy"
-	args.append("--no-fits2fits") # leaks into tmp as of 0.36 otherwise
+#	args.append("--no-fits2fits") # leaks into tmp as of 0.36 otherwise
 	args.append("-v")
 
 	if "indices" in solverParameters:
