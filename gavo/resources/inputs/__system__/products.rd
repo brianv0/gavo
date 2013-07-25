@@ -325,7 +325,7 @@ machinery -->
 		</code>
 	</procDef>
 
-	<procDef type="dataGenerator" id="makeProduct">
+	<procDef type="dataFunction" id="makeProduct">
 		<doc>A data generator for datalink that returns a product instance.
 		You can restrict the mime type of the product requested so the
 		following filters have a good idea what to expect.

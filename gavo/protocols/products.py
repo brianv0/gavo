@@ -11,7 +11,7 @@ into subclasses of ProductBase.
 
 These have mime types and know how to generate their data through their
 synchronous iterData methods.  They must also work as nevow resources and thus
-have implement asynchronuous renderHTTP(ctx) methods It's a bit unfortunate
+have implement asynchronuous renderHTTP(ctx) methods.  It's a bit unfortunate
 that we thus depend on nevow here, but we'd have to reimplement quite a bit of
 it if we don't, and for now it doesn't seem we'll support a different framework
 in the forseeable future.  

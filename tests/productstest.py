@@ -291,7 +291,7 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 	def testProductsGenerator(self):
 		svc = base.parseFromString(svcs.Service, """<service id="foo">
 			<datalinkCore>
-				<dataGenerator procDef="//products#makeProduct"/></datalinkCore>
+				<dataFunction procDef="//products#makeProduct"/></datalinkCore>
 			</service>""")
 		res = svc.run("form", {"PUBDID": rscdef.getStandardPubDID(
 			"data/b.imp")}).original
@@ -301,14 +301,63 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 	def testProductsGeneratorMimecheck(self):
 		svc = base.parseFromString(svcs.Service, """<service id="foo">
 			<datalinkCore>
-				<dataGenerator procDef="//products#makeProduct">
+				<dataFunction procDef="//products#makeProduct">
 					<bind name="requireMimes">["image/fits"]</bind>
-				</dataGenerator></datalinkCore>
+				</dataFunction></datalinkCore>
 			</service>""")
 		self.assertRaisesWithMsg(base.ValidationError,
 			"Field PUBDID: Document type not supported: text/plain",
 			svc.run,
 			("form", {"PUBDID": rscdef.getStandardPubDID("data/b.imp")}))
 
+	def testProductsGeneratorFailure(self):
+		svc = base.parseFromString(svcs.Service, """<service id="foo">
+			<datalinkCore>
+				<dataFunction procDef="//products#makeProduct">
+					<code>
+						descriptor.data = None
+					</code>
+				</dataFunction></datalinkCore>
+			</service>""")
+		self.assertRaisesWithMsg(base.ReportableError,
+			"Internal Error: a first data function did not create data.",
+			svc.run,
+			("form", {"PUBDID": rscdef.getStandardPubDID("data/b.imp")}))
+
+	def testProductsMogrifier(self):
+		svc = base.parseFromString(svcs.Service, """<service id="foo">
+			<datalinkCore>
+				<dataFunction procDef="//products#makeProduct"/>
+				<inputKey name="addto" type="integer" multiplicity="single"/>
+				<dataFunction>
+					<setup>
+						<code>
+							from gavo.protocols import products
+							class MogrifiedProduct(products.ProductBase):
+								def __init__(self, input, offset):
+									self.input, self.offset = input, offset
+									products.ProductBase.__init__(self,
+										input.sourceSpec, input.contentType)
+
+								def iterData(self):
+									for chunk in self.input.iterData():
+										yield "".join(chr(ord(c)+self.offset)
+											for c in chunk)
+						</code>
+					</setup>
+					<code>
+						descriptor.data = MogrifiedProduct(descriptor.data,
+							args["addto"])
+					</code>
+				</dataFunction></datalinkCore>
+			</service>""")
+		res = "".join(svc.run("form", {
+			"PUBDID": [rscdef.getStandardPubDID("data/b.imp")], 
+			"addto": ["4"]}).original.iterData())
+		self.assertEqual(res, 
+			"eptle>$47$78$77289\x0ehipxe>$86$78$9=2;\x0e"
+			"sfnigx>$qmgleip\x0eiqfevks>$6447156175\x0e")
+
+
 if __name__=="__main__":
-	testhelpers.main(RaccrefTest)
+	testhelpers.main(DatalinkElementTest)

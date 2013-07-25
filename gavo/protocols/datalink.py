@@ -56,11 +56,15 @@ class DescriptorGenerator(rscdef.ProcApp):
 	formalArgs = "pubdid, args"
 
 
-class DataGenerator(rscdef.ProcApp):
-	"""A procedure application that generates the basic data for a processed
+class DataFunction(rscdef.ProcApp):
+	"""A procedure application that generates or modifies data in a processed
 	data service.
 
-	This will pull the initial information from a database or a FITS file.
+	All these operate on the data attribute of the product descriptor.
+	The first data function plays a special role: It *must* set the data
+	attribute (or raise some appropriate exception), or a server error will 
+	be returned to the client.
+
 	What is returned depends on the service, but typcially it's going to
 	be a table or products.*Product instance.
 
@@ -68,8 +72,8 @@ class DataGenerator(rscdef.ProcApp):
 	  - descriptor -- whatever the DescriptorGenerator returned
 	  - args -- all the arguments that came in from the web.
 	"""
-	name_ = "dataGenerator"
-	requiredType = "descriptorGenerator"
+	name_ = "dataFunction"
+	requiredType = "dataFunction"
 	formalArgs = "descriptor, args"
 
 
@@ -91,31 +95,35 @@ class DatalinkCore(svcs.Core):
 			" //products#fromStandardPubDID will be used.",
 		copyable=True)
 
-	_dataGenerator = base.StructAttribute("dataGenerator",
-		default=base.NotGiven,
-		childFactory=DataGenerator,
-		description="Code that takes a data descriptor and turns it into"
-			" some sort of data processable by data filters and formatable"
-			" by the formatter.  If not given, this core doesn't process"
-			" data but just spits out links.",
+	_dataFunctions = base.StructListAttribute("dataFunctions",
+		childFactory=DataFunction,
+		description="Code that generates of processes data for this"
+			" core.  The first of these plays a special role in that it"
+			" must set descriptor.data, the others need not do anything"
+			" at all.",
 		copyable=True)
 
-	def _makeInputTable(self):
-		inputKeys = rscdef.ColumnList()
-		inputKeys.append(
-			MS(svcs.InputKey, name="PUBDID", type="text", 
-				multiplicity="forced-single",
-				description="The pubisher DID of the dataset of interest"))
-
-		return MS(svcs.InputTable, params=inputKeys)
+	_inputKeys = rscdef.ColumnListAttribute("inputKeys",
+		childFactory=svcs.InputKey,
+		description="A parameter to one of the proc apps (data functions,"
+		" formatters) active in this datalink core; no specific relation"
+		" between input keys and procApps is supposed; all procApps are passed"
+		" all argments. Conventionally, you will write the input keys in"
+		" front of the proc apps that interpret them.",
+		copyable=True)
 
 	def completeElement(self, ctx):
 		if self.descriptorGenerator is base.NotGiven:
 			self.descriptorGenerator = MS(DescriptorGenerator, 
 				procDef=base.caches.getRD("//products").getById("fromStandardPubDID"))
 
+		self.inputKeys.append(
+			MS(svcs.InputKey, name="PUBDID", type="text", 
+				multiplicity="forced-single",
+				description="The pubisher DID of the dataset of interest"))
+
 		if self.inputTable is base.NotGiven:
-			self.inputTable = self._makeInputTable()
+			self.inputTable = MS(svcs.InputTable, params=self.inputKeys)
 
 		self._completeElementNext(DatalinkCore, ctx)
 
@@ -131,14 +139,17 @@ class DatalinkCore(svcs.Core):
 			return self._runDataProcessing(descriptor, args)
 	
 	def _runDataProcessing(self, descriptor, args):
-		if self.dataGenerator is base.NotGiven:
+		if not self.dataFunctions:
 			raise base.DataError("This datalink service cannot process data")
 
-		self.dataGenerator.compile()(descriptor, args)
+		self.dataFunctions[0].compile()(descriptor, args)
 
 		if descriptor.data is None:
-			raise base.ReportableError("Internal Error: a data generator did"
-				" not yield data.")
+			raise base.ReportableError("Internal Error: a first data function did"
+				" not create data.")
+
+		for func in self.dataFunctions[1:]:
+			func.compile()(descriptor, args)
 
 		return descriptor.data
 		
