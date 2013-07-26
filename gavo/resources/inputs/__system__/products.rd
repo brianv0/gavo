@@ -308,47 +308,6 @@ machinery -->
 		<column name="sdec"/>
 	</table>
 
-	<procDef type="descriptorGenerator" id="fromStandardPubDID">
-		<doc>A descriptor generator for datalink that builds a 
-		ProductDescriptor for PubDIDs that have been built by getStandardsPubDID
-		(i.e., the path part of the IVORN is a tilda followed by the 
-		products table accref).
-		</doc>
-		<setup>
-			<code>
-				from gavo.protocols import datalink
-			</code>
-		</setup>
-		<code>
-			return datalink.ProductDescriptor.fromAccref(
-				"/".join(pubdid.split("/")[4:]))
-		</code>
-	</procDef>
-
-	<procDef type="dataFunction" id="makeProduct">
-		<doc>A data generator for datalink that returns a product instance.
-		You can restrict the mime type of the product requested so the
-		following filters have a good idea what to expect.
-		</doc>
-		<setup>
-			<par key="requireMimes" description="A set or sequence of mime type 
-				strings; when given, the data generator will bail out with 
-				ValidationError if the product mime is not among the mimes
-				given.">frozenset()</par>
-			<code>
-				from gavo.protocols import products
-			</code>
-		</setup>
-		<code>
-			if requireMimes and descriptor.mime not in requireMimes:
-				raise base.ValidationError("Document type not supported: %s"%
-					descriptor.mime, colName="PUBDID", hint="Only source documents"
-					" of the types %s are supported here."%str(requireMimes))
-
-			descriptor.data = products.getProductForRAccref(descriptor.accref)
-		</code>
-	</procDef>
-
 	<service id="p" core="core" allowed="get, form">
 		<meta name="description">The main product deliverer</meta>
 	</service>

@@ -20,6 +20,7 @@ RENDERER_REGISTRY = {
 	'form': ("web.formrender", "Form"),
 	'docform': ("web.formrender", "DocFormRenderer"),
 	'custom': ("web.customrender", "CustomRenderer"),
+	'dlget': ("web.vodal", "DatalinkRenderer"),
 	'external': ("web.metarender", "ExternalRenderer"),
 	'tablenote': ("web.metarender", "TableNoteRenderer"),
 	'tableinfo': ("web.metarender", "TableInfoRenderer"),

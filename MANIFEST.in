@@ -1,4 +1,4 @@
 recursive-exclude schemata *
 recursive-exclude utils *
 recursive-exclude subpkgs *
-recursive-include gavo/resources *
+recursive-include gavo/resources [A-Za-z_]*

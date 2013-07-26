@@ -22,6 +22,8 @@ class ProductDescriptor(object):
 	It also has an attribute data defaulting to None.  DataGenerators
 	set it, DataFilters potentially change it.
 	"""
+	data = None
+
 	def __init__(self, accref, accessPath, mime, owner=None, embargo=None,
 			sourceTable=None):
 		self.accref, self.accessPath, self.mime = accref, accessPath, mime
@@ -49,7 +51,7 @@ class DescriptorGenerator(rscdef.ProcApp):
 	
 	If you made your pubdid using the ``getStandardPubDID`` rowmaker function,
 	and you need no additional logic within the descriptor,
-	the default (//products#fromStandardPubDID) should do.
+	the default (//datalink#fromStandardPubDID) should do.
 	"""
 	name_ = "descriptorGenerator"
 	requiredType = "descriptorGenerator"
@@ -77,11 +79,34 @@ class DataFunction(rscdef.ProcApp):
 	formalArgs = "descriptor, args"
 
 
-class DatalinkCore(svcs.Core):
+class DataFormatter(rscdef.ProcApp):
+	"""A procedure application that renders data in a processed service.
+
+	These play the role of the renderer, which for datalink is ususally
+	trivial.  They are supposed to take descriptor.data and return
+	a pair of (mime-type, bytes), which is understood by most renderers.
+
+	When no dataFormatter is given for a core, it will return descriptor.data
+	directly.  This can work with the datalink renderer itself if 
+	descriptor.data will work as a nevow resource (i.e., has a renderHTTP
+	method, as our usual products do).  Consider, though, that renderHTTP
+	runs in the main event loop and thus most not block for extended
+	periods of time.
+
+	The following names are available to the code:
+	  - descriptor -- whatever the DescriptorGenerator returned
+	  - args -- all the arguments that came in from the web.
+	"""
+	name_ = "dataFormatter"
+	requiredType = "dataFormatter"
+	formalArgs = "descriptor, args"
+
+
+class DatalinkCore(svcs.Core, base.ExpansionDelegator):
 	"""A core for processing datalink and processed data requests.
 
 	You almost certainly do not want to override the input table of this 
-	service.
+	core.
 
 	See `Datalink Cores`_ for more information.
 	"""
@@ -92,7 +117,7 @@ class DatalinkCore(svcs.Core):
 		childFactory=DescriptorGenerator,
 		description="Code that takes a PUBDID and turns it into a"
 			" product descriptor instance.  If not given,"
-			" //products#fromStandardPubDID will be used.",
+			" //datalink#fromStandardPubDID will be used.",
 		copyable=True)
 
 	_dataFunctions = base.StructListAttribute("dataFunctions",
@@ -102,6 +127,14 @@ class DatalinkCore(svcs.Core):
 			" must set descriptor.data, the others need not do anything"
 			" at all.",
 		copyable=True)
+
+	_dataFormatter = base.StructAttribute("dataFormatter",
+		default=base.NotGiven,
+		childFactory=DataFormatter,
+		description="Code that turns descriptor.data into a nevow resource"
+			" or a mime, content pair.  If not given, the renderer will be"
+			" returned descriptor.data itself (which will probably not usually"
+			" work).")
 
 	_inputKeys = rscdef.ColumnListAttribute("inputKeys",
 		childFactory=svcs.InputKey,
@@ -115,11 +148,16 @@ class DatalinkCore(svcs.Core):
 	def completeElement(self, ctx):
 		if self.descriptorGenerator is base.NotGiven:
 			self.descriptorGenerator = MS(DescriptorGenerator, 
-				procDef=base.caches.getRD("//products").getById("fromStandardPubDID"))
+				procDef=base.caches.getRD("//datalink").getById("fromStandardPubDID"))
+
+		if self.dataFormatter is base.NotGiven:
+			self.dataFormatter = MS(DataFormatter, 
+				procDef=base.caches.getRD("//datalink").getById("trivialFormatter"))
 
 		self.inputKeys.append(
 			MS(svcs.InputKey, name="PUBDID", type="text", 
 				multiplicity="forced-single",
+				required=True,
 				description="The pubisher DID of the dataset of interest"))
 
 		if self.inputTable is base.NotGiven:
@@ -142,15 +180,13 @@ class DatalinkCore(svcs.Core):
 		if not self.dataFunctions:
 			raise base.DataError("This datalink service cannot process data")
 
-		self.dataFunctions[0].compile()(descriptor, args)
+		self.dataFunctions[0].compile(self)(descriptor, args)
 
 		if descriptor.data is None:
 			raise base.ReportableError("Internal Error: a first data function did"
 				" not create data.")
 
 		for func in self.dataFunctions[1:]:
-			func.compile()(descriptor, args)
+			func.compile(self)(descriptor, args)
 
-		return descriptor.data
-		
-
+		return self.dataFormatter.compile(self)(descriptor, args)

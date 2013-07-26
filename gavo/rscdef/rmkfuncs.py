@@ -299,6 +299,17 @@ def getHTTPPar(inputData, parser, single=False, forceUnique=False):
 		return [parser(v) for v in inputData]
 
 
+@utils.document
+def requireValue(val, fieldName):
+	"""returns val unless it is None, in which case a ValidationError
+	for fieldName will be raised.
+	"""
+	if val is None:
+		raise base.ValidationError("Value is required but was not provided", 
+			fieldName)
+	return val
+
+
 def addProcDefObject(name, func):
 	globals()[name] = func
 

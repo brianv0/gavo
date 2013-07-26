@@ -167,6 +167,20 @@
   	</make>
 	</data>
 
+	<service id="dl" allowed="datalink">
+		<datalinkCore>
+			<descriptorGenerator procDef="//datalink#sdm_genDesc">
+				<bind name="ssaTD">"\rdId#hcdtest"</bind>
+			</descriptorGenerator>
+			<dataFunction procDef="//datalink#sdm_genData">
+				<bind name="builder">"\rdId#datamaker"</bind>
+			</dataFunction>
+			<FEED source="//datalink#sdm_plainfluxcalib"/>
+			<FEED source="//datalink#sdm_cutout"/>
+			<FEED source="//datalink#sdm_format"/>
+		</datalinkCore>
+	</service>
+
 	<service id="c" original="s">
 		<meta name="description">An SSAP service supporting getData.</meta>
 		<property name="tablesource">datamaker</property>

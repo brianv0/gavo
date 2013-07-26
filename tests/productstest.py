@@ -280,7 +280,7 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 			os.path.join(base.getConfig("inputsDir"), 
 				"data/a.imp"))
 		dg = base.parseFromString(datalink.DescriptorGenerator,
-			'<descriptorGenerator procDef="//products#fromStandardPubDID"/>'
+			'<descriptorGenerator procDef="//datalink#fromStandardPubDID"/>'
 			).compile(self)
 		res = dg(ivoid, {})
 		self.assertEqual(res.accref, "data/a.imp")
@@ -291,7 +291,7 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 	def testProductsGenerator(self):
 		svc = base.parseFromString(svcs.Service, """<service id="foo">
 			<datalinkCore>
-				<dataFunction procDef="//products#makeProduct"/></datalinkCore>
+				<dataFunction procDef="//datalink#generateProduct"/></datalinkCore>
 			</service>""")
 		res = svc.run("form", {"PUBDID": rscdef.getStandardPubDID(
 			"data/b.imp")}).original
@@ -301,7 +301,7 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 	def testProductsGeneratorMimecheck(self):
 		svc = base.parseFromString(svcs.Service, """<service id="foo">
 			<datalinkCore>
-				<dataFunction procDef="//products#makeProduct">
+				<dataFunction procDef="//datalink#generateProduct">
 					<bind name="requireMimes">["image/fits"]</bind>
 				</dataFunction></datalinkCore>
 			</service>""")
@@ -313,7 +313,7 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 	def testProductsGeneratorFailure(self):
 		svc = base.parseFromString(svcs.Service, """<service id="foo">
 			<datalinkCore>
-				<dataFunction procDef="//products#makeProduct">
+				<dataFunction procDef="//datalink#generateProduct">
 					<code>
 						descriptor.data = None
 					</code>
@@ -327,7 +327,7 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 	def testProductsMogrifier(self):
 		svc = base.parseFromString(svcs.Service, """<service id="foo">
 			<datalinkCore>
-				<dataFunction procDef="//products#makeProduct"/>
+				<dataFunction procDef="//datalink#generateProduct"/>
 				<inputKey name="addto" type="integer" multiplicity="single"/>
 				<dataFunction>
 					<setup>

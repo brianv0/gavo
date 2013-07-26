@@ -107,7 +107,7 @@ def makeSDMDataForSSARow(ssaRow, spectrumData):
 
 
 def makeSDMDataForPUBDID(pubDID, ssaTD, spectrumData):
-	"""returns a rsc.Table instance containing an SDM compliant spectrum
+	"""returns a rsc.Data instance containing an SDM compliant spectrum
 	for pubDID from ssaTable.
 
 	ssaTD is the definition of a table containg the SSA metadata, 
@@ -343,7 +343,8 @@ def formatSDMData(sdmData, format, queryMeta=svcs.emptyQueryMeta):
 ################## Manipulation of SDM compliant tables
 # The idea here is that you can push in a table, the function does some
 # magic, and it returns that table.  The getData implementation (see ssap.py)
-# uses these functions to provide some spectrum transformations.  We
+# and some datalink data functions (//datalink)
+# use these functions to provide some spectrum transformations.  We
 # may want to provide some plugin system so people can add their own
 # transformations, but let's first see someone request that.
 

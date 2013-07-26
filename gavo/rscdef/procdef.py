@@ -192,7 +192,7 @@ class ProcDef(base.Structure, base.RestrictionMixin):
 		"The type of the procedure definition.  The procedure applications"
 		" will in general require certain types of definitions.",
 		validValues=["t_t", "apply", "rowfilter", "sourceFields", "mixinProc",
-			"phraseMaker", "descriptorGenerator", "dataFunction"], 
+			"phraseMaker", "descriptorGenerator", "dataFunction", "dataFormatter"], 
 			copyable=True,
 		strip=True)
 	_original = base.OriginalAttribute()

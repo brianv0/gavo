@@ -114,9 +114,10 @@ class ProcTest(testhelpers.VerboseTest):
 
 class _WithSSATableTest(testhelpers.VerboseTest):
 	resources = [("ssaTable", tresc.ssaTestTable)]
+	renderer = "ssap.xml"
 
 	def runService(self, id, params):
-		return getRD().getById(id).run("ssap.xml", params)
+		return getRD().getById(id).run(self.renderer, params)
 
 
 class ImportTest(_WithSSATableTest):
@@ -357,6 +358,140 @@ class GetDataTest(_WithSSATableTest):
 				("c", {"REQUEST": "getData", "PUBDID": 'ivo://test.inv/bad'}))
 
 	def testRandomParamFails(self):
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Field (various): The following parameter(s) are"
+			" not accepted by this service: WARP",
+			self.runService,
+			("c", {"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
+				"warp": "infinity"}))
+
+
+class SDMDatalinkTest(_WithSSATableTest):
+
+	renderer = "dlget"
+
+	def _testGetdataDeclared(self):
+		res = self.runService("c",
+			{"REQUEST": "queryData"})
+		tree = testhelpers.getXMLTree(res.original[1])
+		gpTable = tree.xpath('//TABLE[@name="generationParameters"]')[0]
+
+		formats = [el.get("value")
+			for el in gpTable.xpath("PARAM[@name='FORMAT']/VALUES/OPTION")]
+		self.failUnless("application/fits" in formats)
+
+		self.assertAlmostEqual(
+			float(gpTable.xpath("PARAM[@name='BAND']/VALUES/MIN")[0].get("value")),
+			4e-7)
+		self.assertAlmostEqual(
+			float(gpTable.xpath("PARAM[@name='BAND']/VALUES/MAX")[0].get("value")), 
+			8e-7)
+
+		self.assertEqual(set(el.get("value") for el in 
+			gpTable.xpath("PARAM[@name='FLUXCALIB']/VALUES/OPTION")), 
+			set(['uncalibrated', 'relative']))
+
+	def _testNormalServicesReject(self):
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Field REQUEST: No getData support on ivo://x-unregistred/data/ssatest/s",
+			self.runService,
+			("s", {"REQUEST": "getData"}))
+
+	def testRejectWithoutPUBDID(self):
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Field PUBDID: Value is required but was not provided",
+			self.runService,
+			("dl", {}))
+
+	def testVOTDelivery(self):
+		res = self.runService("dl",
+			{"PUBDID": 'ivo://test.inv/test1'})
+		mime, payload = res.original
+		self.assertEqual(mime, "application/x-votable+xml")
+		self.failUnless('xmlns:spec="http://www.ivoa.net/xml/SpectrumModel/v1.01'
+			in payload)
+		self.failUnless('QJtoAAAAAABAm2g' in payload)
+
+	def testTextDelivery(self):
+		res = self.runService("dl",
+			{"PUBDID": 'ivo://test.inv/test1', 
+				"FORMAT": "text/plain"})
+		mime, payload = res.original
+		self.failUnless(isinstance(payload, str))
+		self.failUnless("1754.0\t1754.0\n1755.0\t1753.0\n"
+			"1756.0\t1752.0" in payload)
+
+	def testCutoutFull(self):
+		res = self.runService("dl",
+			{"PUBDID": ['ivo://test.inv/test1'], 
+				"FORMAT": ["text/plain"], "LAMBDA_MIN": ["1.762e-7"],
+				"LAMBDA_MAX": ["1.764e-7"]})
+		mime, payload = res.original
+		self.assertEqual(payload, 
+			'1762.0\t1746.0\n1763.0\t1745.0\n1764.0\t1744.0\n')
+		self.failIf('<TR><TD>1756.0</TD>' in payload)
+
+	def testCutoutHalfopen(self):
+		res = self.runService("dl",
+			{"PUBDID": ['ivo://test.inv/test1'], 
+				"FORMAT": ["application/x-votable+xml;encoding=tabledata"], 
+				"LAMBDA_MIN": ["1.927e-7"]})
+		mime, payload = res.original
+		self.failUnless('xmlns:spec="http://www.ivoa.net/xml/SpectrumModel/v1.01'
+			in payload)
+		self.failUnless('<TR><TD>1927.0</TD><TD>1581.0</TD>' in payload)
+		self.failIf('<TR><TD>1756.0</TD>' in payload)
+		tree = testhelpers.getXMLTree(payload, debug=False)
+		self.assertEqual(tree.xpath("//PARAM[@utype="
+			"'spec:Spectrum.Char.SpectralAxis.Coverage.Bounds.Start']"
+			)[0].get("value"), "1.927e-07")
+		self.assertEqual(tree.xpath("//PARAM[@utype="
+			"'spec:Spectrum.Char.SpectralAxis.Coverage.Bounds.Extent']"
+			)[0].get("value"), "1e-10")
+
+	def _testEmptyCutoutFails(self):
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Field (various): Spectrum is empty.",
+			self.runService,
+			("c", {"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
+				"FORMAT": "application/x-votable+xml",
+				"BAND": "/1.927e-8"}))
+
+	def _testOriginalCalibOk(self):
+		mime, payload = self.runService("dl",
+			{"PUBDID": 'ivo://test.inv/test1', 
+				"FORMAT": "text/plain", 
+				"FLUXCALIB": "uncalibrated"}).original
+		self.failUnless(payload.endswith("1928.0	1580.0\n"))
+
+	def testNormalize(self):
+		mime, payload = getRD().getById("dl").run("ssap.xml",
+			{"PUBDID": ['ivo://test.inv/test1'], 
+				"FORMAT": "application/x-votable+xml;encoding=tabledata", 
+				"LAMBDA_MIN": ["1.9e-7"], "LAMBDA_MAX": ["1.92e-7"], 
+				"FLUXCALIB": "relative"}).original
+		self.failUnless("<TD>1900.0</TD><TD>0.91676" in payload)
+		tree = testhelpers.getXMLTree(payload, debug=False)
+		self.assertEqual(tree.xpath(
+			"//PARAM[@utype='spec:Spectrum.Char.FluxAxis.Calibration']")[0].get(
+				"value"),
+			"RELATIVE")
+
+	def testBadCalib(self):
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Field FLUXCALIB: u'ferpotschket' is not a valid value for FLUXCALIB",
+			self.runService,
+			("dl", {"PUBDID": 'ivo://test.inv/test1', 
+				"FORMAT": "text/plain", 
+				"FLUXCALIB": ["ferpotschket"]}))
+
+	def testBadPubDID(self):
+		self.assertRaisesWithMsg(svcs.UnknownURI,
+			"No spectrum with pubdid ivo://test.inv/bad known here",
+			self.runService,
+				("dl", {"PUBDID": 'ivo://test.inv/bad'}))
+
+	def _testRandomParamFails(self):
 		self.assertRaisesWithMsg(base.ValidationError,
 			"Field (various): The following parameter(s) are"
 			" not accepted by this service: WARP",

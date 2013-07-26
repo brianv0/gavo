@@ -320,6 +320,10 @@ def makeAutoParmaker(inputTable):
 			par.name,
 			base.sqltypeToPythonCode(par.type)%"a", 
 			_OPTIONS_FOR_MULTIS[par.multiplicity])
+
+		if par.required:
+			makeValue = "requireValue(%s, %s)"%(makeValue, repr(par.name))
+
 		maps.append(MS(rscdef.MapRule, dest=par.name, content_=makeValue))
 
 	return MS(rscdef.ParmakerDef, maps=maps, id="parameter parser")

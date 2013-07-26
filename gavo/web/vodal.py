@@ -442,6 +442,44 @@ class RegistryRenderer(grend.ServiceBasedPage):
 		return appserver.errorMarker
 
 
+class DatalinkRenderer(grend.ServiceBasedPage):
+	"""A very plain renderer just very shallowly wrapping the datalink core.
+
+	Since the entire protocol is contained in the core, the main thing
+	this does is decide whether to return the core's result as  a nevow
+	resource or render it itself.
+	"""
+	name = "dlget"
+	urlUse = "base"
+
+	def renderHTTP(self, ctx):
+		return self.runService(inevow.IRequest(ctx).args, ctx
+			).addCallback(self._formatData, request
+			).addErrback(self._reportError, request)
+	
+	def _formatData(self, svcResult, request):
+		# the core returns mime, data or a resource.  So, if it's a pair,
+		# to something myself, else let twisted sort it out
+		data = svcResult.original
+
+		if isinstance(data, tuple):
+# XXX TODO: the same thing is in formrender.  Refactor; since this is
+# something most renderers should be able to do, ServiceBasedPage would be
+# a good place
+			mime, payload = res.original
+			request.setHeader("content-type", mime)
+			request.setHeader('content-disposition', 
+				'attachment; filename=result%s'%common.getExtForMime(mime))
+			return streaming.streamOut(lambda f: f.write(payload), 
+				request)
+
+		else:
+			return data
+
+	def _reportError(self, failure, request):
+		return "Don't know how to report errors yet"
+
+
 def _test():
 	import doctest, vodal
 	doctest.testmod(vodal)
