@@ -221,13 +221,14 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 		nextURL = str(url.URL.fromContext(ctx))
 		targetURL = url.URL.fromString("/login").add("nextURL", nextURL)
 		if request.getUser():
+			anchorText = "Log out %s"%request.getUser()
 			targetURL = targetURL.add("relog", "True")
-			return ctx.tag[T.a(href=str(targetURL),
-					onclick="return logoff()")[
-				"Log out %s"%request.getUser()]]
+			explanation = " (give an empty user name in the dialog popping up)"
 		else:
-			return ctx.tag[T.a(href=str(targetURL))[
-				"Log in"]]
+			anchorText = "Log in"
+			explanation = ""
+		return ctx.tag[T.a(href=str(targetURL))[
+			anchorText], explanation]
 
 	def render_prependsite(self, ctx, data):
 		"""prepends a site id to the body.
@@ -465,7 +466,7 @@ class ResourceBasedPage(GavoPage):
 		return lambda ctx, data: base.makeSitePath("/browse/%s"%self.rd.sourceId)
 
 
-_IGNORED_KEYS = set(["__nevow_form__", "_charset_", "submit"])
+_IGNORED_KEYS = set(["__nevow_form__", "_charset_", "submit", "nextURL"])
 
 def _formatRequestArgs(args):
 	r"""formats nevow request args for logging.
@@ -509,10 +510,12 @@ class ServiceBasedPage(ResourceBasedPage):
 
 	The class overrides nevow's child and render methods to allow the
 	service to define render_X and data_X methods, too.
+
+	You can set an attribute checkedRenderer=False for renderers that
+	are "generic" and do not need to be enumerated in the allowed
+	attribute of the underlying service ("meta renderers").
 	"""
 
-	# set to false for renderers intended to be allowed on all services
-	# (i.e., "meta" renderers).
 	checkedRenderer = True
 
 	def __init__(self, ctx, service):

@@ -48,6 +48,9 @@ def getGroupsForUser(username, password):
 def hasCredentials(user, password, reqGroup):
 	"""returns true if user and password match the db entry and the user
 	is in the reqGroup.
+
+	If reqGroup is None, true will be returned if the user/password pair
+	is in the user table.
 	"""
 	if user=="gavoadmin" and base.getConfig("web", "adminpasswd"
 			) and password==base.getConfig("web", "adminpasswd"):
@@ -56,12 +59,17 @@ def hasCredentials(user, password, reqGroup):
 	with base.AdhocQuerier(base.getAdminConn) as querier:
 		dbRes = list(querier.query("select password from dc.users where"
 			" username=%(user)s", {"user": user}))
+
 		if not dbRes or not dbRes[0]:
 			return False
 		dbPw = dbRes[0][0]
 		if dbPw!=password:
 			return False
-		dbRes = list(querier.query("select groupname from dc.groups where"
-			" username=%(user)s and groupname=%(group)s", 
-			{"user": user, "group": reqGroup,}))
-		return not not dbRes
+
+		if reqGroup:
+			dbRes = list(querier.query("select groupname from dc.groups where"
+				" username=%(user)s and groupname=%(group)s", 
+				{"user": user, "group": reqGroup,}))
+			return not not dbRes
+		else:
+			return True
