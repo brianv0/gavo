@@ -148,7 +148,8 @@ class AutoInputDDTest(testhelpers.VerboseTest):
 class InputTableGenTest(testhelpers.VerboseTest):
 	def testDefaulting(self):
 		service = testhelpers.getTestRD("cores").getById("cstest")
-		it = service._makeInputTableFor("form", svcs.PreparsedInput({
+		it = service._makeInputTableFor(service.getCoreFor("form"), 
+			svcs.PreparsedInput({
 				"hscs_pos": "Aldebaran", "hscs_SR": "0.25"}))
 		self.assertEqual(it.getParamDict(), {
 			'rV': '-100 .. 100', 'hscs_sr': 0.25, 'mag': None, 
@@ -157,7 +158,7 @@ class InputTableGenTest(testhelpers.VerboseTest):
 	def testInvalidLiteral(self):
 		service = testhelpers.getTestRD("cores").getById("cstest")
 		try:
-			it = service._makeInputTableFor("form", {
+			it = service._makeInputTableFor(service.core, {
 				"hscs_pos": "Aldebaran", "hscs_sr": "a23"})
 		except base.ValidationError, ex:
 			self.assertEqual(ex.colName, "hscs_sr")
@@ -166,13 +167,13 @@ class InputTableGenTest(testhelpers.VerboseTest):
 
 	def testEnumeratedNoDefault(self):
 		service = testhelpers.getTestRD("cores").getById("enums")
-		it = service._makeInputTableFor("form", {})
+		it = service._makeInputTableFor(service.core, {})
 		self.assertEqual(it.getParamDict(), {'a': None, 'b': None,
 			'c':[1]})
 
 	def testCaseFolding(self):
 		service = testhelpers.getTestRD("cores").getById("enums")
-		it = service._makeInputTableFor("form", {"B": 2})
+		it = service._makeInputTableFor(service.core, {"B": 2})
 		self.assertEqual(it.getParamDict(), {'a': None, 'b': [2],
 			'c':[1]})
 
@@ -181,7 +182,7 @@ class InputTableGenTest(testhelpers.VerboseTest):
 		self.assertRaisesWithMsg(base.ValidationError,
 			"Field b: [3] is not a valid value for b",
 			service._makeInputTableFor,
-			("form", {'b':"3"}))
+			(service.core, {'b':"3"}))
 
 
 class PlainDBServiceTest(testhelpers.VerboseTest):

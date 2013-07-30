@@ -946,34 +946,36 @@ the base ProductDescriptor), it has an attribute ``data`` defaulting to
 ``None``, intended to be filled by the core's data generator on data
 processing runs.
 
-The descriptor is then passed, in turn, to the link makers, which yield
-``datalink.LinkDef`` instances providing links to static documents related
-to whatever PUBDID describes (alternative formats, ancillary data,...).
+The descriptor is then passed, in turn, to the meta makers, either
+update ``svc.InputKey`` instances, adding give ranges or enumerate the
+permitted values to them, or they yield ``datalink.LinkDef`` instances
+providing links to static documents related to whatever PUBDID describes
+(alternative formats, ancillary data,...).
 
-It is also passed to each of the parameter definitions.  Theses are
-expected to return ``datalink.ParameterDef`` instances, which give
-ranges, descriptions, etc, for input parameters to the service (e.g.,
-the edges of a cutout).
-
-These are then formatted to a proper Datalink description and returned.
+All that is then formatted to a proper Datalink description and returned.
 
 When a request for processed data comes in, the descriptor generator is
-again used to make a product descriptor.  This time, it is passed to the
-first data function.  This must fill out the ``data`` attribute of the
-descriptor or raise a ValidationError for the PUBDID; leaving it as None
-results in a 500 server errror.  Descriptor.data, typically will be an
-``rsc.InMemoryTable``, but as long as the other data functions and the
-formatter agree on what it is, anything goes.  It will usually be fed
-from a database, pixels in FITS files, or the like.
+again used to make a product descriptor, and again the input keys are
+updated as before.  They are then used to build the arguments structure
+described by the input keys.  
 
-This object is then handed through all data function; these change the
-data in place or create a new one as convenient and return the result
-as applicable.  It is a design descision which manipulations are done in
-the data generator and which are in later filters.  The advantage of
-filters is that they are more flexible and can more easily be reused,
-while doing it things in the data generator itself will usually be more
-efficient, sometimes much so (e.g., sums being computed within a
-database rather than in a filter).
+If the context grammar succeeds, the data descriptor is passed to the
+first data function together with the arguments parsed.  This must fill
+out the ``data`` attribute of the descriptor or raise a ValidationError
+for the PUBDID; leaving it as None results in a 500 server error.
+Descriptor.data could an ``rsc.InMemoryTable`` (e.g., in SSAP) or a
+products.Products instance, but as long as the other data functions and
+the formatter agree on what it is, anything goes.  It will usually be
+fed from a database, pixels in FITS files, or the like.
+
+This object is then handed through all remaining data functions; these
+change the data in place or create a new one as convenient and return
+the result as applicable.  It is a design descision which manipulations
+are done in the data generator and which are in later filters.  The
+advantage of filters is that they are more flexible and can more easily
+be reused, while doing it things in the data generator itself will
+usually be more efficient, sometimes much so (e.g., sums being computed
+within a database rather than in a filter).
 
 Finally, the data enters the formatter, which actually generates the
 output, returning a pair of mime type and string to be delivered.

@@ -274,7 +274,7 @@ class MangledFITSProductsTest(testhelpers.VerboseTest):
 
 class DatalinkElementTest(testhelpers.VerboseTest):
 	resources = [("prodtestTable", tresc.prodtestTable)]
-
+	
 	def testStandardDescGenWorks(self):
 		ivoid = rscdef.getStandardPubDID(
 			os.path.join(base.getConfig("inputsDir"), 

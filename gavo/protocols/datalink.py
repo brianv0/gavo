@@ -7,6 +7,7 @@ More on this in "Datalink Cores" in the reference documentation.
 from gavo import base
 from gavo import rscdef
 from gavo import svcs
+from gavo import utils
 from gavo.protocols import products
 
 
@@ -47,7 +48,7 @@ class DescriptorGenerator(rscdef.ProcApp):
 
 	  - pubdid -- the pubdid to be resolved
 	  - args -- all the arguments that came in from the web
-	    (these should not ususally be necessary)
+	    (these should not ususally be necessary and are completely unparsed)
 	
 	If you made your pubdid using the ``getStandardPubDID`` rowmaker function,
 	and you need no additional logic within the descriptor,
@@ -56,6 +57,22 @@ class DescriptorGenerator(rscdef.ProcApp):
 	name_ = "descriptorGenerator"
 	requiredType = "descriptorGenerator"
 	formalArgs = "pubdid, args"
+
+
+class MetaUpdater(rscdef.ProcApp):
+	"""A procedure application that generates metadata for datalink services.
+
+	This can either mean updating InputKey's options (e.g., limits, enumerated
+	values), in which case the procs return nothing.  Alternatively,
+	they can yield zero or more datalink.LinkDef instances, which
+	represent related metadata.  See there on how to come up with them.
+
+	metaUpdaters see the descriptor of the input data as descriptor.
+	The data attribute of the descriptor is always None for metaUpdaters.
+	"""
+	name_ = "metaUpdater"
+	requiredType = "metaUpdater"
+	formalArgs = "descriptor"
 
 
 class DataFunction(rscdef.ProcApp):
@@ -109,6 +126,10 @@ class DatalinkCore(svcs.Core, base.ExpansionDelegator):
 	core.
 
 	See `Datalink Cores`_ for more information.
+
+	In contrast to "normal" cores, one of these is made (and destroyed)
+	for each datalink request coming in.  This is because the interface
+	of a datalink service depends on the request (i.e., pubdid).
 	"""
 	name_ = "datalinkCore"
 
@@ -118,6 +139,12 @@ class DatalinkCore(svcs.Core, base.ExpansionDelegator):
 		description="Code that takes a PUBDID and turns it into a"
 			" product descriptor instance.  If not given,"
 			" //datalink#fromStandardPubDID will be used.",
+		copyable=True)
+
+	_metaUpdaters = base.StructListAttribute("metaUpdaters",
+		childFactory=MetaUpdater,
+		description="Code that takes a data descriptor and either"
+			" updates input key options or yields related data.",
 		copyable=True)
 
 	_dataFunctions = base.StructListAttribute("dataFunctions",
@@ -134,7 +161,8 @@ class DatalinkCore(svcs.Core, base.ExpansionDelegator):
 		description="Code that turns descriptor.data into a nevow resource"
 			" or a mime, content pair.  If not given, the renderer will be"
 			" returned descriptor.data itself (which will probably not usually"
-			" work).")
+			" work).",
+		copyable=True)
 
 	_inputKeys = rscdef.ColumnListAttribute("inputKeys",
 		childFactory=svcs.InputKey,
@@ -165,28 +193,66 @@ class DatalinkCore(svcs.Core, base.ExpansionDelegator):
 
 		self._completeElementNext(DatalinkCore, ctx)
 
+	def adaptForRenderer(self, renderer):
+		"""returns a core for a specific product.
+	
+		The ugly thing about datalink in DaCHS' architecture is that its
+		interface (in terms of, e.g., inputKeys' values children) depends
+		on the arguments themselves, specifically the pubdid.
+
+		The workaround is to abuse the renderer-specific getCoreFor,
+		ignore the renderer and instead steal an "args" variable from
+		somewhere upstack.  Nasty, but for now an acceptable solution.
+
+		It is particularly important to never let service cache the
+		cores returned; hence to "nocache" magic.
+
+		To generate all datalink-relevant metadata in one go and avoid
+		calling the descriptorGenerator more than once, the resulting
+		table also has "datalinkDescriptor" and "datalinkLinks" attributes.
+		"""
+		try:
+			args = utils.stealVar("args")
+		except ValueError:
+			# no arguments found: no pubdid-specific interfaces
+			return self
+
+		try:
+			pubDID = args["PUBDID"]
+			if isinstance(pubDID, list):
+				pubDID = pubDID[0]
+		except (KeyError, IndexError):
+			raise base.ValidationError("Value is required but was not provided",
+				"PUBDID")
+		descriptor = self.descriptorGenerator.compile(self)(pubDID, args)
+
+		linkDefs, inputKeys = [], self.inputKeys[:]
+		
+		for updater in self.metaUpdaters:
+			for item in updater.compile(self)(descriptor):
+				if isinstance(item, LinkDef):
+					linkDefs.append
+		
+		res = self.change(inputKeys=inputKeys)
+		res.nocache = True
+		res.datalinkLinks = linkDefs
+		res.descriptor = descriptor
+		
+		return res
 
 	def run(self, service, inputTable, queryMeta):
 		args = inputTable.getParamDict()
-		pubDID = args["PUBDID"]
-		descriptor = self.descriptorGenerator.compile(self)(pubDID, args)
 
-		if False: # TODO: decide when to spit out the metadata document
-			pass
-		else:
-			return self._runDataProcessing(descriptor, args)
-	
-	def _runDataProcessing(self, descriptor, args):
 		if not self.dataFunctions:
 			raise base.DataError("This datalink service cannot process data")
 
-		self.dataFunctions[0].compile(self)(descriptor, args)
+		self.dataFunctions[0].compile(self)(self.descriptor, args)
 
-		if descriptor.data is None:
+		if self.descriptor.data is None:
 			raise base.ReportableError("Internal Error: a first data function did"
 				" not create data.")
 
 		for func in self.dataFunctions[1:]:
-			func.compile(self)(descriptor, args)
+			func.compile(self)(self.descriptor, args)
 
-		return self.dataFormatter.compile(self)(descriptor, args)
+		return self.dataFormatter.compile(self)(self.descriptor, args)
