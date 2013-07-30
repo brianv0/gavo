@@ -322,8 +322,8 @@ def degToHms(deg, sepChar=" ", secondFracs=3):
 	'00 00 00.000'
 	>>> degToHms(122.056, secondFracs=1)
 	'08 08 13.4'
-	>>> degToHms(122.056, secondFracs=0)
-	'08 08 13'
+	>>> degToHms(-0.056, secondFracs=0)
+	'-00 00 13'
 	>>> degToHms(-1.056, secondFracs=0)
 	'-00 04 13'
 	>>> degToHms(359.2222, secondFracs=4, sepChar=":")
@@ -348,16 +348,22 @@ def degToDms(deg, sepChar=" ", secondFracs=2):
 
 	>>> degToDms(0)
 	'+0 00 00.00'
+	>>> degToDms(-0.25)
+	'-0 15 00.00'
 	>>> degToDms(-23.50, secondFracs=4)
 	'-23 30 00.0000'
 	>>> "%.4f"%dmsToDeg(degToDms(-25.6835, sepChar=":"), sepChar=":")
 	'-25.6835'
 	"""
+	sign = '+'
+	if deg<0:
+		sign = "-"
+		deg = -deg
 	rest, degs = math.modf(deg)
 	rest, minutes = math.modf(rest*60)
 	if secondFracs==0:
 		secondFracs = -1
-	return sepChar.join(["%+d"%int(degs), "%02d"%abs(int(minutes)), 
+	return sepChar.join(["%s%d"%(sign, int(degs)), "%02d"%abs(int(minutes)), 
 		"%0*.*f"%(secondFracs+3, secondFracs, abs(rest*60))])
 
 
