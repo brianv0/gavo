@@ -239,12 +239,15 @@ of where we messed up, and we'll try to improve.
 
 				CREATE OR REPLACE FUNCTION ts_to_mjd(value TIMESTAMP)
 				RETURNS DOUBLE PRECISION AS $func$
-					SELECT to_char($1, 'J')::double precision-2400000.5
+					SELECT to_char($1, 'J')::double precision
+  					+ to_char($1,'ssss')::double precision/86400
+  					- 2400001
 				$func$ LANGUAGE SQL STABLE;
 
 				CREATE OR REPLACE FUNCTION ts_to_jd(value TIMESTAMP)
 				RETURNS DOUBLE PRECISION AS $func$
 					SELECT to_char($1, 'J')::double precision
+  					+ to_char($1,'ssss')::double precision/86400
 				$func$ LANGUAGE SQL STABLE;
 			]]></script>
 		</make>
