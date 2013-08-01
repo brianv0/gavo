@@ -226,7 +226,9 @@ def _solveField(fName, solverParameters, sexControl, objectFilter,
 	objectSource = "img.fits"
 	if sexControl is not None:
 		_createSextractorFiles(sexControl)
-		if sexControl=="":
+		if sexControl==None:
+			pass
+		elif sexControl=="":
 			args.extend(["--use-sextractor", "--sextractor-path", sextractorBin])
 		else:
 			_extractSex(objectFilter)

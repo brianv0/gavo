@@ -183,6 +183,7 @@ class HeaderProcessor(FileProcessor):
 	All this leads to the messy logic.  Sorry 'bout this.
 	"""
 	headerExt = ".hdr"
+	maxHeaderBlocks = 40
 
 	def _makeCacheName(self, srcName):
 		return srcName+self.headerExt
@@ -200,6 +201,9 @@ class HeaderProcessor(FileProcessor):
 		if hdr.has_key("NAXIS2"):
 			del hdr["NAXIS2"]
 
+		hdr = fitstools.sortHeaders(hdr, commentFilter=self.commentFilter,
+			historyFilter=self.historyFilter)
+
 		with open(dest, "w") as f:
 			f.write(fitstools.serializeHeader(hdr))
 
@@ -211,7 +215,7 @@ class HeaderProcessor(FileProcessor):
 		src = self._makeCacheName(srcName)
 		if os.path.exists(src):
 			with open(src) as f:
-				hdr = fitstools.readPrimaryHeaderQuick(f)
+				hdr = fitstools.readPrimaryHeaderQuick(f, self.maxHeaderBlocks)
 			return hdr
 
 	def _makeCache(self, srcName):
@@ -278,7 +282,8 @@ class HeaderProcessor(FileProcessor):
 		return hdr
 
 	def process(self, srcName):
-		if not self.opts.reProcess and self._isProcessed(srcName):
+		if (not (self.opts.reProcess or self.opts.reHeader)
+				and self._isProcessed(srcName)):
 			return
 		cache = self._readCache(srcName)
 		if cache is None or self.opts.reProcess:

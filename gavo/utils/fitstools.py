@@ -230,7 +230,7 @@ def replacePrimaryHeaderInPlace(fitsName, newHeader):
 	with open(fitsName) as inputFile:
 		serializedOld = readHeaderBytes(inputFile)
 		inputFile.seek(0)
-
+		
 		if len(serializedNew)<len(serializedOld):
 			# the new header is shorter than the old one; pad it with empty
 			# cards, then make sure the end card is in the last block
@@ -302,6 +302,8 @@ def sortHeaders(header, commentFilter=None, historyFilter=None):
 	between the sections of real cards, history and comments.
 
 	Header can be an iterable yielding Cards or a pyfits header.
+
+	Duplicate history or comment entries will be swallowed.
 	"""
 	commentCs, historyCs, realCs = [], [], []
 	if hasattr(header, "ascardlist"):
@@ -319,16 +321,25 @@ def sortHeaders(header, commentFilter=None, historyFilter=None):
 	newCards = []
 	for card in realCs:
 		newCards.append(card)
+	
+	historySeen = set()
 	if historyCs:
 		newCards.append(pyfits.Card(key=""))
 	for card in historyCs:
 		if historyFilter is None or historyFilter(card.value):
-			newCards.append(card)
+			if card.value not in historySeen:
+				newCards.append(card)
+				historySeen.add(card.value)
+
+	commentsSeen = set()
 	if commentCs:
 		newCards.append(pyfits.Card(key=""))
 	for card in commentCs:
 		if commentFilter is None or commentFilter(card.value):
-			newCards.append(card)
+			if card.value not in commentsSeen:
+				commentsSeen.add(card.value)
+				newCards.append(card)
+
 	return _enforceHeaderConstraints(newCards)
 
 
