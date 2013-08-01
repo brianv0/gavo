@@ -176,9 +176,9 @@ class HeaderProcessor(FileProcessor):
 
 		- generate headers without touching the original files: proc
 		- write all cached headers to files that don't have them
-			proc --applyheaders --nocompute
+			proc --apply --nocompute
 		- after a bugfix force all headers to be regenerated:
-			proc --reprocess --applyheaders --reheader
+			proc --reprocess --apply --reheader
 	
 	All this leads to the messy logic.  Sorry 'bout this.
 	"""

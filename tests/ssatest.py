@@ -370,11 +370,11 @@ class SDMDatalinkTest(_WithSSATableTest):
 
 	renderer = "dlget"
 
-	def _testGetdataDeclared(self):
+	def _testDatalinkDeclared(self):
 		res = self.runService("c",
 			{"REQUEST": "queryData"})
 		tree = testhelpers.getXMLTree(res.original[1])
-		gpTable = tree.xpath('//TABLE[@name="generationParameters"]')[0]
+		gpTable = tree.xpath('//TABLE[@name="datalinkDescriptor"]')[0]
 
 		formats = [el.get("value")
 			for el in gpTable.xpath("PARAM[@name='FORMAT']/VALUES/OPTION")]
@@ -888,4 +888,4 @@ class MixcTableTest(testhelpers.VerboseTest):
 
 if __name__=="__main__":
 	base.DEBUG = True
-	testhelpers.main(SEDTableTest)
+	testhelpers.main(SDMDatalinkTest)

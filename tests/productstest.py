@@ -14,6 +14,7 @@ from gavo import api
 from gavo import base
 from gavo import rscdef
 from gavo import svcs
+from gavo import votable
 from gavo.protocols import datalink
 from gavo.protocols import products
 from gavo.utils import fitstools
@@ -291,10 +292,12 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 	def testProductsGenerator(self):
 		svc = base.parseFromString(svcs.Service, """<service id="foo">
 			<datalinkCore>
-				<dataFunction procDef="//datalink#generateProduct"/></datalinkCore>
+				<dataFunction procDef="//datalink#generateProduct"/>
+				<metaMaker><code>yield MS(InputKey, name="ignored")</code></metaMaker>
+				</datalinkCore>
 			</service>""")
 		res = svc.run("form", {"PUBDID": rscdef.getStandardPubDID(
-			"data/b.imp")}).original
+			"data/b.imp"), "ignored": 0.4}).original
 		self.assertEqual("".join(res.iterData()), 'alpha: 03 34 33.45'
 			'\ndelta: 42 34 59.7\nobject: michael\nembargo: 2003-12-31\n')
 
@@ -302,27 +305,31 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 		svc = base.parseFromString(svcs.Service, """<service id="foo">
 			<datalinkCore>
 				<dataFunction procDef="//datalink#generateProduct">
-					<bind name="requireMimes">["image/fits"]</bind>
-				</dataFunction></datalinkCore>
+					<bind name="requireMimes">["image/fits"]</bind></dataFunction>
+					<metaMaker><code>yield MS(InputKey, name="ignored")</code></metaMaker>
+				</datalinkCore>
 			</service>""")
 		self.assertRaisesWithMsg(base.ValidationError,
 			"Field PUBDID: Document type not supported: text/plain",
 			svc.run,
-			("form", {"PUBDID": rscdef.getStandardPubDID("data/b.imp")}))
+			("form", {"PUBDID": rscdef.getStandardPubDID("data/b.imp"),
+				"ignored": 0.5}))
 
 	def testProductsGeneratorFailure(self):
 		svc = base.parseFromString(svcs.Service, """<service id="foo">
 			<datalinkCore>
 				<dataFunction procDef="//datalink#generateProduct">
-					<code>
-						descriptor.data = None
-					</code>
-				</dataFunction></datalinkCore>
+					<code>descriptor.data = None
+					</code></dataFunction>
+					<metaMaker><code>yield MS(InputKey, name="ignored")
+					</code></metaMaker>
+				</datalinkCore>
 			</service>""")
 		self.assertRaisesWithMsg(base.ReportableError,
 			"Internal Error: a first data function did not create data.",
 			svc.run,
-			("form", {"PUBDID": rscdef.getStandardPubDID("data/b.imp")}))
+			("form", {"PUBDID": rscdef.getStandardPubDID("data/b.imp"),
+				"ignored": 0.4}))
 
 	def testProductsMogrifier(self):
 		svc = base.parseFromString(svcs.Service, """<service id="foo">
@@ -357,6 +364,60 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 		self.assertEqual(res, 
 			"eptle>$47$78$77289\x0ehipxe>$86$78$9=2;\x0e"
 			"sfnigx>$qmgleip\x0eiqfevks>$6447156175\x0e")
+
+	def testKeyMetaMaker(self):
+		svc = base.parseFromString(svcs.Service, """<service id="foo">
+			<datalinkCore>
+				<metaMaker>
+					<code>
+					yield MS(InputKey, name="format", type="text",
+						ucd="meta.format",
+						description="Output format desired",
+						values=MS(Values,
+							options=[MS(Option, content_=descriptor.mime),
+								MS(Option, content_="application/fits")]))
+					</code>
+				</metaMaker>
+				<dataFunction procDef="//datalink#generateProduct"/>
+			</datalinkCore>
+			</service>""")
+		res = svc.run("form", {
+			"PUBDID": [rscdef.getStandardPubDID("data/b.imp")]}).original
+		self.assertEqual(res[0], "application/x-votable+xml")
+		tree = testhelpers.getXMLTree(res[1])
+		self.assertEqual(
+			tree.xpath("//PARAM[@name='format']")[0].get("ucd"),
+			"meta.format")
+		self.assertEqual(
+			tree.xpath("//PARAM[@arraysize='*']")[0].get("arraysize"),
+			"*")
+		self.assertEqual(
+			tree.xpath("//PARAM[@arraysize='*']/VALUES/OPTION")[0].get("value"),
+			"text/plain")
+		self.assertEqual(
+			tree.xpath("//PARAM[@arraysize='*']/VALUES/OPTION")[1].get("value"),
+			"application/fits")
+
+	def testLinkMetaMaker(self):
+		svc = base.parseFromString(svcs.Service, """<service id="foo">
+			<datalinkCore>
+				<metaMaker>
+					<code>
+					yield LinkDef("http://foo/bar", "test/junk", "related")
+					yield LinkDef("http://foo/baz", "test/gold", "unrelated")
+					</code>
+				</metaMaker>
+				<dataFunction procDef="//datalink#generateProduct"/>
+			</datalinkCore>
+			</service>""")
+		res = svc.run("form", {
+			"PUBDID": [rscdef.getStandardPubDID("data/b.imp")]}).original
+		self.assertEqual(res[0], "application/x-votable+xml")
+		rows = votable.parseString(res[1]).next()
+		self.assertEqual(
+			list(rows), [
+				['http://foo/bar', 'test/junk', 'related'],
+				['http://foo/baz', 'test/gold', 'unrelated']])
 
 
 if __name__=="__main__":

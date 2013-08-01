@@ -147,6 +147,10 @@ def _makeValuesForColDesc(colDesc):
 		valEl[V.MAX(value=str(colDesc["max"]))]
 	if colDesc["nullvalue"] is not None:
 		valEl(null=colDesc["nullvalue"])
+
+	for option in getattr(colDesc.original.values, "options", []):
+		valEl[V.OPTION(value=option.content_, name=option.title)]
+
 	return valEl
 
 

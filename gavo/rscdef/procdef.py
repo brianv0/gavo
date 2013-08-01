@@ -193,10 +193,11 @@ class ProcDef(base.Structure, base.RestrictionMixin):
 		" will in general require certain types of definitions.",
 		validValues=["t_t", "apply", "rowfilter", "sourceFields", "mixinProc",
 			"phraseMaker", "descriptorGenerator", "dataFunction", "dataFormatter",
-			"metaUpdater"], 
+			"metaMaker"], 
 			copyable=True,
 		strip=True)
 	_original = base.OriginalAttribute()
+
 
 	def getCode(self):
 		"""returns the body code indented with two spaces.
@@ -231,6 +232,10 @@ class ProcApp(ProcDef):
 		- a requiredType attribute specifying what ProcDefs can be applied.
 		- a formalArgs attribute containing a (python) formal argument list
 		- of course, a name_ for XML purposes.
+	
+	They can, in addition, give a class attribute additionalNamesForProcs,
+	which is a dictionary that is joined into the global namespace during
+	procedure compilation.
 	"""
 	_procDef = base.ReferenceAttribute("procDef", forceType=ProcDef,
 		default=base.NotGiven, description="Reference to the procedure"
@@ -245,6 +250,8 @@ class ProcApp(ProcDef):
 		" you have to care about name clashes yourself, though.", strip=True)
 
 	requiredType = None
+
+	additionalNamesForProcs = {}
 
 	def completeElement(self, ctx):
 		self._completeElementNext(ProcApp, ctx)
@@ -348,7 +355,8 @@ class ProcApp(ProcDef):
 		"""
 		return rmkfuncs.makeProc(
 				self.name, self.getFuncCode(),
-				self.getSetupCode(), parent)
+				self.getSetupCode(), parent,
+				**self.additionalNamesForProcs)
 
 	def compile(self, parent=None):
 		"""returns a callable for this procedure application.

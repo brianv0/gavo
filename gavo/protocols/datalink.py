@@ -8,7 +8,10 @@ from gavo import base
 from gavo import rscdef
 from gavo import svcs
 from gavo import utils
+from gavo import votable
 from gavo.protocols import products
+from gavo.formats import votablewrite
+from gavo.votable import V
 
 
 MS = base.makeStruct
@@ -59,20 +62,69 @@ class DescriptorGenerator(rscdef.ProcApp):
 	formalArgs = "pubdid, args"
 
 
-class MetaUpdater(rscdef.ProcApp):
+class LinkDef(object):
+	"""A definition of a datalink related document.
+
+	These are constructed at least with:
+
+	  - the destination URL (as a string)
+	  - the destination contentType (a mime type as a string)
+	  - the relationType (another string).
+	
+	For relationType, there's a semi-controlled vocabulary, items from
+	which you should be using if at all matching.
+	"""
+	def __init__(self, url, contentType, relationType):
+		self.url, self.contentType = url, contentType
+		self.relationType = relationType
+
+	def asRow(self):
+		"""returns self in the format expected by _runGenerateMetadata below.
+		"""
+		return (self.url, self.contentType, self.relationType)
+
+
+
+class MetaMaker(rscdef.ProcApp):
 	"""A procedure application that generates metadata for datalink services.
 
-	This can either mean updating InputKey's options (e.g., limits, enumerated
-	values), in which case the procs return nothing.  Alternatively,
-	they can yield zero or more datalink.LinkDef instances, which
-	represent related metadata.  See there on how to come up with them.
+	The code must be generators (i.e., use yield statements) producing either
+	svcs.InputKeys or protocols.datalink.LinkDef instances.
 
-	metaUpdaters see the descriptor of the input data as descriptor.
-	The data attribute of the descriptor is always None for metaUpdaters.
+	metaMaker see the data descriptor of the input data under the name
+	descriptor.
+
+	The data attribute of the descriptor is always None for metaUpdaters, so
+	you cannot use anything given there.
+
+	Within MetaMakers' code, you can access InputKey, Values, Option, and
+	LinkDef without qualification, and there's the MS function to build
+	structures.  Hence, a metaMaker returning an InputKey could look like this::
+
+		<metaMaker>
+			<code>
+				yield MS(InputKey, name="format", type="text",
+					description="Output format desired",
+					values=MS(Values,
+						options=[MS(Option, content_=descriptor.mime),
+							MS(Option, content_="text/plain")]))
+			</code>
+		</metaMaker>
+
+	(of course, you should give more metadata -- ucds, better description,
+	etc) in production).
 	"""
-	name_ = "metaUpdater"
-	requiredType = "metaUpdater"
+	name_ = "metaMaker"
+	requiredType = "metaMaker"
 	formalArgs = "descriptor"
+
+	additionalNamesForProcs = {
+		"MS": base.makeStruct,
+		"InputKey": svcs.InputKey,
+		"Values": rscdef.Values,
+		"Option": rscdef.Option,
+		"LinkDef": LinkDef,
+	}
 
 
 class DataFunction(rscdef.ProcApp):
@@ -141,8 +193,8 @@ class DatalinkCore(svcs.Core, base.ExpansionDelegator):
 			" //datalink#fromStandardPubDID will be used.",
 		copyable=True)
 
-	_metaUpdaters = base.StructListAttribute("metaUpdaters",
-		childFactory=MetaUpdater,
+	_metaMakers = base.StructListAttribute("metaMakers",
+		childFactory=MetaMaker,
 		description="Code that takes a data descriptor and either"
 			" updates input key options or yields related data.",
 		copyable=True)
@@ -228,12 +280,14 @@ class DatalinkCore(svcs.Core, base.ExpansionDelegator):
 
 		linkDefs, inputKeys = [], self.inputKeys[:]
 		
-		for updater in self.metaUpdaters:
-			for item in updater.compile(self)(descriptor):
+		for metaMaker in self.metaMakers:
+			for item in metaMaker.compile(self)(descriptor):
 				if isinstance(item, LinkDef):
-					linkDefs.append
-		
-		res = self.change(inputKeys=inputKeys)
+					linkDefs.append(item)
+				else:
+					inputKeys.append(item)
+	
+		res = self.change(inputTable=MS(svcs.InputTable, params=inputKeys))
 		res.nocache = True
 		res.datalinkLinks = linkDefs
 		res.descriptor = descriptor
@@ -242,7 +296,17 @@ class DatalinkCore(svcs.Core, base.ExpansionDelegator):
 
 	def run(self, service, inputTable, queryMeta):
 		args = inputTable.getParamDict()
+		argsGiven = set(key for (key, value) in args.iteritems()
+			if value is not None)
 
+		if argsGiven==set(["PUBDID"]):
+			return self._runGenerateMetadata(args)
+		else:
+			return self._runDataProcessing(args)
+	
+	def _runDataProcessing(self, args):
+		"""does run's work if we're handling a data processing request.
+		"""
 		if not self.dataFunctions:
 			raise base.DataError("This datalink service cannot process data")
 
@@ -256,3 +320,21 @@ class DatalinkCore(svcs.Core, base.ExpansionDelegator):
 			func.compile(self)(self.descriptor, args)
 
 		return self.dataFormatter.compile(self)(self.descriptor, args)
+	
+	def _runGenerateMetadata(self, args):
+		"""does run's work if we're handling a metadata request.
+
+		This will always return a VOTable.
+		"""
+		vot = (
+			V.RESOURCE(name="datalinkDescriptor")[[
+				votablewrite.makeFieldFromColumn(V.PARAM, ik)
+					for ik in self.inputTable.params],
+				votable.DelayedTable(
+					V.TABLE(name="relatedData") [
+						V.FIELD(name="url", datatype="char", arraysize="*"),
+						V.FIELD(name="contentType", datatype="char", arraysize="*"),
+						V.FIELD(name="relationType", datatype="char", arraysize="*")],
+					[l.asRow() for l in self.datalinkLinks],
+					V.BINARY)])
+		return ("application/x-votable+xml", vot.render())

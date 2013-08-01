@@ -37,6 +37,9 @@ DEG_MAS = 1/3600000.
 DEG_ARCSEC = 1/3600.
 
 
+MS = base.makeStruct
+
+
 class IgnoreThisRow(Exception):
 	"""can be raised by user code to indicate that a row should be
 	skipped when building a table.

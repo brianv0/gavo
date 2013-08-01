@@ -168,7 +168,7 @@
 	</STREAM>
 
 	<STREAM id="sdm_cutout">
-		<doc>A stream inserting a data function and its parameters to
+		<doc>A stream inserting a data function and its metaMaker to
 		do cutouts in SDM data. This expects sdm_generate (or at least
 		parameters.data as an SDM data instance) as the generating function 
 		within the datalink core.
@@ -177,15 +177,23 @@
 		the spectrum's actual units (as in SSAP's BAND parameter).
 		</doc>
 
-		<inputKey name="LAMBDA_MIN" type="real" 
-			unit="m" ucd="stat.min;em.wl"
-			description="Lower bound of cutout interval.  Leave empty for
-				half-open intervals."/>
-		<inputKey name="LAMBDA_MAX" type="real" 
-			unit="m" ucd="stat.min;em.wl"
-			description="Upper bound of cutout interval.  Leave empty for
-				half-open intervals."/>
-			
+		<metaMaker>
+			<code>
+				yield MS(InputKey, name="LAMBDA_MIN", type="real",
+					unit="m", ucd="stat.min;em.wl",
+					description="Lower bound of cutout interval.  Leave empty for"
+					" half-open intervals.",
+					values=MS(Values, min=descriptor.ssaRow["ssa_specstart"],
+						max=descriptor.ssaRow["ssa_specend"]))
+				yield MS(InputKey, name="LAMBDA_MAX", type="real",
+					unit="m", ucd="stat.max;em.wl",
+					description="Upper bound of cutout interval.  Leave empty for"
+					" half-open intervals.",
+					values=MS(Values, min=descriptor.ssaRow["ssa_specstart"],
+						max=descriptor.ssaRow["ssa_specend"]))
+			</code>
+		</metaMaker>
+
 		<dataFunction>
 			<code>
 				if not args.get("LAMBDA_MIN") and not args.get("LAMBDA_MAX"):
