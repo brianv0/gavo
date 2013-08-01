@@ -85,7 +85,12 @@
 					ssaRow = None
 
 					@classmethod
-					def fromSSARow(cls, ssaRow):
+					def fromSSARow(cls, ssaRow, paramDict):
+						"""returns a descriptor from a row in an ssa table and
+						the params of that table.
+						"""
+						paramDict.update(ssaRow)
+						ssaRow = paramDict
 						res = cls.fromAccref(ssaRow['accref'])
 						res.ssaRow = ssaRow
 						return res
@@ -106,7 +111,8 @@
 
 				# the relevant metadata for all rows with the same PubDID should
 				# be identical, and hence we can blindly take the first result.
-				return SSADescriptor.fromSSARow(matchingRows[0])
+				return SSADescriptor.fromSSARow(matchingRows[0],
+					ssaTable.getParamDict())
 		</code>
 	</procDef>
 
@@ -144,15 +150,19 @@
 		This probably is more an example of how to write such a thing
 		then genuinely useful.
 		</doc>
-		<inputKey name="FLUXCALIB" type="text" 
-			multiplicity="single"
-			description="Recalibrate
-			the spectrum.  Right now, only calibration to max(flux)=1 ('relative')
-			is supported.">
-			<values>
-				<option>relative</option>
-			</values>
-		</inputKey>
+		<metaMaker>
+			<code>
+				supportedCalibs = set(["relative"])
+				supportedCalibs.add(descriptor.ssaRow["ssa_fluxcalib"])
+
+				yield MS(InputKey, name="FLUXCALIB", type="text",
+					multiplicity="single", 
+					description="Recalibrate the spectrum.  Right now, the only"
+						" recalibration supported is max(flux)=1 ('relative').",
+						values=MS(Values, options=[
+							MS(Option, content_=val) for val in supportedCalibs]))
+			</code>
+		</metaMaker>
 
 		<dataFunction>
 			<code>
@@ -213,23 +223,34 @@
 		for FORMAT.
 		</doc>
 
-		<inputKey name="FORMAT" type="text"
-			multiplicity="single"
-			description="MIME type of the output format">
-			<values default="application/x-votable+xml">
-				<option title="VOTable, binary encoding"
-					>application/x-votable+xml</option>
-				<option title="VOTable, tabledata encoding"
-					>application/x-votable+xml;encoding=tabledata</option>
-				<option title="Tab separated values">text/plain</option>
-				<option title="Comma separated values">text/csv</option>
-				<option title="FITS binary table">application/fits</option>
-			</values>
-		</inputKey>
+		<metaMaker>
+			<code>
+				formatsAvailable = {
+						"application/x-votable+xml": "VOTable, binary encoding",
+						"application/x-votable+xml;encoding=tabledata": 
+							"VOTable, tabledata encoding",
+						"text/plain": "Tab separated values",
+						"text/csv": "Comma separated values",
+						"application/fits": "FITS binary table"}
+
+				if descriptor.mime not in formatsAvailable:
+					formatsAvailable[descriptor.mime] = "Original format"
+
+				yield MS(InputKey, name="FORMAT", type="text",
+					multiplicity="single",
+					description="MIME type of the output format",
+					values = MS(Values,
+						options = [MS(Option, title=value, content_=key)
+							for key, value in formatsAvailable.iteritems()]))
+			</code>
+		</metaMaker>
 
 		<dataFormatter>
 			<code>
 				from gavo.protocols import sdm
+
+				if len(descriptor.data.getPrimaryTable().rows)==0:
+					raise base.ValidationError("Spectrum is empty.", "(various)")
 
 				return sdm.formatSDMData(descriptor.data, args["FORMAT"])
 			</code>

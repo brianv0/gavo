@@ -171,6 +171,14 @@ class ContextRowIterator(grammars.RowIterator):
 		caseNormalized = dict((k.lower(),v) for k, v in rawRow.iteritems())
 		procRow = {}
 
+		if self.grammar.rejectExtras:
+			extraNames = set(caseNormalized
+				)-set(p.name.lower() for p in self.grammar.inputTable.params)
+			if extraNames:
+				raise base.ValidationError("The following parameter(s) are"
+				" not accepted by this service: %s"%",".join(sorted(extraNames)),
+				"(various)")
+
 		for ik in self.grammar.inputTable.params:
 			if ik.name in rawRow:
 				val = rawRow[ik.name]
@@ -252,15 +260,29 @@ class ContextGrammar(grammars.Grammar):
 	name_ = "contextGrammar"
 
 	_inputTable = base.ReferenceAttribute("inputTable", 
-		default=base.NotGiven, description="The table that is to be built"
-		" using this grammar", copyable=True)
+		default=base.NotGiven, 
+		description="The table that is to be built using this grammar", 
+		copyable=True)
+
 	_inputKeys = rscdef.ColumnListAttribute("inputKeys", 
-		childFactory=InputKey, description="Input keys this context"
-		" grammar should parse.  These must not be given if there"
-		" is an input table defined.")
-	_rowKey = base.UnicodeAttribute("rowKey", description=
-		"The name of a key that is used to generate rows from the input",
-		copyable=True, default=base.NotGiven)
+		childFactory=InputKey, 
+		description="Input keys this context grammar should parse."
+		"  These must not be given if there is an input table defined.")
+
+	_rowKey = base.UnicodeAttribute("rowKey", 
+		default=base.NotGiven,
+		description="The name of a key that is used to generate"
+			" rows from the input",
+		copyable=True)
+
+	_rejectExtras = base.BooleanAttribute("rejectExtras",
+		default=False,
+		description="If true, the grammar will reject extra input parameters."
+			"  Note that for form-based services, there *are* extra parameters"
+			" not declared in the services' input tables.  Right now,"
+			" contextGrammar does not ignore those.",
+		copyable=True)
+
 	_original = base.OriginalAttribute("original")
 
 	rowIterator = ContextRowIterator
@@ -371,4 +393,6 @@ def makeAutoInputDD(core):
 	keys, and the table structure defined by these input keys.
 	"""
 	return MS(InputDescriptor,
-		grammar=MS(ContextGrammar, inputTable=core.inputTable))
+		grammar=MS(ContextGrammar, inputTable=core.inputTable,
+# the rejectExtras thing below is an experiment.  It may go away again.
+			rejectExtras=getattr(core, "rejectExtras", False)))

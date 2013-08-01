@@ -225,6 +225,11 @@ class DatalinkCore(svcs.Core, base.ExpansionDelegator):
 		" front of the proc apps that interpret them.",
 		copyable=True)
 
+	# The following is a hack complemented in inputdef.makeAutoInputDD.
+	# We probably want some other way to do this (if we want to do it
+	# at all)
+	rejectExtras = True
+
 	def completeElement(self, ctx):
 		if self.descriptorGenerator is base.NotGiven:
 			self.descriptorGenerator = MS(DescriptorGenerator, 
@@ -298,7 +303,7 @@ class DatalinkCore(svcs.Core, base.ExpansionDelegator):
 		args = inputTable.getParamDict()
 		argsGiven = set(key for (key, value) in args.iteritems()
 			if value is not None)
-
+		
 		if argsGiven==set(["PUBDID"]):
 			return self._runGenerateMetadata(args)
 		else:

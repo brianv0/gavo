@@ -373,7 +373,7 @@ class SDMDatalinkTest(_WithSSATableTest):
 	def _testDatalinkDeclared(self):
 		res = self.runService("c",
 			{"REQUEST": "queryData"})
-		tree = testhelpers.getXMLTree(res.original[1])
+		tree = testhelpers.getXMLTree(res.original[1], debug=True)
 		gpTable = tree.xpath('//TABLE[@name="datalinkDescriptor"]')[0]
 
 		formats = [el.get("value")
@@ -389,7 +389,7 @@ class SDMDatalinkTest(_WithSSATableTest):
 
 		self.assertEqual(set(el.get("value") for el in 
 			gpTable.xpath("PARAM[@name='FLUXCALIB']/VALUES/OPTION")), 
-			set(['uncalibrated', 'relative']))
+			set(['UNCALIBRATED', 'RELATIVE']))
 
 	def _testNormalServicesReject(self):
 		self.assertRaisesWithMsg(base.ValidationError,
@@ -403,9 +403,17 @@ class SDMDatalinkTest(_WithSSATableTest):
 			self.runService,
 			("dl", {}))
 
+	def testOriginalFormatAvailable(self):
+		res = self.runService("dl",
+			{"PUBDID": 'ivo://test.inv/test1'}).original[1]
+		tree = testhelpers.getXMLTree(res)
+		self.assertEqual(tree.xpath(
+			"//PARAM[@name='FORMAT']/VALUES/OPTION[@value='image/jpeg']")[0
+				].get("name"), "Original format")
+
 	def testVOTDelivery(self):
 		res = self.runService("dl",
-			{"PUBDID": 'ivo://test.inv/test1'})
+			{"PUBDID": 'ivo://test.inv/test1', "FORMAT": "application/x-votable+xml"})
 		mime, payload = res.original
 		self.assertEqual(mime, "application/x-votable+xml")
 		self.failUnless('xmlns:spec="http://www.ivoa.net/xml/SpectrumModel/v1.01'
@@ -449,19 +457,19 @@ class SDMDatalinkTest(_WithSSATableTest):
 			"'spec:Spectrum.Char.SpectralAxis.Coverage.Bounds.Extent']"
 			)[0].get("value"), "1e-10")
 
-	def _testEmptyCutoutFails(self):
+	def testEmptyCutoutFails(self):
 		self.assertRaisesWithMsg(base.ValidationError,
 			"Field (various): Spectrum is empty.",
 			self.runService,
-			("c", {"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
+			("dl", {"PUBDID": 'ivo://test.inv/test1', 
 				"FORMAT": "application/x-votable+xml",
-				"BAND": "/1.927e-8"}))
+				"LAMBDA_MAX": "1.927e-8"}))
 
-	def _testOriginalCalibOk(self):
+	def testOriginalCalibOk(self):
 		mime, payload = self.runService("dl",
 			{"PUBDID": 'ivo://test.inv/test1', 
 				"FORMAT": "text/plain", 
-				"FLUXCALIB": "uncalibrated"}).original
+				"FLUXCALIB": "UNCALIBRATED"}).original
 		self.failUnless(payload.endswith("1928.0	1580.0\n"))
 
 	def testNormalize(self):
@@ -491,12 +499,12 @@ class SDMDatalinkTest(_WithSSATableTest):
 			self.runService,
 				("dl", {"PUBDID": 'ivo://test.inv/bad'}))
 
-	def _testRandomParamFails(self):
+	def testRandomParamFails(self):
 		self.assertRaisesWithMsg(base.ValidationError,
 			"Field (various): The following parameter(s) are"
-			" not accepted by this service: WARP",
+			" not accepted by this service: warp",
 			self.runService,
-			("c", {"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
+			("dl", {"PUBDID": 'ivo://test.inv/test1', 
 				"warp": "infinity"}))
 
 

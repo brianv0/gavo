@@ -950,7 +950,10 @@ The descriptor is then passed, in turn, to the meta makers, either
 update ``svc.InputKey`` instances, adding give ranges or enumerate the
 permitted values to them, or they yield ``datalink.LinkDef`` instances
 providing links to static documents related to whatever PUBDID describes
-(alternative formats, ancillary data,...).
+(alternative formats, ancillary data,...).  Note that since 
+datalink services only return the metadata, you must never generate
+defaulted input keys here.  If you actually need defaults, set them in
+the data formatters whenever the parameters they expect are None.
 
 All that is then formatted to a proper Datalink description and returned.
 
