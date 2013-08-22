@@ -80,5 +80,6 @@ class SafeReplacedTest(testhelpers.VerboseTest):
 			" because of earlier failed tests.  Just remove all the stuff"
 			" in %s"%(base.getConfig("tempDir")))
 
+
 if __name__=="__main__":
 	testhelpers.main(SafeReplacedTest)

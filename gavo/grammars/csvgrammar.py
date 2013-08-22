@@ -26,6 +26,11 @@ class CSVIterator(FileRowIterator):
 
 class CSVGrammar(Grammar, FileRowAttributes):
 	"""A grammar that uses python's csv module to parse files.
+
+	Note that python's csv module tries to interpret the first line of the
+	input file as the column names.  If your CSV file doesn't have any
+	and you cannot add them, let the authors know and we'll add some
+	functionality to allow naming columns in the RD.
 	"""
 	name_ = "csvGrammar"
 

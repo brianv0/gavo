@@ -453,9 +453,18 @@ def formatISODT(dt):
 
 	The reason for preferring this function over a simple str is that
 	datetime's default representation is too difficult for some other
-	code (e.g., itself).
+	code (e.g., itself); hence, this code suppresses any microsecond part
+	and always adds a Z (where strftime works, utils.isoTimestampFmt produces
+	an identical string).
+
+	The behaviour of this function for timezone-aware datetimes is undefined.
+
+	>>> formatISODT(datetime.datetime(2015, 10, 20, 12, 34, 22, 250))
+	'2015-10-20T12:34:22Z'
+	>>> formatISODT(datetime.datetime(1815, 10, 20, 12, 34, 22, 250))
+	'1815-10-20T12:34:22Z'
 	"""
-	return dt.strftime(isoTimestampFmt)
+	return dt.replace(microsecond=0, tzinfo=None).isoformat()+"Z"
 
 
 class NameMap(object):

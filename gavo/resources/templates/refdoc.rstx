@@ -186,6 +186,11 @@ Procedures available for grammar rowfilters
 .. replaceWithResult makeRowfilterDocs(docStructure)
 
 
+Procedures available for datalink cores
+'''''''''''''''''''''''''''''''''''''''
+
+.. replaceWithResult _makeProcsDocumenter([ "//datalink#"+ s for s in "fromStandardPubDID", "trivialFormatter" ])(docStructure)
+
 
 
 Metadata
@@ -915,9 +920,14 @@ Datalink Cores
 
 [Note: this section is in the process of implementation]
 
-Datalink is a protocol that allows associating various products and
-artifacts with a data set id.  Within DaCHS, you can write datalink
-services using specialized Datalink cores.  Their function is twofold:
+Datalink is an IVOA protocol that allows associating various products
+and artifacts with a data set id.  Classical examples for functionality
+exposed via Datalink include cutouts, format conversions or
+recalibrations done on the fly, and associating error or mask maps with
+the actual data.
+
+Within DaCHS, you can write datalink services using specialized Datalink
+cores.  Their function is twofold:
 
 (1) when given a PUBDID only, return the access options ("Datalink
     document")
@@ -931,31 +941,28 @@ pre-provided building blocks).
 A datalink core consists of 
 
 * exactly one descriptor generator,
-* zero or one data functions, possibly with input keys,
-* zero or one formatters, possibly again with input keys,
-* and zero or more link makers.
+* zero or one data functions, generating and manipulating data
+* zero or one formatters, formatting the generated and/or manipulated
+  data
+* zero or more meta makers, generating input parameter descriptions
+  for data functions and any formatter present and/or related links
 
 Here's how they work together in providing the Datalink functionality:
 
 To generate the Datalink document, the descriptor generator is passed
 the PUBDID and is expected to return a ``datalink.ProductDescriptor``
 instance (or None, in which case the datalink request will be rejected
-by a 404).  In addition to attributes named like the columns of the
+by a 404).  In addition to attributes named after the columns of the
 product table (and potentially other attributes added by deriving from
 the base ProductDescriptor), it has an attribute ``data`` defaulting to
 ``None``, intended to be filled by the core's data generator on data
 processing runs.
 
-The descriptor is then passed, in turn, to the meta makers, either
-update ``svc.InputKey`` instances, adding give ranges or enumerate the
-permitted values to them, or they yield ``datalink.LinkDef`` instances
-providing links to static documents related to whatever PUBDID describes
-(alternative formats, ancillary data,...).  Note that since 
-datalink services only return the metadata, you must never generate
-defaulted input keys here.  If you actually need defaults, set them in
-the data formatters whenever the parameters they expect are None.
-
-All that is then formatted to a proper Datalink description and returned.
+The descriptor is then passed, in turn, to the meta makers, which yield
+``InputKey`` or ``LinkDef`` instances to describe the retrival options
+for the product.  The combination of both is then formatted to a proper
+Datalink document and returned, which concludes the processing of the
+metadata request.
 
 When a request for processed data comes in, the descriptor generator is
 again used to make a product descriptor, and again the input keys are
@@ -972,55 +979,250 @@ the formatter agree on what it is, anything goes.  It will usually be
 fed from a database, pixels in FITS files, or the like.
 
 This object is then handed through all remaining data functions; these
-change the data in place or create a new one as convenient and return
-the result as applicable.  It is a design descision which manipulations
-are done in the data generator and which are in later filters.  The
-advantage of filters is that they are more flexible and can more easily
-be reused, while doing it things in the data generator itself will
-usually be more efficient, sometimes much so (e.g., sums being computed
-within a database rather than in a filter).
+change the data in place or create a new one as convenient and
+manipulate ``descriptor.data`` accordingly.
+
+It is a design descision which manipulations are done in the data
+generator and which are in later filters.  The advantage of filters is
+that they are more flexible and can more easily be reused, while doing
+it things in the data generator itself will usually be more efficient,
+sometimes much so (e.g., sums being computed within a database rather
+than in a filter).
 
 Finally, the data enters the formatter, which actually generates the
 output, returning a pair of mime type and string to be delivered.
 
+
+Descriptors Generators
+'''''''''''''''''''''''
+
+Descriptor generators (see `element descriptorGenerator`_) are procedure
+applications that see a pubdid value and are expected to return a
+``datalink.ProductDescriptor`` instance, or something derived from it.  
+
+In the end, this usually boils down to figuring out the value of accref
+in the product table and using what's there to construct the d.g.
+In the simplest case, the pubdid will be in DaCHS'
+"standard" format (see the ``getStandardPubDID`` rowmaker function), in
+which case the default d.g. works any you don't have to specify
+anything.  You could manually insert that default by
+saying::
+  
+  <dataGenerator procDef="//datalink#fromStandardPubDID"/>
+
+(but that would be silly since DaCHS already does this for you).  It's
+functionality is equivalent to this::
+
+  <dataGenerator>
+    <code>
+      return ProductDescriptor.fromAccref("/".join(pubdid.split("/")[4:]))
+    </code>
+  </dataGenerator>
+
+– which might be a good place to start if you need to write your own
+d.g., e.g., because you have some special logic to encode the accref in
+the PubDID).
+
+A slightly more interesting example is provided by datalink for SSA,
+where cutouts and similar is generated from spectra.  The actual
+definition is in ``//datalink#sdm_genDesc``, but the gist of it is::
+
+  <descriptorGenerator>
+    <setup>
+      <par key="ssaTD" description="Full reference (like path/rdname#id)
+        to the SSA table the spectrum's PubDID can be found in."/>
+
+      <code>
+        from gavo import rsc
+        from gavo import rscdef
+        from gavo import svcs
+
+        class SSADescriptor(ProductDescriptor):
+          ssaRow = None
+
+          @classmethod
+          def fromSSARow(cls, ssaRow, paramDict):
+            """returns a descriptor from a row in an ssa table and
+            the params of that table.
+            """
+            paramDict.update(ssaRow)
+            ssaRow = paramDict
+            res = cls.fromAccref(ssaRow['accref'])
+            res.ssaRow = ssaRow
+            return res
+      
+        ssaTD = base.resolveCrossId("myres/q#mytable, rscdef.TableDef)
+      </code>
+    </setup>
+    
+    <code>
+      with base.getTableConn() as conn:
+        ssaTable = rsc.TableForDef(ssaTD, connection=conn)
+        matchingRows = list(ssaTable.iterQuery(ssaTable.tableDef, 
+          "ssa_pubdid=%(pubdid)s", {"pubdid": pubdid}))
+        if not matchingRows:
+          raise svcs.UnknownURI("No spectrum with pubdid %s known here"%
+            pubdid)
+
+        # the relevant metadata for all rows with the same PubDID should
+        # be identical, and hence we can blindly take the first result.
+        return SSADescriptor.fromSSARow(matchingRows[0],
+          ssaTable.getParamDict())
+    </code>
+  </descriptorGenerator>
+
+Note how we derive from ProductDescriptor to get something that metadata
+makers can later consult to figure out the spectral extent, the
+calibration status, etc., by combining a row from an SSA table and its
+parameter dict and stuffing that into an attribute of the derived class.
+Also, since SSA tables already contain a column containing PubDIDs, we
+can treat them as opaque.
+
+Incidentally, in this case you could stuff the entire code into the the
+main code element, saving on the extra setup.  However, apart from a
+minor speed benefit, keeping things like function or class definitions
+in setup allows easier re-use of such definitions in procedure
+applications and is therefore recommended.
+
+
+
+Meta Makers
+'''''''''''
+
+Meta makers (see `element metaMaker`_) contain code that produces pieces
+of service metadata from a data descriptor.  All meta makers belonging
+to a service are unconditionally executed, and all must be generator
+bodies (i.e., contain a yield statement).
+
+Meta makers may yield either input keys or link definitions.  The input
+keys make up a service's interface in the usual way.
+Note, however, that since DaCHS datalink services dispatch between
+metadata and data processing queries by checking whether any parameters
+other than PUBDID are given, you must never generate defaulted input
+keys here, since the core cannot tell defaulted inputs from those passed
+in by the user and would then always do data processing.  If you
+actually need defaults, set them in the data formatters whenever the
+parameters they expect are None.
+
+Link definitions are instances of the `LinkDefinition` class.  These are
+constructed with 
+
+- the destination URL (as a string)
+- the destination contentType (a mime type as a string)
+- the relationType (another string).
+
+The classes usually required to build whatever meta makers return 
+(InputKey, Values, Option, LinkDef) are available to the code as local
+names.  You should, however, not construct them directly but use the
+``MS`` helper (which is really an alias for base.makeStruct, which takes
+care that the special postprocessing of DaCHS structures takes place).
+
+Hence, a meta maker that generates SSA cutout parameters could look like
+this::
+
+  <metaMaker>
+    <code>
+      commonArgs = {"type": "real", "unit": "m",
+        "values": MS(Values, 
+          min=descriptor.ssaRow["ssa_specstart"],
+          max=descriptor.ssaRow["ssa_specend"]),
+        }
+      yield MS(InputKey, name="LAMBDA_MIN", ucd="stat.min;em.wl",
+        description="Lower bound of cutout interval.  Leave empty for"
+        " half-open intervals.", **commonArgs)
+      yield MS(InputKey, name="LAMBDA_MAX", ucd="stat.max;em.wl",
+        description="Upper bound of cutout interval.  Leave empty for"
+        " half-open intervals.", **commonArgs)
+    </code>
+  </metaMaker>
+
+(something like this is part of the ``//datalink#sdm_cutout`` predefined
+stream).
+
+When returning link definitions, the tricky part mostly is to come up
+with the URLs.  Use the ``makeAbsoluteURL`` rowmaker function to make
+them from relative URLs; the rest just depends on your URL scheme.  An
+example could look like this::
+
+  <metaMaker>
+    <code>
+      yield LinkDef(makeAbsoluteURL(
+        "get/"+descriptor.accref[:-5]+".err.fits"),
+        "image/fits", "errors")
+      yield LinkDef("http://foo.bar/raw/"+descriptor.accref.split("/")[-1],
+        "image/fits", "raw")
+    </code>
+  </metaMaker>
+
+The vocabulary for the relation types (the last argument to a link
+definition's constructor) is not finalized yet.  Complain to the DaCHS
+maintainers that this sentence still is here.
+
+
+Data Functions
+''''''''''''''
+
+Data functions (see `element dataFunction`_) generate or manipulate
+data.  They see the descriptor and the arguments, parsed according to
+the input keys produced by the meta makers, where the descriptor's
+``data`` attribute is filled out by the first data function called (the
+"generating data function").
+
+As described above, DaCHS does not enforce anything on the ``data``
+attribute other than that it's not None after the first data function
+has run.  It is the RD author's responsibility to make sure that all
+data function in a given datalink core agree on what ``data`` is.
+
 All code in a request for processed data is also passed the input
 parameters as processed by the context grammar.  Hence, the code can
 rely on whatever contract is implicit in the context grammar, but not
-more.  In particular, a data filter will be called even if to input for
-it was provided.  It should, in general, return the table unchanged in
-that case.
+more.  In particular, a datalink core has no way of knowing what data
+functions expects which parameters.  If no value for a parameter was
+provided on input, the corresponding value is None but a data function
+using it still is called.
 
-An example for a generating data function is ``//products#makeProduct``,
-which is convenient when the manipulations operate on plain local files.
-
-Here's an example for a filtering data function with an input key
-definition that works on product.Product-like things
-
-  <inputKey name="addto" type="integer" multiplicity="single"
-    description="Number to add to all bytes."/>
+An example for a generating data function is ``//datalink#generateProduct``,
+which may be convenient when the manipulations operate on plain local files;
+it basically looks like this::
 
   <dataFunction>
-    <setup>
-      <code>
-        from gavo.protocols import products
-
-        class MogrifiedProduct(products.ProductBase):
-          def __init__(self, input, offset):
-            self.input, self.offset = input, offset
-						products.ProductBase.__init__(self,
-							input.sourceSpec, input.contentType)
-
-          def iterData(self):
-            for chunk in self.input.iterData():
-              yield "".join(chr(ord(c)+self.offset)
-                for c in chunk)
-      </code>
-    </setup>
     <code>
-      if not args.get("addto"):
+      descriptor.data = products.getProductForRAccref(descriptor.accref)
+    </code>
+  </dataFunction>
+
+(the actual implementation lets you require certain mime types and is
+therefore a bit more complicated).
+
+Another generating data function, this time creating a Data instance
+containing a spectral data model-compliant structure, is in
+``//datalink#sdm_genData`` and looks essentially like this::
+
+  <dataFunction>
+    <code>
+      from gavo import rscdef
+      from gavo.protocols import sdm
+      builder = base.resolveCrossId(
+        "flashheros/q#buildsdm, rscdef.DataDescriptor)
+      descriptor.data = sdm.makeSDMDataForSSARow(descriptor.ssaRow, builder)
+    </code>
+  </dataFunction>
+
+More on this will be discussed in our secion on ``getData`` support.
+
+Filtering data functions should always come with a corresponding
+metaMaker.  As an example, continuing the spectral cutout example above,
+is again in ``//datalink#sdm_cutout``.  It simply looks like this::
+
+  <dataFunction>
+    <code>
+      if not args.get("LAMBDA_MIN") and not args.get("LAMBDA_MAX"):
         return
-      descriptor.data = MogrifiedProduct(descriptor.data,
-        args["addto"])
+
+      from gavo.protocols import sdm
+      sdm.mangle_cutout(
+        descriptor.data.getPrimaryTable(),
+        args["LAMBDA_MIN"] or -1, args["LAMBDA_MAX"] or 1e308)
     </code>
   </dataFunction>
 

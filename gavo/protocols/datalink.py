@@ -56,10 +56,17 @@ class DescriptorGenerator(rscdef.ProcApp):
 	If you made your pubdid using the ``getStandardPubDID`` rowmaker function,
 	and you need no additional logic within the descriptor,
 	the default (//datalink#fromStandardPubDID) should do.
+
+	If you need to derive custom descriptor classes, you can see the base
+	class under the name ProductDescriptor.
 	"""
 	name_ = "descriptorGenerator"
 	requiredType = "descriptorGenerator"
 	formalArgs = "pubdid, args"
+
+	additionalNamesForProcs = {
+		"ProductDescriptor": ProductDescriptor,
+	}
 
 
 class LinkDef(object):

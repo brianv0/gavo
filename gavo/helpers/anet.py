@@ -86,6 +86,7 @@ PARAM_DEFAULTS = {
 		"tweak": True,
 		"pix_units": "app",
 		"plots": False,
+		"downsample": None,
 	}
 
 

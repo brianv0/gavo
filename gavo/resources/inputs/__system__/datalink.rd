@@ -10,13 +10,8 @@
 		(i.e., the path part of the IVORN is a tilda followed by the 
 		products table accref).
 		</doc>
-		<setup>
-			<code>
-				from gavo.protocols import datalink
-			</code>
-		</setup>
 		<code>
-			return datalink.ProductDescriptor.fromAccref(
+			return ProductDescriptor.fromAccref(
 				"/".join(pubdid.split("/")[4:]))
 		</code>
 	</procDef>
@@ -81,7 +76,7 @@
 				from gavo import svcs
 				from gavo.protocols import datalink
 
-				class SSADescriptor(datalink.ProductDescriptor):
+				class SSADescriptor(ProductDescriptor):
 					ssaRow = None
 
 					@classmethod
@@ -189,18 +184,17 @@
 
 		<metaMaker>
 			<code>
-				yield MS(InputKey, name="LAMBDA_MIN", type="real",
-					unit="m", ucd="stat.min;em.wl",
+				commonArgs = {"type": "real", "unit": "m",
+					"values": MS(Values, 
+						min=descriptor.ssaRow["ssa_specstart"],
+						max=descriptor.ssaRow["ssa_specend"]),
+					}
+				yield MS(InputKey, name="LAMBDA_MIN", ucd="stat.min;em.wl",
 					description="Lower bound of cutout interval.  Leave empty for"
-					" half-open intervals.",
-					values=MS(Values, min=descriptor.ssaRow["ssa_specstart"],
-						max=descriptor.ssaRow["ssa_specend"]))
-				yield MS(InputKey, name="LAMBDA_MAX", type="real",
-					unit="m", ucd="stat.max;em.wl",
+					" half-open intervals.", **commonArgs)
+				yield MS(InputKey, name="LAMBDA_MAX", ucd="stat.max;em.wl",
 					description="Upper bound of cutout interval.  Leave empty for"
-					" half-open intervals.",
-					values=MS(Values, min=descriptor.ssaRow["ssa_specstart"],
-						max=descriptor.ssaRow["ssa_specend"]))
+					" half-open intervals.", **commonArgs)
 			</code>
 		</metaMaker>
 
