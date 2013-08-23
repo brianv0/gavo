@@ -7,11 +7,11 @@
 		<FEED source="//products#tablecols"/>
 		<column name="centerAlpha"  ucd="POS_EQ_RA_MAIN"
 			type="double precision" unit="deg" 
-			displayHint="type=time,sf=0" verbLevel="0" tablehead="Ctr. RA"
+			displayHint="sf=2" verbLevel="0" tablehead="Ctr. RA"
 			description="Approximate center of image, RA"/>
 		<column name="centerDelta"  ucd="POS_EQ_DEC_MAIN" tablehead="Ctr. Dec"
 			type="double precision" unit="deg"
-			displayHint="type=sexagesimal,sf=0" verbLevel="0"
+			displayHint="sf=2" verbLevel="0"
 			description="Approximate center of image, Dec"/>
 		<column name="imageTitle"  ucd="VOX:Image_Title"
 			type="text" tablehead="Title" verbLevel="0"

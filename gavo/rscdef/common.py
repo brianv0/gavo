@@ -122,7 +122,6 @@ class PrivilegesMixin(object):
 			" which the object can be written or administred.")
 
 
-
 class IVOMetaMixin(object):
 	"""A mixin for resources aspiring to have IVO ids.
 

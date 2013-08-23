@@ -1493,13 +1493,13 @@ Adapting Obscore
 ================
 
 You may want extra, locally-defined columns in your obscore tables.  To
-support this, there are two hooks in obscore that you can exploit.
+support this, there are three hooks in obscore that you can exploit.
 To fill these hooks, use ``userconfig.rd`` (TODO: more
 documentation on that as we use it more; meanwhile: get a `template from
 SVN`_ and put it into GAVO_ROOT/etc).  It helps to have a brief look at
 the ``//obscore`` RD to get an idea where these hooks go.
 
-Within the template ``userconfig.rd``, there are already two STREAMs
+Within the template ``userconfig.rd``, there are already three STREAMs
 with ids starting with obscore.; these are referenced from within the
 system ``//obscore`` RD.  Here's an somewhat more elaborate example::
 
@@ -1507,6 +1507,11 @@ system ``//obscore`` RD.  Here's an somewhat more elaborate example::
     <column name="fill_factor"
       description="Fill factor of the SED"
       verbLevel="20"/>
+  </STREAM>
+
+  <STREAM id="obscore-extrapars">
+    <mixinPar name="fillFactor" 
+      description="The SED's fill factor">NULL</mixinPar>
   </STREAM>
 
   <STREAM id="obscore-extraevents">
@@ -1518,17 +1523,12 @@ system ``//obscore`` RD.  Here's an somewhat more elaborate example::
 
 (to be on the safe side: there need to be four backslashes in front of
 fillFactor; this is just a backslash doubly-escaped.  Sorry about this).
-With this, you could, in an RD, say::
-
-  <mixinDef original="//obscore#publishSSAPHCD" id="obscore-with-fill">
-    <mixinPar name="fillFactor" description="The SED's fill factor"/>
-  </mixinDef>
 
   <table id="specs" onDisk="True">
     <mixin ...>//ssap#hcd</mixin>
     <mixin
       ... (all the //obscore#publishSSAPHCD parameters)
-      fillFactor="0.3">obscore-with-fill</mixin>
+      fillFactor="0.3">//obscore#publishSSAPHCD</mixin>
   </table>
 
 What's going on here?  Well, ``obscore-extracolumns`` is easy – this
@@ -1553,14 +1553,11 @@ of postgres to do type inference then.
 If you actually must know why you need to double-escape fillFactor and
 what the magic with the ``cumulate="True"`` is, ask.
 
-The second part plays in some "normal" RD.  First, we copy over one of
-the obscore mixins (in this case, we want spectra).  It is then amended
-with a mixin parameter that is designed to fill the slot we newly
-created in the ``obscore-extraevent`` STREAM.  Then, in the table we do
-the normal stuff as if nothing had happened, but instead of mixing in
-``//obscore#publishSSAPHCD`` we now use our new ``obscore-with-fill`` mixin
-(that you can also references externally using
-``id/of/rd#obscore-with-fill``), including the new parameter.
+Finally, ``obscore-extrapars`` directly goes into a core component of
+obscore, one that all the various publish mixins there use.  Hence, all
+of them grow your functionality.  That is also why it is important to
+give defaults to all mixinPars you give in this way – without them, all
+those other publish mixins would fail.
 
 If you change ``%#obscore-extracolumns``, you will need to re-import all
 obscore-published tables (actually, importing the metadata using ``gavo

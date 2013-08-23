@@ -544,7 +544,7 @@ def _loadRDIntoCache(canonicalRDId, cacheDict):
 	if justWait:
 		# Someone else is already parsing.  If it's the current thread,
 		# go on (lock is an RLock!) so we can resolve circular references
-		# (as long as they are forward references).  All other threads
+		# (as long as they are backward references).  All other threads
 		# just wait for the parsing thread to finish
 		lock.acquire()
 		lock.release()

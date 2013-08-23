@@ -2,25 +2,9 @@
 	<meta name="creationDate">2011-03-25T10:23:00</meta>
 	<meta name="description">Definition and support code for the ObsCore
 		data model and table.</meta>
+
 	
-	<table id="ObsCore" onDisk="True" adql="True" system="True">
-		<!-- the view creation statement is bogus; in reality, we create
-		the view creation statement from the _obscoresources table in the
-		data create -->
-
-		<property key="supportsModel">Obscore-1.0</property>
-		<property key="supportsModelURI"
-			>ivo://ivoa.net/std/ObsCore-1.0</property>
-
-		<viewStatement>
-			create view \qName (\colNames) as (select * from (VALUES(
-				NULL, NULL, NULL, NULL, NULL,
-				NULL, NULL, NULL, NULL, NULL,
-				NULL, NULL, NULL, NULL, NULL,
-				NULL, NULL, NULL, NULL, NULL,
-				NULL, NULL, NULL, NULL, NULL,
-				NULL, NULL, NULL, NULL)) as q WHERE 0=1);
-		</viewStatement>
+	<STREAM id="obscore-columns">
 		<column name="dataproduct_type" type="text"
 			utype="obscore:obs.dataproducttype" ucd="meta.id"
 			description="High level scientific classification of the data product,
@@ -267,8 +251,34 @@
 		</column>
 
 		<FEED source="%#obscore-extracolumns"/>
-	</table>
+	</STREAM>
 
+
+	<table id="ObsCore" adql="True" onDisk="True" system="True">
+		<property key="supportsModel">Obscore-1.0</property>
+		<property key="supportsModelURI"
+			>ivo://ivoa.net/std/ObsCore-1.0</property>
+
+		<meta name="description">The IVOA-defined obscore table, containing
+		generic metadata for datasets within this datacenter.</meta>
+
+		<!-- the view creation statement is bogus; in reality, we create
+		the view creation statement from the _obscoresources table in the
+		data create -->
+
+		<viewStatement>
+			create view \qName (\colNames) as (select * from (VALUES(
+				NULL, NULL, NULL, NULL, NULL,
+				NULL, NULL, NULL, NULL, NULL,
+				NULL, NULL, NULL, NULL, NULL,
+				NULL, NULL, NULL, NULL, NULL,
+				NULL, NULL, NULL, NULL, NULL,
+				NULL, NULL, NULL, NULL)) as q WHERE 0=1);
+		</viewStatement>
+
+		<FEED source="obscore-columns"/>
+	</table>
+	
 	<table id="_obscoresources" onDisk="True" forceUnique="True"
 			dupePolicy="overwrite" primary="tableName" system="True">
 		<!-- internal table giving strings to be combined into a view creation
@@ -278,27 +288,6 @@
 		<column name="sqlFragment" type="text"/>
 	</table>
 
-	<data id="makeSources">
-		<make table="_obscoresources"/>
-	</data>
-
-	<data id="create">
-		<!-- the view is created from prescriptions in _obscoresources -->
-		<make table="ObsCore">
-			<script name="create obscore view" type="postCreation" lang="python">
-				from gavo import rsc
-				ocTable = rsc.TableForDef(table.tableDef.rd.getById("_obscoresources"),
-					connection=table.connection)
-				parts = ["(%s)"%row["sqlFragment"]
-					for row in ocTable.iterQuery(ocTable.tableDef, "")]
-				if parts:
-					table.query("drop view ivoa.ObsCore")
-					table.query("create view ivoa.ObsCore as (%s)"%(
-						" UNION ALL ".join(parts)))
-					table.updateMeta()
-			</script>
-		</make>
-	</data>
 
 	<!-- a helper script for the publish mixin.  It is added as a postCreation
 	script to all makes running on obscore#published tables. -->
@@ -362,6 +351,7 @@
 			>NULL</mixinPar>
 		<mixinPar name="facilityName" description="The institute or observatory
 			at which the data was produced">NULL</mixinPar>
+		<FEED source="%#obscore-extrapars"/>
 
 		<events>
 			<adql>True</adql>
@@ -604,4 +594,47 @@
 		<LFEED source="_publishProduct"/>
 		<LFEED source="_publishCommon"/>
 	</mixinDef>
+
+	<table id="emptyobscore" onDisk="True" system="True"
+			readProfiles="defaults,untrustedquery">
+		<meta name="description">An empty table having all columns of the
+		obscore table.  Useful internally, and sometimes for tricky queries.
+		</meta>
+		<mixin
+			accessURL="access_url"
+			calibLevel="calib_level"
+			collectionName="obs_collection"
+			coverage="s_region"
+			creatorDID="obs_creator_did"
+			did="obs_publisher_did"
+			mime="access_format"
+			productType="dataproduct_type"
+			obsId="obs_id"
+			size="access_estsize">publish</mixin>
+		<FEED source="obscore-columns"/>
+	</table>
+
+	<data id="makeSources">
+		<make table="_obscoresources"/>
+		<make table="emptyobscore"/>
+	</data>
+
+	<data id="create">
+		<!-- the view is created from prescriptions in _obscoresources -->
+		<make table="ObsCore">
+			<script name="create obscore view" type="postCreation" lang="python">
+				from gavo import rsc
+				ocTable = rsc.TableForDef(table.tableDef.rd.getById("_obscoresources"),
+					connection=table.connection)
+				parts = ["(%s)"%row["sqlFragment"]
+					for row in ocTable.iterQuery(ocTable.tableDef, "")]
+				if parts:
+					table.query("drop view ivoa.ObsCore")
+					table.query("create view ivoa.ObsCore as (%s)"%(
+						" UNION ALL ".join(parts)))
+					table.updateMeta()
+			</script>
+		</make>
+	</data>
+
 </resource>

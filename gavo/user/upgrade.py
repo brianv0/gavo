@@ -21,7 +21,7 @@ from gavo import rscdesc
 from gavo import utils
 
 
-CURRENT_SCHEMAVERSION = 4
+CURRENT_SCHEMAVERSION = 5
 
 
 def showProgress(msg):
@@ -198,7 +198,19 @@ class To4Upgrader(Upgrader):
 		"""update ADQL GAVO-defined functions for the postgres planner's benefit"""
 		rsc.makeData(base.caches.getRD("//adql").getById("make_udfs"),
 			connection=connection, runCommit=False)
+
+
+class To5Upgrader(Upgrader):
+	version = 4
 	
+	@classmethod
+	def u_000_updateObscore(cls, connection):
+		"""update obscore to work even when the table is empty"""
+		rsc.TableForDef(base.caches.getRD("//obscore").getById("emptyobscore"),
+			connection=connection, create=True)
+		rsc.makeData(base.caches.getRD("//obscore").getById("create"),
+			connection=connection, runCommit=False)
+
 
 def iterStatements(startVersion, endVersion=CURRENT_SCHEMAVERSION, 
 		upgraders=None):

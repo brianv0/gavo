@@ -42,7 +42,8 @@ class QPRenderer(grend.HTMLResultRenderMixin,
 	setting a queryField property which is the key the parameter is assigned
 	to.
 
-	QPRenderers cannot do forms, of course.
+	QPRenderers cannot do forms, of course, but they can nicely share a
+	service with the form renderer.
 	"""
 	name = "qp"
 	queryValue = None

@@ -530,6 +530,8 @@ class _ModifiedObscoreTables(testhelpers.TestResource):
 		self.userConfigPath = os.path.join(
 			base.getConfig("configDir"), "userconfig.rd")
 		base.caches.clearForName(self.userConfigPath[:-3])
+		base.caches.clearForName("__system__/obscore")
+
 		with open(self.userConfigPath, "w") as f:
 			f.write("""<resource schema="__system">
 				<STREAM id="obscore-extraevents">
@@ -539,22 +541,20 @@ class _ModifiedObscoreTables(testhelpers.TestResource):
 						CAST(\\\\plutoLat AS real) AS pluto_lat
 					</property>
 				</STREAM>
+				<STREAM id="obscore-extrapars">
+					<mixinPar name="plutoLong">NULL</mixinPar>
+					<mixinPar name="plutoLat">22</mixinPar>
+				</STREAM>
 				<STREAM id="obscore-extracolumns">
 					<column name="pluto_long" tablehead="lambda_Pluto"/>
 					<column name="pluto_lat"/>
 				</STREAM>
 			</resource>""")
 
-		base.caches.clearForName("__system__/obscore")
 		with testhelpers.testFile("ex.rd", """
 				<resource schema="__system">
-					<mixinDef original="//obscore#publishSSAPHCD"
-						id="hurx">
-						<mixinPar name="plutoLong"/>
-						<mixinPar name="plutoLat">22</mixinPar>
-					</mixinDef>
 					<table id="instable" onDisk="yes">
-						<mixin plutoLong="56">hurx</mixin>
+						<mixin plutoLong="56">//obscore#publishSSAPHCD</mixin>
 					</table>
 				</resource>
 			""") as fName:
