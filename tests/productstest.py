@@ -365,7 +365,10 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 			"eptle>$47$78$77289\x0ehipxe>$86$78$9=2;\x0e"
 			"sfnigx>$qmgleip\x0eiqfevks>$6447156175\x0e")
 
-	def testKeyMetaMaker(self):
+
+class _MetaMakerTestData(testhelpers.TestResource):
+# test data for datalink metadata generation 
+	def make(self, dependents):
 		svc = base.parseFromString(svcs.Service, """<service id="foo">
 			<datalinkCore>
 				<metaMaker>
@@ -378,29 +381,7 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 								MS(Option, content_="application/fits")]))
 					</code>
 				</metaMaker>
-				<dataFunction procDef="//datalink#generateProduct"/>
-			</datalinkCore>
-			</service>""")
-		res = svc.run("form", {
-			"PUBDID": [rscdef.getStandardPubDID("data/b.imp")]}).original
-		self.assertEqual(res[0], "application/x-votable+xml")
-		tree = testhelpers.getXMLTree(res[1])
-		self.assertEqual(
-			tree.xpath("//PARAM[@name='format']")[0].get("ucd"),
-			"meta.format")
-		self.assertEqual(
-			tree.xpath("//PARAM[@arraysize='*']")[0].get("arraysize"),
-			"*")
-		self.assertEqual(
-			tree.xpath("//PARAM[@arraysize='*']/VALUES/OPTION")[0].get("value"),
-			"text/plain")
-		self.assertEqual(
-			tree.xpath("//PARAM[@arraysize='*']/VALUES/OPTION")[1].get("value"),
-			"application/fits")
 
-	def testLinkMetaMaker(self):
-		svc = base.parseFromString(svcs.Service, """<service id="foo">
-			<datalinkCore>
 				<metaMaker>
 					<code>
 					yield LinkDef("http://foo/bar", "test/junk", "related")
@@ -408,16 +389,57 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 					</code>
 				</metaMaker>
 				<dataFunction procDef="//datalink#generateProduct"/>
+
+				<dataFunction procDef="//datalink#generateProduct"/>
 			</datalinkCore>
 			</service>""")
-		res = svc.run("form", {
+		svc.parent = testhelpers.getTestRD()
+
+		mime, data = svc.run("form", {
 			"PUBDID": [rscdef.getStandardPubDID("data/b.imp")]}).original
-		self.assertEqual(res[0], "application/x-votable+xml")
-		rows = votable.parseString(res[1]).next()
+		return (mime, testhelpers.getXMLTree(data),
+			list(votable.parseString(data).next()))
+
+
+class DatalinkMetaMakerTest(testhelpers.VerboseTest):
+	resources = [("serviceResult", _MetaMakerTestData()),
+		("prodtestTable", tresc.prodtestTable)]
+
+	def testMimeOk(self):
+		self.assertEqual(self.serviceResult[0], "application/x-votable+xml")
+
+	def testUCDPresent(self):
+		tree = self.serviceResult[1]
 		self.assertEqual(
-			list(rows), [
+			tree.xpath("//PARAM[@name='format']")[0].get("ucd"),
+			"meta.format")
+	
+	def testTypeTranslationWorks(self):
+		tree = self.serviceResult[1]
+		self.assertEqual(
+			tree.xpath("//PARAM[@name='format']")[0].get("arraysize"),
+			"*")
+	
+	def testOptionsRepresented(self):
+		tree = self.serviceResult[1]
+		self.assertEqual(
+			tree.xpath("//PARAM[@name='format']/VALUES/OPTION")[0].get("value"),
+			"text/plain")
+		self.assertEqual(
+			tree.xpath("//PARAM[@name='format']/VALUES/OPTION")[1].get("value"),
+			"application/fits")
+
+	def testLinkRowsPresent(self):
+		rows = self.serviceResult[2]
+		self.assertEqual(rows, [
 				['http://foo/bar', 'test/junk', 'related'],
 				['http://foo/baz', 'test/gold', 'unrelated']])
+	
+	def testAccessURLPresent(self):
+		tree = self.serviceResult[1]
+		self.assertEqual(
+			tree.xpath("//PARAM[@utype='datalink:accessURL']")[0].get("value"),
+			"http://localhost:8080/data/test/foo/dlget")
 
 
 if __name__=="__main__":

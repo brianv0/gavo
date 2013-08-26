@@ -91,7 +91,6 @@ class LinkDef(object):
 		return (self.url, self.contentType, self.relationType)
 
 
-
 class MetaMaker(rscdef.ProcApp):
 	"""A procedure application that generates metadata for datalink services.
 
@@ -312,7 +311,7 @@ class DatalinkCore(svcs.Core, base.ExpansionDelegator):
 			if value is not None)
 		
 		if argsGiven==set(["PUBDID"]):
-			return self._runGenerateMetadata(args)
+			return self._runGenerateMetadata(args, service)
 		else:
 			return self._runDataProcessing(args)
 	
@@ -333,15 +332,20 @@ class DatalinkCore(svcs.Core, base.ExpansionDelegator):
 
 		return self.dataFormatter.compile(self)(self.descriptor, args)
 	
-	def _runGenerateMetadata(self, args):
+	def _runGenerateMetadata(self, args, service):
 		"""does run's work if we're handling a metadata request.
 
 		This will always return a VOTable.
 		"""
 		vot = (
-			V.RESOURCE(name="datalinkDescriptor")[[
-				votablewrite.makeFieldFromColumn(V.PARAM, ik)
-					for ik in self.inputTable.params],
+			V.RESOURCE(name="datalinkDescriptor")[
+				V.GROUP(utype="datalink:service")[
+					V.PARAM(name="serviceAccessURL", utype="datalink:accessURL",
+						datatype="char", arraysize="*", 
+						value=service.getURL("dlget"))[
+							V.DESCRIPTION["Access URL for this service"]],
+					[votablewrite.makeFieldFromColumn(V.PARAM, ik)
+						for ik in self.inputTable.params]],
 				votable.DelayedTable(
 					V.TABLE(name="relatedData") [
 						V.FIELD(name="url", datatype="char", arraysize="*"),
