@@ -141,9 +141,19 @@ def _makeValuesForColDesc(colDesc):
 	so for anything fancy pass in byte strings to begin with.
 	"""
 	valEl = V.VALUES()
-	if colDesc.get("min", utils.Supremum) is not utils.Supremum:
+	if colDesc.get("min") is None:
+		colDesc["min"] = getattr(colDesc.original.values, "min", None)
+	if colDesc.get("max") is None:
+		colDesc["max"] = getattr(colDesc.original.values, "max", None)
+
+	if colDesc["max"] is utils.Infimum:
+		colDesc["max"] = None
+	if colDesc["min"] is utils.Supremum:
+		colDesc["min"] = None
+
+	if colDesc["min"] is not None:
 		valEl[V.MIN(value=str(colDesc["min"]))]
-	if colDesc.get("max", utils.Infimum) is not utils.Infimum:
+	if colDesc["max"] is not None:
 		valEl[V.MAX(value=str(colDesc["max"]))]
 	if colDesc["nullvalue"] is not None:
 		valEl(null=colDesc["nullvalue"])

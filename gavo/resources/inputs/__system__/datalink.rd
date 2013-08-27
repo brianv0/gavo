@@ -133,7 +133,7 @@
 	</procDef>
 
 	<STREAM id="sdm_plainfluxcalib">
-		<doc>A stream inserting a data function and its parameters to
+		<doc>A stream inserting a data function and its metadata generator to
 		do select flux calibrations in SDM data.  This expects
 		sdm_generate (or at least parameters.data as an SDM data instance)
 		as the generating function within the datalink core.
@@ -250,5 +250,97 @@
 			</code>
 		</dataFormatter>
 	</STREAM>
+
+
+
+	<!-- ********************* datalink interface for generic FITS 
+		manipulations -->
+	<procDef type="descriptorGenerator" id="fits_genDesc">
+		<doc>A data function for datalink returning the a fits descriptor.
+
+		This has, in addition to the standard stuff, a hdr attribute containing
+		the primary header as pyfits structure, and a wcs attribute containing
+		a pywcs.WCS structure for it.
+
+		Further datalink functions should be able to deal with the wcs attribute
+		being None; there's just too much that can go wrong there.
+		</doc>
+		<code>
+			descr = ProductDescriptor.fromAccref("/".join(pubdid.split("/")[4:]))
+			with open(os.path.join(base.getConfig("inputsDir"), descr.accessPath)
+					) as f:
+				descr.hdr = utils.readPrimaryHeaderQuick(f)
+			descr.wcs = coords.getWCS(descr.hdr)
+			return descr
+		</code>
+	</procDef>
+
+
+	<procDef type="metaMaker" id="fits_makeCutoutParams">
+		<doc>A metaMaker that generates parameters allowing cutouts along
+		the various WCS axes in physical coordinates.
+		
+		Note that this is *not* optimal.  For your data with a known
+		structure, you should provide much richer metadata.</doc>
+		<setup>
+			<code>
+				def synthesizeAxisName(axDesc):
+					"""returns an axis label based on a pywcs axis description.
+
+					Note that that these are usually not unique.
+					"""
+					if axDesc["coordinate_type"]=="celestial":
+						if axDesc.get("number")==0:
+							name = "LONG"
+						elif axDesc.get("number")==1: 
+							name = "LAT"
+						else:
+							name = "COORD"%axInd
+					elif axDesc["coordinate_type"]:
+						name = axDesc["coordinate_type"].upper()
+					else:
+						name = "COO"
+					return name
+
+				def getAxisLengths(hdr):
+					"""returns a sequence of number of items on the axes of a FITS
+					file.
+
+					hdr is a pyfits header instance.
+					"""
+					return [hdr["NAXIS%d"%i] for i in range(1, hdr["NAXIS"]+1)]
+			</code>
+		</setup>
+
+		<code>
+			if not descriptor.wcs:
+				# no wcs, no physical cutouts
+				return
+
+			wcsprm = descriptor.wcs.wcs
+			naxis = wcsprm.naxis
+			axesLengths = getAxisLengths(descriptor.hdr)
+			# FIXME: pywcs might use WCSAXES, which may be different from
+			# what getAxisLengths return.  Unfortunately, pywcs apparently doesn't 
+			# expose the lengths of the wcs axes.  Hm.
+			if len(axesLengths)!=naxis:
+				raise ValidationError("FITS has WCSAXES.  This code cannot deal"
+					" with it.", "PUBDID")
+
+			footprint = wcsprm.p2s([[1]*int(naxis), axesLengths], 1)["world"]
+
+			for axInd, axDesc in enumerate(descriptor.wcs.get_axis_types()):
+				name = wcsprm.cname[axInd]
+				if not name:
+					name = synthesizeAxisName(axDesc)
+				name = "%s_%d"%(name, axInd)
+				limits = (footprint[0][axInd], footprint[1][axInd])
+
+				yield MS(InputKey, name=name,
+					unit=descriptor.wcs.wcs.cunit[axInd],
+					ucd=None,
+					values=MS(Values, min=min(limits), max=max(limits)))
+		</code>
+	</procDef>
 
 </resource>

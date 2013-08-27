@@ -1227,6 +1227,12 @@ is again in ``//datalink#sdm_cutout``.  It simply looks like this::
   </dataFunction>
 
 
+Datalink Examples
+'''''''''''''''''
+
+TODO: Simple sdm/getdata service
+
+
 
 Writing Custom Cores
 ====================

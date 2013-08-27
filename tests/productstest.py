@@ -442,5 +442,34 @@ class DatalinkMetaMakerTest(testhelpers.VerboseTest):
 			"http://localhost:8080/data/test/foo/dlget")
 
 
+class DatalinkFITSTest(testhelpers.VerboseTest):
+	resources = [("fitsTable", _fitsTable)]
+
+	def testMakeDescriptor(self):
+		svc = base.parseFromString(svcs.Service, """<service id="foo">
+			<datalinkCore>
+				<descriptorGenerator procDef="//datalink#fits_genDesc"/>
+				<metaMaker><code>
+					assert descriptor.hdr["EQUINOX"]==2000.
+					assert (map(int, descriptor.wcs.wcs_sky2pix([(166, 20)], 0)[0])
+						==[7261, 7984])
+					if False:
+						yield
+				</code></metaMaker>
+				<metaMaker procDef="//datalink#fits_makeCutoutParams"/>
+			</datalinkCore></service>""")
+		svc.parent = testhelpers.getTestRD()
+
+		mime, data = svc.run("dlget", {
+			"PUBDID": [rscdef.getStandardPubDID("data/ex.fits")]}).original
+		tree = testhelpers.getXMLTree(data, debug=False)
+		self.assertEqual(tree.xpath("//PARAM[@name='LONG_0']")[0].get("unit"),
+			"deg")
+		self.assertEqual(tree.xpath("//PARAM[@name='LONG_0']/VALUES/MIN"
+			)[0].get("value")[:7], "168.244")
+		self.assertEqual(tree.xpath("//PARAM[@name='LAT_1']/VALUES/MAX"
+			)[0].get("value"), "22.2191544942")
+
+
 if __name__=="__main__":
 	testhelpers.main(DatalinkElementTest)

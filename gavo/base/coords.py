@@ -78,7 +78,7 @@ def clampDelta(delta):
 	return max(-90, min(90, delta))
 
 
-def getWCS(wcsFields, naxis=(1,2)):
+def getWCS(wcsFields, naxis=(1,2), relax=True):
 	"""returns a WCS instance from wcsFields
 	
 	wcsFields can be either a dictionary or a pyfits header giving
@@ -107,7 +107,7 @@ def getWCS(wcsFields, naxis=(1,2)):
 		if wcsFields.get(key)==0:
 			del wcsFields[key]
 	
-	wcsObj = pywcs.WCS(wcsFields, relax=True, naxis=naxis)
+	wcsObj = pywcs.WCS(wcsFields, relax=relax, naxis=naxis)
 	wcsObj._dachs_header = wcsFields
 	return wcsObj
 
