@@ -329,7 +329,7 @@
 	</data>
 
 	<data id="import_fitsprod">
-		<sources pattern="data/ex.fits"/>
+		<sources pattern="data/*.fits"/>
 		<fitsProdGrammar>
 			<rowfilter procDef="//products#define">
         <bind key="table">"test.prodtest"</bind>

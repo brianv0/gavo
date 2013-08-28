@@ -463,6 +463,69 @@ def getPrimarySize(fName):
 	return hdr["NAXIS1"], hdr["NAXIS2"]
 
 
+def getAxisLengths(hdr):
+	"""returns a sequence of the lengths of the axes of a FITS image
+	described by hdr.
+	"""
+	return [hdr["NAXIS%d"%i] for i in range(1, hdr["NAXIS"]+1)]
+
+
+def cutoutFITS(hdu, *cuts):
+	"""returns a cutout of hdu restricted to cuts.
+
+	hdu is a primary FITS hdu.  cuts is a list of cut specs, each of which is
+	a triple (axis, lower, upper).  axis is between 1 and naxis, lower and
+	upper a 1-based pixel coordinates of the limits, and "border" pixels
+	are included.  Specifications outside of the image are legal and will 
+	be cropped back.  You must provide both limits as integers, though,
+	half-open intervals are only supported through absurd limits (-1 for lower
+	and 2000000000 for upper should do fine for a while to come).
+
+	If an axis would vanish (i.e. length 0 or less), the function fudges
+	things such that the axis gets a length of 1.
+
+	axis is counted here in the FORTRAN/FITS sense, *not* in the C sense,
+	i.e., axis=1 cuts along NAXIS1, which is the *last* index in a numpy
+	array.
+
+	WCS CRPIXes in hdu's header will be updated.  Axes and specified will
+	not be touched.  It is an error to specifiy cuts for an axis twice 
+	(behaviour is undefined).
+
+	Note that this will lose all extensions the orginal FITS file might have
+	had.
+	"""
+	cutDict = dict((c[0], c[1:]) for c in cuts)
+	slices = []
+	newHeader = hdu.header.copy()
+
+	for index, length in enumerate(getAxisLengths(hdu.header)):
+		firstPix, lastPix = cutDict.get(index+1, (None, None))
+		if firstPix is None:
+			slices.append(slice(None, None, None))
+			continue
+		
+		firstPix = min(max(1, firstPix), length)
+		lastPix = min(length, max(1, lastPix))
+		firstPix -= 1
+		newAxisLength = lastPix-firstPix
+		if newAxisLength==0:
+			newAxisLength = 1
+			lastPix = firstPix+1
+		slices.append(slice(firstPix, lastPix, 1))
+
+		newHeader["NAXIS%d"%(index+1)] = newAxisLength
+		refpixKey = "CRPIX%d"%(index+1)
+		if newHeader.has_key(refpixKey):
+			newHeader.update(refpixKey, newHeader[refpixKey]-firstPix)
+
+	# fix for fortran-vs-C column order
+	slices.reverse()
+	newHDU = pyfits.PrimaryHDU(data=hdu.data[slices],
+		header=newHeader)
+	return newHDU
+
+
 def shrinkWCSHeader(oldHeader, factor):
 	"""returns a FITS header suitable for a shrunken version of the image
 	described by oldHeader.

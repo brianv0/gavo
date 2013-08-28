@@ -302,13 +302,7 @@
 						name = "COO"
 					return name
 
-				def getAxisLengths(hdr):
-					"""returns a sequence of number of items on the axes of a FITS
-					file.
-
-					hdr is a pyfits header instance.
-					"""
-					return [hdr["NAXIS%d"%i] for i in range(1, hdr["NAXIS"]+1)]
+				from gavo.utils import fitstools
 			</code>
 		</setup>
 
@@ -319,7 +313,7 @@
 
 			wcsprm = descriptor.wcs.wcs
 			naxis = wcsprm.naxis
-			axesLengths = getAxisLengths(descriptor.hdr)
+			axesLengths = fitstools.getAxisLengths(descriptor.hdr)
 			# FIXME: pywcs might use WCSAXES, which may be different from
 			# what getAxisLengths return.  Unfortunately, pywcs apparently doesn't 
 			# expose the lengths of the wcs axes.  Hm.
