@@ -453,7 +453,7 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 				<metaMaker procDef="//datalink#fits_makeWCSParams"/>
 				<metaMaker><code>
 					assert descriptor.hdr["EQUINOX"]==2000.
-					assert (map(int, descriptor.wcs.wcs_sky2pix([(166, 20)], 0)[0])
+					assert (map(int, descriptor.skyWCS.wcs_sky2pix([(166, 20)], 0)[0])
 						==[7261, 7984])
 					if False:
 						yield
@@ -467,9 +467,9 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 		self.assertEqual(tree.xpath("//PARAM[@name='RA_MIN']")[0].get("unit"),
 			"deg")
 		self.assertEqual(tree.xpath("//PARAM[@name='RA_MAX']/VALUES/MIN"
-			)[0].get("value")[:7], "168.244")
+			)[0].get("value")[:7], "168.243")
 		self.assertEqual(tree.xpath("//PARAM[@name='DEC_MIN']/VALUES/MAX"
-			)[0].get("value"), "22.2191544942")
+			)[0].get("value"), "22.2192872351")
 		self.assertEqual(tree.xpath("//PARAM[@name='DEC_MAX']/DESCRIPTION"
 			)[0].text, "The latitude coordinate, upper limit")
 
@@ -483,13 +483,65 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 
 		mime, data = svc.run("dlget", {
 			"PUBDID": [rscdef.getStandardPubDID("data/excube.fits")]}).original
-		tree = testhelpers.getXMLTree(data, debug=True)
+		tree = testhelpers.getXMLTree(data, debug=False)
 		self.assertEqual(tree.xpath("//PARAM[@name='RA_MAX']/VALUES/MIN"
-			)[0].get("value")[:7], "168.244")
+			)[0].get("value"), "359.3580942")
 		self.assertEqual(tree.xpath("//PARAM[@name='DEC_MIN']/VALUES/MAX"
-			)[0].get("value"), "22.2191544942")
+			)[0].get("value"), "30.9848485045")
+		self.assertEqual(tree.xpath("//PARAM[@name='COO_3_MIN']/VALUES/MIN"
+			)[0].get("value"), "3749.0")
+		self.assertEqual(tree.xpath("//PARAM[@name='COO_3_MIN']/VALUES/MAX"
+			)[0].get("value"), "3755.0")
+
+	def testCutoutNoSpatialCube(self):
+		svc = base.parseFromString(svcs.Service, """<service id="foo">
+			<datalinkCore>
+				<descriptorGenerator procDef="//datalink#fits_genDesc"/>
+				<metaMaker procDef="//datalink#fits_makeWCSParams"/>
+				<dataFunction procDef="//datalink#fits_makeHDUList"/>
+				<dataFunction procDef="//datalink#fits_doWCSCutout"/>
+				<dataFormatter procDef="//datalink#fits_formatHDUs"/>
+			</datalinkCore></service>""")
+
+		mime, data = svc.run("dlget", {
+				"PUBDID": [rscdef.getStandardPubDID("data/excube.fits")],
+				"COO_3_MIN": ["3753"],
+				"COO_3_MAX": ["3755"],
+				}).original
+
+		self.assertEqual(mime, "application/fits")
+		hdr = fitstools.readPrimaryHeaderQuick(StringIO(data))
+		self.assertEqual(hdr["NAXIS1"], 11)
+		self.assertEqual(hdr["NAXIS2"], 7)
+		self.assertEqual(hdr["NAXIS3"], 2)
+
+	def testCutoutCube(self):
+		svc = base.parseFromString(svcs.Service, """<service id="foo">
+			<datalinkCore>
+				<descriptorGenerator procDef="//datalink#fits_genDesc"/>
+				<metaMaker procDef="//datalink#fits_makeWCSParams"/>
+				<dataFunction procDef="//datalink#fits_makeHDUList"/>
+				<dataFunction procDef="//datalink#fits_doWCSCutout"/>
+				<dataFormatter procDef="//datalink#fits_formatHDUs"/>
+			</datalinkCore></service>""")
+
+		mime, data = svc.run("dlget", {
+				"PUBDID": [rscdef.getStandardPubDID("data/excube.fits")],
+				"RA_MAX": ["359.36"],
+				"RA_MIN": ["359.359"],
+				"DEC_MAX": ["30.9845"],
+				"DEC_MIN": ["30.985"],
+				"COO_3_MIN": ["3753"],
+				"COO_3_MAX": ["3755"],
+				}).original
+
+		self.assertEqual(mime, "application/fits")
+		hdr = fitstools.readPrimaryHeaderQuick(StringIO(data))
+		self.assertEqual(hdr["NAXIS1"], 4)
+		self.assertEqual(hdr["NAXIS2"], 2)
+		self.assertEqual(hdr["NAXIS3"], 2)
 
 
 
 if __name__=="__main__":
-	testhelpers.main(FITSCutoutTest)
+	testhelpers.main(DatalinkFITSTest)

@@ -268,11 +268,12 @@
 		<setup>
 			<code>
 				def getFITSDescriptor(pubdid):
-					descr = ProductDescriptor.fromAccref("/".join(pubdid.split("/")[4:]))
-					with open(os.path.join(base.getConfig("inputsDir"), descr.accessPath)
-							) as f:
-						descr.hdr = utils.readPrimaryHeaderQuick(f)
-					return descr
+					descriptor = ProductDescriptor.fromAccref(
+						"/".join(pubdid.split("/")[4:]))
+					with open(os.path.join(base.getConfig("inputsDir"), 
+							descriptor.accessPath)) as f:
+						descriptor.hdr = utils.readPrimaryHeaderQuick(f)
+					return descriptor
 			</code>
 		</setup>
 		<code>
@@ -308,24 +309,6 @@
 			<code>
 				from gavo.utils import fitstools
 
-				def synthesizeAxisName(axDesc):
-					"""returns an axis label based on a pywcs axis description.
-
-					Note that that these are usually not unique.
-					"""
-					if axDesc["coordinate_type"]=="celestial":
-						if axDesc.get("number")==0:
-							name = "LONG"
-						elif axDesc.get("number")==1: 
-							name = "LAT"
-						else:
-							name = "COORD"%axInd
-					elif axDesc["coordinate_type"]:
-						name = axDesc["coordinate_type"].upper()
-					else:
-						name = "COO"
-					return name
-
 				def getSkyWCS(hdr):
 					"""uses some heuristics to guess how spatial WCS might be
 					in hdr.
@@ -346,37 +329,62 @@
 						return None, ()
 
 					if len(wcsAxes)!=2:
-						raise base.ValidationError("This FITS has 1 or 3 or more"
+						raise base.ValidationError("This FITS has !=2"
 							" WCS axes.  Please contact the DaCHS authors and"
 							" make them support it.", "PUBDID")
 
 					return coords.getWCS(hdr, naxis=wcsAxes), wcsAxes
 
-			def iterSpatialKeys(descriptor):
-				"""yields inputKeys for spatial cutouts along the coordinate
-				axes.
+				def iterSpatialKeys(descriptor):
+					"""yields inputKeys for spatial cutouts along the coordinate
+					axes.
 
-				This can be nothing if descriptor doesn't have a skyWCS attribute
-				or if it's None.
-				"""
-				if not getattr(descriptor, "skyWCS", None):
-					return
+					This can be nothing if descriptor doesn't have a skyWCS attribute
+					or if it's None.
+					"""
+					if not getattr(descriptor, "skyWCS", None):
+						return
 
-				footprint = descriptor.wcs.calcFootprint(descriptor.hdr)
-				wcsprm = descriptor.skyWCS.wcs
+					footprint = descriptor.skyWCS.calcFootprint(descriptor.hdr)
+					wcsprm = descriptor.skyWCS.wcs
 
-				for name, colInd, description in [
-					(wcsprm.lattyp.strip(), wcsprm.lat, "The latitude coordinate"),
-					(wcsprm.lngtyp.strip(), wcsprm.lng, "The longitude coordinate")]:
-					if name:
-						limits = footprint[0][colInd], footprint[1][colInd]
-						for ik in genLimitKeys(MS(InputKey, name=name,
-								unit="deg",
-								description=description,
-								ucd=None,
-								values=MS(Values, min=min(limits), max=max(limits)))):
+					for name, colInd, description, cutoutName in [
+						(wcsprm.lattyp.strip(), wcsprm.lat, "The latitude coordinate",
+							"WCSLAT"),
+						(wcsprm.lngtyp.strip(), wcsprm.lng, "The longitude coordinate",
+							"WCSLONG")]:
+						if name:
+							vertexCoos = footprint[:,colInd]
+							for ik in genLimitKeys(MS(InputKey, name=name,
+									unit="deg",
+									description=description,
+									ucd=None, multiplicity="single",
+									values=MS(Values, min=min(vertexCoos), max=max(vertexCoos)))):
+								yield ik
+							descriptor.axisNames[name] = cutoutName
+
+				def iterOtherKeys(descriptor, spatialAxes):
+					"""yields inputKeys for all WCS axes not covered by spatialAxes.
+					"""
+					axesLengths = fitstools.getAxisLengths(descriptor.hdr)
+					for axIndex, length in enumerate(axesLengths):
+						fitsAxis = axIndex+1
+						if fitsAxis in spatialAxes:
+							continue
+						if length==1:
+							# no cutouts along degenerate axes
+							continue
+
+						ax = fitstools.WCSAxis.fromHeader(descriptor.hdr, fitsAxis)
+						descriptor.axisNames[ax.name] = fitsAxis
+						minPhys, maxPhys = ax.getLimits()
+
+						for ik in genLimitKeys(MS(InputKey, name=ax.name,
+								unit=ax.cunit,
+								description="Coordinate along axis number %s"%fitsAxis,
+								ucd=None, multiplicity="single",
+								values=MS(Values, min=minPhys, max=maxPhys))):
 							yield ik
-						descriptor.axisNames[name] = colInd
 			</code>
 		</setup>
 
@@ -384,34 +392,110 @@
 			descriptor.axisNames = {}
 			descriptor.skyWCS, spatialAxes = getSkyWCS(descriptor.hdr)
 
-			for spaceIK in iterSpatialKeys(descriptor):
-				yield spaceIK
+			for ik in iterSpatialKeys(descriptor):
+				yield ik
 
-			axesLengths = fitstools.getAxisLengths(descriptor.hdr)
-			for axIndex, length in enumerate(axesLengths):
-				if axIndex in spatialAxes:
-					continue
-				if length==1:
-					# no cutouts along degenerate axes
-					continue
-
-				wcsDesc = fitstools.WCSAxis(axIndex)
-				name = wcsprm.cname[axInd]
-				if not name:
-					name = synthesizeAxisName(axDesc)
-				name = "%s_%s"%(axInd, name)
-				descriptor.axisNames[name] = axInd
-
-				limits = (footprint[0][axInd], footprint[1][axInd])
-
-				for ik in genLimitKeys(MS(InputKey, name=name,
-						unit=wcsprm.wcs.cunit[axInd],
-						description="Coordinate along axis number %s"%axInd,
-						ucd=None,
-						values=MS(Values, min=min(limits), max=max(limits)))):
-					yield ik
-
+			for ik in iterOtherKeys(descriptor, spatialAxes):
+				yield ik
 		</code>
 	</procDef>
 
+	<procDef type="dataFunction" id="fits_makeHDUList">
+		<doc>
+			An initial data function to construct a pyfits hduList and
+			make that into a descriptor's data attribute.
+
+			This wants a descriptor as returned by fits_genDesc.
+		</doc>
+		<code>
+			from gavo.utils import pyfits
+
+			descriptor.data = pyfits.open(os.path.join(
+				base.getConfig("inputsDir"), descriptor.accessPath))
+		</code>
+	</procDef>
+
+	<procDef type="dataFunction" id="fits_doWCSCutout">
+		<doc>
+			A fairly generic FITS cutout function.
+
+			It expects some special attributes in the descriptor to allow it
+			to decode the arguments.  These must be left behind by the
+			metaMaker(s) creating the parameters.
+
+			This is axisNames, a dictionary mapping parameter names to
+			the FITS axis numbers or the special names WCSLAT or WCSLONG. 
+			It also expects a skyWCS attribute, a pywcs.WCS instance for spatial
+			cutouts.
+
+			The .data attribute must be a pyfits hduList, as generated by the
+			fits_makeHDUList data function.
+		</doc>
+		<code>
+			from gavo.utils import fitstools
+			import numpy
+
+			slices = []
+
+			footprint  = descriptor.skyWCS.calcFootprint(descriptor.hdr)
+			# limits: [minRA, maxRA], [minDec, maxDec]]
+			limits = [[min(footprint[:,0]), max(footprint[:,0])],
+				[min(footprint[:,1]), max(footprint[:,1])]]
+
+			for parBase, fitsAxis in descriptor.axisNames.iteritems():
+				if not isinstance(fitsAxis, int):
+					if fitsAxis=="WCSLAT":
+						cooLimits = limits[1]
+					elif fitsAxis=="WCSLONG":
+						cooLimits = limits[0]
+					else:
+						assert False
+
+					if args[parBase+"_MIN"] is not None:
+						cooLimits[0] = max(cooLimits[0], args[parBase+"_MIN"])
+					if args[parBase+"_MAX"] is not None:
+						cooLimits[1] = min(cooLimits[1], args[parBase+"_MAX"])
+					
+				else:
+					transform = fitstools.WCSAxis.fromHeader(descriptor.hdr, fitsAxis)
+					axMax = args.get(parBase+"_MAX", 100000000)
+					axMin = args.get(parBase+"_MIN", -1)
+					slices.append((fitsAxis, 
+						transform.physToPix(axMin), transform.physToPix(axMax)))
+		
+			pixelFootprint = numpy.asarray(
+				numpy.round(descriptor.skyWCS.wcs_sky2pix([
+					(limits[0][0], limits[1][0]),
+					(limits[0][1], limits[1][1])], 1)), numpy.int32)
+			pixelLimits = [[min(pixelFootprint[:,0]), max(pixelFootprint[:,0])],
+				[min(pixelFootprint[:,1]), max(pixelFootprint[:,1])]]
+			latAxis = descriptor.skyWCS.wcs.lat+1
+			longAxis = descriptor.skyWCS.wcs.lng+1
+			if pixelLimits[0]!=[1, descriptor.hdr["NAXIS%d"%longAxis]]:
+				slices.append([longAxis]+pixelLimits[0])
+			if pixelLimits[1]!=[1, descriptor.hdr["NAXIS%d"%latAxis]]:
+				slices.append([latAxis]+pixelLimits[1])
+
+			if slices:
+				descriptor.data[0] = fitstools.cutoutFITS(descriptor.data[0],
+					*slices)
+		</code>
+	</procDef>
+
+	<procDef type="dataFormatter" id="fits_formatHDUs">
+		<doc>
+			Formats pyfits HDUs into a FITS file.
+
+			This all works in memory, so for large FITS files you'd want something
+			more streamlined.
+		</doc>
+		<code>
+			from gavo.formats import fitstable
+			resultName = fitstable.writeFITSTableFile(descriptor.data)
+			with open(resultName) as f:
+				data = f.read()
+			os.unlink(resultName)
+			return "application/fits", data
+		</code>
+	</procDef>
 </resource>

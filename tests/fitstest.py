@@ -392,6 +392,10 @@ class WCSFromHeaderTest(testhelpers.VerboseTest):
 		self.assertEqual(ax.cunit, "nm")
 		self.assertEqual(ax.ctype, "WAVELEN")
 
+	def testEmptyUnitBecomesNone(self):
+		ax = fitstools.WCSAxis.fromHeader(self._baseHdr, 2)
+		self.assertEqual(ax.cunit, None)
+
 	
 if __name__=="__main__":
 	testhelpers.main(WCSFromHeaderTest)

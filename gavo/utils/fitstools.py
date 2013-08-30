@@ -755,8 +755,8 @@ class WCSAxis(object):
 		return cls(guessedName, 
 			get("CRVAL", 0), get("CRPIX", 0), get("CDELT", 1),
 			get("CTYPE", "UNKNOWN").strip(), 
-			get("CUNIT", "").strip(), 
-			get("NAXIS", None))
+			get("CUNIT", "").strip() or None, 
+			get("NAXIS", 1))
 
 
 def _test():

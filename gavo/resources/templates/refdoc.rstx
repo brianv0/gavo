@@ -941,7 +941,7 @@ pre-provided building blocks).
 A datalink core consists of 
 
 * exactly one descriptor generator,
-* zero or one data functions, generating and manipulating data
+* zero or more data functions, generating and manipulating data
 * zero or one formatters, formatting the generated and/or manipulated
   data
 * zero or more meta makers, generating input parameter descriptions
@@ -1225,6 +1225,53 @@ is again in ``//datalink#sdm_cutout``.  It simply looks like this::
         args["LAMBDA_MIN"] or -1, args["LAMBDA_MAX"] or 1e308)
     </code>
   </dataFunction>
+
+
+Data Formatters
+'''''''''''''''
+
+Data formatters (see `element dataFormatter`_) take a descriptor's data
+attribute and build something serveable out of it.  Datalink cores do
+not absolutely need one; the default is to return ``descriptor.data``
+(the ``//datalink#trivialFormatter``, which might be fine if that data is
+serveable itself.
+
+What is serveable?  The easiest thing to come up with is a pair of
+content type and data in byte strings; if ``descriptor.data`` is a Table
+or Data instance, the following could work::
+
+  <dataFormatter>
+    <code>
+      from gavo import formats
+
+      return "text/plain", formats.getAsText(descriptor.data)
+    </code>
+  </dataFormatter>
+ 
+
+Another example is an excerpt from ``//datalink#sdm_cutout``::
+
+	<dataFormatter>
+		<code>
+			from gavo.protocols import sdm
+
+			if len(descriptor.data.getPrimaryTable().rows)==0:
+				raise base.ValidationError("Spectrum is empty.", "(various)")
+
+			return sdm.formatSDMData(descriptor.data, args["FORMAT"])
+		</code>
+	</dataFormatter>
+
+(this goes together with a metaMaker for an input key describing
+FORMAT).
+
+An alternative is to return something that has a ``renderHTTP(ctx)``
+method that works in nevow.  This is true for the Product instances that
+``//datalink#generateProduct`` generates, for example.  When you write
+that yourself, however, take care that this renderHTTP runs in the main
+server loop.  If it blocks, the server blocks, so take care that this
+doesn't happen.  The conventional way would be to return, from the
+renderHTTP method, some twisted producer.
 
 
 Datalink Examples
@@ -1530,10 +1577,12 @@ system ``//obscore`` RD.  Here's an somewhat more elaborate example::
 (to be on the safe side: there need to be four backslashes in front of
 fillFactor; this is just a backslash doubly-escaped.  Sorry about this).
 
+The way this is used in an actual mixin would be like this::
+
   <table id="specs" onDisk="True">
     <mixin ...>//ssap#hcd</mixin>
     <mixin
-      ... (all the //obscore#publishSSAPHCD parameters)
+      ... (all the usual parameters)
       fillFactor="0.3">//obscore#publishSSAPHCD</mixin>
   </table>
 
@@ -1562,8 +1611,8 @@ what the magic with the ``cumulate="True"`` is, ask.
 Finally, ``obscore-extrapars`` directly goes into a core component of
 obscore, one that all the various publish mixins there use.  Hence, all
 of them grow your functionality.  That is also why it is important to
-give defaults to all mixinPars you give in this way – without them, all
-those other publish mixins would fail.
+give defaults (i.e., element content) to all mixinPars you give in this
+way – without them, all those other publish mixins would fail.
 
 If you change ``%#obscore-extracolumns``, you will need to re-import all
 obscore-published tables (actually, importing the metadata using ``gavo
