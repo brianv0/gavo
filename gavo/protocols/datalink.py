@@ -338,6 +338,7 @@ class DatalinkCore(svcs.Core, base.ExpansionDelegator):
 		This will always return a VOTable.
 		"""
 		vot = (
+		V.VOTABLE[
 			V.RESOURCE(name="datalinkDescriptor")[
 				V.GROUP(utype="datalink:service")[
 					V.PARAM(name="serviceAccessURL", utype="datalink:accessURL",
@@ -352,5 +353,5 @@ class DatalinkCore(svcs.Core, base.ExpansionDelegator):
 						V.FIELD(name="contentType", datatype="char", arraysize="*"),
 						V.FIELD(name="relationType", datatype="char", arraysize="*")],
 					[l.asRow() for l in self.datalinkLinks],
-					V.BINARY)])
+					V.BINARY)]])
 		return ("application/x-votable+xml", vot.render())
