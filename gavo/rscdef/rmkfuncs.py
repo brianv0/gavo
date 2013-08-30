@@ -313,6 +313,26 @@ def requireValue(val, fieldName):
 	return val
 
 
+@utils.document
+def genLimitKeys(inputKey):
+	"""yields _MAX and _MIN inputKeys from a single input key.
+
+	This also tries to sensibly fix descriptions and ucds.
+	This is mainly for datalink metaMakers; condDescs may use a 
+	similar thing, but that's not exposed to RDs.
+	"""
+	name = inputKey.name
+	ucd = inputKey.ucd or None
+	description = inputKey.description
+
+	yield inputKey.change(name=name+"_MIN", 
+		ucd=ucd and "stat.min;"+ucd,
+		description=description.rstrip(".")+", lower limit")
+	yield inputKey.change(name=name+"_MAX", 
+		ucd=ucd and "stat.max;"+ucd,
+		description=description.rstrip(".")+", upper limit")
+
+
 def addProcDefObject(name, func):
 	globals()[name] = func
 

@@ -245,67 +245,6 @@ class ProductsCoreTest(_TestWithProductsTable):
 			("data/b.imp?ra=3&dec=4&sra=2&sdec=4",))
 
 
-class FITSCutoutTest(testhelpers.VerboseTest):
-	def setUp(self):
-		self.origHDU = pyfits.open(os.path.join(base.getConfig("inputsDir"),
-			"data", "excube.fits"))[0]
-
-	def testSimpleCutout1(self):
-		res = fitstools.cutoutFITS(self.origHDU, (1, 2, 3))
-		self.assertEqual(res.header["NAXIS1"], 2)
-		self.assertEqual(res.header["CRPIX1"], 36.)
-		self.assertEqual(res.header["NAXIS"], 3)
-		self.assertEqual(res.header["NAXIS2"], 7)
-		self.assertEqual(res.header["CALIFAID"], 935)
-		self.assertAlmostEqual(res.data[0][0][0], 0.01679336)
-		self.assertAlmostEqual(res.data[-1][-1][-1], -0.01980321)
-
-	def testOpenCutout2(self):
-		res = fitstools.cutoutFITS(self.origHDU, (2, -1, 3))
-		self.assertEqual(res.header["NAXIS1"], 11)
-		self.assertEqual(res.header["NAXIS2"], 3)
-		self.assertEqual(res.header["CRPIX2"], 33.)
-		self.assertAlmostEqual(res.data[0][0][0], 0.02511436)
-		self.assertAlmostEqual(res.data[-1][-1][-1], 0.09358116)
-
-	def testOpenCutout3(self):
-		res = fitstools.cutoutFITS(self.origHDU, (3, 3, 10000))
-		self.assertEqual(res.header["NAXIS3"], 2)
-		self.assertEqual(res.header["CRPIX3"], -1.)
-		self.assertAlmostEqual(res.data[0][0][0], 0.03102851)
-		self.assertAlmostEqual(res.data[-1][-1][-1], 0.07562912)
-
-	def testMultiCutout(self):
-		res = fitstools.cutoutFITS(self.origHDU, (1, 6, 8), (2, 3, 3),
-			(3, 2, 4))
-		self.assertEqual(res.header["NAXIS1"], 3)
-		self.assertEqual(res.header["CRPIX1"], 32)
-		self.assertEqual(res.header["NAXIS2"], 1)
-		self.assertEqual(res.header["CRPIX2"], 31)
-		self.assertEqual(res.header["NAXIS3"], 3)
-		self.assertEqual(res.header["CRPIX3"], 0)
-		self.assertAlmostEqual(res.data[0][0][0], 0.0155675)
-		self.assertAlmostEqual(res.data[-1][-1][-1], 0.05489994)
-	
-	def testSwappedLimits(self):
-		res = fitstools.cutoutFITS(self.origHDU, (1, 8, 7))
-		self.assertEqual(res.header["NAXIS1"], 1)
-		self.assertAlmostEqual(res.data[0][0][0], -0.01717306)
-
-	def testMinOutOfLimit(self):
-		res = fitstools.cutoutFITS(self.origHDU, (1, 13, 15))
-		self.assertEqual(res.header["NAXIS1"], 1)
-		self.assertAlmostEqual(res.data[0][0][0], 0.0558035)
-		self.assertEqual(res.header["CRPIX1"], 27.)
-
-	def testMaxOutOfLimit(self):
-		res = fitstools.cutoutFITS(self.origHDU, (1, -13, -12))
-		self.assertEqual(res.header["NAXIS1"], 1)
-		self.assertAlmostEqual(res.data[0][0][0], 0.02511436)
-		self.assertEqual(res.header["CRPIX1"], 37.)
-
-
-
 class _FITSTable(tresc.RDDataResource):
 	"""at least one FITS file in the products table.
 	"""
@@ -511,6 +450,7 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 		svc = base.parseFromString(svcs.Service, """<service id="foo">
 			<datalinkCore>
 				<descriptorGenerator procDef="//datalink#fits_genDesc"/>
+				<metaMaker procDef="//datalink#fits_makeWCSParams"/>
 				<metaMaker><code>
 					assert descriptor.hdr["EQUINOX"]==2000.
 					assert (map(int, descriptor.wcs.wcs_sky2pix([(166, 20)], 0)[0])
@@ -518,19 +458,37 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 					if False:
 						yield
 				</code></metaMaker>
-				<metaMaker procDef="//datalink#fits_makeCutoutParams"/>
 			</datalinkCore></service>""")
 		svc.parent = testhelpers.getTestRD()
 
 		mime, data = svc.run("dlget", {
 			"PUBDID": [rscdef.getStandardPubDID("data/ex.fits")]}).original
-		tree = testhelpers.getXMLTree(data, debug=False)
-		self.assertEqual(tree.xpath("//PARAM[@name='LONG_0']")[0].get("unit"),
+		tree = testhelpers.getXMLTree(data)
+		self.assertEqual(tree.xpath("//PARAM[@name='RA_MIN']")[0].get("unit"),
 			"deg")
-		self.assertEqual(tree.xpath("//PARAM[@name='LONG_0']/VALUES/MIN"
+		self.assertEqual(tree.xpath("//PARAM[@name='RA_MAX']/VALUES/MIN"
 			)[0].get("value")[:7], "168.244")
-		self.assertEqual(tree.xpath("//PARAM[@name='LAT_1']/VALUES/MAX"
+		self.assertEqual(tree.xpath("//PARAM[@name='DEC_MIN']/VALUES/MAX"
 			)[0].get("value"), "22.2191544942")
+		self.assertEqual(tree.xpath("//PARAM[@name='DEC_MAX']/DESCRIPTION"
+			)[0].text, "The latitude coordinate, upper limit")
+
+	def testMakeCubeDescriptor(self):
+		svc = base.parseFromString(svcs.Service, """<service id="foo">
+			<datalinkCore>
+				<descriptorGenerator procDef="//datalink#fits_genDesc"/>
+				<metaMaker procDef="//datalink#fits_makeWCSParams"/>
+			</datalinkCore></service>""")
+		svc.parent = testhelpers.getTestRD()
+
+		mime, data = svc.run("dlget", {
+			"PUBDID": [rscdef.getStandardPubDID("data/excube.fits")]}).original
+		tree = testhelpers.getXMLTree(data, debug=True)
+		self.assertEqual(tree.xpath("//PARAM[@name='RA_MAX']/VALUES/MIN"
+			)[0].get("value")[:7], "168.244")
+		self.assertEqual(tree.xpath("//PARAM[@name='DEC_MIN']/VALUES/MAX"
+			)[0].get("value"), "22.2191544942")
+
 
 
 if __name__=="__main__":

@@ -259,31 +259,55 @@
 		<doc>A data function for datalink returning the a fits descriptor.
 
 		This has, in addition to the standard stuff, a hdr attribute containing
-		the primary header as pyfits structure, and a wcs attribute containing
-		a pywcs.WCS structure for it.
+		the primary header as pyfits structure.
 
-		Further datalink functions should be able to deal with the wcs attribute
-		being None; there's just too much that can go wrong there.
+		The functionality of this is in its setup, getFITSDescriptor.
+		The intention is that customized DGs (e.g., fixing the header)
+		can use this as an original.
 		</doc>
+		<setup>
+			<code>
+				def getFITSDescriptor(pubdid):
+					descr = ProductDescriptor.fromAccref("/".join(pubdid.split("/")[4:]))
+					with open(os.path.join(base.getConfig("inputsDir"), descr.accessPath)
+							) as f:
+						descr.hdr = utils.readPrimaryHeaderQuick(f)
+					return descr
+			</code>
+		</setup>
 		<code>
-			descr = ProductDescriptor.fromAccref("/".join(pubdid.split("/")[4:]))
-			with open(os.path.join(base.getConfig("inputsDir"), descr.accessPath)
-					) as f:
-				descr.hdr = utils.readPrimaryHeaderQuick(f)
-			descr.wcs = coords.getWCS(descr.hdr)
-			return descr
+			return getFITSDescriptor(pubdid)
 		</code>
 	</procDef>
 
 
-	<procDef type="metaMaker" id="fits_makeCutoutParams">
+	<procDef type="metaMaker" id="fits_makeWCSParams">
 		<doc>A metaMaker that generates parameters allowing cutouts along
 		the various WCS axes in physical coordinates.
-		
-		Note that this is *not* optimal.  For your data with a known
-		structure, you should provide much richer metadata.</doc>
+	
+		This uses pywcs for the spatial coordinates and tries to figure out 
+		what these are with some heuristics.  For the remaining coordinates,
+		it assumes all are basically 1D, and it sets up separate, manual
+		transformations for them.
+
+		The metaMaker leaves an axisNames mapping in the descriptor.
+		This is important for the fits_doWCSCutout, and replacement metaMakers
+		must do the same.
+
+		The meta maker also creates a skyWCS attribute in the descriptor
+		if successful, containing the spatial transformation only.  All
+		other transformations, if present, are in miscWCS, by a dict mapping
+		axis labels to the fitstools.WCS1Trans instances.
+
+		Note that this is neither optimal in the metadata transmitted
+		nor general in the sense that any valid WCS header would be handled.  
+		For your data with a known structure, you should provide much richer 
+		metadata.
+		</doc>
 		<setup>
 			<code>
+				from gavo.utils import fitstools
+
 				def synthesizeAxisName(axDesc):
 					"""returns an axis label based on a pywcs axis description.
 
@@ -302,38 +326,91 @@
 						name = "COO"
 					return name
 
-				from gavo.utils import fitstools
+				def getSkyWCS(hdr):
+					"""uses some heuristics to guess how spatial WCS might be
+					in hdr.
+
+					The function returns a pair of a pywcs.WCS instance (or
+					None, if no spatial WCS was found) and a sequence of 
+					the axes used.
+					"""
+					wcsAxes = []
+					# heuristics: iterate through CTYPEn, anything that's got
+					# a - is supposed to be a position (needs some refinement :-)
+					for ind in range(1, hdr["NAXIS"]+1):
+						if "-" in hdr.get("CTYPE%s"%ind, ""):
+							wcsAxes.append(ind)
+
+					if not wcsAxes:
+						# more heuristics to be inserted here
+						return None, ()
+
+					if len(wcsAxes)!=2:
+						raise base.ValidationError("This FITS has 1 or 3 or more"
+							" WCS axes.  Please contact the DaCHS authors and"
+							" make them support it.", "PUBDID")
+
+					return coords.getWCS(hdr, naxis=wcsAxes), wcsAxes
+
+			def iterSpatialKeys(descriptor):
+				"""yields inputKeys for spatial cutouts along the coordinate
+				axes.
+
+				This can be nothing if descriptor doesn't have a skyWCS attribute
+				or if it's None.
+				"""
+				if not getattr(descriptor, "skyWCS", None):
+					return
+
+				footprint = descriptor.wcs.calcFootprint(descriptor.hdr)
+				wcsprm = descriptor.skyWCS.wcs
+
+				for name, colInd, description in [
+					(wcsprm.lattyp.strip(), wcsprm.lat, "The latitude coordinate"),
+					(wcsprm.lngtyp.strip(), wcsprm.lng, "The longitude coordinate")]:
+					if name:
+						limits = footprint[0][colInd], footprint[1][colInd]
+						for ik in genLimitKeys(MS(InputKey, name=name,
+								unit="deg",
+								description=description,
+								ucd=None,
+								values=MS(Values, min=min(limits), max=max(limits)))):
+							yield ik
+						descriptor.axisNames[name] = colInd
 			</code>
 		</setup>
 
 		<code>
-			if not descriptor.wcs:
-				# no wcs, no physical cutouts
-				return
+			descriptor.axisNames = {}
+			descriptor.skyWCS, spatialAxes = getSkyWCS(descriptor.hdr)
 
-			wcsprm = descriptor.wcs.wcs
-			naxis = wcsprm.naxis
+			for spaceIK in iterSpatialKeys(descriptor):
+				yield spaceIK
+
 			axesLengths = fitstools.getAxisLengths(descriptor.hdr)
-			# FIXME: pywcs might use WCSAXES, which may be different from
-			# what getAxisLengths return.  Unfortunately, pywcs apparently doesn't 
-			# expose the lengths of the wcs axes.  Hm.
-			if len(axesLengths)!=naxis:
-				raise ValidationError("FITS has WCSAXES.  This code cannot deal"
-					" with it.", "PUBDID")
+			for axIndex, length in enumerate(axesLengths):
+				if axIndex in spatialAxes:
+					continue
+				if length==1:
+					# no cutouts along degenerate axes
+					continue
 
-			footprint = wcsprm.p2s([[1]*int(naxis), axesLengths], 1)["world"]
-
-			for axInd, axDesc in enumerate(descriptor.wcs.get_axis_types()):
+				wcsDesc = fitstools.WCSAxis(axIndex)
 				name = wcsprm.cname[axInd]
 				if not name:
 					name = synthesizeAxisName(axDesc)
-				name = "%s_%d"%(name, axInd)
+				name = "%s_%s"%(axInd, name)
+				descriptor.axisNames[name] = axInd
+
 				limits = (footprint[0][axInd], footprint[1][axInd])
 
-				yield MS(InputKey, name=name,
-					unit=descriptor.wcs.wcs.cunit[axInd],
-					ucd=None,
-					values=MS(Values, min=min(limits), max=max(limits)))
+				for ik in genLimitKeys(MS(InputKey, name=name,
+						unit=wcsprm.wcs.cunit[axInd],
+						description="Coordinate along axis number %s"%axInd,
+						ucd=None,
+						values=MS(Values, min=min(limits), max=max(limits)))):
+					yield ik
+
 		</code>
 	</procDef>
 

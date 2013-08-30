@@ -673,6 +673,92 @@ def headerFromDict(d):
 	return hdr
 
 
+class WCSAxis(object):
+	"""represents a single 1D WCS axis and allows easy metadata discovery.
+
+	You'll usually use the fromHeader constructor.
+
+	The idea of using this rather than pywcs or similar is that this is
+	simple and robust.  It doesn't know many of the finer points of WCS,
+	though, and in particular it's 1D only.
+
+	However, for the purposes of cutouts it probably should do for the 
+	overwhelming majority of non-spatial FITS axes.
+
+	The default pixel coordinates are handled in the FITS sense here,
+	i.e., the first pixel has the index 1.  Three are methods that have
+	pix0 in their names; these assume 0-based arrays.
+
+	To retrieve the metadata shoved in, use the name, crval, crpix, cdelt,
+	ctype, cunit, and axisLength attributes.
+	"""
+	def __init__(self, name, crval, crpix, cdelt,
+			ctype="UNKNOWN", cunit="", axisLength=1):
+		assert cdelt!=0
+		self.crval, self.crpix, self.cdelt = crval, crpix, cdelt
+		self.ctype, self.cunit, self.axisLength = ctype, cunit, axisLength
+		self.name = name
+
+	def pixToPhys(self, pixCoo):
+		"""returns the physical value for a 1-based pixel coordinate.
+		"""
+		return self.crval+(pixCoo-self.crpix)*self.cdelt
+
+	def pix0ToPhys(self, pix0Coo):
+		"""returns the physical value for a 0-based pixel coordinate.
+		"""
+		return self.pixToPhys(pix0Coo+1)
+	
+	def physToPix(self, physCoo):
+		"""returns a 1-based pixel coordinate for a physical value.
+		"""
+		return (physCoo-self.crval)/self.cdelt+self.crpix
+	
+	def physToPix0(self, physCoo):
+		"""returns a 0-based pixel coordinate for a physical value.
+		"""
+		return self.physToPix(physCoo)-1
+
+	def getLimits(self):
+		"""returns the minimal and maximal physical values this axis 
+		takes within the image.
+		"""
+		limits = self.pixToPhys(1), self.pixToPhys(self.axisLength)
+		return min(limits), max(limits)
+
+	@classmethod
+	def fromHeader(cls, header, axisIndex):
+		"""returns a WCSAxis for the specified axis in header.
+
+		If the axis is mentioned in a transformation matrix (CD or PC),
+		a ValueError is raised; this is strictly for 1D coordinates.
+
+		The axisIndex is 1-based; to get a transform for the axis described
+		by CTYPE1, pass 1 here.
+		"""
+		if ("CD%d_%d"%(axisIndex, axisIndex) in header
+				or "PC%d_%d"%(axisIndex, axisIndex) in header):
+			raise ValueError("FITS axis %s appears not separable.  WCSAxis"
+				" cannot handle this."%axisIndex)
+
+		def get(key, default):
+			return header.get("%s%d"%(key, axisIndex), default)
+		
+		guessedName = get("CNAME", "").strip()
+		if not guessedName:
+			guessedName = get("CTYPE", "").split("-", 1)[0].strip()
+		if not guessedName or guessedName=="UNKNOWN":
+			guessedName = "COO"
+
+		guessedName = "%s_%d"%(guessedName, axisIndex)
+
+		return cls(guessedName, 
+			get("CRVAL", 0), get("CRPIX", 0), get("CDELT", 1),
+			get("CTYPE", "UNKNOWN").strip(), 
+			get("CUNIT", "").strip(), 
+			get("NAXIS", None))
+
+
 def _test():
 	import doctest, fitstools
 	doctest.testmod(fitstools)

@@ -264,5 +264,134 @@ class ReadHeaderTest(testhelpers.VerboseTest):
 				(open(inName),))
 
 
+class FITSCutoutTest(testhelpers.VerboseTest):
+	def setUp(self):
+		self.origHDU = pyfits.open(os.path.join(base.getConfig("inputsDir"),
+			"data", "excube.fits"))[0]
+
+	def testSimpleCutout1(self):
+		res = fitstools.cutoutFITS(self.origHDU, (1, 2, 3))
+		self.assertEqual(res.header["NAXIS1"], 2)
+		self.assertEqual(res.header["CRPIX1"], 36.)
+		self.assertEqual(res.header["NAXIS"], 3)
+		self.assertEqual(res.header["NAXIS2"], 7)
+		self.assertEqual(res.header["CALIFAID"], 935)
+		self.assertAlmostEqual(res.data[0][0][0], 0.01679336)
+		self.assertAlmostEqual(res.data[-1][-1][-1], -0.01980321)
+
+	def testOpenCutout2(self):
+		res = fitstools.cutoutFITS(self.origHDU, (2, -1, 3))
+		self.assertEqual(res.header["NAXIS1"], 11)
+		self.assertEqual(res.header["NAXIS2"], 3)
+		self.assertEqual(res.header["CRPIX2"], 33.)
+		self.assertAlmostEqual(res.data[0][0][0], 0.02511436)
+		self.assertAlmostEqual(res.data[-1][-1][-1], 0.09358116)
+
+	def testOpenCutout3(self):
+		res = fitstools.cutoutFITS(self.origHDU, (3, 3, 10000))
+		self.assertEqual(res.header["NAXIS3"], 2)
+		self.assertEqual(res.header["CRPIX3"], -1.)
+		self.assertAlmostEqual(res.data[0][0][0], 0.03102851)
+		self.assertAlmostEqual(res.data[-1][-1][-1], 0.07562912)
+
+	def testMultiCutout(self):
+		res = fitstools.cutoutFITS(self.origHDU, (1, 6, 8), (2, 3, 3),
+			(3, 2, 4))
+		self.assertEqual(res.header["NAXIS1"], 3)
+		self.assertEqual(res.header["CRPIX1"], 32)
+		self.assertEqual(res.header["NAXIS2"], 1)
+		self.assertEqual(res.header["CRPIX2"], 31)
+		self.assertEqual(res.header["NAXIS3"], 3)
+		self.assertEqual(res.header["CRPIX3"], 0)
+		self.assertAlmostEqual(res.data[0][0][0], 0.0155675)
+		self.assertAlmostEqual(res.data[-1][-1][-1], 0.05489994)
+	
+	def testSwappedLimits(self):
+		res = fitstools.cutoutFITS(self.origHDU, (1, 8, 7))
+		self.assertEqual(res.header["NAXIS1"], 1)
+		self.assertAlmostEqual(res.data[0][0][0], -0.01717306)
+
+	def testMinOutOfLimit(self):
+		res = fitstools.cutoutFITS(self.origHDU, (1, 13, 15))
+		self.assertEqual(res.header["NAXIS1"], 1)
+		self.assertAlmostEqual(res.data[0][0][0], 0.0558035)
+		self.assertEqual(res.header["CRPIX1"], 27.)
+
+	def testMaxOutOfLimit(self):
+		res = fitstools.cutoutFITS(self.origHDU, (1, -13, -12))
+		self.assertEqual(res.header["NAXIS1"], 1)
+		self.assertAlmostEqual(res.data[0][0][0], 0.02511436)
+		self.assertEqual(res.header["CRPIX1"], 37.)
+
+
+class WCSAxisTest(testhelpers.VerboseTest):
+	def testTransformations(self):
+		ax = fitstools.WCSAxis("test", 4, 9, 0.5)
+		self.assertEqual(ax.pixToPhys(10), 4.5)
+		self.assertEqual(ax.physToPix(4.5), 10) 
+	
+	def testPix0Transformation(self):
+		ax = fitstools.WCSAxis("test", 0, -9, -3)
+		self.assertEqual(ax.pix0ToPhys(10), -60)
+		self.assertEqual(ax.physToPix0(-60), 10)
+
+	def testLimits(self):
+		ax = fitstools.WCSAxis("test", -30, 2000, 0.25, axisLength=400)
+		self.assertEqual(ax.getLimits(), (-529.75, -430.0))
+
+
+class WCSFromHeaderTest(testhelpers.VerboseTest):
+
+	_baseHdr = {
+		"CTYPE1": 'WAVELEN ',
+		"CTYPE2": 'RA---TAN',
+		"CTYPE3": 'DEC--TAN',
+		"CRVAL1":                496.0,
+		"CRVAL2":            148.75004,
+		"CRVAL3":          -1.50138888,
+		"CRPIX1":                    1,
+		"CRPIX2":                 32.5,
+		"CRPIX3":                    1,
+		"CDELT1":                0.269,
+		"CDELT2": -2.7777777777777E-05,
+		"CDELT3":                  1.0,
+		"CUNIT1": 'nm    ',
+		"CNAME2": "FOOCOL   "}
+
+	def testMultiDRejected(self):
+		hdr = self._baseHdr.copy()
+		hdr["PC2_2"] = 23.3
+		self.assertRaisesWithMsg(ValueError,
+			"FITS axis 2 appears not separable.  WCSAxis cannot handle this.",
+			fitstools.WCSAxis.fromHeader,
+			(hdr, 2))
+
+	def testNameInferenceCtype(self):
+		ax = fitstools.WCSAxis.fromHeader(self._baseHdr, 1)
+		self.assertEqual(ax.name, "WAVELEN_1")
+
+	def testNameInferenceCname(self):
+		ax = fitstools.WCSAxis.fromHeader(self._baseHdr, 2)
+		self.assertEqual(ax.name, "FOOCOL_2")
+
+	def testNameInferenceCleanedCtype(self):
+		ax = fitstools.WCSAxis.fromHeader(self._baseHdr, 3)
+		self.assertEqual(ax.name, "DEC_3")
+	
+	def testNameInferenceFallback(self):
+		hdr = self._baseHdr.copy()
+		del hdr["CTYPE3"]
+		ax = fitstools.WCSAxis.fromHeader(hdr, 3)
+		self.assertEqual(ax.name, "COO_3")
+
+	def testOtherData(self):
+		ax = fitstools.WCSAxis.fromHeader(self._baseHdr, 1)
+		self.assertEqual(ax.crval, 496.0)
+		self.assertEqual(ax.crpix, 1)
+		self.assertEqual(ax.cdelt, 0.269)
+		self.assertEqual(ax.cunit, "nm")
+		self.assertEqual(ax.ctype, "WAVELEN")
+
+	
 if __name__=="__main__":
-	testhelpers.main(ReadHeaderTest)
+	testhelpers.main(WCSFromHeaderTest)
