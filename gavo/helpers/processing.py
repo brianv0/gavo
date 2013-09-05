@@ -206,6 +206,9 @@ class HeaderProcessor(FileProcessor):
 
 		with open(dest, "w") as f:
 			f.write(fitstools.serializeHeader(hdr))
+		hdus = pyfits.open(dest)
+		hdus.verify()
+		hdus.close()
 
 	def _readCache(self, srcName):
 		"""returns a pyfits header object for the cached result in srcName.

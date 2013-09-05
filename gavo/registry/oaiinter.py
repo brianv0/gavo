@@ -189,22 +189,33 @@ def _makeArgsForListMetadataFormats(pars):
 	return ()
 
 
+def _addTemporalCondition(parVal, operator, sqlFrags, sqlPars):
+	"""generates a temporal condition for recTimestamp and operator out of 
+	parVal.
+
+	This is a helper to handle both from and to parameters.
+
+	Nothing is generated if parVal is None
+	"""
+	if parVal is None:
+		return
+
+	elif utils.datetimeRE.match(parVal) or utils.dateRE.match(parVal):
+		sqlFrags.append("recTimestamp >= %%(%s)s"%base.getSQLKey(
+			"temporal", parVal, sqlPars))
+
+	else:
+		raise BadArgument("from")
+
 
 def _parseOAIPars(pars):
 	"""returns a pair of queryFragment, parameters for a query of
 	services#services according to OAI.
 	"""
 	sqlPars, sqlFrags = {}, []
-	if "from" in pars:
-		if not utils.datetimeRE.match(pars["from"]):
-			raise BadArgument("from")
-		sqlFrags.append("recTimestamp >= %%(%s)s"%base.getSQLKey("from",
-			pars["from"], sqlPars))
-	if "until" in pars:
-		if not utils.datetimeRE.match(pars["until"]):
-			raise BadArgument("until")
-		sqlFrags.append("recTimestamp <= %%(%s)s"%base.getSQLKey("until",
-			pars["until"], sqlPars))
+	_addTemporalCondition(pars.get("from"), ">=", sqlFrags, sqlPars)
+	_addTemporalCondition(pars.get("until"), "<=", sqlFrags, sqlPars)
+
 	return " AND ".join(sqlFrags), sqlPars
 
 
