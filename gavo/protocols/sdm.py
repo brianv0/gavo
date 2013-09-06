@@ -26,7 +26,7 @@ from gavo.utils import pyfits
 # handling below.
 GETDATA_FORMATS = {
 	"application/x-votable+xml": "votable",
-	"application/x-votable+xml;encoding=tabledata": "votabletd",
+	"application/x-votable+xml;serialization=tabledata": "votabletd",
 	"text/plain": "tsv",
 	"text/csv": "csv",
 	"application/fits": None,}
@@ -320,7 +320,7 @@ def formatSDMData(sdmData, format, queryMeta=svcs.emptyQueryMeta):
 	"""
 	destMime =  str(format or "application/x-votable+xml")
 	if queryMeta["tdEnc"] and destMime=="application/x-votable+xml":
-		destMime = "application/x-votable+xml;encoding=tabledata"
+		destMime = "application/x-votable+xml;serialization=tabledata"
 	formatId = GETDATA_FORMATS.get(destMime, None)
 
 	sdmTable = sdmData.getPrimaryTable()

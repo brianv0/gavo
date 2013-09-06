@@ -1776,7 +1776,13 @@ class QueryTest(testhelpers.VerboseTest):
 			"select DISTANCE(POINT('ICRS', 22, -3), POINT('ICRS', 183, 50)) as d"
 			" from %s"%self.tableName)
 		self.assertAlmostEqual(res.rows[0]["d"], 130.31777623681)
-	
+
+	def testWithUDF(self):
+		res = self.runQuery(
+			"SELECT mag FROM %s WHERE 1=CONTAINS(REGION('simbad M1'),"
+			" CIRCLE('ICRS', alpha, delta, 90))"%self.tableName)
+		self.assertEqual(res.rows, [{u'mag': -27.0}])
+
 
 class SimpleSTCSTest(testhelpers.VerboseTest):
 	def setUp(self):

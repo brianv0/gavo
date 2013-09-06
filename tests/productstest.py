@@ -542,6 +542,5 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 		self.assertEqual(hdr["NAXIS3"], 2)
 
 
-
 if __name__=="__main__":
 	testhelpers.main(DatalinkFITSTest)

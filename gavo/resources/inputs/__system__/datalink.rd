@@ -221,7 +221,7 @@
 			<code>
 				formatsAvailable = {
 						"application/x-votable+xml": "VOTable, binary encoding",
-						"application/x-votable+xml;encoding=tabledata": 
+						"application/x-votable+xml;serialization=tabledata": 
 							"VOTable, tabledata encoding",
 						"text/plain": "Tab separated values",
 						"text/csv": "Comma separated values",

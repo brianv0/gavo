@@ -249,6 +249,19 @@ def indexStatements(querier, args):
 		print "\n".join(re.sub(r"\s+", " ", s) for s in ind.iterCode())
 
 
+@exposedFunction([Arg(help="Package resource path"
+	" (like '/inputs/__system__/scs.rd); for system RDs, the special"
+	" //rd-id syntax is supported.",
+	dest="path")],
+	help="Dump the source of a distribution file; this is useful when you want"
+	" to override them and you are running DaCHS from a zipped egg")
+def dumpDF(querier, args):
+	import pkg_resources
+	if args.path.startswith("//"):
+		args.path = "inputs/__system__"+args.path[1:]+".rd"
+	with pkg_resources.resource_stream('gavo', "resources/"+args.path) as f:
+		sys.stdout.write(f.read())
+
 
 def main():
 	with base.AdhocQuerier(base.getWritableAdminConn) as querier:

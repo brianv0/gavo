@@ -300,7 +300,7 @@ class GetDataTest(_WithSSATableTest):
 	def testCutoutHalfopen(self):
 		res = self.runService("c",
 			{"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
-				"FORMAT": "application/x-votable+xml;encoding=tabledata", 
+				"FORMAT": "application/x-votable+xml;serialization=tabledata", 
 				"BAND": "1.927e-7/"})
 		mime, payload = res.original
 		self.failUnless('xmlns:spec="http://www.ivoa.net/xml/SpectrumModel/v1.01'
@@ -333,7 +333,7 @@ class GetDataTest(_WithSSATableTest):
 	def testNormalize(self):
 		mime, payload = getRD().getById("c").run("ssap.xml",
 			{"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
-				"FORMAT": "application/x-votable+xml;encoding=tabledata", 
+				"FORMAT": "application/x-votable+xml;serialization=tabledata", 
 				"BAND": "1.9e-7/1.92e-7", "FLUXCALIB": "relative"}).original
 		self.failUnless("<TD>1900.0</TD><TD>0.91676" in payload)
 		tree = testhelpers.getXMLTree(payload, debug=False)
@@ -442,7 +442,7 @@ class SDMDatalinkTest(_WithSSATableTest):
 	def testCutoutHalfopen(self):
 		res = self.runService("dl",
 			{"PUBDID": ['ivo://test.inv/test1'], 
-				"FORMAT": ["application/x-votable+xml;encoding=tabledata"], 
+				"FORMAT": ["application/x-votable+xml;serialization=tabledata"], 
 				"LAMBDA_MIN": ["1.927e-7"]})
 		mime, payload = res.original
 		self.failUnless('xmlns:spec="http://www.ivoa.net/xml/SpectrumModel/v1.01'
@@ -475,7 +475,7 @@ class SDMDatalinkTest(_WithSSATableTest):
 	def testNormalize(self):
 		mime, payload = getRD().getById("dl").run("ssap.xml",
 			{"PUBDID": ['ivo://test.inv/test1'], 
-				"FORMAT": "application/x-votable+xml;encoding=tabledata", 
+				"FORMAT": "application/x-votable+xml;serialization=tabledata", 
 				"LAMBDA_MIN": ["1.9e-7"], "LAMBDA_MAX": ["1.92e-7"], 
 				"FLUXCALIB": "relative"}).original
 		self.failUnless("<TD>1900.0</TD><TD>0.91676" in payload)

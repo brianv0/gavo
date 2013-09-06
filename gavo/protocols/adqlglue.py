@@ -377,7 +377,10 @@ def _makeSimbadRegion(regionSpec):
 	except KeyError:
 		raise base.ui.logOldExc(
 			adql.RegionError("No simbad position for '%s'"%object))
-	return nodes.Point(x=repr(alpha), y=repr(delta), cooSys="ICRS")
+	pt = nodes.Point(x=nodes.NumericValueExpression([repr(alpha)]), 
+		y=nodes.NumericValueExpression([repr(delta)]), 
+		cooSys="ICRS")
+	return pt
 adql.registerRegionMaker(_makeSimbadRegion)
 
 
