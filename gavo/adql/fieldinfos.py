@@ -208,7 +208,7 @@ class QueryFieldInfos(FieldInfos):
 			for selField in queryNode.getSelectFields():
 				_annotateNodeRecurse(selField, context)
 
-		# annotate the children of the where clase, too -- their types
+		# annotate the children of the where clause, too -- their types
 		# and such may be needed by morphers
 		if queryNode.whereClause:
 			with context.customResolver(result.getFieldInfo):
