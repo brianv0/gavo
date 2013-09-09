@@ -73,6 +73,7 @@ def _addID(rdEl, votEl, idManager):
 	except base.NotFoundError: 
 		# the param is not referenced and thus needs no ID
 		pass
+	return votEl
 
 
 

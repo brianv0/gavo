@@ -342,7 +342,8 @@ class ColumnBase(base.Structure, base.MetaMixin):
 	_xtype = UnicodeAttribute("xtype", description="VOTable xtype giving"
 		" the serialization form", default=None, copyable=True)
 	_stc = TableManagedAttribute("stc", description="Internally used"
-		" STC information for this column (do not assign to)",
+		" STC information for this column (do not assign to unless instructed"
+		" to do so)",
 		default=None, copyable=True)
 	_stcUtype = TableManagedAttribute("stcUtype", description="Internally used"
 		" STC information for this column (do not assign to)",

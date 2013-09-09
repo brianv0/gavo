@@ -190,6 +190,11 @@ class ColRef(Stub):
 	"""
 	name_ = "_colRef"
 
+	# A ghastly hack: if someone sets this true at some point this
+	# reference will be rendered to a PARAMref rather than a FIELDref
+	# in VOTables.  Well, this whole code needs overdoing.
+	toParam = False
+
 	def __str__(self):
 		return self.dest 
 		# only for debugging: '"%s"'%self.dest

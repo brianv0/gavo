@@ -182,21 +182,22 @@
 		the spectrum's actual units (as in SSAP's BAND parameter).
 		</doc>
 
-		<metaMaker>
-			<code>
-				commonArgs = {"type": "real", "unit": "m",
-					"values": MS(Values, 
-						min=descriptor.ssaRow["ssa_specstart"],
-						max=descriptor.ssaRow["ssa_specend"]),
-					}
-				yield MS(InputKey, name="LAMBDA_MIN", ucd="stat.min;em.wl",
-					description="Lower bound of cutout interval.  Leave empty for"
-					" half-open intervals.", **commonArgs)
-				yield MS(InputKey, name="LAMBDA_MAX", ucd="stat.max;em.wl",
-					description="Upper bound of cutout interval.  Leave empty for"
-					" half-open intervals.", **commonArgs)
-			</code>
-		</metaMaker>
+  	<metaMaker>
+    	<setup>
+      	<code>
+        	parSTC = stc.parseQSTC("SpectralInterval LAMBDA_MIN LAMBDA_MAX")
+      	</code>
+    	</setup>
+    	<code>
+  			for ik in genLimitKeys(MS(InputKey, name="LAMBDA"
+        	unit="m", stc=stc, ucd="em.wl", 
+        	description="Spectral cutout interval",
+        	values=MS(Values, 
+          	min=descriptor.ssaRow["ssa_specstart"],
+          	max=descriptor.ssaRow["ssa_specend"]))
+        	yield ik
+    	</code>
+  	</metaMaker>
 
 		<dataFunction>
 			<code>

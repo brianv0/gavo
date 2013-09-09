@@ -542,5 +542,91 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 		self.assertEqual(hdr["NAXIS3"], 2)
 
 
+class DatalinkSTCTest(testhelpers.VerboseTest):
+	resources = [("fitsTable", _fitsTable)]
+
+	def testSTCDefsPresent(self):
+		svc = base.parseFromString(svcs.Service, """<service id="foo">
+			<datalinkCore>
+				<descriptorGenerator procDef="//datalink#fits_genDesc"/>
+				<metaMaker>
+					<setup>
+						<code>
+							parSTC = stc.parseQSTCS("PositionInterval ICRS BARYCENTER"
+								' "RA_MIN" "DEC_MIN" "RA_MAX" "DEC_MAX"')
+						</code>
+					</setup>
+					<code>
+						for name in ["RA", "DEC"]:
+							for ik in genLimitKeys(MS(InputKey, name=name, stc=parSTC)):
+								yield ik
+					</code>
+				</metaMaker>
+			</datalinkCore></service>""")
+		svc.parent = testhelpers.getTestRD()
+		mime, data = svc.run("form", {
+			"PUBDID": [rscdef.getStandardPubDID("data/ex.fits")]}).original
+		tree = testhelpers.getXMLTree(data, debug=False)
+		self.assertEqual(len(tree.xpath(
+			"//GROUP[@utype='stc:CatalogEntryLocation']/PARAM")), 4)
+		self.assertEqual(len(tree.xpath(
+			"//GROUP[@utype='stc:CatalogEntryLocation']/PARAMref")), 4)
+		self.assertEqual(tree.xpath(
+			"//PARAM[@utype='stc:AstroCoordSystem.SpaceFrame.ReferencePosition']"
+			)[0].get("value"), "BARYCENTER")
+
+		# follow a reference
+		id = tree.xpath("//PARAMref[@utype='stc:AstroCoordArea"
+			".Position2VecInterval.HiLimit2Vec.C2']")[0].get("ref")
+		self.assertEqual(tree.xpath("//PARAM[@ID='%s']"%id)[0].get("name"),
+			"DEC_MAX")
+
+	def testTwoSystems(self):
+		svc = base.parseFromString(svcs.Service, """<service id="foo">
+			<datalinkCore>
+				<descriptorGenerator procDef="//datalink#fits_genDesc"/>
+				<metaMaker>
+					<setup>
+						<code>
+							parSTC = stc.parseQSTCS("PositionInterval ICRS BARYCENTER"
+								' "RA_MIN" "DEC_MIN" "RA_MAX" "DEC_MAX"')
+						</code>
+					</setup>
+					<code>
+						for name in ["RA", "DEC"]:
+							for ik in genLimitKeys(MS(InputKey, name=name, stc=parSTC)):
+								yield ik
+					</code>
+				</metaMaker>
+				<metaMaker>
+					<setup>
+						<code>
+							parSTC = stc.parseQSTCS("PositionInterval GALACTIC"
+								' "LAMB_MIN" "BET_MIN" "LAMB_MAX" "BET_MAX"')
+						</code>
+					</setup>
+					<code>
+						for name in ["LAMB", "BET"]:
+							for ik in genLimitKeys(MS(InputKey, name=name, stc=parSTC)):
+								yield ik
+					</code>
+				</metaMaker>
+
+			</datalinkCore></service>""")
+		svc.parent = testhelpers.getTestRD()
+		mime, data = svc.run("form", {
+			"PUBDID": [rscdef.getStandardPubDID("data/ex.fits")]}).original
+
+		tree = testhelpers.getXMLTree(data, debug=False)
+		self.assertEqual(len(tree.xpath(
+			"//GROUP[@utype='stc:CatalogEntryLocation']")), 2)
+		ids = [el.get("ref") for el in
+				tree.xpath("//PARAMref[@utype='stc:AstroCoordArea"
+				".Position2VecInterval.HiLimit2Vec.C2']")]
+		names = set(tree.xpath("//PARAM[@ID='%s']"%id)[0].get("name")
+			for id in ids)
+		self.assertEqual(names, set(["DEC_MAX", "BET_MAX"]))
+
+
 if __name__=="__main__":
 	testhelpers.main(DatalinkFITSTest)

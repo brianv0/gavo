@@ -11,7 +11,7 @@ from gavo import utils
 from gavo import votable
 from gavo.protocols import products
 from gavo.formats import votablewrite
-from gavo.votable import V
+from gavo.votable import V, modelgroups
 
 
 MS = base.makeStruct
@@ -335,17 +335,33 @@ class DatalinkCore(svcs.Core, base.ExpansionDelegator):
 	def _runGenerateMetadata(self, args, service):
 		"""does run's work if we're handling a metadata request.
 
-		This will always return a VOTable.
+		This will always return a rendered VOTable.
 		"""
+		paramsByName, stcSpecs = {}, set()
+		for param in self.inputTable.params:
+			paramsByName[param.name] = param
+			if param.stc:
+				stcSpecs.add(param.stc)
+
+		ctx = votablewrite.VOTableContext()
+		def getIdFor(colRef):
+			colRef.toParam = True
+			return ctx.makeIdFor(paramsByName[colRef.dest])
+
 		vot = (
 		V.VOTABLE[
 			V.RESOURCE(name="datalinkDescriptor")[
+
+				[modelgroups.marshal_STC(ast, getIdFor)
+					for ast in stcSpecs],
+
 				V.GROUP(utype="datalink:service")[
 					V.PARAM(name="serviceAccessURL", utype="datalink:accessURL",
 						datatype="char", arraysize="*", 
 						value=service.getURL("dlget"))[
 							V.DESCRIPTION["Access URL for this service"]],
-					[votablewrite.makeFieldFromColumn(V.PARAM, ik)
+					[votablewrite._addID(ik,
+							votablewrite.makeFieldFromColumn(V.PARAM, ik), ctx)
 						for ik in self.inputTable.params]],
 				votable.DelayedTable(
 					V.TABLE(name="relatedData") [

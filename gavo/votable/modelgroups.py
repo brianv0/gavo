@@ -105,7 +105,11 @@ def _makeUtypeContainer(utype, value, getIdFor):
 	see marshal_STC for info on getIdFor
 	"""
 	if isinstance(value, stc.ColRef):
-		return V.FIELDref(utype=utype, ref=getIdFor(value))
+		destId = getIdFor(value)
+		if value.toParam:
+			return V.PARAMref(utype=utype, ref=destId)
+		else:
+			return V.FIELDref(utype=utype, ref=destId)
 	else:
 		return V.PARAM(name=utype.split(".")[-1], utype=utype, value=value,
 			datatype="char", arraysize="*")

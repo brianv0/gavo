@@ -1117,27 +1117,38 @@ names.  You should, however, not construct them directly but use the
 ``MS`` helper (which is really an alias for base.makeStruct, which takes
 care that the special postprocessing of DaCHS structures takes place).
 
+Parameter Definitions
+.....................
+
 Hence, a meta maker that generates SSA cutout parameters could look like
 this::
 
   <metaMaker>
+    <setup>
+      <code>
+        parSTC = stc.parseQSTC("SpectralInterval LAMBDA_MIN LAMBDA_MAX")
+      </code>
+    </setup>
     <code>
-      commonArgs = {"type": "real", "unit": "m",
-        "values": MS(Values, 
+  		for ik in genLimitKeys(MS(InputKey, name="LAMBDA"
+        unit="m", stc=stc, ucd="em.wl", 
+        description="Spectral cutout interval",
+        values=MS(Values, 
           min=descriptor.ssaRow["ssa_specstart"],
-          max=descriptor.ssaRow["ssa_specend"]),
-        }
-      yield MS(InputKey, name="LAMBDA_MIN", ucd="stat.min;em.wl",
-        description="Lower bound of cutout interval.  Leave empty for"
-        " half-open intervals.", **commonArgs)
-      yield MS(InputKey, name="LAMBDA_MAX", ucd="stat.max;em.wl",
-        description="Upper bound of cutout interval.  Leave empty for"
-        " half-open intervals.", **commonArgs)
+          max=descriptor.ssaRow["ssa_specend"]))
+        yield ik
     </code>
   </metaMaker>
 
 (something like this is part of the ``//datalink#sdm_cutout`` predefined
 stream).
+
+The example shows off two general techniques for "physical" parameters.
+For one, it defines an STC structure.  This is again the "quoted STC" as
+discussed in `the DaCHS tutorial`_
+
+Link Definitions
+.................
 
 When returning link definitions, the tricky part mostly is to come up
 with the URLs.  Use the ``makeAbsoluteURL`` rowmaker function to make
@@ -1157,6 +1168,7 @@ example could look like this::
 The vocabulary for the relation types (the last argument to a link
 definition's constructor) is not finalized yet.  Complain to the DaCHS
 maintainers that this sentence still is here.
+
 
 
 Data Functions
