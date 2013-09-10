@@ -307,6 +307,9 @@
 		metadata.
 		</doc>
 		<setup>
+			<par key="stcs" description="A QSTC expression describing the
+				STC structure of the parameters.  If you don't give this,
+				no STC structure will be declared.">None</par>
 			<code>
 				from gavo.utils import fitstools
 
@@ -331,7 +334,7 @@
 
 					if len(wcsAxes)!=2:
 						raise base.ValidationError("This FITS has !=2"
-							" WCS axes.  Please contact the DaCHS authors and"
+							" spatial WCS axes.  Please contact the DaCHS authors and"
 							" make them support it.", "PUBDID")
 
 					return coords.getWCS(hdr, naxis=wcsAxes), wcsAxes
@@ -357,7 +360,7 @@
 						if name:
 							vertexCoos = footprint[:,colInd]
 							for ik in genLimitKeys(MS(InputKey, name=name,
-									unit="deg",
+									unit="deg", stc=parSTC,
 									description=description,
 									ucd=None, multiplicity="single",
 									values=MS(Values, min=min(vertexCoos), max=max(vertexCoos)))):
@@ -381,11 +384,16 @@
 						minPhys, maxPhys = ax.getLimits()
 
 						for ik in genLimitKeys(MS(InputKey, name=ax.name,
-								unit=ax.cunit,
+								unit=ax.cunit, stc=parSTC,
 								description="Coordinate along axis number %s"%fitsAxis,
 								ucd=None, multiplicity="single",
 								values=MS(Values, min=minPhys, max=maxPhys))):
 							yield ik
+
+				if stcs is None:
+					parSTC = None
+				else:
+					parSTC = stc.parseQSTCS(stcs)
 			</code>
 		</setup>
 
