@@ -60,16 +60,26 @@ def _makeValueArray(values, colInd, colDesc):
 	"""returns a pyfits-capable column array for non-string values
 	stored in the colInd-th column of values.
 	"""
-	if colDesc["nullvalue"] is not None:
-		nullValue = colDesc["nullvalue"]
-		def mkval(v):
-			if v is None:
-				return nullValue
-			else:
-				return v
-		arr = numpy.array([mkval(v[colInd]) for v in values])
-	else:
-		arr = numpy.array([v[colInd] for v in values])
+	nullValue = colDesc["nullvalue"]
+	if nullValue is None:
+		# enter some reasonable defaults
+		if (colDesc["datatype"]=="float"
+			or colDesc["datatype"]=="double"):
+			nullValue = float("NaN")
+		elif colDesc["datatype"]=="text":
+			nullValue = ""
+
+	def mkval(v):
+		if v is None:
+			if nullValue is None:
+				raise ValueError("While serializing a FITS table: NULL"
+					" detected in column '%s' but no null value declared"%
+					colDesc["name"])
+			return nullValue
+		else:
+			return v
+
+	arr = numpy.array([mkval(v[colInd]) for v in values])
 	typecode = _fitsCodeMap[colDesc["datatype"]]
 	return typecode, arr
 

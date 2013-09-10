@@ -288,7 +288,6 @@ class NullValueTest(testhelpers.VerboseTest):
 				'\x00\x00\x00\x00']))
 		self._runTestForFormat("votableb2", assertion)
 
-
 	def testCSV(self):
 		def assertion(data):
 			self.assertEqual(",,,,,", data.strip())
@@ -298,6 +297,13 @@ class NullValueTest(testhelpers.VerboseTest):
 		def assertion(data):
 			self.assertEqual('None\tNone\tNone\tNone\tNone\tNone', data.strip())
 		self._runTestForFormat("tsv", assertion)
+
+	def testFITS(self):
+		def assertion(data):
+			self.assertEqual(data[5760:5788], 
+				'\x80\x00\x00\x00\x7f\xc0\x00\x00\x7f\xf8\x00\x00\x00\x00\x00\x00'
+				'NoneNoneNone')
+		self._runTestForFormat("fits", assertion)
 
 
 class _ExplicitNullTestTable(testhelpers.TestResource):

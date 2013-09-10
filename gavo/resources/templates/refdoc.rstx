@@ -1126,16 +1126,16 @@ this::
   <metaMaker>
     <setup>
       <code>
-        parSTC = stc.parseQSTC("SpectralInterval LAMBDA_MIN LAMBDA_MAX")
+        parSTC = stc.parseQSTCS('SpectralInterval "LAMBDA_MIN" "LAMBDA_MAX"')
       </code>
     </setup>
     <code>
-  		for ik in genLimitKeys(MS(InputKey, name="LAMBDA"
-        unit="m", stc=stc, ucd="em.wl", 
+      for ik in genLimitKeys(MS(InputKey, name="LAMBDA",
+        unit="m", stc=parSTC, ucd="em.wl", 
         description="Spectral cutout interval",
         values=MS(Values, 
           min=descriptor.ssaRow["ssa_specstart"],
-          max=descriptor.ssaRow["ssa_specend"]))
+          max=descriptor.ssaRow["ssa_specend"]))):
         yield ik
     </code>
   </metaMaker>
@@ -1143,11 +1143,88 @@ this::
 (something like this is part of the ``//datalink#sdm_cutout`` predefined
 stream).
 
-The example shows off two general techniques for "physical" parameters.
+The example shows two general techniques for "physical" parameters.
 For one, it defines an STC structure.  This is again the "quoted STC" as
 discussed in `the DaCHS tutorial`_.  It is a good idea to create the STC
-structure in the setup code since parsing can be CPU intensive. XXX TODO
-Hier weiter
+structure in the setup code since parsing STC-S can be relatively CPU 
+intensive.  The STC structure resulting from should then be passed as
+the ``stc`` keyword parameter to each input key mentioned in the STC
+clause.
+
+The second typical technique is the use of the ``genLimitKeys``
+function.  This takes a "template" key specifying names, units, and
+everything else that can be generically specified, and returns a
+sequence of input keys for the limits (i.e., minimal and maximal value
+for this).  You'll almost always want this when accepting floating-point
+valued parameters, as matching these exactly is at least tricky and
+rarely useful.
+
+When publishing FITS cubes, you will usually use the
+`//datalink#fits_makeWCSParams`_ meta maker; it accepts similar QSTCS
+specifications as well.  To find out what parameter names the individual
+axes are mapped to, first use makeWCSParams without the STC metadata::
+
+ 	<service id="d" allowed="dlget,form">
+		<datalinkCore>
+			<descriptorGenerator procDef="//datalink#fits_genDesc"/>
+			<metaMaker procDef="//datalink#fits_makeWCSParams"/>
+		</datalinkCore>
+	</service>
+
+Then have a look at the metadata produced for a file.  Unless you did
+something special, to do that you can just take the accref of a file
+from the table containing the products; if the source table was
+``mlqso.cubes``, you could figure one out via::
+
+  select accref from dc.products where sourcetable='mlqso.cubes' limit 1
+
+(talk to postgres directly for this query, dc.products is not available
+via TAP).
+
+The standard pubdid (as assigned using the ``getStandardPubDID``
+rowmaker function) uses your datacenter authority (as configured in
+/etc/gavo.rd, when you forget it you can also figure it out by using
+``gavo config ivoa authority``) and this accref like this::
+
+  ivo://<authority>/~/<accref>
+
+Hence, to retrieve the datalink document for
+``mlqso/data/FBQ0951_data.fits`` on the server dc.g-vo.org using the
+datalink renderer on the ``mlqso/q/d`` service, you'd write::
+
+  curl -DPUBDID=ivo://org.gavo.dc/~/mlqso/data/FBQ0951_data.fits \
+    http://dc.g-vo.org/mlqso/q/d/dlget | xmlstarlet fo
+
+(of course, ``xmlstarlet`` isn't actually necessary, and you can use
+``wget`` if you want, but you get the idea).
+
+In there you'll see the parameter names for the axes, e.g.,::
+
+  $ curl -s -FPUBDID=ivo://org.gavo.dc/~/mlqso/data/FBQ0951_data.fits \
+  >> http://dc.g-vo.org/mlqso/q/d/dlget \
+  >> | xmlstarlet sel -N v=http://www.ivoa.net/xml/VOTable/v1.2 -T \
+  >> -t -m "//v:PARAM" -v "@name" -nl
+  serviceAccessURL
+  PUBDID
+  DEC_MIN
+  DEC_MAX
+  RA_MIN
+  RA_MAX
+  WAVELEN_1_MIN
+  WAVELEN_1_MAX
+
+If the image is calibrated using a catalog on ICRS, with the wavelength
+given as measured, change the ``fits_makeWCSParams`` call to::
+
+  <metaMaker procDef="//datalink#fits_makeWCSParams>
+    <setup>
+      <bind key="stcs"
+				>('PositionInterval ICRS "RA_MIN" "DEC_MIN" "RA_MAX" "DEC_MAX"\n'
+					'SpectralInterval TOPOCENTER "LAMBDA_MIN" "LAMBDA_MAX"')
+       </bind>
+    </setup>
+  </metaMaker>
+
 
 Link Definitions
 .................
@@ -1265,16 +1342,16 @@ or Data instance, the following could work::
 
 Another example is an excerpt from ``//datalink#sdm_cutout``::
 
-	<dataFormatter>
-		<code>
-			from gavo.protocols import sdm
+  <dataFormatter>
+    <code>
+      from gavo.protocols import sdm
 
-			if len(descriptor.data.getPrimaryTable().rows)==0:
-				raise base.ValidationError("Spectrum is empty.", "(various)")
+      if len(descriptor.data.getPrimaryTable().rows)==0:
+        raise base.ValidationError("Spectrum is empty.", "(various)")
 
-			return sdm.formatSDMData(descriptor.data, args["FORMAT"])
-		</code>
-	</dataFormatter>
+      return sdm.formatSDMData(descriptor.data, args["FORMAT"])
+    </code>
+  </dataFormatter>
 
 (this goes together with a metaMaker for an input key describing
 FORMAT).
@@ -1448,6 +1525,8 @@ TBD (This does not work right now; complain if you need to do it)
 Manufacturing Spectra
 =====================
 
+TODO: Update this for Datalink
+
 Making SDM Tables
 '''''''''''''''''
 
@@ -1527,32 +1606,9 @@ or embedded grammar to deal with this input.
 Supporting getData
 ==================
 
-DaCHS supports the preliminary getData specification by `Demleitner and
-Skoda (2012)`_.  This means that you can emit spectra in lots of
-different formats without having to clutter your SSA table, do cutouts
-and simple normalization, and possibly more.
-
-Of course, to do all this, DaCHS must again be taught to understand the
-spectra.  This works as explained in `Making SDM Tables`_.  In the
-example there, the embedded data element already has the id
-``getdata``, ready to be referenced.
-
-To enable getData on an SSA service, just add a property called
-``tablesource`` to it, pointing to this data element, like so::
-
-  <service id="ssa">
-    ...
-    <property name="tablesource">getdata</property>
-    ...
-  </service>
-
-
-Note, however, that to make that work, the spectral coordinate must be a
-wavelength (but this is already true for the rest of the current spectra
-handling system), and the wavelength must be in what was given as
-spectralSI in the SSA mixin.
-
-.. _Demleitner and Skoda (2012): http://docs.g-vo.org/ssaevolution.html
+DaCHS still has support the now-abandoned getData specification by
+`Demleitner and Skoda (2012)`_.  If you think you still want this,
+contact the authors.
 
 
 
@@ -1893,6 +1949,5 @@ Bibliography
 
 .. [RMI]  Hanisch, R., et al, "Resource Metadata for the Virtual
    Observatory", http://www.ivoa.net/Documents/latest/RM.html
-
 
 .. _the DaCHS tutorial: http://docs.g-vo.org/DaCHS/tutorial.html
