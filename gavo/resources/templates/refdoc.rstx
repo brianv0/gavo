@@ -1220,10 +1220,42 @@ given as measured, change the ``fits_makeWCSParams`` call to::
     <setup>
       <bind key="stcs"
 				>('PositionInterval ICRS "RA_MIN" "DEC_MIN" "RA_MAX" "DEC_MAX"\n'
-					'SpectralInterval TOPOCENTER "LAMBDA_MIN" "LAMBDA_MAX"')
+					'SpectralInterval TOPOCENTER "WAVELEN_1_MIN" "WAVELEN_1_MAX"')
        </bind>
     </setup>
   </metaMaker>
+
+The effect should be a group like::
+
+    <GROUP utype="stc:CatalogEntryLocation">
+      <PARAM arraysize="*" datatype="char" 
+        name="CoordFlavor" 
+        utype="stc:AstroCoordSystem.SpaceFrame.CoordFlavor" value="SPHERICAL"/>
+      <PARAM arraysize="*" datatype="char" 
+        name="CoordRefFrame" 
+        utype="stc:AstroCoordSystem.SpaceFrame.CoordRefFrame" value="ICRS"/>
+      <PARAM arraysize="*" datatype="char" 
+        name="ReferencePosition" 
+        utype="stc:AstroCoordSystem.SpectralFrame.ReferencePosition" 
+        value="TOPOCENTER"/>
+      <PARAM arraysize="*" datatype="char" name="URI" 
+        utype="stc:DataModel.URI" 
+        value="http://www.ivoa.net/xml/STC/stc-v1.30.xsd"/>
+      <PARAMref ref="apausoh" 
+        utype="stc:AstroCoordArea.Position2VecInterval.HiLimit2Vec.C1"/>
+      <PARAMref ref="aedwpnn" 
+        utype="stc:AstroCoordArea.Position2VecInterval.HiLimit2Vec.C2"/>
+      <PARAMref ref="asausoh" 
+        utype="stc:AstroCoordArea.Position2VecInterval.LoLimit2Vec.C1"/>
+      <PARAMref ref="ahgwpnn" 
+        utype="stc:AstroCoordArea.Position2VecInterval.LoLimit2Vec.C2"/>
+      <PARAMref ref="ahiusoh" 
+        utype="stc:AstroCoordArea.SpectralInterval.HiLimit"/>
+      <PARAMref ref="aeiusoh" 
+        utype="stc:AstroCoordArea.SpectralInterval.LoLimit"/>
+    </GROUP>
+
+All this is explained in [VOTSTC].
 
 
 Link Definitions
@@ -1949,5 +1981,7 @@ Bibliography
 
 .. [RMI]  Hanisch, R., et al, "Resource Metadata for the Virtual
    Observatory", http://www.ivoa.net/Documents/latest/RM.html
-
+.. [VOTSTC] Demleitner, M., Ochsenbein, F., McDowell, J., Rots, A.:
+   "Referencing STC in VOTable", Version 2.0,
+   http://www.ivoa.net/Documents/Notes/VOTableSTC/20100618/NOTE-VOTableSTC-2.0-20100618.pdf
 .. _the DaCHS tutorial: http://docs.g-vo.org/DaCHS/tutorial.html
