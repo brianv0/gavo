@@ -189,7 +189,18 @@ Procedures available for grammar rowfilters
 Procedures available for datalink cores
 '''''''''''''''''''''''''''''''''''''''
 
-.. replaceWithResult _makeProcsDocumenter([ "//datalink#"+ s for s in "fromStandardPubDID", "trivialFormatter" ])(docStructure)
+.. replaceWithResult _makeProcsDocumenter(["//datalink#"+ s for s in 
+    "fromStandardPubDID", 
+    "trivialFormatter",
+    "generateProduct",
+    "sdm_genDesc",
+    "sdm_genData",
+    "fits_genDesc",
+    "fits_makeWCSParams",
+    "fits_makeHDUList",
+    "fits_doWCSCutout",
+    "fits_formatHDUs",
+    ])(docStructure)
 
 
 
@@ -1638,9 +1649,10 @@ or embedded grammar to deal with this input.
 Supporting getData
 ==================
 
-DaCHS still has support the now-abandoned getData specification by
-`Demleitner and Skoda (2012)`_.  If you think you still want this,
-contact the authors.
+DaCHS still has support the now-abandoned 2012 getData specification by
+Demleitner and Skoda.   If you think you still want this, contact the
+authors; meanwhile, you really should be using datalink for whatever you
+think you need getData for.
 
 
 

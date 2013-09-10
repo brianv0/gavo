@@ -432,13 +432,37 @@ def makeReferenceDocs():
 	res, docStructure = [], DocumentStructure()
 	f = pkg_resources.resource_stream("gavo", 
 		"resources/templates/refdoc.rstx")
-	for ln in f:
-		mat = _replaceWithResultPat.match(ln)
-		if mat:
-			res.extend(eval(mat.group(1)))
-			res.append("\n")
+	
+	parseState = "content"
+	code = []
+
+	for lnCount, ln in enumerate(f):
+		if parseState=="content":
+			mat = _replaceWithResultPat.match(ln)
+			if mat:
+				code.append(mat.group(1))
+				parseState = "code"
+			else:
+				res.append(ln.decode("utf-8"))
+		
+		elif parseState=="code":
+			if ln.strip():
+				code.append(ln)
+			else:
+				try:
+					res.extend(eval(" ".join(code)))
+				except Exception, msg:
+					sys.stderr.write("Invalid code near line %s: '%s'\n"%(
+						lnCount, " ".join(code)))
+					raise
+				code = []
+				parseState = "content"
+				res.append("\n")
+
 		else:
-			res.append(ln.decode("utf-8"))
+			# unknown state
+			assert False
+
 	f.close()
 	docStructure.fillOut(res)
 	_decodeStrings(res)
