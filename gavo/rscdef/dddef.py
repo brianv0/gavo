@@ -303,7 +303,7 @@ class DataDescriptor(base.Structure, base.ComputedMetaMixin,
 
 	_dependents = base.ListOfAtomsAttribute("dependents",
 		itemAttD=base.UnicodeAttribute("recreateAfter"),
-		description="List of data IDs to recreate when this resource is"
+		description="A data ID to recreate when this resource is"
 			" remade; use # syntax to reference in other RDs.")
 
 	_auto = base.BooleanAttribute("auto", 
@@ -338,6 +338,9 @@ class DataDescriptor(base.Structure, base.ComputedMetaMixin,
 
 	metaModel = ("title(1), creationDate(1), description(1),"
 		"subject, referenceURL(1)")
+
+	def __repr__(self):
+		return "<data descriptor with id %s>"%self.id
 
 	def validate(self):
 		self._validateNext(DataDescriptor)

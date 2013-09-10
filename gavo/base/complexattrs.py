@@ -59,8 +59,10 @@ class ListOfAtomsAttribute(CollOfAtomsAttribute):
 
 	@property
 	def typeDesc_(self):
-		return "List of %ss"%self.itemAttD.typeDesc_
-
+		return "Zero or more %s-typed *%s* elements"%(
+			self.itemAttD.typeDesc_,
+			self.itemAttD.name_)
+			
 	def feed(self, ctx, instance, value):
 		getattr(instance, self.name_).append(self.itemAttD.parse(value))
 

@@ -462,14 +462,15 @@ def makeData(dd, parseOptions=common.parseNonValidating,
 def makeDependentsFor(dds, parseOptions, connection):
 	"""rebuilds all data dependent on one of the DDs in the dds sequence.
 	"""
-	toBuild = set()
+	edges, seen = set(), set()
 
 	def gatherDependents(dd):
 		for dependentId in dd.dependents:
 			try:
 				dependentDD = base.resolveId(dd.rd, dependentId)
-				if dependentDD not in toBuild:
-					toBuild.add(dependentDD)
+				edges.add((dd, dependentDD))
+				if dependentDD not in seen:
+					seen.add(dependentDD)
 					gatherDependents(dependentDD)
 			except (base.StructureError, base.NotFoundError), msg:
 				base.ui.notifyWarning("Ignoring dependent %s of %s (%s)"%(
@@ -477,9 +478,22 @@ def makeDependentsFor(dds, parseOptions, connection):
 
 	for dd in dds:
 		gatherDependents(dd)
+
 	if parseOptions.buildDependencies:
 		parseOptions = parseOptions.change(buildDependencies=False)
-	for dd in toBuild:
+	
+	try:
+		buildSequence = utils.topoSort(edges)
+	except ValueError, ex:
+		raise utils.logOldExc(base.ReportableError("Could not sort"
+			" dependent DDs topologically (use  --hints to learn more)", 
+			hint="This is most likely because there's a cyclic dependency."
+			" Please check your dependency structure.  The original message"
+			" is: %s"%utils.safe_str(ex)))
+
+	# note that the original DD is the first item in the build sequence,
+	# and we don't want to re-make it here
+	for dd in buildSequence[1:]:
 		makeData(dd, parseOptions=parseOptions, connection=connection)
 
 

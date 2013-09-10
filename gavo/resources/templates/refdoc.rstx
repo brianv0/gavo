@@ -1145,7 +1145,9 @@ stream).
 
 The example shows off two general techniques for "physical" parameters.
 For one, it defines an STC structure.  This is again the "quoted STC" as
-discussed in `the DaCHS tutorial`_
+discussed in `the DaCHS tutorial`_.  It is a good idea to create the STC
+structure in the setup code since parsing can be CPU intensive. XXX TODO
+Hier weiter
 
 Link Definitions
 .................
@@ -1891,3 +1893,6 @@ Bibliography
 
 .. [RMI]  Hanisch, R., et al, "Resource Metadata for the Virtual
    Observatory", http://www.ivoa.net/Documents/latest/RM.html
+
+
+.. _the DaCHS tutorial: http://docs.g-vo.org/DaCHS/tutorial.html

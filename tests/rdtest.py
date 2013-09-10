@@ -398,7 +398,8 @@ class CachesTest(testhelpers.VerboseTest):
 			self.assertEqual(rd.schema, "look")
 		self.assertRaises(base.RDNotFound, base.caches.getRD, rdName)
 
-class RecreateAfterTest(testhelpers.VerboseTest):
+
+class DependentsTest(testhelpers.VerboseTest):
 	resources = [("conn", tresc.dbConnection)]
 
 	def testRecreateAfter(self):
@@ -452,7 +453,8 @@ class RecreateAfterTest(testhelpers.VerboseTest):
 				</embeddedGrammar>
 				<make table="made" rowmaker="add_fu"/>
 			</data>
-			<data original="stuff0" id="stuff1" recreateAfter="stuff2">
+			<data original="stuff0" id="stuff1">
+				<recreateAfter>stuff2</recreateAfter>
 				<recreateAfter>stuff3</recreateAfter>
 			</data>
 			<data id="stuff2" original="stuff0"/>
@@ -486,14 +488,55 @@ class RecreateAfterTest(testhelpers.VerboseTest):
 				</embeddedGrammar>
 				<make table="made" rowmaker="add_fu"/>
 			</data>
-			<data original="stuff0" id="stuff1" recreateAfter="stuff2"/>
+			<data original="stuff0" id="stuff1" dependents="stuff2"/>
 			<data original="stuff0" id="stuff2" recreateAfter="stuff1"/>
 			</resource>
 			""")
 		rd.dataMade = []
-		data = rsc.makeDependentsFor([rd.getById("stuff0")],
+		self.assertRaisesWithMsg(base.ReportableError,
+			"Could not sort dependent DDs topologically (use  --hints to learn more)",
+			rsc.makeDependentsFor,
+			([rd.getById("stuff0")], rsc.parseNonValidating, self.conn))
+
+	def testSequencing(self):
+		rd = base.parseFromString(rscdesc.RD, """
+			<resource schema="test">
+				<table id="made" onDisk="True" temporary="True"/>
+				<STREAM id="make">
+					<make table="made"><script type="preIndex" lang="python">
+						table.tableDef.rd.dataMade.append("\\tag")
+					</script></make>
+				</STREAM>
+
+				<data id="d1" recreateAfter="d3">
+					<recreateAfter>d2</recreateAfter><recreateAfter>d4</recreateAfter>
+					<FEED source="make" tag="1"/>
+				</data>
+
+				<data id="d2">
+					<recreateAfter>d4</recreateAfter><recreateAfter>d3</recreateAfter>
+					<FEED source="make" tag="2"/>
+				</data>
+
+				<data id="d3">
+					<recreateAfter>d4</recreateAfter>
+					<FEED source="make" tag="3"/>
+				</data>
+
+				<data id="d4">
+					<recreateAfter>d5</recreateAfter>
+					<FEED source="make" tag="4"/>
+				</data>
+
+				<data id="d5">
+					<FEED source="make" tag="end"/>
+				</data>
+			</resource>""")
+
+		rd.dataMade = []
+		data = rsc.makeDependentsFor([rd.getById("d1")],
 			rsc.parseNonValidating, connection=self.conn)
-		self.assertEqual(set(rd.dataMade), set(["stuff1", "stuff2"]))
+		self.assertEqual(rd.dataMade, ["2", "3", "4", "end"])
 
 
 class ConcurrentRDTest(testhelpers.VerboseTest):

@@ -185,17 +185,17 @@
   	<metaMaker>
     	<setup>
       	<code>
-        	parSTC = stc.parseQSTC("SpectralInterval LAMBDA_MIN LAMBDA_MAX")
+        	parSTC = stc.parseQSTCS('SpectralInterval "LAMBDA_MIN" "LAMBDA_MAX"')
       	</code>
     	</setup>
     	<code>
-  			for ik in genLimitKeys(MS(InputKey, name="LAMBDA"
-        	unit="m", stc=stc, ucd="em.wl", 
-        	description="Spectral cutout interval",
-        	values=MS(Values, 
-          	min=descriptor.ssaRow["ssa_specstart"],
-          	max=descriptor.ssaRow["ssa_specend"]))
-        	yield ik
+				for ik in genLimitKeys(MS(InputKey, name="LAMBDA",
+					unit="m", stc=parSTC, ucd="em.wl", 
+					description="Spectral cutout interval",
+					values=MS(Values, 
+						min=descriptor.ssaRow["ssa_specstart"],
+						max=descriptor.ssaRow["ssa_specend"]))):
+					yield ik
     	</code>
   	</metaMaker>
 
