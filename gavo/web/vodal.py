@@ -26,6 +26,7 @@ from gavo.imp.formal import form
 from gavo.svcs import streaming
 from gavo.utils import ElementTree
 from gavo.votable import V
+from gavo.web import common
 from gavo.web import formrender
 from gavo.web import grend
 
@@ -453,7 +454,8 @@ class DatalinkRenderer(grend.ServiceBasedPage):
 	urlUse = "base"
 
 	def renderHTTP(self, ctx):
-		return self.runService(inevow.IRequest(ctx).args, ctx
+		request = inevow.IRequest(ctx)
+		return self.runService(request.args, ctx
 			).addCallback(self._formatData, request
 			).addErrback(self._reportError, request)
 	
@@ -466,7 +468,7 @@ class DatalinkRenderer(grend.ServiceBasedPage):
 # XXX TODO: the same thing is in formrender.  Refactor; since this is
 # something most renderers should be able to do, ServiceBasedPage would be
 # a good place
-			mime, payload = res.original
+			mime, payload = data
 			request.setHeader("content-type", mime)
 			request.setHeader('content-disposition', 
 				'attachment; filename=result%s'%common.getExtForMime(mime))
@@ -477,6 +479,7 @@ class DatalinkRenderer(grend.ServiceBasedPage):
 			return data
 
 	def _reportError(self, failure, request):
+		base.ui.notifyFailure(failure)
 		return "Don't know how to report errors yet"
 
 
