@@ -253,6 +253,15 @@ class ProcApp(ProcDef):
 
 	additionalNamesForProcs = {}
 
+	def validate(self):
+		if self.procDef and self.procDef.type and self.requiredType:
+			if self.procDef.type!=self.requiredType:
+				raise base.StructureError("The procDef %s has type %s, but"
+					" here %s procDefs are required."%(self.procDef.id,
+						self.procDef.type, self.requiredType))
+		self._validateNext(ProcApp)
+		self._ensureParsBound()
+
 	def completeElement(self, ctx):
 		self._completeElementNext(ProcApp, ctx)
 		if self.name is base.NotGiven:  # make up a name from self's id
@@ -284,10 +293,6 @@ class ProcApp(ProcDef):
 		if bindNames:
 			raise base.StructureError("May not bind non-existing parameter(s)"
 				" %s."%(", ".join(bindNames)))
-
-	def validate(self):
-		self._validateNext(ProcApp)
-		self._ensureParsBound()
 
 	def onElementComplete(self):
 		self._onElementCompleteNext(ProcApp)

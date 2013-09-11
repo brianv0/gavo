@@ -25,25 +25,28 @@ class EmbeddedGrammar(common.Grammar, base.RestrictionMixin):
 	"""A Grammar defined by a code application.
 
 	To define this grammar, write a ProcApp iterator leading to code yielding
-	row dictionaries.  The grammar input is available as self.sourceToken.
+	row dictionaries.  The grammar input is available as self.sourceToken;
+	for normal grammars within data elements, that would be a fully
+	qualified file name.
+
 	The proc app body actually is the iterRows method of a row iterator
 	(see API docs).
 
 	This could look like this, when the grammar input is some iterable::
 
-		<embeddedGrammar>
-			<iterator>
-				<setup>
-					<code>
-						testData = "a"*1024
-					</code>
-				</setup>
-				<code>
-					for i in sourceToken:
-						yield {'index': i, 'data': testData}
-				</code>
-			</iterator>
-		</embeddedGrammar>
+  	<embeddedGrammar>
+    	<iterator>
+      	<setup>
+        	<code>
+          	testData = "a"*1024
+        	</code>
+      	</setup>
+      	<code>
+        	for i in sourceToken:
+          	yield {'index': i, 'data': testData}
+      	</code>
+    	</iterator>
+  	</embeddedGrammar>
 	"""
 	name_ = "embeddedGrammar"
 	_iterator = base.StructAttribute("iterator", default=base.Undefined,

@@ -255,5 +255,15 @@ class SetupTest(testhelpers.VerboseTest):
 		self.assertEqual(func(None, None), "overover")
 
 
+class TypeSafetyTest(testhelpers.VerboseTest):
+	def testRejects(self):
+		self.assertRaisesWithMsg(base.StructureError,
+			"At [<foo><testApp procDef=\"//da...], (1, 53): The procDef"
+				" trivialFormatter has type dataFormatter, but here t_t procDefs"
+				" are required.",
+			base.parseFromString,
+			(Foo, '<foo><testApp procDef="//datalink#trivialFormatter"/></foo>'))
+
+
 if __name__=="__main__":
 	testhelpers.main(SetupTest)

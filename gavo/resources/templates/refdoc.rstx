@@ -993,15 +993,16 @@ This object is then handed through all remaining data functions; these
 change the data in place or create a new one as convenient and
 manipulate ``descriptor.data`` accordingly.
 
-It is a design descision which manipulations are done in the data
-generator and which are in later filters.  The advantage of filters is
-that they are more flexible and can more easily be reused, while doing
-it things in the data generator itself will usually be more efficient,
-sometimes much so (e.g., sums being computed within a database rather
-than in a filter).
-
 Finally, the data enters the formatter, which actually generates the
 output, returning a pair of mime type and string to be delivered.
+
+It is a design descision which manipulations are done in the data
+generator, which are in later filters, and which maybe only in the
+formatter.  The advantage of filters is that they are more flexible and
+can more easily be reused, while doing it things in the data generator
+itself will usually be more efficient, sometimes much so (e.g., sums
+being computed within a database rather than in a filter after all the
+data had to go through the interface of the database).
 
 
 Descriptors Generators
@@ -1410,6 +1411,49 @@ renderHTTP method, some twisted producer.
 
 Datalink Examples
 '''''''''''''''''
+
+FITS cutout service
+...................
+
+A plain FITS cutout service is assembled like this::
+
+  <service id="dl">
+		<datalinkCore>
+			<descriptorGenerator procDef="//datalink#fits_genDesc"/>
+			<metaMaker procDef="//datalink#fits_makeWCSParams"/>
+			<dataFunction procDef="//datalink#fits_makeHDUList"/>
+			<dataFunction procDef="//datalink#fits_doWCSCutout"/>
+			<dataFormatter procDef="//datalink#fits_formatHDUs"/>
+		</datalinkCore>
+	</service>
+
+This works for all FITS files in the products table and has no usable
+STC metadata.  Good datalink services do better; by giving more
+metadata, you of course commit to certain FITS structures, which means
+that you should restrict to only those files that actually match your
+assumptions.  The easiest way to do this is to structure your input
+directories accordingly and then filter early by using fits_getDesc's
+``accrefStart`` parameter.  The STC declaration was already discussed
+above, and so a more realistic datalink service might look like this::
+
+  <service id="dl">
+		<datalinkCore>
+			<descriptorGenerator procDef="//datalink#fits_genDesc">
+			  <bind key="accrefStart">califa/data/cubes"</bind>
+			</descriptorGenerator>
+			<metaMaker procDef="//datalink#fits_makeWCSParams">
+        <bind key="stcs"
+				  >('PositionInterval ICRS "RA_MIN" "DEC_MIN" "RA_MAX" "DEC_MAX"\n'
+					  'SpectralInterval TOPOCENTER "WAVELEN_1_MIN" "WAVELEN_1_MAX"')
+         </bind>
+			  </metaMaker>
+			<dataFunction procDef="//datalink#fits_makeHDUList"/>
+			<dataFunction procDef="//datalink#fits_doWCSCutout"/>
+			<dataFormatter procDef="//datalink#fits_formatHDUs"/>
+		</datalinkCore>
+	</service>
+
+TODO: Custom function, return link to error file.
 
 TODO: Simple sdm/getdata service
 

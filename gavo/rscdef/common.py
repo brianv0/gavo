@@ -446,7 +446,7 @@ def replaceRMKAt(src):
 
 @utils.document
 def getStandardPubDID(path):
-	"""returns the "standard DaCHS PubDID" for path.
+	"""returns the standard DaCHS PubDID for path.
 
 	The publisher dataset identifier (PubDID) is important in protocols like
 	SSAP and obscore.  If you use this function, the PubDID will be your
@@ -474,6 +474,23 @@ def getStandardPubDID(path):
 		getInputsRelativePath(path, liberalChars=False))
 
 
+@utils.document
+def getAccrefFromStandardPubDID(pubdid,
+		authBase="ivo://%s/~/"%base.getConfig("ivoa", "authority")):
+	"""returns an accref from a standard DaCHS PubDID.
+
+	This is basically the inverse of getStandardPubDID.  It will raise
+	ValueErrors if pubdid doesn't start with ivo://<authority>/~/.
+
+	The function does not check if the remaining characters are a valid
+	accref, much less whether it can be resolved.
+	"""
+	if not pubdid.startswith(authBase):
+		raise ValueError("'%s' is not a pubDID within this data center"%
+			pubdid)
+	return pubdid[len(authBase):]
+
+	
 @utils.document
 def getInputsRelativePath(absPath, liberalChars=True):
 	"""returns absath relative to the DaCHS inputsDir.

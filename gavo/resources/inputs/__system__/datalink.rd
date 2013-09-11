@@ -268,17 +268,34 @@
 		</doc>
 		<setup>
 			<code>
-				def getFITSDescriptor(pubdid):
-					descriptor = ProductDescriptor.fromAccref(
-						"/".join(pubdid.split("/")[4:]))
+				def getFITSDescriptor(accref):
+					descriptor = ProductDescriptor.fromAccref(accref)
 					with open(os.path.join(base.getConfig("inputsDir"), 
 							descriptor.accessPath)) as f:
 						descriptor.hdr = utils.readPrimaryHeaderQuick(f)
 					return descriptor
+				
+				from gavo.svcs import ForbiddenURI, UnknownURI
 			</code>
+
+			<par key="accrefStart" description="A start of accrefs the parent
+				datalink service works of.  Procedures on all other accrefs
+				will be rejected with a 403 forbidden.  You should always
+				include a restriction like this when you make assumptions
+				about the FITSes (e.g., what axes are available).">None</par>
 		</setup>
 		<code>
-			return getFITSDescriptor(pubdid)
+			try:
+				accref = getAccrefFromStandardPubDID(pubdid)
+				print "=================", accref
+			except ValueError:
+				raise UnknownURI("Not a pubDID from this site: %s"%pubdid)
+
+			if accrefStart and not accref.startswith(accrefStart):
+				raise ForbiddenURI("This datalink service not available"
+					" with the pubdid '%s'"%pubdid)
+			return getFITSDescriptor(accref)
+
 		</code>
 	</procDef>
 

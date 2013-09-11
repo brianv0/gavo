@@ -24,6 +24,23 @@ from gavo.web import producttar
 import tresc
 
 
+class StandardPubDIDTest(testhelpers.VerboseTest):
+	def testMakeSPD(self):
+		self.assertEqual(rscdef.getStandardPubDID("a/b/c"),
+			"ivo://x-unregistred/~/a/b/c")
+	
+	def testParseSPD(self):
+		self.assertEqual(
+			rscdef.getAccrefFromStandardPubDID("ivo://x-unregistred/~/a/b/c"),
+			"a/b/c")
+	
+	def testRejectParseSPD(self):
+		self.assertRaisesWithMsg(ValueError,
+			"'ivo://quatsch/batsch' is not a pubDID within this data center",
+			rscdef.getAccrefFromStandardPubDID,
+			("ivo://quatsch/batsch",))
+
+
 class _TestWithProductsTable(testhelpers.VerboseTest):
 	resources = [('conn', tresc.prodtestTable), ('users', tresc.testUsers)]
 
@@ -366,6 +383,26 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 			"eptle>$47$78$77289\x0ehipxe>$86$78$9=2;\x0e"
 			"sfnigx>$qmgleip\x0eiqfevks>$6447156175\x0e")
 
+	def testAccrefFilter(self):
+		svc = base.parseFromString(svcs.Service, """<service id="uh">
+			<datalinkCore>
+				<descriptorGenerator procDef="//datalink#fits_genDesc">
+					<bind key="accrefStart">"test"</bind>
+				</descriptorGenerator>
+			</datalinkCore></service>""")
+
+		self.assertRaisesWithMsg(svcs.ForbiddenURI,
+			"This datalink service not available with the pubdid"
+			" 'ivo://x-unregistred/~/goo/boo'",
+			svc.run,
+			("dlget", {"PUBDID": [rscdef.getStandardPubDID("goo/boo")]}))
+
+		self.assertRaisesWithMsg(svcs.UnknownURI,
+			"Not a pubDID from this site: ivo://great.scott/goo/boo",
+			svc.run,
+			("dlget", {"PUBDID": ["ivo://great.scott/goo/boo"]}))
+
+
 
 class _MetaMakerTestData(testhelpers.TestResource):
 # test data for datalink metadata generation 
@@ -449,7 +486,9 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 	def testMakeDescriptor(self):
 		svc = base.parseFromString(svcs.Service, """<service id="foo">
 			<datalinkCore>
-				<descriptorGenerator procDef="//datalink#fits_genDesc"/>
+				<descriptorGenerator procDef="//datalink#fits_genDesc">
+					<bind key="accrefStart">"data/"</bind>
+				</descriptorGenerator>
 				<metaMaker procDef="//datalink#fits_makeWCSParams"/>
 				<metaMaker><code>
 					assert descriptor.hdr["EQUINOX"]==2000.
