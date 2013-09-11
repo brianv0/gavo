@@ -276,6 +276,9 @@ class DatalinkCore(svcs.Core, base.ExpansionDelegator):
 		"""
 		try:
 			args = utils.stealVar("args")
+			if not isinstance(args, dict):
+				# again, we're not being called in a context with a pubdid
+				raise ValueError("No pubdid")
 		except ValueError:
 			# no arguments found: no pubdid-specific interfaces
 			return self
