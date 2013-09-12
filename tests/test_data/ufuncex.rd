@@ -13,7 +13,7 @@
 				rec = {"testgroup": None, "dt": None}
 
 				rec["testgroup"] = "jd"
-				rec["dt"] = datetime.datetime(year=1984, month=8, day=5, hour=11)
+				rec["dt"] = datetime.datetime(year=1984, month=8, day=5, hour=12)
 				yield rec
 			</code></iterator>
 		</embeddedGrammar>

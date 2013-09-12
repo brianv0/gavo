@@ -113,5 +113,16 @@
 		</dbCore>
 	</service>
 
+	<service id="dl" allowed="dlget">
+		<datalinkCore>
+			<descriptorGenerator>
+				<code>
+					if pubdid=="broken":
+						ddt
+				</code>
+			</descriptorGenerator>
+		</datalinkCore>
+	</service>
+
 	<dbCore id="typescore" queriedTable="data/test#typesTable"/>
 </resource>

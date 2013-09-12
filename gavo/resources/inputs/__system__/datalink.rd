@@ -287,7 +287,6 @@
 		<code>
 			try:
 				accref = getAccrefFromStandardPubDID(pubdid)
-				print "=================", accref
 			except ValueError:
 				raise UnknownURI("Not a pubDID from this site: %s"%pubdid)
 

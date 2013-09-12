@@ -34,19 +34,19 @@ class EmbeddedGrammar(common.Grammar, base.RestrictionMixin):
 
 	This could look like this, when the grammar input is some iterable::
 
-  	<embeddedGrammar>
-    	<iterator>
-      	<setup>
-        	<code>
-          	testData = "a"*1024
-        	</code>
-      	</setup>
-      	<code>
-        	for i in sourceToken:
-          	yield {'index': i, 'data': testData}
-      	</code>
-    	</iterator>
-  	</embeddedGrammar>
+		<embeddedGrammar>
+	  	<iterator>
+	    	<setup>
+	      	<code>
+	        	testData = "a"*1024
+	      	</code>
+	    	</setup>
+	    	<code>
+	      	for i in sourceToken:
+	        	yield {'index': i, 'data': testData}
+	    	</code>
+	  	</iterator>
+		</embeddedGrammar>
 	"""
 	name_ = "embeddedGrammar"
 	_iterator = base.StructAttribute("iterator", default=base.Undefined,

@@ -331,3 +331,10 @@ class MetaPagesTest(ArchiveTest):
 		return self.assertGETHasStrings("/getRR/data/pubtest/moribund", {},
 			['<identifier>ivo://x-unregistred/data/pubtest/moribund</identifier>'])
 
+
+class DatalinkTest(ArchiveTest):
+	def testErrorDocument(self):
+		return self.assertGETHasStrings("/data/cores/dl", {"PUBDID": "broken"},
+			['INFO name="QUERY_STATUS" value="ERROR">global name'
+				" 'ddt' is not defined</INFO>", "<VOTABLE"])
+

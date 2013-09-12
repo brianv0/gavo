@@ -23,6 +23,7 @@ from gavo import utils
 from gavo import votable
 from gavo.imp import formal
 from gavo.imp.formal import form
+from gavo.protocols import uwsactions
 from gavo.svcs import streaming
 from gavo.utils import ElementTree
 from gavo.votable import V
@@ -480,7 +481,7 @@ class DatalinkRenderer(grend.ServiceBasedPage):
 
 	def _reportError(self, failure, request):
 		base.ui.notifyFailure(failure)
-		return "Don't know how to report errors yet"
+		return uwsactions.ErrorResource(failure.value, 500)
 
 
 def _test():
