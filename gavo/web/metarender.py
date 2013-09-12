@@ -203,7 +203,6 @@ class RendExplainer(object):
 						urllib.quote(service.getURL("ssap.xml"))))[
 					"Validate"]]]
 
-
 	@classmethod
 	def _explain_tap(cls, service):
 		return T.invisible["the interface to this site's Table Access Protocol"
@@ -257,6 +256,13 @@ class RendExplainer(object):
 		return T.invisible["an interface to image creation targeted at machines."
 			"  The interface is at %s."%service.getURL("img.jpeg"),
 			"  This is probably irrelevant to you."]
+
+	@classmethod
+	def _explain_dlget(cls, service):
+		return T.invisible["a datalink interface letting specialized clients"
+			" retrieve parts of datasets or discover related data.  You"
+			" use this kind of service exclusively in combination with"
+			" a pubdid, usually via a direct link."]
 
 	@classmethod
 	def _explainEverything(cls, service):
