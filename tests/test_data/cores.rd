@@ -115,13 +115,19 @@
 
 	<service id="dl" allowed="dlget">
 		<datalinkCore>
-			<descriptorGenerator>
+			<descriptorGenerator procDef="//datalink#fits_genDesc">
 				<code>
 					if pubdid=="broken":
 						ddt
+					return getFITSDescriptor(pubdid)
 				</code>
 			</descriptorGenerator>
+			<metaMaker procDef="//datalink#fits_makeWCSParams"/>
+			<dataFunction procDef="//datalink#fits_makeHDUList"/>
+			<dataFunction procDef="//datalink#fits_doWCSCutout" name="doCutout"/>
+			<dataFormatter procDef="//datalink#fits_formatHDUs"/>
 		</datalinkCore>
+		
 	</service>
 
 	<dbCore id="typescore" queriedTable="data/test#typesTable"/>

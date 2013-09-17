@@ -339,6 +339,15 @@ class WCSAxisTest(testhelpers.VerboseTest):
 		ax = fitstools.WCSAxis("test", -30, 2000, 0.25, axisLength=400)
 		self.assertEqual(ax.getLimits(), (-529.75, -430.0))
 
+	def testNoneTrafo(self):
+		ax = fitstools.WCSAxis("test", 4, 9, 0.5)
+		self.assertEqual(ax.pixToPhys(None), None)
+		self.assertEqual(ax.physToPix(None), None) 
+
+	def testNone0Trafo(self):
+		ax = fitstools.WCSAxis("test", 4, 9, 0.5)
+		self.assertEqual(ax.pix0ToPhys(None), None)
+		self.assertEqual(ax.physToPix0(None), None) 
 
 class WCSFromHeaderTest(testhelpers.VerboseTest):
 

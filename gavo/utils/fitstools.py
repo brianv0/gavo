@@ -477,9 +477,8 @@ def cutoutFITS(hdu, *cuts):
 	a triple (axis, lower, upper).  axis is between 1 and naxis, lower and
 	upper a 1-based pixel coordinates of the limits, and "border" pixels
 	are included.  Specifications outside of the image are legal and will 
-	be cropped back.  You must provide both limits as integers, though,
-	half-open intervals are only supported through absurd limits (-1 for lower
-	and 2000000000 for upper should do fine for a while to come).
+	be cropped back.  Open limits are supported via a specification of
+	None.
 
 	If an axis would vanish (i.e. length 0 or less), the function fudges
 	things such that the axis gets a length of 1.
@@ -501,23 +500,28 @@ def cutoutFITS(hdu, *cuts):
 
 	for index, length in enumerate(getAxisLengths(hdu.header)):
 		firstPix, lastPix = cutDict.get(index+1, (None, None))
+
 		if firstPix is None:
-			slices.append(slice(None, None, None))
-			continue
-		
+			firstPix = 1
+		if lastPix is None:
+			lastPix = length
 		firstPix = min(max(1, firstPix), length)
 		lastPix = min(length, max(1, lastPix))
-		firstPix -= 1
-		newAxisLength = lastPix-firstPix
-		if newAxisLength==0:
-			newAxisLength = 1
-			lastPix = firstPix+1
-		slices.append(slice(firstPix, lastPix, 1))
 
-		newHeader["NAXIS%d"%(index+1)] = newAxisLength
-		refpixKey = "CRPIX%d"%(index+1)
-		if newHeader.has_key(refpixKey):
-			newHeader.update(refpixKey, newHeader[refpixKey]-firstPix)
+		if (firstPix, lastPix)==(1, length):
+			slices.append(slice(None, None, None))
+		else:
+			firstPix -= 1
+			newAxisLength = lastPix-firstPix
+			if newAxisLength==0:
+				newAxisLength = 1
+				lastPix = firstPix+1
+			slices.append(slice(firstPix, lastPix, 1))
+
+			newHeader["NAXIS%d"%(index+1)] = newAxisLength
+			refpixKey = "CRPIX%d"%(index+1)
+			if newHeader.has_key(refpixKey):
+				newHeader.update(refpixKey, newHeader[refpixKey]-firstPix)
 
 	# fix for fortran-vs-C column order
 	slices.reverse()
@@ -687,7 +691,8 @@ class WCSAxis(object):
 
 	The default pixel coordinates are handled in the FITS sense here,
 	i.e., the first pixel has the index 1.  Three are methods that have
-	pix0 in their names; these assume 0-based arrays.
+	pix0 in their names; these assume 0-based arrays.  All the transforms
+	return Nones unchanged.
 
 	To retrieve the metadata shoved in, use the name, crval, crpix, cdelt,
 	ctype, cunit, and axisLength attributes.
@@ -702,21 +707,29 @@ class WCSAxis(object):
 	def pixToPhys(self, pixCoo):
 		"""returns the physical value for a 1-based pixel coordinate.
 		"""
+		if pixCoo is None:
+			return None
 		return self.crval+(pixCoo-self.crpix)*self.cdelt
 
 	def pix0ToPhys(self, pix0Coo):
 		"""returns the physical value for a 0-based pixel coordinate.
 		"""
+		if pix0Coo is None:
+			return None
 		return self.pixToPhys(pix0Coo+1)
 	
 	def physToPix(self, physCoo):
 		"""returns a 1-based pixel coordinate for a physical value.
 		"""
+		if physCoo is None:
+			return None
 		return (physCoo-self.crval)/self.cdelt+self.crpix
 	
 	def physToPix0(self, physCoo):
 		"""returns a 0-based pixel coordinate for a physical value.
 		"""
+		if physCoo is None:
+			return None
 		return self.physToPix(physCoo)-1
 
 	def getLimits(self):

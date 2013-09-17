@@ -7,6 +7,7 @@ Basically all of this should be taken over by stc and astropysics.
 
 import functools
 import math
+import new
 from math import sin, cos, pi
 import re
 import warnings
@@ -78,6 +79,38 @@ def clampDelta(delta):
 	return max(-90, min(90, delta))
 
 
+def _calcFootprintMonkeypatch(self, hdr=None, undistort=True):
+	"""returns the coordinates of the four corners of an image.
+
+	This is for monkeypatching pywcs, which at least up to 1.11 does
+	really badly when non-spatial coordinates are present.  This method
+	relies on the _monkey_naxis_lengths attribute left by getWCS to
+	figure out the axis lengths.
+
+	pywcs' hdr argument is always ignored here.
+	"""
+	naxis1, naxis2 = self._monkey_naxis_lengths
+	corners = [[1,1],[1,naxis2], [naxis1,naxis2], [naxis1, 1]]
+	if undistort:
+		return self.all_pix2sky(corners, 1)
+	else:
+		return self.wcs_pix2sky(corners,1)
+
+
+def _monkeypatchWCS(wcsObj, naxis, wcsFields):
+	"""monkeypatches pywcs instances for DaCHS' purposes.
+	"""
+	wcsObj._dachs_header = wcsFields
+	wcsObj.longAxis = naxis[0]
+	if len(naxis)>1:
+		wcsObj.latAxis = naxis[1]
+	wcsObj._monkey_naxis_lengths = [wcsFields.get("NAXIS%d"%i)
+		for i in naxis]
+	wcsObj.origCalcFootprint = wcsObj.calcFootprint
+	wcsObj.calcFootprint = new.instancemethod(_calcFootprintMonkeypatch, 
+		wcsObj, wcsObj.__class__)
+
+
 def getWCS(wcsFields, naxis=(1,2), relax=True):
 	"""returns a WCS instance from wcsFields
 	
@@ -87,8 +120,13 @@ def getWCS(wcsFields, naxis=(1,2), relax=True):
 
 	This will return None if no (usable) WCS information is found in the header.
 
-	This also hacks in _dachs_header, the header this was constructed
-	from.
+	We monkeypatch the resulting pywcs structure quite a bit.  Among
+	others:
+
+	* calcFootprint takes into account the naxis kw parameter
+	* there's longAxis and latAxis attributes taken from naxis
+	* there's _dachs_header, containing the incoming k-v pairs
+	* there's _monkey_naxis_length, the lengths along the WCS axes.
 	"""
 	if isinstance(wcsFields, pywcs.WCS):
 		return wcsFields
@@ -108,7 +146,7 @@ def getWCS(wcsFields, naxis=(1,2), relax=True):
 			del wcsFields[key]
 	
 	wcsObj = pywcs.WCS(wcsFields, relax=relax, naxis=naxis)
-	wcsObj._dachs_header = wcsFields
+	_monkeypatchWCS(wcsObj, naxis, wcsFields)
 	return wcsObj
 
 

@@ -268,7 +268,16 @@
 		</doc>
 		<setup>
 			<code>
-				def getFITSDescriptor(accref):
+				def getFITSDescriptor(pubdid):
+					try:
+						accref = getAccrefFromStandardPubDID(pubdid)
+					except ValueError:
+						raise UnknownURI("Not a pubDID from this site: %s"%pubdid)
+
+					if accrefStart and not accref.startswith(accrefStart):
+						raise ForbiddenURI("This datalink service not available"
+							" with the pubdid '%s'"%pubdid)
+
 					descriptor = ProductDescriptor.fromAccref(accref)
 					with open(os.path.join(base.getConfig("inputsDir"), 
 							descriptor.accessPath)) as f:
@@ -285,16 +294,7 @@
 				about the FITSes (e.g., what axes are available).">None</par>
 		</setup>
 		<code>
-			try:
-				accref = getAccrefFromStandardPubDID(pubdid)
-			except ValueError:
-				raise UnknownURI("Not a pubDID from this site: %s"%pubdid)
-
-			if accrefStart and not accref.startswith(accrefStart):
-				raise ForbiddenURI("This datalink service not available"
-					" with the pubdid '%s'"%pubdid)
-			return getFITSDescriptor(accref)
-
+			return getFITSDescriptor(pubdid)
 		</code>
 	</procDef>
 
@@ -316,11 +316,6 @@
 		if successful, containing the spatial transformation only.  All
 		other transformations, if present, are in miscWCS, by a dict mapping
 		axis labels to the fitstools.WCS1Trans instances.
-
-		Note that this is neither optimal in the metadata transmitted
-		nor general in the sense that any valid WCS header would be handled.  
-		For your data with a known structure, you should provide much richer 
-		metadata.
 		</doc>
 		<setup>
 			<par key="stcs" description="A QSTC expression describing the
@@ -468,7 +463,11 @@
 				[min(footprint[:,1]), max(footprint[:,1])]]
 
 			for parBase, fitsAxis in descriptor.axisNames.iteritems():
+				if args[parBase+"_MIN"] is None and args[parBase+"_MAX"] is None:
+					continue
+
 				if not isinstance(fitsAxis, int):
+					# some sort of spherical axis
 					if fitsAxis=="WCSLAT":
 						cooLimits = limits[1]
 					elif fitsAxis=="WCSLONG":
@@ -482,9 +481,10 @@
 						cooLimits[1] = min(cooLimits[1], args[parBase+"_MAX"])
 					
 				else:
+					# 1-d axis
 					transform = fitstools.WCSAxis.fromHeader(descriptor.hdr, fitsAxis)
-					axMax = args.get(parBase+"_MAX", 100000000)
-					axMin = args.get(parBase+"_MIN", -1)
+					axMin = args[parBase+"_MIN"]
+					axMax = args[parBase+"_MAX"]
 					slices.append((fitsAxis, 
 						transform.physToPix(axMin), transform.physToPix(axMax)))
 		
@@ -494,8 +494,8 @@
 					(limits[0][1], limits[1][1])], 1)), numpy.int32)
 			pixelLimits = [[min(pixelFootprint[:,0]), max(pixelFootprint[:,0])],
 				[min(pixelFootprint[:,1]), max(pixelFootprint[:,1])]]
-			latAxis = descriptor.skyWCS.wcs.lat+1
-			longAxis = descriptor.skyWCS.wcs.lng+1
+			latAxis = descriptor.skyWCS.latAxis
+			longAxis = descriptor.skyWCS.longAxis
 			if pixelLimits[0]!=[1, descriptor.hdr["NAXIS%d"%longAxis]]:
 				slices.append([longAxis]+pixelLimits[0])
 			if pixelLimits[1]!=[1, descriptor.hdr["NAXIS%d"%latAxis]]:
