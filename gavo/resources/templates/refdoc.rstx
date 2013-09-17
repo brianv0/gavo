@@ -1361,6 +1361,33 @@ is again in ``//datalink#sdm_cutout``.  It simply looks like this::
     </code>
   </dataFunction>
 
+There are situations in which a data function must shortcut, mostly
+because it is doing something other than just "pushing on"
+descriptor.data.  Examples include preview producers or a data function
+that returns the a FITS header.  For cases like this, data functions can
+raise one of DeliverNow (which means ``descriptor.data`` must be
+something servable, see `Data Formatters`_ and causes that to be
+immediately served) or FormatNow (which immediately goes to the data
+formatter; this is less useful).
+
+Here's an example for FormatNow; a similar thing is contained in the
+STREAM ``//datalink#fits_genKindPar``::
+
+	<dataFunction>
+		<setup>
+			<code>
+				from gavo.utils import fitstools
+			</code>
+		</setup>
+		<code>
+			if args["KIND"]=="HEADER":
+				descriptor.data = ("application/fits-header", 
+					fitstools.serializeHeader(descriptor.data[0].header))
+				raise DeliverNow()
+		</code>
+	</dataFunction>
+
+
 
 Data Formatters
 '''''''''''''''

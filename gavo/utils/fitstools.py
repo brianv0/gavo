@@ -520,8 +520,7 @@ def cutoutFITS(hdu, *cuts):
 
 			newHeader["NAXIS%d"%(index+1)] = newAxisLength
 			refpixKey = "CRPIX%d"%(index+1)
-			if newHeader.has_key(refpixKey):
-				newHeader.update(refpixKey, newHeader[refpixKey]-firstPix)
+			newHeader.update(refpixKey, newHeader[refpixKey]-firstPix)
 
 	# fix for fortran-vs-C column order
 	slices.reverse()

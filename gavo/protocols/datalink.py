@@ -17,6 +17,18 @@ from gavo.votable import V, modelgroups
 MS = base.makeStruct
 
 
+class FormatNow(base.ExecutiveAction):
+	"""can be raised by data functions to abort all further processing
+	and format the current descriptor.data.
+	"""
+
+
+class DeliverNow(base.ExecutiveAction):
+	"""can be raised by data functions to abort all further processing
+	and return the current descriptor.data to the client.
+	"""
+
+
 class ProductDescriptor(object):
 	"""An encapsulation of information about some "product" (i.e., file).
 
@@ -145,6 +157,15 @@ class DataFunction(rscdef.ProcApp):
 	What is returned depends on the service, but typcially it's going to
 	be a table or products.*Product instance.
 
+	Data functions can shortcut if it's evident that further data functions
+	can only mess up (i.e., if the do something bad with the data attribute);
+	you should not shortcut if you just *think* it makes no sense to
+	further process your output.
+
+	To shortcut, raise either of FormatNow (falls though to the formatter,
+	which is usually less useful) or DeliverNow (directly returns the
+	data attribute; this can be used to return arbitrary chunks of data).
+
 	The following names are available to the code:
 	  - descriptor -- whatever the DescriptorGenerator returned
 	  - args -- all the arguments that came in from the web.
@@ -152,6 +173,11 @@ class DataFunction(rscdef.ProcApp):
 	name_ = "dataFunction"
 	requiredType = "dataFunction"
 	formalArgs = "descriptor, args"
+
+	additionalNamesForProcs = {
+		"FormatNow": FormatNow,
+		"DeliverNow": DeliverNow,
+	}
 
 
 class DataFormatter(rscdef.ProcApp):
@@ -331,7 +357,12 @@ class DatalinkCore(svcs.Core, base.ExpansionDelegator):
 				" not create data.")
 
 		for func in self.dataFunctions[1:]:
-			func.compile(self)(self.descriptor, args)
+			try:
+				func.compile(self)(self.descriptor, args)
+			except FormatNow:
+				break
+			except DeliverNow:
+				return self.descriptor.data
 
 		return self.dataFormatter.compile(self)(self.descriptor, args)
 	

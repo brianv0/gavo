@@ -580,6 +580,19 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 		self.assertEqual(hdr["NAXIS2"], 2)
 		self.assertEqual(hdr["NAXIS3"], 2)
 
+	def testKindPar(self):
+		svc = base.parseFromString(svcs.Service, """<service id="foo">
+			<datalinkCore>
+				<descriptorGenerator procDef="//datalink#fits_genDesc"/>
+				<dataFunction procDef="//datalink#fits_makeHDUList"/>
+				<FEED source="//datalink#fits_genKindPar"/>
+			</datalinkCore></service>""")
+		mime, data = svc.run("dlget", {
+			"PUBDID": [rscdef.getStandardPubDID("data/excube.fits")],
+			"KIND": ["HEADER"],}).original
+		self.assertEqual(mime, "application/fits-header")
+		self.assertEqual(len(data), 2880)
+
 
 class DatalinkSTCTest(testhelpers.VerboseTest):
 	resources = [("fitsTable", _fitsTable)]

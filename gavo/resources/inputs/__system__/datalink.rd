@@ -523,4 +523,31 @@
 			return "application/fits", data
 		</code>
 	</procDef>
+
+	<STREAM id="fits_genKindPar">
+		<metaMaker name="genKindPar">
+			<code>
+				yield MS(InputKey, name="KIND", type="text",
+					multiplicity="single", description="Set to HEADER"
+					" to retrieve just the primary header, leave empty for data.",
+					values = MS(Values,
+						options = [MS(Option, content_="HEADER", 
+							title="Retrieve header only")]))
+			</code>
+		</metaMaker>
+
+		<dataFunction>
+			<setup>
+				<code>
+					from gavo.utils import fitstools
+				</code>
+			</setup>
+			<code>
+				if args["KIND"]=="HEADER":
+					descriptor.data = ("application/fits-header", 
+						fitstools.serializeHeader(descriptor.hdr))
+					raise DeliverNow()
+			</code>
+		</dataFunction>
+	</STREAM>
 </resource>
