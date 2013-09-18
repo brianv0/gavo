@@ -203,19 +203,12 @@ class DataFormatter(rscdef.ProcApp):
 	formalArgs = "descriptor, args"
 
 
-class DatalinkCore(svcs.Core, base.ExpansionDelegator):
-	"""A core for processing datalink and processed data requests.
+class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
+	"""Basic functionality for datalink cores.  
 
-	You almost certainly do not want to override the input table of this 
-	core.
-
-	See `Datalink Cores`_ for more information.
-
-	In contrast to "normal" cores, one of these is made (and destroyed)
-	for each datalink request coming in.  This is because the interface
-	of a datalink service depends on the request (i.e., pubdid).
+	This is pulled out of the datalink core proper as it is used without
+	the complicated service interface sometimes, e.g., by SSAP.
 	"""
-	name_ = "datalinkCore"
 
 	_descriptorGenerator = base.StructAttribute("descriptorGenerator",
 		default=base.NotGiven, 
@@ -280,7 +273,81 @@ class DatalinkCore(svcs.Core, base.ExpansionDelegator):
 		if self.inputTable is base.NotGiven:
 			self.inputTable = MS(svcs.InputTable, params=self.inputKeys)
 
-		self._completeElementNext(DatalinkCore, ctx)
+		self._completeElementNext(DatalinkCoreBase, ctx)
+
+	def adaptForDescriptor(self, descriptor):
+		"""returns a version of self that has its metadata pulled from whatever
+		is in descriptor.
+		"""
+		linkDefs, inputKeys = [], self.inputKeys[:]
+		
+		for metaMaker in self.metaMakers:
+			for item in metaMaker.compile(self)(descriptor):
+				if isinstance(item, LinkDef):
+					linkDefs.append(item)
+				else:
+					inputKeys.append(item)
+	
+		res = self.change(inputTable=MS(svcs.InputTable, params=inputKeys))
+		res.nocache = True
+		res.datalinkLinks = linkDefs
+		res.descriptor = descriptor
+		
+		return res
+
+	def getDatalinkDescriptionResource(self, ctx, service):
+		"""returns a VOTable RESOURCE element with the metadata
+		description for a service using this core.
+
+		You must pass in a VOTable context object ctx (for the management
+		of ids).  If this is the entire content of the VOTable, use
+		votablewrite.VOTableContext() there.
+		"""
+		paramsByName, stcSpecs = {}, set()
+		for param in self.inputTable.params:
+			paramsByName[param.name] = param
+			if param.stc:
+				stcSpecs.add(param.stc)
+
+		def getIdFor(colRef):
+			colRef.toParam = True
+			return ctx.makeIdFor(paramsByName[colRef.dest])
+
+		return V.RESOURCE(name="datalinkDescriptor")[
+
+				[modelgroups.marshal_STC(ast, getIdFor)
+					for ast in stcSpecs],
+
+				V.GROUP(utype="datalink:service")[
+					V.PARAM(name="serviceAccessURL", utype="datalink:accessURL",
+						datatype="char", arraysize="*", 
+						value=service.getURL("dlget"))[
+							V.DESCRIPTION["Access URL for this service"]],
+					[votablewrite._addID(ik,
+							votablewrite.makeFieldFromColumn(V.PARAM, ik), ctx)
+						for ik in self.inputTable.params]],
+				votable.DelayedTable(
+					V.TABLE(name="relatedData") [
+						V.FIELD(name="url", datatype="char", arraysize="*"),
+						V.FIELD(name="contentType", datatype="char", arraysize="*"),
+						V.FIELD(name="relationType", datatype="char", arraysize="*")],
+					[l.asRow() for l in self.datalinkLinks],
+					V.BINARY)]
+
+
+class DatalinkCore(DatalinkCoreBase):
+	"""A core for processing datalink and processed data requests.
+
+	You almost certainly do not want to override the input table of this 
+	core.
+
+	See `Datalink Cores`_ for more information.
+
+	In contrast to "normal" cores, one of these is made (and destroyed)
+	for each datalink request coming in.  This is because the interface
+	of a datalink service depends on the request (i.e., pubdid).
+	"""
+	name_ = "datalinkCore"
 
 	def adaptForRenderer(self, renderer):
 		"""returns a core for a specific product.
@@ -317,22 +384,7 @@ class DatalinkCore(svcs.Core, base.ExpansionDelegator):
 			raise base.ValidationError("Value is required but was not provided",
 				"PUBDID")
 		descriptor = self.descriptorGenerator.compile(self)(pubDID, args)
-
-		linkDefs, inputKeys = [], self.inputKeys[:]
-		
-		for metaMaker in self.metaMakers:
-			for item in metaMaker.compile(self)(descriptor):
-				if isinstance(item, LinkDef):
-					linkDefs.append(item)
-				else:
-					inputKeys.append(item)
-	
-		res = self.change(inputTable=MS(svcs.InputTable, params=inputKeys))
-		res.nocache = True
-		res.datalinkLinks = linkDefs
-		res.descriptor = descriptor
-		
-		return res
+		return self.adaptForDescriptor(descriptor)
 
 	def run(self, service, inputTable, queryMeta):
 		args = inputTable.getParamDict()
@@ -365,43 +417,14 @@ class DatalinkCore(svcs.Core, base.ExpansionDelegator):
 				return self.descriptor.data
 
 		return self.dataFormatter.compile(self)(self.descriptor, args)
-	
+
 	def _runGenerateMetadata(self, args, service):
 		"""does run's work if we're handling a metadata request.
 
 		This will always return a rendered VOTable.
 		"""
-		paramsByName, stcSpecs = {}, set()
-		for param in self.inputTable.params:
-			paramsByName[param.name] = param
-			if param.stc:
-				stcSpecs.add(param.stc)
 
 		ctx = votablewrite.VOTableContext()
-		def getIdFor(colRef):
-			colRef.toParam = True
-			return ctx.makeIdFor(paramsByName[colRef.dest])
-
-		vot = (
-		V.VOTABLE[
-			V.RESOURCE(name="datalinkDescriptor")[
-
-				[modelgroups.marshal_STC(ast, getIdFor)
-					for ast in stcSpecs],
-
-				V.GROUP(utype="datalink:service")[
-					V.PARAM(name="serviceAccessURL", utype="datalink:accessURL",
-						datatype="char", arraysize="*", 
-						value=service.getURL("dlget"))[
-							V.DESCRIPTION["Access URL for this service"]],
-					[votablewrite._addID(ik,
-							votablewrite.makeFieldFromColumn(V.PARAM, ik), ctx)
-						for ik in self.inputTable.params]],
-				votable.DelayedTable(
-					V.TABLE(name="relatedData") [
-						V.FIELD(name="url", datatype="char", arraysize="*"),
-						V.FIELD(name="contentType", datatype="char", arraysize="*"),
-						V.FIELD(name="relationType", datatype="char", arraysize="*")],
-					[l.asRow() for l in self.datalinkLinks],
-					V.BINARY)]])
+		vot = V.VOTABLE[
+				self.getDatalinkDescriptionResource(ctx, service)]
 		return ("application/x-votable+xml", vot.render())

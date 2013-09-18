@@ -44,6 +44,7 @@ class Titles(JSONQuery):
 		"   NATURAL JOIN dc.interfaces"
 		"   NATURAL JOIN dc.sets"
 		" WHERE setname='local'"
+		" AND NOT deleted"
 		" ORDER BY title")
 
 
@@ -53,6 +54,7 @@ class Subjects(JSONQuery):
 		" FROM dc.subjects"
 		"   NATURAL JOIN dc.sets"
 		" WHERE setname='local'"
+		" AND NOT deleted"
 		" GROUP BY subject"
 		" ORDER BY subject")
 
@@ -63,6 +65,7 @@ class Authors(JSONQuery):
 		" FROM dc.authors"
 		"   NATURAL JOIN dc.sets"
 		" WHERE setname='local'"
+		" AND NOT deleted"
 		" GROUP BY author"
 		" ORDER BY author")
 
@@ -75,6 +78,7 @@ class ByFulltext(JSONQuery):
 		"   NATURAL JOIN dc.subjects"
 		"   NATURAL JOIN dc.sets"
 		" WHERE setname='local'"
+		" AND NOT deleted"
 		" AND (to_tsvector(description) || to_tsvector(subject) "
 		"   || to_tsvector(title) || to_tsvector(authors))"
 		"  @@ plainto_tsquery(%(q)s)"
@@ -90,6 +94,7 @@ class BySubject(JSONQuery):
 		"   NATURAL JOIN dc.sets"
 		" WHERE setname='local'"
 		" AND subject=%(subject)s"
+		" AND NOT deleted"
 		" ORDER BY title")
 
 
@@ -100,9 +105,10 @@ class ByAuthor(JSONQuery):
 		"    NATURAL JOIN dc.interfaces"
 		"    NATURAL JOIN dc.authors"
 		"    NATURAL JOIN dc.sets"
-		"  WHERE setname='local'"
-		"  AND author=%(author)s"
-		"  ORDER BY title")
+		" WHERE setname='local'"
+		" AND author=%(author)s"
+		" AND NOT deleted"
+		" ORDER BY title")
 
 
 class ServiceInfo(JSONQuery):

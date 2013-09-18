@@ -182,8 +182,10 @@
 	</service>
 
 	<service id="c" original="s">
-		<meta name="description">An SSAP service supporting getData.</meta>
+		<meta name="description">An SSAP service supporting getData 
+			and datalink.</meta>
 		<property name="tablesource">datamaker</property>
+		<property name="datalink">dl</property>
 		<property name="returnData"/>
 	</service>
 </resource>

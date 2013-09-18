@@ -364,6 +364,10 @@ class SSAPRenderer(UnifiedDALRenderer):
 	 - ssap.complianceLevel -- set to "query" when you don't deliver
 	   SDM compliant spectra; otherwise don't say anything, DaCHS will fill
 	   in the right value.
+
+	Services with this renderer can have a datalink property; if present, it
+	must point to a datalink service producing SDM-compliant spectra; this
+	is for doing cutouts and similar.
 	"""
 	name = "ssap.xml"
 

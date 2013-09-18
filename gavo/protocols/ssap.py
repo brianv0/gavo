@@ -11,6 +11,7 @@ from gavo import rscdef
 from gavo import svcs
 from gavo import votable
 from gavo.formats import votablewrite
+from gavo.protocols import datalink
 from gavo.protocols import sdm
 from gavo.svcs import pql
 from gavo.svcs import outputdef
@@ -21,6 +22,65 @@ RD_ID = "//ssap"
 
 def getRD():
 	return base.caches.getRD(RD_ID)
+
+
+class SSADescriptor(datalink.ProductDescriptor):
+	ssaRow = None
+
+	@classmethod
+	def fromSSARow(cls, ssaRow, paramDict):
+		"""returns a descriptor from a row in an ssa table and
+		the params of that table.
+		"""
+		paramDict.update(ssaRow)
+		# this could come from _combineRowIntoOne if it ran
+		if "collected_calibs" in ssaRow:
+			ssaRow["collected_calibs"].add(ssaRow["ssa_fluxcalib"])
+			ssaRow["ssa_fluxcalib"] = ssaRow["collected_calibs"]
+
+		ssaRow = paramDict
+		res = cls.fromAccref(ssaRow['accref'])
+		res.ssaRow = ssaRow
+		return res
+
+
+def _combineRowIntoOne(ssaRows):
+	"""makes a "total row" from ssaRows.
+
+	In the resulting row, minima and maxima are representative of the
+	whole result set, and enumerated columsn are set-valued.
+
+	This is useful when generating parameter metadata.
+	"""
+	if not ssaRows:
+		raise base.ReportableError("Datalink meta needs at least one result row")
+
+	totalRow = ssaRows[0].copy()
+	totalRow["mime"] = set([totalRow["mime"]])
+	calibs = set()
+
+	for row in ssaRows[1:]:
+		if row["ssa_specstart"]<totalRow["ssa_specstart"]:
+			totalRow["ssa_specstart"] = row["ssa_specstart"]
+		if row["ssa_specend"]>totalRow["ssa_specend"]:
+			totalRow["ssa_specend"] = row["ssa_specend"]
+		totalRow["mime"].add(row["mime"])
+		calibs.add(row.get("ssa_fluxcalib", None))
+	
+	totalRow["collect_calibs"] = set(c for c in calibs if c is not None)
+	return totalRow
+
+
+def getDatalinkMeta(dlSvc, ctx, ssaTable):
+	"""adds the datalink resource declaration to vot.
+
+	dlSvc is the datalink service, ctx must the the VOTableContext used
+	to generate vot, ssaTable a non-empty SSA result table.
+	"""
+	totalRow = _combineRowIntoOne(ssaTable.rows)
+	desc = SSADescriptor.fromSSARow(totalRow, ssaTable.getParamDict())
+	return dlSvc.core.adaptForDescriptor(desc
+		).getDatalinkDescriptionResource(ctx, dlSvc)
 
 
 class SSAPCore(svcs.DBCore):
@@ -228,16 +288,21 @@ class SSAPCore(svcs.DBCore):
 
 		# we fix tablecoding to td for now since nobody seems to like
 		# binary tables and we don't have huge tables here.
-		vot = votablewrite.makeVOTable(data, 
-			votablewrite.VOTableContext(tablecoding="td"))
+		votCtx = votablewrite.VOTableContext(tablecoding="td")
+		vot = votablewrite.makeVOTable(data, votCtx)
 		resElement = vot.makeChildDict()["RESOURCE"][0]
 		resElement[
 			V.INFO(name="SERVICE_PROTOCOL", value=self.ssapVersion)["SSAP"],
 			V.INFO(name="QUERY_STATUS", value=queryStatus)[
 				queryStatusBody]]
-		
+	
+		# old and stinky getData (remove at some point)
 		if service.getProperty("tablesource", None) is not None:
 			self._declareGenerationParameters(vot, res)
+		# new and shiny datalink
+		datalinkId = service.getProperty("datalink", None)
+		if datalinkId and res:
+			vot[getDatalinkMeta(self.rd.getById(datalinkId), votCtx, res)]
 
 		return "application/x-votable+xml", votable.asString(vot)
 

@@ -1292,6 +1292,30 @@ The vocabulary for the relation types (the last argument to a link
 definition's constructor) is not finalized yet.  Complain to the DaCHS
 maintainers that this sentence still is here.
 
+Such links frequently should expose some data that's not in the product
+table (e.g., because you don't want the error files to show up there).
+In such cases, a good pattern is to put a static renderer next to the
+datalink renderer and then write a meta maker like this::
+
+	<service id="d" allowed="dlget,static" defaultRenderer="dlget">
+		<property name="staticData">data/errors</property>
+
+		<datalinkCore>
+			...
+			<metaMaker>
+				<code>
+					stem = descriptor.accref.split("/")[-1].split("_")[0]
+					yield LinkDef(makeAbsoluteURL(
+						"\rdId/d/static/%s_err.fits"%stem),
+						"image/fits", "errors")
+				</code>
+			</metaMaker>
+		</datalinkCore>
+	</service>
+
+Note, however, that the static renderer does not enforce any access
+control.  That means that embargoed files must never be within the
+staticData (or they are not embargoed any more...)
 
 
 Data Functions
@@ -1482,8 +1506,74 @@ above, and so a more realistic datalink service might look like this::
 
 TODO: Custom function, return link to error file.
 
-TODO: Simple sdm/getdata service
 
+SSAP auxillary datalink
+.......................
+
+Another use for datalink cores in DaCHS is for server-side processing of
+spectra.  A typical service there looks like this::
+
+	<service id="ssaaux" allowed="dlget">
+		<meta name="title">Datalink service to retrieve individual spectra</meta>
+		<datalinkCore>
+			<descriptorGenerator procDef="//datalink#sdm_genDesc">
+				<bind name="ssaTD">"\rdId#slitspectra"</bind>
+			</descriptorGenerator>
+			<dataFunction procDef="//datalink#sdm_genData">
+				<bind name="builder">"\rdId#get_slitcomponent"</bind>
+			</dataFunction>
+			<FEED source="//datalink#sdm_plainfluxcalib"/>
+			<FEED source="//datalink#sdm_cutout"/>
+			<FEED source="//datalink#sdm_format"/>
+		</datalinkCore>
+	</service>
+
+The descriptor generator needs to know the SSA table that keeps the
+spectra.  The data function is a bit more complicated in that the sdm
+items from datalink want to deal with data items that are compliant to
+the spectral data model.  To make those, ``data`` elements are used, and
+there are helpers.  Still, it's a bit involved.  You need to define an
+instance table (the columns that are in there depend on your data; in
+the example, there's errors on the fluxes)::
+
+	<table id="instance" onDisk="False">
+		<mixin ssaTable="slitspectra"
+			spectralDescription="Wavelength"
+			fluxDescription="Flux"
+			>//ssap#sdm-instance</mixin>
+
+		<meta name="description">A spectrum from a slit spectrum obtained
+			for systems of quasars and lensing galaxies.  See 
+			ivo://org.gavo.dc/mlqso/q/q</meta>
+
+		<column name="fluxerror" unit="ADU" ucd="stat.error;phot.flux;em.opt"/>
+	</table>
+
+The flux and spectral columns are already introduced by the
+`//ssap#sdm-instance mixin`_.  What's referenced in the datalink core's
+builder data function then is a data element that builds this table.
+Here's one that fills the table from the database::
+
+	<data id="get_slitcomponent">
+		<!-- datamaker to pull spectra values out of the database -->
+		<embeddedGrammar>
+			<iterator>
+				<code>
+					obsId = self.sourceToken["accref"].split("/")[-1]
+					with base.getTableConn() as conn:
+						for row in conn.queryToDicts(
+								"SELECT lambda as spectral, flux, error as fluxerror"
+								" WHERE obsId=%(obsid)s ORDER BY lambda"):
+							yield row
+				</code>
+			</iterator>
+ 		</embeddedGrammar>
+  	<make table="instance">
+   		<parmaker>
+     		<apply procDef="//ssap#feedSSAToSDM"/>
+   		</parmaker>
+  	</make>
+	</data>
 
 
 Writing Custom Cores

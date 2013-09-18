@@ -71,31 +71,15 @@
 				to the SSA table the spectrum's PubDID can be found in."/>
 
 			<code>
-				from gavo import rsc
 				from gavo import rscdef
+				from gavo import rsc
 				from gavo import svcs
-				from gavo.protocols import datalink
-
-				class SSADescriptor(ProductDescriptor):
-					ssaRow = None
-
-					@classmethod
-					def fromSSARow(cls, ssaRow, paramDict):
-						"""returns a descriptor from a row in an ssa table and
-						the params of that table.
-						"""
-						paramDict.update(ssaRow)
-						ssaRow = paramDict
-						res = cls.fromAccref(ssaRow['accref'])
-						res.ssaRow = ssaRow
-						return res
-			
+				from gavo.protocols import ssap
 				ssaTD = base.resolveCrossId(ssaTD, rscdef.TableDef)
 			</code>
 		</setup>
 		
 		<code>
-
 			with base.getTableConn() as conn:
 				ssaTable = rsc.TableForDef(ssaTD, connection=conn)
 				matchingRows = list(ssaTable.iterQuery(ssaTable.tableDef, 
@@ -106,7 +90,7 @@
 
 				# the relevant metadata for all rows with the same PubDID should
 				# be identical, and hence we can blindly take the first result.
-				return SSADescriptor.fromSSARow(matchingRows[0],
+				return ssap.SSADescriptor.fromSSARow(matchingRows[0],
 					ssaTable.getParamDict())
 		</code>
 	</procDef>
@@ -148,7 +132,10 @@
 		<metaMaker>
 			<code>
 				supportedCalibs = set(["relative"])
-				supportedCalibs.add(descriptor.ssaRow["ssa_fluxcalib"])
+				foundCalibs = descriptor.ssaRow["ssa_fluxcalib"]
+				if isinstance(foundCalibs, basestring):
+					foundCalibs = set([foundCalibs])
+				supportedCalibs.update(foundCalibs)
 
 				yield MS(InputKey, name="FLUXCALIB", type="text",
 					multiplicity="single", 
@@ -228,8 +215,12 @@
 						"text/csv": "Comma separated values",
 						"application/fits": "FITS binary table"}
 
-				if descriptor.mime not in formatsAvailable:
-					formatsAvailable[descriptor.mime] = "Original format"
+				mimesFound = descriptor.mime
+				if isinstance(mimesFound, basestring):
+					mimesFound = set([mimesFound])
+				for mime in mimesFound:
+					if mime not in formatsAvailable:
+						formatsAvailable[mime] = "Original format"
 
 				yield MS(InputKey, name="FORMAT", type="text",
 					multiplicity="single",
@@ -545,7 +536,7 @@
 			<code>
 				if args["KIND"]=="HEADER":
 					descriptor.data = ("application/fits-header", 
-						fitstools.serializeHeader(descriptor.hdr))
+						fitstools.serializeHeader(descriptor.data[0].header))
 					raise DeliverNow()
 			</code>
 		</dataFunction>

@@ -570,9 +570,11 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 		"""
 		if pars is None:
 			pars = {}
+
 		if not isinstance(resultTableDef, rscdef.TableDef):
 			resultTableDef = base.makeStruct(rscdef.TableDef,
 				id="iterQuery", columns=resultTableDef)
+
 		query = ["SELECT "]
 		if distinct:
 			query.append("DISTINCT ")
@@ -598,7 +600,8 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 
 		resultTableDef is a TableDef with svc.OutputField columns
 		(rscdef.Column instances will do), or possibly just a list
-		of Columns, fragment is empty or an SQL where-clause with
+		of Columns or their names. Fragment is empty or an SQL 
+		where-clause with
 		dictionary placeholders, pars is the dictionary filling
 		fragment, distinct, if True, adds a distinct clause,
 		and limits, if given, is a pair of an SQL string to be

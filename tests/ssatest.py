@@ -674,6 +674,13 @@ class SSATableTest(testhelpers.VerboseTest):
 			"//TABLEDATA/TR[4]/TD[%s]"%(arrIndex))[0]
 		self.failUnless(re.match("NaN", valEl.text))
 
+	def testDatalinkResourcePresent(self):
+		_, tree = self.docAndTree
+		self.assertEqual(len(tree.xpath(
+			"//RESOURCE[@name='datalinkDescriptor']")), 1)
+		# TODO: check more properties of that guy
+
+
 class SDMRenderTest(testhelpers.VerboseTest):
 	resources = [("ssatable", tresc.ssaTestTable)]
 
