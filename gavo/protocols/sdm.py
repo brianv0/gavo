@@ -391,6 +391,13 @@ def mangle_fluxcalib(sdmTable, newCalib):
 		return sdmTable
 	fluxName = sdmTable.tableDef.getByUtype(
 		"spec:Spectrum.Data.FluxAxis.Value").name
+	try:
+		# Todo: parameterize this, make more flexible, or select on utype
+		errorName = sdmTable.tableDef.getColumnByUCD(
+			"stat.error;phot.flux;em.opt").name
+	except ValueError:
+		# no (known) error column
+		errorName = None
 
 	if newCalib=="relative":
 		# whoa!  we're changing this in place; I guess that should be
@@ -398,6 +405,11 @@ def mangle_fluxcalib(sdmTable, newCalib):
 		normalizer = float(max(row[fluxName] for row in sdmTable.rows))
 		for row in sdmTable.rows:
 			row[fluxName] = row[fluxName]/normalizer
+
+		if errorName:
+			for row in sdmTable.rows:
+				row[errorName] = row[errorName]/normalizer
+
 		sdmTable.setParam("ssa_fluxcalib", "RELATIVE")
 		return sdmTable
 		
