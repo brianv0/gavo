@@ -403,6 +403,12 @@ class MetaTest(testhelpers.VerboseTest):
 		self._assertVOTableContains(setupData, [
 			'<INFO name="legal" value="Please reference someone else"'])
 
+	def testMetaExpanded(self):
+		def setupData(data):
+			data.dd.rd.addMeta("copyright", "\\RSTccby{world}")
+		self._assertVOTableContains(setupData, [
+			'<INFO name="legal" value="world is licensed under the `Creative'])
+
 	def testSource(self):
 		def setupData(data):
 			data.getPrimaryTable().addMeta("source", "1543droc.book.....C")

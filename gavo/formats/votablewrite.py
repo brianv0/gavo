@@ -93,13 +93,14 @@ def _iterWarningInfos(dataSet):
 	for table in dataSet.tables.values():
 		for warning in table.getMeta("_warning", propagate=False, default=[]):
 			yield V.INFO(name="warning", value="In table %s: %s"%(
-				table.tableDef.id, unicode(warning)))
+				table.tableDef.id, warning.getContent("text", macroPackage=table)))
 
 
 def _iterResourceMeta(ctx, dataSet):
 	"""adds resource metadata to the Resource parent.
 	"""
-	yield V.DESCRIPTION[base.getMetaText(dataSet, "description")]
+	yield V.DESCRIPTION[base.getMetaText(dataSet, "description", 
+		macroPackage=dataSet.dd.rd)]
 	for el in  itertools.chain(
 			_iterInfoInfos(dataSet), _iterWarningInfos(dataSet)):
 		yield el
@@ -111,9 +112,11 @@ def _iterToplevelMeta(ctx, dataSet):
 	rd = dataSet.dd.rd
 	if rd is None:
 		return
-	yield V.DESCRIPTION[base.getMetaText(rd, "description")]
+	yield V.DESCRIPTION[base.getMetaText(rd, "description",
+		macroPackage=dataSet.dd.rd)]
 	for infoItem in rd.iterMeta("copyright"):
-		yield V.INFO(name="legal", value=infoItem.getContent())
+		yield V.INFO(name="legal", value=infoItem.getContent("text",
+			macroPackage=dataSet.dd.rd))
 
 
 # link elements may be defined using the votlink meta on RESOURCE, TABLE,
@@ -392,11 +395,12 @@ def makeTable(ctx, table):
 
 	result = V.TABLE(
 			name=table.tableDef.id,
-			utype=base.getMetaText(table, "utype"))[
+			utype=base.getMetaText(table, "utype", macroPackage=table.tableDef))[
 		# _iterGroups must run before _iterFields and _iterParams since it
 		# may need to add ids to the respective items.  XSD-correct ordering of 
 		# the elements is done by xmlstan.
-		V.DESCRIPTION[base.getMetaText(table, "description")],
+		V.DESCRIPTION[base.getMetaText(table, "description", 
+			macroPackage=table.tableDef)],
 		_iterGroups(table.tableDef, sm),
 		_iterFields(sm),
 		_iterTableParams(sm),

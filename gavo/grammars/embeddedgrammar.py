@@ -42,7 +42,7 @@ class EmbeddedGrammar(common.Grammar, base.RestrictionMixin):
 	      	</code>
 	    	</setup>
 	    	<code>
-	      	for i in sourceToken:
+	      	for i in self.sourceToken:
 	        	yield {'index': i, 'data': testData}
 	    	</code>
 	  	</iterator>
