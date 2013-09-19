@@ -575,8 +575,8 @@
 		<mixinPar name="creatorDID">ssa_creatorDID</mixinPar>
 		<mixinPar name="dec">lat(ssa_location)</mixinPar>
 		<mixinPar name="ra">long(ssa_location)</mixinPar>
-		<mixinPar name="emMax">ssa_specstart</mixinPar>
-		<mixinPar name="emMin">ssa_specend</mixinPar>
+		<mixinPar name="emMax">ssa_specend</mixinPar>
+		<mixinPar name="emMin">ssa_specstart</mixinPar>
 		<mixinPar name="expTime">\getParam{ssa_timeExt}{NULL}</mixinPar>
 		<mixinPar name="fov">ssa_aperture</mixinPar>
 		<mixinPar name="instrumentName">\getParam{ssa_instrument}{NULL}</mixinPar>

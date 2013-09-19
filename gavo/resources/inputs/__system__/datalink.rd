@@ -541,4 +541,28 @@
 			</code>
 		</dataFunction>
 	</STREAM>
+
+	<STREAM id="fits_standardDLFuncs">
+		<doc>
+			Pulls in all "standard" datalink functions for FITSes, including
+			cutouts and header retrieval.
+
+			You must give an stcs attribute (for fits_makeWCSParams) and/or an
+			accrefStart attribute (for fits_genDesc).  Both can be empty,
+			if you don't know them.
+
+			Do *not* add quotes to them, even though the proc parameters
+			have them; the STREAM already puts in single quotes.
+		</doc>
+		<descriptorGenerator procDef="//datalink#fits_genDesc">
+		  <bind key="accrefStart">'\accrefStart'</bind>
+		</descriptorGenerator>
+		<metaMaker procDef="//datalink#fits_makeWCSParams">
+      <bind key="stcs">'\stcs'</bind>
+		  </metaMaker>
+		<dataFunction procDef="//datalink#fits_makeHDUList"/>
+		<dataFunction procDef="//datalink#fits_doWCSCutout"/>
+		<FEED source="//datalink#fits_genKindPar"/>
+		<dataFormatter procDef="//datalink#fits_formatHDUs"/>
+	</STREAM>
 </resource>
