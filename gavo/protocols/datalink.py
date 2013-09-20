@@ -332,7 +332,7 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 						V.FIELD(name="contentType", datatype="char", arraysize="*"),
 						V.FIELD(name="relationType", datatype="char", arraysize="*")],
 					[l.asRow() for l in self.datalinkLinks],
-					V.BINARY)]
+					V.TABLEDATA)]
 
 
 class DatalinkCore(DatalinkCoreBase):
@@ -424,7 +424,7 @@ class DatalinkCore(DatalinkCoreBase):
 		This will always return a rendered VOTable.
 		"""
 
-		ctx = votablewrite.VOTableContext()
+		ctx = votablewrite.VOTableContext(tablecoding="td")
 		vot = V.VOTABLE[
 				self.getDatalinkDescriptionResource(ctx, service)]
 		return ("application/x-votable+xml", vot.render())

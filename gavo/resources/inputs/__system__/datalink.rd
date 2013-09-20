@@ -272,7 +272,8 @@
 					descriptor = ProductDescriptor.fromAccref(accref)
 					with open(os.path.join(base.getConfig("inputsDir"), 
 							descriptor.accessPath)) as f:
-						descriptor.hdr = utils.readPrimaryHeaderQuick(f)
+						descriptor.hdr = utils.readPrimaryHeaderQuick(f,
+							maxHeaderBlocks=100)
 					return descriptor
 				
 				from gavo.svcs import ForbiddenURI, UnknownURI
