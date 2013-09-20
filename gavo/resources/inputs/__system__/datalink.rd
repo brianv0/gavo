@@ -419,11 +419,17 @@
 
 			This wants a descriptor as returned by fits_genDesc.
 		</doc>
+		<setup>
+			<par key="crop" description="Cut away everything but the
+				primary HDU?">True</par>
+		</setup>
 		<code>
 			from gavo.utils import pyfits
 
 			descriptor.data = pyfits.open(os.path.join(
 				base.getConfig("inputsDir"), descriptor.accessPath))
+			if crop:
+				descriptor.data = pyfits.HDUList([descriptor.data[0]])
 		</code>
 	</procDef>
 
