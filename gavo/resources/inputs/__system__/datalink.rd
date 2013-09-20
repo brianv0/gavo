@@ -561,15 +561,15 @@
 			Do *not* add quotes to them, even though the proc parameters
 			have them; the STREAM already puts in single quotes.
 		</doc>
-		<descriptorGenerator procDef="//datalink#fits_genDesc">
+		<descriptorGenerator procDef="//datalink#fits_genDesc" name="genFITSDesc">
 		  <bind key="accrefStart">'\accrefStart'</bind>
 		</descriptorGenerator>
-		<metaMaker procDef="//datalink#fits_makeWCSParams">
+		<metaMaker procDef="//datalink#fits_makeWCSParams" name="getWCSParams">
       <bind key="stcs">'\stcs'</bind>
-		  </metaMaker>
-		<dataFunction procDef="//datalink#fits_makeHDUList"/>
-		<dataFunction procDef="//datalink#fits_doWCSCutout"/>
+		 </metaMaker>
+		<dataFunction procDef="//datalink#fits_makeHDUList" name="makeHDUList"/>
+		<dataFunction procDef="//datalink#fits_doWCSCutout" name="doWCSCutout"/>
 		<FEED source="//datalink#fits_genKindPar"/>
-		<dataFormatter procDef="//datalink#fits_formatHDUs"/>
+		<dataFormatter procDef="//datalink#fits_formatHDUs" name="formatHDUs"/>
 	</STREAM>
 </resource>

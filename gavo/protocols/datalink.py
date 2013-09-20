@@ -280,7 +280,7 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 		is in descriptor.
 		"""
 		linkDefs, inputKeys = [], self.inputKeys[:]
-		
+	
 		for metaMaker in self.metaMakers:
 			for item in metaMaker.compile(self)(descriptor):
 				if isinstance(item, LinkDef):

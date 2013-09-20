@@ -131,7 +131,11 @@ mixins, there are predefined procedures (both rowmaker applys and
 grammar rowfilters) that should be used in grammars and/or rowmakers
 feeding the tables mixing in a given mixin.
 
-.. replaceWithResult getMixinDocs(docStructure)
+.. replaceWithResult getMixinDocs(docStructure, [
+  "//products#table", "//scs#positions", "//scs#q3cindex",
+	"//siap#bbox", "//siap#pgs", "//ssap#hcd", "//obscore#publish",
+	"//obscore#publishSIAP", "//ssap#sdm-instance", "//ssap#mixc",
+	"//obscore#publishSSAPHCD"])
 
 
 Triggers
@@ -1367,7 +1371,7 @@ containing a spectral data model-compliant structure, is in
     </code>
   </dataFunction>
 
-More on this will be discussed in our secion on ``getData`` support.
+More on this will be discussed in our secion on SDM support.
 
 Filtering data functions should always come with a corresponding
 metaMaker.  As an example, continuing the spectral cutout example above,
@@ -1469,11 +1473,13 @@ FITS cutout service
 A plain FITS cutout service is assembled like this::
 
   <service id="dl">
+    <meta name="title">Generic FITS datalink service</meta>
 		<datalinkCore>
 			<descriptorGenerator procDef="//datalink#fits_genDesc"/>
 			<metaMaker procDef="//datalink#fits_makeWCSParams"/>
 			<dataFunction procDef="//datalink#fits_makeHDUList"/>
 			<dataFunction procDef="//datalink#fits_doWCSCutout"/>
+			<FEED source="//datalink#fits_genKindPar"/>
 			<dataFormatter procDef="//datalink#fits_formatHDUs"/>
 		</datalinkCore>
 	</service>
@@ -1488,6 +1494,7 @@ directories accordingly and then filter early by using fits_getDesc's
 above, and so a more realistic datalink service might look like this::
 
   <service id="dl">
+    <meta name="title">Datalink service for califa cubes</meta>
 		<datalinkCore>
 			<descriptorGenerator procDef="//datalink#fits_genDesc">
 			  <bind key="accrefStart">califa/data/cubes"</bind>
@@ -1500,9 +1507,26 @@ above, and so a more realistic datalink service might look like this::
 			  </metaMaker>
 			<dataFunction procDef="//datalink#fits_makeHDUList"/>
 			<dataFunction procDef="//datalink#fits_doWCSCutout"/>
+			<FEED source="//datalink#fits_genKindPar"/>
 			<dataFormatter procDef="//datalink#fits_formatHDUs"/>
 		</datalinkCore>
 	</service>
+
+All of this (and potentially more as we expand the manipulation options)
+is included with the `//datalink#fits_standardDLFuncs`_ mixin; the above
+specification then boils down to::
+
+  <service id="dl">
+    <meta name="title">Shortened FITS datalink service.</meta>
+		<datalinkCore>
+		  <FEED source="//datalink#fits_standardDLFuncs"
+		    stcs='PositionInterval ICRS "RA_MIN" "DEC_MIN" "RA_MAX" 
+		      "DEC_MAX"\n
+					  SpectralInterval TOPOCENTER "WAVELEN_1_MIN" "WAVELEN_1_MAX"'
+				accrefStart="califa/data/cubes"/>
+		</datalinkCore>
+	</service>
+
 
 TODO: Custom function, return link to error file.
 

@@ -19,11 +19,6 @@ from gavo import utils
 from gavo.base import structure
 
 
-PUBLIC_MIXINS = ["//products#table", "//scs#positions", "//scs#q3cindex",
-	"//siap#bbox", "//siap#pgs", "//ssap#hcd", "//obscore#publish",
-	"//obscore#publishSIAP", "//ssap#sdm-instance", "//ssap#mixc",
-	"//obscore#publishSSAPHCD"]
-
 PUBLIC_APPLYS = ["//procs#simpleSelect", "//procs#resolveObject",
 	"//procs#mapValue", "//procs#fullQuery", "//siap#computePGS",
 	"//siap#computeBbox", "//siap#setMeta", "//ssap#setMeta",
@@ -335,9 +330,9 @@ def _documentParameters(content, pars):
 	content.makeSpace()
 
 
-def getMixinDocs(docStructure):
+def getMixinDocs(docStructure, mixinIds):
 	content = RSTFragment()
-	for name in sorted(PUBLIC_MIXINS):
+	for name in sorted(mixinIds):
 		mixin = base.resolveId(None, name)
 		content.addHead1("The %s Mixin"%name)
 		if mixin.doc is None:
@@ -471,7 +466,9 @@ def makeReferenceDocs():
 
 
 def main():
-	print makeReferenceDocs().replace("\\", "\\\\").encode("utf-8")
+	print makeReferenceDocs().replace("\\", "\\\\"
+		).replace("\t", "  "
+		).encode("utf-8")
 
 
 if __name__=="__main__":

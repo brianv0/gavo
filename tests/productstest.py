@@ -479,7 +479,7 @@ class DatalinkMetaMakerTest(testhelpers.VerboseTest):
 			tree.xpath("//PARAM[@utype='datalink:accessURL']")[0].get("value"),
 			"http://localhost:8080/data/test/foo/dlget")
 
-
+	
 class DatalinkFITSTest(testhelpers.VerboseTest):
 	resources = [("fitsTable", _fitsTable)]
 
