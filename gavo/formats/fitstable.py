@@ -140,6 +140,12 @@ def writeFITSTableFile(hdulist):
 	hdulist.
 	"""
 	handle, pathname = tempfile.mkstemp(".fits", dir=base.getConfig("tempDir"))
+
+	# if there's more than the primary HDU, EXTEND=True is mandatory; let's
+	# be defensive here
+	if len(hdulist)>1:
+		hdulist[0].header.update("EXTEND", True, "More exts following")
+
 	with utils.silence():
 		hdulist.writeto(pathname, clobber=1)
 	os.close(handle)
