@@ -319,14 +319,21 @@ class RowIterator(object):
 			rowSource = self._filteredIter(baseIter)
 		else:
 			rowSource = baseIter
+
 		try:
 			for row in rowSource:
 				if self.sourceRow:
 					row.update(self.sourceRow)
 				yield row
+		except GeneratorExit:
+			# user import limit was hit.
+			if self.notify:
+				base.ui.notifyWarning("Source hit import limit, import aborted.")
+
 		except:
 			base.ui.notifySourceError()
 			raise
+
 		if self.notify:
 			base.ui.notifySourceFinished()
 
