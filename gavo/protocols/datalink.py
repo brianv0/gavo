@@ -313,33 +313,71 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 			colRef.toParam = True
 			return ctx.makeIdFor(paramsByName[colRef.dest])
 
+# TODO: Properly support VO-DML and make all this generated from a more
+# abstract representation.
 		return V.RESOURCE(name="datalinkDescriptor")[
+			[modelgroups.marshal_STC(ast, getIdFor)
+				for ast in stcSpecs],
+			[votablewrite._addID(ik,
+					votablewrite.makeFieldFromColumn(V.PARAM, ik), ctx)
+				for ik in self.inputTable.params],
 
-				[modelgroups.marshal_STC(ast, getIdFor)
-					for ast in stcSpecs],
+			V.GROUP(utype="vo-dml:Model", name="DatalinkDM")[
+    		V.PARAM(utype="vo-dml:Model.url", name="url", 
+    			datatype="char", arraysize="*", 
+    			value="https://volute.googlecode.com/svn/trunk"
+    				"/projects/dm/vo-dml/models/datalink/DatalinkDM.vo-dml.xml"),
+    		V.PARAM(utype="vo-dml:Model.name", value="dl", name="name",
+    			datatype="char", arraysize="*")],
+  		V.GROUP(utype="vo-dml:Model", name="IVOA")[
+		    V.PARAM(utype="vo-dml:Model.url", name="url", datatype="char",
+		    	arraysize="*", value="https://volute.googlecode.com/svn"
+		    		"/trunk/projects/dm/vo-dml/models/ivoa/IVOA.vo-dml.xml"),
+    		V.PARAM(utype="vo-dml:Model.name", value="ivoa", name="name",
+    			datatype="char", arraysize="*")],
 
-				V.GROUP(utype="datalink:service")[
-					V.PARAM(name="serviceAccessURL", utype="datalink:accessURL",
-						datatype="char", arraysize="*", 
-						value=service.getURL("dlget"))[
-							V.DESCRIPTION["Access URL for this service"]],
-					[votablewrite._addID(ik,
-							votablewrite.makeFieldFromColumn(V.PARAM, ik), ctx)
-						for ik in self.inputTable.params]],
-				votable.DelayedTable(
-					V.TABLE(name="relatedData") [
-						V.FIELD(name="url", datatype="char", arraysize="*"),
-						V.FIELD(name="contentType", datatype="char", arraysize="*"),
-						V.FIELD(name="relationType", datatype="char", arraysize="*")],
-					[l.asRow() for l in self.datalinkLinks],
-					V.TABLEDATA)]
+			V.GROUP(utype="vo-dml:ObjectType.instance", ID="_dl")[
+				V.PARAM(utype="vo-dml:Instance.type", value="dl:Datalink",
+					name="datalink", datatype="char", arraysize="*"),
+				V.GROUP(utype="dl:Datalink.relatedResource", ref="_rr")[
+					V.GROUP(utype="dl:Datalink.service")[
+						V.GROUP(utype="vo-dml:Collection.item") [
+							V.PARAM(utype="vo-dml:Instance.type", value="dl:Service",
+								name="vodml-type", datatype="char", arraysize="*"),
+							V.PARAM(arraysize="*", datatype="char", 
+								name="serviceAccessURL", utype="dl:Service.accessURL",
+									value=service.getURL("dlget")),
+							V.PARAM(utype="dl:Service.description", 
+								value=base.getMetaText(service, "description"), 
+								name="description",
+								datatype="char", arraysize="*")]]]],
+
+			V.GROUP(utype="vo-dml:ObjectType.instance", ID="_rr") [
+				V.PARAM(utype="vo-dml:Instance.type", value="dl:RelatedResource",
+					name="vodml-type", datatype="char", arraysize="*"),
+      	V.GROUP(utype="vo-dml:ObjectType.container", ref="_dl"),
+      	V.FIELDref(utype="dl:RelatedResource.url", ref="_urlField"),
+      	V.FIELDref(utype="dl:RelatedResource.contentType",
+	      	ref="_contentTypeField"),
+      	V.FIELDref(utype="dl:RelatedResource.relationType", ref="_rtField")],
+
+			votable.DelayedTable(
+				V.TABLE(name="relatedData") [
+					V.FIELD(name="url", datatype="char", arraysize="*",
+						ID="_urlField"),
+					V.FIELD(name="contentType", datatype="char", arraysize="*",
+						ID="_contentTypeField"),
+					V.FIELD(name="relationType", datatype="char", arraysize="*",
+						ID="_rtField")],
+				[l.asRow() for l in self.datalinkLinks],
+				V.TABLEDATA)]
 
 
 class DatalinkCore(DatalinkCoreBase):
 	"""A core for processing datalink and processed data requests.
 
-	You almost certainly do not want to override the input table of this 
-	core.
+	The input table of this core is dynamically generated from its
+	metaMakers; it makes no sense at all to try and override it.
 
 	See `Datalink Cores`_ for more information.
 

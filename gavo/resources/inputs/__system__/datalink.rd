@@ -355,17 +355,18 @@
 					footprint = descriptor.skyWCS.calcFootprint(descriptor.hdr)
 					wcsprm = descriptor.skyWCS.wcs
 
-					for name, colInd, description, cutoutName in [
+					# FIXME: UCD inference!
+					for name, colInd, description, baseUCD, cutoutName in [
 						(wcsprm.lattyp.strip(), wcsprm.lat, "The latitude coordinate",
-							"WCSLAT"),
+							"pos.eq.dec", "WCSLAT"),
 						(wcsprm.lngtyp.strip(), wcsprm.lng, "The longitude coordinate",
-							"WCSLONG")]:
+							"pos.eq.ra", "WCSLONG")]:
 						if name:
 							vertexCoos = footprint[:,colInd]
 							for ik in genLimitKeys(MS(InputKey, name=name,
 									unit="deg", stc=parSTC,
 									description=description,
-									ucd=None, multiplicity="single",
+									ucd=baseUCD, multiplicity="single",
 									values=MS(Values, min=min(vertexCoos), max=max(vertexCoos)))):
 								yield ik
 							descriptor.axisNames[name] = cutoutName
@@ -386,6 +387,7 @@
 						descriptor.axisNames[ax.name] = fitsAxis
 						minPhys, maxPhys = ax.getLimits()
 
+						# FIXME: ucd inference
 						for ik in genLimitKeys(MS(InputKey, name=ax.name,
 								unit=ax.cunit, stc=parSTC,
 								description="Coordinate along axis number %s"%fitsAxis,

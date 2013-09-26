@@ -327,10 +327,10 @@ def genLimitKeys(inputKey):
 	description = inputKey.description
 
 	yield inputKey.change(name=name+"_MIN", 
-		ucd=ucd and "stat.min;"+ucd,
+		ucd=ucd and "par.min;"+ucd,
 		description=description.rstrip(".")+", lower limit")
 	yield inputKey.change(name=name+"_MAX", 
-		ucd=ucd and "stat.max;"+ucd,
+		ucd=ucd and "par.max;"+ucd,
 		description=description.rstrip(".")+", upper limit")
 
 

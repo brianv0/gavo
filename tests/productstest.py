@@ -406,6 +406,9 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 
 class _MetaMakerTestData(testhelpers.TestResource):
 # test data for datalink metadata generation 
+	resources = [
+		("prodtestTable", tresc.prodtestTable)]
+
 	def make(self, dependents):
 		svc = base.parseFromString(svcs.Service, """<service id="foo">
 			<datalinkCore>
@@ -476,7 +479,7 @@ class DatalinkMetaMakerTest(testhelpers.VerboseTest):
 	def testAccessURLPresent(self):
 		tree = self.serviceResult[1]
 		self.assertEqual(
-			tree.xpath("//PARAM[@utype='datalink:accessURL']")[0].get("value"),
+			tree.xpath("//PARAM[@utype='dl:Service.accessURL']")[0].get("value"),
 			"http://localhost:8080/data/test/foo/dlget")
 
 	
