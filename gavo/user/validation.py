@@ -152,7 +152,7 @@ def validateTables(rd, args):
 				outputError(rd.sourceId, "Bad unit in table %s, column %s: %s"%(
 					td.getQName(), col.name, col.unit))
 
-		return valid
+	return valid
 
 
 def validateOne(rdId, args):
@@ -203,3 +203,5 @@ def main():
 			sys.stdout.flush()
 			if validateOne(rd, args):
 				print "OK"
+			else:
+				print "Fail"
