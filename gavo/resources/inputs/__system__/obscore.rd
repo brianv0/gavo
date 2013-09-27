@@ -293,7 +293,8 @@
 	script to all makes running on obscore#published tables. -->
 	<script id="addTableToObscoreSources" name="addTableToObscore"
 			lang="python" type="postCreation">
-		obscoreClause = table.tableDef.getProperty("obscoreClause")
+		obscoreClause = table.tableDef.expand(
+			table.tableDef.getProperty("obscoreClause"))
 
 		# fix a couple of fields as needed
 		for srcRE, replacement in [

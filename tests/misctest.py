@@ -410,6 +410,7 @@ class TestGroupsMembership(testhelpers.VerboseTest):
 
 _obscoreRDTrunk = """<resource schema="test" resdir="data">
 			<table id="glob" onDisk="True" mixin="//products#table">
+				<param name="foo" type="text">replaced</param>
 				<mixin %s>//obscore#publish</mixin>
 			</table>
 			<data id="import">
@@ -468,8 +469,9 @@ class _ObscorePublishedTable(testhelpers.TestResource):
 		conn = dependents["conn"]
 		from gavo import rsc
 		dd = base.parseFromString(rscdesc.RD, 
-			_obscoreRDTrunk%'productType="\'image\'" '
-			'collectionName="\'testing detritus\'"').getById("import")
+			_obscoreRDTrunk%'productType="\'image\'"'
+			' collectionName="\'testing detritus\'"'
+			' creatorDID="\'\\getParam{foo}\'"').getById("import")
 		dd.rd.sourceId = "__testing__"
 		d =  rsc.makeData(dd, forceSource=[{"accref": "foo/bar"}],
 			connection=conn)
@@ -522,6 +524,14 @@ class ObscorePublishedTest(testhelpers.VerboseTest):
 			" obs_collection='testing detritus'")
 		self.failUnless('<TD>http://localhost:8080/getproduct?key=foo/bar</TD>'
 			in votablewrite.getAsVOTable(res, tablecoding="td"))
+
+	def testMacroIsExpanded(self):
+		from gavo import rsc
+		res = list(
+			self.data.tables["glob"].connection.queryToDicts(
+				"select obs_creator_did from ivoa.obscore"
+				" where obs_publisher_did='ivo://x-unregistred/getproduct#foo/bar'"))
+		self.assertEqual(res, [{'obs_creator_did': u'replaced'}])
 
 
 class _ModifiedObscoreTables(testhelpers.TestResource):
