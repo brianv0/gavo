@@ -196,7 +196,7 @@ def declaredel(querier, args):
 	resTable.addRow(newRow)
 
 
-@exposedFunction([Arg(help="rd#table-id for the table containing the"
+@exposedFunction([Arg(help="rd#table-id of the table containing the"
 	" products that should get cached previews", dest="tableId"),
 	Arg("-w", type=str,
 		help="width to compute the preview for", dest="width", default="200"),],
@@ -237,6 +237,33 @@ def cacheprev(querier, args):
 	reactor.callLater(0, runNext, "startup")
 	reactor.run()
 
+
+@exposedFunction([Arg(help="rd#table-id of the table to look at",
+	dest="tableId")],
+	help="Make suggestions for UCDs of columns not having one (based"
+	" on their descriptions; this uses a GAVO web service).")
+def suggestucds(querier, args):
+	from gavo import api
+	import SOAPpy
+	import urllib
+	
+	wsdlURL = "http://dc.zah.uni-heidelberg.de/ucds/ui/ui/soap/go/go?wsdl"
+	proxy = SOAPpy.WSDL.Proxy(urllib.urlopen(wsdlURL).read())
+	td = base.resolveId(None, args.tableId)
+	for col in td:
+		if (not col.ucd or col.ucd=="XXX") and col.description:
+			try:
+				res = [(row["score"], row["ucd"]) 
+					for row in proxy.useService(col.description)]
+				res.sort()
+				res.reverse()
+				print col.name
+				for score, ucd in res:
+					print "  ", ucd
+			except SOAPpy.Types.faultType:
+				# remote failure, guess it's "no matches" (TODO: distinguish)
+				pass
+			
 
 @exposedFunction([Arg(help="rd#table-id of the table of interest", 
 	dest="tableId")],
