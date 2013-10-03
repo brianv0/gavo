@@ -44,6 +44,10 @@ class QPRenderer(grend.HTMLResultRenderMixin,
 
 	QPRenderers cannot do forms, of course, but they can nicely share a
 	service with the form renderer.
+
+	To adjust the results' appreance, you can override resultline (for when
+	there's just one result row) and resulttable (for when there is more
+	than one result row) templates.
 	"""
 	name = "qp"
 	queryValue = None

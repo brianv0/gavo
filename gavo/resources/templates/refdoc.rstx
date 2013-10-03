@@ -661,7 +661,11 @@ type
     force formatting of this column as a time (usually for RA).
 
   url
-    makes value a link in HTML tables.
+    makes value a link in HTML tables.  The anchor text will be the last
+    element of the path part of the URL, or, if given, the value of the
+    anchorText property of the column (which is for cases when you want
+    a constant text like "Details").  If you need more control over the
+    anchor text, use an outputField with a formatter.
 
   imageURL
     makes value the src of an image.  Add width to force a certain

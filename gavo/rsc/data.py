@@ -350,7 +350,7 @@ def _pipeRows(srcIter, feeder, opts):
 
 		feeder.add(srcRow)
 		if opts.maxRows:
-			if base.ui.totalRead>opts.maxRows:
+			if base.ui.totalRead>=opts.maxRows:
 				raise _EnoughRows
 
 

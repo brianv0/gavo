@@ -327,9 +327,19 @@ _registerHTMLMF(_imageURLMapperFactory)
 def _urlMapperFactory(colDesc):
 	if colDesc["displayHint"].get("type")!="url":
 		return
+
+	anchorText = colDesc.original.getProperty("anchorText", None)
+	if anchorText:
+		def makeAnchor(data):
+			return anchorText
+	else:
+		def makeAnchor(data):
+			return urllib.unquote(
+				urlparse.urlparse(data)[2].split("/")[-1])
+
 	def coder(data):
 		if data:
-			return T.a(href=data)[urlparse.urlparse(data)[2].split("/")[-1]]
+			return T.a(href=data)[makeAnchor(data)]
 		return ""
 	return coder
 _registerHTMLMF(_urlMapperFactory)
