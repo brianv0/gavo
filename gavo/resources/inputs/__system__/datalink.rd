@@ -525,6 +525,9 @@
 	</procDef>
 
 	<STREAM id="fits_genKindPar">
+		<doc>This stream should be included in FITS-handling datalink services;
+		it adds parameter and code to just retrieve the FITS header to the
+		core.</doc>
 		<metaMaker name="genKindPar">
 			<code>
 				yield MS(InputKey, name="KIND", type="text",

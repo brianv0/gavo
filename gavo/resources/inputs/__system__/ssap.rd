@@ -712,6 +712,9 @@
 	</procDef>
 
 	<STREAM id="hcd_condDescs">
+		<doc>
+			The full condDescs for matching HCD SSA services.
+		</doc>
 		<condDesc id="coneCond" combining="True">
 			<!-- condCond is combining to let the client specify SIZE but
 			not POS (as splat does); pql#coneParameter can handle that. -->
@@ -982,8 +985,7 @@
 			spectral column"
 				>The independent variable of this spectrum (see its ucd to figure out whether it's a wavelength, frequency, or energy)</mixinPar>
 		<mixinPar key="fluxDescription" description="Description
-			for the flux column">The dependent variable of this spectrum (see the ucd
-			for its physical meaning)</mixinPar> 
+			for the flux column">The dependent variable of this spectrum (see the ucd for its physical meaning)</mixinPar> 
 		<events>
 			<FEED source="makeSpecGroup" 
 				groupUtype="spec:Spectrum.Target"

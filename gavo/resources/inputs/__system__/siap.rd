@@ -291,7 +291,7 @@
 
 			Unless you are sure you will never publish the table to
 			obscore, make sure bandpassUnit is m.  Also, typically you
-			will fill in bandpassId and then let the getBandpassFromFilter
+			will fill in bandpassId and then let the //siap#getBandFromFilter
 			apply do the job.
 
 			Do *not* use ``idmaps="*"`` when using this procDef; it writes

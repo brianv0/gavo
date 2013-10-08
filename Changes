@@ -1,3 +1,12 @@
+Version 0.9
+
+  * Added support for Datalink for both cutout-like jobs and as a 
+    replacement for the tentative getData proposal.  See the reference
+    documentation for how to migrate from getData to Datalink.
+
+  * No longer using sesame's SOAP interface (that's going to be shut down
+    fairly soon)
+
 Version 0.8.9 (2013-07-13)
 
 	* We now officially require postgres >9.0.  If this hurts you, tell

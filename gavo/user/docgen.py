@@ -19,14 +19,6 @@ from gavo import utils
 from gavo.base import structure
 
 
-PUBLIC_APPLYS = ["//procs#simpleSelect", "//procs#resolveObject",
-	"//procs#mapValue", "//procs#fullQuery", "//siap#computePGS",
-	"//siap#computeBbox", "//siap#setMeta", "//ssap#setMeta",
-	"//siap#getBandFromFilter", "//ssap#setMixcMeta"]
-
-PUBLIC_ROWFILTERS = ["//procs#expandComma", "//procs#expandDates",
-	"//products#define", "//procs#expandIntegers"]
-
 
 def _indent(stuff, indent):
 	return re.sub("(?m)^", indent, stuff)
@@ -392,9 +384,17 @@ def _makeProcsDocumenter(idList):
 	return buildDocs
 
 
-makeRmkProcDocs = _makeProcsDocumenter(PUBLIC_APPLYS)
-makeRowfilterDocs = _makeProcsDocumenter(PUBLIC_ROWFILTERS)
-
+def getStreamsDoc(idList):
+	content = RSTFragment()
+	for id in idList:
+		stream = base.resolveId(None, id)
+		content.addHead2(id)
+		if stream.doc is None:
+			raise base.ReportableError("Stream %s has no doc -- don't include in"
+				" reference documentation."%id)
+		content.addNormalizedPara(stream.doc)
+		content.makeSpace()
+	return content.content
 
 
 def getMetaTypeDocs():

@@ -181,13 +181,21 @@ Predefined Procedures
 Procedures available for rowmaker apply
 '''''''''''''''''''''''''''''''''''''''
 
-.. replaceWithResult makeRmkProcDocs(docStructure)
+.. replaceWithResult _makeProcsDocumenter([
+    "//procs#simpleSelect", "//procs#resolveObject",
+  	"//procs#mapValue", "//procs#fullQuery", "//siap#computePGS",
+  	"//siap#computeBbox", "//siap#setMeta", "//ssap#setMeta",
+  	"//siap#getBandFromFilter", "//ssap#setMixcMeta",
+    ])(docStructure)
 
 
 Procedures available for grammar rowfilters
 '''''''''''''''''''''''''''''''''''''''''''
 
-.. replaceWithResult makeRowfilterDocs(docStructure)
+.. replaceWithResult _makeProcsDocumenter([
+    "//procs#expandComma", "//procs#expandDates",
+	  "//products#define", "//procs#expandIntegers",
+    ])(docStructure)
 
 
 Procedures available for datalink cores
@@ -206,6 +214,30 @@ Procedures available for datalink cores
     "fits_formatHDUs",
     ])(docStructure)
 
+
+Predefined Streams
+==================
+
+Streams are recorded RD elements that can be replayed into resource
+descriptors using the ``FEED`` active tag.  They do, however, support
+macro expansion; if macros are expanded, you need to given them values
+in the FEED element (as attributes).  What attributes are required
+should be mentioned in the following descriptions for those predefined
+streams within DaCHS that are intended for developer consumption.
+
+Datalink-related Streams
+''''''''''''''''''''''''
+
+.. replaceWithResult getStreamsDoc(
+    ['//datalink#'+id for id in ["sdm_plainfluxcalib", "sdm_cutout",
+      "sdm_format", "fits_genKindPar", "fits_standardDLFuncs"]])
+
+Other Streams
+'''''''''''''
+
+.. replaceWithResult getStreamsDoc(
+    ['//obscore#obscore-columns']
+    +['//ssap#'+id for id in ["hcd_condDescs"]])
 
 
 Metadata
@@ -1517,7 +1549,7 @@ above, and so a more realistic datalink service might look like this::
 	</service>
 
 All of this (and potentially more as we expand the manipulation options)
-is included with the `//datalink#fits_standardDLFuncs`_ mixin; the above
+is included with the `//datalink#fits_standardDLFuncs`_ STREAM; the above
 specification then boils down to::
 
   <service id="dl">

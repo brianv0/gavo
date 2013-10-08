@@ -5,6 +5,14 @@
 
 	
 	<STREAM id="obscore-columns">
+		<doc>
+			The columns of a (standard) obscore table.  This can be used
+			to define a "native" obscore table (as opposed to the more usual
+			mixins below that expose standard products via obscore.
+
+			Even if you are sure you want to do this, better ask again...
+		</doc>
+
 		<column name="dataproduct_type" type="text"
 			utype="obscore:obs.dataproducttype" ucd="meta.id"
 			description="High level scientific classification of the data product,
