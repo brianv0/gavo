@@ -1556,13 +1556,26 @@ spectra.  A typical service there looks like this::
 		</datalinkCore>
 	</service>
 
-The descriptor generator needs to know the SSA table that keeps the
-spectra.  The data function is a bit more complicated in that the sdm
-items from datalink want to deal with data items that are compliant to
-the spectral data model.  To make those, ``data`` elements are used, and
-there are helpers.  Still, it's a bit involved.  You need to define an
-instance table (the columns that are in there depend on your data; in
-the example, there's errors on the fluxes)::
+For SDM processing, the descriptor contains the SSA row, and thus
+the descriptor generator needs to know the SSA table that keeps the
+spectra to be processed.  It is here identified using a full reference
+(i.e., including the RD id) to the table definition, in the ssaTD
+parameter of ``sdm_genData``; this must of course match whatever is the
+``queriedTable`` of the core of the SSA service that refers to this
+datalink service. 
+
+The ``sdm_genData`` data function should again cover most uses of this.
+Its parameter, however, is somewhat more involved.  The data attribute
+of SDM descriptors contains SDM compliant data items, which need to be
+created using appropriate RD ``data`` elements.  Such a ``data`` element
+needs to be referenced in the ``builder`` parameter of ``sdm_genData``,
+again including the RD in the reference.
+
+To define this ``builder``, you first need to define an instance table.
+The columns that are in there depend on your data.  In the simplest
+case, the ``//ssap#sdm-instance`` mixin is sufficient and bring columns
+name ``flux`` and ``spectral``. Here's how you'd add flux errors if you
+needed to::
 
 	<table id="instance" onDisk="False">
 		<mixin ssaTable="slitspectra"
@@ -1577,10 +1590,9 @@ the example, there's errors on the fluxes)::
 		<column name="fluxerror" unit="ADU" ucd="stat.error;phot.flux;em.opt"/>
 	</table>
 
-The flux and spectral columns are already introduced by the
-`//ssap#sdm-instance mixin`_.  What's referenced in the datalink core's
-builder data function then is a data element that builds this table.
-Here's one that fills the table from the database::
+What's referenced in the datalink core's builder data function then is a
+``data`` element that builds this table.  Here's one that fills the table
+from the database::
 
 	<data id="get_slitcomponent">
 		<!-- datamaker to pull spectra values out of the database -->
@@ -1602,6 +1614,11 @@ Here's one that fills the table from the database::
    		</parmaker>
   	</make>
 	</data>
+
+The ``parmaker`` with the ``//ssap#feedSSAToSDM`` call is generic.  You
+will in general have to write custom code for the embedded grammar; just
+yield rows matching the instance table.
+
 
 
 Writing Custom Cores
