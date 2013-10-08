@@ -189,7 +189,7 @@ def _makeArgsForListMetadataFormats(pars):
 	return ()
 
 
-def _addTemporalCondition(parVal, operator, sqlFrags, sqlPars):
+def _addTemporalCondition(parVal, operator, sqlFrags, sqlPars, parName):
 	"""generates a temporal condition for recTimestamp and operator out of 
 	parVal.
 
@@ -201,11 +201,12 @@ def _addTemporalCondition(parVal, operator, sqlFrags, sqlPars):
 		return
 
 	elif utils.datetimeRE.match(parVal) or utils.dateRE.match(parVal):
-		sqlFrags.append("recTimestamp >= %%(%s)s"%base.getSQLKey(
-			"temporal", parVal, sqlPars))
+		sqlFrags.append("recTimestamp %s %%(%s)s"%(
+			operator,
+			base.getSQLKey("temporal", parVal, sqlPars)))
 
 	else:
-		raise BadArgument("from")
+		raise BadArgument(parName)
 
 
 def _parseOAIPars(pars):
@@ -213,8 +214,8 @@ def _parseOAIPars(pars):
 	services#services according to OAI.
 	"""
 	sqlPars, sqlFrags = {}, []
-	_addTemporalCondition(pars.get("from"), ">=", sqlFrags, sqlPars)
-	_addTemporalCondition(pars.get("until"), "<=", sqlFrags, sqlPars)
+	_addTemporalCondition(pars.get("from"), ">=", sqlFrags, sqlPars, "from")
+	_addTemporalCondition(pars.get("until"), "<=", sqlFrags, sqlPars, "until")
 
 	return " AND ".join(sqlFrags), sqlPars
 
