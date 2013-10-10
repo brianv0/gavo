@@ -596,6 +596,22 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 		self.assertEqual(mime, "application/fits-header")
 		self.assertEqual(len(data), 2880)
 
+	def testCutoutHeader(self):
+		svc = base.parseFromString(svcs.Service, """<service id="foo">
+			<datalinkCore>
+				<descriptorGenerator procDef="//datalink#fits_genDesc"/>
+				<metaMaker procDef="//datalink#fits_makeWCSParams"/>
+				<dataFunction procDef="//datalink#fits_makeHDUList"/>
+				<dataFunction procDef="//datalink#fits_doWCSCutout"/>
+				<FEED source="//datalink#fits_genKindPar"/>
+			</datalinkCore></service>""")
+		mime, data = svc.run("dlget", {
+			"PUBDID": rscdef.getStandardPubDID("data/excube.fits"),
+				"COO_3_MIN": "3753",
+			"KIND": "HEADER",}).original
+		self.assertEqual(mime, "application/fits-header")
+		self.failUnless("NAXIS3  =                    2" in data)
+
 
 class DatalinkSTCTest(testhelpers.VerboseTest):
 	resources = [("fitsTable", _fitsTable)]

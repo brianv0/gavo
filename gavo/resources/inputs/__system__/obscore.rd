@@ -598,7 +598,7 @@
 		<mixinPar name="tMin">ssa_dateObs-ssa_timeExt/2</mixinPar>
 		<mixinPar name="targetName">ssa_targname</mixinPar>
 		<mixinPar name="targetClass">ssa_targclass</mixinPar>
-		<mixinPar name="title">ssa_targname</mixinPar>
+		<mixinPar name="title">ssa_dstitle</mixinPar>
 
 		<LFEED source="_publishProduct"/>
 		<LFEED source="_publishCommon"/>
