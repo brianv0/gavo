@@ -81,7 +81,7 @@ class FITSProdGrammar(Grammar):
 
 	If you have more complex structures in your FITS files, you can get access
 	to the pyfits HDU using the hdusField attribute.  With
-	``hdusField="_H"``, you could say things like ``@H[1].data[10][0]``
+	``hdusField="_H"``, you could say things like ``@_H[1].data[10][0]``
 	to get the first data item in the tenth row in the second HDU.
 	"""
 	name_ = "fitsProdGrammar"

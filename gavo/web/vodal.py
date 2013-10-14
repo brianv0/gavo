@@ -73,11 +73,7 @@ class DALRenderer(grend.ServiceBasedPage):
 		return False
 
 	def renderHTTP(self, ctx):
-		# the weird _handleInputErrors is because form.process returns
-		# form errors rather than raising an exception when something is
-		# wrong.  _handleInputErrors knows all is fine if it receives a None.
 		return defer.maybeDeferred(self._runService, ctx
-			).addCallback(self._handleInputErrors, ctx
 			).addErrback(self._handleInputErrors, ctx
 			).addErrback(self._handleRandomFailure, ctx)
 
@@ -85,7 +81,7 @@ class DALRenderer(grend.ServiceBasedPage):
 		return self.runService(inevow.IRequest(ctx).args
 			).addCallback(self._formatOutput, ctx)
 
-	def _writeErrorTable(self, ctx, errmsg, code=200):
+	def _writeErrorTable(self, ctx, errmsg, code=200, queryStatus="ERROR"):
 		request = inevow.IRequest(ctx)
 
 		# Unfortunately, most legacy DAL specs say the error messages must
@@ -94,7 +90,7 @@ class DALRenderer(grend.ServiceBasedPage):
 		# codes.
 		if not self.saneResponseCodes:
 			request.setResponseCode(code)
-		result = self._makeErrorTable(ctx, errmsg)
+		result = self._makeErrorTable(ctx, errmsg, queryStatus)
 		request.setHeader("content-type", "application/x-votable")
 		votable.write(result, request)
 		return "\n"
@@ -115,19 +111,15 @@ class DALRenderer(grend.ServiceBasedPage):
 			"Unexpected failure, error message: %s"%failure.getErrorMessage(),
 			500)
 	
-	def _handleInputErrors(self, errors, ctx):
-		if not errors:  # flag from form.process: All is fine.
-			return ""
-		def formatError(e):
-			return "%s: %s"%(e.fieldName, str(e))
-		try:
-			msg = errors.getErrorMessage()
-			if base.DEBUG:
-				base.ui.notifyFailure(errors)
-		except AttributeError:
-			msg = "Error(s) in given Parameters: %s"%"; ".join(
-				[formatError(e) for e in errors])
-		return self._writeErrorTable(ctx, msg, 200)
+	def _handleInputErrors(self, failure, ctx):
+		queryStatus = "ERROR"
+
+		if isinstance(failure.value, base.EmptyData):
+			inevow.IRequest(ctx).setResponseCode(400)
+			queryStatus = "EMPTY"
+
+		return self._writeErrorTable(ctx, failure.getErrorMessage(),
+			queryStatus=queryStatus)
 
 
 class SCSRenderer(DALRenderer):
@@ -154,7 +146,7 @@ class SCSRenderer(DALRenderer):
 			reqArgs["_VOTABLE_VERSION"] = ["1.1"]
 		DALRenderer.__init__(self, ctx, *args, **kwargs)
 
-	def _writeErrorTable(self, ctx, msg, code=200):
+	def _writeErrorTable(self, ctx, msg, code=200, queryStatus="ERROR"):
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "application/x-votable")
 		votable.write(V.VOTABLE11[
@@ -299,10 +291,10 @@ class SIAPRenderer(DALRenderer):
 		data.original.getPrimaryTable().votCasts = self._outputTableCasts
 		return DALRenderer._formatOutput(self, data, ctx)
 	
-	def _makeErrorTable(self, ctx, msg):
+	def _makeErrorTable(self, ctx, msg, queryStatus="ERROR"):
 		return V.VOTABLE11[
 			V.RESOURCE(type="results")[
-				V.INFO(name="QUERY_STATUS", value="ERROR")[
+				V.INFO(name="QUERY_STATUS", value=queryStatus)[
 					str(msg)]]]
 
 
@@ -340,17 +332,11 @@ class UnifiedDALRenderer(DALRenderer):
 			data.original.getPrimaryTable().votCasts = self._outputTableCasts
 			return DALRenderer._formatOutput(self, data, ctx)
 	
-	def _makeErrorTable(self, ctx, msg):
-		if isinstance(msg, base.EmptyData):
-			return V.VOTABLE11[
-				V.RESOURCE(type="results")[
-					V.INFO(name="QUERY_STATUS", value="EMPTY")[
-						str(msg)]]]
-		else:
-			return V.VOTABLE11[
-				V.RESOURCE(type="results")[
-					V.INFO(name="QUERY_STATUS", value="ERROR")[
-						str(msg)]]]
+	def _makeErrorTable(self, ctx, msg, queryStatus="ERROR"):
+		return V.VOTABLE11[
+			V.RESOURCE(type="results")[
+				V.INFO(name="QUERY_STATUS", value=queryStatus)[
+					str(msg)]]]
 
 
 class SSAPRenderer(UnifiedDALRenderer):

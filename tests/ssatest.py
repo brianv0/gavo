@@ -316,8 +316,8 @@ class GetDataTest(_WithSSATableTest):
 			)[0].get("value"), "1e-10")
 
 	def testEmptyCutoutFails(self):
-		self.assertRaisesWithMsg(base.ValidationError,
-			"Field (various): Spectrum is empty.",
+		self.assertRaisesWithMsg(base.EmptyData,
+			"Spectrum is empty.",
 			self.runService,
 			("c", {"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
 				"FORMAT": "application/x-votable+xml",
