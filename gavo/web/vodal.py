@@ -341,10 +341,16 @@ class UnifiedDALRenderer(DALRenderer):
 			return DALRenderer._formatOutput(self, data, ctx)
 	
 	def _makeErrorTable(self, ctx, msg):
-		return V.VOTABLE11[
-			V.RESOURCE(type="results")[
-				V.INFO(name="QUERY_STATUS", value="ERROR")[
-					str(msg)]]]
+		if isinstance(msg, base.EmptyData):
+			return V.VOTABLE11[
+				V.RESOURCE(type="results")[
+					V.INFO(name="QUERY_STATUS", value="EMPTY")[
+						str(msg)]]]
+		else:
+			return V.VOTABLE11[
+				V.RESOURCE(type="results")[
+					V.INFO(name="QUERY_STATUS", value="ERROR")[
+						str(msg)]]]
 
 
 class SSAPRenderer(UnifiedDALRenderer):

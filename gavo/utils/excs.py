@@ -201,6 +201,12 @@ class NotFoundError(Error):
 			self.what, self.lookedFor, self.within)
 
 
+class EmptyData(Error):
+	"""is raised within certain protocols to signify a request was successful
+	but yielded no data.
+	"""
+
+
 class RDNotFound(NotFoundError):
 	"""is raised when an RD cannot be located.
 	"""

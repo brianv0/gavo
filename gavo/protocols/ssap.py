@@ -234,7 +234,7 @@ class SSAPCore(svcs.DBCore):
 				"(various)")
 
 		if not sdmData.getPrimaryTable().rows:
-			raise base.ValidationError("Spectrum is empty.", "(various)")
+			raise base.EmptyData("Spectrum is empty.", "(various)")
 
 		return sdm.formatSDMData(sdmData, inputTable.getParam("FORMAT"), 
 			queryMeta)
