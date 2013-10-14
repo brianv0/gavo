@@ -228,7 +228,8 @@ class Values(base.Structure):
 			return
 		try:
 			with base.AdhocQuerier(base.getTableConn) as q:
-				for row in q.query("SELECT DISTINCT %s"%(self.fromdb)):
+				for row in q.query(self.parent.parent.expand(
+						"SELECT DISTINCT %s"%(self.fromdb))):
 					self._options.feedObject(self, base.makeStruct(Option,
 						content_=row[0]))
 		except base.DBError: # Table probably doesn't exist yet, ignore.
