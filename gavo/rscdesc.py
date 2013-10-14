@@ -239,7 +239,7 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 		Deprecated.  This is going to go away, use getAbsPath and a context 
 		manager.
 		"""
-		return open(self.getResPath(relPath), mode)
+		return open(self.getAbsPath(relPath), mode)
 
 	def getTimestampPath(self):
 		"""returns a path to a file that's accessed by Resource each time 

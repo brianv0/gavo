@@ -140,6 +140,7 @@ def raiseAndCatch(opts=None, output=outputError):
 			messages.append("")
 		messages.append("Oops.  Unhandled exception %s.\n"%msg.__class__.__name__)
 		messages.append("Exception payload: %s"%utils.safe_str(msg))
+		base.ui.notifyError("Uncaught exception at toplevel")
 
 	if getattr(opts, "enablePDB", False):
 		raise
