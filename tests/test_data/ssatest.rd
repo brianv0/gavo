@@ -13,7 +13,7 @@
 			fluxCalibration="UNCALIBRATED"
 			spectralCalibration="CALIBRATED"
 			fluxSI=" "
-			spectralSI="1 10-10 m"
+			spectralSI="Angstrom"
 			spectralResolution="1e-10"
 			collection="test set"
 			>//ssap#hcd</mixin>

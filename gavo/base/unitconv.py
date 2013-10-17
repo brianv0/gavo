@@ -1,7 +1,22 @@
 """
-A module to parse unit strings a la 
-http://vizier.u-strasbg.fr/doc/catstd-3.2.htx and compute conversion factors.
+A python module to parse VOUnit strings and compute conversion factors.
+
+We believe this implements the full VOUnit specification.
+
+To use this, you must have the gavo utils package  installed.  For
+details, see http://soft.g-vo.org.  The changes required to make this
+work without gavo.utils are minute, though.  If you want that, talk to
+the authors.
+
+Unit tests for this are at
+
+http://svn.ari.uni-heidelberg.de/svn/gavo/python/trunk/tests/unitconvtest.py
 """
+
+#c Copyright 2013 the GAVO Project.
+#c
+#c This program is free software, covered by the GNU GPL.  See COPYING.
+
 
 from __future__ import with_statement
 
@@ -74,6 +89,7 @@ PLAIN_UNITS = units = {
 	"photon": (1, "ph"), 
 	"pix": (1, "pix"), 
 	"pixel": (1, "pix"), 
+	"R": (1, "R"),        # Rayleigh
 	"rad": (1, "rad"), 
 	"Ry": (2.17989e-18, "J"), 
 	"s": (1, "s"), 
@@ -93,18 +109,32 @@ PLAIN_UNITS = units = {
 
 # These are the keys from PLAIN_UNITS that cannot take SI prefixes
 NON_PREFIXABLE = frozenset([
-	"AU", "D", "Ry", "arcmin", "beam", "bin", "chan", "d", "h", "mas",
+	"AU", "au", "D", "Ry", "arcmin", "beam", "bin", "chan", "d", "h", "mas",
 	"min", "ph", "photon", "pix", "pixel", "solLum", "solMass", "solRad",
 	"voxel"])
 
+
 PREFIXES = prefixes = {"d": 1e-1, "c": 1e-2, "m":1e-3, "u":1e-6, 
 	"n":1e-9, "p":1e-12, "f":1e-15, "a":1e-18, "z":1e-21, "y":1e-24,
-	"da": 1e1, "h":1e2, "k":1e3, "M":1e6, "G":1e9, "T":1e12, "P":1e15, 
-	"E":1e18, "Z":1e21, "Y":1e24}
+	"da": 10., "h":1e2, "k":1e3, "M":1e6, "G":1e9, "T":1e12, "P":1e15, 
+	"E":1e18, "Z":1e21, "Y":1e24, "": 1}
+
+
+# these map VOUnit Table 5 "magic" units to UnitNode constructor arguments
+AMBIGUOUS_STRINGS = {
+	'Pa': ('Pa', ''),
+	'ha': ('yr', 'h'),
+	'cd': ('cd', ''),
+	'dB': ('Bel', 'd'),
+	'B': ('Byte', ''),
+	'au': ('AU', ''),
+	'dadu': ('adu', 'd'),
+}
 
 
 def formatScaleFactor(aFloat):
-	"""returns a float in the form <mantissa> 10<exponent>.
+	"""returns a reasonable decorative but python-readable representation
+	of aFloat.
 
 	Floats looking good as simple decimals (modulus between 0.01 and 1000)
 	are returned without exponent.
@@ -114,68 +144,77 @@ def formatScaleFactor(aFloat):
 
 	exponent = int(math.log10(aFloat))
 	mantissa = ("%f"%(aFloat/10**exponent)).rstrip("0")
-	return "%s 10%+d"%(mantissa, exponent)
+	return "%se%+d"%(mantissa, exponent)
 
 
 class _Node(object):
 	"""the abstract base for a node in a Unit tree.
+
+	All these must implement fromToks methods that can be called
+	as pyparsing callbacks.
 	"""
+	@classmethod 
+	def fromToks(cls, s, p, toks):
+		raise NotImplementedError("%s objects have no implementation of"
+			" fromToks (i.e., they are broken)."%cls.__name__)
 
 
 class UnitNode(_Node):
-	"""a preterminal node containing a unit and possibly a prefix.
+	"""a terminal node containing a unit, possibly with a prefix
 
-	It is constructed from the unit grammar.
+	This is normally constructed through the fromToks constructor.
+
+	Check out the unit, prefix, and isUnknown attributes.  The prefix
+	can be turned to a factor using the PREFIXES dictionary.  An empty
+	prefix (factor 1) is represented by an empty string.
 	"""
-	def __init__(self, s, pos, toks):
-		if len(toks)==2:
-			self.prefix, self.unit = toks[0], toks[1]
-			self.prefixFactor = PREFIXES[self.prefix]
+	def __init__(self, unit, prefix=""):
+		self.unit = unit
+		self.isUnknown = self.unit not in PLAIN_UNITS
+		self.prefix = prefix
+
+	@classmethod
+	def fromToks(cls, s, p, toks):
+		assert len(toks)==1
+		unitString = toks[0]
+	
+		if unitString in AMBIGUOUS_STRINGS:
+			return cls(*AMBIGUOUS_STRINGS[unitString])
+
+		elif unitString in PLAIN_UNITS:
+			return cls(unitString)
+
+		elif len(unitString)>2 and unitString[:2]=="da":
+			return cls(unitString[2:], "da")
+
+		elif len(unitString)>1 and unitString[0] in PREFIXES:
+			if unitString[1:] in NON_PREFIXABLE:
+				raise BadUnit("No Prefixes allowed on %s"%unitString[1:])
+			return cls(unitString[1:], unitString[0])
+
 		else:
-			self.prefix, self.prefixFactor = "", 1
-			self.unit = toks[0]
+			return cls(unitString, '')
 
 	def __str__(self):
 		return "%s%s"%(self.prefix, self.unit)
 
 	def __repr__(self):
-		return "U(%s ; %s)"%(self.prefix, repr(self.unit))
+		if self.isUnknown:
+			return "U?(%s ; %s)"%(self.prefix, repr(self.unit))
+		else:
+			return "U(%s ; %s)"%(self.prefix, repr(self.unit))
 
 	def getSI(self):
 		"""returns a pair of factor and basic unit.
 
 		Basic units are what's in the defining pairs in the PLAIN_UNITS dict.
 		"""
+		if self.isUnknown:
+			# these don't hurt if they're on both sides of an equation
+			return PREFIXES[self.prefix], {self.unit: 1}
+			return 
 		factor, basic = PLAIN_UNITS[self.unit]
-		return self.prefixFactor*factor, {basic: 1}
-
-
-class Factor(_Node):
-	"""An AtomicUnit with a power.
-	"""
-	def __init__(self, s, p, toks):
-		self.unit = toks[0]
-		self.power = toks[1]
-
-	def __str__(self):
-		powerLit = repr(self.power).rstrip("0").rstrip(".")
-		if "." in powerLit:
-			# see if we can come up with a nice fraction
-			for denom in range(2, 8):
-				if abs(int(self.power*denom)-self.power*denom)<1e-13:
-					powerLit = "**(%d/%d)"%(round(self.power*denom), denom)
-					break
-			else:
-				powerLit = "**"+powerLit
-		return "%s%s"%(self.unit, powerLit)
-
-	def __repr__(self):
-		return "F(%s ; %s)"%(repr(self.unit), repr(self.power))
-	
-	def getSI(self):
-		factor, powers = self.unit.getSI()
-		powers[powers.keys()[0]] = self.power
-		return factor**self.power, powers
+		return PREFIXES[self.prefix]*factor, {basic: 1}
 
 
 class FunctionApplication(_Node):
@@ -188,9 +227,16 @@ class FunctionApplication(_Node):
 		"sqrt": math.sqrt,
 	}
 
-	def __init__(self, s, p, toks):
-		self.funcName = toks[0]
-		self.term = toks[1]
+	def __init__(self, funcName, term):
+		self.funcName = funcName
+		self.term = term
+		self.isUnknown = (self.funcName not in self._pythonFunc
+			) or self.term.isUnknown
+
+	@classmethod
+	def fromToks(cls, s, p, toks):
+		assert len(toks)==2
+		return cls(toks[0], toks[1])
 
 	def __str__(self):
 		return "%s(%s)"%(self.funcName, self.term)
@@ -209,15 +255,85 @@ class FunctionApplication(_Node):
 		return self._pythonFunc[self.funcName](factor), powers
 
 
+class QuotedUnitNode(_Node):
+	"""a quoted ("defined unknown") unit.
+	"""
+	def __init__(self, unit):
+		self.unit = unit
+		self.isUnknown = True
+
+	@classmethod
+	def fromToks(cls, s, p, toks):
+		return cls(toks[1])
+
+	def __str__(self):
+		return "'%s'"%(self.unit)
+
+	def __repr__(self):
+		return "U?('%s')"%(repr(self.unit))
+
+	def getSI(self):
+		# These units stand for themselves.  They don't really hurt if
+		# they're in both terms of a conversion
+		return 1, {self.unit: 1}
+
+
+class Factor(_Node):
+	"""A UnitNode with a power.
+	"""
+	def __init__(self, unit, power):
+		self.unit, self.power = unit, power
+		self.isUnknown = self.unit.isUnknown
+	
+	@classmethod
+	def fromToks(cls, s, p, toks):
+		if len(toks)==2:
+			return cls(toks[0], toks[1])
+		elif len(toks)==1:
+			return cls(toks[0], 1)
+		else:
+			raise Exception("This cannot happen")
+
+	def __str__(self):
+		powerLit = repr(self.power).rstrip("0").rstrip(".")
+		if "." in powerLit:
+			# see if we can come up with a nice fraction
+			for denom in range(2, 8):
+				if abs(int(self.power*denom)-self.power*denom)<1e-13:
+					powerLit = "(%d/%d)"%(round(self.power*denom), denom)
+					break
+
+		if powerLit=="1":
+			powerLit = ""
+		else:
+			powerLit = "**"+powerLit
+
+		return "%s%s"%(self.unit, powerLit)
+
+	def __repr__(self):
+		return "F(%s ; %s)"%(repr(self.unit), repr(self.power))
+	
+	def getSI(self):
+		factor, powers = self.unit.getSI()
+		powers[powers.keys()[0]] = self.power
+		return factor**self.power, powers
+
+
 class Term(_Node):
 	"""A Node containing two factors and an operator.
+
+	The operator here is either . (product) or / (division).
 	"""
-	def __init__(self, s, pos, toks):
-		assert len(toks)==3
-		self.op1, self.op2 = toks[0], toks[2]
-		self.operator = toks[1]
-		if self.operator=='.' or self.operator=='*':
-			self.operator = ' '
+	def __init__(self, op1, operator, op2):
+		self.op1, self.operator, self.op2 = op1, operator, op2
+		self.isUnknown = self.op1.isUnknown or self.op2.isUnknown
+	
+	@classmethod
+	def fromToks(cls, s, p, toks):
+		if len(toks)==1:
+			# avoid to many internal nodes: a 1-operand expression is the operand
+			return toks[0]
+		return cls(toks[0], toks[1], toks[2])
 
 	def __str__(self):
 		op1Lit, op2Lit = str(self.op1), str(self.op2)
@@ -233,43 +349,53 @@ class Term(_Node):
 		factor1, powers1 = self.op1.getSI()
 		factor2, powers2 = self.op2.getSI()
 		newPowers = powers1
-		if self.operator==" ":
+		if self.operator==".":
 			for si, power in powers2.iteritems():
 				newPowers[si] = newPowers.get(si, 0)+power
 			return factor1*factor2, newPowers
-		else:
+		elif self.operator=="/":
 			for si, power in powers2.iteritems():
 				newPowers[si] = newPowers.get(si, 0)-power
 			return factor1/factor2, newPowers
+		else:
+			raise Exception("This can't happen")
 
 
 class Expression(_Node):
-	"""The root node of an expression tree, giving a factor (defaulting to 1)
-	and a term.
+	"""The root node of an expression tree. 
+	
+	This contains a term and optionally a scale factor.
 	"""
-	def __init__(self, s, p, toks):
+	def __init__(self, term, scaleFactor):
+		self.term, self.scaleFactor = term, scaleFactor
+		self.isUnknown = self.term.isUnknown
+
+	@classmethod
+	def fromToks(cls, s, p, toks):
 		if len(toks)==2:
-			self.factor, self.term = toks
+			return cls(toks[1], float(toks[0]))
+
 		elif len(toks)==1:
-			self.factor, self.term = 1., toks[0]
+			return cls(toks[0], 1)
+
 		else:
 			raise Exception("This can't happen")
 
 	def __str__(self):
-		if self.factor==1:
+		if self.scaleFactor==1:
 			return str(self.term)
 		else:
-			return "%s %s"%(formatScaleFactor(self.factor), self.term)
+			return "%s %s"%(formatScaleFactor(self.scaleFactor), self.term)
 
 	def __repr__(self):
-		return "R(%s ; %s)"%(repr(self.factor), repr(self.term))
+		return "R(%s ; %s)"%(repr(self.scaleFactor), repr(self.term))
 
 	def getSI(self):
 		"""returns a pair of a numeric factor and a dict mapping SI units to
 		their powers.
 		"""
 		factor, siPowers = self.term.getSI()
-		return factor*self.factor, siPowers
+		return factor*self.scaleFactor, siPowers
 
 
 def _buildTerm(s, pos, toks):
@@ -279,38 +405,17 @@ def _buildTerm(s, pos, toks):
 	toks = list(toks)
 	curOperand = toks.pop(0)
 	while len(toks)>1:
-		curOperand = Term(s, pos, [curOperand, toks[0], toks[1]])
+		curOperand = Term.fromToks(s, pos, [curOperand, toks[0], toks[1]])
 		del toks[:2]
 	return curOperand
 
 
-def _buildFactor(s, pos, toks):
-	"""a parse action for factors, dispatching between the unit (1 operator)
-	or unit with power (2 operators) cases).
-	"""
-	if len(toks)==2:
-		return Factor(s, pos, toks)
-	elif len(toks)==1:
-		return toks[0]
-	else:
-		raise Exception("This can't happen")
-
-
-def _parseScaleFactor(s, pos, toks):
-	"""a parse action making a float out of the weird format for the global
-	scale factor.
-
-	toks must have dict keys; we evaluate mantissa and power.
-	"""
-	return float(toks.get("mantissa", 1))*10**float(toks.get("power", 0))
-
-
-def evalAll(s, p, t):
+def evalAll(s, p, toks):
 	"""a parse action evaluating the whole match as a python expression.
 
 	Obviously, this should only be added to carefully screened nonterminals.
 	"""
-	return eval("".join(t))
+	return eval("".join(str(tok) for tok in toks))
 
 
 class getUnitGrammar(utils.CachedResource):
@@ -321,74 +426,69 @@ class getUnitGrammar(utils.CachedResource):
 	"""
 	@classmethod
 	def impl(cls):
-		from gavo.imp.pyparsing import (Word, Literal, Regex, Optional, ZeroOrMore,
-			MatchFirst, ParseException, nums, Suppress, Forward)
+		from gavo.imp.pyparsing import (Word, Literal, Regex, 
+			Optional, ZeroOrMore, MatchFirst, ParseException, nums, alphas,
+			Suppress, Forward, White)
+
 		with utils.pyparsingWhitechars(''):
-			prefixableUnit = Regex("|".join(u for u in
-					sorted(PLAIN_UNITS, key=lambda k: -len(k))
-				if u not in NON_PREFIXABLE))
-			nonPrefixableUnit = Regex("|".join(u for u in
-					sorted(PLAIN_UNITS, key=lambda k: -len(k))
-				if u in NON_PREFIXABLE))
-
-			prefix = Regex("|".join(p for p in PREFIXES if p!="da"))
-			# da is a valid unit, and I'd need backtracking without
-			# special casing.
-			dekaPrefix = Literal("da")
-			dekaPrefix.setWhitespaceChars("")
-
-			function_name = Regex("sqrt|log|exp|ln")
-
-			atomicUnit = (nonPrefixableUnit
-				^ prefixableUnit 
-				^ (prefix + prefixableUnit) 
-				^ (dekaPrefix + prefixableUnit))
-			atomicUnit.setParseAction(UnitNode)
+			unit_atom = Word(alphas).addParseAction(UnitNode.fromToks)
+			unit_atom.setName("atomic unit")
+			quoted_unit_atom = ("'" + Word(alphas) + "'"
+				).addParseAction(QuotedUnitNode.fromToks)
+			quoted_unit_atom.setName("quoted atomic unit")
 
 			OPEN_P = Literal('(')
 			CLOSE_P = Literal(')')
 			SIGN = Literal('+') | Literal('-')
+			FUNCTION_NAME = Word(alphas)
 			UNSIGNED_INTEGER = Word("01234567890")
 			SIGNED_INTEGER = SIGN + UNSIGNED_INTEGER
 			FLOAT = Regex(r"[+-]?([0-9]+(\.[0-9]*)?)")
+			VOFLOAT = Regex(r"0.[0-9]+([eE][+-]?[0-9]+)?"
+				"|[1-9][0-9]*(\.[0-9]+)?([eE][+-]?[0-9]+)?")
 
 			integer = SIGNED_INTEGER | UNSIGNED_INTEGER
-			power_operator = Suppress(Literal('**') | Literal("^"))
-			multiplication_operator = Literal(".") | Literal(" ") | Literal("*")
+			power_operator = Literal('**')
+			multiplication_operator = Literal(".")
+			division_operator = Literal("/")
 			numeric_power = (integer 
-				| power_operator + integer
-				| power_operator + OPEN_P + integer + CLOSE_P 
-				| power_operator + OPEN_P + FLOAT + CLOSE_P 
-				| power_operator + OPEN_P + integer + '/'
-					+ UNSIGNED_INTEGER.addParseAction(lambda s, p, t: t[0]+".") + CLOSE_P)
+				| OPEN_P + integer + CLOSE_P 
+				| OPEN_P + FLOAT + CLOSE_P 
+				| OPEN_P + integer + '/'
+					+ UNSIGNED_INTEGER.addParseAction(lambda s, p, t: t[0]+".") 
+					+ CLOSE_P)
 			numeric_power.setParseAction(evalAll)
 
-			factor = (atomicUnit + numeric_power
-				| atomicUnit).addParseAction(
-					_buildFactor)
+			pow_10 = Literal("10") + power_operator + numeric_power
+			scale_factor = (pow_10 | VOFLOAT).setParseAction(evalAll)
 
-			term = Forward()
-			function_application = (function_name
-				+ Suppress(OPEN_P) + term + Suppress(CLOSE_P))
-			function_application.setParseAction(FunctionApplication)
+			any_unit_atom = unit_atom | quoted_unit_atom 
+			factor = (any_unit_atom 
+				+ Optional( Suppress(power_operator) + numeric_power )
+				).addParseAction(Factor.fromToks)
 
-			unit_expression = (function_application
-				| factor
-				| Suppress(OPEN_P) + term + Suppress(CLOSE_P))
+			complete_expression = Forward()
+			function_application = (FUNCTION_NAME +
+					Suppress(OPEN_P) + complete_expression + Suppress(CLOSE_P))
+			function_application.addParseAction(FunctionApplication.fromToks)
 
-			term << (unit_expression 
+			unit_expression = (
+				Suppress(OPEN_P) + complete_expression + Suppress(CLOSE_P)
+				| ( factor 
+					^ function_application ))
+
+			product_of_units = (unit_expression 
 					+ ZeroOrMore(multiplication_operator + unit_expression)
-					+ Optional(Literal('/') + unit_expression)
 				).setParseAction(_buildTerm)
 
-			pow_10 = Literal("10") + numeric_power("power")
-			scale_factor = (FLOAT("mantissa") + multiplication_operator + pow_10
-				| pow_10
-				| FLOAT("mantissa"))
-			scale_factor.addParseAction(_parseScaleFactor)
-			input = (
-				Optional(scale_factor + Suppress(multiplication_operator))
-				+ term).setParseAction(Expression)
+			complete_expression << (
+				product_of_units + Optional(division_operator + unit_expression) )
+			complete_expression.setParseAction(Term.fromToks)
+
+			input = (Optional(scale_factor) 
+				+ Optional(Suppress(White()))
+				+ complete_expression
+				).setParseAction(Expression.fromToks)
 
 			cls.symbols = locals()
 			return input
@@ -416,7 +516,7 @@ def computeConversionFactor(unitStr1, unitStr2):
 	"""returns the factor needed to get from quantities given in unitStr1
 	to unitStr2.
 
-	Both must be given in VOUnits form (we allow cy for century, though).
+	Both must be given in VOUnits form.
 
 	This function may raise a BadUnit if one of the strings are
 	malformed, or an IncompatibleUnit exception if the units don't have
@@ -477,6 +577,7 @@ def computeColumnConversions(newColumns, oldColumns):
 
 
 if __name__=="__main__":
+	getUnitGrammar.enableDebuggingOutput()
 	g = getUnitGrammar()
-	res = g.parseString("10**-1 J/(m**2*s*m)")[0]
+	res = g.parseString("log(Hz)", parseAll=True)[0]
 	print res

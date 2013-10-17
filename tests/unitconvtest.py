@@ -19,20 +19,25 @@ class GrammarTest(testhelpers.VerboseTest):
 		try:
 			tree = unitconv.parseUnit(source)
 			self.assertEqual(str(tree), result)
-		except base.ParseException:
+		except base.BadUnit:
 			raise AssertionError("%s doesn't parse"%source)
 
-	def _assertFailure(self, expr):
-		self.assertRaisesVerbose(base.BadUnit,
-			unitconv.parseUnit, (expr,), 
-			"%s is bad but was accepted"%expr)
+	def _assertFailure(self, sample):
+		expr, kind = sample
+		if kind=='hard':
+			self.assertRaisesVerbose(base.BadUnit,
+				unitconv.parseUnit, (expr,), 
+				"%s is bad but was accepted"%expr)
+		else:
+			res = unitconv.parseUnit(expr)
+			self.failIf(not res.isUnknown, "%s is bad but was accepted"%expr)
 
 
 class _AtomicUnitBase(GrammarTest):
-# a base class for test on atomicUnit
+# a base class for test on unit_atom
 	__metaclass__ = testhelpers.SamplesBasedAutoTest
 	
-	unitGrammar = base.unitconv.getUnitGrammar.symbols["atomicUnit"]
+	unitGrammar = base.unitconv.getUnitGrammar.symbols["unit_atom"]
 	
 
 class AtomicUnitTest(_AtomicUnitBase):
@@ -74,7 +79,7 @@ class AtomicUnitTest(_AtomicUnitBase):
 #20
 		("ma", (31557.6, 's')),
 		("mag", (1., 'mag')),
-		("au", (1.6605388600000002e-45, 'kg')),
+		("au", (149598000000.0, 'm')),
 		("u", (1.6605388600000002e-27, 'kg')),
 		("uu", (1.6605388600000002e-33, 'kg')),
 #25
@@ -85,17 +90,52 @@ class AtomicUnitTest(_AtomicUnitBase):
 
 class NotAtomicUnitTest(_AtomicUnitBase):
 	def _runTest(self, sample):
-		self.assertRaises(base.ParseException,
+		self.assertRaisesWithMsg(base.BadUnit,
+			"No Prefixes allowed on "+sample[1:],
 			self.unitGrammar.parseString,
-			sample, parseAll=True)
+			(sample,), parseAll=True)
 	
 	samples = [
-		"k m",
-		"mmm",
-		"dad",
-		"ad",
-		"mmas",
+		"dd",
+		"aph",
+		"kau",
+		"ysolLum",
+		"Gchan",
+		"nvoxel",
+		"mmin",
+		"fD",
 	]
+
+
+class UnknownUnitTest(GrammarTest):
+	def testUnquotedNormalUnit(self):
+		res = base.parseUnit("Klodeckel")
+		self.assertEqual(res.term.unit.unit, "Klodeckel")
+		self.assertEqual(res.isUnknown, True)
+	
+	def testUnquotedPrefixedUnit(self):
+		res = base.parseUnit("klodeckel")
+		self.assertEqual(res.term.unit.unit, "lodeckel")
+		self.assertEqual(res.term.unit.prefix, "k")
+		self.assertEqual(str(res), "klodeckel")
+		self.assertEqual(res.isUnknown, True)
+
+	def testQuotedNormalUnit(self):
+		res = base.parseUnit("'Klodeckel'")
+		self.assertEqual(res.term.unit.unit, "Klodeckel")
+		self.assertEqual(str(res), "'Klodeckel'")
+		self.assertEqual(res.isUnknown, True)
+	
+	def testQuotedPrefixedUnit(self):
+		res = base.parseUnit("'klodeckel'")
+		self.assertEqual(res.term.unit.unit, "klodeckel")
+		self.assertEqual(str(res), "'klodeckel'")
+		self.assertEqual(res.isUnknown, True)
+
+
+	def testCombinedUnit(self):
+		res = base.parseUnit("4.5 m/(s.kg**2/'klodeckel'**4)")
+		self.assertEqual(res.isUnknown, True)
 
 
 class GoodUnitStringTest(GrammarTest):
@@ -109,31 +149,31 @@ class GoodUnitStringTest(GrammarTest):
 	samples = [
 		("km/s", "km/s"),
 		("10 km/s", "10. km/s"),
-		("10.5 m s-1", "10.5 m s-1"),
-		("10.5 10+4 m/s", "1.05 10+5 m/s"),
-		("kg*m/s2", "kg m/s2"),
+		("10.5 m.s**-1", "10.5 m.s**-1"),
+		("10.5e4 m/s", "1.05e+5 m/s"),
+		("kg.m/s**2", "kg.m/s**2"),
 # 5
 		("mas**(2/3)", "mas**(2/3)"),
-		("(mas/yr).m", "mas/yr m"),
-		("mmag/(m2 s)", "mmag/(m2 s)"),
+		("(mas/yr).m", "mas/yr.m"),
+		("mmag/(m**2.s)", "mmag/(m**2.s)"),
 		("(am/fs)/((m/s)/(pc/a))", "am/fs/(m/s/(pc/a))"),
-		("(km^(3.25)/s^(3.25))/pc", "km**(13/4)/s**(13/4)/pc"),
+		("(km**(3.25)/s**(3.25))/pc", "km**(13/4)/s**(13/4)/pc"),
 #10
 		("log(Hz)", "log(Hz)"),
-		("sqrt(m2)", "sqrt(m2)"),
-		("(exp(J^(3/2)/m2)/ln(solMass)).lyr", "exp(J**(3/2)/m2)/ln(solMass) lyr"),
-		("10-27 J/(s m2 Angstrom)", "1. 10-27 J/(s m2 Angstrom)"),
-		("ks**3", "ks3"),
+		("sqrt(m**2)", "sqrt(m**2)"),
+		("(exp(J**(3/2)/m**2)/ln(solMass)).lyr", 
+			"exp(J**(3/2)/m**2)/ln(solMass).lyr"),
+		("10**-27 J/(s.m**2.Angstrom)", "1.e-27 J/(s.m**2.Angstrom)"),
+		("ks**3", "ks**3"),
 #15
-		("ks^3", "ks3"),
+		("1.4e4 ks**3", "1.4e+4 ks**3"),
 		("pixel/s", "pixel/s"),
-		("mHz^2 Gs**-3.mmag*mm^3", "mHz2 Gs-3 mmag mm3"),
-		("m**-3", "m-3"),
-		("m-3", "m-3"),
-		("m+3", "m3"),
+		("mHz**2.Gs**-3.mmag.mm**3", "mHz**2.Gs**-3.mmag.mm**3"),
+		("m**-3", "m**-3"),
+		("m**+3", "m**3"),
 		("0.1 nm", "0.1 nm"),
 		("10 m", "10. m"),
-		("10.0 m", "10. m"),
+		("10.0m", "10. m"),
 	]
 
 
@@ -146,26 +186,24 @@ class BadUnitStringTest(GrammarTest):
 		self._assertFailure(sample)
 
 	samples = [
-		"10.2m",
-		"counts-1",
-		"mas2/3",
-		"r7",
-		"foo",
-		"a-b",
-		"+b",
-		"10e7m",
-		"cd/(ms*zm",
-		"sin(s)",
-		"exp(s)^(3/2)",
-		"n",
-		"m *kg",
-		"m* kg",
-		"m   . kg",
-		"m**3/kg/s^2",
-		"m)s",
-		"m***3",
-		"m=s",
-		"-0.1m",
+		("counts-1", "hard"),
+		("mas**2/3", "hard"),
+		("r7", "hard"),
+		("foo", "soft"),
+		("a-b", "hard"),
+		("+b", "hard"),
+		("10e7'm'", "soft"),
+		("cd/(ms*zm", "hard"),
+		("sin(s)", "soft"),
+		("n", "soft"),
+		("m *kg", "hard"),
+		("m* kg", "hard"),
+		("m   . kg", "hard"),
+		("m**3/kg/s**2", "hard"),
+		("m)s", "hard"),
+		("m***3", "hard"),
+		("m=s", "hard"),
+		("-0.1m", "hard"),
 	]
 
 
@@ -187,12 +225,12 @@ class GetSITest(testhelpers.VerboseTest):
 			("km/ks", (1, {"m": 1, "s": -1})),
 			("kpc/yr", (977799325677.0, {"m": 1, "s": -1})),
 			("mas/d", (5.61126945729e-14, {"rad": 1, "s": -1})),
-			("mas2/d", (2.72042020128e-22, {"rad": 2, "s": -1})),
+			("mas**2/d", (2.72042020128e-22, {"rad": 2, "s": -1})),
 #5
-			("ks3/hm2", (1e5, {'s': 3, 'm': -2})),
-			("13 ks3/hm2", (1.3e6, {'s': 3, 'm': -2})),
-			("log(Yadu-4)", (-96, {('log', 'adu'): -4})),
-			("10+4 sqrt(log(uadu-4))", (48989.7948557, {('log', 'adu'): -2})),
+			("ks**3/hm**2", (1e5, {'s': 3, 'm': -2})),
+			("13 ks**3/hm**2", (1.3e6, {'s': 3, 'm': -2})),
+			("log(Yadu**-4)", (-96, {('log', 'adu'): -4})),
+			("10**+4 sqrt(log(uadu**-4))", (48989.7948557, {('log', 'adu'): -2})),
 			("log(km)", (3, {('log', 'm'): 1})),
 			("dam.dm**2", (0.1, {'m': 3})),
 			]
@@ -208,10 +246,13 @@ class GoodConvFactorTest(testhelpers.VerboseTest):
 
 	samples = [
 		(("m/s", "cm/s"), 100),
-		(("1 10+4 V/m", "kV/dm"), 1),
+		(("10**+4 V/m", "kV/dm"), 1),
 		(("arcsec/a", "mas/d"), 2.73785078713),
 		(("kHz", "GHz"), 1e-6), 
-		(("sqrt(Mm/us)", "m^(0.5) s**(-0.5)"), 1e6),
+		(("sqrt(Mm/us)", "m**(0.5).s**(-0.5)"), 1e6),
+		(("10e-3 furlong/s", "kurlong/h"), 3.6e-17),
+		(("furlong/s", "'urlong'/h"), 3.6e-12),
+		(("'furlong'/s", "'furlong'/h"), 3600.),
 	]
 
 
