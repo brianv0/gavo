@@ -79,7 +79,7 @@ class InputKey(column.ParamBase):
 		self.scaling = None
 		if self.inputUnit:
 			self.scaling = base.computeConversionFactor(self.inputUnit, self.unit)
-	
+
 		if self.multiplicity is None:
 			self.multiplicity = "single"
 			if self.isEnumerated():

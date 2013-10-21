@@ -1,5 +1,10 @@
 Version 0.9
 
+	* API CHANGE: If you have custom logic (i.e., phraseMakers) on
+	  string inputKeys with values, you'll now get back lists of strings
+	  by default.  This will break your phraseMakers in that situation.
+	  Solution: Add multiplicity="single" to the inputKeys.
+
   * Added support for Datalink for both cutout-like jobs and as a 
     replacement for the tentative getData proposal.  See the reference
     documentation for how to migrate from getData to Datalink.

@@ -169,7 +169,7 @@ class MultiSelectChoice(SelectChoice):
 		if errors:
 			value = args.get(key, [])
 		else:
-			value = map(converter.fromType, args.get(key, []))
+			value = map(converter.fromType, args.get(key, []) or [])
 		return self._renderTag(ctx, key, value, converter, False)
 
 	def processInput(self, ctx, key, args, default=''):
@@ -177,8 +177,10 @@ class MultiSelectChoice(SelectChoice):
 		rv = []
 		for value in values:
 			value = iformal.IStringConvertible(self.original).toType(value)
-			if self.noneOption is not None and value==iformal.IKey(self.noneOption):
-				value = None
+			if self.noneOption is not None and value==iformal.IKey(
+					self.noneOption).key():
+				# NoneOption means "any" here, don't generate a condition
+				return None
 			rv.append(self.original.validate(value))
 		return rv
 
@@ -203,15 +205,14 @@ def _getDisplayOptions(ik):
 			for o in ik.values.options:
 				if o.content_==ik.values.default:
 					noneOption = o
-				else:
-					options.append(o)
+				options.append(o)
 	else:  # no default given, make up ANY option as noneOption unless
 	       # ik is required.
 		options.extend(ik.values.options)
 		noneOption = None
-		if not ik.required and not ik.values.multiOk:
+		if not ik.required and not ik.values.multiOk or ik.multiplicity=="multiple":
 			noneOption = base.makeStruct(rscdef.Option, title="ANY", 
-				content_="")
+				content_="__DaCHS__ANY__")
 	return noneOption, options
 
 
@@ -235,7 +236,7 @@ def EnumeratedWidget(ik):
 		raise base.StructureError("%s is not enumerated"%ik.name)
 	noneOption, options = _getDisplayOptions(ik)
 	moreArgs = {"noneOption": noneOption}
-	if ik.values.multiOk:
+	if ik.values.multiOk or ik.multiplicity=="multiple":
 		if ik.showItems==-1 or len(options)<4:
 			baseWidget = CheckboxMultiChoice
 			del moreArgs["noneOption"]

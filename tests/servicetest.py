@@ -376,8 +376,8 @@ class InputKeyTest(testhelpers.VerboseTest):
 		ftype, fwid, rendered = self._getKeyProps(
 			'<condDesc><inputKey original="data/testdata#nork.cho"/></condDesc>')
 		self.failUnless(isinstance(ftype, formal.types.String))
-		opts = list(rendered.children[0](None, None))
-		self.assertEqual(opts[0].children[0].attributes["type"], "radio")
+		opts = list(rendered.children[0](None, rendered.data))
+		self.assertEqual(opts[0][0].attributes["type"], "checkbox")
 
 	def testManualWF(self):
 		ftype, fwid, rendered = self._getKeyProps(

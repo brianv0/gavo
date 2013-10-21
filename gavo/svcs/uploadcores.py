@@ -44,7 +44,8 @@ class UploadCore(core.Core):
 		<inputTable id="inFields">
 			<inputKey name="File" type="file" required="True"
 				tablehead="Source to upload"/>
-			<inputKey name="Mode" type="text" tablehead="Upload mode">
+			<inputKey name="Mode" type="text" tablehead="Upload mode" 
+				required="True" multiplicity="forced-single">
 				<values default="i">
 					<option title="Insert">i</option>
 					<option title="Update">u</option>
