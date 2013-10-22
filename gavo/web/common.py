@@ -3,6 +3,7 @@ Common code for the nevow based interface.
 """
 
 import os
+import urllib
 
 from nevow import appserver
 from nevow import tags as T, entities as E
@@ -165,6 +166,13 @@ class CommonRenderers(object):
 				type="text/javascript"),
 			originalChildren,
 		]
+
+	def render_urlescape(self, ctx, data):
+		"""renders data as a url-escaped string.
+		"""
+		if isinstance(data, unicode):
+			data = data.encode("utf-8")
+		return urllib.quote(data)
 
 
 class Request(appserver.NevowRequest):

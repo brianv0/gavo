@@ -325,11 +325,6 @@ class RowIterator(object):
 				if self.sourceRow:
 					row.update(self.sourceRow)
 				yield row
-		except GeneratorExit:
-			# user import limit was hit.
-			if self.notify:
-				base.ui.notifyWarning("Source hit import limit, import aborted.")
-
 		except:
 			base.ui.notifySourceError()
 			raise
@@ -435,7 +430,7 @@ class GrammarMacroMixin(base.StandardMacroMixin):
 	or they will mess up the calculation of what constructs caused errors.
 	"""
 	def macro_inputRelativePath(self, liberalChars="True"):
-		"""returns an expression giving the current source's path 
+		"""returns an expression giving the current source's path
 		relative to inputsDir
 
 		liberalChars can be a boolean literal (True, False, etc); if false,
@@ -447,7 +442,7 @@ class GrammarMacroMixin(base.StandardMacroMixin):
 				base.parseBooleanLiteral(liberalChars)))
 
 	def macro_rowsProcessed(self):
-		"""returns an expression giving the number of records already 
+		"""returns an expression giving the number of records already
 		ingested for this source.
 		"""
 		return 'rowIter.line'
@@ -471,7 +466,7 @@ class GrammarMacroMixin(base.StandardMacroMixin):
 		return 'lastSourceElements(rowIter.sourceToken, int(numElements))'
 
 	def macro_rootlessPath(self):
-		"""returns an expression giving the current source's path with 
+		"""returns an expression giving the current source's path with
 		the resource descriptor's root removed.
 		"""
 		return ('utils.getRelativePath(rowIter.grammar.rd.resdir,'

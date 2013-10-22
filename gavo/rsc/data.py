@@ -443,6 +443,7 @@ def makeData(dd, parseOptions=common.parseNonValidating,
 				try:
 					processSource(res, source, feeder, parseOptions, connection)
 				except _EnoughRows:
+					base.ui.notifyWarning("Source hit import limit, import aborted.")
 					break
 				except base.SkipThis:
 					continue

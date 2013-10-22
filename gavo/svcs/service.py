@@ -212,7 +212,8 @@ class CustomPageFunction(base.Structure, base.RestrictionMixin):
 
 	def onElementComplete(self):
 		self._onElementCompleteNext(CustomPageFunction)
-		vars = globals()
+		vars = globals().copy()
+		vars["service"] = self.parent
 		exec ("def %s(ctx, data):\n%s"%(self.name,
 				utils.fixIndentation(self.content_, newIndent="  ",
 					governingLine=1).rstrip())) in vars
@@ -236,6 +237,9 @@ class CustomRF(CustomPageFunction):
 	As an example, the following code returns the current data as a link::
 
 		return ctx.tag[T.a(href=data)[data]]
+	
+	You can access the embedding service as service, the embedding
+	RD as service.rd.
 	"""
 	name_ = "customRF"
 
@@ -250,6 +254,9 @@ class CustomDF(CustomPageFunction):
 
 	In the data functions, you have the names ctx for nevow's context and
 	data for whatever data the template passes to the renderer. 
+
+	You can access the embedding service as service, the embedding
+	RD as service.rd.
 
 	You can return arbitrary python objects -- whatever the render functions
 	can deal with.  You could, e.g., write::
