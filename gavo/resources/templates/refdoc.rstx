@@ -1060,16 +1060,16 @@ which case the default d.g. works any you don't have to specify
 anything.  You could manually insert that default by
 saying::
   
-  <dataGenerator procDef="//datalink#fromStandardPubDID"/>
+  <descriptorGenerator procDef="//datalink#fromStandardPubDID"/>
 
 (but that would be silly since DaCHS already does this for you).  It's
 functionality is equivalent to this::
 
-  <dataGenerator>
+  <descriptorGenerator>
     <code>
       return ProductDescriptor.fromAccref("/".join(pubdid.split("/")[4:]))
     </code>
-  </dataGenerator>
+  </descriptorGenerator>
 
 – which might be a good place to start if you need to write your own
 d.g., e.g., because you have some special logic to encode the accref in

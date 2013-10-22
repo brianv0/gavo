@@ -5,6 +5,10 @@ Version 0.9
 	  by default.  This will break your phraseMakers in that situation.
 	  Solution: Add multiplicity="single" to the inputKeys.
 
+  * Change to latest VOUnit version.  Many unit strings that previously
+    appeared ok no longer are; in particular, exponentiation is now
+    ** exclusively and no longer ^.  You'll get warnings with gavo val.
+
   * Added support for Datalink for both cutout-like jobs and as a 
     replacement for the tentative getData proposal.  See the reference
     documentation for how to migrate from getData to Datalink.

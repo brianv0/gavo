@@ -13,6 +13,8 @@ from gavo.protocols import products
 from gavo.formats import votablewrite
 from gavo.votable import V, modelgroups
 
+from nevow import inevow
+from nevow import rend
 
 MS = base.makeStruct
 
@@ -131,6 +133,13 @@ class MetaMaker(rscdef.ProcApp):
 
 	(of course, you should give more metadata -- ucds, better description,
 	etc) in production).
+
+	In addition to the usual names available to ProcApps, meta makers have:
+	  - MS -- function to make DaCHS structures
+	  - InputKey -- the class to make for input parameters
+	  - Values -- the class to make for input parameters' values attributes
+	  - Options -- used by Values
+	  - LinkDef -- a class to define further links within datalink services.
 	"""
 	name_ = "metaMaker"
 	requiredType = "metaMaker"
@@ -169,6 +178,11 @@ class DataFunction(rscdef.ProcApp):
 	The following names are available to the code:
 	  - descriptor -- whatever the DescriptorGenerator returned
 	  - args -- all the arguments that came in from the web.
+	
+	In addition to the usual names available to ProcApps, data functions have:
+	  - FormatNow -- exception to raise to go directly to the formatter
+	  - DeliverNow -- exception to raise to skip all further formatting
+	    and just deliver what's currently in descriptor.data
 	"""
 	name_ = "dataFunction"
 	requiredType = "dataFunction"
@@ -197,10 +211,19 @@ class DataFormatter(rscdef.ProcApp):
 	The following names are available to the code:
 	  - descriptor -- whatever the DescriptorGenerator returned
 	  - args -- all the arguments that came in from the web.
+	
+	In addition to the usual names available to ProcApps, data formatters have:
+	  - Page -- base class for resources with renderHTTP methods.
+	  - IRequest -- the nevow interface to make Request objects with.
 	"""
 	name_ = "dataFormatter"
 	requiredType = "dataFormatter"
 	formalArgs = "descriptor, args"
+
+	additionalNamesForProcs = {
+		"Page": rend.Page,
+		"IRequest": inevow.IRequest,
+	}
 
 
 class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
