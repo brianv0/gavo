@@ -119,6 +119,14 @@ class OutputTableDef(rscdef.TableDef):
 			except AttributeError:  # not a service
 				return _EMPTY_TABLE
 
+	def _adoptColumn(self, sourceColumn):
+		# Do not overwrite existing fields here to let the user
+		# override individually
+		try:
+			existing = self.getColumnByName(sourceColumn.name)
+		except base.NotFoundError:
+			self.feedObject("outputField", OutputField.fromColumn(sourceColumn))
+
 	def _addNames(self, ctx, names):
 		# since autoCols is not copyable, we can require
 		# that _addNames only be called when there's a real parse context.
@@ -132,7 +140,7 @@ class OutputTableDef(rscdef.TableDef):
 			if refOb.name_=="param":
 				self.feedObject("param", refOb.copy(self))
 			else:
-				self.feedObject("outputField", OutputField.fromColumn(refOb))
+				self._adoptColumn(refOb)
 
 	def completeElement(self, ctx):
 		if self.autoCols:
@@ -142,7 +150,7 @@ class OutputTableDef(rscdef.TableDef):
 			table = self._getSourceTable()
 			for col in table.columns:
 				if col.verbLevel<=self.verbLevel:
-					self.feedObject("outputField", OutputField.fromColumn(col))
+					self._adoptColumn(col)
 			for par in table.params:
 				if par.verbLevel<=self.verbLevel:
 					self.feedObject("param", par.copy(self))
