@@ -493,6 +493,7 @@ class DBCore(TableBasedCore):
 			iqArgs = {"limits": queryMeta.asSQL(), "distinct": self.distinct,
 				"groupBy": self.groupBy}
 			iqArgs.update(kwargs)
+
 			try:
 				try:
 					return self._makeTable(

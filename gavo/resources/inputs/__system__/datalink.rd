@@ -236,13 +236,12 @@
 				from gavo.protocols import sdm
 
 				if len(descriptor.data.getPrimaryTable().rows)==0:
-					raise base.ValidationError("Spectrum is empty.", "(various)")
+					raise base.EmptyData("Spectrum is empty.")
 
 				return sdm.formatSDMData(descriptor.data, args["FORMAT"])
 			</code>
 		</dataFormatter>
 	</STREAM>
-
 
 
 	<!-- ********************* datalink interface for generic FITS 

@@ -18,6 +18,7 @@ from gavo.utils.autonode import AutoNode
 
 from gavo.utils.codetricks import (silence, ensureExpression, compileFunction,
 	loadPythonModule, memoized, identity, runInSandbox, document, 
+	getKeyNoCase,
 	buildClassResolver, CachedGetter, CachedResource, intToFunnyWord, 
 	IdManagerMixin,
 	addDefaults, iterDerivedClasses, iterDerivedObjects, iterConsecutivePairs,

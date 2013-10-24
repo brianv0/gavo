@@ -9,6 +9,7 @@ from gavo import base
 from gavo import rsc
 from gavo import rscdef
 from gavo import svcs
+from gavo import utils
 from gavo import votable
 from gavo.formats import votablewrite
 from gavo.protocols import datalink
@@ -19,6 +20,8 @@ from gavo.votable import V
 
 
 RD_ID = "//ssap"
+MS = base.makeStruct
+
 
 def getRD():
 	return base.caches.getRD(RD_ID)
@@ -71,16 +74,14 @@ def _combineRowIntoOne(ssaRows):
 	return totalRow
 
 
-def getDatalinkMeta(dlSvc, ctx, ssaTable):
-	"""adds the datalink resource declaration to vot.
+def getDatalinkCore(dlSvc, ssaTable):
+	"""returns a datalink core adapted for ssaTable.
 
-	dlSvc is the datalink service, ctx must the the VOTableContext used
-	to generate vot, ssaTable a non-empty SSA result table.
+	dlSvc is the datalink service, ssaTable a non-empty SSA result table.
 	"""
 	totalRow = _combineRowIntoOne(ssaTable.rows)
 	desc = SSADescriptor.fromSSARow(totalRow, ssaTable.getParamDict())
-	return dlSvc.core.adaptForDescriptor(desc
-		).getDatalinkDescriptionResource(ctx, dlSvc)
+	return dlSvc.core.adaptForDescriptor(desc)
 
 
 class SSAPCore(svcs.DBCore):
@@ -91,8 +92,8 @@ class SSAPCore(svcs.DBCore):
 	under certain circumstances.
 
 	SSAPCores also know how to handle getData requests according to the 2012
-	draft.  To enable getData support, add a tablesource property to the 
-	embedding service and read `Supporting getData`_
+	draft.  This is done via datalink, and we expect parameters as per
+	the sdm_* streams in datalink.
 	"""
 	name_ = "ssapCore"
 
@@ -137,45 +138,52 @@ class SSAPCore(svcs.DBCore):
 		
 		return "application/x-votable+xml", votablewrite.getAsVOTable(data)
 
-	def _declareGenerationParameters(self, resElement, ssaTable):
+	def _declareGenerationParameters(self, resElement, datalinkCore):
 		"""adds a table declaring getData support to resElement as appropriate.
 
-		resElement is a votable.V RESOURCE element, ssaTable is the SSA response
-		table.
+		resElement is a votable.V RESOURCE element, datalinkCore
+		is the datalink core adapted for the SSA table in resElement.
+
+		Deprecated; this will go as we remove vintage getData support.
 		"""
-		if ssaTable.rows:
-			specMin = min(row["ssa_specstart"] for row in ssaTable.rows)
-			specMax = max(row["ssa_specend"] for row in ssaTable.rows)
-		else:
-			specMin = specMax = None
+		# this assumes datalinkCore uses the ucds as in //datalink#sdm_*;
+		# also, we only support the keywords we've supported in the original
+		# getData implementation.
+		paramTable = V.TABLE(name="generationParameters")
 
-		# fluxcalib is a param in hcd
-		try:
-			calibrations = set([ssaTable.getParam("ssa_fluxcalib").lower()])
-		except base.NotFoundError:
-			calibrations = set((row["ssa_fluxcalib"] or "").lower()
-				for row in ssaTable.rows)
-		calibrations.add("relative")
-
-		resElement[
-			V.RESOURCE(name="getDataMeta")[
-				V.TABLE(name="generationParameters") [
-					V.PARAM(name="BAND", datatype="float", unit="m")[
-						V.DESCRIPTION["The spectral range of the cutout"],
-						V.VALUES[
-							V.MIN(value=specMin),
-							V.MAX(value=specMax)]],
-
+		for ik in datalinkCore.inputTable.params:
+			if ik.name=="FLUXCALIB":
+				paramTable[
 					V.PARAM(name="FLUXCALIB", datatype="char", arraysize="*") [
 						V.DESCRIPTION["Recalibrate the spectrum to..."],
+						V.VALUES[[
+							V.OPTION(value=option.content_, name=option.title)
+								for option in ik.values.options]]]]
+
+			elif ik.name=="LAMBDA_MIN":
+				paramTable[
+					V.PARAM(name="BAND", datatype="char", arraysize="m", unit="m")[
+						V.DESCRIPTION["The spectral range of the cutout"],
 						V.VALUES[
-							[V.OPTION(value=c) for c in calibrations]]],
-						
+							V.MIN(value=ik.values.min),
+							V.MAX(value=ik.values.max)]]]
+			
+			elif ik.name=="FORMAT":
+				paramTable[
     			V.PARAM(name="FORMAT", datatype="char", arraysize="*",
 			      	value="application/x-votable+xml") [
 			      V.DESCRIPTION["Format to deliver the spectrum in."],
 		      	V.VALUES[[
-		      		V.OPTION(value=mime) for mime in sdm.GETDATA_FORMATS]]]]]]
+							V.OPTION(value=option.content_, name=option.title)
+								for option in ik.values.options]]]]
+
+			else:
+				pass
+
+		resElement[
+			V.RESOURCE(name="getDataMeta")[
+				paramTable]]
+
 
 	############### Implementation of the service operations
 
@@ -183,61 +191,32 @@ class SSAPCore(svcs.DBCore):
 		"""returns mime and payload for a getData operation on the parameters
 		defined in inputTable.
 		"""
-		tablesourceId = service.getProperty("tablesource", None)
-		if tablesourceId is None:
+		datalinkId = service.getProperty("datalink", None)
+		if datalinkId is None:
 			raise base.ValidationError("No getData support on %s"%
 				service.getMeta("identifier"), "REQUEST", hint="Only SSAP"
-				" services with a tablesource property support getData")
-		tablesourceDD = service.rd.getById(tablesourceId)
+						" services with a datalink property support getData")
 
-		handledArguments = set(["REQUEST", "COMPRESS", "MAXREC", "FORMAT"])
+		rawArgs = queryMeta.ctxArgs
+		del rawArgs[utils.getKeyNoCase(rawArgs, "request")]
 
-		pubDID = inputTable.getParam("PUBDID")
-		if pubDID is None:
-			raise base.ValidationError("PUBDID mandatory for getData", "PUBDID")
-		handledArguments.add("PUBDID")
+		if "BAND" in rawArgs:
+			bandVal = utils.getfirst(rawArgs, "BAND")
+			del rawArgs["BAND"]
+			if bandVal:
+				try:
+					min, max = bandVal.split("/")
+					if min:
+						rawArgs["LAMBDA_MIN"] = min
+					if max:
+						rawArgs["LAMBDA_MAX"] = max
+				except (ValueError, TypeError):
+					# malformed BAND, complain
+					raise base.ValidationError("BAND must have form [number]/[number].", 
+						"BAND")
 
-		sdmData = sdm.makeSDMDataForPUBDID(pubDID, 
-			self.queriedTable, tablesourceDD)
-
-		calib = inputTable.getParam("FLUXCALIB")
-		if calib:
-			sdmData.tables[sdmData.tables.keys()[0]] = sdm.mangle_fluxcalib(
-				sdmData.getPrimaryTable(),
-				calib)
-			handledArguments.add("FLUXCALIB")
-
-		# XXX TODO: replacing tables like that probably is not a good idea.
-		# Figure out something better (actually copy sdmData rather than
-		# fiddle with it?)
-		rawBand = inputTable.getParam("BAND")
-		if rawBand:
-			bands = pql.PQLFloatPar.fromLiteral(rawBand, "BAND")
-			if len(bands.ranges)!=1:
-				raise base.ValidationError("BAND must specify exactly one interval",
-					"BAND")
-			band = bands.ranges[0]
-			sdmData.tables[sdmData.tables.keys()[0]] = sdm.mangle_cutout(
-				sdmData.getPrimaryTable(),
-				band.start or -1, band.stop or 1e308)
-			handledArguments.add("BAND")
-
-		# Hack alert: the renderer inserts some silly keys right now (it
-		# shouldn't do that).  While it does, ignore keys with an underscore
-		# in front
-		unhandledArguments = set(name.upper()
-			for name, value in queryMeta.ctxArgs.iteritems() if value
-				and not name.startswith("_"))-handledArguments
-		if unhandledArguments:
-			raise base.ValidationError("The following parameter(s) are not"
-				" accepted by this service: %s"%", ".join(unhandledArguments),
-				"(various)")
-
-		if not sdmData.getPrimaryTable().rows:
-			raise base.EmptyData("Spectrum is empty.", "(various)")
-
-		return sdm.formatSDMData(sdmData, inputTable.getParam("FORMAT"), 
-			queryMeta)
+		dlService = self.rd.getById(datalinkId)
+		return dlService.run("dlget", rawArgs, queryMeta).original
 			
 	def _run_getTargetNames(self, service, inputTable, queryMeta):
 		with base.getTableConn()  as conn:
@@ -296,13 +275,16 @@ class SSAPCore(svcs.DBCore):
 			V.INFO(name="QUERY_STATUS", value=queryStatus)[
 				queryStatusBody]]
 	
-		# old and stinky getData (remove at some point)
-		if service.getProperty("tablesource", None) is not None:
-			self._declareGenerationParameters(vot, res)
-		# new and shiny datalink
 		datalinkId = service.getProperty("datalink", None)
 		if datalinkId and res:
-			vot[getDatalinkMeta(self.rd.getById(datalinkId), votCtx, res)]
+			dlService = self.rd.getById(datalinkId)
+			dlCore = getDatalinkCore(dlService, res)
+
+			# old and stinky getData (remove at some point)
+			self._declareGenerationParameters(vot, dlCore)
+
+			# new and shiny datalink (keep)
+			vot[dlCore.getDatalinkDescriptionResource(votCtx, dlService)]
 
 		return "application/x-votable+xml", votable.asString(vot)
 

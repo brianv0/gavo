@@ -256,7 +256,7 @@ class GetDataTest(_WithSSATableTest):
 
 		self.assertEqual(set(el.get("value") for el in 
 			gpTable.xpath("PARAM[@name='FLUXCALIB']/VALUES/OPTION")), 
-			set(['uncalibrated', 'relative']))
+			set(['UNCALIBRATED', 'relative']))
 
 	def testNormalServicesReject(self):
 		self.assertRaisesWithMsg(base.ValidationError,
@@ -266,13 +266,14 @@ class GetDataTest(_WithSSATableTest):
 
 	def testRejectWithoutPUBDID(self):
 		self.assertRaisesWithMsg(base.ValidationError,
-			"Field PUBDID: PUBDID mandatory for getData",
+			"Field PUBDID: Value is required but was not provided",
 			self.runService,
 			("c", {"REQUEST": "getData"}))
 
 	def testGetdataVOT(self):
-		res = self.runService("c",
-			{"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1'})
+		res = self.runService("c", {
+			"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1',
+			"FORMAT": "application/x-votable+xml"})
 		mime, payload = res.original
 		self.assertEqual(mime, "application/x-votable+xml")
 		self.failUnless('xmlns:spec="http://www.ivoa.net/xml/SpectrumModel/v1.01'
@@ -291,7 +292,7 @@ class GetDataTest(_WithSSATableTest):
 	def testCutoutFull(self):
 		res = self.runService("c",
 			{"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
-				"FORMAT": "text/plain", "BAND": "1.762e-7/1.764e-7"})
+				"FORMAT": "text/plain", "BAND": ["1.762e-7/1.764e-7"]})
 		mime, payload = res.original
 		self.assertEqual(payload, 
 			'1762.0\t1746.0\n1763.0\t1745.0\n1764.0\t1744.0\n')
@@ -327,7 +328,7 @@ class GetDataTest(_WithSSATableTest):
 		mime, payload = self.runService("c",
 			{"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
 				"FORMAT": "text/plain", 
-				"FLUXCALIB": "uncalibrated"}).original
+				"FLUXCALIB": "UNCALIBRATED"}).original
 		self.failUnless(payload.endswith("1928.0	1580.0\n"))
 
 	def testNormalize(self):
@@ -344,8 +345,7 @@ class GetDataTest(_WithSSATableTest):
 
 	def testBadCalib(self):
 		self.assertRaisesWithMsg(base.ValidationError,
-			"Field FLUXCALIB: Do not know how to turn a"
-			" UNCALIBRATED spectrum into a ferpotschket one.",
+			"Field FLUXCALIB: u'ferpotschket' is not a valid value for FLUXCALIB",
 			self.runService,
 			("c", {"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
 				"FORMAT": "text/plain", 
@@ -359,8 +359,8 @@ class GetDataTest(_WithSSATableTest):
 
 	def testRandomParamFails(self):
 		self.assertRaisesWithMsg(base.ValidationError,
-			"Field (various): The following parameter(s) are"
-			" not accepted by this service: WARP",
+			"Field (various): The following parameter(s) are not"
+			" accepted by this service: warp",
 			self.runService,
 			("c", {"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
 				"warp": "infinity"}))
@@ -458,8 +458,8 @@ class SDMDatalinkTest(_WithSSATableTest):
 			)[0].get("value"), "1e-10")
 
 	def testEmptyCutoutFails(self):
-		self.assertRaisesWithMsg(base.ValidationError,
-			"Field (various): Spectrum is empty.",
+		self.assertRaisesWithMsg(base.EmptyData,
+			"Spectrum is empty.",
 			self.runService,
 			("dl", {"PUBDID": 'ivo://test.inv/test1', 
 				"FORMAT": "application/x-votable+xml",

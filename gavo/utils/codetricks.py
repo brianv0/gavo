@@ -630,6 +630,20 @@ def iterConsecutivePairs(sequence):
 		itertools.islice(iter2, None, None, 2))
 
 
+def getKeyNoCase(dict, key):
+	"""returns a key of dict matching key case-insensitively.
+
+	This is sometimes useful with protocols that stupidly define keys
+	as case-insensitive.
+
+	If no matching key exists, a KeyError is raised.
+	"""
+	for k in dict:
+		if k.lower()==key.lower():
+			return k
+	raise KeyError(key)
+
+
 def identity(x):
 	return x
 

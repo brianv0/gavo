@@ -242,6 +242,9 @@ def getfirst(args, key, default=Undefined):
 	empty, default if given.  If not, a Validation error for the requested
 	column is raised.
 
+	Finally, if args[key] is neither list nor tuple (in an ininstance
+	sense), it is returned unchanged.
+
 	>>> getfirst({'x': [1,2,3]}, 'x')
 	1
 	>>> getfirst({'x': []}, 'x')
@@ -252,9 +255,15 @@ def getfirst(args, key, default=Undefined):
 	ValidationError: Field y: Missing mandatory parameter y
 	>>> print(getfirst({'x': []}, 'y', None))
 	None
+	>>> getfirst({'x': 'abc'}, 'x')
+	'abc'
 	"""
 	try:
-		return args[key][0]
+		val = args[key]
+		if isinstance(val, (list, tuple)):
+			return val[0]
+		else:
+			return val
 	except (KeyError, IndexError):
 		if default is Undefined:
 			raise excs.ValidationError("Missing mandatory parameter %s"%key,
