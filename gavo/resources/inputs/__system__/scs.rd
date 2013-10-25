@@ -236,19 +236,24 @@
 		</phraseMaker>
 	</condDesc>
 
-	<condDesc id="humanInput">
-		<inputKey name="hscs_pos" type="text"
+	<condDesc id="humanInput" combining="True">
+		<inputKey id="hscs_pos" 
+			name="hscs_pos" type="text"
 			multiplicity="single"
 			description= "Coordinates (as h m s, d m s or decimal degrees), or SIMBAD-resolvable object" tablehead="Position/Name">
 			<property name="notForRenderer">scs.xml</property>
 		</inputKey>
-		<inputKey name="hscs_sr" description="Search radius in arcminutes"
+		<inputKey id="hscs_sr" 
+			name="hscs_sr" description="Search radius in arcminutes"
 			multiplicity="single"
 			tablehead="Search radius">
 			<property name="notForRenderer">scs.xml</property>
 		</inputKey>
 		<phraseMaker original="scsUtils" id="humanSCSPhrase" name="humanSCSSQL">
 			<code>
+				if inPars["hscs_sr"] is None or inPars["hscs_pos"] is None:
+					return
+
 				ra, dec = getRADec(inPars, outPars)
 				try:
 					sr = float(inPars["hscs_sr"])/60.

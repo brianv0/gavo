@@ -100,8 +100,14 @@ def _unitMapperFactory(colDesc):
 	"""
 	if colDesc["displayHint"].get("displayUnit") and \
 			colDesc["displayHint"]["displayUnit"]!=colDesc["unit"]:
-		factor = base.computeConversionFactor(colDesc["unit"], 
-			colDesc["displayHint"]["displayUnit"])
+		try:
+			factor = base.computeConversionFactor(colDesc["unit"], 
+				colDesc["displayHint"]["displayUnit"])
+		except base.BadUnit:
+			# bad unit somewhere; ignore display hint
+			base.ui.notifyError("Bad unit while computing conversion factor.")
+			return None
+
 		colDesc["unit"] = colDesc["displayHint"]["displayUnit"]
 		fmtStr = "%%.%df"%int(colDesc["displayHint"].get("sf", 2))
 		def coder(val):
