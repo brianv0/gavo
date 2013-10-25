@@ -558,9 +558,10 @@
 			Pulls in all "standard" datalink functions for FITSes, including
 			cutouts and header retrieval.
 
-			You must give an stcs attribute (for fits_makeWCSParams) and/or an
+			You must give both an stcs attribute (for fits_makeWCSParams) and an
 			accrefStart attribute (for fits_genDesc).  Both can be empty,
-			if you don't know them.
+			however (but if you think you should be leaving them empty you
+			should probably think again).
 
 			Do *not* add quotes to them, even though the proc parameters
 			have them; the STREAM already puts in single quotes.

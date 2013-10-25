@@ -286,6 +286,11 @@ class Service(base.Structure, base.ComputedMetaMixin,
 
 	A service is a combination of a core and one or more renderers.  They
 	can be published, and they carry the metadata published into the VO.
+
+	You can set the defaultSort property on the service to a name of an
+	output column to preselect a sort order.  Note again that this will
+	slow down responses for all be the smallest tables unless there is
+	an index on the corresponding column.
 	"""
 	name_ = "service"
 

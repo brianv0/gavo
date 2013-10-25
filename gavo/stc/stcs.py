@@ -512,6 +512,10 @@ def getCST(literal, grammarFactory=None):
 	either getGrammar (which gets used if the argument is left out) or 
 	getColrefGrammar.
 	"""
+	# special case: the empty input yields an empty CST
+	if not literal.strip():
+		return {}
+
 	if grammarFactory is None:
 		grammarFactory = getGrammar
 	try:

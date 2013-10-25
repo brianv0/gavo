@@ -444,6 +444,9 @@ def assertMapsto(stcsInput, expectedOutput):
 class GeneralGenerationTest(testhelpers.VerboseTest):
 	"""tests for STCS-STCS-round trips.
 	"""
+	def testEmpty(self):
+		assertMapsto('', '')
+
 	def testTimeCoo(self):
 		assertMapsto("Time TT 2009-03-10T09:56:10.015625 unit s"
 			" Error 0.0001 0.0002 Resolution 0.0001 PixSize 2",

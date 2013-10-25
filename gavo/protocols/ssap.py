@@ -200,8 +200,10 @@ class SSAPCore(svcs.DBCore):
 		rawArgs = queryMeta.ctxArgs
 		del rawArgs[utils.getKeyNoCase(rawArgs, "request")]
 		# Also remove artificial parameter introduced by the SSA renderer
-		del rawArgs["_DBOPTIONS_LIMIT"]
-		del rawArgs["_FORMAT"]
+		if "_DBOPTIONS_LIMIT" in rawArgs:
+			del rawArgs["_DBOPTIONS_LIMIT"]
+		if "_FORMAT" in rawArgs:
+			del rawArgs["_FORMAT"]
 
 		if "BAND" in rawArgs:
 			bandVal = utils.getfirst(rawArgs, "BAND")

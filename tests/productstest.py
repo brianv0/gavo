@@ -612,6 +612,17 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 		self.assertEqual(mime, "application/fits-header")
 		self.failUnless("NAXIS3  =                    2" in data)
 
+	def testFITSNoSTC(self):
+		svc = base.parseFromString(svcs.Service, """<service id="foo">
+			<datalinkCore>
+				<FEED source="//datalink#fits_standardDLFuncs"
+					accrefStart="" stcs=""/>
+			</datalinkCore></service>""")
+		svc.parent = testhelpers.getTestRD()
+		mime, data = svc.run("dlget", {
+			"PUBDID": rscdef.getStandardPubDID("data/excube.fits")}).original
+		self.failUnless("<DATA><TABLEDATA>" in data)
+
 
 class DatalinkSTCTest(testhelpers.VerboseTest):
 	resources = [("fitsTable", _fitsTable)]
