@@ -352,7 +352,7 @@ class SSAPRenderer(UnifiedDALRenderer):
 	Other SSA metadata includes:
 
 	 - ssap.creationType -- archival, cutout, filtered, mosaic,
-	   projection, specialExtraction, catalogExtraction (defaults to archival)
+	   projection, spectralExtraction, catalogExtraction (defaults to archival)
 	 - ssap.complianceLevel -- set to "query" when you don't deliver
 	   SDM compliant spectra; otherwise don't say anything, DaCHS will fill
 	   in the right value.

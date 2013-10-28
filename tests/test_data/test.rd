@@ -13,6 +13,25 @@
 	<table id="pgs_siaptable" mixin="//siap#pgs" onDisk="True"/>
 
 	<service id="pgsiapsvc">
+		<publish render="siap.xml" sets="testing"/>
+		<meta name="title">siap test</meta>
+		<meta name="creationDate">2005-01-01T12:00:00</meta>
+		<meta name="subject">testing</meta>
+		<meta name="shortName">oh bother</meta>
+		<meta name="description">If you are seeing this service, a unit test
+			forgot to clean up.</meta>
+
+		<meta name="sia">
+			<meta name="type">pointed</meta>
+			<meta name="maxImageSize">3000</meta>
+			<meta name="maxImageExtent.long">10</meta>
+		</meta>
+		<meta>
+			testQuery.pos.ra: 10
+			testQuery.pos.dec: -10
+			testQuery.size.ra: 0.4 
+			testQuery.size.dec: 0.3 
+		</meta>
 		<dbCore queriedTable="pgs_siaptable">
 			<condDesc original="//siap#protoInput"/>
 			<condDesc original="//siap#humanInput"/>

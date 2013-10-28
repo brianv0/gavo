@@ -238,6 +238,38 @@ class SSAPCapabilityTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 			self.failUnless('<dataSource>you bet</dataSource>' in res)
 
 
+class _SIACapabilityElement(testhelpers.TestResource):
+	def make(self, deps):
+		publication = testhelpers.getTestRD("test"
+			).getById("pgsiapsvc").publications[0]
+		res = capabilities.getCapabilityElement(publication).render()
+		return res, testhelpers.getXMLTree(res, debug=False)
+
+
+class SIAPCapabilityTest(testhelpers.VerboseTest):
+	resources = [("txNTree", _SIACapabilityElement())]
+
+	def testNoEmptyMax(self):
+		self.failIf(self.txNTree[1].xpath("//maxImageExtent/lat"),
+			"maxImageExtent/lat should be empty but is not")
+
+	def testNoFilledMax(self):
+		self.assertEqual(
+			self.txNTree[1].xpath("//maxImageExtent/long")[0].text,
+			"10")
+	
+	def testImageSizeAtomic(self):
+		children = self.txNTree[1].xpath("//maxImageSize")
+		self.assertEqual(len(children), 1)
+		self.assertEqual(children[0].text, "3000")
+
+	def testTestQuery(self):
+		tqEl = self.txNTree[1].xpath("/capability/testQuery")[0]
+		self.assertEqual(len(tqEl), 2)
+		longs = tqEl.xpath("*/long")
+		self.assertEqual([l.text for l in longs], ["10", "0.4"])
+
+
 class AuthorityTest(testhelpers.VerboseTest):
 # This test will fail until defaultmeta.txt has the necessary entries
 # and //services is published
