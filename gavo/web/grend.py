@@ -218,15 +218,18 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 
 	def render_authinfo(self, ctx, data):
 		request = inevow.IRequest(ctx)
-		nextURL = str(url.URL.fromContext(ctx))
-		targetURL = url.URL.fromString("/login").add("nextURL", nextURL)
-		if request.getUser():
+		svc = getattr(self, "service", None)
+
+		if svc and request.getUser():
 			anchorText = "Log out %s"%request.getUser()
-			targetURL = targetURL.add("relog", "True")
+			targetURL = svc.getURL("logout", False)
 			explanation = " (give an empty user name in the dialog popping up)"
 		else:
+			targetURL = url.URL.fromString("/login").add("nextURL", 
+				str(url.URL.fromContext(ctx)))
 			anchorText = "Log in"
 			explanation = ""
+
 		return ctx.tag[T.a(href=str(targetURL))[
 			anchorText], explanation]
 
@@ -514,16 +517,21 @@ class ServiceBasedPage(ResourceBasedPage):
 	You can set an attribute checkedRenderer=False for renderers that
 	are "generic" and do not need to be enumerated in the allowed
 	attribute of the underlying service ("meta renderers").
+
+	You can set a class attribute openRenderer=True to make a renderer
+	work even on restricted services (which make sense for stuff like logout
+	and maybe for metadata inspection).
 	"""
 
 	checkedRenderer = True
+	openRenderer = False
 
 	def __init__(self, ctx, service):
 		ResourceBasedPage.__init__(self, ctx, service.rd)
 
 		self.service = service
 		request = inevow.IRequest(ctx)
-		if service.limitTo:
+		if not self.openRenderer and service.limitTo:
 			if not creds.hasCredentials(request.getUser(), request.getPassword(),
 					service.limitTo):
 				raise svcs.Authenticate()

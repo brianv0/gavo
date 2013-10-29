@@ -10,4 +10,4 @@ is to let validators run requesting only files from vo.ari.uni-heidelberg.de
 
 To make that work, do this after changes:
 
-rsync -av * vo.ari.uni-heidelberg.de:/var/www/docs/schemata/
+./install.sh

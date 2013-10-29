@@ -26,6 +26,7 @@ RENDERER_REGISTRY = {
 	'get': ("web.productrender", "ProductRenderer"),
 	'img.jpeg': ("web.oddrender", "JpegRenderer"),
 	'info': ("web.metarender", "ServiceInfoRenderer"),
+	'logout': ("web.metarender", "LogoutRenderer"),
 	'mimg.jpeg': ("web.oddrender", "MachineJpegRenderer"),
 	'mupload': ("web.uploadservice", "MachineUploader"),
 	'pubreg.xml': ("web.vodal", "RegistryRenderer"),

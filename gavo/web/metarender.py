@@ -19,6 +19,7 @@ from gavo import registry
 from gavo import rsc
 from gavo import svcs
 from gavo import utils
+from gavo.protocols import creds
 from gavo.web import common
 from gavo.web import grend
 
@@ -631,6 +632,38 @@ class RDInfoRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 		])
 
 
+class LogoutRenderer(MetaRenderer):
+	"""logs users out.
+
+	With a valid authorization header, this emits a 401 unauthorized,
+	without one, it displays a logout page.
+	"""
+	name = "logout"
+
+	openRenderer = True
+
+	def renderHTTP(self, ctx):
+		request = inevow.IRequest(ctx)
+		if creds.hasCredentials(
+				request.getUser(), request.getPassword(), None):
+			# valid credentials: Ask again to make the browser discard them
+			raise svcs.Authenticate()
+		else:
+			return MetaRenderer.renderHTTP(self, ctx)
+
+	defaultDocFactory =  common.doctypedStan(
+		T.html[
+			T.head[
+				T.title["Logged out"]],
+			T.body[
+				T.h1["Logged out"],
+				T.p["Your browser no longer has valid credentials for this site."
+					"  Close this window or continue at the ",
+					T.a(href=base.makeAbsoluteURL("/"))["root page"],
+					"."]]])
+
+	
+
 class ResourceRecordMaker(rend.Page):
 	"""A page that returns resource records for internal services.
 
@@ -657,3 +690,6 @@ class ResourceRecordMaker(rend.Page):
 					"<?xml-stylesheet href='/static/xsl/oai.xsl' type='text/xsl'?>",
 				),
 			"application/xml"), ()
+
+
+
