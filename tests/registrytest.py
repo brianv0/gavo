@@ -789,6 +789,16 @@ class ListRecordsTest(testhelpers.VerboseTest):
 		self.assertEqual(res&expected, expected)
 
 
+class OAIParameterTest(testhelpers.VerboseTest):
+	def testEqualGranularityEnforced(self):
+		self.assertRaisesWithMsg(oaiinter.BadArgument,
+			"from",
+			oaiinter.runPMH,
+			({"verb": "ListIdentifiers", "metadataPrefix": "ivo_vor",
+				"from": "2010-10-10", "until": "2011-10-10T10:10:10Z"},
+				oaiinter.RegistryCore.builders))
+
+
 class ResumptionTokenTest(testhelpers.VerboseTest):
 	def testBasic(self):
 		pars = {"verb": "listSets"}

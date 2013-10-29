@@ -106,7 +106,7 @@ def parseDefaultDatetime(literal):
 		return literal
 	if literal.endswith("Z"):
 		literal = literal[:-1]
-	# just nuke fractional seconds...
+	# just nuke fractional seconds, they're trouble with strptime.
 	literal = literal.split(".")[0]
 	for format in _SUPPORTED_DT_FORMATS:
 		try:

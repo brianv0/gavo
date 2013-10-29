@@ -195,18 +195,38 @@ def _addTemporalCondition(parVal, operator, sqlFrags, sqlPars, parName):
 
 	This is a helper to handle both from and to parameters.
 
-	Nothing is generated if parVal is None
+	Nothing is generated if parVal is None.
+
+	Since the Validator insists that servers enforce identical granularity
+	on both arguments, this is more involved; it returns None, "time",
+	or "datetime" depending on what the argument was.
 	"""
 	if parVal is None:
-		return
+		return None
 
-	elif utils.datetimeRE.match(parVal) or utils.dateRE.match(parVal):
+	parsed, argtype = None, None
+	mat = utils.datetimeRE.match(parVal) 
+	if mat:
+		parsed = base.parseDefaultDatetime(parVal)
+		argtype = "datetime"
+
+	mat = utils.dateRE.match(parVal)
+	if not parsed and mat:
+		parsed = base.parseDefaultDate(parVal)
+		# postgres comparse dates against timestamps as if the dates were for
+		# midnight.  Therefore, on the upper limit, we need to fix things:
+		if operator=='<=':
+			parsed = parsed+datetime.timedelta(1)
+			operator = '<'
+		argtype = "date"
+
+	if parsed:
 		sqlFrags.append("recTimestamp %s %%(%s)s"%(
 			operator,
-			base.getSQLKey("temporal", parVal, sqlPars)))
+			base.getSQLKey("temporal", parsed, sqlPars)))
+		return argtype
 
-	else:
-		raise BadArgument(parName)
+	raise BadArgument(parName)
 
 
 def _parseOAIPars(pars):
@@ -214,8 +234,14 @@ def _parseOAIPars(pars):
 	services#services according to OAI.
 	"""
 	sqlPars, sqlFrags = {}, []
-	_addTemporalCondition(pars.get("from"), ">=", sqlFrags, sqlPars, "from")
-	_addTemporalCondition(pars.get("until"), "<=", sqlFrags, sqlPars, "until")
+	argTypes = set(argType for argType in [
+			_addTemporalCondition(
+				pars.get("from"), ">=", sqlFrags, sqlPars, "from"),
+			_addTemporalCondition(
+				pars.get("until"), "<=", sqlFrags, sqlPars, "until")]
+			if argType)
+	if len(argTypes)==2:
+		raise BadArgument("from")
 
 	return " AND ".join(sqlFrags), sqlPars
 
