@@ -69,32 +69,42 @@ class ProductBase(object):
 	See the module docstring for the big picture.
 
 	The constructor arguments of RAccrefs depend on what they are.
-	The common interface (also used by the ProductGrammar below) is the 
-	the class method fromRAccref(rAccref, grammar=None).  It returns None
-	if the RAccref is not for a product of the respective sort, the
-	product otherwise.  Grammar, if given, is an instance of the
-	products grammar.  It is important, e.g., in controlling access
-	to embargoed products.  This is the main reason you should
-	never hand out products yourself but always expose the to the user
-	through the product core.
+	The common interface (also used by the ProductGrammar below)
+	is the the class method fromRAccref(rAccref, grammar=None).
+	It returns None if the RAccref is not for a product of the
+	respective sort, the product otherwise.  Grammar, if given,
+	is an instance of the products grammar.  It is important, e.g.,
+	in controlling access to embargoed products.  This is the main
+	reason you should never hand out products yourself but always
+	expose the to the user through the product core.
 
-	The iterData method has to yield reasonable-sized chunks of data
-	(self.chunkSize should be a good choice).  It must be synchronuous.
+	The iterData method has to yield reasonable-sized chunks of
+	data (self.chunkSize should be a good choice).	It must be
+	synchronuous.
 
 	Products usually are used as nevow resources.  Therefore, they
-	must have a renderHTTP method.  This must be asynchronuous, i.e., it
-	should not block for extended periods of time.
+	must have a renderHTTP method.	This must be asynchronuous,
+	i.e., it should not block for extended periods of time.
 
-	All products must at least have the attributes sourceSpec (a string
-	with an interpretation that's up to the subclass), contentType (which
-	should usually be what renderHTTP puts into its content-type), and
-	name (something suitable as a file name; the default constructor
-	calls a _makeName method to come up with one, and you should simply
-	override it).
+	All products must at least have the attributes sourceSpec
+	(a string with an interpretation that's up to the subclass),
+	contentType (which should usually be what renderHTTP puts into
+	its content-type), and name (something suitable as a file name;
+	the default constructor calls a _makeName method to come up with
+	one, and you should simply override it).
+
+	Products also work as rudimentary files via read and close
+	methods; by default, these are implemented on top of iterData.
+	Clients must never mix calls to the file interface and to
+	iterData.  Derived classes that are based on actual files should
+	set up optimized read and close methods using the hasRealFile
+	class method.  Again, the assumption is made there that clients
+	use either iterData or read, but never both.
 	"""
 	implements(inevow.IResource)
 
 	chunkSize = 2**16
+	_curIterator = None
 
 	def __init__(self, sourceSpec, contentType):
 		self.sourceSpec, self.contentType = str(sourceSpec), str(contentType)
@@ -123,6 +133,29 @@ class ProductBase(object):
 	def fromRAccref(self, accref, grammar=None):
 		return None # ProductBase is not responsible for anything.
 
+	@classmethod
+	def hasRealFile(cls, openMethod):
+		"""changes class such that read and close work an an actual file-like 
+		object rather than the inefficient iterData.
+
+		openMethod has to be an instance method of the class returning
+		an opened input file.
+		"""
+		cls._openedInputFile = None
+
+		def readMethod(self, size=None):
+			if self._openedInputFile is None:
+				self._openedInputFile = openMethod(self)
+			return self._openedInputFile.read(size)
+
+		def closeMethod(self):
+			if self._openedInputFile is not None:
+				self._openedInputFile.close()
+			self._openedInputFile = None
+
+		cls.read = readMethod
+		cls.close = closeMethod
+
 	def iterData(self):
 		raise NotImplementedError("Internal error: %s products do not"
 			" implement iterData"%self.__class__.__name__)
@@ -131,17 +164,50 @@ class ProductBase(object):
 		raise NotImplementedError("Internal error: %s products cannot be"
 			" rendered."%self.__class__.__name__)
 
+	def read(self, size=None):
+		if self._curIterator is None:
+			self._curIterator = self.iterData()
+			self._readBuf, self._curSize = [], 0
+
+		while size is None or self._curSize<size:
+			try:
+				chunk = self._curIterator.next()
+			except StopIteration:
+				break
+			self._readBuf.append(chunk)
+			self._curSize += len(chunk)
+
+		content = "".join(self._readBuf)
+		if size is None:
+			self._readBuf, self._curSize = [], 0
+			result = content
+
+		else:
+			result = content[:size]
+			self._readBuf = [content[size:]]
+			self._curSize = len(self._readBuf[0])
+
+		return result
+	
+	def close(self):
+		for _ in self.iterData():
+			pass
+		self._curIterator = None
+
 
 class FileProduct(ProductBase):
 	"""A product corresponding to a local file.
 
-	Mime types are guessed based on a class-local dictionary; this is done
-	so we don't depend on nevow here.  If nevow is available, we use its
-	static.File mechanism to deliver the data.
+	Mime types are guessed based on a class-local dictionary; this
+	is done so we don't depend on nevow here.  If nevow is available,
+	we use its static.File mechanism to deliver the data.
 
-	This is basically a fallback for fromRAccref; as long as the 
-	accessPath in the RAccref's productsRow corresponds to a real file and
-	no params are in the RAccref, this will return a product.
+	All this mime guessing is just a fallback when not using the
+	fromRAccref constructor.
+
+	As long as the accessPath in the RAccref's productsRow corresponds
+	to a real file and no params are in the RAccref, this will return
+	a product.
 	"""
 	def __init__(self, sourcePath, contentType=None):
 		ProductBase.__init__(self, sourcePath, contentType)
@@ -179,8 +245,11 @@ class FileProduct(ProductBase):
 		_, ext = os.path.splitext(self.sourceSpec.lower())
 		return self.magicMap.get(ext, self.contentType)
 
+	def _openUnderlyingFile(self):
+		return open(self.sourceSpec)
+
 	def iterData(self):
-		with open(self.sourceSpec) as f:
+		with self._openUnderlyingFile() as f:
 			data = f.read(self.chunkSize)
 			if data=="":
 				return
@@ -198,6 +267,8 @@ class FileProduct(ProductBase):
 		res.type = self.contentType
 		res.encoding = None
 		return res
+
+FileProduct.hasRealFile(FileProduct._openUnderlyingFile)
 
 
 class UnauthorizedProduct(FileProduct):

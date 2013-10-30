@@ -33,6 +33,22 @@ errorPng = ('iVBORw0KGgoAAAANSUhEUgAAAGQAAAAUAQMAAABBDgrWAAAABlBMVEUAAAD///+'
 	'wg/pMidxPEAITLlun9HY4kAAAAASUVORK5CYII=').decode("base64")
 
 
+def preview2DFITS(inputProduct, width):
+	"""returns a JPEG with about width from a FITS inputProduct.
+	"""
+	oldHdr = fitstools.readPrimaryHeaderQuick(inputProduct)
+	scale = oldHdr["NAXIS1"]/width
+	if scale==0:
+		scale = 1
+	
+
+
+def previewJPEG(inputProduct, width):
+	"""returns a JPEG with about width from a JPEG inputProduct.
+	"""
+	raise NotImplementedError("Write me")
+
+
 class PreviewCacheManager(object):
 	"""is a class that manages the preview cache.
 

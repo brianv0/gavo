@@ -622,7 +622,7 @@ def iterFITSRows(hdr, f):
 		yield decoder(f)
 
 
-def iterScaledRows(inFile, factor):
+def iterScaledRows(inFile, factor, hdr=None):
 	"""iterates over numpy arrays of pixel rows within the open FITS
 	stream inFile scaled by it integer in factor.
 
@@ -630,12 +630,18 @@ def iterScaledRows(inFile, factor):
 	image size is not a multiple of factor, border pixels are discarded.
 
 	A FITS header for this data can be obtained using shrinkWCSHeader.
+
+	If you pass in hdr, it will not be read from inFile; the function then
+	expects the file pointer to point to the start of the first data block.
+	Use this if you've already read the header of a non-seekable FITS.
 	"""
 	factor = int(factor)
 	assert factor>1
 
-	inFile.seek(0, 0)
-	hdr = readPrimaryHeaderQuick(inFile)
+	if hdr is None:
+		inFile.seek(0, 0)
+		hdr = readPrimaryHeaderQuick(inFile)
+
 	rowLength = hdr["NAXIS1"]
 	destRowLength = rowLength//factor
 	rows = iterFITSRows(hdr, inFile)

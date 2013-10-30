@@ -710,5 +710,33 @@ class DatalinkSTCTest(testhelpers.VerboseTest):
 		self.assertEqual(names, set(["DEC_MAX", "BET_MAX"]))
 
 
+class _FakeProduct(products.ProductBase):
+	def iterData(self):
+		yield "1234"
+		yield "1234"
+		yield "    "*10
+		yield "end"
+
+
+class FileIntfTest(testhelpers.VerboseTest):
+	def testFallbackBuffering(self):
+		p = _FakeProduct("fake", "application/testdata")
+		self.assertEqual(p.read(1), "1")
+		self.assertEqual(p.read(1), "2")
+		self.assertEqual(p.read(7), "341234 ")
+		rest = p.read()
+		self.assertEqual(len(rest), 42)
+		self.assertEqual(rest[-4:], " end")
+		p.close()
+	
+	def testNativeRead(self):
+		p = products.FileProduct(
+			os.path.join(base.getConfig("inputsDir"), "data/ex.fits"), "image/fits")
+		self.assertEqual(p.read(10), "SIMPLE  = ")
+		self.failUnless(isinstance(p._openedInputFile, file))
+		p.close()
+		self.assertEqual(p._openedInputFile, None)
+			
+
 if __name__=="__main__":
 	testhelpers.main(DatalinkFITSTest)
