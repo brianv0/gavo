@@ -50,6 +50,10 @@ def dropTable():
 	opts = parseCmdline()
 	for tableName in opts.tablename:
 		_do_dropTable(tableName)
+	
+	with base.getWritableAdminConn() as conn:
+		conn.execute("DELETE FROM dc.products WHERE sourcetable=%(t)s",
+			{'t': tableName})
 
 
 def _do_dropRD(opts, rdId, selectedIds=()):
