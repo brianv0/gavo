@@ -406,6 +406,7 @@ function popupInnerWindow(content, parent, onClose) {
 // gets added to within the tree.
 // The function returns a closer function destroying the subwindow.
 	var prevParent = content.parent()
+	prevParent.css({"position": "relative"});
 	content.detach();
 	content.css("visibility", "visible");
 
@@ -422,7 +423,7 @@ function popupInnerWindow(content, parent, onClose) {
 	// XXX TODO: Why doesn't container expand to content size in the first place?
 	container.css({"width": content.width(),
 		"height": content.height()+titlebar.height(),
-		"position": "absolute"});
+		"position": "relative"});
 
 	closer = function(ignored) {
 		container.hide();
