@@ -81,6 +81,9 @@ class Sesame(object):
 
 		res["oname"] = nameMatch.text
 		firstResponse = et.find("Target/Resolver")
+		if not firstResponse:
+			return None
+
 		res["otype"] = firstResponse.find("otype").text
 		try:
 			res["RA"] = float(firstResponse.find("jradeg").text)

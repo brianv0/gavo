@@ -524,7 +524,7 @@
 					data = base.caches.getSesame("web").query(pos)
 					if not data:
 						raise base.ValidationError("%r is neither a RA,DEC pair nor"
-								" a simbad resolvable object"%inPars.get("POS", "Not given"), 
+								" a simbad resolvable object"%inPars.get("hPOS", "Not given"), 
 							"hPOS")
 					ra, dec = float(data["RA"]), float(data["dec"])
 				inPars = {
