@@ -566,7 +566,7 @@ class PQLTextParIR(PQLPar):
 			keys.append(base.getSQLKey(colName, doc, sqlPars))
 
 		return "(%s)"%" OR ".join(
-			"to_tsvector(%s) @@ plainto_tsquery(%%(%s)s)"%(
+			"to_tsvector('english', %s) @@ plainto_tsquery(%%(%s)s)"%(
 				colName,
 				keyName)
 			for keyName in keys)

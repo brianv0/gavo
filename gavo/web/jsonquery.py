@@ -79,8 +79,8 @@ class ByFulltext(JSONQuery):
 		"   NATURAL JOIN dc.sets"
 		" WHERE setname='local'"
 		" AND NOT deleted"
-		" AND (to_tsvector(description) || to_tsvector(subject) "
-		"   || to_tsvector(title) || to_tsvector(authors))"
+		" AND (to_tsvector('english', description) || to_tsvector(subject) "
+		"   || to_tsvector('english', title) || to_tsvector(authors))"
 		"  @@ plainto_tsquery(%(q)s)"
 		" ORDER BY title")
 
