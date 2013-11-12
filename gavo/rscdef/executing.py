@@ -110,6 +110,7 @@ class CronJob(procdef.ProcApp):
 	-- in that way, your code can sit safely within the resource directory
 	and you still don't have to manipulate the module path.
 	"""
+	name_ = "job"
 	formalArgs = "rd, execDef"
 
 

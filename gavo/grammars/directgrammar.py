@@ -63,6 +63,7 @@ class CBooster(object):
 		if not mat:
 			raise base.ReportableError("Booster function doesn't define QUERY_N_PARS")
 		query_n_pars = mat.group(1)
+
 		f = open(os.path.join(wd, "Makefile"), "w")
 		f.write("LDFLAGS += -lm\n"
 			"CFLAGS += -Wall -DQUERY_N_PARS=%s\n"%query_n_pars)
@@ -74,6 +75,10 @@ class CBooster(object):
 		if self.ignoreBadRecords:
 			f.write("CFLAGS += -DIGNORE_BAD_RECORDS\n")
 		f.write("CFLAGS += -g\n")
+
+		# XXX TODO: make the following conditional on fitssource when that
+		# is part of the custom grammar.
+		f.write("LDFLAGS += -lcfitsio\n")
 		f.write("booster: boosterskel.c func.c\n"
 			"\t$(CC) $(CFLAGS) $(LDFLAGS) %s -o booster $^\n"%self.customFlags)
 		f.close()
@@ -178,9 +183,8 @@ def getNameForItem(item):
 	return "fi_"+item.name.lower()
 
 
-
 # XXX TODO: evaluate ifdefs in here at generation time (will also fix
-# compile warnings)
+# compile warnings); then handle in analogy with STATIC_FOOT_FITS
 STATIC_FOOT = """
 
 
@@ -219,7 +223,7 @@ void createDumpfile(int argc, char **argv)
 		Field *tuple;
 		context = inputLine;
 		if (!setjmp(ignoreRecord)) {
-			tuple = getTuple(inputLine);
+			tuple = getTuple(inputLine, lncount);
 			if (!tuple) {
 #ifdef FIXED_RECORD_SIZE
 			handleBadRecord("Bad input line at record %d", lncount);
@@ -243,18 +247,55 @@ void createDumpfile(int argc, char **argv)
 
 
 class _CodeGenerator(object):
-	def __init__(self, options):
-		pass
+	"""a base class for code generators.
+
+	You must at least override getItemParser.
+	"""
+	def __init__(self, options, tableDef):
+		self.options, self.tableDef = options, tableDef
 		
 	def getSetupCode(self):
+		"""returns a sequence of C lines for code between an item parser.
+		"""
 		return []
-	
-	def getItemParser(self, item):
+		
+	def getItemParser(self, item, index):
+		"""returns code that parses item (a Column instance) at column index
+		index.
+
+		You're free to igore index.
+		"""
 		return []
+
+	def getPreamble(self):
+		"""returns a list of lines that make up the top of the booster.
+		"""
+		return [
+		'#include <stdio.h>',
+		'#include <math.h>',
+		'#include <string.h>',
+		'#include <errno.h>',
+		'#include "boosterskel.h"',
+		'',
+		'#define USAGE "Usage: don\'t."\n#define INPUT_LINE_MAX 2000',
+		"",
+		"/* delete the next line for POSIX strtok */",
+		"#define strtok strtok_u"]
+
+	def getFooter(self):
+		"""returns the main function of the parser (and possibly other stuff)
+		in a string.
+		"""
+		return STATIC_FOOT
+
+	def getPrototype(self):
+		"""returns the prototype of the getTuple function.
+		"""
+		return "Field *getTuple(char *inputLine)"
 
 
 class ColCodeGenerator(_CodeGenerator):
-	def getItemParser(self, item):
+	def getItemParser(self, item, index):
 		t = item.type
 		if "int" in t:
 			func = "parseInt"
@@ -272,7 +313,7 @@ class ColCodeGenerator(_CodeGenerator):
 
 
 class BinCodeGenerator(_CodeGenerator):
-	def getItemParser(self, item):
+	def getItemParser(self, item, index):
 		t = item.type
 		if t=="integer":
 			pline = "MAKE_INT32(%s, *(int32_t*)(line+));"
@@ -292,15 +333,181 @@ class BinCodeGenerator(_CodeGenerator):
 			pline%getNameForItem(item)]
 
 
+class FITSCodeGenerator(_CodeGenerator):
+	"""A code generator for reading from FITS binary tables.
+	"""
+	fitsTypes = {
+			"bytea": ("TBYTE", "MAKE_BYTE", "char"),
+			"text": ("TSTRING", "MAKE_TEXT", "char *"),
+			"short": ("TSHORT", "MAKE_SHORT", "short"),
+			"integer": ("TLONG", "MAKE_INT32", "int"),
+			"bigint": ("TLONGLONG", "MAKE_BIGINT", "long long"),
+			"real": ("TFLOAT", "MAKE_FLOAT", "float"),
+			"double precision": ("TDOUBLE", "MAKE_DOUBLE", "double")}
+
+	def __init__(self, options, tableDef):
+		import pyfits
+		_CodeGenerator.__init__(self, options, tableDef)
+		self.fitsTable = pyfits.open(options.fitsTable)[1]
+
+	def getItemParser(self, item, index):
+		return [
+			"/* %s (%s) */"%(item.description, item.type), 
+			"if (nulls[%d][rowIndex]) {"%index,
+			"  MAKE_NULL(%s);"%getNameForItem(item),
+			"} else {",
+			"	 %s(%s, ((%s*)(data[%d]))[rowIndex]);"%(
+				self.fitsTypes[item.type][1], 
+				getNameForItem(item),
+				self.fitsTypes[item.type][2], 
+				index),
+			"}",]
+
+	def getPreamble(self):
+		return _CodeGenerator.getPreamble(self)+[
+			"#include <fitsio.h>",
+			"#define FITSCATCH(x) if (x) {fatalFitsError(status);}",
+			"void fatalFitsError(int status)",
+			"	{",
+			"		if (status==0) {",
+			"			return;",
+			"		}",
+			"		fits_report_error(stderr, status);",
+			"		exit(1);",
+			"	}",
+			]
+
+	def getPrototype(self):
+		return "Field *getTuple(void *data[], char *nulls[], int rowIndex)"
+
+	def _getFITSColDesc(self, name):
+		"""returns a (index, pyfits column descriptor) for name.
+
+		Non-existing columns raise a KeyError.  This is doing a linear
+		search right now since it doesn't seem performanace-critical.
+
+		Matching is case-insensitive, the first match wins.
+		"""
+		name = name.lower()
+		for index, fitsCol in enumerate(self.fitsTable.columns):
+			if fitsCol.name.lower()==name:
+				return index, fitsCol
+		raise KeyError(name)
+
+	def _getColDescs(self):
+		"""returns a C initializer for an array of FITSColDescs.
+		"""
+		res = []
+		for col in self.tableDef:
+			index, fcd = self._getFITSColDesc(col.name)
+
+			# special handling for strings, as we need their size
+			if col.type=="text":
+				# XXX TODO: properly reject var length strings here
+				length = int(re.match("(\d+)A", fcd.format).group(1))
+				res.append("{.cSize = %d, .fitsType = TSTRING, .index=%d}"%(
+					length, index+1))
+
+			else:
+				res.append("{.cSize = sizeof(%s), .fitsType = %s, .index=%d}"%(
+					self.fitsTypes[col.type][2], 
+					self.fitsTypes[col.type][0],
+					index+1))
+
+		return "{\n%s\n}"%",\n".join(res)
+
+	def getFooter(self):
+		infoDict = {
+			"nCols": len(self.tableDef.columns),
+			"colDescs": self._getColDescs(),
+		}
+		return """
+	typedef struct FITSColDesc_s {
+		size_t cSize;
+		int fitsType;
+		int index;  /* in the FITS columns */
+	} FITSColDesc;
+
+	FITSColDesc COL_DESCS[%(nCols)d] = %(colDescs)s;
+
+	void createDumpfile(int argc, char **argv)
+	{
+		fitsfile *fitsInput;
+		FILE *destination=stdout;
+		int ignored, i;
+		int status = 0;
+		long nRows = 0;
+		void *data[%(nCols)d];
+		char *nulls[%(nCols)d];
+
+		if (argc>2) {
+			die(USAGE);
+		}
+		if (argc==2) {
+			FITSCATCH(fits_open_table(&fitsInput, argv[1], READONLY, &status));
+		} else {
+			die("FITS tables cannot be read from stdin.");
+		}
+
+		FITSCATCH(fits_get_num_rows(fitsInput, &nRows, &status));
+
+		for (i=0; i<%(nCols)d; i++) {
+			if (COL_DESCS[i].fitsType==TSTRING) {
+				char *stringHoldings = NULL;
+				if (!(data[i] = malloc(nRows*sizeof(char*)))
+					|| !(stringHoldings = malloc(nRows*COL_DESCS[i].cSize))) {
+					die("out of memory");
+				} else {
+					int k;
+					/* Initialize the char* in the data array */
+					for (k=0; k<nRows; k++) {
+						((char**)(data[i]))[k] = stringHoldings+k*COL_DESCS[i].cSize;
+					}
+				}
+			} else{
+				if (!(data[i] = malloc(nRows*COL_DESCS[i].cSize))) {
+					die("out of memory");
+				}
+			}
+			if (!(nulls[i] = malloc(nRows*sizeof(char)))) {
+				die("out of memory");
+			}
+			FITSCATCH(fits_read_colnull(fitsInput, COL_DESCS[i].fitsType, 
+				COL_DESCS[i].index, 1, 1,
+      	nRows, data[i], nulls[i], &ignored, &status));
+		}
+
+		writeHeader(destination);
+		for (i=0; i<nRows; i++) {
+			Field *tuple;
+			context = NULL;
+			if (!setjmp(ignoreRecord)) {
+				tuple = getTuple(data, nulls, i);
+				if (!tuple) {
+					handleBadRecord("Bad input at record %%d", i);
+				}
+				writeTuple(tuple, QUERY_N_PARS, destination);
+				if (!(i%%1000)) {
+					fprintf(stderr, "%%08d\\r", i);
+					fflush(stderr);
+				}
+			}
+		}
+		writeEndMarker(destination);
+		fprintf(stderr, "%%08d records done.\\n", i);
+	}"""%infoDict
+
+
+
 class SplitCodeGenerator(_CodeGenerator):
-	def __init__(self, options):
+	def __init__(self, options, tableDef):
 		self.splitChar = getattr(options, "split", "|")
-		_CodeGenerator.__init__(self, options)
+		_CodeGenerator.__init__(self, options, tableDef)
 
 	def getSetupCode(self):
 		return ['char *curCont = strtok(inputLine, "%s");'%self.splitChar]
 
-	def getItemParser(self, item):
+	def getItemParser(self, item, index):
 		t = item.type
 		fi = getNameForItem(item)
 		if t=="text":
@@ -331,13 +538,15 @@ class SplitCodeGenerator(_CodeGenerator):
 		return parse
 
 
-def getCodeGen(opts):
+def getCodeGen(opts, tableDef):
 	if getattr(opts, "binParser", None):
-		return BinCodeGenerator(opts)
+		return BinCodeGenerator(opts, tableDef)
+	elif getattr(opts, "fitsTable", None):
+		return FITSCodeGenerator(opts, tableDef)
 	elif getattr(opts, "split", None):
-		return SplitCodeGenerator(opts)
+		return SplitCodeGenerator(opts, tableDef)
 	else:
-		return ColCodeGenerator(opts)
+		return ColCodeGenerator(opts, tableDef)
 
 
 def getEnum(td, opts):
@@ -354,14 +563,14 @@ def getEnum(td, opts):
 	return code
 
 
-def getGetTuple(td, opts):
-	codeGen = getCodeGen(opts)
+def getGetTuple(td, codeGen):
 	code = [
-		"Field *getTuple(char *inputLine)\n{",
+		codeGen.getPrototype(),
+		"{",
 		"\tstatic Field vals[QUERY_N_PARS];"]
 	code.extend(indent(codeGen.getSetupCode(), "\t"))
-	for item in td:
-		code.extend(indent(codeGen.getItemParser(item), "\t"))
+	for index, item in enumerate(td):
+		code.extend(indent(codeGen.getItemParser(item, index), "\t"))
 	code.extend([
 		"\treturn vals;",
 		"}"])
@@ -372,24 +581,19 @@ def indent(stringList, indentChar):
 	return [indentChar+s for s in stringList]
 
 
-def buildSource(td, opts):
-	code = [
-		'#include <stdio.h>',
-		'#include <math.h>',
-		'#include <string.h>',
-		'#include <errno.h>',
-		'#include "boosterskel.h"',
-		'',
-		'#define USAGE "Usage: don\'t."\n#define INPUT_LINE_MAX 2000',
-		"",
-		"/* delete the next line for POSIX strtok */",
-		"#define strtok strtok_u"]
-	
+# XXX TODO: make this sane, puzzling together the parts in a sensible
+# fashion
+def buildSource(opts, td):
+	"""returns (possibly incomplete) C source for a booster to read into td.
+	"""
+	codeGen = getCodeGen(opts, td)
+
+	code = codeGen.getPreamble()
 	code.extend(getEnum(td, opts))
-	code.extend(getGetTuple(td,opts))
-	code.append(STATIC_FOOT)
+	code.extend(getGetTuple(td, codeGen))
+	code.append(codeGen.getFooter())
 	return "\n".join(code)
-	
+
 
 def getTableDef(rdName, tdId):
 	try:
@@ -399,6 +603,7 @@ def getTableDef(rdName, tdId):
 	return rd.getById(tdId)
 
 
+# XXX TODO: do away with conflicting options.
 def parseCmdLine():
 	from optparse import OptionParser
 	parser = OptionParser(usage = "%prog [options] <rd-name> <table-id>")
@@ -407,6 +612,9 @@ def parseCmdLine():
 		type="string", dest="split")
 	parser.add_option("-b", "--binary", help="generate a skeleton for"
 		" a binary parser", action="store_true", dest="binParser")
+	parser.add_option("-f", "--from-fits-binary", help="Generate a parser"
+		" for the FITS binary table in FILE", metavar="FILE", action="store",
+		type="string", dest="fitsTable")
 	(opts, args) = parser.parse_args()
 	if len(args)!=2:
 		parser.print_help()
@@ -419,7 +627,7 @@ def main():
 	try:
 		opts, (rdName, tdId) = parseCmdLine()
 		td = getTableDef(rdName, tdId)
-		src = buildSource(td, opts)
+		src = buildSource(opts, td)
 		print src.encode("ascii", "ignore")
 	except SystemExit, msg:
 		sys.exit(msg.code)
