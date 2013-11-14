@@ -206,7 +206,8 @@ class RRFunctionsTest(testhelpers.VerboseTest):
 	
 	samples = [
 		("select testgroup from test.ufuncex where 1=ivo_hasword(testgroup, 'abc')",
-			"SELECT testgroup FROM test.ufuncex WHERE (to_tsvector(testgroup)"
+			"SELECT testgroup FROM test.ufuncex WHERE ("
+			"to_tsvector('english', testgroup)"
 				" @@ plainto_tsquery('abc'))"),
  		("select ivo_hasword(testgroup, 'abc') from test.ufuncex",
  			"SELECT IVO_HASWORD(testgroup, 'abc') FROM test.ufuncex"),

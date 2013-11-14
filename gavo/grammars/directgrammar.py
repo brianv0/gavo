@@ -28,11 +28,10 @@ class CBooster(object):
 	Warning: If you change the booster description, you'll need to touch
 	the source to recompile.
 	"""
-	def __init__(self, srcName, recordSize, dataDesc, gzippedInput=False,
+	def __init__(self, srcName, dataDesc, gzippedInput=False,
 			autoNull=None, preFilter=None, ignoreBadRecords=False,
 			customFlags=""):
 		self.dataDesc = dataDesc
-		self.recordSize = recordSize
 		self.resdir = dataDesc.rd.resdir
 		self.srcName = os.path.join(self.resdir, srcName)
 		self.autoNull, self.preFilter = autoNull, preFilter
@@ -55,9 +54,9 @@ class CBooster(object):
 		getResource("resources/src/boosterskel.c", "boosterskel.c")
 		getResource("resources/src/boosterskel.h", "boosterskel.h")
 		shutil.copyfile(self.srcName, os.path.join(wd, "func.c"))
-		# Ouch.  We now need to hack QUERY_N_PARS out of the function source.
-		# It's ugly, but the alternatives aren't prettier.  The thing just needs 
-		# to be a macro.
+
+		# XXX TODO: take this from the embedding data's make;
+		# DirectGrammars can't be outside of a data element any more anyway.
 		mat = re.search("(?m)^#define QUERY_N_PARS\s+(\d+)", 
 			open(self.srcName).read())
 		if not mat:
@@ -67,8 +66,6 @@ class CBooster(object):
 		f = open(os.path.join(wd, "Makefile"), "w")
 		f.write("LDFLAGS += -lm\n"
 			"CFLAGS += -Wall -DQUERY_N_PARS=%s\n"%query_n_pars)
-		if self.recordSize:
-			f.write("CFLAGS += -DFIXED_RECORD_SIZE=%s\n"%self.recordSize)
 		if self.autoNull:
 			f.write("CFLAGS += -DAUTO_NULL='%s'\n"%self.autoNull.replace(
 				"\\", "\\\\"))
@@ -101,7 +98,11 @@ class CBooster(object):
 				return
 		except os.error:
 			pass
-		utils.runInSandbox(self._copySources, self._build, self._retrieveBinary)
+		if os.path.exists(self.srcName):
+			utils.runInSandbox(self._copySources, self._build, self._retrieveBinary)
+		else:
+			base.ui.notifyError("Booster for grammar with id %s does not exist."
+				"  You will not be able to import the enclosing data.")
 
 	def getOutput(self, argName):
 		"""returns a pipe you can read the booster's output from.
@@ -133,7 +134,8 @@ class DirectGrammar(base.Structure, base.RestrictionMixin):
 	"""
 	name_ = "directGrammar"
 
-	_cbooster = rscdef.ResdirRelativeAttribute("cBooster", default=base.Undefined,
+	_cbooster = rscdef.ResdirRelativeAttribute("cBooster", 
+		default=base.Undefined,
 		description="resdir-relative path to the booster C source.")
 	_gzippedInput = base.BooleanAttribute("gzippedInput", default=False,
 		description="Pipe gzip before booster?")
@@ -142,29 +144,48 @@ class DirectGrammar(base.Structure, base.RestrictionMixin):
 	_ignoreBadRecords = base.BooleanAttribute("ignoreBadRecords",
 		default=False, description="Let booster ignore invalid records?")
 	_recordSize = base.IntAttribute("recordSize", default=None,
-		description="Have C booster read that much bytes to obtain a record")
+		description="For bin boosters, read this many bytes to make"
+			" up a record.")
 	_preFilter = base.UnicodeAttribute("preFilter", default=None,
 		description="Pipe input through this program before handing it to"
 			" the booster; this string is shell-expanded.")
 	_customFlags = base.UnicodeAttribute("customFlags", default="",
 		description="Pass these flags to the C compiler when building the"
 		" booster.")
+	_type = base.EnumeratedUnicodeAttribute("type", default="col", 
+		validValues=["col", "bin", "fits", "split"],
+		description="Make code for a booster parsing by column indices (col),"
+			" by splitting along separators (split), by reading fixed-length"
+			" binary records (bin), for from FITS binary tables (fits).")
+	_splitChar = base.UnicodeAttribute("splitChar", default="|",
+		description="For split boosters, use this as the separator")
 	_rd = rscdef.RDAttribute()
 
 	isDispatching = False
 
-	def parse(self, sourceToken, targetData=None):
-		booster = CBooster(self.cBooster, self.recordSize, self.parent,
+	def validate(self):
+		self._validateNext(DirectGrammar)
+		if self.type=='bin':
+			if not self.recordSize:
+				raise base.StructureError("DirectGrammars reading from binary need"
+					" a recordSize attribute")
+
+	def getBooster(self):
+		return CBooster(self.cBooster, self.parent,
 			gzippedInput=self.gzippedInput,
 			preFilter=self.preFilter,
 			autoNull=self.autoNull,
 			ignoreBadRecords=self.ignoreBadRecords,
 			customFlags=self.customFlags)
+
+	def parse(self, sourceToken, targetData=None):
+		booster = self.getBooster()
 		makes = self.parent.makes
 		if len(makes)!=1:
 			raise base.StructureError("Directgrammar only works for data having"
 				" exactly one table, but data '%s' has %d"%(
 					self.parent.id, len(makes)))
+
 		def copyIn(data):
 			data.tables.values()[0].copyIn(booster.getOutput(sourceToken))
 			if booster.getStatus():
@@ -183,19 +204,21 @@ def getNameForItem(item):
 	return "fi_"+item.name.lower()
 
 
-# XXX TODO: evaluate ifdefs in here at generation time (will also fix
-# compile warnings); then handle in analogy with STATIC_FOOT_FITS
-STATIC_FOOT = """
-
-
+# Some pieces to puzzle together the createDumpfile functions
+COMMON_MAIN_HEADER = """
+/* Common main header */
 void createDumpfile(int argc, char **argv)
 {
-	FILE *inF;
 	FILE *destination=stdout;
 	char inputLine[INPUT_LINE_MAX];
-	int lncount = 0;
-	int bytesRead = 0;
+	int recCount;
+/* /Common main header */
+"""
 
+NONSEEK_MAIN_INTRO = """
+	FILE *inF;
+
+	/* seekable main intro */
 	if (argc>2) {
 		die(USAGE);
 	}
@@ -206,42 +229,41 @@ void createDumpfile(int argc, char **argv)
 	} else {
 		inF = stdin;
 	}
-	
-//	fprintf(stderr, "\\nBooster importing %s:\\n", argv[1]);
+  /* /seekable main intro */
+"""
+
+COMMON_MAIN_INTRO = """
+	/* common main intro */
 	writeHeader(destination);
-#ifdef FIXED_RECORD_SIZE
-	while (1) {
-		bytesRead = fread(inputLine, 1, FIXED_RECORD_SIZE, inF);
-		if (bytesRead==0) {
-			break;
-		} else if (bytesRead!=FIXED_RECORD_SIZE) {
-			die("Short record: Only %d bytes read.", bytesRead);
-		}
-#else
-	while (fgets(inputLine, INPUT_LINE_MAX, inF)) {
-#endif
+	/* /common main intro */
+"""
+
+
+LOOP_BODY_INTRO = """
 		Field *tuple;
 		context = inputLine;
 		if (!setjmp(ignoreRecord)) {
-			tuple = getTuple(inputLine, lncount);
+"""
+
+
+LOOP_BODY_FOOT = """
 			if (!tuple) {
-#ifdef FIXED_RECORD_SIZE
-			handleBadRecord("Bad input line at record %d", lncount);
-#else
-			handleBadRecord("Bad input line");
-#endif
+				handleBadRecord("Bad input line at record %d", recCount);
 			}
 			writeTuple(tuple, QUERY_N_PARS, destination);
 			context = NULL;
-			lncount ++;
-			if (!(lncount%1000)) {
-				fprintf(stderr, "%08d\\r", lncount);
+			recCount ++;
+			if (!(recCount%1000)) {
+				fprintf(stderr, "%08d\\r", recCount);
 				fflush(stderr);
 			}
 		}
-	}
+"""
+
+
+COMMON_MAIN_FOOT = """
 	writeEndMarker(destination);
-	fprintf(stderr, "%08d records done.\\n", lncount);
+	fprintf(stderr, "%08d records done.\\n", recCount);
 }
 """
 
@@ -251,8 +273,8 @@ class _CodeGenerator(object):
 
 	You must at least override getItemParser.
 	"""
-	def __init__(self, options, tableDef):
-		self.options, self.tableDef = options, tableDef
+	def __init__(self, grammar, tableDef):
+		self.grammar, self.tableDef = grammar, tableDef
 		
 	def getSetupCode(self):
 		"""returns a sequence of C lines for code between an item parser.
@@ -277,24 +299,47 @@ class _CodeGenerator(object):
 		'#include <errno.h>',
 		'#include "boosterskel.h"',
 		'',
-		'#define USAGE "Usage: don\'t."\n#define INPUT_LINE_MAX 2000',
-		"",
-		"/* delete the next line for POSIX strtok */",
-		"#define strtok strtok_u"]
-
-	def getFooter(self):
-		"""returns the main function of the parser (and possibly other stuff)
-		in a string.
-		"""
-		return STATIC_FOOT
+		'#define USAGE "Usage: don\'t."',
+		'#define INPUT_LINE_MAX 2000',]
 
 	def getPrototype(self):
 		"""returns the prototype of the getTuple function.
 		"""
 		return "Field *getTuple(char *inputLine)"
 
+	def getFooter(self):
+		"""returns the code for the createDumpfile method.
 
-class ColCodeGenerator(_CodeGenerator):
+		You want to use the C fragments above for that.
+
+		The default returns something that bombs out.
+		"""
+		return '#error "No getFooter defined in the code generator"'
+
+
+class _LineBasedCodeGenerator(_CodeGenerator):
+	"""a base class for code generators for reading line-based text files.
+	"""
+	def getFooter(self):
+		"""returns the main function of the parser (and possibly other stuff)
+		in a string.
+
+		This default implementation works for line-based parsers.
+		"""
+		return (COMMON_MAIN_HEADER
+			+NONSEEK_MAIN_INTRO
+			+COMMON_MAIN_INTRO
+			+"""
+	while (fgets(inputLine, INPUT_LINE_MAX, inF)) {"""
+			+LOOP_BODY_INTRO
+			+"""
+		getTuple(inputLine);"""
+			+LOOP_BODY_FOOT
+			+"}\n"
+			+COMMON_MAIN_FOOT)
+
+
+class ColCodeGenerator(_LineBasedCodeGenerator):
 	def getItemParser(self, item, index):
 		t = item.type
 		if "int" in t:
@@ -312,11 +357,59 @@ class ColCodeGenerator(_CodeGenerator):
 		return ["%s(inputLine, F(%s), start, len);"%(func, getNameForItem(item))]
 
 
+class SplitCodeGenerator(_LineBasedCodeGenerator):
+	"""a code generator for parsing files with lineas and separators.
+	"""
+	def __init__(self, grammar, tableDef):
+		self.splitChar = getattr(grammar, "split", "|")
+		_CodeGenerator.__init__(self, grammar, tableDef)
+
+	def getPreamble(self):
+		return _CodeGenerator.getPreamble(self)+[
+			"/* delete the next line for POSIX strtok */",
+			"#define strtok strtok_u"]
+
+	def getSetupCode(self):
+		return ['char *curCont = strtok(inputLine, "%s");'%self.splitChar]
+
+	def getItemParser(self, item, index):
+		t = item.type
+		fi = getNameForItem(item)
+		if t=="text":
+			parse = ["F(%s)->type = VAL_TEXT;"%fi,
+				"F(%s)->length = strlen(curCont);"%fi,
+				"F(%s)->val.c_ptr = curCont;"%fi,]
+		else:
+			if t=="smallint":
+				cType = "VAL_SHORT"
+			elif t=="bigint":
+				cType = "VAL_BIGINT"
+			elif "int" in t:
+				cType = "VAL_INT"
+			elif t in ["real", "float"]:
+				cType = "VAL_FLOAT"
+			elif "double" in t:
+				cType = "VAL_DOUBLE"
+			elif "char"==t:
+				cType = "VAL_CHAR"
+			elif "char" in t:
+				cType = "VAL_TEXT"
+			elif "bool" in t:
+				cType = "VAL_BOOL"
+			else:
+				cType = "###No appropriate type###"
+			parse = ["fieldscanf(curCont, %s, %s);"%(fi, cType)]
+		parse.append('curCont = strtok(NULL, "%s");'%self.splitChar)
+		return parse
+
+
 class BinCodeGenerator(_CodeGenerator):
+	"""a code generator for reading fixed-length binary records.
+	"""
 	def getItemParser(self, item, index):
 		t = item.type
 		if t=="integer":
-			pline = "MAKE_INT32(%s, *(int32_t*)(line+));"
+			pline = "MAKE_INT(%s, *(int32_t*)(line+));"
 		elif t=="smallint":
 			pline = "MAKE_SHORT(%s, *(int16_t*)(line+ ));"
 		elif t=="double precision":
@@ -332,6 +425,31 @@ class BinCodeGenerator(_CodeGenerator):
 		return ["/* %s (%s) */"%(item.description, t), 
 			pline%getNameForItem(item)]
 
+	def getPreamble(self):
+		return _CodeGenerator.getPreamble(self)+[
+			"#define FIXED_RECORD_SIZE %d"%self.grammar.recordSize]
+
+	def getFooter(self):
+		return (COMMON_MAIN_HEADER
+			+"  int bytesRead = 0;\n"
+			+NONSEEK_MAIN_INTRO
+			+COMMON_MAIN_INTRO
+			+"""
+	while (1) {
+		bytesRead = fread(inputLine, 1, FIXED_RECORD_SIZE, inF);
+		if (bytesRead==0) {
+			break;
+		} else if (bytesRead!=FIXED_RECORD_SIZE) {
+			die("Short record: Only %d bytes read.", bytesRead);
+		}
+		"""
+			+LOOP_BODY_INTRO
+			+"""
+			tuple = getTuple(inputLine, recCount);"""
+			+LOOP_BODY_FOOT
+			+"}\n"
+			+COMMON_MAIN_FOOT)
+
 
 class FITSCodeGenerator(_CodeGenerator):
 	"""A code generator for reading from FITS binary tables.
@@ -340,15 +458,24 @@ class FITSCodeGenerator(_CodeGenerator):
 			"bytea": ("TBYTE", "MAKE_BYTE", "char"),
 			"text": ("TSTRING", "MAKE_TEXT", "char *"),
 			"short": ("TSHORT", "MAKE_SHORT", "short"),
-			"integer": ("TLONG", "MAKE_INT32", "int"),
+			"integer": ("TLONG", "MAKE_INT", "int"),
 			"bigint": ("TLONGLONG", "MAKE_BIGINT", "long long"),
 			"real": ("TFLOAT", "MAKE_FLOAT", "float"),
 			"double precision": ("TDOUBLE", "MAKE_DOUBLE", "double")}
 
-	def __init__(self, options, tableDef):
-		import pyfits
-		_CodeGenerator.__init__(self, options, tableDef)
-		self.fitsTable = pyfits.open(options.fitsTable)[1]
+	def __init__(self, grammar, tableDef):
+		from gavo.utils import pyfits
+		_CodeGenerator.__init__(self, grammar, tableDef)
+		# now fetch the first source to figure out its schema
+		if self.grammar.parent.sources is None:
+			raise StructureError("Cannot make FITS bintable booster without"
+				" a source element on the embedding data.")
+		try:
+			self.fitsTable = pyfits.open(
+				self.grammar.parent.sources.iterSources().next())[1]
+		except StopIteration:
+			raise StructureError("Buliding a FITS bintable booster requires"
+				" at least one matching source.")
 
 	def getItemParser(self, item, index):
 		return [
@@ -421,7 +548,7 @@ class FITSCodeGenerator(_CodeGenerator):
 			"nCols": len(self.tableDef.columns),
 			"colDescs": self._getColDescs(),
 		}
-		return """
+		return ("""
 	typedef struct FITSColDesc_s {
 		size_t cSize;
 		int fitsType;
@@ -429,11 +556,9 @@ class FITSCodeGenerator(_CodeGenerator):
 	} FITSColDesc;
 
 	FITSColDesc COL_DESCS[%(nCols)d] = %(colDescs)s;
-
-	void createDumpfile(int argc, char **argv)
-	{
+"""%infoDict+COMMON_MAIN_HEADER
++"""
 		fitsfile *fitsInput;
-		FILE *destination=stdout;
 		int ignored, i;
 		int status = 0;
 		long nRows = 0;
@@ -475,81 +600,30 @@ class FITSCodeGenerator(_CodeGenerator):
 			FITSCATCH(fits_read_colnull(fitsInput, COL_DESCS[i].fitsType, 
 				COL_DESCS[i].index, 1, 1,
       	nRows, data[i], nulls[i], &ignored, &status));
-		}
-
-		writeHeader(destination);
-		for (i=0; i<nRows; i++) {
-			Field *tuple;
-			context = NULL;
-			if (!setjmp(ignoreRecord)) {
-				tuple = getTuple(data, nulls, i);
-				if (!tuple) {
-					handleBadRecord("Bad input at record %%d", i);
-				}
-				writeTuple(tuple, QUERY_N_PARS, destination);
-				if (!(i%%1000)) {
-					fprintf(stderr, "%%08d\\r", i);
-					fflush(stderr);
-				}
-			}
-		}
-		writeEndMarker(destination);
-		fprintf(stderr, "%%08d records done.\\n", i);
-	}"""%infoDict
+		}"""%infoDict
+		+COMMON_MAIN_INTRO
+		+"""
+		for (i=0; i<nRows; i++) {"""
+		+LOOP_BODY_INTRO
+		+"""
+				tuple = getTuple(data, nulls, i);"""
+		+LOOP_BODY_FOOT
+		+"}\n"
+		+COMMON_MAIN_FOOT)
 
 
-
-class SplitCodeGenerator(_CodeGenerator):
-	def __init__(self, options, tableDef):
-		self.splitChar = getattr(options, "split", "|")
-		_CodeGenerator.__init__(self, options, tableDef)
-
-	def getSetupCode(self):
-		return ['char *curCont = strtok(inputLine, "%s");'%self.splitChar]
-
-	def getItemParser(self, item, index):
-		t = item.type
-		fi = getNameForItem(item)
-		if t=="text":
-			parse = ["F(%s)->type = VAL_TEXT;"%fi,
-				"F(%s)->length = strlen(curCont);"%fi,
-				"F(%s)->val.c_ptr = curCont;"%fi,]
-		else:
-			if t=="smallint":
-				cType = "VAL_SHORT"
-			elif t=="bigint":
-				cType = "VAL_BIGINT"
-			elif "int" in t:
-				cType = "VAL_INT"
-			elif t in ["real", "float"]:
-				cType = "VAL_FLOAT"
-			elif "double" in t:
-				cType = "VAL_DOUBLE"
-			elif "char"==t:
-				cType = "VAL_CHAR"
-			elif "char" in t:
-				cType = "VAL_TEXT"
-			elif "bool" in t:
-				cType = "VAL_BOOL"
-			else:
-				cType = "###No appropriate type###"
-			parse = ["fieldscanf(curCont, %s, %s);"%(fi, cType)]
-		parse.append('curCont = strtok(NULL, "%s");'%self.splitChar)
-		return parse
+def getCodeGen(grammar, tableDef):
+	"""returns the code generator suitable for making code for grammar.
+	"""
+	return {
+		"bin": BinCodeGenerator,
+		"split": SplitCodeGenerator,
+		"fits": FITSCodeGenerator,
+		"col": ColCodeGenerator,
+	}[grammar.type](grammar, tableDef)
 
 
-def getCodeGen(opts, tableDef):
-	if getattr(opts, "binParser", None):
-		return BinCodeGenerator(opts, tableDef)
-	elif getattr(opts, "fitsTable", None):
-		return FITSCodeGenerator(opts, tableDef)
-	elif getattr(opts, "split", None):
-		return SplitCodeGenerator(opts, tableDef)
-	else:
-		return ColCodeGenerator(opts, tableDef)
-
-
-def getEnum(td, opts):
+def getEnum(td, grammar):
 	code = [
 		"#define QUERY_N_PARS %d\n"%len(list(td)),
 		'enum outputFields {']
@@ -581,53 +655,55 @@ def indent(stringList, indentChar):
 	return [indentChar+s for s in stringList]
 
 
-# XXX TODO: make this sane, puzzling together the parts in a sensible
-# fashion
-def buildSource(opts, td):
+def buildSource(grammar, td):
 	"""returns (possibly incomplete) C source for a booster to read into td.
 	"""
-	codeGen = getCodeGen(opts, td)
+	codeGen = getCodeGen(grammar, td)
 
 	code = codeGen.getPreamble()
-	code.extend(getEnum(td, opts))
+	code.extend(getEnum(td, grammar))
 	code.extend(getGetTuple(td, codeGen))
 	code.append(codeGen.getFooter())
 	return "\n".join(code)
 
 
-def getTableDef(rdName, tdId):
-	try:
-		rd = base.caches.getRD(rdName)
-	except base.RDNotFound:
-		rd = base.caches.getRD(os.path.join(os.getcwd(), rdName))
-	return rd.getById(tdId)
+def getGrammarAndTable(grammarId):
+	"""returns a pair of directGrammar and table being fed for a cross-rd
+	reference.
+	"""
+	grammar = base.resolveId(None, grammarId, forceType=DirectGrammar)
+	# to figure out the table built, use the parent's make
+	makes = grammar.parent.makes
+	if len(makes)!=1:
+		raise base.StructureError("Directgrammar only works for data having"
+			" exactly one table, but data '%s' has %d"%(
+				grammar.parent.id, len(makes)))
+	tableDef = makes[0].table
+	return grammar, tableDef
 
 
-# XXX TODO: do away with conflicting options.
 def parseCmdLine():
 	from optparse import OptionParser
-	parser = OptionParser(usage = "%prog [options] <rd-name> <table-id>")
-	parser.add_option("-s", "--splitter", help="generate a split skeleton"
-		" with split string SPLITTER", metavar="SPLITTER", action="store",
-		type="string", dest="split")
-	parser.add_option("-b", "--binary", help="generate a skeleton for"
-		" a binary parser", action="store_true", dest="binParser")
-	parser.add_option("-f", "--from-fits-binary", help="Generate a parser"
-		" for the FITS binary table in FILE", metavar="FILE", action="store",
-		type="string", dest="fitsTable")
+	parser = OptionParser(usage = "%prog <id-of-directGrammar>")
 	(opts, args) = parser.parse_args()
-	if len(args)!=2:
+	if len(args)!=1:
 		parser.print_help()
 		sys.exit(1)
 	return opts, args
 
 
+def getSource(grammarId):
+	"""returns a bytestring containing C source to parse grammarId.
+	"""
+	grammar, td = getGrammarAndTable(grammarId)
+	src = buildSource(grammar, td)
+	return src.encode("ascii", "ignore")
+
+
 def main():
 	from gavo import rscdesc
 	try:
-		opts, (rdName, tdId) = parseCmdLine()
-		td = getTableDef(rdName, tdId)
-		src = buildSource(opts, td)
-		print src.encode("ascii", "ignore")
+		opts, grammarId = parseCmdLine()
+		print getSource(grammarId)
 	except SystemExit, msg:
 		sys.exit(msg.code)

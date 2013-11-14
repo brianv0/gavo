@@ -229,15 +229,17 @@ class PQLIRTest(testhelpers.VerboseTest):
 		cs = pql.PQLTextParIR.fromLiteral("abc ef", "foo")
 		sqlPars = {}
 		sql = cs.getSQL("foo", sqlPars)
-		self.assertEqual(sql, "(to_tsvector(foo) @@ plainto_tsquery(%(foo0)s))")
+		self.assertEqual(sql, 
+			"(to_tsvector('english', foo) @@ plainto_tsquery(%(foo0)s))")
 		self.assertEqual(sqlPars, {'foo0': 'abc ef'})
 	
 	def testEnumeration(self):
 		cs = pql.PQLTextParIR.fromLiteral("abc ef, urgl", "foo")
 		sqlPars = {}
 		sql = cs.getSQL("foo", sqlPars)
-		self.assertEqual(sql, "(to_tsvector(foo) @@ plainto_tsquery(%(foo0)s)"
-			" OR to_tsvector(foo) @@ plainto_tsquery(%(foo1)s))")
+		self.assertEqual(sql, 
+			"(to_tsvector('english', foo) @@ plainto_tsquery(%(foo0)s)"
+			" OR to_tsvector('english', foo) @@ plainto_tsquery(%(foo1)s))")
 		self.assertEqual(sqlPars, {"foo0": " urgl", 'foo1': 'abc ef'})
 	
 	def testNoRange(self):

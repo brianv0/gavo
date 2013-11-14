@@ -304,8 +304,8 @@ class FunctionRelativePathAttribute(UnicodeAttribute):
 	def iterParentMethods(self):
 		def computePath(instance):
 			relative = getattr(instance, self.hiddenAttName)
-			if relative is None:
-				return None
+			if not relative:
+				return relative
 			return os.path.join(self.baseFunction(instance), relative)
 		def setRelative(instance, value):
 			setattr(instance, self.hiddenAttName, value)

@@ -66,6 +66,7 @@ class VOTable(object):
 		_a_ref = None
 		_a_type = None
 		_a_width = None
+		_a_format = None
 
 		def isScalar(self):
 			return self.arraysize is None or self.arraysize=='1'

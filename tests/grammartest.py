@@ -13,13 +13,16 @@ from gavo.helpers import testhelpers
 from gavo import base
 from gavo import rsc
 from gavo import rscdef
+from gavo import utils
 from gavo.grammars import binarygrammar
 from gavo.grammars import columngrammar
 from gavo.grammars import common
+from gavo.grammars import directgrammar
 from gavo.grammars import fitsprodgrammar
 from gavo.grammars import regrammar
 from gavo.helpers import testtricks
 
+import tresc
 
 
 class PredefinedRowfilterTest(testhelpers.VerboseTest):
@@ -449,5 +452,87 @@ class FilteredInputTest(testhelpers.VerboseTest):
 		self.assertEqual(f.readline(), "BBBB")
 
 
+class DirectGrammarTest(testhelpers.VerboseTest):
+# this is for direct grammars that can't be automatically made:
+# Just make sure they're producing something resembling C source.
+	rd = testhelpers.getTestRD("dgs")
+
+	def _assertCommonItems(self, src):
+		self.failUnless(src.startswith("#include"))
+		self.failUnless("fi_i,            /* I, integer */" in src)
+		self.failUnless("writeHeader(destination);" in src)
+
+	def testColGrammar(self):
+		src = directgrammar.getSource("data/dgs#col")
+		self._assertCommonItems(src)
+		self.failUnless("parseFloat(inputLine, F(fi_f), start, len);" in src)
+
+	def testSplitGrammar(self):
+		src = directgrammar.getSource("data/dgs#split")
+		self._assertCommonItems(src)
+		self.failUnless('char *curCont = strtok(inputLine, "|");' in src)
+		self.failUnless('curCont = strtok(NULL, "|");' in src)
+
+	def testBinGrammar(self):
+		src = directgrammar.getSource("data/dgs#bin")
+		self._assertCommonItems(src)
+		self.failUnless('#define FIXED_RECORD_SIZE 50' in src)
+		self.failUnless('MAKE_INT(fi_i, *(int32_t*)(line+));' in src)
+		self.failUnless('bytesRead = fread(inputLine, 1, FIXED_RECORD_SIZE, inF);' 
+			in src)
+
+	def testSourcePlausible(self):
+		src = directgrammar.getSource("data/dgs#fits")
+		self._assertCommonItems(src)
+		self.failUnless("if (COL_DESCS[i].fitsType==TSTRING) {" in src)
+		self.failUnless("MAKE_BIGINT(fi_b, ((long long*)(data[1]))[rowIndex]);" 
+			in src)
+
+	# XXX TODO: tests for column reordering, skipping unused columns in FITS
+
+class _FITSBoosterImportedTable(testhelpers.TestResource):
+	resources = [("conn", tresc.dbConnection)]
+
+	def make(self, deps):
+		conn = deps["conn"]
+		dd = base.caches.getRD("data/dgs").getById("impfits")
+		self.srcName = dd.grammar.cBooster
+		with open(self.srcName, "w") as f:
+			f.write(directgrammar.getSource("data/dgs#fits"))
+
+		open("tmp.c", "w").write(directgrammar.getSource("data/dgs#fits"))
+		with utils.silence():
+			data = rsc.makeData(dd, connection=conn)
+		table = data.getPrimaryTable()
+		rows = list(table.iterQuery(table.tableDef))
+		return rows, data.getPrimaryTable()
+
+	def clean(self, res):
+		os.unlink(self.srcName)
+		res[1].drop()
+
+
+class FITSDirectGrammarTest(testhelpers.VerboseTest):
+	
+	resources = [("imped", _FITSBoosterImportedTable())]
+
+	def testInteger(self):
+		self.assertEqual(self.imped[0][0]["i"], 450000)
+
+	def testBigint(self):
+		self.assertEqual(self.imped[0][0]["b"], 4009249430L)
+	
+	def testFloat(self):
+		self.assertEqual(self.imped[0][0]["f"], 3.2)
+	
+	def testDouble(self):
+		self.assertEqual(self.imped[0][0]["d"], 5e120)
+
+	def testText(self):
+		self.assertEqual(self.imped[0][0]["t"], "foobar")
+# XXX TODO: add tests with NULL
+			
+
+
 if __name__=="__main__":
-	testhelpers.main(FilteredInputTest)
+	testhelpers.main(FITSDirectGrammarTest)

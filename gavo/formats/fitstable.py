@@ -32,7 +32,6 @@ def exclusiveFits():
 		_FITS_TABLE_LOCK.release()
 
 
-
 _fitsCodeMap = {
 	"short": "I",
 	"int": "J",

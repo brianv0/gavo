@@ -13,8 +13,12 @@ Version 0.9
     replacement for the tentative getData proposal.  See the reference
     documentation for how to migrate from getData to Datalink.
 
-  * No longer using sesame's SOAP interface (that's going to be shut down
-    fairly soon)
+  * No longer using sesame's SOAP interface (that's been shut down by now)
+
+  * gavo mkboost now takes the id of the directGrammar rather than a
+    pair of rd id and and table id.  It can now also parse from fits
+    binary tables directly.
+
 
 Version 0.8.9 (2013-07-13)
 
