@@ -580,13 +580,13 @@ class FITSCodeGenerator(_CodeGenerator):
 			if (COL_DESCS[i].fitsType==TSTRING) {
 				char *stringHoldings = NULL;
 				if (!(data[i] = malloc(nRows*sizeof(char*)))
-					|| !(stringHoldings = malloc(nRows*COL_DESCS[i].cSize))) {
+					|| !(stringHoldings = malloc(nRows*(COL_DESCS[i].cSize+1)))) {
 					die("out of memory");
 				} else {
 					int k;
 					/* Initialize the char* in the data array */
 					for (k=0; k<nRows; k++) {
-						((char**)(data[i]))[k] = stringHoldings+k*COL_DESCS[i].cSize;
+						((char**)(data[i]))[k] = stringHoldings+k*(COL_DESCS[i].cSize+1);
 					}
 				}
 			} else{
@@ -689,7 +689,7 @@ def parseCmdLine():
 	if len(args)!=1:
 		parser.print_help()
 		sys.exit(1)
-	return opts, args
+	return opts, args[0]
 
 
 def getSource(grammarId):
