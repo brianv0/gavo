@@ -211,7 +211,7 @@ void createDumpfile(int argc, char **argv)
 {
 	FILE *destination=stdout;
 	char inputLine[INPUT_LINE_MAX];
-	int recCount;
+	int recCount = 0;
 /* /Common main header */
 """
 
