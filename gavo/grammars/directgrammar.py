@@ -361,7 +361,7 @@ class SplitCodeGenerator(_LineBasedCodeGenerator):
 	"""a code generator for parsing files with lineas and separators.
 	"""
 	def __init__(self, grammar, tableDef):
-		self.splitChar = getattr(grammar, "split", "|")
+		self.splitChar = getattr(grammar, "splitChar", "|")
 		_CodeGenerator.__init__(self, grammar, tableDef)
 
 	def getPreamble(self):

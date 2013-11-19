@@ -500,7 +500,6 @@ class _FITSBoosterImportedTable(testhelpers.TestResource):
 		with open(self.srcName, "w") as f:
 			f.write(directgrammar.getSource("data/dgs#fits"))
 
-		open("tmp.c", "w").write(directgrammar.getSource("data/dgs#fits"))
 		with utils.silence():
 			data = rsc.makeData(dd, connection=conn)
 		table = data.getPrimaryTable()
