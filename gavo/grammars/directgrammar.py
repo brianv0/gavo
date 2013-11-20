@@ -333,7 +333,7 @@ class _LineBasedCodeGenerator(_CodeGenerator):
 	while (fgets(inputLine, INPUT_LINE_MAX, inF)) {"""
 			+LOOP_BODY_INTRO
 			+"""
-		getTuple(inputLine);"""
+			tuple = getTuple(inputLine);"""
 			+LOOP_BODY_FOOT
 			+"}\n"
 			+COMMON_MAIN_FOOT)
@@ -370,7 +370,9 @@ class SplitCodeGenerator(_LineBasedCodeGenerator):
 			"#define strtok strtok_u"]
 
 	def getSetupCode(self):
-		return ['char *curCont = strtok(inputLine, "%s");'%self.splitChar]
+		return [
+			'char *curCont;',
+			'curCont = strtok(inputLine, "%s");'%self.splitChar]
 
 	def getItemParser(self, item, index):
 		t = item.type
