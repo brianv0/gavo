@@ -300,7 +300,6 @@
 			the publishing registry of the \getConfig{web}{sitename}</meta>
 		<meta name="maxRecords">10000</meta>
 		<meta name="managedAuthority">\getConfig{ivoa}{authority}</meta>
-		<meta name="referenceURL">http://vo.uni-hd.de/static/help.shtml</meta>
 		<meta name="publisher">The staff at the \getConfig{web}{sitename}</meta>
 	</service>
 
