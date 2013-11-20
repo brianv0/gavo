@@ -28,6 +28,8 @@ class CBooster(object):
 	Warning: If you change the booster description, you'll need to touch
 	the source to recompile.
 	"""
+	silence_for_test = False
+
 	def __init__(self, srcName, dataDesc, gzippedInput=False,
 			autoNull=None, preFilter=None, ignoreBadRecords=False,
 			customFlags=""):
@@ -81,7 +83,11 @@ class CBooster(object):
 		f.close()
 	
 	def _build(self):
-		if subprocess.call("make"):
+		callArgs = {}
+		if self.silence_for_test:
+			# test instrumentation -- don't worry if the file remains open
+			callArgs["stdout"] = open("/dev/null", "w")
+		if subprocess.call("make", **callArgs):
 			raise base.ReportableError("Booster build failed, messages above.")
 	
 	def _retrieveBinary(self, od):
@@ -116,8 +122,12 @@ class CBooster(object):
 			shellCommand = "zcat '%s' | %s"%(argName, self.binaryName)
 		else:
 			shellCommand = "%s '%s'"%(self.binaryName, argName)
-		self.pipe = subprocess.Popen(shellCommand, shell=True,
-			stdout=subprocess.PIPE)
+
+		pipeArgs = {"shell": True, "stdout": subprocess.PIPE}
+		if self.silence_for_test:
+			# test instrumentation -- don't worry if the file remains open
+			pipeArgs["stderr"] = open("/dev/null", "w")
+		self.pipe = subprocess.Popen(shellCommand, **pipeArgs)
 		return self.pipe.stdout
 	
 	def getStatus(self):

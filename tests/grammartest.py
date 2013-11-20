@@ -491,6 +491,8 @@ class DirectGrammarTest(testhelpers.VerboseTest):
 
 	# XXX TODO: tests for column reordering, skipping unused columns in FITS
 
+directgrammar.CBooster.silence_for_test = True
+
 class _FITSBoosterImportedTable(testhelpers.TestResource):
 	resources = [("conn", tresc.dbConnection)]
 
@@ -501,8 +503,7 @@ class _FITSBoosterImportedTable(testhelpers.TestResource):
 		with open(self.srcName, "w") as f:
 			f.write(directgrammar.getSource("data/dgs#fits"))
 
-		with utils.silence(errToo=True):
-			data = rsc.makeData(dd, connection=conn)
+		data = rsc.makeData(dd, connection=conn)
 		table = data.getPrimaryTable()
 		rows = list(table.iterQuery(table.tableDef))
 		return rows, data.getPrimaryTable()
