@@ -360,7 +360,7 @@ def makeClassDocs(baseClass, objects):
 
 
 @contextlib.contextmanager
-def silence():
+def silence(errToo=False):
 	"""a context manager to temporarily redirect stdout to /dev/null.
 
 	This is used to shut up some versions of pyparsing and pyfits that
@@ -369,11 +369,17 @@ def silence():
 	"""
 	realstdout = sys.stdout
 	sys.stdout = open("/dev/null", "w")
+	if errToo:
+		realstderr = sys.stderr
+		sys.stderr = sys.stdout
+
 	try:
 		yield
 	finally:
 		sys.stdout.close()
 		sys.stdout = realstdout
+		if errToo:
+			sys.stderr = realstderr 
 
 
 @contextlib.contextmanager

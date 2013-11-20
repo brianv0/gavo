@@ -26,11 +26,14 @@ def _do_dropTable(tableName):
 				q.query("delete from %s where %s=%%(tableName)s"%(
 					metaTableName, columnName),
 					{"tableName": tableName})
-		if q.tableExists(tableName):
-			#	POSSIBLE SQL INJECTION when tableName is a suitably wicked
-			# quoted name; right now, this is mitigated by the fact that
-			# people that can call this don't need SQL injection since
-			# they can execute anything gavoadmin can anyway.
+
+		#	POSSIBLE SQL INJECTION when tableName is a suitably wicked
+		# quoted name; right now, this is mitigated by the fact that
+		# people that can call this don't need SQL injection since
+		# they can execute anything gavoadmin can anyway.
+		if q.viewExists(tableName):
+			q.query("drop view "+tableName)
+		elif q.tableExists(tableName):
 			q.query("drop table "+tableName)
 
 

@@ -470,7 +470,8 @@ class DirectGrammarTest(testhelpers.VerboseTest):
 	def testSplitGrammar(self):
 		src = directgrammar.getSource("data/dgs#split")
 		self._assertCommonItems(src)
-		self.failUnless('char *curCont = strtok(inputLine, "|");' in src)
+		self.failUnless('char *curCont;' in src)
+		self.failUnless('curCont = strtok(inputLine, "|");' in src)
 		self.failUnless('curCont = strtok(NULL, "|");' in src)
 
 	def testBinGrammar(self):
@@ -500,7 +501,7 @@ class _FITSBoosterImportedTable(testhelpers.TestResource):
 		with open(self.srcName, "w") as f:
 			f.write(directgrammar.getSource("data/dgs#fits"))
 
-		with utils.silence():
+		with utils.silence(errToo=True):
 			data = rsc.makeData(dd, connection=conn)
 		table = data.getPrimaryTable()
 		rows = list(table.iterQuery(table.tableDef))
