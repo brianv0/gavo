@@ -24,6 +24,8 @@ from gavo.base import common
 from gavo.base import literals
 from gavo.base import structure
 
+__docformat__ = "restructuredtext en"
+
 
 class CollOfAtomsAttribute(attrdef.AtomicAttribute):
 	"""A base class for simple collections of atomic attributes.

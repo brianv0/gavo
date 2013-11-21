@@ -31,6 +31,8 @@ from gavo.web import serviceresults
 from gavo.web import weberrors
 
 
+__docformat__ = "restructuredtext en"
+
 
 class RDBlocked(Exception):
 	"""is raised when a ResourceDescriptor is blocked due to maintanence

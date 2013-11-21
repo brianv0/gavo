@@ -26,6 +26,8 @@ from gavo.svcs import streaming
 from gavo.web import common
 from gavo.web import producttar
 
+__docformat__ = "restructuredtext en"
+
 
 class ServiceResult(object):
 	"""A base class for objects producing formatted output.
@@ -50,6 +52,7 @@ class ServiceResult(object):
 	- compute -- if False, at least the form renderer will not run
 	  the service (this is when you just return a container).
 	"""
+
 	compute = True
 	code = None
 	label = None

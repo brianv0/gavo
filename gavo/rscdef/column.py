@@ -12,6 +12,8 @@ from gavo.base import typesystems
 from gavo.base.attrdef import *
 from gavo.utils import codetricks
 
+__docformat__ = "restructuredtext en"
+
 
 # A set of database type names that need explicit null values when
 # they are serialized into VOTables.  We don't check array types

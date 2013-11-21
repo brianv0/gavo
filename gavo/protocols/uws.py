@@ -32,6 +32,9 @@ EST_TIME_PER_JOB = datetime.timedelta(minutes=10)
 _DEFAULT_LOCK_TIMEOUT = 20
 
 
+__docformat__ = "restructuredtext en"
+
+
 class UWSError(base.Error):
 	def __init__(self, msg, jobId, hint=None):
 		base.Error.__init__(self, msg, hint)

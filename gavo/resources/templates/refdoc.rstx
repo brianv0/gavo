@@ -90,6 +90,10 @@ Here are some guidelines as to the naming of the attributes:
   services should indicate in their names what they are supposed to
   reference.
 
+Also note that examples for the usage of almost everything mentioned
+here can be found in in the `GAVO datacenter element reference`_.
+
+.. _GAVO datacenter element reference: http://docs.g-vo.org/DaCHS/elemref.html
 
 .. replaceWithResult getStructDocs(docStructure)
 

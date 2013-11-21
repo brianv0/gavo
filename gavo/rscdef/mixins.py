@@ -10,6 +10,9 @@ from gavo.base import activetags
 from gavo.rscdef import procdef
 
 
+__docformat__ = "restructuredtext en"
+
+
 class ProcessEarly(procdef.ProcApp):
 	"""A code fragment run by the mixin machinery when the structure
 	being worked on is being finished.

@@ -10,9 +10,10 @@ without backtracking and by recursive descent (which is what pyparsing
 does).  I need some reformulations.  The more interesting of those 
 include:
 
-(1) TableReference
+TableReference
+--------------
 
-Trouble that table_reference is left-recursive in the following rules.
+Trouble is  that table_reference is left-recursive in the following rules::
 
   <table_reference> ::=
 	 <table_name> [ <correlation_specification> ]
@@ -27,7 +28,7 @@ Trouble that table_reference is left-recursive in the following rules.
 	  <table_reference> [ NATURAL ] [ <join_type> ] JOIN
 	  <table_reference> [ <join_specification> ]
 
-We fix this by adding rules
+We fix this by adding rules::
 
 	<sub_join> ::= '(' <joinedTable> ')'
   <join_opener> ::=
@@ -35,7 +36,7 @@ We fix this by adding rules
    | <derived_table> <correlation_specification>
 	 | <sub_join>
 
-and then writing
+and then writing::
 
   <qualified_join> ::=
 	  <join_opener> [ NATURAL ] [ <join_type> ] JOIN
@@ -43,13 +44,16 @@ and then writing
 
 
 
-(2) statement
+statement
+---------
 
 I can't have StringEnd appended to querySpecification since it's used
 in subqueries, but I need to have it to keep pyparsing from just matching
 parts of the input.  Thus, the top-level production is for "statement".
 
-(3) trig_function, math_function, system_defined_function
+
+trig_function, math_function, system_defined_function
+-----------------------------------------------------
 
 I think it's a bit funny to have the arity of functions in the syntax, but
 there you go.  Anyway, I don't want to have the function names in separate
@@ -62,7 +66,8 @@ Similarly, for math_function I group symbols by arity.
 The system defined functions are also regrouped to keep the number of
 symbols reasonable.
 
-(4) column_reference and below
+column_reference and below
+--------------------------
 
 Here the lack of backtracking hurts badly, since once, say, schema name
 is matched with a dot that's it, even if the dot should really have separated
@@ -71,39 +76,43 @@ schema and table.
 Hence, we don't assign semantic labels in the grammar but leave that to
 whatever interprets the tokens.
 
-The important rules here are
+The important rules here are::
 
-<column_name> ::= <identifier>
-<correlation_name> ::= <identifier>
-<catalog_name> ::= <identifier>
-<unqualified_schema name> ::= <identifier>
-<schema_name> ::= [ <catalog_name> <period> ] <unqualified_schema name>
-<table_name> ::= [ <schema_name> <period> ] <identifier>
-<qualifier> ::= <table_name> | <correlation_name>
-<column_reference> ::= [ <qualifier> <period> ] <column_name>
+	<column_name> ::= <identifier>
+	<correlation_name> ::= <identifier>
+	<catalog_name> ::= <identifier>
+	<unqualified_schema name> ::= <identifier>
+	<schema_name> ::= [ <catalog_name> <period> ] <unqualified_schema name>
+	<table_name> ::= [ <schema_name> <period> ] <identifier>
+	<qualifier> ::= <table_name> | <correlation_name>
+	<column_reference> ::= [ <qualifier> <period> ] <column_name>
 
-By substitution, one has
+By substitution, one has::
 
-<schema_name> ::= [ <identifier> <period> ] <identifier>
+	<schema_name> ::= [ <identifier> <period> ] <identifier>
 
-hence,
+hence::
 
-<table_name> ::= [[ <identifier> <period> ] <identifier> <period> ] 
-	<identifier>
+	<table_name> ::= [[ <identifier> <period> ] <identifier> <period> ] 
+		<identifier>
 
-hence,
+hence::
 
-<qualifier> ::= [[ <identifier> <period> ] <identifier> <period> ] 
-	<identifier>
+	<qualifier> ::= [[ <identifier> <period> ] <identifier> <period> ] 
+		<identifier>
 
-(which matches both table_name and correlation_name) and thus
+(which matches both table_name and correlation_name) and thus::
 
-<column_reference> ::= [[[ <identifier> <period> ] <identifier> <period> ] 
-	<identifier> <period> ] <identifier>
+	<column_reference> ::= [[[ <identifier> <period> ] <identifier> <period> ] 
+		<identifier> <period> ] <identifier>
 
 We need the table_name, qualifier, and column_reference productions.
 
-(5) One point I'm deviating from the published grammar is that I disallow
+
+generalLiterals in unsigngedLiterals
+------------------------------------
+
+One point I'm deviating from the published grammar is that I disallow
 generalLiterals in unsignedLiterals.  Allowing them would let pyparsing
 match a string literal as a numericValueLiteral, which messes up
 string expressions.  I'm not sure why generalLiterals are allowed
@@ -126,6 +135,8 @@ from gavo.imp.pyparsing import (
 
 from gavo import utils
 from gavo import stc
+
+__docformat__ = "restructuredtext en"
 
 
 # all SQL and ADQL reserved words are expected in uppercase by this and

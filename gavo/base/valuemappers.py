@@ -31,6 +31,8 @@ from gavo import stc
 from gavo import utils
 from gavo.base import typesystems
 
+__docformat__ = "restructuredtext en"
+
 
 class ValueMapperFactoryRegistry(object):
 	"""An object clients can ask for functions fixing up values
@@ -281,7 +283,8 @@ class AnnotatedColumn(object):
 	only be accessed through getitem/setitem since they may be updated
 	wrt what is in original.
 
-	Facets available via the setitem/getitem interface include:
+	Attributes available via the setitem/getitem interface include:
+
 	- nullvalue -- a suitable nullvalue for this column, if provided by the
 	  column's values or otherwise obtained
 	- name -- a name for the column

@@ -21,6 +21,9 @@ from gavo.rscdef import rmkfuncs
 from gavo.rscdef import rowtriggers
 
 
+__docformat__ = "restructuredtext en"
+
+
 class Error(base.Error):
 	pass
 

@@ -6,7 +6,7 @@ them can be passed in via the solverParameters argument to getWCSFieldsFor,
 a dictionary with keys including:
 
 indices
-  (default: "index-*.fits", meaning all indices in your default index dir)
+  (default: "index-\*.fits", meaning all indices in your default index dir)
   The file names from anet's index directory you want to have used.
   glob patterns are expanded, but no recursion takes place.
 
@@ -16,7 +16,7 @@ indices
   
   for largeish images or::
 
-    ["index-4203-*.fits", "index-4202-*.fits"]
+    ["index-4203-\*.fits", "index-4202-*.fits"]
   
   for small ones.  You can also give absolute path names for custom
 	indices that live, e.g., in your resource directory.
@@ -70,6 +70,8 @@ from gavo import utils
 from gavo.utils import fitstools
 from gavo.utils import codetricks
 from gavo.utils import pyfits
+
+__docformat__ = "restructuredtext en"
 
 anetPath = "/usr/local/astrometry/bin"
 anetIndexPath = "/usr/local/astrometry/data"
