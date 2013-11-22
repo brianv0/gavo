@@ -30,10 +30,11 @@ class CBooster(object):
 	"""
 	silence_for_test = False
 
-	def __init__(self, srcName, dataDesc, gzippedInput=False,
+	def __init__(self, srcName, dataDesc, recordSize=4000, gzippedInput=False,
 			autoNull=None, preFilter=None, ignoreBadRecords=False,
 			customFlags=""):
 		self.dataDesc = dataDesc
+		self.recordSize = recordSize
 		self.resdir = dataDesc.rd.resdir
 		self.srcName = os.path.join(self.resdir, srcName)
 		self.autoNull, self.preFilter = autoNull, preFilter
@@ -67,7 +68,8 @@ class CBooster(object):
 
 		f = open(os.path.join(wd, "Makefile"), "w")
 		f.write("LDFLAGS += -lm\n"
-			"CFLAGS += -Wall -DQUERY_N_PARS=%s\n"%query_n_pars)
+			"CFLAGS += -Wall -DINPUT_LINE_MAX=%d -DQUERY_N_PARS=%s\n"%(
+				self.recordSize, query_n_pars))
 		if self.autoNull:
 			f.write("CFLAGS += -DAUTO_NULL='%s'\n"%self.autoNull.replace(
 				"\\", "\\\\"))
@@ -153,9 +155,10 @@ class DirectGrammar(base.Structure, base.RestrictionMixin):
 		description="Use this string as general NULL value")
 	_ignoreBadRecords = base.BooleanAttribute("ignoreBadRecords",
 		default=False, description="Let booster ignore invalid records?")
-	_recordSize = base.IntAttribute("recordSize", default=None,
+	_recordSize = base.IntAttribute("recordSize", default=4000,
 		description="For bin boosters, read this many bytes to make"
-			" up a record.")
+			" up a record; for line-based boosters, this is the maximum"
+			" length of an input line.")
 	_preFilter = base.UnicodeAttribute("preFilter", default=None,
 		description="Pipe input through this program before handing it to"
 			" the booster; this string is shell-expanded.")
@@ -309,8 +312,7 @@ class _CodeGenerator(object):
 		'#include <errno.h>',
 		'#include "boosterskel.h"',
 		'',
-		'#define USAGE "Usage: don\'t."',
-		'#define INPUT_LINE_MAX 2000',]
+		'#define USAGE "Usage: don\'t."',]
 
 	def getPrototype(self):
 		"""returns the prototype of the getTuple function.
@@ -375,12 +377,12 @@ class SplitCodeGenerator(_LineBasedCodeGenerator):
 		_CodeGenerator.__init__(self, grammar, tableDef)
 
 	def getPreamble(self):
-		return _CodeGenerator.getPreamble(self)+[
+		return _LineBasedCodeGenerator.getPreamble(self)+[
 			"/* delete the next line for POSIX strtok */",
 			"#define strtok strtok_u"]
 
 	def getSetupCode(self):
-		return [
+		return _LineBasedCodeGenerator.getSetupCode(self)+[
 			'char *curCont;',
 			'curCont = strtok(inputLine, "%s");'%self.splitChar]
 
