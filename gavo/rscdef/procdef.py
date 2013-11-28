@@ -358,9 +358,24 @@ class ProcApp(ProcDef):
 	def _compileForParent(self, parent):
 		"""helps compile.
 		"""
+		# go get the RD for parent; it's always handy in this kind
+		# of code
+		curEl = parent
+		while not hasattr(curEl, "rd"):
+			if curEl.parent:
+				curEl = curEl.parent
+			else:
+				break
+		try:
+			rd = curEl.rd
+		except AttributeError:
+			# maybe an unrooted element
+			rd = None
+			
 		return rmkfuncs.makeProc(
 				self.name, self.getFuncCode(),
 				self.getSetupCode(), parent,
+				rd=rd,
 				**self.additionalNamesForProcs)
 
 	def compile(self, parent=None):

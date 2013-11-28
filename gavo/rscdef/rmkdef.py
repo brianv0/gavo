@@ -202,6 +202,10 @@ class ApplyDef(procdef.ProcApp):
 	The table that the rowmaker feeds to can be accessed as targetTable.  
 	You probably only want to change meta information here (e.g., warnings 
 	or infos).
+
+	As always in procApps, you can get the embedding RD as rd; this is
+	useful to, e.g., resolve references using rd.getByRD, and specify 
+	resdir-relative file names using rd.getAbsPath.
 	"""
 	name_ = "apply"
 	requiredType = "apply"
