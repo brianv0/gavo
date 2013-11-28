@@ -335,8 +335,6 @@ class MetaPagesTest(ArchiveTest):
 
 
 class DatalinkTest(ArchiveTest):
-
-
 	def testErrorDocument(self):
 		return self.assertGETHasStrings("/data/cores/dl", {"PUBDID": "broken"},
 			['INFO name="QUERY_STATUS" value="ERROR">global name'
@@ -354,7 +352,14 @@ class DatalinkTest(ArchiveTest):
 			"COO_3_MIN": "3753"}, [
 			"NAXIS3  =                    2",
 			"CRPIX3  =                 -1.0"])
-	
+
+
+class SCSTest(ArchiveTest):
+	def testCasting(self):
+		return self.assertGETHasStrings("/data/cores/scs", 
+			{"RA": [1], "DEC": ["2"], "SR": ["1.5"]},
+			['AAAAATA/9AAAAAAAAEAEAAAAAAAA', 'datatype="char"'])
+
 
 
 # module-level resource management
@@ -362,11 +367,13 @@ class DatalinkTest(ArchiveTest):
 def provideRDData(rdName, ddId):
 	dd = testhelpers.getTestRD(rdName).getById(ddId)
 	dataCreated = rsc.makeData(dd)
+	# may be gone in atexit
+	nvArg = rsc.parseNonValidating
 
 	def cleanup():
-		dataCreated.dropTables(rsc.parseNonValidating)
+		dataCreated.dropTables(nvArg)
 	
 	return cleanup
 
 atexit.register(provideRDData("test", "import_fitsprod"))
-
+atexit.register(provideRDData("cores", "import_conecat"))

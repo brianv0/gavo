@@ -465,6 +465,8 @@ def adaptInputKey(inputKey):
 		raise base.Replace(makeConeSearchFor(inputKey))
 	if inputKey.xtype=="mjd":
 		return inputKey.change(type="vexpr-mjd", unit="")
+	if inputKey.isEnumerated():
+		return inputKey
 
 	try:
 		return inputKey.change(

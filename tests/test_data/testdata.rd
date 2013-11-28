@@ -12,7 +12,9 @@
 		</column>
 		<column name="afloat" tablehead="Some Real"/>
 		<column name="atext" type="text"
-			tablehead="A string must be in here as well"/>
+			tablehead="A string must be in here as well">
+			<values><option>bla</option><option>blubb</option></values>
+		</column>
 		<column name="adate" tablehead="When" type="date" unit="d"/>
 	</table>
 	

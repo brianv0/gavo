@@ -366,6 +366,11 @@ class InputKeyTest(testhelpers.VerboseTest):
 		self.assertEqual(rendered.children[2].children[0].children[0],
 			"[?num. expr.]")
 
+	def testBuildFromEnumerated(self):
+		ftype, fwid, rendered = self._getKeyProps(
+			'<condDesc buildFrom="data/testdata#data.atext"/>')
+		self.assertEqual(rendered.data[0].content_, "bla")
+
 	def testWithOriginalAndFT(self):
 		ftype, fwid, rendered = self._getKeyProps(
 			'<condDesc><inputKey original="data/testdata#data.afloat"'

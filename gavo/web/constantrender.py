@@ -17,6 +17,7 @@ from gavo import svcs
 from gavo.web import grend
 from gavo.web import formrender
 
+__docformat__ = "restructuredtext en"
 
 class StaticRenderer(formrender.FormMixin, grend.ServiceBasedPage):
 	"""A renderer that just hands through files.
@@ -71,17 +72,22 @@ class StaticRenderer(formrender.FormMixin, grend.ServiceBasedPage):
 class FixedPageRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 	"""A renderer that renders a single template.
 
-	The file is given in the service's fixed template.
+	Use something like ``<template key="fixed">res/ft.html</template>``
+	in the enclosing service to tell the fixed renderer where to get
+	this template from.
 
-	You can fetch parameters from the URL using the parameter data
-	function.
+	In the template, you can fetch parameters from the URL using 
+	something like ``<n:invisible n:data="parameter FOO" n:render="string"/>``;
+	you can also define new render and data functions on the
+	service using customRF and customDF.
 
 	This is mainly for applet/browser app support; See the
 	specview.html or voplot.html templates as an example.  This is
 	the place to add further render or data function for programs
 	like those.
 
-	Services for this should go through the //run RD.
+	Built-in services for such browser apps should go through the //run 
+	RD.
 	"""
 	name = "fixed"
 

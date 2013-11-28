@@ -131,4 +131,29 @@
 	</service>
 
 	<dbCore id="typescore" queriedTable="data/test#typesTable"/>
+
+	<table id="conecat" onDisk="True">
+		<column name="id" type="integer" ucd="meta.id;meta.main"/>
+		<column name="ra" type="real" ucd="pos.eq.ra;meta.main"/>
+		<column name="dec" type="double precision" ucd="pos.eq.dec;meta.main"/>
+	</table>
+
+	<data id="import_conecat">
+		<sources item="nix"/>
+		<embeddedGrammar>
+			<iterator>
+				<code>
+					for id, (ra, dec) in enumerate([(1.25, 2.5), (23, -92.5)]):
+						yield locals()
+				</code>
+			</iterator>
+		</embeddedGrammar>
+		<make table="conecat"/>
+	</data>
+
+	<service id="scs" allowed="scs.xml">
+		<dbCore queriedTable="conecat">
+    	<condDesc original="//scs#protoInput"/>
+		</dbCore>
+	</service>
 </resource>
