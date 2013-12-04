@@ -150,17 +150,30 @@ class PythonScriptRunner(ScriptRunner):
 	You are in the namespace of usual procApps (like procs, rowgens, and
 	the like).
 	"""
-	def _prepare(self, script):
-		code = ("def scriptFun(table, **kwargs):\n"+
+	def __init__(self, script):
+		# I need to memorize the script as I may need to recompile
+		# it if there's special arguments (yikes!)
+		self.code = ("def scriptFun(table, **kwargs):\n"+
 			utils.fixIndentation(script.getSource(), "      ")+"\n")
-		self.scriptFun = rmkfuncs.makeProc("scriptFun", code, "", self)
+		ScriptRunner.__init__(self, script)
+
+	def _compile(self, moreNames={}):
+		return rmkfuncs.makeProc("scriptFun", self.code, "", self,
+			**moreNames)
+
+	def _prepare(self, script, moreNames={}):
+		self.scriptFun = self._compile()
 	
 	def run(self, dbTable, **kwargs):
-# XXX BAD HACK ALERT: I want the names from kwargs to be visible
-# in scriptFun, and thus I abuse func_globals.  I guess even exec
-# would be better...
-		self.scriptFun.func_globals.update(kwargs)
-		self.scriptFun(dbTable, **kwargs)
+# I want the names from kwargs to be visible as such in scriptFun -- if
+# given.  Since I do not want to manipulate func_globals, the only
+# way I can see to do this is to compile the script.  I don't think
+# this is going to be a major performance issue.
+		if kwargs:
+			func = self._compile(kwargs)
+		else:
+			func = self.scriptFun
+		func(dbTable, **kwargs)
 
 
 RUNNER_CLASSES = {

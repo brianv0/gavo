@@ -476,7 +476,7 @@ def compileFunction(src, funcName, useGlobals=None, debug=False):
 	except Exception, ex:
 		raise misctricks.logOldExc(excs.BadCode(src, "function", ex))
 
-	if False and debug:
+	if debug:
 		debugLocals = {}
 		embSrc = "\n".join([
 			"def compileFunctionDebugWrapper(*args, **kwargs):",
