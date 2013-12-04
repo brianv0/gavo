@@ -5,6 +5,7 @@ More on this in "Datalink Cores" in the reference documentation.
 """
 
 from gavo import base
+from gavo import rsc
 from gavo import rscdef
 from gavo import svcs
 from gavo import utils
@@ -42,16 +43,17 @@ class ProductDescriptor(object):
 	"""
 	data = None
 
-	def __init__(self, accref, accessPath, mime, owner=None, embargo=None,
-			sourceTable=None):
+	def __init__(self, pubDID, accref, accessPath, mime, 
+			owner=None, embargo=None, sourceTable=None):
+		self.pubDID = pubDID
 		self.accref, self.accessPath, self.mime = accref, accessPath, mime
 		self.owner, self.embargo, self.sourceTable = owner, embargo, sourceTable
 	
 	@classmethod
-	def fromAccref(cls, accref):
+	def fromAccref(cls, pubDID, accref):
 		"""returns a product descriptor for an access reference.
 		"""
-		return cls(**products.RAccref(accref).productsRow)
+		return cls(pubDID, **products.RAccref(accref).productsRow)
 
 
 class DescriptorGenerator(rscdef.ProcApp):
@@ -63,11 +65,11 @@ class DescriptorGenerator(rscdef.ProcApp):
 
 	The following names are available to the code:
 
-	  - pubdid -- the pubdid to be resolved
+	  - pubDID -- the pubDID to be resolved
 	  - args -- all the arguments that came in from the web
 	    (these should not ususally be necessary and are completely unparsed)
 	
-	If you made your pubdid using the ``getStandardPubDID`` rowmaker function,
+	If you made your pubDID using the ``getStandardPubDID`` rowmaker function,
 	and you need no additional logic within the descriptor,
 	the default (//datalink#fromStandardPubDID) should do.
 
@@ -76,7 +78,7 @@ class DescriptorGenerator(rscdef.ProcApp):
 	"""
 	name_ = "descriptorGenerator"
 	requiredType = "descriptorGenerator"
-	formalArgs = "pubdid, args"
+	formalArgs = "pubDID, args"
 
 	additionalNamesForProcs = {
 		"ProductDescriptor": ProductDescriptor,
@@ -88,21 +90,68 @@ class LinkDef(object):
 
 	These are constructed at least with:
 
-	  - the destination URL (as a string)
-	  - the destination contentType (a mime type as a string)
-	  - the relationType (another string).
-	
-	For relationType, there's a semi-controlled vocabulary, items from
-	which you should be using if at all matching.
-	"""
-	def __init__(self, url, contentType, relationType):
-		self.url, self.contentType = url, contentType
-		self.relationType = relationType
+		- the pubDID (as a string)
+	  - the access URL (as a string)
 
-	def asRow(self):
-		"""returns self in the format expected by _runGenerateMetadata below.
+	In addition, we accept the remaining column names from 
+	//datalink#dlresponse as keyword arguments.
+	
+	For semantics, try to user one of science, calibration, preview, info,
+	auxillary, and processed.
+	"""
+	def __init__(self, pubDID, accessURL, 
+			serviceType=None, 
+			errorMessage=None,
+			description=None, 
+			semantics=None, 
+			contentType=None, 
+			contentLength=None):
+		ID = pubDID
+		del pubDID
+		self.dlRow = locals()
+
+	def asDict(self):
+		"""returns the link definition in a form suitable for ingestion
+		in //datalink#dlresponse.
 		"""
-		return (self.url, self.contentType, self.relationType)
+		return self.dlRow
+
+
+class _ServiceDescriptor(object):
+	"""An internal descriptor for one of our services.
+
+	These are serialized into service resources in VOTables.
+	Basically, these collect input keys, a pubDID, as well as any other
+	data we might need in service definitioin.
+	"""
+	def __init__(self, pubDID, inputKeys):
+		self.pubDID, self.inputKeys = pubDID, inputKeys
+
+	def asVOT(self, ctx, accessURL):
+		"""returns VOTable stanxml for a description of this service.
+
+		This is a RESOURCE as required by Datalink.
+		"""
+		paramsByName, stcSpecs = {}, set()
+		for param in self.inputKeys:
+			paramsByName[param.name] = param
+			if param.stc:
+				stcSpecs.add(param.stc)
+
+		def getIdFor(colRef):
+			colRef.toParam = True
+			return ctx.makeIdFor(paramsByName[colRef.dest])
+
+		return V.RESOURCE(ID=ctx.getOrMakeIdFor(self), type="service")[
+			[modelgroups.marshal_STC(ast, getIdFor)
+				for ast in stcSpecs],
+			V.PARAM(arraysize="*", datatype="char", 
+				name="accessURL", ucd="meta.ref.url",
+				value=accessURL),
+			V.GROUP(name="inputParams")[[
+				votablewrite._addID(ik,
+						votablewrite.makeFieldFromColumn(V.PARAM, ik), ctx)
+					for ik in self.inputKeys]]]
 
 
 class MetaMaker(rscdef.ProcApp):
@@ -298,9 +347,9 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 
 		self._completeElementNext(DatalinkCoreBase, ctx)
 
-	def adaptForDescriptor(self, descriptor):
-		"""returns a version of self that has its metadata pulled from whatever
-		is in descriptor.
+	def getMetaForDescriptor(self, descriptor):
+		"""returns a pair of linkDefs, inputKeys for a datalink desriptor
+		and this core.
 		"""
 		linkDefs, inputKeys = [], self.inputKeys[:]
 	
@@ -311,91 +360,31 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 				else:
 					inputKeys.append(item)
 	
-		res = self.change(inputTable=MS(svcs.InputTable, params=inputKeys))
-		res.nocache = True
-		res.datalinkLinks = linkDefs
-		res.descriptor = descriptor
-		
-		return res
+		return linkDefs, inputKeys
 
-	def getDatalinkDescriptionResource(self, ctx, service):
-		"""returns a VOTable RESOURCE element with the metadata
-		description for a service using this core.
+	def getDatalinksResource(self, ctx, service):
+		"""returns a VOTable RESOURCE element with the data links.
+
+		This does not contain the actual service definition elements, but it
+		does contain references to them.
 
 		You must pass in a VOTable context object ctx (for the management
 		of ids).  If this is the entire content of the VOTable, use
 		votablewrite.VOTableContext() there.
 		"""
-		paramsByName, stcSpecs = {}, set()
-		for param in self.inputTable.params:
-			paramsByName[param.name] = param
-			if param.stc:
-				stcSpecs.add(param.stc)
+		internalLinks = [LinkDef(s.pubDID, service.getURL("dlget"),
+				serviceType="#"+ctx.getOrMakeIdFor(s), semantics="processed")
+			for s in self.datalinkServices]
+		data = rsc.makeData(
+			base.caches.getRD("//datalink").getById("make_response"),
+			forceSource=self.datalinkLinks+internalLinks)
+		data.setMeta("_type", "results")
 
-		def getIdFor(colRef):
-			colRef.toParam = True
-			return ctx.makeIdFor(paramsByName[colRef.dest])
+		return votablewrite.makeResource(
+			votablewrite.VOTableContext(tablecoding="td"),
+			data)
 
-# TODO: Properly support VO-DML and make all this generated from a more
-# abstract representation.
-		return V.RESOURCE(name="datalinkDescriptor")[
-			[modelgroups.marshal_STC(ast, getIdFor)
-				for ast in stcSpecs],
-			[votablewrite._addID(ik,
-					votablewrite.makeFieldFromColumn(V.PARAM, ik), ctx)
-				for ik in self.inputTable.params],
-
-			V.GROUP(utype="vo-dml:Model", name="DatalinkDM")[
-    		V.PARAM(utype="vo-dml:Model.url", name="url", 
-    			datatype="char", arraysize="*", 
-    			value="https://volute.googlecode.com/svn/trunk"
-    				"/projects/dm/vo-dml/models/datalink/DatalinkDM.vo-dml.xml"),
-    		V.PARAM(utype="vo-dml:Model.name", value="dl", name="name",
-    			datatype="char", arraysize="*")],
-  		V.GROUP(utype="vo-dml:Model", name="IVOA")[
-		    V.PARAM(utype="vo-dml:Model.url", name="url", datatype="char",
-		    	arraysize="*", value="https://volute.googlecode.com/svn"
-		    		"/trunk/projects/dm/vo-dml/models/ivoa/IVOA.vo-dml.xml"),
-    		V.PARAM(utype="vo-dml:Model.name", value="ivoa", name="name",
-    			datatype="char", arraysize="*")],
-
-			V.GROUP(utype="vo-dml:ObjectType.instance", ID="_dl")[
-				V.PARAM(utype="vo-dml:Instance.type", value="dl:Datalink",
-					name="datalink", datatype="char", arraysize="*"),
-				V.GROUP(utype="dl:Datalink.relatedResource", ref="_rr")[
-					V.GROUP(utype="dl:Datalink.service")[
-						V.GROUP(utype="vo-dml:Collection.item") [
-							V.PARAM(utype="vo-dml:Instance.type", value="dl:Service",
-								name="vodml-type", datatype="char", arraysize="*"),
-							V.PARAM(arraysize="*", datatype="char", 
-								name="serviceAccessURL", utype="dl:Service.accessURL",
-									value=service.getURL("dlget")),
-							V.PARAM(utype="dl:Service.description", 
-								value=base.getMetaText(service, "description"), 
-								name="description",
-								datatype="char", arraysize="*")]]]],
-
-			V.GROUP(utype="vo-dml:ObjectType.instance", ID="_rr") [
-				V.PARAM(utype="vo-dml:Instance.type", value="dl:RelatedResource",
-					name="vodml-type", datatype="char", arraysize="*"),
-      	V.GROUP(utype="vo-dml:ObjectType.container", ref="_dl"),
-      	V.FIELDref(utype="dl:RelatedResource.url", ref="_urlField"),
-      	V.FIELDref(utype="dl:RelatedResource.contentType",
-	      	ref="_contentTypeField"),
-      	V.FIELDref(utype="dl:RelatedResource.relationType", ref="_rtField")],
-
-			votable.DelayedTable(
-				V.TABLE(name="relatedData") [
-					V.FIELD(name="url", datatype="char", arraysize="*",
-						ID="_urlField"),
-					V.FIELD(name="contentType", datatype="char", arraysize="*",
-						ID="_contentTypeField"),
-					V.FIELD(name="relationType", datatype="char", arraysize="*",
-						ID="_rtField")],
-				[l.asRow() for l in self.datalinkLinks],
-				V.TABLEDATA)]
-
-
+	
 class DatalinkCore(DatalinkCoreBase):
 	"""A core for processing datalink and processed data requests.
 
@@ -406,9 +395,57 @@ class DatalinkCore(DatalinkCoreBase):
 
 	In contrast to "normal" cores, one of these is made (and destroyed)
 	for each datalink request coming in.  This is because the interface
-	of a datalink service depends on the request (i.e., pubdid).
+	of a datalink service depends on the request's value(s) of ID.
+
+	The datalink core can produce both its own metadata and data generated.
+	It is the renderer's job to tell them apart.
 	"""
 	name_ = "datalinkCore"
+
+	def _getPubDIDs(self, args):
+		"""returns a list of pubDIDs from args["ID"].
+
+		args is supposed to be a nevow request.args-like dict, where the PubDIDs
+		are taken from the ID parameter.  If it's atomic, it'll be expanded into
+		a list.  If it's not present, a ValidationError will be raised.
+		"""
+		try:
+			pubDIDs = args["PUBDID"]
+			if not isinstance(pubDIDs, list):
+				pubDIDs = [pubDIDs]
+		except (KeyError, IndexError):
+			raise base.ValidationError("Value is required but was not provided",
+				"PUBDID")
+		return pubDIDs
+
+	def adaptForDescriptors(self, renderer, descriptors):
+		"""returns a core for renderer and a sequence of ProductDescriptors.
+
+		This method is mainly for helping adaptForRenderer.  Do read the
+		docstring there.
+		"""
+		linkDefs, services = [], []
+		for descriptor in descriptors:
+			lds, inputKeys = self.getMetaForDescriptor(descriptor)
+			linkDefs.extend(lds)
+			services.append(_ServiceDescriptor(descriptor.pubDID, inputKeys))
+
+		res = self.change(inputTable=MS(svcs.InputTable, 
+			params=services[-1].inputKeys))
+
+		# this is a bit of a hack: dlmeta should return the metadata,
+		# all other renderers are supposed to want to do the processing
+		# (in particular dlget, but form should do, too)
+		if renderer.name=="dlmeta":
+			res.run = res.runForMeta
+		else:
+			res.run = res.runForData
+
+		res.nocache = True
+		res.datalinkLinks = linkDefs
+		res.datalinkServices = services
+		res.descriptor = descriptors[-1]
+		return res
 
 	def adaptForRenderer(self, renderer):
 		"""returns a core for a specific product.
@@ -424,9 +461,17 @@ class DatalinkCore(DatalinkCoreBase):
 		It is particularly important to never let service cache the
 		cores returned; hence to "nocache" magic.
 
-		To generate all datalink-relevant metadata in one go and avoid
-		calling the descriptorGenerator more than once, the resulting
-		table also has "datalinkDescriptor" and "datalinkLinks" attributes.
+		This tries to generate all datalink-relevant metadata in one go 
+		and avoid calling the descriptorGenerator(s) more than once per
+		pubDID.  It therefore adds datalinkLinks, datalinkServices,
+		and datalinkDescriptors attributes.  These are used later
+		in either metadata generation or data processing.
+
+		The latter will in general use only the last pubDID passed in.  
+		Therefore, this last pubDID determines the service interface
+		for now.  Perhaps we should be joining the inputKeys in some way,
+		though, e.g., if we want to allow retrieving multiple datasets
+		in a tar file?  Or to re-use the same service for all pubdids?
 		"""
 		try:
 			args = utils.stealVar("args")
@@ -437,29 +482,28 @@ class DatalinkCore(DatalinkCoreBase):
 			# no arguments found: no pubdid-specific interfaces
 			return self
 
-		try:
-			pubDID = args["PUBDID"]
-			if isinstance(pubDID, list):
-				pubDID = pubDID[0]
-		except (KeyError, IndexError):
-			raise base.ValidationError("Value is required but was not provided",
-				"PUBDID")
-		descriptor = self.descriptorGenerator.compile(self)(pubDID, args)
-		return self.adaptForDescriptor(descriptor)
+		pubDIDs = self._getPubDIDs(args)
+		descGen = self.descriptorGenerator.compile(self)
+		descriptors = [descGen(pubDID, args) for pubDID in pubDIDs]
 
-	def run(self, service, inputTable, queryMeta):
-		args = inputTable.getParamDict()
-		argsGiven = set(key for (key, value) in args.iteritems()
-			if value is not None)
-		
-		if argsGiven==set(["PUBDID"]):
-			return self._runGenerateMetadata(args, service)
-		else:
-			return self._runDataProcessing(args)
-	
-	def _runDataProcessing(self, args):
-		"""does run's work if we're handling a data processing request.
+		return self.adaptForDescriptors(renderer, descriptors)
+
+
+	def runForMeta(self, service, inputTable, queryMeta):
+		"""returns a rendered VOTable containing the datalinks.
 		"""
+		ctx = votablewrite.VOTableContext(tablecoding="td")
+		vot = V.VOTABLE[
+				self.getDatalinksResource(ctx, service), [
+					dlSvc.asVOT(ctx, service.getURL("dlget")) 
+						for dlSvc in self.datalinkServices]
+				]
+		return ("application/x-votable+xml", vot.render())
+
+	def runForData(self, service, inputTable, queryMeta):
+		"""returns a data set processed according to inputTable's parameters.
+		"""
+		args = inputTable.getParamDict()
 		if not self.dataFunctions:
 			raise base.DataError("This datalink service cannot process data")
 
@@ -479,13 +523,4 @@ class DatalinkCore(DatalinkCoreBase):
 
 		return self.dataFormatter.compile(self)(self.descriptor, args)
 
-	def _runGenerateMetadata(self, args, service):
-		"""does run's work if we're handling a metadata request.
 
-		This will always return a rendered VOTable.
-		"""
-
-		ctx = votablewrite.VOTableContext(tablecoding="td")
-		vot = V.VOTABLE[
-				self.getDatalinkDescriptionResource(ctx, service)]
-		return ("application/x-votable+xml", vot.render())

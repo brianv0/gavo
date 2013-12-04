@@ -393,7 +393,7 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 			</datalinkCore></service>""")
 
 		self.assertRaisesWithMsg(svcs.ForbiddenURI,
-			"This datalink service not available with the pubdid"
+			"This datalink service not available with the pubDID"
 			" 'ivo://x-unregistred/~/goo/boo'",
 			svc.run,
 			("dlget", {"PUBDID": [rscdef.getStandardPubDID("goo/boo")]}))
@@ -402,7 +402,6 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 			"Not a pubDID from this site: ivo://great.scott/goo/boo",
 			svc.run,
 			("dlget", {"PUBDID": ["ivo://great.scott/goo/boo"]}))
-
 
 
 class _MetaMakerTestData(testhelpers.TestResource):
@@ -426,8 +425,13 @@ class _MetaMakerTestData(testhelpers.TestResource):
 
 				<metaMaker>
 					<code>
-					yield LinkDef("http://foo/bar", "test/junk", "related")
-					yield LinkDef("http://foo/baz", "test/gold", "unrelated")
+					yield LinkDef(descriptor.pubDID, "http://foo/bar", 
+						contentType="test/junk", 
+						semantics="science",
+						contentLength=500002)
+					yield LinkDef(descriptor.pubDID, "http://foo/baz", 
+						contentType="test/gold", 
+						semantics="calibration")
 					</code>
 				</metaMaker>
 				<dataFunction procDef="//datalink#generateProduct"/>
@@ -437,14 +441,16 @@ class _MetaMakerTestData(testhelpers.TestResource):
 			</service>""")
 		svc.parent = testhelpers.getTestRD()
 
-		mime, data = svc.run("form", {
+		mime, data = svc.run("dlmeta", {
 			"PUBDID": [rscdef.getStandardPubDID("data/b.imp")]}).original
-		return (mime, testhelpers.getXMLTree(data),
+		return (mime, testhelpers.getXMLTree(data, debug=False),
 			list(votable.parseString(data).next()))
+
+_metaMakerTestData = _MetaMakerTestData()
 
 
 class DatalinkMetaMakerTest(testhelpers.VerboseTest):
-	resources = [("serviceResult", _MetaMakerTestData()),
+	resources = [("serviceResult", _metaMakerTestData),
 		("prodtestTable", tresc.prodtestTable)]
 
 	def testMimeOk(self):
@@ -471,19 +477,60 @@ class DatalinkMetaMakerTest(testhelpers.VerboseTest):
 			tree.xpath("//PARAM[@name='format']/VALUES/OPTION")[1].get("value"),
 			"application/fits")
 
-	def testLinkRowsPresent(self):
-		rows = self.serviceResult[2]
-		self.assertEqual(rows, [
-				['http://foo/bar', 'test/junk', 'related'],
-				['http://foo/baz', 'test/gold', 'unrelated']])
-	
+
 	def testAccessURLPresent(self):
 		tree = self.serviceResult[1]
 		self.assertEqual(
-			tree.xpath("//PARAM[@utype='dl:Service.accessURL']")[0].get("value"),
+			tree.xpath("//PARAM[@name='accessURL']")[0].get("value"),
 			"http://localhost:8080/data/test/foo/dlget")
 
+
+class _MetaMakerTestRows(testhelpers.TestResource):
+	resources = [
+		("serviceResult", _metaMakerTestData)]
+
+	def make(self, dependents):
+		return dependents["serviceResult"][2]
+
+
+class DatalinkMetaRowsTest(testhelpers.VerboseTest):
+	resources = [("rows", _MetaMakerTestRows()),
+		("serviceResult", _metaMakerTestData)]
+
+	def testAllLinks(self):
+		self.assertEqual(len(self.rows), 3)
 	
+	def testAllWithId(self):
+		self.assertEqual(set(r[0] for r in self.rows), 
+			set(['ivo://x-unregistred/~/data/b.imp']))
+	
+	def testAccessURLs(self):
+		self.assertEqual(self.rows[0][1], 'http://foo/bar')
+		self.assertEqual(self.rows[2][1], 
+			'http://localhost:8080/data/test/foo/dlget')
+	
+	def testMimes(self):
+		self.assertEqual(self.rows[1][6], 'test/gold')
+	
+	def testSemantics(self):
+		self.assertEqual(self.rows[0][5], 'science')
+		self.assertEqual(self.rows[2][5], 'processed')
+
+	def testSizes(self):
+		self.assertEqual(self.rows[0][7], 500002)
+		self.assertEqual(self.rows[1][7], None)
+		self.assertEqual(self.rows[2][7], None)
+
+	def testService(self):
+		for res in self.serviceResult[1].xpath("//RESOURCE"):
+			if res.attrib.get("ID")==self.rows[2][2][1:]:
+				break
+		else:
+			self.fail("Processing service not in datalink links")
+
+		self.assertEqual(res.attrib.get("type"), "service")
+
+
 class DatalinkFITSTest(testhelpers.VerboseTest):
 	resources = [("fitsTable", _fitsTable)]
 
@@ -504,7 +551,7 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 			</datalinkCore></service>""")
 		svc.parent = testhelpers.getTestRD()
 
-		mime, data = svc.run("dlget", {
+		mime, data = svc.run("dlmeta", {
 			"PUBDID": [rscdef.getStandardPubDID("data/ex.fits")]}).original
 		tree = testhelpers.getXMLTree(data)
 		self.assertEqual(tree.xpath("//PARAM[@name='RA_MIN']")[0].get("unit"),
@@ -524,7 +571,7 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 			</datalinkCore></service>""")
 		svc.parent = testhelpers.getTestRD()
 
-		mime, data = svc.run("dlget", {
+		mime, data = svc.run("dlmeta", {
 			"PUBDID": [rscdef.getStandardPubDID("data/excube.fits")]}).original
 		tree = testhelpers.getXMLTree(data, debug=False)
 		self.assertEqual(tree.xpath("//PARAM[@name='RA_MAX']/VALUES/MIN"
@@ -620,7 +667,7 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 					accrefStart="" stcs=""/>
 			</datalinkCore></service>""")
 		svc.parent = testhelpers.getTestRD()
-		mime, data = svc.run("dlget", {
+		mime, data = svc.run("dlmeta", {
 			"PUBDID": rscdef.getStandardPubDID("data/excube.fits")}).original
 		self.failUnless("<DATA><TABLEDATA>" in data)
 
@@ -647,7 +694,7 @@ class DatalinkSTCTest(testhelpers.VerboseTest):
 				</metaMaker>
 			</datalinkCore></service>""")
 		svc.parent = testhelpers.getTestRD()
-		mime, data = svc.run("form", {
+		mime, data = svc.run("dlmeta", {
 			"PUBDID": [rscdef.getStandardPubDID("data/ex.fits")]}).original
 		tree = testhelpers.getXMLTree(data, debug=False)
 		self.assertEqual(len(tree.xpath(
@@ -697,7 +744,7 @@ class DatalinkSTCTest(testhelpers.VerboseTest):
 
 			</datalinkCore></service>""")
 		svc.parent = testhelpers.getTestRD()
-		mime, data = svc.run("form", {
+		mime, data = svc.run("dlmeta", {
 			"PUBDID": [rscdef.getStandardPubDID("data/ex.fits")]}).original
 
 		tree = testhelpers.getXMLTree(data, debug=False)

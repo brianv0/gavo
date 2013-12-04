@@ -313,7 +313,8 @@
         <bind key="mime">"text/plain"</bind>
 			</rowfilter>
 		</keyValueGrammar>
-		<rowmaker id="pi_rmk" original="prodrowbase"/>
+		<rowmaker id="pi_rmk" original="prodrowbase">
+		</rowmaker>
 		<make table="prodtest" rowmaker="pi_rmk"/>
 	</data>
 

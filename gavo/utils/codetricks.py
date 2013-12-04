@@ -457,7 +457,7 @@ def runInSandbox(setUp, func, tearDown, *args, **kwargs):
 	return result
 
 
-def compileFunction(src, funcName, useGlobals=None):
+def compileFunction(src, funcName, useGlobals=None, debug=False):
 	"""runs src through exec and returns the item funcName from the resulting
 	namespace.
 
@@ -475,6 +475,23 @@ def compileFunction(src, funcName, useGlobals=None):
 		exec src+"\n" in useGlobals, locals
 	except Exception, ex:
 		raise misctricks.logOldExc(excs.BadCode(src, "function", ex))
+
+	if False and debug:
+		debugLocals = {}
+		embSrc = "\n".join([
+			"def compileFunctionDebugWrapper(*args, **kwargs):",
+			"  try:",
+			"    return %s(*args, **kwargs)"%funcName,
+			"  except:",
+			'    notify("Failing source:\\n%s"%src)',
+			"    raise"])
+		debugLocals["src"] = src
+		debugLocals["notify"] = lambda msg: misctricks.sendUIEvent("Warning", msg)
+		debugLocals[funcName] = locals[funcName]
+		exec embSrc+"\n" in debugLocals
+		return debugLocals["compileFunctionDebugWrapper"]
+			
+
 	return locals[funcName]
 
 

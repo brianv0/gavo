@@ -113,13 +113,13 @@
 		</dbCore>
 	</service>
 
-	<service id="dl" allowed="dlget">
+	<service id="dl" allowed="dlget,dlmeta">
 		<datalinkCore>
 			<descriptorGenerator procDef="//datalink#fits_genDesc">
 				<code>
-					if pubdid=="broken":
+					if pubDID=="broken":
 						ddt
-					return getFITSDescriptor(pubdid)
+					return getFITSDescriptor(pubDID)
 				</code>
 			</descriptorGenerator>
 			<metaMaker procDef="//datalink#fits_makeWCSParams"/>
@@ -133,7 +133,7 @@
 	<dbCore id="typescore" queriedTable="data/test#typesTable"/>
 
 	<table id="conecat" onDisk="True">
-		<column name="id" type="integer" ucd="meta.id;meta.main"/>
+		<column name="id" type="integer" ucd="meta.id;meta.main" required="True"/>
 		<column name="ra" type="real" ucd="pos.eq.ra;meta.main"/>
 		<column name="dec" type="double precision" ucd="pos.eq.dec;meta.main"/>
 	</table>

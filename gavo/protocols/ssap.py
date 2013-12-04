@@ -42,7 +42,7 @@ class SSADescriptor(datalink.ProductDescriptor):
 			ssaRow["ssa_fluxcalib"] = ssaRow["collected_calibs"]
 
 		ssaRow = paramDict
-		res = cls.fromAccref(ssaRow['accref'])
+		res = cls.fromAccref(ssaRow["ssa_pubDID"], ssaRow['accref'])
 		res.ssaRow = ssaRow
 		return res
 
@@ -81,7 +81,7 @@ def getDatalinkCore(dlSvc, ssaTable):
 	"""
 	totalRow = _combineRowIntoOne(ssaTable.rows)
 	desc = SSADescriptor.fromSSARow(totalRow, ssaTable.getParamDict())
-	return dlSvc.core.adaptForDescriptor(desc)
+	return dlSvc.core.adaptForDescriptors(svcs.getRenderer("dlmeta"), [desc])
 
 
 class SSAPCore(svcs.DBCore):
@@ -289,7 +289,7 @@ class SSAPCore(svcs.DBCore):
 			self._declareGenerationParameters(vot, dlCore)
 
 			# new and shiny datalink (keep)
-			vot[dlCore.getDatalinkDescriptionResource(votCtx, dlService)]
+			vot[dlCore.datalinkServices[0].asVOT(votCtx, dlService.getURL("dlget"))]
 
 		return "application/x-votable+xml", votable.asString(vot)
 

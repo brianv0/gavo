@@ -66,6 +66,7 @@ class ProdtestTable(testhelpers.TestResource):
 		self.data = rsc.makeData(dd, 
 			parseOptions=rsc.parseValidating.change(keepGoing=True), 
 			connection=self.conn)
+		self.conn.commit()
 		return self.conn
 
 	def clean(self, ignore):

@@ -2,6 +2,71 @@
 
 <resource resdir="__system" schema="dc">
 
+	<table id="dlresponse">
+		<meta name="description">Data links for data sets.</meta>
+		<column name="ID" type="text"
+			ucd="meta.id;meta.main"
+			tablehead="PubDID"
+			description="Publisher data set id; this is an identifier for
+				the dataset in question and can be used to retrieve the data."
+			verbLevel="1"/>
+		<column name="accessURL" type="text"
+			ucd="meta.ref.url"
+			tablehead="URL"
+			description="URL to retrieve the data or access the service."
+			verbLevel="1" displayHint="type=url"/>
+		<column name="serviceType" type="text"
+			ucd="meta.code"
+			tablehead="Svc. Type"
+			description="Identifier for the type of service if accessURL refers
+				to a service."
+			verbLevel="1"/>
+		<column name="errorMessage" type="text"
+			ucd="meta.code.error"
+			tablehead="Why not?"
+			description="If accessURL is empty, this column give the reason why."
+			verbLevel="20"/>
+		<column name="description" type="text"
+			ucd="meta.note"
+			tablehead="Description"
+			description="More information on this link"
+			verbLevel="1"/>
+		<column name="semantics" type="text"
+			ucd="meta.code"
+			tablehead="What?"
+			description="What kind of data is linked here?  Standard identifiers
+				here include science, calibration, preview, info, auxiliary" 
+				verbLevel="1"/>
+		<column name="contentType" type="text"
+			ucd="meta.code.mime"
+			tablehead="MIME"
+			description="MIME type for the data returned."
+			verbLevel="1"/>
+		<column name="contentLength" type="bigint"
+			ucd="phys.size;meta.file"
+			tablehead="Size"
+			description="Size of the resource at access_url"
+			verbLevel="1">
+			<values nullLiteral="-1"/>
+		</column>
+	</table>
+
+	<data id="make_response">
+		<!-- this data build a datalink response table out of LinkDefs.
+		The input parameters for the computational part are built in
+		within datalink.getDatalinkDescriptionResource. -->
+		<embeddedGrammar>
+			<iterator>
+				<code>
+					for linkDef in self.sourceToken:
+						yield linkDef.asDict()
+				</code>
+			</iterator>
+		</embeddedGrammar>
+		
+		<make table="dlresponse"/>
+	</data>
+
 <!-- ********************* generic datalink procs -->
 
 	<procDef type="descriptorGenerator" id="fromStandardPubDID">
@@ -12,7 +77,8 @@
 		</doc>
 		<code>
 			return ProductDescriptor.fromAccref(
-				"/".join(pubdid.split("/")[4:]))
+				pubDID,
+				"/".join(pubDID.split("/")[4:]))
 		</code>
 	</procDef>
 
@@ -83,10 +149,10 @@
 			with base.getTableConn() as conn:
 				ssaTable = rsc.TableForDef(ssaTD, connection=conn)
 				matchingRows = list(ssaTable.iterQuery(ssaTable.tableDef, 
-					"ssa_pubdid=%(pubdid)s", {"pubdid": pubdid}))
+					"ssa_pubdid=%(pubdid)s", {"pubdid": pubDID}))
 				if not matchingRows:
-					raise svcs.UnknownURI("No spectrum with pubdid %s known here"%
-						pubdid)
+					raise svcs.UnknownURI("No spectrum with pubDID %s known here"%
+						pubDID)
 
 				# the relevant metadata for all rows with the same PubDID should
 				# be identical, and hence we can blindly take the first result.
@@ -258,17 +324,17 @@
 		</doc>
 		<setup>
 			<code>
-				def getFITSDescriptor(pubdid):
+				def getFITSDescriptor(pubDID):
 					try:
-						accref = getAccrefFromStandardPubDID(pubdid)
+						accref = getAccrefFromStandardPubDID(pubDID)
 					except ValueError:
-						raise UnknownURI("Not a pubDID from this site: %s"%pubdid)
+						raise UnknownURI("Not a pubDID from this site: %s"%pubDID)
 
 					if accrefStart and not accref.startswith(accrefStart):
 						raise ForbiddenURI("This datalink service not available"
-							" with the pubdid '%s'"%pubdid)
+							" with the pubDID '%s'"%pubDID)
 
-					descriptor = ProductDescriptor.fromAccref(accref)
+					descriptor = ProductDescriptor.fromAccref(pubDID, accref)
 					with open(os.path.join(base.getConfig("inputsDir"), 
 							descriptor.accessPath)) as f:
 						descriptor.hdr = utils.readPrimaryHeaderQuick(f,
@@ -285,7 +351,7 @@
 				about the FITSes (e.g., what axes are available).">None</par>
 		</setup>
 		<code>
-			return getFITSDescriptor(pubdid)
+			return getFITSDescriptor(pubDID)
 		</code>
 	</procDef>
 

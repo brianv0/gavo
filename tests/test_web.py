@@ -8,6 +8,7 @@ import os
 from gavo.helpers import testhelpers
 
 from gavo import api
+from gavo import base
 from gavo import rsc
 from gavo import svcs
 from gavo import utils
@@ -336,18 +337,19 @@ class MetaPagesTest(ArchiveTest):
 
 class DatalinkTest(ArchiveTest):
 	def testErrorDocument(self):
-		return self.assertGETHasStrings("/data/cores/dl", {"PUBDID": "broken"},
+		return self.assertGETHasStrings("/data/cores/dl/dlget", 
+			{"PUBDID": "broken"},
 			['INFO name="QUERY_STATUS" value="ERROR">global name'
 				" 'ddt' is not defined</INFO>", "<VOTABLE"])
 
 	def testMetadata(self):
-		return self.assertGETHasStrings("/data/cores/dl", 
+		return self.assertGETHasStrings("/data/cores/dl/dlmeta", 
 			{"PUBDID": "ivo://x-unregistred/~/data/excube.fits"},
 			['<DESCRIPTION>The latitude coordinate, lower limit</DESCRIPTION>'
 				'<VALUES><MIN value="30.9831815872">',])
 	
 	def testSpecCutout(self):
-		return self.assertGETHasStrings("/data/cores/dl", {
+		return self.assertGETHasStrings("/data/cores/dl/dlget", {
 			"PUBDID": "ivo://x-unregistred/~/data/excube.fits",
 			"COO_3_MIN": "3753"}, [
 			"NAXIS3  =                    2",
@@ -377,3 +379,5 @@ def provideRDData(rdName, ddId):
 
 atexit.register(provideRDData("test", "import_fitsprod"))
 atexit.register(provideRDData("cores", "import_conecat"))
+
+base.DEBUG = True

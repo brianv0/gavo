@@ -440,14 +440,9 @@ class RegistryRenderer(grend.ServiceBasedPage):
 		return appserver.errorMarker
 
 
-class DatalinkRenderer(grend.ServiceBasedPage):
-	"""A very plain renderer just very shallowly wrapping the datalink core.
-
-	Since the entire protocol is contained in the core, the main thing
-	this does is decide whether to return the core's result as  a nevow
-	resource or render it itself.
+class _DatalinkRendererBase(grend.ServiceBasedPage):
+	"""the base class of the two datalink renderers.
 	"""
-	name = "dlget"
 	urlUse = "base"
 
 	def renderHTTP(self, ctx):
@@ -478,6 +473,30 @@ class DatalinkRenderer(grend.ServiceBasedPage):
 	def _reportError(self, failure, request):
 		base.ui.notifyFailure(failure)
 		return uwsactions.ErrorResource(failure.value, 500)
+
+
+class DatalinkGetDataRenderer(_DatalinkRendererBase):
+	"""A renderer for data processing by datalink cores.
+
+	This must go together with a datalink core, nothing else will do.
+
+	This renderer will actually produce the processed data.  It must be
+	complemented by the dlmeta renderer which allows retrieving metadata.
+	"""
+	name = "dlget"
+
+
+class DatalinkGetMetaRenderer(_DatalinkRendererBase):
+	"""A renderer for data processing by datalink cores.
+
+	This must go together with a datalink core, nothing else will do.
+
+	This renderer will return the links and services applicable to
+	one or more pubDIDs.
+
+	See `Datalink Cores`_ for more information.
+	"""
+	name = "dlmeta"
 
 
 def _test():

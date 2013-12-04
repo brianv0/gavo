@@ -437,6 +437,8 @@ def _makeResource(ctx, data):
 
 ############################# Toplevel/User-exposed code
 
+makeResource = _makeResource
+
 
 def makeVOTable(data, ctx=None, **kwargs):
 	"""returns a votable.V.VOTABLE object representing data.

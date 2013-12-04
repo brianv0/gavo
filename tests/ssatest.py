@@ -116,8 +116,10 @@ class _WithSSATableTest(testhelpers.VerboseTest):
 	resources = [("ssaTable", tresc.ssaTestTable)]
 	renderer = "ssap.xml"
 
-	def runService(self, id, params):
-		return getRD().getById(id).run(self.renderer, params)
+	def runService(self, id, params, renderer=None):
+		if renderer is None:
+			renderer = self.renderer
+		return getRD().getById(id).run(renderer, params)
 
 
 class ImportTest(_WithSSATableTest):
@@ -353,7 +355,7 @@ class GetDataTest(_WithSSATableTest):
 
 	def testBadPubDID(self):
 		self.assertRaisesWithMsg(svcs.UnknownURI,
-			"No spectrum with pubdid ivo://test.inv/bad known here",
+			"No spectrum with pubDID ivo://test.inv/bad known here",
 			self.runService,
 				("c", {"REQUEST": "getData", "PUBDID": 'ivo://test.inv/bad'}))
 
@@ -373,7 +375,7 @@ class SDMDatalinkTest(_WithSSATableTest):
 	def _testDatalinkDeclared(self):
 		res = self.runService("c",
 			{"REQUEST": "queryData"})
-		tree = testhelpers.getXMLTree(res.original[1], debug=True)
+		tree = testhelpers.getXMLTree(res.original[1], debug=False)
 		gpTable = tree.xpath('//TABLE[@name="datalinkDescriptor"]')[0]
 
 		formats = [el.get("value")
@@ -405,8 +407,8 @@ class SDMDatalinkTest(_WithSSATableTest):
 
 	def testOriginalFormatAvailable(self):
 		res = self.runService("dl",
-			{"PUBDID": 'ivo://test.inv/test1'}).original[1]
-		tree = testhelpers.getXMLTree(res)
+			{"PUBDID": 'ivo://test.inv/test1'}, renderer="dlmeta").original[1]
+		tree = testhelpers.getXMLTree(res, debug=False)
 		self.assertEqual(tree.xpath(
 			"//PARAM[@name='FORMAT']/VALUES/OPTION[@value='image/jpeg']")[0
 				].get("name"), "Original format")
@@ -495,7 +497,7 @@ class SDMDatalinkTest(_WithSSATableTest):
 
 	def testBadPubDID(self):
 		self.assertRaisesWithMsg(svcs.UnknownURI,
-			"No spectrum with pubdid ivo://test.inv/bad known here",
+			"No spectrum with pubDID ivo://test.inv/bad known here",
 			self.runService,
 				("dl", {"PUBDID": 'ivo://test.inv/bad'}))
 
@@ -677,7 +679,7 @@ class SSATableTest(testhelpers.VerboseTest):
 	def testDatalinkResourcePresent(self):
 		_, tree = self.docAndTree
 		self.assertEqual(len(tree.xpath(
-			"//RESOURCE[@name='datalinkDescriptor']")), 1)
+			"//RESOURCE[@type='service']")), 1)
 		# TODO: check more properties of that guy
 
 
