@@ -981,12 +981,17 @@ exposed via Datalink include cutouts, format conversions or
 recalibrations done on the fly, and associating error or mask maps with
 the actual data.
 
-Within DaCHS, you can write datalink services using specialized Datalink
-cores.  Their function is twofold:
+A central term for datalink is the pubDID, or publisher DID.  This is an
+identifier assigned (essentially) by you that points to a concrete
+dataset.  In DaCHS, datalink services always use pubDIDs as the values
+of the datalink ID parameter.
 
-(1) when given a PUBDID only, return the access options ("Datalink
-    document")
-(2) when given additional arguments, perform some computation
+Within DaCHS, you can write datalink services using a specialized type
+of core.  Its function is twofold:
+
+(1) when operated by the dlmeta renderer, it returns the access options 
+    ("Datalink document")
+(2) when operated by the dlget renderer, it performs some computation
     ("Processed data")
 
 Function (1) is implemented by DaCHS code working on the metadata of the
@@ -1005,7 +1010,7 @@ A datalink core consists of
 Here's how they work together in providing the Datalink functionality:
 
 To generate the Datalink document, the descriptor generator is passed
-the PUBDID and is expected to return a ``datalink.ProductDescriptor``
+the pubDID and is expected to return a ``datalink.ProductDescriptor``
 instance (or None, in which case the datalink request will be rejected
 by a 404).  In addition to attributes named after the columns of the
 product table (and potentially other attributes added by deriving from
@@ -1053,12 +1058,12 @@ Descriptors Generators
 '''''''''''''''''''''''
 
 Descriptor generators (see `element descriptorGenerator`_) are procedure
-applications that see a pubdid value and are expected to return a
+applications that see a pubDID value and are expected to return a
 ``datalink.ProductDescriptor`` instance, or something derived from it.  
 
 In the end, this usually boils down to figuring out the value of accref
 in the product table and using what's there to construct the d.g.
-In the simplest case, the pubdid will be in DaCHS'
+In the simplest case, the pubDID will be in DaCHS'
 "standard" format (see the ``getStandardPubDID`` rowmaker function), in
 which case the default d.g. works any you don't have to specify
 anything.  You could manually insert that default by
@@ -1071,7 +1076,7 @@ functionality is equivalent to this::
 
   <descriptorGenerator>
     <code>
-      return ProductDescriptor.fromAccref("/".join(pubdid.split("/")[4:]))
+      return ProductDescriptor.fromAccref("/".join(pubDID.split("/")[4:]))
     </code>
   </descriptorGenerator>
 
@@ -1115,10 +1120,10 @@ definition is in ``//datalink#sdm_genDesc``, but the gist of it is::
       with base.getTableConn() as conn:
         ssaTable = rsc.TableForDef(ssaTD, connection=conn)
         matchingRows = list(ssaTable.iterQuery(ssaTable.tableDef, 
-          "ssa_pubdid=%(pubdid)s", {"pubdid": pubdid}))
+          "ssa_pubdid=%(pubDID)s", {"pubDID": pubDID}))
         if not matchingRows:
-          raise svcs.UnknownURI("No spectrum with pubdid %s known here"%
-            pubdid)
+          raise svcs.UnknownURI("No spectrum with pubDID %s known here"%
+            pubDID)
 
         # the relevant metadata for all rows with the same PubDID should
         # be identical, and hence we can blindly take the first result.
@@ -1150,7 +1155,7 @@ of service metadata from a data descriptor.  All meta makers belonging
 to a service are unconditionally executed, and all must be generator
 bodies (i.e., contain a yield statement).
 
-Meta makers may yield either input keys or link definitions.  The input
+Meta makers may yield input keys and/or link definitions.  The input
 keys make up a service's interface in the usual way.
 Note, however, that since DaCHS datalink services dispatch between
 metadata and data processing queries by checking whether any parameters
@@ -1237,7 +1242,7 @@ from the table containing the products; if the source table was
 (talk to postgres directly for this query, dc.products is not available
 via TAP).
 
-The standard pubdid (as assigned using the ``getStandardPubDID``
+The standard pubDID (as assigned using the ``getStandardPubDID``
 rowmaker function) uses your datacenter authority (as configured in
 /etc/gavo.rd, when you forget it you can also figure it out by using
 ``gavo config ivoa authority``) and this accref like this::
@@ -1248,20 +1253,20 @@ Hence, to retrieve the datalink document for
 ``mlqso/data/FBQ0951_data.fits`` on the server dc.g-vo.org using the
 datalink renderer on the ``mlqso/q/d`` service, you'd write::
 
-  curl -DPUBDID=ivo://org.gavo.dc/~/mlqso/data/FBQ0951_data.fits \
-    http://dc.g-vo.org/mlqso/q/d/dlget | xmlstarlet fo
+  curl -DID=ivo://org.gavo.dc/~/mlqso/data/FBQ0951_data.fits \
+    http://dc.g-vo.org/mlqso/q/d/dlmeta | xmlstarlet fo
 
 (of course, ``xmlstarlet`` isn't actually necessary, and you can use
 ``wget`` if you want, but you get the idea).
 
 In there you'll see the parameter names for the axes, e.g.,::
 
-  $ curl -s -FPUBDID=ivo://org.gavo.dc/~/mlqso/data/FBQ0951_data.fits \
-  >> http://dc.g-vo.org/mlqso/q/d/dlget \
+  $ curl -s -FID=ivo://org.gavo.dc/~/mlqso/data/FBQ0951_data.fits \
+  >> http://dc.g-vo.org/mlqso/q/d/dlmeta \
   >> | xmlstarlet sel -N v=http://www.ivoa.net/xml/VOTable/v1.2 -T \
   >> -t -m "//v:PARAM" -v "@name" -nl
   serviceAccessURL
-  PUBDID
+  ID
   DEC_MIN
   DEC_MAX
   RA_MIN
@@ -1326,22 +1331,89 @@ example could look like this::
     <code>
       yield LinkDef(makeAbsoluteURL(
         "get/"+descriptor.accref[:-5]+".err.fits"),
-        "image/fits", "errors")
+        "image/fits", semantics="errors")
       yield LinkDef("http://foo.bar/raw/"+descriptor.accref.split("/")[-1],
-        "image/fits", "raw")
+        "image/fits", semantics="raw")
     </code>
   </metaMaker>
 
-The vocabulary for the relation types (the last argument to a link
-definition's constructor) is not finalized yet.  Complain to the DaCHS
-maintainers that this sentence still is here.
+LinkDefs also accept keyword arguments for the columns of the
+``//datalink#dlresponse`` table.  At the time of this writing, these
+include:
 
-Such links frequently should expose some data that's not in the product
+serviceType
+  This is a URI saying what kind of a service is behind accessURL if it
+  is a service.  You'll not usually want to set this in links you give.
+  The exception is when you're pointing to some standard service that
+  exposes the data that's being talked about, too.  As of this writing,
+  it is probably most relevant for SSA services, in which case you'd put
+  ``ivo://ivoa.net/std/SSA`` here.  Otherwise, this field is used to
+  generate a link to a descriptor of the services' dlget endpoint, but
+  that's done automatically by DaCHS.
+errorMessage
+  If your code cannot make a link and wants to communicate that to a
+  client, you leave accessURL empty (None) and set a message here.
+description
+  A human-readable short information what's behind the link
+semantics
+  A term from a controlled-vocabulary describing what's behind the link
+  (see below)
+contentType
+  An (advisory) mime type of whatever accessURL points to.  Please make
+  sure it's consistent with what the server actually returns if the
+  protocol used by accessURL supports that.
+contentLength
+  The size of the resource at accessURL, in bytes.
+
+All auxillary data defaults to None if not given, and it's legal to
+leave it at that.
+
+You can inspect the definition of the datalinks table active in your
+system by saying::
+
+  gavo admin dumpDF //datalink | less
+
+(the table definition is right at the top).
+
+The vocabulary for the semantics value is not finalized yet.  Complain
+to the DaCHS maintainers that this sentence still is here.
+At the time of writing, the following terms are in discussion:
+
+science
+  Associated datasets containing science data, possibly derived or
+  further reduced data; an example would be a merged spectrum from
+  Echelle orders.
+qa
+  Files containing error estimates or the like.
+calibration
+  Datasets used for reduction of the current dataset.
+preview
+  Scaled-down or rendered versions of the datasets; this could include a
+  small plot for spectra, say.
+info
+  Erm.  Frankly, I don't know.
+self
+  The data set itself.  DaCHS generates such a link automatically to a
+  dlget giving just the PubDID if the renderer is enabled on the service.  
+  If this is a problem for you, let us know and we'll hack something 
+  that lets you suppress it.
+source
+  A predecessor data set, e.g., uncalibrated or less calibrated data
+access
+  A service that allows access to parts of the dataset, or to processed
+  versions of it.  DaCHS automatically makes a link with this semantics
+  for the dlget endpoint if the ``dlget`` renderer is enabled on the
+  service.
+auxiliary
+  Basically, a "none of the above" option.  You'll probably want to
+  use the description column to help clients figure out what it is.
+
+Data links frequently should expose some data that's not in the product
 table (e.g., because you don't want the error files to show up there).
 In such cases, a good pattern is to put a static renderer next to the
 datalink renderer and then write a meta maker like this::
 
-	<service id="d" allowed="dlget,static" defaultRenderer="dlget">
+	<service id="d" allowed="dlget,dlmeta,static">
 		<property name="staticData">data/errors</property>
 
 		<datalinkCore>
@@ -1374,7 +1446,7 @@ the input keys produced by the meta makers, where the descriptor's
 As described above, DaCHS does not enforce anything on the ``data``
 attribute other than that it's not None after the first data function
 has run.  It is the RD author's responsibility to make sure that all
-data function in a given datalink core agree on what ``data`` is.
+data functions in a given datalink core agree on what ``data`` is.
 
 All code in a request for processed data is also passed the input
 parameters as processed by the context grammar.  Hence, the code can
@@ -1464,7 +1536,7 @@ Data formatters (see `element dataFormatter`_) take a descriptor's data
 attribute and build something serveable out of it.  Datalink cores do
 not absolutely need one; the default is to return ``descriptor.data``
 (the ``//datalink#trivialFormatter``, which might be fine if that data is
-serveable itself.
+serveable itself).
 
 What is serveable?  The easiest thing to come up with is a pair of
 content type and data in byte strings; if ``descriptor.data`` is a Table

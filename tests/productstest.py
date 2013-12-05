@@ -410,7 +410,8 @@ class _MetaMakerTestData(testhelpers.TestResource):
 		("prodtestTable", tresc.prodtestTable)]
 
 	def make(self, dependents):
-		svc = base.parseFromString(svcs.Service, """<service id="foo">
+		svc = base.parseFromString(svcs.Service, """
+		<service id="foo" allowed="dlget,dlmeta">
 			<datalinkCore>
 				<metaMaker>
 					<code>
@@ -480,7 +481,6 @@ class DatalinkMetaMakerTest(testhelpers.VerboseTest):
 			tree.xpath("//PARAM[@name='format']/VALUES/OPTION")[1].get("value"),
 			"application/fits")
 
-
 	def testAccessURLPresent(self):
 		tree = self.serviceResult[1]
 		self.assertEqual(
@@ -493,8 +493,11 @@ class _MetaMakerTestRows(testhelpers.TestResource):
 		("serviceResult", _metaMakerTestData)]
 
 	def make(self, dependents):
-		rows = dependents["serviceResult"][2]
-		rows.sort()
+		td = base.resolveCrossId("//datalink#dlresponse", None)
+		rows = {}
+		for tuple in dependents["serviceResult"][2]:
+			row = td.makeRowFromTuple(tuple)
+			rows.setdefault((row["ID"], row["semantics"]), []).append(row)
 		return rows
 
 
@@ -503,39 +506,60 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 		("serviceResult", _metaMakerTestData)]
 
 	def testAllLinks(self):
-		self.assertEqual(len(self.rows), 6)
+		self.assertEqual(len(self.rows), 8)
+		for r in self.rows.values():
+			self.assertEqual(len(r), 1)
 	
 	def testAllWithId(self):
 		self.assertEqual(set(r[0] for r in self.rows), 
 			set(['ivo://x-unregistred/~/data/b.imp',
 				'ivo://x-unregistred/~/data/a.imp']))
 	
-	def testAccessURLs(self):
-		self.assertEqual(self.rows[0][1], 'http://foo/bar')
-		self.assertEqual(self.rows[2][1], 
+	def testAccessURLStatic(self):
+		self.assertEqual(self.rows[
+			('ivo://x-unregistred/~/data/b.imp', 'science')][0]["accessURL"], 
+			'http://foo/bar')
+
+	def testAccessURLAccess(self):
+		self.assertEqual(self.rows[
+			('ivo://x-unregistred/~/data/b.imp', 'access')][0]["accessURL"],
 			'http://localhost:8080/data/test/foo/dlget')
+
+	def testAccessURLSelf(self):
+		self.assertEqual(self.rows[
+			('ivo://x-unregistred/~/data/b.imp', 'self')][0]["accessURL"],
+			'http://localhost:8080/data/test/foo/dlget?'
+				'ID=ivo%3A%2F%2Fx-unregistred%2F%7E%2Fdata%2Fb.imp')
+		self.assertEqual(self.rows[
+			('ivo://x-unregistred/~/data/a.imp', 'self')][0]["accessURL"],
+			'http://localhost:8080/data/test/foo/dlget?'
+				'ID=ivo%3A%2F%2Fx-unregistred%2F%7E%2Fdata%2Fa.imp')
 	
 	def testMimes(self):
-		self.assertEqual(self.rows[1][6], 'test/gold')
+		self.assertEqual(self.rows[('ivo://x-unregistred/~/data/a.imp', 
+			'calibration')][0]["contentType"], 'test/gold')
 	
 	def testSemantics(self):
-		self.assertEqual(self.rows[0][5], 'science')
-		self.assertEqual(self.rows[2][5], 'processed')
+		self.assertEqual(set(r[1] for r in self.rows), 
+			set(['science', 'calibration', 'self', 'access']))
 
 	def testSizes(self):
-		self.assertEqual(self.rows[0][7], 500002)
-		self.assertEqual(self.rows[1][7], None)
-		self.assertEqual(self.rows[2][7], None)
+		self.assertEqual(self.rows[('ivo://x-unregistred/~/data/a.imp', 
+			'science')][0]["contentLength"], 500002) 
+		self.assertEqual(self.rows[('ivo://x-unregistred/~/data/a.imp', 
+			'calibration')][0]["contentLength"], None) 
 
-	def testService(self):
+	def testServiceLink(self):
+		svcRow = self.rows[('ivo://x-unregistred/~/data/a.imp', 
+			'access')][0]
+		resId = svcRow["serviceType"][1:]
 		for res in self.serviceResult[1].xpath("//RESOURCE"):
-			if res.attrib.get("ID")==self.rows[2][2][1:]:
+			if res.attrib.get("ID")==resId:
 				break
 		else:
 			self.fail("Processing service not in datalink links")
-
 		self.assertEqual(res.attrib.get("type"), "service")
-
+	
 
 class DatalinkFITSTest(testhelpers.VerboseTest):
 	resources = [("fitsTable", _fitsTable)]

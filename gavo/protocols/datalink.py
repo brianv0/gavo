@@ -4,6 +4,8 @@ The datalink core and its numerous helper classes.
 More on this in "Datalink Cores" in the reference documentation.
 """
 
+import urllib
+
 from gavo import base
 from gavo import rsc
 from gavo import rscdef
@@ -372,9 +374,17 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 		of ids).  If this is the entire content of the VOTable, use
 		votablewrite.VOTableContext() there.
 		"""
-		internalLinks = [LinkDef(s.pubDID, service.getURL("dlget"),
-				serviceType="#"+ctx.getOrMakeIdFor(s), semantics="processed")
-			for s in self.datalinkServices]
+		internalLinks = []
+
+		if "dlget" in service.allowed:
+			internalLinks = [LinkDef(s.pubDID, service.getURL("dlget"),
+					serviceType="#"+ctx.getOrMakeIdFor(s), semantics="access")
+				for s in self.datalinkServices]
+			internalLinks.extend(LinkDef(s.pubDID, 
+				service.getURL("dlget")+"?ID="+urllib.quote_plus(s.pubDID),
+					semantics="self")
+				for s in self.datalinkServices)
+
 		data = rsc.makeData(
 			base.caches.getRD("//datalink").getById("make_response"),
 			forceSource=self.datalinkLinks+internalLinks)
