@@ -315,7 +315,7 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 				<metaMaker><code>yield MS(InputKey, name="ignored")</code></metaMaker>
 				</datalinkCore>
 			</service>""")
-		res = svc.run("form", {"PUBDID": rscdef.getStandardPubDID(
+		res = svc.run("form", {"ID": rscdef.getStandardPubDID(
 			"data/b.imp"), "ignored": 0.4}).original
 		self.assertEqual("".join(res.iterData()), 'alpha: 03 34 33.45'
 			'\ndelta: 42 34 59.7\nobject: michael\nembargo: 2003-12-31\n')
@@ -331,7 +331,7 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 		self.assertRaisesWithMsg(base.ValidationError,
 			"Field PUBDID: Document type not supported: text/plain",
 			svc.run,
-			("form", {"PUBDID": rscdef.getStandardPubDID("data/b.imp"),
+			("form", {"ID": rscdef.getStandardPubDID("data/b.imp"),
 				"ignored": 0.5}))
 
 	def testProductsGeneratorFailure(self):
@@ -347,7 +347,7 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 		self.assertRaisesWithMsg(base.ReportableError,
 			"Internal Error: a first data function did not create data.",
 			svc.run,
-			("form", {"PUBDID": rscdef.getStandardPubDID("data/b.imp"),
+			("form", {"ID": rscdef.getStandardPubDID("data/b.imp"),
 				"ignored": 0.4}))
 
 	def testProductsMogrifier(self):
@@ -378,7 +378,7 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 				</dataFunction></datalinkCore>
 			</service>""")
 		res = "".join(svc.run("form", {
-			"PUBDID": [rscdef.getStandardPubDID("data/b.imp")], 
+			"ID": [rscdef.getStandardPubDID("data/b.imp")], 
 			"addto": ["4"]}).original.iterData())
 		self.assertEqual(res, 
 			"eptle>$47$78$77289\x0ehipxe>$86$78$9=2;\x0e"
@@ -396,12 +396,12 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 			"This datalink service not available with the pubDID"
 			" 'ivo://x-unregistred/~/goo/boo'",
 			svc.run,
-			("dlget", {"PUBDID": [rscdef.getStandardPubDID("goo/boo")]}))
+			("dlget", {"ID": [rscdef.getStandardPubDID("goo/boo")]}))
 
 		self.assertRaisesWithMsg(svcs.UnknownURI,
 			"Not a pubDID from this site: ivo://great.scott/goo/boo",
 			svc.run,
-			("dlget", {"PUBDID": ["ivo://great.scott/goo/boo"]}))
+			("dlget", {"ID": ["ivo://great.scott/goo/boo"]}))
 
 
 class _MetaMakerTestData(testhelpers.TestResource):
@@ -442,7 +442,10 @@ class _MetaMakerTestData(testhelpers.TestResource):
 		svc.parent = testhelpers.getTestRD()
 
 		mime, data = svc.run("dlmeta", {
-			"PUBDID": [rscdef.getStandardPubDID("data/b.imp")]}).original
+			"ID": [
+				rscdef.getStandardPubDID("data/a.imp"),
+				rscdef.getStandardPubDID("data/b.imp"),
+				]}).original
 		return (mime, testhelpers.getXMLTree(data, debug=False),
 			list(votable.parseString(data).next()))
 
@@ -490,7 +493,9 @@ class _MetaMakerTestRows(testhelpers.TestResource):
 		("serviceResult", _metaMakerTestData)]
 
 	def make(self, dependents):
-		return dependents["serviceResult"][2]
+		rows = dependents["serviceResult"][2]
+		rows.sort()
+		return rows
 
 
 class DatalinkMetaRowsTest(testhelpers.VerboseTest):
@@ -498,11 +503,12 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 		("serviceResult", _metaMakerTestData)]
 
 	def testAllLinks(self):
-		self.assertEqual(len(self.rows), 3)
+		self.assertEqual(len(self.rows), 6)
 	
 	def testAllWithId(self):
 		self.assertEqual(set(r[0] for r in self.rows), 
-			set(['ivo://x-unregistred/~/data/b.imp']))
+			set(['ivo://x-unregistred/~/data/b.imp',
+				'ivo://x-unregistred/~/data/a.imp']))
 	
 	def testAccessURLs(self):
 		self.assertEqual(self.rows[0][1], 'http://foo/bar')
@@ -552,7 +558,7 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 		svc.parent = testhelpers.getTestRD()
 
 		mime, data = svc.run("dlmeta", {
-			"PUBDID": [rscdef.getStandardPubDID("data/ex.fits")]}).original
+			"ID": [rscdef.getStandardPubDID("data/ex.fits")]}).original
 		tree = testhelpers.getXMLTree(data)
 		self.assertEqual(tree.xpath("//PARAM[@name='RA_MIN']")[0].get("unit"),
 			"deg")
@@ -572,7 +578,7 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 		svc.parent = testhelpers.getTestRD()
 
 		mime, data = svc.run("dlmeta", {
-			"PUBDID": [rscdef.getStandardPubDID("data/excube.fits")]}).original
+			"ID": [rscdef.getStandardPubDID("data/excube.fits")]}).original
 		tree = testhelpers.getXMLTree(data, debug=False)
 		self.assertEqual(tree.xpath("//PARAM[@name='RA_MAX']/VALUES/MIN"
 			)[0].get("value"), "359.3580942")
@@ -594,7 +600,7 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 			</datalinkCore></service>""")
 
 		mime, data = svc.run("dlget", {
-				"PUBDID": [rscdef.getStandardPubDID("data/excube.fits")],
+				"ID": [rscdef.getStandardPubDID("data/excube.fits")],
 				"COO_3_MIN": ["3753"],
 				"COO_3_MAX": ["3755"],
 				}).original
@@ -616,7 +622,7 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 			</datalinkCore></service>""")
 
 		mime, data = svc.run("dlget", {
-				"PUBDID": [rscdef.getStandardPubDID("data/excube.fits")],
+				"ID": [rscdef.getStandardPubDID("data/excube.fits")],
 				"RA_MAX": ["359.36"],
 				"RA_MIN": ["359.359"],
 				"DEC_MAX": ["30.9845"],
@@ -639,7 +645,7 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 				<FEED source="//datalink#fits_genKindPar"/>
 			</datalinkCore></service>""")
 		mime, data = svc.run("dlget", {
-			"PUBDID": [rscdef.getStandardPubDID("data/excube.fits")],
+			"ID": [rscdef.getStandardPubDID("data/excube.fits")],
 			"KIND": ["HEADER"],}).original
 		self.assertEqual(mime, "application/fits-header")
 		self.assertEqual(len(data), 2880)
@@ -654,7 +660,7 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 				<FEED source="//datalink#fits_genKindPar"/>
 			</datalinkCore></service>""")
 		mime, data = svc.run("dlget", {
-			"PUBDID": rscdef.getStandardPubDID("data/excube.fits"),
+			"ID": rscdef.getStandardPubDID("data/excube.fits"),
 				"COO_3_MIN": "3753",
 			"KIND": "HEADER",}).original
 		self.assertEqual(mime, "application/fits-header")
@@ -668,7 +674,7 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 			</datalinkCore></service>""")
 		svc.parent = testhelpers.getTestRD()
 		mime, data = svc.run("dlmeta", {
-			"PUBDID": rscdef.getStandardPubDID("data/excube.fits")}).original
+			"ID": rscdef.getStandardPubDID("data/excube.fits")}).original
 		self.failUnless("<DATA><TABLEDATA>" in data)
 
 
@@ -695,7 +701,7 @@ class DatalinkSTCTest(testhelpers.VerboseTest):
 			</datalinkCore></service>""")
 		svc.parent = testhelpers.getTestRD()
 		mime, data = svc.run("dlmeta", {
-			"PUBDID": [rscdef.getStandardPubDID("data/ex.fits")]}).original
+			"ID": [rscdef.getStandardPubDID("data/ex.fits")]}).original
 		tree = testhelpers.getXMLTree(data, debug=False)
 		self.assertEqual(len(tree.xpath(
 			"//GROUP[@utype='stc:CatalogEntryLocation']/PARAM")), 4)
@@ -745,7 +751,7 @@ class DatalinkSTCTest(testhelpers.VerboseTest):
 			</datalinkCore></service>""")
 		svc.parent = testhelpers.getTestRD()
 		mime, data = svc.run("dlmeta", {
-			"PUBDID": [rscdef.getStandardPubDID("data/ex.fits")]}).original
+			"ID": [rscdef.getStandardPubDID("data/ex.fits")]}).original
 
 		tree = testhelpers.getXMLTree(data, debug=False)
 		self.assertEqual(len(tree.xpath(

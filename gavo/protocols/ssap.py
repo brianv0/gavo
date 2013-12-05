@@ -220,6 +220,12 @@ class SSAPCore(svcs.DBCore):
 					raise base.ValidationError("BAND must have form [number]/[number].", 
 						"BAND")
 
+		# rename PUBDID (getData) to ID (datalink)
+		if "PUBDID" not in rawArgs:
+			raise base.ValidationError("Value is required but was not provided",
+				"PUBDID")
+		rawArgs["ID"] = rawArgs.pop("PUBDID")
+
 		dlService = self.rd.getById(datalinkId)
 		return dlService.run("dlget", rawArgs, queryMeta).original
 			

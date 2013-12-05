@@ -401,13 +401,13 @@ class SDMDatalinkTest(_WithSSATableTest):
 
 	def testRejectWithoutPUBDID(self):
 		self.assertRaisesWithMsg(base.ValidationError,
-			"Field PUBDID: Value is required but was not provided",
+			"Field ID: Value is required but was not provided",
 			self.runService,
 			("dl", {}))
 
 	def testOriginalFormatAvailable(self):
 		res = self.runService("dl",
-			{"PUBDID": 'ivo://test.inv/test1'}, renderer="dlmeta").original[1]
+			{"ID": 'ivo://test.inv/test1'}, renderer="dlmeta").original[1]
 		tree = testhelpers.getXMLTree(res, debug=False)
 		self.assertEqual(tree.xpath(
 			"//PARAM[@name='FORMAT']/VALUES/OPTION[@value='image/jpeg']")[0
@@ -415,7 +415,7 @@ class SDMDatalinkTest(_WithSSATableTest):
 
 	def testVOTDelivery(self):
 		res = self.runService("dl",
-			{"PUBDID": 'ivo://test.inv/test1', "FORMAT": "application/x-votable+xml"})
+			{"ID": 'ivo://test.inv/test1', "FORMAT": "application/x-votable+xml"})
 		mime, payload = res.original
 		self.assertEqual(mime, "application/x-votable+xml")
 		self.failUnless('xmlns:spec="http://www.ivoa.net/xml/SpectrumModel/v1.01'
@@ -424,7 +424,7 @@ class SDMDatalinkTest(_WithSSATableTest):
 
 	def testTextDelivery(self):
 		res = self.runService("dl",
-			{"PUBDID": 'ivo://test.inv/test1', 
+			{"ID": 'ivo://test.inv/test1', 
 				"FORMAT": "text/plain"})
 		mime, payload = res.original
 		self.failUnless(isinstance(payload, str))
@@ -433,7 +433,7 @@ class SDMDatalinkTest(_WithSSATableTest):
 
 	def testCutoutFull(self):
 		res = self.runService("dl",
-			{"PUBDID": ['ivo://test.inv/test1'], 
+			{"ID": ['ivo://test.inv/test1'], 
 				"FORMAT": ["text/plain"], "LAMBDA_MIN": ["1.762e-7"],
 				"LAMBDA_MAX": ["1.764e-7"]})
 		mime, payload = res.original
@@ -443,7 +443,7 @@ class SDMDatalinkTest(_WithSSATableTest):
 
 	def testCutoutHalfopen(self):
 		res = self.runService("dl",
-			{"PUBDID": ['ivo://test.inv/test1'], 
+			{"ID": ['ivo://test.inv/test1'], 
 				"FORMAT": ["application/x-votable+xml;serialization=tabledata"], 
 				"LAMBDA_MIN": ["1.927e-7"]})
 		mime, payload = res.original
@@ -463,20 +463,20 @@ class SDMDatalinkTest(_WithSSATableTest):
 		self.assertRaisesWithMsg(base.EmptyData,
 			"Spectrum is empty.",
 			self.runService,
-			("dl", {"PUBDID": 'ivo://test.inv/test1', 
+			("dl", {"ID": 'ivo://test.inv/test1', 
 				"FORMAT": "application/x-votable+xml",
 				"LAMBDA_MAX": "1.927e-8"}))
 
 	def testOriginalCalibOk(self):
 		mime, payload = self.runService("dl",
-			{"PUBDID": 'ivo://test.inv/test1', 
+			{"ID": 'ivo://test.inv/test1', 
 				"FORMAT": "text/plain", 
 				"FLUXCALIB": "UNCALIBRATED"}).original
 		self.failUnless(payload.endswith("1928.0	1580.0\n"))
 
 	def testNormalize(self):
 		mime, payload = getRD().getById("dl").run("ssap.xml",
-			{"PUBDID": ['ivo://test.inv/test1'], 
+			{"ID": ['ivo://test.inv/test1'], 
 				"FORMAT": "application/x-votable+xml;serialization=tabledata", 
 				"LAMBDA_MIN": ["1.9e-7"], "LAMBDA_MAX": ["1.92e-7"], 
 				"FLUXCALIB": "relative"}).original
@@ -491,7 +491,7 @@ class SDMDatalinkTest(_WithSSATableTest):
 		self.assertRaisesWithMsg(base.ValidationError,
 			"Field FLUXCALIB: u'ferpotschket' is not a valid value for FLUXCALIB",
 			self.runService,
-			("dl", {"PUBDID": 'ivo://test.inv/test1', 
+			("dl", {"ID": 'ivo://test.inv/test1', 
 				"FORMAT": "text/plain", 
 				"FLUXCALIB": ["ferpotschket"]}))
 
@@ -499,14 +499,14 @@ class SDMDatalinkTest(_WithSSATableTest):
 		self.assertRaisesWithMsg(svcs.UnknownURI,
 			"No spectrum with pubDID ivo://test.inv/bad known here",
 			self.runService,
-				("dl", {"PUBDID": 'ivo://test.inv/bad'}))
+				("dl", {"ID": 'ivo://test.inv/bad'}))
 
 	def testRandomParamFails(self):
 		self.assertRaisesWithMsg(base.ValidationError,
 			"Field (various): The following parameter(s) are"
 			" not accepted by this service: warp",
 			self.runService,
-			("dl", {"PUBDID": 'ivo://test.inv/test1', 
+			("dl", {"ID": 'ivo://test.inv/test1', 
 				"warp": "infinity"}))
 
 

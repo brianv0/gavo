@@ -337,8 +337,8 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 				procDef=base.caches.getRD("//datalink").getById("trivialFormatter"))
 
 		self.inputKeys.append(
-			MS(svcs.InputKey, name="PUBDID", type="text", 
-				multiplicity="forced-single",
+			MS(svcs.InputKey, name="ID", type="text", 
+				multiplicity="multiple",
 				required=True,
 				description="The pubisher DID of the dataset of interest"))
 
@@ -410,12 +410,12 @@ class DatalinkCore(DatalinkCoreBase):
 		a list.  If it's not present, a ValidationError will be raised.
 		"""
 		try:
-			pubDIDs = args["PUBDID"]
+			pubDIDs = args["ID"]
 			if not isinstance(pubDIDs, list):
 				pubDIDs = [pubDIDs]
 		except (KeyError, IndexError):
 			raise base.ValidationError("Value is required but was not provided",
-				"PUBDID")
+				"ID")
 		return pubDIDs
 
 	def adaptForDescriptors(self, renderer, descriptors):

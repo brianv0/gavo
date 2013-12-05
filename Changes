@@ -19,6 +19,10 @@ Version 0.9
     pair of rd id and and table id.  It can now also parse from fits
     binary tables directly.
 
+	* Datalink prototype changed during development: the parameter is now
+	  called ID in conformance with the WD; what was pubdid in the datalink
+	  functions is now called pubDID; several other changes that only
+	  concern you if you're running datalink (chances are you're not)
 
 Version 0.8.9 (2013-07-13)
 

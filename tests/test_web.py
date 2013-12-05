@@ -338,19 +338,19 @@ class MetaPagesTest(ArchiveTest):
 class DatalinkTest(ArchiveTest):
 	def testErrorDocument(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlget", 
-			{"PUBDID": "broken"},
-			['INFO name="QUERY_STATUS" value="ERROR">global name'
-				" 'ddt' is not defined</INFO>", "<VOTABLE"])
+			{"ID": "broken"},
+			['INFO name="QUERY_STATUS" value="ERROR">'
+				"global name 'ddt' is not defined</INFO>", "<VOTABLE"])
 
 	def testMetadata(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlmeta", 
-			{"PUBDID": "ivo://x-unregistred/~/data/excube.fits"},
+			{"ID": "ivo://x-unregistred/~/data/excube.fits"},
 			['<DESCRIPTION>The latitude coordinate, lower limit</DESCRIPTION>'
 				'<VALUES><MIN value="30.9831815872">',])
 	
 	def testSpecCutout(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlget", {
-			"PUBDID": "ivo://x-unregistred/~/data/excube.fits",
+			"ID": "ivo://x-unregistred/~/data/excube.fits",
 			"COO_3_MIN": "3753"}, [
 			"NAXIS3  =                    2",
 			"CRPIX3  =                 -1.0"])
