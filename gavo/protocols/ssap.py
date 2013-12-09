@@ -279,7 +279,9 @@ class SSAPCore(svcs.DBCore):
 		# we fix tablecoding to td for now since nobody seems to like
 		# binary tables and we don't have huge tables here.
 		votCtx = votablewrite.VOTableContext(tablecoding="td")
+
 		vot = votablewrite.makeVOTable(data, votCtx)
+		pubDIDId = votCtx.getIdFor(res.tableDef.getColumnByName("ssa_pubDID"))
 		resElement = vot.makeChildDict()["RESOURCE"][0]
 		resElement[
 			V.INFO(name="SERVICE_PROTOCOL", value=self.ssapVersion)["SSAP"],
@@ -296,6 +298,17 @@ class SSAPCore(svcs.DBCore):
 
 			# new and shiny datalink (keep)
 			vot[dlCore.datalinkServices[0].asVOT(votCtx, dlService.getURL("dlget"))]
+
+			# odd and crooked, almost WD-method of pointing to metadata service
+			vot[V.RESOURCE(type="datalinkService")[
+				V.PARAM(name="standardId", datatype="char", arraysize="*",
+					value="ivo://ivoa.net/std/DataLink#links"),
+				V.PARAM(name="accessURL", datatype="char", arraysize="*",
+					value=service.getURL("dlmeta")),
+				V.GROUP(name="inputParams")[
+					V.PARAM(name="ID", datatype="char", arraysize="*",
+						ucd="meta.id;meta.main")[
+						V.LINK(content_role="ddl:id-source", value="#"+pubDIDId)]]]]
 
 		return "application/x-votable+xml", votable.asString(vot)
 

@@ -368,32 +368,68 @@ class GetDataTest(_WithSSATableTest):
 				"warp": "infinity"}))
 
 
+class _SDMDatalinkMetaData(testhelpers.TestResource):
+	def make(self, dependents):
+		res = getRD().getById("c").run("ssap.xml", 
+			{"REQUEST": "queryData"})
+		tree = testhelpers.getXMLTree(res.original[1], debug=False)
+		return (tree.xpath('//RESOURCE[@type="dataService"]')[0],
+			tree.xpath('//RESOURCE[@type="datalinkService"]')[0], tree)
+
+
+class SDMDatalinkMetaTest(testhelpers.VerboseTest):
+	resources = [("data", _SDMDatalinkMetaData())]
+
+	def testEnumeration(self):
+		formats = [el.get("value")
+			for el in self.data[0].xpath(
+				"GROUP[@name='inputParams']/PARAM[@name='FORMAT']/VALUES/OPTION")]
+		self.failUnless("application/fits" in formats)
+
+	def testLimits(self):
+		self.assertAlmostEqual(
+			float(self.data[0].xpath(
+				"GROUP/PARAM[@name='LAMBDA_MAX']/VALUES/MIN")[0].get("value")),
+			4e-7)
+		self.assertAlmostEqual(
+			float(self.data[0].xpath(
+				"GROUP/PARAM[@name='LAMBDA_MIN']/VALUES/MAX")[0].get("value")), 
+			8e-7)
+
+	def testLeftOverEnumeration(self):
+		self.assertEqual(set(el.get("value") for el in 
+				self.data[0].xpath("GROUP/PARAM[@name='FLUXCALIB']/VALUES/OPTION")), 
+			set(['UNCALIBRATED', 'relative']))
+
+	def testIdColDeclaredDS(self):
+		param = self.data[0].xpath("GROUP/PARAM[@name='ID']")[0]
+		self.assertEqual(param.get("ucd"), "meta.id;meta.main")
+
+	def testAccessURLGivenDS(self):
+		self.assertEqual(self.data[0].xpath(
+				"PARAM[@name='accessURL']")[0].get("value"),
+			"http://localhost:8080/data/ssatest/dl/dlget")
+
+	def testAccessURLGivenDL(self):
+		self.assertEqual(self.data[1].xpath(
+				"PARAM[@name='accessURL']")[0].get("value"),
+			"http://localhost:8080/data/ssatest/c/dlmeta")
+	
+	def testIdColDeclaredDL(self):
+		param = self.data[1].xpath("GROUP/PARAM[@name='ID']")[0]
+		self.assertEqual(param.get("ucd"), "meta.id;meta.main")
+		link = param.xpath("LINK")[0]
+		self.assertEqual(link.get("content-role"), "ddl:id-source")
+		srcField = self.data[-1].xpath(
+			"//FIELD[@ID='%s']"%link.get("value")[1:])[0]
+		self.assertEqual(srcField.get("name"), "ssa_pubDID")
+	
+
 class SDMDatalinkTest(_WithSSATableTest):
 
 	renderer = "dlget"
 
-	def _testDatalinkDeclared(self):
-		res = self.runService("c",
-			{"REQUEST": "queryData"})
-		tree = testhelpers.getXMLTree(res.original[1], debug=False)
-		gpTable = tree.xpath('//TABLE[@name="datalinkDescriptor"]')[0]
-
-		formats = [el.get("value")
-			for el in gpTable.xpath("PARAM[@name='FORMAT']/VALUES/OPTION")]
-		self.failUnless("application/fits" in formats)
-
-		self.assertAlmostEqual(
-			float(gpTable.xpath("PARAM[@name='BAND']/VALUES/MIN")[0].get("value")),
-			4e-7)
-		self.assertAlmostEqual(
-			float(gpTable.xpath("PARAM[@name='BAND']/VALUES/MAX")[0].get("value")), 
-			8e-7)
-
-		self.assertEqual(set(el.get("value") for el in 
-			gpTable.xpath("PARAM[@name='FLUXCALIB']/VALUES/OPTION")), 
-			set(['UNCALIBRATED', 'RELATIVE']))
-
-	def _testNormalServicesReject(self):
+	def testNormalServicesReject(self):
 		self.assertRaisesWithMsg(base.ValidationError,
 			"Field REQUEST: No getData support on ivo://x-unregistred/data/ssatest/s",
 			self.runService,
@@ -679,7 +715,7 @@ class SSATableTest(testhelpers.VerboseTest):
 	def testDatalinkResourcePresent(self):
 		_, tree = self.docAndTree
 		self.assertEqual(len(tree.xpath(
-			"//RESOURCE[@type='service']")), 1)
+			"//RESOURCE[@type='dataService']")), 1)
 		# TODO: check more properties of that guy
 
 

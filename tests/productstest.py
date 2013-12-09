@@ -558,7 +558,7 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 				break
 		else:
 			self.fail("Processing service not in datalink links")
-		self.assertEqual(res.attrib.get("type"), "service")
+		self.assertEqual(res.attrib.get("type"), "dataService")
 	
 
 class DatalinkFITSTest(testhelpers.VerboseTest):

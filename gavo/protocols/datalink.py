@@ -144,7 +144,7 @@ class _ServiceDescriptor(object):
 			colRef.toParam = True
 			return ctx.makeIdFor(paramsByName[colRef.dest])
 
-		return V.RESOURCE(ID=ctx.getOrMakeIdFor(self), type="service")[
+		return V.RESOURCE(ID=ctx.getOrMakeIdFor(self), type="dataService")[
 			[modelgroups.marshal_STC(ast, getIdFor)
 				for ast in stcSpecs],
 			V.PARAM(arraysize="*", datatype="char", 
@@ -340,6 +340,7 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 
 		self.inputKeys.append(
 			MS(svcs.InputKey, name="ID", type="text", 
+				ucd="meta.id;meta.main",
 				multiplicity="multiple",
 				required=True,
 				description="The pubisher DID of the dataset of interest"))
