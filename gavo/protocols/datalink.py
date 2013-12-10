@@ -338,13 +338,18 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 			self.dataFormatter = MS(DataFormatter, 
 				procDef=base.caches.getRD("//datalink").getById("trivialFormatter"))
 		
-		idKey = MS(svcs.InputKey, name="ID", type="text", 
-				ucd="meta.id;meta.main",
-				multiplicity="multiple",
-				required=True,
-				std=True,
-				description="The pubisher DID of the dataset of interest")
-		self.inputKeys.append(idKey)
+		self.inputKeys.append(MS(svcs.InputKey, name="ID", type="text", 
+			ucd="meta.id;meta.main",
+			multiplicity="multiple",
+			required=True,
+			std=True,
+			description="The pubisher DID of the dataset of interest"))
+		self.inputKeys.append(MS(svcs.InputKey, name="REQUEST", type="text", 
+			multiplicity="forced-single",
+			std=True,
+			description="Request type",
+			values = MS(rscdef.Values, options=[
+				MS(rscdef.Option, content_="getLinks")])))
 
 		if self.inputTable is base.NotGiven:
 			self.inputTable = MS(svcs.InputTable, params=self.inputKeys)
@@ -510,7 +515,7 @@ class DatalinkCore(DatalinkCoreBase):
 					dlSvc.asVOT(ctx, service.getURL("dlget")) 
 						for dlSvc in self.datalinkServices]
 				]
-		return ("application/x-votable+xml", vot.render())
+		return ("application/x-votable+xml;content=datalink", vot.render())
 
 	def runForData(self, service, inputTable, queryMeta):
 		"""returns a data set processed according to inputTable's parameters.

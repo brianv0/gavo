@@ -404,6 +404,41 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 			("dlget", {"ID": ["ivo://great.scott/goo/boo"]}))
 
 
+class _DumbDLService(testhelpers.TestResource):
+	resources = [("prodtestTable", tresc.prodtestTable)]
+
+	def make(self, dependents):
+		svc = base.parseFromString(svcs.Service, """<service id="uh" 
+			allowed="dlget">
+			<datalinkCore>
+			</datalinkCore></service>""")
+		svc.parent = testhelpers.getTestRD()
+		return svc
+
+
+class DLInterfaceTest(testhelpers.VerboseTest):
+	resources = [("svc", _DumbDLService())]
+
+	def testIDNecessary(self):
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Field ID: Value is required but was not provided",
+			self.svc.run,
+			("dlmeta", {"REQUEST": ["getLinks"]}))
+
+	def testREQUESTLegal(self):
+		dlResp = self.svc.run("dlmeta", {"request": ["getLinks"],
+			"ID": rscdef.getStandardPubDID("data/b.imp")}).original[1]
+		self.failUnless("TD>http://localhost:8080/data/test/uh/dlget?"
+			"ID=ivo%3A%2F%2Fx-unregistred%2F%7E%3Fdata%2Fb.imp</TD>" in dlResp)
+
+	def testbraindeadREQUESTbombs(self):
+		self.assertRaisesWithMsg(base.ValidationError, 
+			"Field REQUEST: u'getFoobar' is not a valid value for REQUEST",
+			self.svc.run,
+			("dlmeta", {"request": ["getFoobar"],
+				"ID": rscdef.getStandardPubDID("data/b.imp")}))
+
+
 class _MetaMakerTestData(testhelpers.TestResource):
 # test data for datalink metadata generation 
 	resources = [
@@ -465,7 +500,8 @@ class DatalinkMetaMakerTest(testhelpers.VerboseTest):
 		("prodtestTable", tresc.prodtestTable)]
 
 	def testMimeOk(self):
-		self.assertEqual(self.serviceResult[0], "application/x-votable+xml")
+		self.assertEqual(self.serviceResult[0], 
+			"application/x-votable+xml;content=datalink")
 
 	def testUCDPresent(self):
 		tree = self.serviceResult[1]
@@ -478,7 +514,7 @@ class DatalinkMetaMakerTest(testhelpers.VerboseTest):
 		self.assertEqual(
 			tree.xpath("//PARAM[@name='format']")[0].get("arraysize"),
 			"*")
-	
+
 	def testOptionsRepresented(self):
 		tree = self.serviceResult[1]
 		self.assertEqual(

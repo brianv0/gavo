@@ -1225,7 +1225,7 @@ When publishing FITS cubes, you will usually use the
 specifications as well.  To find out what parameter names the individual
 axes are mapped to, first use makeWCSParams without the STC metadata::
 
- 	<service id="d" allowed="dlget,form">
+ 	<service id="d" allowed="dlmeta,dlget,form">
 		<datalinkCore>
 			<descriptorGenerator procDef="//datalink#fits_genDesc"/>
 			<metaMaker procDef="//datalink#fits_makeWCSParams"/>
@@ -1661,7 +1661,7 @@ SSAP auxillary datalink
 Another use for datalink cores in DaCHS is for server-side processing of
 spectra.  A typical service there looks like this::
 
-	<service id="ssaaux" allowed="dlget">
+	<service id="ssaaux" allowed="dlmeta,dlget">
 		<meta name="title">Datalink service to retrieve individual spectra</meta>
 		<datalinkCore>
 			<descriptorGenerator procDef="//datalink#sdm_genDesc">
