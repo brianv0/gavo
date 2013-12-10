@@ -27,11 +27,11 @@ import tresc
 class StandardPubDIDTest(testhelpers.VerboseTest):
 	def testMakeSPD(self):
 		self.assertEqual(rscdef.getStandardPubDID("a/b/c"),
-			"ivo://x-unregistred/~/a/b/c")
+			"ivo://x-unregistred/~?a/b/c")
 	
 	def testParseSPD(self):
 		self.assertEqual(
-			rscdef.getAccrefFromStandardPubDID("ivo://x-unregistred/~/a/b/c"),
+			rscdef.getAccrefFromStandardPubDID("ivo://x-unregistred/~?a/b/c"),
 			"a/b/c")
 	
 	def testRejectParseSPD(self):
@@ -394,7 +394,7 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 
 		self.assertRaisesWithMsg(svcs.ForbiddenURI,
 			"This datalink service not available with the pubDID"
-			" 'ivo://x-unregistred/~/goo/boo'",
+			" 'ivo://x-unregistred/~?goo/boo'",
 			svc.run,
 			("dlget", {"ID": [rscdef.getStandardPubDID("goo/boo")]}))
 
@@ -512,31 +512,31 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 	
 	def testAllWithId(self):
 		self.assertEqual(set(r[0] for r in self.rows), 
-			set(['ivo://x-unregistred/~/data/b.imp',
-				'ivo://x-unregistred/~/data/a.imp']))
+			set(['ivo://x-unregistred/~?data/b.imp',
+				'ivo://x-unregistred/~?data/a.imp']))
 	
 	def testAccessURLStatic(self):
 		self.assertEqual(self.rows[
-			('ivo://x-unregistred/~/data/b.imp', 'science')][0]["accessURL"], 
+			('ivo://x-unregistred/~?data/b.imp', 'science')][0]["accessURL"], 
 			'http://foo/bar')
 
 	def testAccessURLAccess(self):
 		self.assertEqual(self.rows[
-			('ivo://x-unregistred/~/data/b.imp', 'access')][0]["accessURL"],
+			('ivo://x-unregistred/~?data/b.imp', 'access')][0]["accessURL"],
 			'http://localhost:8080/data/test/foo/dlget')
 
 	def testAccessURLSelf(self):
 		self.assertEqual(self.rows[
-			('ivo://x-unregistred/~/data/b.imp', 'self')][0]["accessURL"],
+			('ivo://x-unregistred/~?data/b.imp', 'self')][0]["accessURL"],
 			'http://localhost:8080/data/test/foo/dlget?'
-				'ID=ivo%3A%2F%2Fx-unregistred%2F%7E%2Fdata%2Fb.imp')
+				'ID=ivo%3A%2F%2Fx-unregistred%2F%7E%3Fdata%2Fb.imp')
 		self.assertEqual(self.rows[
-			('ivo://x-unregistred/~/data/a.imp', 'self')][0]["accessURL"],
+			('ivo://x-unregistred/~?data/a.imp', 'self')][0]["accessURL"],
 			'http://localhost:8080/data/test/foo/dlget?'
-				'ID=ivo%3A%2F%2Fx-unregistred%2F%7E%2Fdata%2Fa.imp')
+				'ID=ivo%3A%2F%2Fx-unregistred%2F%7E%3Fdata%2Fa.imp')
 	
 	def testMimes(self):
-		self.assertEqual(self.rows[('ivo://x-unregistred/~/data/a.imp', 
+		self.assertEqual(self.rows[('ivo://x-unregistred/~?data/a.imp', 
 			'calibration')][0]["contentType"], 'test/gold')
 	
 	def testSemantics(self):
@@ -544,13 +544,13 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 			set(['science', 'calibration', 'self', 'access']))
 
 	def testSizes(self):
-		self.assertEqual(self.rows[('ivo://x-unregistred/~/data/a.imp', 
+		self.assertEqual(self.rows[('ivo://x-unregistred/~?data/a.imp', 
 			'science')][0]["contentLength"], 500002) 
-		self.assertEqual(self.rows[('ivo://x-unregistred/~/data/a.imp', 
+		self.assertEqual(self.rows[('ivo://x-unregistred/~?data/a.imp', 
 			'calibration')][0]["contentLength"], None) 
 
 	def testServiceLink(self):
-		svcRow = self.rows[('ivo://x-unregistred/~/data/a.imp', 
+		svcRow = self.rows[('ivo://x-unregistred/~?data/a.imp', 
 			'access')][0]
 		resId = svcRow["serviceType"][1:]
 		for res in self.serviceResult[1].xpath("//RESOURCE"):

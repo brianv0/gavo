@@ -344,13 +344,13 @@ class DatalinkTest(ArchiveTest):
 
 	def testMetadata(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlmeta", 
-			{"ID": "ivo://x-unregistred/~/data/excube.fits"},
+			{"ID": "ivo://x-unregistred/~?data/excube.fits"},
 			['<DESCRIPTION>The latitude coordinate, lower limit</DESCRIPTION>'
 				'<VALUES><MIN value="30.9831815872">',])
 	
 	def testSpecCutout(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlget", {
-			"ID": "ivo://x-unregistred/~/data/excube.fits",
+			"ID": "ivo://x-unregistred/~?data/excube.fits",
 			"COO_3_MIN": "3753"}, [
 			"NAXIS3  =                    2",
 			"CRPIX3  =                 -1.0"])

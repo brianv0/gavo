@@ -1247,13 +1247,13 @@ rowmaker function) uses your datacenter authority (as configured in
 /etc/gavo.rd, when you forget it you can also figure it out by using
 ``gavo config ivoa authority``) and this accref like this::
 
-  ivo://<authority>/~/<accref>
+  ivo://<authority>/~?<accref>
 
 Hence, to retrieve the datalink document for
 ``mlqso/data/FBQ0951_data.fits`` on the server dc.g-vo.org using the
 datalink renderer on the ``mlqso/q/d`` service, you'd write::
 
-  curl -DID=ivo://org.gavo.dc/~/mlqso/data/FBQ0951_data.fits \
+  curl -DID=ivo://org.gavo.dc/~?mlqso/data/FBQ0951_data.fits \
     http://dc.g-vo.org/mlqso/q/d/dlmeta | xmlstarlet fo
 
 (of course, ``xmlstarlet`` isn't actually necessary, and you can use
@@ -1261,7 +1261,7 @@ datalink renderer on the ``mlqso/q/d`` service, you'd write::
 
 In there you'll see the parameter names for the axes, e.g.,::
 
-  $ curl -s -FID=ivo://org.gavo.dc/~/mlqso/data/FBQ0951_data.fits \
+  $ curl -s -FID="ivo://org.gavo.dc/~?mlqso/data/FBQ0951_data.fits" \
   >> http://dc.g-vo.org/mlqso/q/d/dlmeta \
   >> | xmlstarlet sel -N v=http://www.ivoa.net/xml/VOTable/v1.2 -T \
   >> -t -m "//v:PARAM" -v "@name" -nl

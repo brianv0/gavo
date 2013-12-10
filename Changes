@@ -24,6 +24,10 @@ Version 0.9
 	  functions is now called pubDID; several other changes that only
 	  concern you if you're running datalink (chances are you're not)
 
+	* Any resource using \standardPubDID or similar needs to be re-imported.
+	  As that stuff hasn't been there in the last release, this probably
+	  doesn't concern you either.
+
 Version 0.8.9 (2013-07-13)
 
 	* We now officially require postgres >9.0.  If this hurts you, tell

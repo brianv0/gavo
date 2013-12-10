@@ -137,7 +137,7 @@ class ImportProcTest(testhelpers.VerboseTest):
 	def testStandardPubDID(self):
 		table = rsc.makeData(getRD().getById("test_macros")).getPrimaryTable()
 		self.failUnless(table.rows[0]["pubDID"].startswith(
-			"ivo://x-unregistred/~/data/spec"))
+			"ivo://x-unregistred/~?data/spec"))
 
 
 class CoreQueriesTest(_WithSSATableTest):
@@ -369,6 +369,8 @@ class GetDataTest(_WithSSATableTest):
 
 
 class _SDMDatalinkMetaData(testhelpers.TestResource):
+	resources = [("ssaTable", tresc.ssaTestTable)]
+
 	def make(self, dependents):
 		res = getRD().getById("c").run("ssap.xml", 
 			{"REQUEST": "queryData"})

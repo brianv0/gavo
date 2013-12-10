@@ -72,13 +72,13 @@
 	<procDef type="descriptorGenerator" id="fromStandardPubDID">
 		<doc>A descriptor generator for datalink that builds a 
 		ProductDescriptor for PubDIDs that have been built by getStandardsPubDID
-		(i.e., the path part of the IVORN is a tilda followed by the 
-		products table accref).
+		(i.e., the path part of the IVORN is a tilda, with the
+		products table accref as the query part).
 		</doc>
 		<code>
 			return ProductDescriptor.fromAccref(
 				pubDID,
-				"/".join(pubDID.split("/")[4:]))
+				getAccrefFromStandardPubDID(pubDID))
 		</code>
 	</procDef>
 

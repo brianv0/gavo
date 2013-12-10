@@ -227,7 +227,7 @@ class RowmakerMacroMixin(base.StandardMacroMixin):
 		The publisher dataset identifier (PubDID) is important in protocols like
 		SSAP and obscore.  If you use this macro, the PubDID will be your
 		authority, the path compontent ~, and the inputs-relative path of 
-		the input file.
+		the input file as the parameter.
 
 		You *can* of course define your PubDIDs in a different way.
 		"""

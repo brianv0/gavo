@@ -451,7 +451,7 @@ def getStandardPubDID(path):
 	The publisher dataset identifier (PubDID) is important in protocols like
 	SSAP and obscore.  If you use this function, the PubDID will be your
 	authority, the path compontent ~, and the inputs-relative path of 
-	the input file.
+	the input file as the parameter.
 
 	path can be relative, in which case it is interpreted relative to
 	the DaCHS inputsDir.
@@ -469,18 +469,18 @@ def getStandardPubDID(path):
 	if path[0]!="/":
 		path = os.path.join(base.getConfig("inputsDir"), path)
 
-	return "ivo://%s/~/%s"%(
+	return "ivo://%s/~?%s"%(
 		base.getConfig("ivoa", "authority"), 
 		getInputsRelativePath(path, liberalChars=False))
 
 
 @utils.document
 def getAccrefFromStandardPubDID(pubdid,
-		authBase="ivo://%s/~/"%base.getConfig("ivoa", "authority")):
+		authBase="ivo://%s/~?"%base.getConfig("ivoa", "authority")):
 	"""returns an accref from a standard DaCHS PubDID.
 
 	This is basically the inverse of getStandardPubDID.  It will raise
-	ValueErrors if pubdid doesn't start with ivo://<authority>/~/.
+	ValueErrors if pubdid doesn't start with ivo://<authority>/~?.
 
 	The function does not check if the remaining characters are a valid
 	accref, much less whether it can be resolved.
