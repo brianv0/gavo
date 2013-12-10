@@ -100,14 +100,20 @@ class InterfaceWithParams(InterfaceMaker):
 
 	def _makeInterface(self, publication):
 		return InterfaceMaker._makeInterface(self, publication)[
-			VS.queryType[base.getMetaText(publication, "requestMethod")],
-			VS.resultType[base.getMetaText(publication, "resultType")],
+			VS.queryType[base.getMetaText(
+				publication, "requestMethod", propagate=False)],
+			VS.resultType[base.getMetaText(
+				publication, "resultType", propagate=False)],
 			getInputParams(publication, publication.parent),
 		]
 
 
 class JPEGInterface(InterfaceWithParams):
 	renderer = "img.jpeg"
+
+
+class DatalinkInterface(InterfaceWithParams):
+	renderer = "dlmeta"
 
 
 class SIAPInterface(InterfaceWithParams):
@@ -305,6 +311,13 @@ class SSACapabilityMaker(CapabilityMaker):
 					raiseOnFail=True)+"&REQUEST=queryData"]],
 		]
 
+
+class DatalinkCapabilityMaker(CapabilityMaker):
+	renderer = "dlmeta"
+
+	class capabilityClass(VOR.capability):
+		_a_standardID = "ivo://ivoa.net/std/DataLink/v1.0"
+		
 
 _tapModelBuilder = meta.ModelBasedBuilder([
 	('supportsModel', meta.stanFactory(TR.dataModel), (), 

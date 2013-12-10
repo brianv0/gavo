@@ -494,7 +494,9 @@ class ComputedMetaMixin(MetaMixin):
 			methName = "_meta_"+atom
 			if hasattr(self, methName):
 				res = getattr(self, methName)()
-				if res is not None and not isinstance(res, MetaItem):
+				if res is None:
+					raise
+				if not isinstance(res, MetaItem):
 					res = makeMetaItem(res, name=atom)
 				return res
 			raise

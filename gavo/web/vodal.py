@@ -497,6 +497,7 @@ class DatalinkGetMetaRenderer(_DatalinkRendererBase):
 	See `Datalink Cores`_ for more information.
 	"""
 	name = "dlmeta"
+	resultType = "application/x-votable+xml;content=datalink"
 
 
 def _test():

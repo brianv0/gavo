@@ -337,13 +337,14 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 		if self.dataFormatter is base.NotGiven:
 			self.dataFormatter = MS(DataFormatter, 
 				procDef=base.caches.getRD("//datalink").getById("trivialFormatter"))
-
-		self.inputKeys.append(
-			MS(svcs.InputKey, name="ID", type="text", 
+		
+		idKey = MS(svcs.InputKey, name="ID", type="text", 
 				ucd="meta.id;meta.main",
 				multiplicity="multiple",
 				required=True,
-				description="The pubisher DID of the dataset of interest"))
+				std=True,
+				description="The pubisher DID of the dataset of interest")
+		self.inputKeys.append(idKey)
 
 		if self.inputTable is base.NotGiven:
 			self.inputTable = MS(svcs.InputTable, params=self.inputKeys)

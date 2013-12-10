@@ -1576,6 +1576,18 @@ doesn't happen.  The conventional way would be to return, from the
 renderHTTP method, some twisted producer.
 
 
+Registry Matters
+''''''''''''''''
+
+You can publish the metadata generating endpoint on your service by
+saying ``<publish render="dlmeta" sets="ivo_managed"/>``.  However, that
+is not recommended, as it clutters the registry with services that
+are not really usable after discovery.
+
+An alternative is to add the capability to the service that houses the
+discovered datasets.  TODO: Tell people how :-)
+
+
 Datalink Examples
 '''''''''''''''''
 

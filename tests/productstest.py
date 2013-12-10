@@ -439,6 +439,7 @@ class _MetaMakerTestData(testhelpers.TestResource):
 
 				<dataFunction procDef="//datalink#generateProduct"/>
 			</datalinkCore>
+			<publish render="dlmeta" sets="ivo_managed"/>
 			</service>""")
 		svc.parent = testhelpers.getTestRD()
 
@@ -447,8 +448,14 @@ class _MetaMakerTestData(testhelpers.TestResource):
 				rscdef.getStandardPubDID("data/a.imp"),
 				rscdef.getStandardPubDID("data/b.imp"),
 				]}).original
-		return (mime, testhelpers.getXMLTree(data, debug=False),
-			list(votable.parseString(data).next()))
+
+		from gavo.registry import capabilities
+		capEl = capabilities.getCapabilityElement(svc.publications[0])
+
+		return (mime, 
+			testhelpers.getXMLTree(data, debug=False),
+			list(votable.parseString(data).next()),
+			testhelpers.getXMLTree(capEl.render(), debug=False))
 
 _metaMakerTestData = _MetaMakerTestData()
 
@@ -486,6 +493,21 @@ class DatalinkMetaMakerTest(testhelpers.VerboseTest):
 		self.assertEqual(
 			tree.xpath("//PARAM[@name='accessURL']")[0].get("value"),
 			"http://localhost:8080/data/test/foo/dlget")
+
+	def testCapability(self):
+		intfEl = self.serviceResult[3].xpath("//interface")[0]
+		self.assertEqual(
+			intfEl.attrib["{http://www.w3.org/2001/XMLSchema-instance}type"],
+			"vs:ParamHTTP")
+		self.assertEqual(intfEl.xpath("queryType")[0].text, "GET")
+		self.assertEqual(intfEl.xpath("resultType")[0].text, 
+			'application/x-votable+xml;content=datalink')
+		self.assertEqual(intfEl.xpath("accessURL")[0].text, 
+			'http://localhost:8080/data/test/foo/dlmeta')
+
+		paramEl = intfEl.xpath("param")[0]
+		self.assertEqual(paramEl.attrib["std"], "true")
+		self.assertEqual(paramEl.xpath("name")[0].text, "ID")
 
 
 class _MetaMakerTestRows(testhelpers.TestResource):
