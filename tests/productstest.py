@@ -616,8 +616,13 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 				break
 		else:
 			self.fail("Processing service not in datalink links")
-		self.assertEqual(res.attrib.get("type"), "dataService")
-	
+		self.assertEqual(res.attrib.get("type"), "service")
+
+	def testSelfMeta(self):
+		selfRow = self.rows[('ivo://x-unregistred/~?data/b.imp', 'self')][0]
+		self.assertEqual(selfRow["contentType"], "text/plain")
+		self.assertEqual(selfRow["contentLength"], 73)
+
 
 class DatalinkFITSTest(testhelpers.VerboseTest):
 	resources = [("fitsTable", _fitsTable)]

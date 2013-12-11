@@ -4,6 +4,7 @@ The datalink core and its numerous helper classes.
 More on this in "Datalink Cores" in the reference documentation.
 """
 
+import os
 import urllib
 
 from gavo import base
@@ -42,6 +43,11 @@ class ProductDescriptor(object):
 
 	It also has an attribute data defaulting to None.  DataGenerators
 	set it, DataFilters potentially change it.
+
+	If you inherit from this method and you have a way to guess the
+	size of what the descriptor describes, override the estimateSize()
+	method.  The default will return a file size if accessPath points
+	to an existing file, None otherwise.
 	"""
 	data = None
 
@@ -50,12 +56,21 @@ class ProductDescriptor(object):
 		self.pubDID = pubDID
 		self.accref, self.accessPath, self.mime = accref, accessPath, mime
 		self.owner, self.embargo, self.sourceTable = owner, embargo, sourceTable
-	
+
 	@classmethod
 	def fromAccref(cls, pubDID, accref):
 		"""returns a product descriptor for an access reference.
 		"""
 		return cls(pubDID, **products.RAccref(accref).productsRow)
+
+	def estimateSize(self):
+		if isinstance(self.accessPath, basestring):
+			candPath = os.path.join(base.getConfig("inputsDir"), self.accessPath)
+			try:
+				return os.path.getsize(candPath)
+			except:
+				# fall through to returning None
+				pass
 
 
 class DescriptorGenerator(rscdef.ProcApp):
@@ -144,7 +159,7 @@ class _ServiceDescriptor(object):
 			colRef.toParam = True
 			return ctx.makeIdFor(paramsByName[colRef.dest])
 
-		return V.RESOURCE(ID=ctx.getOrMakeIdFor(self), type="dataService")[
+		return V.RESOURCE(ID=ctx.getOrMakeIdFor(self), type="service")[
 			[modelgroups.marshal_STC(ast, getIdFor)
 				for ast in stcSpecs],
 			V.PARAM(arraysize="*", datatype="char", 
@@ -387,10 +402,13 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 			internalLinks = [LinkDef(s.pubDID, service.getURL("dlget"),
 					serviceType="#"+ctx.getOrMakeIdFor(s), semantics="access")
 				for s in self.datalinkServices]
-			internalLinks.extend(LinkDef(s.pubDID, 
-				service.getURL("dlget")+"?ID="+urllib.quote_plus(s.pubDID),
-					semantics="self")
-				for s in self.datalinkServices)
+			internalLinks.extend(LinkDef(d.pubDID, 
+					service.getURL("dlget")+"?ID="+urllib.quote_plus(d.pubDID),
+					description="The full dataset.",
+					contentType=d.mime,
+					contentLength=d.estimateSize(),
+					semantics="self", )
+				for d in self.descriptors)
 
 		data = rsc.makeData(
 			base.caches.getRD("//datalink").getById("make_response"),
@@ -461,7 +479,7 @@ class DatalinkCore(DatalinkCoreBase):
 		res.nocache = True
 		res.datalinkLinks = linkDefs
 		res.datalinkServices = services
-		res.descriptor = descriptors[-1]
+		res.descriptors = descriptors
 		return res
 
 	def adaptForRenderer(self, renderer):
@@ -524,20 +542,21 @@ class DatalinkCore(DatalinkCoreBase):
 		if not self.dataFunctions:
 			raise base.DataError("This datalink service cannot process data")
 
-		self.dataFunctions[0].compile(self)(self.descriptor, args)
+		descriptor = self.descriptors[-1]
+		self.dataFunctions[0].compile(self)(descriptor, args)
 
-		if self.descriptor.data is None:
+		if descriptor.data is None:
 			raise base.ReportableError("Internal Error: a first data function did"
 				" not create data.")
 
 		for func in self.dataFunctions[1:]:
 			try:
-				func.compile(self)(self.descriptor, args)
+				func.compile(self)(descriptor, args)
 			except FormatNow:
 				break
 			except DeliverNow:
-				return self.descriptor.data
+				return descriptor.data
 
-		return self.dataFormatter.compile(self)(self.descriptor, args)
+		return self.dataFormatter.compile(self)(descriptor, args)
 
 
