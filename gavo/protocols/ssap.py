@@ -297,7 +297,8 @@ class SSAPCore(svcs.DBCore):
 			self._declareGenerationParameters(vot, dlCore)
 
 			# new and shiny datalink (keep)
-			vot[dlCore.datalinkServices[0].asVOT(votCtx, dlService.getURL("dlget"))]
+			vot[dlCore.datalinkServices[0].asVOT(
+				votCtx, dlService.getURL("dlget"), linkIdTo=pubDIDId)]
 
 			# odd and crooked, almost WD-method of pointing to metadata service
 			vot[V.RESOURCE(type="service")[

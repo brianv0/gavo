@@ -144,10 +144,15 @@ class _ServiceDescriptor(object):
 	def __init__(self, pubDID, inputKeys):
 		self.pubDID, self.inputKeys = pubDID, inputKeys
 
-	def asVOT(self, ctx, accessURL):
+	def asVOT(self, ctx, accessURL, linkIdTo=None):
 		"""returns VOTable stanxml for a description of this service.
 
 		This is a RESOURCE as required by Datalink.
+
+		linkIdTo is used to support data access descriptors embedded
+		in descovery queries.  It is the id of the column containing
+		the identifiers.  SSA can already provide this.  It ends up
+		in a LINK child of the ID parameter.
 		"""
 		paramsByName, stcSpecs = {}, set()
 		for param in self.inputKeys:
@@ -159,16 +164,25 @@ class _ServiceDescriptor(object):
 			colRef.toParam = True
 			return ctx.makeIdFor(paramsByName[colRef.dest])
 
-		return V.RESOURCE(ID=ctx.getOrMakeIdFor(self), type="service")[
+		res = V.RESOURCE(ID=ctx.getOrMakeIdFor(self), type="service")[
 			[modelgroups.marshal_STC(ast, getIdFor)
 				for ast in stcSpecs],
 			V.PARAM(arraysize="*", datatype="char", 
 				name="accessURL", ucd="meta.ref.url",
-				value=accessURL),
-			V.GROUP(name="inputParams")[[
-				votablewrite._addID(ik,
-						votablewrite.makeFieldFromColumn(V.PARAM, ik), ctx)
-					for ik in self.inputKeys]]]
+				value=accessURL)]
+
+		inputParams = V.GROUP(name="inputParams")
+		res = res[inputParams]
+
+		for ik in self.inputKeys:
+			param = votablewrite._addID(ik,
+				votablewrite.makeFieldFromColumn(V.PARAM, ik), ctx)
+			if linkIdTo and ik.name=="ID":
+				param[V.LINK(content_role="ddl:id-source", value="#"+linkIdTo)]
+			inputParams[param]
+
+		return res
+
 
 
 class MetaMaker(rscdef.ProcApp):
