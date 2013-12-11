@@ -184,7 +184,6 @@ class _ServiceDescriptor(object):
 		return res
 
 
-
 class MetaMaker(rscdef.ProcApp):
 	"""A procedure application that generates metadata for datalink services.
 

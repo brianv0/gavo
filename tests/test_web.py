@@ -339,8 +339,10 @@ class DatalinkTest(ArchiveTest):
 	def testErrorDocument(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlget", 
 			{"ID": "broken"},
-			['INFO name="QUERY_STATUS" value="ERROR">'
-				"global name 'ddt' is not defined</INFO>", "<VOTABLE"])
+			["global name 'ddt' is not defined"])
+
+	def testErrorStatus(self):
+		return self.assertStatus("/data/cores/dl/dlget", 422)
 
 	def testMetadata(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlmeta", 

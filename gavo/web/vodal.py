@@ -472,7 +472,12 @@ class _DatalinkRendererBase(grend.ServiceBasedPage):
 
 	def _reportError(self, failure, request):
 		base.ui.notifyFailure(failure)
-		return uwsactions.ErrorResource(failure.value, 500)
+		request.setHeader("content-type", "text/plain")
+		if isinstance(failure.value, base.Error):
+			request.setResponseCode(422)
+		else:
+			request.setResponseCode(500)
+		return utils.safe_str(failure.value)
 
 
 class DatalinkGetDataRenderer(_DatalinkRendererBase):
