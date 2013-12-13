@@ -204,7 +204,9 @@
 				supportedCalibs.update(foundCalibs)
 
 				yield MS(InputKey, name="FLUXCALIB", type="text",
-					multiplicity="single", 
+					multiplicity="single",
+					ucd="phot.calib",
+					utype="ssa:Char.FluxAxis.Calibration",
 					description="Recalibrate the spectrum.  Right now, the only"
 						" recalibration supported is max(flux)=1 ('relative').",
 						values=MS(Values, options=[
@@ -289,6 +291,8 @@
 						formatsAvailable[mime] = "Original format"
 
 				yield MS(InputKey, name="FORMAT", type="text",
+					ucd="meta.code.mime",
+					utype="ssa:Access.Format",
 					multiplicity="single",
 					description="MIME type of the output format",
 					values = MS(Values,

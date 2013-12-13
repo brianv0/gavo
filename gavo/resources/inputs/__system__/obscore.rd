@@ -265,7 +265,7 @@
 	<table id="ObsCore" adql="True" onDisk="True" system="True">
 		<property key="supportsModel">Obscore-1.0</property>
 		<property key="supportsModelURI"
-			>ivo://ivoa.net/std/ObsCore-1.0</property>
+			>ivo://ivoa.net/std/ObsCore/v1.0</property>
 
 		<meta name="description">The IVOA-defined obscore table, containing
 		generic metadata for datasets within this datacenter.</meta>
@@ -588,7 +588,7 @@
 		<mixinPar name="emMin">ssa_specstart</mixinPar>
 		<mixinPar name="expTime">\getParam{ssa_timeExt}{NULL}</mixinPar>
 		<mixinPar name="fov">ssa_aperture</mixinPar>
-		<mixinPar name="instrumentName">\getParam{ssa_instrument}{NULL}</mixinPar>
+		<mixinPar name="instrumentName">'\getParam{ssa_instrument}{NULL}'</mixinPar>
 		<mixinPar name="oUCD">'\getParam{ssa_fluxucd}'</mixinPar>
 		<mixinPar name="productType">'spectrum'</mixinPar>
 		<mixinPar name="sResolution">\getParam{ssa_spaceRes}{NULL}/3600.</mixinPar>
