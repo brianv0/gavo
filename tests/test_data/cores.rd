@@ -62,7 +62,6 @@
 	</service>
 
 	<service id="cstest" allowed="form, scs.xml">
-		<outputTable verbLevel="20"/>
 		<dbCore queriedTable="data/test#adql">
 			<FEED source="//scs#coreDescs"/>
 			<condDesc buildFrom="mag"/>

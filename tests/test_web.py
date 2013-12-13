@@ -156,6 +156,12 @@ class FormTest(ArchiveTest):
 				'value="9.25"'
 			])
 
+	def testSCSPositionComplains(self):
+		return self.assertGETHasStrings("/data/cores/cstest/form", {
+				"hscs_pos": "23,24", "__nevow_form__": "genForm", "VERB": 3}, 
+				["Field hscs_sr: If you query for a position, you must give"
+					" a search radius"])
+
 
 class StreamingTest(ArchiveTest):
 	def testStreamingWorks(self):

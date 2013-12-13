@@ -251,8 +251,11 @@
 		</inputKey>
 		<phraseMaker original="scsUtils" id="humanSCSPhrase" name="humanSCSSQL">
 			<code>
-				if inPars["hscs_sr"] is None or inPars["hscs_pos"] is None:
+				if inPars["hscs_pos"] is None:
 					return
+				if inPars["hscs_sr"] is None:
+					raise base.ValidationError("If you query for a position,"
+						" you must give a search radius", "hscs_sr")
 
 				ra, dec = getRADec(inPars, outPars)
 				try:
