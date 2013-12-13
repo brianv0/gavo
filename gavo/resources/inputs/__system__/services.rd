@@ -330,7 +330,8 @@
 					rd.portal__titleList = list(conn.queryToDicts("SELECT"
 						" title, dateUpdated, accessURL, referenceURL, browseable, owner,"
 						" sourceRD, resId"
-						" FROM dc.resources_join WHERE setName='local'"
+						" FROM dc.resources_join"
+						" WHERE setName='local' AND NOT deleted"
 						" ORDER BY title"))
 			return rd.portal__titleList
 		</customDF>
