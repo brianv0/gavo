@@ -278,7 +278,7 @@ class SCSCapabilityMaker(CapabilityMaker):
 		service = publication.parent
 		return CapabilityMaker._makeCapability(self, publication)[
 			SCS.maxSR["180.0"],
-			SCS.maxRecords[str(base.getConfig("ivoa", "dalDefaultLimit"))],
+			SCS.maxRecords[str(base.getConfig("ivoa", "dalDefaultLimit")*10)],
 			SCS.verbosity["true"],
 			SCS.testQuery[
 				SCS.ra[service.getMeta("testQuery.ra", raiseOnFail=True)],
