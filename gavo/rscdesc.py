@@ -24,6 +24,7 @@ from gavo import rscdef
 from gavo import svcs
 from gavo import utils
 from gavo.rscdef import common
+from gavo.rscdef import regtest
 from gavo.rscdef import scripting
 from gavo.rscdef import executing
 
@@ -123,6 +124,10 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 	_jobs = base.StructListAttribute("jobs",
 		childFactory=executing.Execute,
 		description="Jobs to be run while this RD is active.")
+
+	_tests = base.StructListAttribute("tests",
+		childFactory=regtest.RegTestSuite,
+		description="Suites of regression tests connected to this RD.")
 
 	# These replace themselves with expanded tables
 	_viewDefs = base.StructAttribute("simpleView",

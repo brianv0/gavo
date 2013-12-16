@@ -16,6 +16,7 @@ from gavo import rscdef
 from gavo import rscdesc
 from gavo.base import meta
 from gavo.protocols import tap
+from gavo.rscdef import regtest
 from gavo.rscdef import tabledef
 
 import tresc
@@ -89,8 +90,6 @@ class InputStreamTest(testhelpers.VerboseTest):
 				os.unlink(testName)
 		finally:
 			os.rmdir(dirName)
-
-				
 
 
 class MetaTest(unittest.TestCase):
@@ -607,6 +606,25 @@ class ConcurrentRDTest(testhelpers.VerboseTest):
 			" test and you should just nuke it and forget about this.")
 
 
+class RegTestTest(testhelpers.VerboseTest):
+	def testBasic(self):
+		runner = regtest.TestRunner.fromRD(
+			base.parseFromString(rscdesc.RD, 
+				"""<resource schema="test"><regSuite>
+					<regTest title="Failing Test">
+						<code>
+							assert False
+						</code>
+					</regTest>
+					<regTest title="Succeeding Test">
+						<code>
+							assert True
+						</code>
+					</regTest>
+					</regSuite></resource>"""), verbose=False)
+		runner.runTestsInOrder()
+		self.failUnless(runner.stats.getReport().startswith("1 of 2 bad.  avg"))
+
 
 if __name__=="__main__":
-	testhelpers.main(ConcurrentRDTest)
+	testhelpers.main(RegTestTest)
