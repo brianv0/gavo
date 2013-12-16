@@ -41,6 +41,29 @@ class StreamerPage(rend.Page):
 		return streaming.streamOut(writeNoise, request)
 
 
+class Delay(rend.Page):
+	"""A page returning some data after some time has passed.
+	"""
+	def renderHTTP(self, ctx):
+		import time
+		from twisted.internet import task
+		request = inevow.IRequest(ctx)
+		delay = int(request.args.get("seconds", [10])[0])
+		request.setHeader("content-type", "text/plain")
+		return task.deferLater(reactor, delay, lambda: "Hello world\n")
+
+
+class Block(rend.Page):
+	"""A page blocking the entire server, including signals, for a while.
+	"""
+	def renderHTTP(self, ctx):
+		import os
+		request = inevow.IRequest(ctx)
+		request.setHeader("content-type", "text/plain")
+		os.system("sleep 20")
+		return "Living again\n"
+
+
 class StreamerCrashPage(rend.Page):
 	"""is a page that starts streaming out data and then crashes.
 	"""
@@ -110,8 +133,10 @@ class Tests(rend.Page):
 	child_streamcrash = StreamerCrashPage()
 	child_rendercrash = RenderCrashPage()
 	child_badgateway = BadGatewayPage()
+	child_block = Block()
 	child_exit = ExitPage()
 	child_clearservice = ServiceUnloadPage()
+	child_delay = Delay()
 	docFactory = common.doctypedStan(T.html[
 		T.head[
 			T.title["Wrong way"],

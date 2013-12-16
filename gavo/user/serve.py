@@ -245,12 +245,15 @@ def _waitForServerExit(timeout=5):
 	It does so by polling the server pid file.
 	"""
 	for i in range(int(timeout*10)):
-		if PIDManager.getPID() is None:
+		lastPID = PIDManager.getPID()
+		if lastPID is None:
 			break
 		time.sleep(0.1)
 	else:
-		sys.exit("The server with pid %d refuses to die.  Please try manually"%
-			PIDManager.getPID())
+		sys.exit("The server with pid %d refuses to die, probably because\n"
+			"pieces of it hang in the python kernel.\n\n"
+			"Try 'kill -KILL %s' to forcefully terminate it (this will break\n"
+			"connections).\n"%(lastPID, lastPID))
 
 
 def _stopServer():
