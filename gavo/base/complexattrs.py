@@ -324,8 +324,14 @@ class StructAttribute(attrdef.AttributeDef):
 		self.doCallbacks(instance, value)
 
 	def feed(self, ctx, instance, value):
-		raise common.LiteralParseError("%s items have no literals"%self.name_,
-			self.name_, value, hint="These attributes have no literals at all, i.e.,"
+		# if the child factory actually admits content_ (and needs nothing
+		# else), allow attributes to be fed in, too.
+		if "content_" in self.childFactory.managedAttrs:
+			child = self.childFactory(instance, content_=value).finishElement(ctx)
+			return self.feedObject(instance, child)
+
+		raise common.LiteralParseError(self.name_,
+			value, hint="These attributes have no literals at all, i.e.,"
 				" they are for internal use only.")
 
 	def create(self, structure, ctx, name):

@@ -606,24 +606,54 @@ class ConcurrentRDTest(testhelpers.VerboseTest):
 			" test and you should just nuke it and forget about this.")
 
 
+class _RunnersSample(testhelpers.TestResource):
+	def make(self, dependents):
+		rd = base.parseFromString(rscdesc.RD, 
+			"""<resource schema="test">
+				<regSuite>
+				<regTest title="Failing Test">
+					<code>
+						assert False
+					</code>
+				</regTest>
+				<regTest title="Succeeding Test">
+					<code>
+						assert True
+					</code>
+				</regTest>
+				</regSuite>
+				
+				<regSuite description="URL tests">
+					<regTest title="a"><url>foo</url></regTest>
+					<regTest title="b"><url>/bar</url></regTest>
+					<regTest title="c" url="ivo://ivoa.net/std/quack"/>
+				</regSuite>
+				</resource>""")
+		rd.sourceId = "testing/internal"
+		return rd
+
+
 class RegTestTest(testhelpers.VerboseTest):
+	resources = [("rd", _RunnersSample())]
+
 	def testBasic(self):
-		runner = regtest.TestRunner.fromRD(
-			base.parseFromString(rscdesc.RD, 
-				"""<resource schema="test"><regSuite>
-					<regTest title="Failing Test">
-						<code>
-							assert False
-						</code>
-					</regTest>
-					<regTest title="Succeeding Test">
-						<code>
-							assert True
-						</code>
-					</regTest>
-					</regSuite></resource>"""), verbose=False)
+		runner = regtest.TestRunner([self.rd.tests[0]], verbose=False)
 		runner.runTestsInOrder()
 		self.failUnless(runner.stats.getReport().startswith("1 of 2 bad.  avg"))
+
+	def testRelativeSource(self):
+		self.assertEqual(self.rd.tests[1].tests[0].url.getValue(),
+			"http://localhost:8080/testing/internal/foo")
+
+	def testAbsoluteSource(self):
+		self.assertEqual(self.rd.tests[1].tests[1].url.getValue(),
+			"http://localhost:8080/bar")
+
+	def testURISource(self):
+		self.assertEqual(self.rd.tests[1].tests[2].url.getValue(),
+			"ivo://ivoa.net/std/quack")
+
+
 
 
 if __name__=="__main__":

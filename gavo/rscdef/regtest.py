@@ -20,6 +20,62 @@ from gavo import base
 from . import procdef
 
 
+class DataURL(base.Structure):
+	"""A source document for a regression test.
+
+	These are basically over-complicated specs of URLs.
+
+	The bodies is the path to run the test against.  This is
+	interpreted as relative to the RD if there's no leading slash,
+	relative to the server if there's a leading slash, and absolute
+	if there's a scheme.
+
+	The attributes are translated to parameters, except for a few
+	pre-defined names.  If you actually need those as URL parameters,
+	should at us and we'll provide some way of escaping these.
+
+	We don't actually parse the URLs coming in here.  GET parameters
+	are appended with a & if there's a ? in the existing URL, with a ?
+	if not.  Again, shout if this is too dumb for you (but urlparse
+	really isn't all that robust either...)
+	"""
+	name_ = "url"
+	
+	_base = base.DataContent(description="Base for URL generation",
+		copyable=True)
+
+	def __init__(self, *args, **kwargs):
+		base.Structure.__init__(self, *args, **kwargs)
+		# capture extra parameters for URL use
+		self.managedAttrs = self.managedAttrs.copy()
+		self.extraAttrs = []
+
+	def getAttribute(self, name):
+		# this is a helper to let DataURL accept arbitrary parameters.
+		try:
+			return base.Structure.getAttribute(self, name)
+		except base.StructureError: # no "real" attribute, it's a macro def
+			self.extraAttrs.append(name)
+			self.managedAttrs[name] = attrdef.UnicodeAttribute(name)
+			return self.managedAttrs[name]
+
+	def getValue(self):
+		"""returns a pair of full request URL  and postable payload for this
+		test.
+		"""
+		urlBase = self.content_
+		if "://" in urlBase:
+			# we belive it's a scheme
+			pass
+		elif urlBase.startswith("/"):
+			urlBase = base.getConfig("web", "serverurl")+urlBase
+		else:
+			urlBase = base.getConfig("web", "serverurl"
+				)+"/"+self.parent.parent.parent.sourceId+"/"+urlBase
+
+		return urlBase
+
+
 class RegTest(procdef.ProcApp):
 	"""A regression test.
 	"""
@@ -32,13 +88,11 @@ class RegTest(procdef.ProcApp):
 		description="A short, human-readable phrase describing what this"
 		" test is exercising.")
 	
-	_url = base.UnicodeAttribute("url",
+	_url = base.StructAttribute("url",
+		childFactory=DataURL,
 		default=base.NotGiven,
-		description="Path to run the test against.  This is interpreted"
-			" as relative to the RD if there's no leading slash, relative"
-			" to the server if there's a leading slash, and absolute if"
-			" there's a scheme.")
-
+		description="The source from which to fetch the test data.")
+	
 
 class RegTestSuite(base.Structure):
 	"""A suite of regression tests.
