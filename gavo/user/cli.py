@@ -36,6 +36,7 @@ functions = [
 	("serve", ("user.serve", "main")),
 	("stc", ("stc.cli", "main")),
 	("show", ("user.show", "main")),
+	("test", ("rscdef.regtest", "main")),
 	("taprun", ("protocols.taprunner", "main")),
 	("validate", ("user.validation", "main")),
 	("upgrade", ("user.upgrade", "main")),

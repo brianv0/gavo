@@ -358,7 +358,7 @@ def tryServiceReload():
 
 
 def main():
-	"""handles the user interaction for gavopublish.
+	"""handles the user interaction for gavo publish.
 	"""
 	from gavo import rscdesc
 	from gavo import web

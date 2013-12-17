@@ -9,15 +9,68 @@ run while (or rather, after) executing gavo val.
 from __future__ import with_statement
 
 import collections
+import os
 import Queue
 import random
 import time
 import threading
 import traceback
+import urllib
+import urlparse
 from cStringIO import StringIO
 
 from gavo import base
+from gavo.base import attrdef
+from gavo.imp import argparse
 from . import procdef
+
+################## Utilities
+
+
+
+################## RD elements
+
+class DynamicOpenVocAttribute(base.AttributeDef):
+	"""an attribute that collects arbitrary attributes in a sequence
+	of pairs.
+
+	The finished sequence is available as a freeAttrs attribute on the
+	embedding instance.  No parsing is done, everything is handled as
+	a string.
+	"""
+	typeDesc_ = "any attribute not otherwise used"
+
+	def __init__(self, name, **kwargs):
+		base.AttributeDef.__init__(self, name, **kwargs)
+
+	def feedObject(self, instance, value):
+		if not hasattr(instance, "freeAttrs"):
+			instance.freeAttrs = []
+		instance.freeAttrs.append((self.name_, value))
+	
+	def feed(self, ctx, instance, value):
+		self.feedObject(instance, value)
+
+	def getCopy(self, instance, newParent):
+		raise NotImplementedError("This needs some thought")
+
+	def makeUserDoc(self):
+		return "(ignore)"
+
+	def iterParentMethods(self):
+		def getAttribute(self, name):
+			# we need an instance-private attribute dict here:
+			if self.managedAttrs is self.__class__.managedAttrs:
+				self.managedAttrs = self.managedAttrs.copy()
+
+			try:
+				return base.Structure.getAttribute(self, name)
+			except base.StructureError: # no "real" attribute, it's a macro def
+				self.managedAttrs[name] = DynamicOpenVocAttribute(name)
+				# that's a decoy to make Struct.validate see a value for the attribute
+				setattr(self, name, None)
+				return self.managedAttrs[name]
+		yield "getAttribute", getAttribute
 
 
 class DataURL(base.Structure):
@@ -43,21 +96,16 @@ class DataURL(base.Structure):
 	
 	_base = base.DataContent(description="Base for URL generation",
 		copyable=True)
+	
+	_httpMethod = base.UnicodeAttribute("httpMethod", 
+		description="Request method; usually one of GET or POST",
+		default="GET")
 
-	def __init__(self, *args, **kwargs):
-		base.Structure.__init__(self, *args, **kwargs)
-		# capture extra parameters for URL use
-		self.managedAttrs = self.managedAttrs.copy()
-		self.extraAttrs = []
-
-	def getAttribute(self, name):
-		# this is a helper to let DataURL accept arbitrary parameters.
-		try:
-			return base.Structure.getAttribute(self, name)
-		except base.StructureError: # no "real" attribute, it's a macro def
-			self.extraAttrs.append(name)
-			self.managedAttrs[name] = attrdef.UnicodeAttribute(name)
-			return self.managedAttrs[name]
+	_parset = base.EnumeratedUnicodeAttribute("parSet",
+		description="Preselect a default parameter set; form gives what"
+			" our framework adds to form queries.", default=base.NotGiven,
+		validValues=["form"])
+	_open = DynamicOpenVocAttribute("open")
 
 	def getValue(self):
 		"""returns a pair of full request URL  and postable payload for this
@@ -65,7 +113,7 @@ class DataURL(base.Structure):
 		"""
 		urlBase = self.content_
 		if "://" in urlBase:
-			# we belive it's a scheme
+			# we belive there's a scheme in there
 			pass
 		elif urlBase.startswith("/"):
 			urlBase = base.getConfig("web", "serverurl")+urlBase
@@ -73,7 +121,59 @@ class DataURL(base.Structure):
 			urlBase = base.getConfig("web", "serverurl"
 				)+"/"+self.parent.parent.parent.sourceId+"/"+urlBase
 
-		return urlBase
+		if self.httpMethod=="POST":
+			return urlBase
+		else:
+			return self._addParams(urlBase, urllib.urlencode(self.getParams()))
+
+	def getParams(self):
+		"""returns the URL parameters as a sequence of kw, value pairs.
+		"""
+		params = getattr(self, "freeAttrs", [])
+		if self.parSet=="form":
+			params.extend([("__nevow_form__", "genForm"), ("submit", "Go")])
+		return params
+
+	def retrieveResource(self, moreHeaders={}):
+		"""returns a triple of status, headers, and content for retrieving
+		this URL.
+		"""
+		httpURL, payload = self.getValue(), None
+		if self.httpMethod=="POST":
+			payload = urllib.urlencode(payload)
+		scheme, host, path, _, query, _ = urlparse.urlparse(httpURL)
+		assert scheme=="http"
+
+		hdrs = {
+			"user-agent": "DaCHS regression tester"}
+		hdrs.update(moreHeaders)
+
+		conn = httplib.HTTPConnection(host, timeout=10)
+		conn.connect()
+		try:
+			conn.request(self.httpMethod, path+"?"+query, payload, hdrs)
+			resp = conn.getresponse()
+			headers = conn.getheaders()
+			content = resp.read()
+		finally:
+			conn.close()
+		return resp.status, headers, content
+
+	def _addParams(self, urlBase, params):
+		"""a brief hack to add query parameters to GET-style URLs.
+
+		This is a workaround for not trusting urlparse and is fairly easy to
+		fool.
+
+		Params must already be fully encoded.
+		"""
+		if not params:
+			return urlBase
+
+		if "?" in urlBase:
+			return urlBase+"&"+params
+		else:
+			return urlBase+"?"+params
 
 
 class RegTest(procdef.ProcApp):
@@ -92,7 +192,29 @@ class RegTest(procdef.ProcApp):
 		childFactory=DataURL,
 		default=base.NotGiven,
 		description="The source from which to fetch the test data.")
-	
+
+	def retrieveData(self):
+		"""returns headers and content when retrieving the resource at url.
+
+		Sets  the headers and data attributes of the test instance.
+		"""
+		if self.url is base.NotGiven:
+			self.status, self.headers, self.data = None, None, None
+		else:
+			self.status, self.headers, self.data = self.url.retrieveResource()
+
+	def assertHasStrings(self, *strings):
+		"""checks that all its arguments are found within content.
+		"""
+		for phrase in strings:
+			assert phrase in self.data, "%s missing"%repr(phrase)
+
+	def getDataSource(self):
+		if self.url is base.NotGiven:
+			return "(Unconditional)"
+		else:
+			return self.url.getValue()
+
 
 class RegTestSuite(base.Structure):
 	"""A suite of regression tests.
@@ -115,6 +237,11 @@ class RegTestSuite(base.Structure):
 
 	def itertests(self):
 		return iter(self.tests)
+
+	def completeElement(self, ctx):
+		if self.description is None:
+			self.description = "Test suite from %s"%self.parent.sourceId
+		self._completeElementNext(base.Structure, ctx)
 
 
 #################### Running Tests
@@ -198,6 +325,20 @@ class TestRunner(object):
 		"""
 		return cls(rd.tests, verbose=verbose)
 
+	@classmethod
+	def fromSuite(cls, suite, **kwargs):
+		"""constructs a TestRunner for a RegTestSuite suite
+		"""
+		return cls([suite], **kwargs)
+
+	@classmethod
+	def fromTest(cls, test, **kwargs):
+		"""constructs a TestRunner for a single RegTest
+		"""
+		return cls([base.makeStruct(RegTestSuite, tests=[test],
+				parent_=test.parent.parent)], 
+			**kwargs)
+
 	def _makeTestList(self, suites):
 		"""puts all individual tests from all test suites in a deque.
 		"""
@@ -246,7 +387,8 @@ class TestRunner(object):
 		try:
 			try:
 				curDesc = test.title
-				test.compile(test)(test)
+				test.retrieveData()
+				test.compile()(test)
 				self.resultsQueue.put(("OK", test, None, None, time.time()-startTime))
 
 			except KeyboardInterrupt:
@@ -279,10 +421,12 @@ class TestRunner(object):
 		if not self.verbose:
 			return
 		if state=="FAIL":
-			print "**** Test failed: %s -- %s\n"%(test.title, test.url)
+			print "**** Test failed: %s -- %s\n"%(
+				test.title, test.getDataSource())
 			print ">>>>", payload
 		elif state=="ERROR":
-			print "**** Internal Failure: %s -- %s\n"%(test.title, test.url)
+			print "**** Internal Failure: %s -- %s\n"%(test.title, 
+				test.url.getValue()[0])
 			print traceback
 
 	def _runTestsReal(self, nThreads=8):
@@ -312,10 +456,9 @@ class TestRunner(object):
 		try:
 			self._runTestsReal()
 		except Queue.Empty:
-			print "******** Hung jobs"
-			print "Currently executing:"
+			sys.stderr.write("******** Hung jobs\nCurrently executing:\n")
 			for thread in self.curRunning.values():
-				print thread.description
+				sys.stderr.write("%s\n"%thread.description)
 
 	def runTestsInOrder(self):
 		"""runs all tests sequentially and in the order they were added.
@@ -334,3 +477,37 @@ class TestRunner(object):
 				pass
 
 
+################### command line interface
+
+def parseCommandLine():
+	parser = argparse.ArgumentParser(description="Run tests embedded in RDs")
+	parser.add_argument("id", type=str,
+		help="RD id or cross-RD identifier for a testable thing.")
+	parser.add_argument("-v", "--verbose", help="Talk while working",
+		action="store_true", dest="verbose")
+	return parser.parse_args()
+
+
+def main():
+	"""user interaction for gavo test.
+	"""
+	from gavo import api
+
+	args = parseCommandLine()
+	if '#' in args.id:
+		testElement = base.resolveId(None, args.id)
+	else:
+		testElement = base.caches.getRD(args.id)
+
+	if isinstance(testElement, api.RD):
+		runner = TestRunner.fromRD(testElement, verbose=args.verbose)
+	elif isinstance(testElement, RegTestSuite):
+		runner = TestRunner.fromSuite(testElement, verbose=args.verbose)
+	elif isinstance(testElement, RegTest):
+		runner = TestRunner.fromTest(testElement, verbose=args.verbose)
+	else:
+		raise base.ReportableError("%s is not a testable element.",
+			hint="Only RDs, regSuites, or regTests are eligible for testing.")
+	
+	runner.runTests()
+	print runner.stats.getReport()
