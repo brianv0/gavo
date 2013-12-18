@@ -23,6 +23,7 @@ from cStringIO import StringIO
 from gavo import base
 from gavo.base import attrdef
 from gavo.imp import argparse
+from . import common
 from . import procdef
 
 
@@ -99,10 +100,24 @@ class DataURL(base.Structure):
 		description="Request method; usually one of GET or POST",
 		default="GET")
 
+	_httpPost = common.ResdirRelativeAttribute("postPayload", 
+		default=base.NotGiven,
+		description="Path to a file containing material that should go"
+		" with a POST request (conflicts with additional parameters).", 
+		copyable=True)
+
 	_parset = base.EnumeratedUnicodeAttribute("parSet",
 		description="Preselect a default parameter set; form gives what"
 			" our framework adds to form queries.", default=base.NotGiven,
-		validValues=["form"])
+		validValues=["form"],
+		copyable=True)
+
+	_httpHeaders = base.DictAttribute("httpHeader", 
+		description="Additional HTTP headers to pass.",
+		copyable=True)
+
+	_rd = common.RDAttribute()
+
 	_open = DynamicOpenVocAttribute("open")
 
 	def getValue(self):
@@ -132,19 +147,24 @@ class DataURL(base.Structure):
 			params.extend([("__nevow_form__", "genForm"), ("submit", "Go")])
 		return params
 
-	def retrieveResource(self, moreHeaders={}):
+	def retrieveResource(self):
 		"""returns a triple of status, headers, and content for retrieving
 		this URL.
 		"""
 		httpURL, payload = self.getValue(), None
 		if self.httpMethod=="POST":
-			payload = urllib.urlencode(payload)
+			if self.postPayload:
+				with open(self.postPayload) as f:
+					payload = f.read()
+			else:
+				payload = urllib.urlencode(self.getParams)
+
 		scheme, host, path, _, query, _ = urlparse.urlparse(httpURL)
 		assert scheme=="http"
 
 		hdrs = {
 			"user-agent": "DaCHS regression tester"}
-		hdrs.update(moreHeaders)
+		hdrs.update(self.httpHeader)
 
 		conn = httplib.HTTPConnection(host, timeout=10)
 		conn.connect()
@@ -172,6 +192,16 @@ class DataURL(base.Structure):
 			return urlBase+"&"+params
 		else:
 			return urlBase+"?"+params
+
+	def validate(self):
+		if self.postPayload is not base.NotGiven:
+			if self.getParams():
+				raise base.StructureError("No parameters (or parSets) are"
+					" possible with postPayload")
+			if self.httpMethod!="POST":
+				raise base.StructureError("Only POST is allowed as httpMethod"
+					" together with postPayload")
+		self._validateNext(DataURL)
 
 
 class RegTest(procdef.ProcApp):
@@ -324,8 +354,8 @@ class TestRunner(object):
 # those, the individual tests must be serialized, which happens using the magic
 # followUp attribute on the tests.
 
-	def __init__(self, suites, verbose=True):
-		self.verbose = verbose
+	def __init__(self, suites, verbose=True, dumpNegative=False):
+		self.verbose, self.dumpNegative = verbose, dumpNegative
 		self.curRunning = {}
 		self.threadId = 0
 		self._makeTestList(suites)
@@ -333,10 +363,10 @@ class TestRunner(object):
 		self.resultsQueue = Queue.Queue()
 
 	@classmethod
-	def fromRD(cls, rd, verbose=False):
+	def fromRD(cls, rd, **kwargs):
 		"""constructs a TestRunner for a single ResourceDescriptor.
 		"""
-		return cls(rd.tests, verbose=verbose)
+		return cls(rd.tests, **kwargs)
 
 	@classmethod
 	def fromSuite(cls, suite, **kwargs):
@@ -411,9 +441,8 @@ class TestRunner(object):
 				self.resultsQueue.put(("FAIL", test, ex, None,
 					time.time()-startTime))
 				# races be damned
-				if hasattr(test, "lastResult"):
-					with open("lastResult", "w") as f:
-						f.write(test.lastResult)
+				if self.dumpNegative:
+					print "Content of failing test:\n%s\n"%test.data
 
 			except Exception, ex:
 				f = StringIO()
@@ -498,6 +527,10 @@ def parseCommandLine(args=None):
 		help="RD id or cross-RD identifier for a testable thing.")
 	parser.add_argument("-v", "--verbose", help="Talk while working",
 		action="store_true", dest="verbose")
+	parser.add_argument("-d", "--dumpNegative", help="Dump the content of"
+		" failing tests to stdout",
+		action="store_true", dest="dumpNegative")
+
 	return parser.parse_args(args)
 
 
@@ -511,13 +544,18 @@ def main(args=None):
 		testElement = base.resolveId(None, args.id)
 	else:
 		testElement = base.caches.getRD(args.id)
+	
+	runnerArgs = {
+		"verbose": args.verbose,
+		"dumpNegative": args.dumpNegative,
+	}
 
 	if isinstance(testElement, api.RD):
-		runner = TestRunner.fromRD(testElement, verbose=args.verbose)
+		runner = TestRunner.fromRD(testElement, **runnerArgs)
 	elif isinstance(testElement, RegTestSuite):
-		runner = TestRunner.fromSuite(testElement, verbose=args.verbose)
+		runner = TestRunner.fromSuite(testElement, **runnerArgs)
 	elif isinstance(testElement, RegTest):
-		runner = TestRunner.fromTest(testElement, verbose=args.verbose)
+		runner = TestRunner.fromTest(testElement, **runnerArgs)
 	else:
 		raise base.ReportableError("%s is not a testable element.",
 			hint="Only RDs, regSuites, or regTests are eligible for testing.")
