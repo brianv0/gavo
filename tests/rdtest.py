@@ -607,10 +607,16 @@ class ConcurrentRDTest(testhelpers.VerboseTest):
 
 
 _RUNNERS_RESPONSES = {
-	"http://localhost:8080/bar": (200, {}, ""),
+	"http://localhost:8080/bar": (200, {}, 
+		'<VOTABLE version="1.2" xmlns="http://www.ivoa.net/xml/VOTable/v1.2"'
+		' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
+		' xsi:schemaLocation="http://www.ivoa.net/xml/VOTable/v1.2 '
+		'http://vo.ari.uni-heidelberg.de/docs/schemata/VOTable-1.2.xsd">'
+		'<DESCRIPTION>The apparent places</DESCRIPTION><RESOURCE>'
+		'<DESCRIPTION>give exact</DESCRIPTION></RESOURCE></VOTABLE>'),
 	"ivo://ivoa.net/std/quack": (200, {}, ""),
 	"http://localhost:8080/data/regtest/foo?testParam=10%25w%2Fo+tax": 
-		(200, {}, ""),
+		(200, {}, "Hume and Kant singing in perfect harmony."),
 	"http://localhost:8080/data/regtest/nork?urk=zoo&oo=1&oo=2":
 		(200, {}, ""),
 }
@@ -636,13 +642,19 @@ class _RunnersSample(testhelpers.TestResource):
 		regtest.DataURL.retrieveResource = self.originalRetrieve
 
 
-class RegTestTest(testhelpers.VerboseTest):
+class _RegtestTest(testhelpers.VerboseTest):
 	resources = [("rd", _RunnersSample())]
 
+	def assertContains(self, needle, haystack):
+		if needle not in haystack:
+			raise AssertionError("%s not in %s"%(needle, haystack))
+
+
+class MiscRegtestTest(_RegtestTest):
 	def testBasic(self):
 		runner = regtest.TestRunner([self.rd.tests[0]], verbose=False)
 		runner.runTestsInOrder()
-		self.failUnless(runner.stats.getReport().startswith("1 of 2 bad.  avg"))
+		self.assertContains("2 of 3 bad.  avg", runner.stats.getReport())
 
 	def testRelativeSource(self):
 		self.assertEqual(self.rd.tests[1].tests[0].url.getValue(),
@@ -662,24 +674,42 @@ class RegTestTest(testhelpers.VerboseTest):
 		self.assertEqual(self.rd.tests[1].tests[2].url.getParams(), 
 			[("gobba", "&?")])
 
+
+class RegtestRunTest(_RegtestTest):
 	def testRunWholeRD(self):
 		proc, stdout, stderr = testhelpers.captureOutput(regtest.main,
 			args=(["-v", "data/regtest"],))
-		self.failUnless("**** Test failed: Failing Test -- (Unconditional)"
-			in stdout)
-		self.failUnless("1 of 6 bad.  avg" in stdout)
+		self.assertContains("**** Test failed: Failing Test -- http://localhost:8",
+			stdout)
+		self.assertContains("2 of 7 bad.  avg", stdout)
 		self.failUnless(stderr=="")
 
 	def testRunSuite(self):
 		proc, stdout, stderr = testhelpers.captureOutput(regtest.main,
 			args=(["data/regtest#urltests"],))
-		self.failUnless("0 of 4 bad.  avg" in stdout)
+		self.assertContains("0 of 4 bad.  avg", stdout)
 	
 	def testRunSingle(self):
 		proc, stdout, stderr = testhelpers.captureOutput(regtest.main,
-			args=(["data/regtest#atest"],))
-		self.failUnless("0 of 1 bad.  avg" in stdout)
+			args=(["-v", "data/regtest#atest"],))
+		self.assertContains("0 of 1 bad.  avg", stdout)
+
+	def testVerboseFailing(self):
+		proc, stdout, stderr = testhelpers.captureOutput(regtest.main,
+			args=(["-v", "data/regtest#failtest"],))
+		self.assertContains("Test failed: Failing Test -- "
+			"http://localhost:8080/data/regtest/foo?testParam=10%25w%2Fo+tax",
+			stdout)
+		self.assertContains(">>>> 'Wittgenstein' missing", stdout)
+		self.assertContains("1 of 1 bad.  avg", stdout)
+
+	def testXSDFailing(self):
+		proc, stdout, stderr = testhelpers.captureOutput(regtest.main,
+			args=(["-v", "data/regtest#xsdfail"],))
+		self.assertContains(">>>> Response not XSD valid.  Xerces worries"
+			" start with\n[Fatal Error]",
+			stdout)
 
 
 if __name__=="__main__":
-	testhelpers.main(RegTestTest)
+	testhelpers.main(RegtestRunTest)

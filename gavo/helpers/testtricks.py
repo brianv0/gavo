@@ -14,6 +14,34 @@ import urllib
 from gavo import base
 
 
+def getXSDErrorsXerces(data, leaveOffending=False):
+	"""returns Xerces error messages for XSD validation of data, or None
+	if data is valid.
+
+	See the docstring of XSDTestMixin for how to make this work.
+	"""
+	classpath = ":".join(base.getConfig("xsdclasspath"))
+	handle, inName = tempfile.mkstemp("xerctest", "rm")
+	try:
+		with os.fdopen(handle, "w") as f:
+			f.write(data)
+		args = ["java", "-cp", classpath, "xsdval", 
+			"-n", "-v", "-s", "-f", inName]
+
+		f = subprocess.Popen(args,
+			stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+		xercMsgs = f.stdout.read()
+		status = f.wait()
+		if status or "Error]" in xercMsgs:
+			if leaveOffending:
+				with open("badDocument.xml", "w") as of:
+					of.write(data)
+			return xercMsgs
+	finally:
+		os.unlink(inName)
+	return None
+
+
 class XSDTestMixin(object):
 	"""provides a assertValidates method doing XSD validation.
 
@@ -32,25 +60,9 @@ class XSDTestMixin(object):
 	be necessary to run validation tests.
 	"""
 	def assertValidates(self, xmlSource, leaveOffending=False):
-		classpath = ":".join(base.getConfig("xsdclasspath"))
-		handle, inName = tempfile.mkstemp("xerctest", "rm")
-		try:
-			with os.fdopen(handle, "w") as f:
-				f.write(xmlSource)
-			args = ["java", "-cp", classpath, "xsdval", 
-				"-n", "-v", "-s", "-f", inName]
-
-			f = subprocess.Popen(args,
-				stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-			xercMsgs = f.stdout.read()
-			status = f.wait()
-			if status or "Error]" in xercMsgs:
-				if leaveOffending:
-					with open("badDocument.xml", "w") as of:
-						of.write(xmlSource)
-				raise AssertionError(xercMsgs)
-		finally:
-			os.unlink(inName)
+		xercMsgs = getXSDErrorsXerces(xmlSource, leaveOffending)
+		if xercMsgs:
+			raise AssertionError(xercMsgs)
 
 
 @contextlib.contextmanager

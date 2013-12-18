@@ -201,17 +201,32 @@ class RegTest(procdef.ProcApp):
 		else:
 			self.status, self.headers, self.data = self.url.retrieveResource()
 
+	def getDataSource(self):
+		"""returns a string pointing people to where data came from.
+		"""
+		if self.url is base.NotGiven:
+			return "(Unconditional)"
+		else:
+			return self.url.getValue()
+
 	def assertHasStrings(self, *strings):
 		"""checks that all its arguments are found within content.
 		"""
 		for phrase in strings:
 			assert phrase in self.data, "%s missing"%repr(phrase)
 
-	def getDataSource(self):
-		if self.url is base.NotGiven:
-			return "(Unconditional)"
-		else:
-			return self.url.getValue()
+	def assertHTTPStatus(self, expectedStatus):
+		assert expectedStatus==self.status, ("Bad status received, %s instead"
+			" of %s"%(self.status, expectedStatus))
+
+	def assertValidatesXSD(self):
+		"""checks whether the returned data are XSD valid.
+		"""
+		from gavo.helpers import testtricks
+		msgs = testtricks.getXSDErrorsXerces(self.data)
+		if msgs:
+			raise AssertionError("Response not XSD valid.  Xerces worries"
+				" start with\n%s"%(msgs[:160]))
 
 
 class RegTestSuite(base.Structure):
@@ -224,7 +239,7 @@ class RegTestSuite(base.Structure):
 		description="Tests making up this suite",
 		copyable=False)
 	
-	_description = base.UnicodeAttribute("description",
+	_title = base.UnicodeAttribute("title",
 		description="A short, human-readable phrase describing what this"
 		" suite is about.")
 
@@ -237,8 +252,8 @@ class RegTestSuite(base.Structure):
 		return iter(self.tests)
 
 	def completeElement(self, ctx):
-		if self.description is None:
-			self.description = "Test suite from %s"%self.parent.sourceId
+		if self.title is None:
+			self.title = "Test suite from %s"%self.parent.sourceId
 		self._completeElementNext(base.Structure, ctx)
 
 
@@ -285,7 +300,7 @@ class TestStatistics(object):
 					self.lastTimestamp-self.globalStart),
 				self.timeSum/(self.lastTimestamp-self.globalStart))
 		except ZeroDivisionError:
-			return "No report yet"
+			return "No tests run (probably did not find any)."
 
 	def save(self, target):
 		"""saves the entire test statistics to target.
