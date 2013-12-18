@@ -9,6 +9,7 @@ run while (or rather, after) executing gavo val.
 from __future__ import with_statement
 
 import collections
+import httplib
 import os
 import Queue
 import random
@@ -23,9 +24,6 @@ from gavo import base
 from gavo.base import attrdef
 from gavo.imp import argparse
 from . import procdef
-
-################## Utilities
-
 
 
 ################## RD elements
@@ -153,7 +151,7 @@ class DataURL(base.Structure):
 		try:
 			conn.request(self.httpMethod, path+"?"+query, payload, hdrs)
 			resp = conn.getresponse()
-			headers = conn.getheaders()
+			headers = resp.getheaders()
 			content = resp.read()
 		finally:
 			conn.close()
@@ -479,21 +477,21 @@ class TestRunner(object):
 
 ################### command line interface
 
-def parseCommandLine():
+def parseCommandLine(args=None):
 	parser = argparse.ArgumentParser(description="Run tests embedded in RDs")
 	parser.add_argument("id", type=str,
 		help="RD id or cross-RD identifier for a testable thing.")
 	parser.add_argument("-v", "--verbose", help="Talk while working",
 		action="store_true", dest="verbose")
-	return parser.parse_args()
+	return parser.parse_args(args)
 
 
-def main():
+def main(args=None):
 	"""user interaction for gavo test.
 	"""
 	from gavo import api
 
-	args = parseCommandLine()
+	args = parseCommandLine(args)
 	if '#' in args.id:
 		testElement = base.resolveId(None, args.id)
 	else:

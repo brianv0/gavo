@@ -258,7 +258,7 @@ class GetDataTest(_WithSSATableTest):
 
 		self.assertEqual(set(el.get("value") for el in 
 			gpTable.xpath("PARAM[@name='FLUXCALIB']/VALUES/OPTION")), 
-			set(['UNCALIBRATED', 'relative']))
+			set(['UNCALIBRATED', 'RELATIVE']))
 
 	def testNormalServicesReject(self):
 		self.assertRaisesWithMsg(base.ValidationError,
@@ -337,7 +337,7 @@ class GetDataTest(_WithSSATableTest):
 		mime, payload = getRD().getById("c").run("ssap.xml",
 			{"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
 				"FORMAT": "application/x-votable+xml;serialization=tabledata", 
-				"BAND": "1.9e-7/1.92e-7", "FLUXCALIB": "relative"}).original
+				"BAND": "1.9e-7/1.92e-7", "FLUXCALIB": "RELATIVE"}).original
 		self.failUnless("<TD>1900.0</TD><TD>0.91676" in payload)
 		tree = testhelpers.getXMLTree(payload, debug=False)
 		self.assertEqual(tree.xpath(
@@ -401,7 +401,7 @@ class SDMDatalinkMetaTest(testhelpers.VerboseTest):
 	def testLeftOverEnumeration(self):
 		self.assertEqual(set(el.get("value") for el in 
 				self.data[0].xpath("GROUP/PARAM[@name='FLUXCALIB']/VALUES/OPTION")), 
-			set(['UNCALIBRATED', 'relative']))
+			set(['UNCALIBRATED', 'RELATIVE']))
 
 	def testIdColDeclaredDS(self):
 		param = self.data[0].xpath("GROUP/PARAM[@name='ID']")[0]
@@ -526,7 +526,7 @@ class SDMDatalinkTest(_WithSSATableTest):
 			{"ID": ['ivo://test.inv/test1'], 
 				"FORMAT": "application/x-votable+xml;serialization=tabledata", 
 				"LAMBDA_MIN": ["1.9e-7"], "LAMBDA_MAX": ["1.92e-7"], 
-				"FLUXCALIB": "relative"}).original
+				"FLUXCALIB": "RELATIVE"}).original
 		self.failUnless("<TD>1900.0</TD><TD>0.91676" in payload)
 		tree = testhelpers.getXMLTree(payload, debug=False)
 		self.assertEqual(tree.xpath(

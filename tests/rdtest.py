@@ -607,58 +607,33 @@ class ConcurrentRDTest(testhelpers.VerboseTest):
 
 
 _RUNNERS_RESPONSES = {
-	"http://foo,,,": ("bubba", {}),
+	"http://localhost:8080/bar": (200, {}, ""),
+	"ivo://ivoa.net/std/quack": (200, {}, ""),
+	"http://localhost:8080/data/regtest/foo?testParam=10%25w%2Fo+tax": 
+		(200, {}, ""),
+	"http://localhost:8080/data/regtest/nork?urk=zoo&oo=1&oo=2":
+		(200, {}, ""),
 }
-class _FakeHTTPResponse(object):
-	def __init__(self, response):
-		self.content, self.headers = response
-	
-	def read(self):
-		return self.content
-	
-	def info(self):
-		return self.headers
 
 
-class _FakeOpener(object):
+def _fakeRetrieveResource(self, moreHeaders=""):
 	"""A stand-in for the test runner's testOpener.
 	"""
-	def open(self, url, payload):
-		try:
-			return _FakeHTTPResponse(_RUNNERS_RESPONSES)
-		except KeyError:
-			raise Four04(workitout)
+	try:
+		return _RUNNERS_RESPONSES[self.getValue()]
+	except KeyError:
+		return 404, {}, "Not found"
 
 
 class _RunnersSample(testhelpers.TestResource):
 	def make(self, dependents):
-		rd = base.parseFromString(rscdesc.RD, 
-			"""<resource schema="test">
-				<regSuite>
-				<regTest title="Failing Test">
-					<code>
-						assert False
-					</code>
-				</regTest>
-				<regTest title="Succeeding Test">
-					<code>
-						assert True
-					</code>
-				</regTest>
-				</regSuite>
-				
-				<regSuite description="URL tests">
-					<regTest title="a"><url testParam="10%w/o tax">foo</url></regTest>
-					<regTest title="b"><url>/bar</url></regTest>
-					<regTest title="c"><url httpMethod="POST">
-						<gobba>&amp;?</gobba>ivo://ivoa.net/std/quack</url>
-					</regTest>
-					<regTest title="d"><url>nork?urk=zoo<oo>1</oo><oo>2</oo></url>
-					</regTest>
-				</regSuite>
-				</resource>""")
-		rd.sourceId = "testing/internal"
+		self.originalRetrieve = regtest.DataURL.retrieveResource
+		regtest.DataURL.retrieveResource = _fakeRetrieveResource
+		rd = base.caches.getRD("data/regtest")
 		return rd
+
+	def clean(self, rsc):
+		regtest.DataURL.retrieveResource = self.originalRetrieve
 
 
 class RegTestTest(testhelpers.VerboseTest):
@@ -671,11 +646,11 @@ class RegTestTest(testhelpers.VerboseTest):
 
 	def testRelativeSource(self):
 		self.assertEqual(self.rd.tests[1].tests[0].url.getValue(),
-			"http://localhost:8080/testing/internal/foo?testParam=10%25w%2Fo+tax")
+			"http://localhost:8080/data/regtest/foo?testParam=10%25w%2Fo+tax")
 
 	def testRelativeSourceWithParam(self):
 		self.assertEqual(self.rd.tests[1].tests[3].url.getValue(),
-			"http://localhost:8080/testing/internal/nork?urk=zoo&oo=1&oo=2")
+			"http://localhost:8080/data/regtest/nork?urk=zoo&oo=1&oo=2")
 
 	def testAbsoluteSource(self):
 		self.assertEqual(self.rd.tests[1].tests[1].url.getValue(),
@@ -686,6 +661,24 @@ class RegTestTest(testhelpers.VerboseTest):
 			"ivo://ivoa.net/std/quack")
 		self.assertEqual(self.rd.tests[1].tests[2].url.getParams(), 
 			[("gobba", "&?")])
+
+	def testRunWholeRD(self):
+		proc, stdout, stderr = testhelpers.captureOutput(regtest.main,
+			args=(["-v", "data/regtest"],))
+		self.failUnless("**** Test failed: Failing Test -- (Unconditional)"
+			in stdout)
+		self.failUnless("1 of 6 bad.  avg" in stdout)
+		self.failUnless(stderr=="")
+
+	def testRunSuite(self):
+		proc, stdout, stderr = testhelpers.captureOutput(regtest.main,
+			args=(["data/regtest#urltests"],))
+		self.failUnless("0 of 4 bad.  avg" in stdout)
+	
+	def testRunSingle(self):
+		proc, stdout, stderr = testhelpers.captureOutput(regtest.main,
+			args=(["data/regtest#atest"],))
+		self.failUnless("0 of 1 bad.  avg" in stdout)
 
 
 if __name__=="__main__":

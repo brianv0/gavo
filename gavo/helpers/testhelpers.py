@@ -430,7 +430,12 @@ def captureOutput(callable, args=(), kwargs={}):
 	realOut, realErr = sys.stdout, sys.stderr
 	sys.stdout, sys.stderr = StringIO(), StringIO()
 	try:
-		retVal = callable(*args, **kwargs)
+		retVal = 2 # in case the callable sys.exits
+		try:
+			retVal = callable(*args, **kwargs)
+		except SystemExit:
+			# don't terminate just because someone thinks it's a good idea
+			pass
 	finally:
 		outCont, errCont = sys.stdout.getvalue(), sys.stderr.getvalue()
 		sys.stdout, sys.stderr = realOut, realErr
