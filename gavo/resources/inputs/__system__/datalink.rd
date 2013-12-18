@@ -188,7 +188,7 @@
 		sdm_generate (or at least parameters.data as an SDM data instance)
 		as the generating function within the datalink core.
 
-		Clients can select "relative" as FLUXCALIB, which does a
+		Clients can select "RELATIVE" as FLUXCALIB, which does a
 		normalization to max(flux)=1 here.  Everything else is rejected
 		right now.
 
@@ -197,7 +197,7 @@
 		</doc>
 		<metaMaker>
 			<code>
-				supportedCalibs = set(["relative"])
+				supportedCalibs = set(["RELATIVE"])
 				foundCalibs = descriptor.ssaRow["ssa_fluxcalib"]
 				if isinstance(foundCalibs, basestring):
 					foundCalibs = set([foundCalibs])
@@ -208,7 +208,7 @@
 					ucd="phot.calib",
 					utype="ssa:Char.FluxAxis.Calibration",
 					description="Recalibrate the spectrum.  Right now, the only"
-						" recalibration supported is max(flux)=1 ('relative').",
+						" recalibration supported is max(flux)=1 ('RELATIVE').",
 						values=MS(Values, options=[
 							MS(Option, content_=val) for val in supportedCalibs]))
 			</code>

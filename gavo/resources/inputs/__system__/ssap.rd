@@ -239,7 +239,7 @@
 			><values nullLiteral="NaN"/>\sysFluxError</param>
 		<param name="ssa_fluxcalib" type="text"
 			utype="ssa:Char.FluxAxis.Calibration"
-			tablehead="Calib Flux" verbLevel="25"
+			tablehead="Calib Flux" verbLevel="20"
 			description="Type of flux calibration">\fluxCalibration</param>
 		<param name="ssa_binSize" 
 			utype="ssa:Char.SpectralAxis.Accuracy.BinSize" 
