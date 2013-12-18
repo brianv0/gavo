@@ -970,6 +970,22 @@ Formatting the output
 TBD
 
 
+Regression Testing
+==================
+
+``sed -e 's/.*?//;s/&/" /g;s/=/="/g;s/$/"/'``
+
+Useful vim macro (put in your ``.vimrc``)::
+
+  augroup rd
+	  au!
+	  autocmd BufRead,BufNewFile *.rd set ts=2 tw=79
+	  au BufNewFile,BufRead *.rd map gn i<tab><tab><lt>column name="" type=""<CR><tab>unit="" ucd=""<CR>tablehead=""<CR>description=""<CR>verbLevel=""/><CR><ESC>5kf"a
+	  au BufNewFile,BufRead *.rd map ge i<tab><tab><lt>regTest title=""><CR><tab><lt>url><lt>/url><CR><lt>code><CR><lt>/code><CR><BS><lt>/regTest><ESC>5k
+  augroup END
+
+
+
 Datalink Cores
 ==============
 

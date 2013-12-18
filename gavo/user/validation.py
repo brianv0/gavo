@@ -23,6 +23,22 @@ from gavo.user import errhandle
 
 builders.VALIDATING = True
 
+class TestsCollector(object):
+	"""a singleton that collects use cases to run.
+
+	Don't instantiate, this is a global singleton.
+
+	The testsToRun attribute contains the test suites to run.
+	"""
+	testsToRun = []
+
+	@classmethod
+	def addRD(cls, rd):
+		"""adds tests from rd.
+		"""
+		for suite in rd.tests:
+			cls.testsToRun.append(suite)
+
 
 def outputDependentMessage(aString):
 	"""an output function for errhandle.raiseAndCatch.
@@ -159,6 +175,10 @@ def validateOne(rdId, args):
 	"""outputs to stdout various information on the RD identified by rdId.
 	"""
 	rd = loadRD(rdId)
+
+	if args.runTests:
+		TestsCollector.addRD(rd)
+
 	if rd is None:
 		return
 	validSoFar = validateServices(rd, args)
@@ -190,6 +210,8 @@ def parseCommandLine():
 		action="store_true", dest="doXSD")
 	parser.add_argument("-v", "--verbose", help="Talk while working",
 		action="store_true", dest="verbose")
+	parser.add_argument("-t", "--run-tests", help="Run regression tests"
+		" embedded in the checked RDs", action="store_true", dest="runTests")
 	return parser.parse_args()
 
 
@@ -205,3 +227,14 @@ def main():
 				print "OK"
 			else:
 				print "Fail"
+	
+	if args.runTests:
+		print "\nRunning regression tests\n"
+		from gavo.rscdef import regtest
+		runner = regtest.TestRunner(TestsCollector.testsToRun,
+			verbose=False)
+		runner.runTests(showDots=True)
+		print runner.stats.getReport()
+		if runner.stats.fails:
+			print "\nThe following tests failed:\n"
+			print runner.stats.getFailures()

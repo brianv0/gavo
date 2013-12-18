@@ -13,6 +13,7 @@ import httplib
 import os
 import Queue
 import random
+import sys
 import time
 import threading
 import traceback
@@ -116,8 +117,6 @@ class DataURL(base.Structure):
 		description="Additional HTTP headers to pass.",
 		copyable=True)
 
-	_rd = common.RDAttribute()
-
 	_open = DynamicOpenVocAttribute("open")
 
 	def getValue(self):
@@ -132,7 +131,7 @@ class DataURL(base.Structure):
 			urlBase = base.getConfig("web", "serverurl")+urlBase
 		else:
 			urlBase = base.getConfig("web", "serverurl"
-				)+"/"+self.parent.parent.parent.sourceId+"/"+urlBase
+				)+"/"+self.parent.rd.sourceId+"/"+urlBase
 
 		if self.httpMethod=="POST":
 			return urlBase
@@ -211,7 +210,7 @@ class RegTest(procdef.ProcApp):
 	requiredType = "regTest"
 	formalArgs = "self"
 
-	_title = base.UnicodeAttribute("title",
+	_title = base.NWUnicodeAttribute("title",
 		default=base.Undefined,
 		description="A short, human-readable phrase describing what this"
 		" test is exercising.")
@@ -220,6 +219,8 @@ class RegTest(procdef.ProcApp):
 		childFactory=DataURL,
 		default=base.NotGiven,
 		description="The source from which to fetch the test data.")
+
+	_rd = common.RDAttribute()
 
 	def retrieveData(self):
 		"""returns headers and content when retrieving the resource at url.
@@ -269,7 +270,7 @@ class RegTestSuite(base.Structure):
 		description="Tests making up this suite",
 		copyable=False)
 	
-	_title = base.UnicodeAttribute("title",
+	_title = base.NWUnicodeAttribute("title",
 		description="A short, human-readable phrase describing what this"
 		" suite is about.")
 
@@ -300,7 +301,7 @@ class TestStatistics(object):
 		self.lastTimestamp = time.time()+1
 		self.timeSum = 0
 	
-	def add(self, status, runTime, title, payload):
+	def add(self, status, runTime, title, payload, srcRD):
 		"""adds a test result to the statistics.
 
 		status is either OK, FAIL, or ERROR, runTime is the time
@@ -316,7 +317,7 @@ class TestStatistics(object):
 			self.fails += 1
 		self.total += 1
 		self.timeSum += runTime
-		self.runs.append((runTime, status, title, str(payload)))
+		self.runs.append((runTime, status, title, str(payload), srcRD))
 		self.lastTimestamp = time.time()
 
 	def getReport(self):
@@ -331,6 +332,19 @@ class TestStatistics(object):
 				self.timeSum/(self.lastTimestamp-self.globalStart))
 		except ZeroDivisionError:
 			return "No tests run (probably did not find any)."
+
+	def getFailures(self):
+		"""returns a string containing some moderately verbose info on the
+		failures collected.
+		"""
+		failures = {}
+		for runTime, status, title, payload, srcRD in self.runs:
+			if status!="OK":
+				failures.setdefault(srcRD, []).append("%s %s"%(status, title))
+
+		return "\n".join("From %s:\n  %s\n\n"%(srcRD, 
+				"\n  ".join(badTests))
+			for srcRD, badTests in failures.iteritems())
 
 	def save(self, target):
 		"""saves the entire test statistics to target.
@@ -471,16 +485,23 @@ class TestRunner(object):
 				test.url.getValue()[0])
 			print traceback
 
-	def _runTestsReal(self, nThreads=8):
+	def _runTestsReal(self, nThreads=8, showDots=False):
 		"""executes the tests, taking tests off the queue and spawning
 		threads until the queue is empty.
 
 		nThreads gives the number of maximum number threads that run the
 		tests at one time.
+
+		showDots, if True, instructs the runner to push one dot to stderr
+		per test spawned.
 		"""
 		while self.testList or self.curRunning:
 			while len(self.curRunning)<nThreads and self.testList:
 				self._spawnThread()
+				if showDots:
+					sys.stderr.write(".")
+					sys.stderr.flush()
+
 			evType, test, payload, traceback, dt = self.resultsQueue.get(timeout=60)
 			if evType=="addTest":
 				self.testList.appendleft(test)
@@ -488,15 +509,18 @@ class TestRunner(object):
 				deadThread = self.curRunning.pop(test)
 				deadThread.join()
 			else:
-				self.stats.add(evType, dt, test.title, "")
+				self.stats.add(evType, dt, test.title, "", test.rd.sourceId)
 				self._printStat(evType, test, payload, traceback)
 
-	def runTests(self):
+		if showDots:
+			sys.stderr.write("\n")
+
+	def runTests(self, showDots=False):
 		"""executes the tests in a random order and in parallel.
 		"""
 		random.shuffle(self.testList)
 		try:
-			self._runTestsReal()
+			self._runTestsReal(showDots=showDots)
 		except Queue.Empty:
 			sys.stderr.write("******** Hung jobs\nCurrently executing:\n")
 			for thread in self.curRunning.values():
@@ -513,7 +537,7 @@ class TestRunner(object):
 					if evType=="addTest":
 						self.testList.appendleft(test)
 					else:
-						self.stats.add(evType, dt, test.title, "")
+						self.stats.add(evType, dt, test.title, "", test.rd.sourceId)
 						self._printStat(evType, test, payload, traceback)
 			except Queue.Empty:
 				pass
@@ -562,3 +586,5 @@ def main(args=None):
 	
 	runner.runTests()
 	print runner.stats.getReport()
+	if runner.stats.fails:
+		sys.exit(1)
