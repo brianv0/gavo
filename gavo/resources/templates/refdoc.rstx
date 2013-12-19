@@ -973,6 +973,8 @@ TBD
 Regression Testing
 ==================
 
+Careful: Macros are expanded, so you need to double-escape.
+
 ``sed -e 's/.*?//;s/&/" /g;s/=/="/g;s/$/"/'``
 
 Useful vim macro (put in your ``.vimrc``)::

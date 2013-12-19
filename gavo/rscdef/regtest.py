@@ -13,6 +13,7 @@ import httplib
 import os
 import Queue
 import random
+import re
 import sys
 import time
 import threading
@@ -20,6 +21,13 @@ import traceback
 import urllib
 import urlparse
 from cStringIO import StringIO
+
+try:
+	from lxml import etree as lxtree
+except ImportError:
+	# don't fail here, fail when running the test.
+	# TODO: add functionality to skip tests with dependencies not satisfied.
+	pass
 
 from gavo import base
 from gavo.base import attrdef
@@ -94,7 +102,9 @@ class DataURL(base.Structure):
 	"""
 	name_ = "url"
 	
-	_base = base.DataContent(description="Base for URL generation",
+	_base = base.DataContent(description="Base for URL generation; embedded"
+		" whitespace will be removed, so you're free to break those whereever"
+		" you like.",
 		copyable=True)
 	
 	_httpMethod = base.UnicodeAttribute("httpMethod", 
@@ -123,7 +133,7 @@ class DataURL(base.Structure):
 		"""returns a pair of full request URL  and postable payload for this
 		test.
 		"""
-		urlBase = self.content_
+		urlBase = re.sub(r"\s+", "", self.content_)
 		if "://" in urlBase:
 			# we belive there's a scheme in there
 			pass
@@ -260,6 +270,47 @@ class RegTest(procdef.ProcApp):
 				" start with\n%s"%(msgs[:160]))
 
 
+	XPATH_NAMESPACE_MAP = {
+		"v2": "http://www.ivoa.net/xml/VOTable/v1.2",
+		"v1": "http://www.ivoa.net/xml/VOTable/v1.1",
+		"o": "http://www.openarchives.org/OAI/2.0/",
+	}
+
+	def assertXpath(self, path, assertions):
+		"""checks an xpath assertion.
+
+		path is an xpath (as understood by lxml), with namespace prefixes 
+		statically mapped; there's currently v2 (VOTable 1.2), v1 (VOTable 1.1),
+		and o (OAI-PMH 2.0).  If you need more prefixes, hack the source
+		and feed back your changes (monkeypatching self.XPATH_NAMESPACE_MAP
+		is another option).
+
+		path must match exactly one element.
+
+		assertions is a dictionary mapping attribute names to their
+		expected value.  Use the key None to check the element content,
+		and match for None if you expect an empty element.
+
+		If you need an RE match rather than equality, there's EqualingRE
+		in your code's namespace.
+		"""
+		tree = lxtree.fromstring(self.data)
+		res = tree.xpath(path, namespaces=self.XPATH_NAMESPACE_MAP)
+		if len(res)==0:
+			raise AssertionError("Element not found: %s"%path)
+		elif len(res)!=1:
+			raise AssertionError("More than one item matched for %s"%path)
+
+		el = res[0]
+		for key, val in assertions.iteritems():
+			if key is None:
+				foundVal = el.text
+			else:
+				foundVal = el.attrib[key]
+			assert val==foundVal, "Trouble with %s: %s (%s, %s)"%(
+				key or "content", path, repr(val), repr(foundVal))
+
+
 class RegTestSuite(base.Structure):
 	"""A suite of regression tests.
 	"""
@@ -286,6 +337,11 @@ class RegTestSuite(base.Structure):
 		if self.title is None:
 			self.title = "Test suite from %s"%self.parent.sourceId
 		self._completeElementNext(base.Structure, ctx)
+
+	def expand(self, *args, **kwargs):
+		"""hand macro expansion to the RD.
+		"""
+		return self.parent.expand(*args, **kwargs)
 
 
 #################### Running Tests

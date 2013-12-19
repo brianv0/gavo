@@ -17,6 +17,12 @@
 				self.assertValidatesXSD()
 			</code>
 		</regTest>
+		<regTest id="xpathfail" title="not lots" url="/bar">
+			<code>
+				self.assertXpath("//v2:RESOURCE[1]", {
+					"type": "lots"})
+			</code>
+		</regTest>
 	</regSuite>
 	
 	<regSuite title="URL tests" id="urltests">
@@ -38,6 +44,14 @@
 			</code>
 		</regTest>
 		<regTest title="d"><url>nork?urk=zoo<oo>1</oo><oo>2</oo></url>
+		</regTest>
+		<regTest title="xpathsuccess" url="/bar">
+			<code>
+				self.assertXpath("//v2:RESOURCE[1]", {
+					"type": "meta", None: None})
+				self.assertXpath("//v2:RESOURCE/v2:DESCRIPTION", {
+					None: "give exact"})
+			</code>
 		</regTest>
 	</regSuite>
 </resource>
