@@ -981,6 +981,8 @@ welcome.
 
 ~/.gavo/test.creds
 
+Make it fail first.
+
 Useful vim macro (put in your ``.vimrc``)::
 
   augroup rd

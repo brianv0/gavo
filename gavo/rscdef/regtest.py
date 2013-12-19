@@ -21,6 +21,8 @@ import traceback
 import urllib
 import urlparse
 from cStringIO import StringIO
+from email.Message import Message
+from email.MIMEMultipart import MIMEMultipart
 
 try:
 	from lxml import etree as lxtree
@@ -64,7 +66,27 @@ def getAuthFor(authKey):
 	except KeyError:
 		raise base.NotFoundError(authKey, "Authorization info",
 			"~/.gavo/test.creds")
-	return {'Authorization': "Basic "+("%s:%s"%(user, pw).encode("base64"))}
+	return {'Authorization': "Basic "+("%s:%s"%(user, pw)).encode("base64")}
+
+
+class EqualingRE(object):
+	"""A value that compares equal based on RE matches.
+
+	This is a helper mainly for GetHasXPathsTests.  Use an instance of
+	this class to check against an RE rather than a plain string.
+	"""
+	def __init__(self, pattern):
+		self.pat = re.compile(pattern)
+	
+	def __eq__(self, other):
+		return self.pat.match(other)
+	
+	def __ne__(self, other):
+		return not self.__eq__(other)
+	
+	def __str__(self):
+		return "<Pattern %s>"%self.pat.pattern
+
 
 ################## RD elements
 
@@ -109,6 +131,81 @@ class DynamicOpenVocAttribute(base.AttributeDef):
 				setattr(self, name, None)
 				return self.managedAttrs[name]
 		yield "getAttribute", getAttribute
+
+
+class _FormData(MIMEMultipart):
+  """is a container for multipart/form-data encoded messages.
+
+  This is usually used for file uploads.
+  """
+  def __init__(self):
+    MIMEMultipart.__init__(self, "form-data")
+    self.epilogue = ""
+  
+  def addFile(self, paramName, fileName, data):
+    """attaches the contents of fileName under the http parameter name
+    paramName.
+    """
+    msg = Message()
+    msg.set_type("application/octet-stream")
+    msg["Content-Disposition"] = "form-data"
+    msg.set_param("name", paramName, "Content-Disposition")
+    msg.set_param("filename", fileName, "Content-Disposition")
+    msg.set_payload(data)
+    self.attach(msg)
+
+  def addParam(self, paramName, paramVal):
+    """adds a form parameter paramName with the (string) value paramVal
+    """
+    msg = Message()
+    msg["Content-Disposition"] = "form-data"
+    msg.set_param("name", paramName, "Content-Disposition")
+    msg.set_payload(paramVal)
+    self.attach(msg)
+
+
+class Upload(base.Structure):
+	"""An upload going with a URL.
+	"""
+	name_ = "httpUpload"
+
+	_src = common.ResdirRelativeAttribute("source",
+		default=base.NotGiven,
+		description="Path to a file containing the data to be uploaded.",
+		copyable=True)
+
+	_name = base.UnicodeAttribute("name",
+		default=base.Undefined,
+		description="Name of the upload parameter",
+		copyable=True)
+
+	_filename = base.UnicodeAttribute("fileName",
+		default=None,
+		description="Remote file name for the uploaded file.",
+		copyable=True)
+
+	_content = base.DataContent(description="Inline data to be uploaded"
+		" (conflicts with source)")
+
+	@property
+	def rd(self):
+		return self.parent.rd
+
+	def addToForm(self, form):
+		"""sets up a _Form instance to upload the data.
+		"""
+		if self.content_:
+			data = self.content_
+		else:
+			with open(self.source) as f:
+				data = f.read()
+		form.addFile(self.name, self.fileName, data)
+
+	def validate(self):
+		if (self.content_ and self.source
+			or not (self.content_ or self.source)):
+			raise  base.StructureError("Exactly one of element content and source"
+				" attribute must be given for an upload.")
 
 
 class DataURL(base.Structure):
@@ -163,6 +260,11 @@ class DataURL(base.Structure):
 		default=base.NotGiven,
 		copyable=True)
 
+	_httpUploads = base.StructListAttribute("uploads",
+		childFactory=Upload,
+		description='HTTP uploads to add to request (must have httpMethod="POST")',
+		copyable=True)
+
 	_rd = common.RDAttribute()
 
 	_open = DynamicOpenVocAttribute("open")
@@ -173,7 +275,7 @@ class DataURL(base.Structure):
 		"""
 		urlBase = re.sub(r"\s+", "", self.content_)
 		if "://" in urlBase:
-			# we belive there's a scheme in there
+			# we believe there's a scheme in there
 			pass
 		elif urlBase.startswith("/"):
 			urlBase = base.getConfig("web", "serverurl")+urlBase
@@ -191,7 +293,8 @@ class DataURL(base.Structure):
 		"""
 		params = getattr(self, "freeAttrs", [])
 		if self.parSet=="form":
-			params.extend([("__nevow_form__", "genForm"), ("submit", "Go")])
+			params.extend([("__nevow_form__", "genForm"), ("submit", "Go"),
+				("_charset_", "UTF-8")])
 		return params
 
 	def retrieveResource(self):
@@ -199,19 +302,33 @@ class DataURL(base.Structure):
 		this URL.
 		"""
 		httpURL, payload = self.getValue(), None
+		hdrs = {
+			"user-agent": "DaCHS regression tester"}
+		hdrs.update(self.httpHeader)
+
 		if self.httpMethod=="POST":
 			if self.postPayload:
 				with open(self.postPayload) as f:
 					payload = f.read()
+
+			elif self.uploads:
+				form = _FormData()
+				for key, value in self.getParams():
+					form.addParam(key, value)
+				for upload in self.uploads:
+					upload.addToForm(form)
+				boundary = "========== roughtest deadbeef"
+				form.set_param("boundary", boundary)
+				hdrs["Content-Type"] = form.get_content_type(
+					)+'; boundary="%s"'%boundary
+				payload = form.as_string()
+
 			else:
-				payload = urllib.urlencode(self.getParams)
+				payload = urllib.urlencode(self.getParams())
 
 		scheme, host, path, _, query, _ = urlparse.urlparse(httpURL)
 		assert scheme=="http"
 
-		hdrs = {
-			"user-agent": "DaCHS regression tester"}
-		hdrs.update(self.httpHeader)
 
 		if self.httpAuthKey is not base.NotGiven:
 			hdrs.update(getAuthFor(self.httpAuthKey))
@@ -251,6 +368,12 @@ class DataURL(base.Structure):
 			if self.httpMethod!="POST":
 				raise base.StructureError("Only POST is allowed as httpMethod"
 					" together with postPayload")
+				
+		if self.uploads:
+			if self.httpMethod!="POST":
+				raise base.StructureError("Only POST is allowed as httpMethod"
+					" together with upload")
+
 		self._validateNext(DataURL)
 
 
@@ -260,6 +383,9 @@ class RegTest(procdef.ProcApp):
 	name_ = "regTest"
 	requiredType = "regTest"
 	formalArgs = "self"
+
+	additionalNamesForProcs = {
+		"EqualingRE": EqualingRE}
 
 	_title = base.NWUnicodeAttribute("title",
 		default=base.Undefined,
