@@ -423,6 +423,12 @@ class RegTest(procdef.ProcApp):
 		for phrase in strings:
 			assert phrase in self.data, "%s missing"%repr(phrase)
 
+	def assertLacksStrings(self, *strings):
+		"""checks that all its arguments are *not* found within content.
+		"""
+		for phrase in strings:
+			assert phrase not in self.data, "Unexpected: '%s'"%repr(phrase)
+
 	def assertHTTPStatus(self, expectedStatus):
 		assert expectedStatus==self.status, ("Bad status received, %s instead"
 			" of %s"%(self.status, expectedStatus))
