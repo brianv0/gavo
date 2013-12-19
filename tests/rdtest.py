@@ -682,7 +682,8 @@ class RegtestRunTest(_RegtestTest):
 		self.assertContains("**** Test failed: Failing Test -- http://localhost:8",
 			stdout)
 		self.assertContains("3 of 9 bad.  avg", stdout)
-		self.failUnless(stderr=="")
+		print repr(stderr)
+		self.failUnless(stderr=='.........\n')
 
 	def testRunSuite(self):
 		proc, stdout, stderr = testhelpers.captureOutput(regtest.main,

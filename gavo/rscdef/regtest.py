@@ -30,11 +30,41 @@ except ImportError:
 	pass
 
 from gavo import base
+from gavo import utils
 from gavo.base import attrdef
 from gavo.imp import argparse
 from . import common
 from . import procdef
 
+################## Utilities
+
+@utils.memoized
+def _loadCreds():
+	"""returns a dictionary of auth keys to user/password pairs from
+	~/.gavo/test.creds
+	"""
+	res = {}
+	try:
+		with open(os.path.join(os.environ["HOME"], ".gavo", "test.creds")) as f:
+			for ln in f:
+				authKey, user, pw = ln.strip().split()
+				res[authKey] = (user, pw)
+	except IOError:
+		pass
+	return res
+
+
+def getAuthFor(authKey):
+	"""returns a header dictionary to authenticate for authKey.
+
+	authKey is a key into ~/.gavo/test.creds.
+	"""
+	try:
+		user, pw = _loadCreds()[authKey]
+	except KeyError:
+		raise base.NotFoundError(authKey, "Authorization info",
+			"~/.gavo/test.creds")
+	return {'Authorization': "Basic "+("%s:%s"%(user, pw).encode("base64"))}
 
 ################## RD elements
 
@@ -127,6 +157,14 @@ class DataURL(base.Structure):
 		description="Additional HTTP headers to pass.",
 		copyable=True)
 
+	_httpAuthKey = base.UnicodeAttribute("httpAuthKey",
+		description="A key into ~/.gavo.test.creds to find a user/password"
+			" pair for this request.",
+		default=base.NotGiven,
+		copyable=True)
+
+	_rd = common.RDAttribute()
+
 	_open = DynamicOpenVocAttribute("open")
 
 	def getValue(self):
@@ -174,6 +212,9 @@ class DataURL(base.Structure):
 		hdrs = {
 			"user-agent": "DaCHS regression tester"}
 		hdrs.update(self.httpHeader)
+
+		if self.httpAuthKey is not base.NotGiven:
+			hdrs.update(getAuthFor(self.httpAuthKey))
 
 		conn = httplib.HTTPConnection(host, timeout=10)
 		conn.connect()
@@ -309,6 +350,19 @@ class RegTest(procdef.ProcApp):
 				foundVal = el.attrib[key]
 			assert val==foundVal, "Trouble with %s: %s (%s, %s)"%(
 				key or "content", path, repr(val), repr(foundVal))
+
+	def assertHeader(self, key, value):
+		"""checks that header key has value in the response headers.
+
+		keys are compared case-insensitively, values are compared literally.
+		"""
+		for hKey, hValue in self.headers:
+			if hKey.lower()==key.lower():
+				if value==hValue:
+					break
+		else:
+			raise AssertionError("Header %s=%s not found in %s"%(
+				key, value, self.headers))
 
 
 class RegTestSuite(base.Structure):
@@ -601,7 +655,21 @@ class TestRunner(object):
 
 ################### command line interface
 
+
+def urlToURL():
+	"""converts HTTP (GET) URLs to URL elements.
+	"""
+#	This is what's invoked by the makeTestURLs command.
+	while True:
+		parts = urlparse.urlparse(raw_input())
+		print "<url %s>%s</url>"%(
+			" ".join('%s="%s"'%(k,v[0]) 
+				for k,v in urlparse.parse_qs(parts.query).iteritems()),
+			parts.path)
+
 def parseCommandLine(args=None):
+	"""parses the command line for main()
+	"""
 	parser = argparse.ArgumentParser(description="Run tests embedded in RDs")
 	parser.add_argument("id", type=str,
 		help="RD id or cross-RD identifier for a testable thing.")
@@ -640,7 +708,7 @@ def main(args=None):
 		raise base.ReportableError("%s is not a testable element.",
 			hint="Only RDs, regSuites, or regTests are eligible for testing.")
 	
-	runner.runTests()
+	runner.runTests(showDots=True)
 	print runner.stats.getReport()
 	if runner.stats.fails:
 		sys.exit(1)
