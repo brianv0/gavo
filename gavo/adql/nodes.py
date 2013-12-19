@@ -1342,7 +1342,7 @@ class Box(GeometryNode):
 class Polygon(GeometryNode):
 	type = "polygon"
 	_a_coos = ()
-	argSeq = ("coos")
+	argSeq = ("coos",)
 	xtype = "adql:REGION"
 	sqlType = "spoly"
 
@@ -1354,6 +1354,10 @@ class Polygon(GeometryNode):
 			coos.append(tuple(toDo[:2])) 
 			del toDo[:2]
 		return {"coos": tuple(coos)}
+
+	def addFieldInfo(self, name):
+		# XXX TODO: add a proper field info here
+		self.fieldInfo = fieldinfo.FieldInfo("adql:POLYGON", "", "")
 
 
 _regionMakers = [] 
