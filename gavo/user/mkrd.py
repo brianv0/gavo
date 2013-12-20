@@ -170,20 +170,20 @@ def makeRD(args, opts):
 		resdir=opts.resdir)
 
 	for key, value in [
-			("title", "FILL-IN"),
-    	("creationDate", utils.formatISODT(datetime.datetime.utcnow())),
-    	("description", "FILL-IN a long text (and maybe do format='plain'"
-    		" or even format='rst'"),
-    	("copyright", "Free to use."),
-    	("creator.name", "Author, S."),
-    	("creator", ""),
-    	("creator.name", "Other, A."),
-    	("subject", "One Keyword"),
-    	("subject", "Two Words"),
-    	("content.type", "Catalog")]:
-		rd.addMeta(key, value)
-	rd.addMeta("coverage.waveband", "Optical")
-	rd.addMeta("coverage.profile", "AllSky ICRS")
+		("title", "FILL-IN"),
+		("creationDate", utils.formatISODT(datetime.datetime.utcnow())),
+		("description", "FILL-IN a long text (and maybe do format='plain'"
+			" or even format='rst'"),
+		("copyright", "Free to use."),
+		("creator.name", "Author, S."),
+		("creator", ""),
+		("creator.name", "Other, A."),
+		("subject", "One Keyword"),
+		("subject", "Two Words"),
+		("content.type", "Catalog")]:
+			rd.addMeta(key, value)
+			rd.addMeta("coverage.waveband", "Optical")
+			rd.addMeta("coverage.profile", "AllSky ICRS")
 
 	rd.feedObject("table", tableMakers[opts.srcForm](rd, args[0], opts))
 	rd.feedObject("data", dataMakers[opts.srcForm](rd, args[0], opts))
