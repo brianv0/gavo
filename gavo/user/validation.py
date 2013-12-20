@@ -66,7 +66,7 @@ def loadRD(rdId):
 	If that fails, diagnostics are printed and None is returned.
 	"""
 	try:
-		rd = rscdesc.openRD(rdId)
+		rd = base.caches.getRD(rdId)
 	except base.RDNotFound:
 		outputError(rdId, "Could not be located")
 	except base.LiteralParseError, ex:

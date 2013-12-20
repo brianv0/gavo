@@ -211,7 +211,9 @@ class Upload(base.Structure):
 class DataURL(base.Structure):
 	"""A source document for a regression test.
 
-	These are basically over-complicated specs of URLs.
+	As string URLs, they specify where to get data from, but the additionally
+	let you specify uploads, authentication, headers and http methods,
+	while at the same time saving you manual escaping of parameters.
 
 	The bodies is the path to run the test against.  This is
 	interpreted as relative to the RD if there's no leading slash,
@@ -228,7 +230,12 @@ class DataURL(base.Structure):
 	really isn't all that robust either...)
 	"""
 	name_ = "url"
-	
+
+	# httpURL will be set to the URL actually used in retrieveResource
+	# Only use this to report the source of the data for, e.g., failing
+	# tests.
+	httpURL = "(not retrieved)"
+
 	_base = base.DataContent(description="Base for URL generation; embedded"
 		" whitespace will be removed, so you're free to break those whereever"
 		" you like.",
@@ -255,7 +262,7 @@ class DataURL(base.Structure):
 		copyable=True)
 
 	_httpAuthKey = base.UnicodeAttribute("httpAuthKey",
-		description="A key into ~/.gavo.test.creds to find a user/password"
+		description="A key into ~/.gavo/test.creds to find a user/password"
 			" pair for this request.",
 		default=base.NotGiven,
 		copyable=True)
@@ -269,7 +276,8 @@ class DataURL(base.Structure):
 
 	_open = DynamicOpenVocAttribute("open")
 
-	def getValue(self):
+
+	def getValue(self, serverURL):
 		"""returns a pair of full request URL  and postable payload for this
 		test.
 		"""
@@ -278,10 +286,9 @@ class DataURL(base.Structure):
 			# we believe there's a scheme in there
 			pass
 		elif urlBase.startswith("/"):
-			urlBase = base.getConfig("web", "serverurl")+urlBase
+			urlBase = serverURL+urlBase
 		else:
-			urlBase = base.getConfig("web", "serverurl"
-				)+"/"+self.parent.rd.sourceId+"/"+urlBase
+			urlBase = serverURL+"/"+self.parent.rd.sourceId+"/"+urlBase
 
 		if self.httpMethod=="POST":
 			return urlBase
@@ -297,11 +304,11 @@ class DataURL(base.Structure):
 				("_charset_", "UTF-8")])
 		return params
 
-	def retrieveResource(self):
+	def retrieveResource(self, serverURL):
 		"""returns a triple of status, headers, and content for retrieving
 		this URL.
 		"""
-		httpURL, payload = self.getValue(), None
+		self.httpURL, payload = self.getValue(serverURL), None
 		hdrs = {
 			"user-agent": "DaCHS regression tester"}
 		hdrs.update(self.httpHeader)
@@ -326,7 +333,7 @@ class DataURL(base.Structure):
 			else:
 				payload = urllib.urlencode(self.getParams())
 
-		scheme, host, path, _, query, _ = urlparse.urlparse(httpURL)
+		scheme, host, path, _, query, _ = urlparse.urlparse(self.httpURL)
 		assert scheme=="http"
 
 
@@ -399,7 +406,7 @@ class RegTest(procdef.ProcApp):
 
 	_rd = common.RDAttribute()
 
-	def retrieveData(self):
+	def retrieveData(self, serverURL):
 		"""returns headers and content when retrieving the resource at url.
 
 		Sets  the headers and data attributes of the test instance.
@@ -407,7 +414,8 @@ class RegTest(procdef.ProcApp):
 		if self.url is base.NotGiven:
 			self.status, self.headers, self.data = None, None, None
 		else:
-			self.status, self.headers, self.data = self.url.retrieveResource()
+			self.status, self.headers, self.data = self.url.retrieveResource(
+				serverURL)
 
 	def getDataSource(self):
 		"""returns a string pointing people to where data came from.
@@ -415,26 +423,37 @@ class RegTest(procdef.ProcApp):
 		if self.url is base.NotGiven:
 			return "(Unconditional)"
 		else:
-			return self.url.getValue()
+			return self.url.httpURL
 
+	@utils.document
 	def assertHasStrings(self, *strings):
 		"""checks that all its arguments are found within content.
 		"""
 		for phrase in strings:
 			assert phrase in self.data, "%s missing"%repr(phrase)
 
+	@utils.document
 	def assertLacksStrings(self, *strings):
 		"""checks that all its arguments are *not* found within content.
 		"""
 		for phrase in strings:
 			assert phrase not in self.data, "Unexpected: '%s'"%repr(phrase)
 
+	@utils.document
 	def assertHTTPStatus(self, expectedStatus):
 		assert expectedStatus==self.status, ("Bad status received, %s instead"
 			" of %s"%(self.status, expectedStatus))
 
+	@utils.document
 	def assertValidatesXSD(self):
 		"""checks whether the returned data are XSD valid.
+
+		As we've not yet found a python XSD validator capable enough to
+		deal with the complex web of schema files in the VO, this
+		requires a little piece of java (which also means that these tests
+		are fairly resource demanding).  In a checkout of DaCHS, go to the
+		schemata subdirectory and run python makeValidator.py (this needs 
+		a JDK as well as some external libraries; see the makeValidator source).
 		"""
 		from gavo.helpers import testtricks
 		msgs = testtricks.getXSDErrorsXerces(self.data)
@@ -442,13 +461,13 @@ class RegTest(procdef.ProcApp):
 			raise AssertionError("Response not XSD valid.  Xerces worries"
 				" start with\n%s"%(msgs[:160]))
 
-
 	XPATH_NAMESPACE_MAP = {
 		"v2": "http://www.ivoa.net/xml/VOTable/v1.2",
 		"v1": "http://www.ivoa.net/xml/VOTable/v1.1",
 		"o": "http://www.openarchives.org/OAI/2.0/",
 	}
 
+	@utils.document
 	def assertXpath(self, path, assertions):
 		"""checks an xpath assertion.
 
@@ -466,6 +485,10 @@ class RegTest(procdef.ProcApp):
 
 		If you need an RE match rather than equality, there's EqualingRE
 		in your code's namespace.
+
+		This needs lxml (debian package python-lxml) installed.  As it's only
+		a matter of time until lxml will become a hard DaCHS dependency,
+		installing it is a good idea anyway.
 		"""
 		tree = lxtree.fromstring(self.data)
 		res = tree.xpath(path, namespaces=self.XPATH_NAMESPACE_MAP)
@@ -483,6 +506,7 @@ class RegTest(procdef.ProcApp):
 			assert val==foundVal, "Trouble with %s: %s (%s, %s)"%(
 				key or "content", path, repr(val), repr(foundVal))
 
+	@utils.document
 	def assertHeader(self, key, value):
 		"""checks that header key has value in the response headers.
 
@@ -610,8 +634,10 @@ class TestRunner(object):
 # those, the individual tests must be serialized, which happens using the magic
 # followUp attribute on the tests.
 
-	def __init__(self, suites, verbose=True, dumpNegative=False):
+	def __init__(self, suites, serverURL=None, 
+			verbose=True, dumpNegative=False):
 		self.verbose, self.dumpNegative = verbose, dumpNegative
+		self.serverURL = serverURL or base.getConfig("web", "serverurl")
 		self.curRunning = {}
 		self.threadId = 0
 		self._makeTestList(suites)
@@ -686,7 +712,7 @@ class TestRunner(object):
 		try:
 			try:
 				curDesc = test.title
-				test.retrieveData()
+				test.retrieveData(self.serverURL)
 				test.compile()(test)
 				self.resultsQueue.put(("OK", test, None, None, time.time()-startTime))
 
@@ -724,7 +750,7 @@ class TestRunner(object):
 			print ">>>>", payload
 		elif state=="ERROR":
 			print "**** Internal Failure: %s -- %s\n"%(test.title, 
-				test.url.getValue()[0])
+				test.url.httpURL[0])
 			print traceback
 
 	def _runTestsReal(self, nThreads=8, showDots=False):
@@ -799,6 +825,39 @@ def urlToURL():
 				for k,v in urlparse.parse_qs(parts.query).iteritems()),
 			parts.path)
 
+
+def _getRunnerForAll(runnerArgs):
+	from gavo.registry import publication
+	from gavo import api
+
+	suites = []
+	for rdId in publication.findAllRDs():
+		rd = api.getRD(rdId)
+		suites.extend(rd.tests)
+	
+	return TestRunner(suites, **runnerArgs)
+
+
+def _getRunnerForSingle(testId, runnerArgs):
+	from gavo import api
+
+	if '#' in testId:
+		testElement = base.resolveId(None, testId)
+	else:
+		testElement = base.caches.getRD(testId)
+	
+	if isinstance(testElement, api.RD):
+		runner = TestRunner.fromRD(testElement, **runnerArgs)
+	elif isinstance(testElement, RegTestSuite):
+		runner = TestRunner.fromSuite(testElement, **runnerArgs)
+	elif isinstance(testElement, RegTest):
+		runner = TestRunner.fromTest(testElement, **runnerArgs)
+	else:
+		raise base.ReportableError("%s is not a testable element.",
+			hint="Only RDs, regSuites, or regTests are eligible for testing.")
+	return runner
+
+
 def parseCommandLine(args=None):
 	"""parses the command line for main()
 	"""
@@ -810,6 +869,10 @@ def parseCommandLine(args=None):
 	parser.add_argument("-d", "--dumpNegative", help="Dump the content of"
 		" failing tests to stdout",
 		action="store_true", dest="dumpNegative")
+	parser.add_argument("-u", "--serverURL", help="URL of the DaCHS root"
+		" at the server to test",
+		action="store", type=str, dest="serverURL", 
+		default=base.getConfig("web", "serverURL"))
 
 	return parser.parse_args(args)
 
@@ -817,28 +880,18 @@ def parseCommandLine(args=None):
 def main(args=None):
 	"""user interaction for gavo test.
 	"""
-	from gavo import api
 
 	args = parseCommandLine(args)
-	if '#' in args.id:
-		testElement = base.resolveId(None, args.id)
-	else:
-		testElement = base.caches.getRD(args.id)
-	
 	runnerArgs = {
 		"verbose": args.verbose,
 		"dumpNegative": args.dumpNegative,
+		"serverURL": args.serverURL,
 	}
 
-	if isinstance(testElement, api.RD):
-		runner = TestRunner.fromRD(testElement, **runnerArgs)
-	elif isinstance(testElement, RegTestSuite):
-		runner = TestRunner.fromSuite(testElement, **runnerArgs)
-	elif isinstance(testElement, RegTest):
-		runner = TestRunner.fromTest(testElement, **runnerArgs)
+	if args.id=="ALL":
+		runner = _getRunnerForAll(runnerArgs)
 	else:
-		raise base.ReportableError("%s is not a testable element.",
-			hint="Only RDs, regSuites, or regTests are eligible for testing.")
+		runner = _getRunnerForSingle(args.id, runnerArgs)
 	
 	runner.runTests(showDots=True)
 	print runner.stats.getReport()

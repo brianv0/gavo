@@ -344,6 +344,10 @@ def _getModuleFunctionDocs(module):
 	"""
 	res = []
 	for name in dir(module):
+		if name.startswith("_"):
+			# ignore all privat attributes, whatever else happens
+			continue
+
 		ob = getattr(module, name)
 		if hasattr(ob, "buildDocsForThis"):
 			if ob.func_doc is None:  # silently ignore if no docstring
@@ -358,6 +362,11 @@ def _getModuleFunctionDocs(module):
 def getRmkFuncs(docStructure):
 	from gavo.rscdef import rmkfuncs
 	return _getModuleFunctionDocs(rmkfuncs)
+
+
+def getRegtestAssertions(docStructure):
+	from gavo.rscdef import regtest
+	return _getModuleFunctionDocs(regtest.RegTest)
 
 
 def _getProcdefDocs(procDefs):
@@ -466,7 +475,7 @@ def makeReferenceDocs():
 
 
 def main():
-	print makeReferenceDocs().replace("\\", "\\\\"
+	print makeReferenceDocs(
 		).replace("\t", "  "
 		).encode("utf-8")
 

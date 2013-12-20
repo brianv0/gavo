@@ -180,10 +180,10 @@ def makeRD(args, opts):
 		("creator.name", "Other, A."),
 		("subject", "One Keyword"),
 		("subject", "Two Words"),
-		("content.type", "Catalog")]:
+		("content.type", "Catalog"),
+		("coverage.waveband", "Optical"),
+		("coverage.profile", "AllSky ICRS"),]:
 			rd.addMeta(key, value)
-			rd.addMeta("coverage.waveband", "Optical")
-			rd.addMeta("coverage.profile", "AllSky ICRS")
 
 	rd.feedObject("table", tableMakers[opts.srcForm](rd, args[0], opts))
 	rd.feedObject("data", dataMakers[opts.srcForm](rd, args[0], opts))

@@ -973,24 +973,442 @@ TBD
 Regression Testing
 ==================
 
-Careful: Macros are expanded, so you need to double-escape.
+Introduction
+''''''''''''
 
-gavo totesturl (you will usually want to remove the RD part from the
-path, will not work for values with embedded quotes, and this only takes the first of multiple parameters – patches
-welcome.
+Things break – perhaps because someone foolishly dropped a database
+table, because something happened in your upstream, because you changed
+something or even because we changed the API (if that's not mentioned in
+Changes, we owe you a beverage of your choice).  Given that, having
+regression tests that you can easily run will really help your peace of
+mind.
 
-~/.gavo/test.creds
+Therefore, DaCHS contains a framework for embedding regression tests in
+resource descriptors.  Before we tell you how these work, some words of
+advice, as writing useful regression tests is an art as much as
+engineering.
 
-Make it fail first.
+*Don't overdo it.*  There's little point in checking all kinds of
+functionality that only uses DaCHS code – we're running our tests before
+committing into the repository, and of course before making a release.
+If the services just use condDescs with buildFrom and one of the
+standard renderers, there's little point in testing beyond a request
+that tells you the database table is still there and contains something
+resembling the data that should be there.
 
-Useful vim macro (put in your ``.vimrc``)::
+*Don't be over-confident.*  Just because it seems trivial doesn't
+mean it cannot fail.  Whatever code there is in the service processing
+of your RD, be it phrase makers, output field formatters, custom
+render or data functions, not to mention custom renderers and cores,
+deserves regression testing.
+
+*Be specific.*  In choosing the queries you test against, try to find
+something that won't change when data is added to your service, when
+you add input keys or when doing similar maintenance-like this.  Change
+will happen, and it's annoying to have to fix the regression test every
+time the output might legitimately change.  This helps with the next point.
+
+*Be pedantic.*  Do not accept failing regression tests, even if you
+think you know why they're failing.  The real trick with useful testing
+is to keep "normal" output minimal.  If you have to "manually" ignore
+diagnostics, you're doing it wrong.  Also, sometimes tests may fail
+"just once".  That's usually a sign of a race condition, and you should
+*really* try to figure out what's going on.
+
+*Make it fail first.*  It's surprisingly easy to write no-op tests
+that run but won't fail when the assertion you think you're making is no
+longer true.  So, when developing a test, assert something wrong first,
+make sure there's some diagnostics, and only then assert what you really
+expect.
+
+*Be terse.*  While in unit tests it's good to test for maximally
+specific properties so failing unit tests lead you on the right track as
+fast as possible, in regression tests there's nothing wrong with
+plastering a number of assertions into one test.  Regression tests
+actually make requests to a web server, and these are comparatively
+expensive.  The important thing here is that regression testing is fast
+enough to let you run them every time you make a change.
+
+
+Writing Regression Tests
+''''''''''''''''''''''''
+
+DaCHS' regression testing framework is organized a bit along the lines
+of python's unittest and its predecessors, with some differences due to
+the different scope.
+
+So, tests are grouped into suites, where each suite is contained in a
+regSuite_ element.  These have a (currently unused) title and a boolean
+attribute ``sequential`` intended for when the tests contained must be
+executed in the sequence specified and not in parallel.  It defaults to
+false, which means the requests are made in random order and in
+parallel, which speeds up the test runs and, in particular, will help
+uncover race conditions.
+
+On the other hand, if you're testing some sort of interaction across
+requests (e.g., make an upload, see if it's there, remove it again),
+this wouldn't work, and you must set `sequential="True"`.  Keep these
+sequential suites as short as possible.
+
+Regression suites contain tests, represented in regTest_ elements.
+These are procDefs (just like, e.g., rowmakery ``apply``), so you can
+have setup code, and you could have a library of parametrizable regTests
+procDefs that you'd then turn into regTests by setting their parameters.
+We've not found that terribly useful so far, though.
+
+You must given them a ``title``, which is used when reporting problems
+with them.  Otherwise, the crucial children of these are ``url`` and, as
+always with procDefs, ``code``.
+
+RegTest URLs
+''''''''''''
+
+The `url element`_ encapsulates all aspects of building the request.  In
+the simplest case, you just can have a simple URL, in which case it
+works as an attribute, like this::
+  
+  <regTest title="example" url="svc/form">
+    ...
+
+URLs without a scheme and a leading slash are interpreted relative to
+the RD's root URL, so you'd usually just give the service id and the
+renderer to be applied.  You can also specify root-relative and fully
+specified URLs as described in the documentation of the `url element`_. 
+
+White space in URLs is removed, which lets you break long URLs as
+convenient.
+
+You could have GET parameters in this URL, but that's inconvient due to
+both XML and HTTP escaping.  So, if you want to pass parameters, just
+give them as attributes to the element::
+
+  <regTest title="example">
+    <url RA="10" DEC="-42.3" SR="1" parSet="form">svc/form</url>
+
+The ``parSet=form`` here sets up things such that processing for the
+form renderer is performed – our form library nevow formal has some
+hidden parameters that you don't want to repeat in every URL.  
+
+To easily translate URLs taken from a browser's address bar or the form
+renderer's result link, you can run ``gavo totesturl`` and paste the
+URLs there.  Note that totesturl fails for values with embedded quotes,
+takes only the first value of repeated parameters and is a over-quick
+hack all around.  Patches are gratefully accepted.
+
+The ``url`` element hence accepts arbitary attributes, which can be a
+trap if you think you've given values to url's private attributes and
+mistyped their names.  If uploads or authentication don't seem to
+happen, check if your attribute ended up the in the URL (which is
+displayed with the failure message) and fix the attribute name; 
+most private url attributes start with ``http``.  If you really need
+to pass a parameter named like one of url's private attributes, pass it
+in the URL if you can.  If you can't because you're posting, spank us.
+After teat, we'll work out something not too abominable .
+
+If you have services requiring authentication, use url's ``httpAuthKey``
+attribute.  We've introduced this to avoid having credentials in the RD,
+which, after all, should reside in a version control system which may
+be (and in the case of GAVO's data center is) public.  The attribute's
+value is a key into the file ``~/.gavo/test.creds``, which contains, line
+by line, this key, a username and a password, e.g.::
+
+  svc1 testuser notASecret
+  svc2 regtest NotASecretEither
+
+A test using this would look like this::
+
+  <regTest title="Authenticated user can see the light">
+    <url httpAuthKey="svc1">svc1/qp/light.txt</url>
+    <code>
+      self.assertHTTPStatus(200)
+    </code>
+  </regTest>
+
+By default, a test will perform a GET request.  To change this, set
+the ``httpMethod`` attribute.  That's particularly important with
+uploads (which must be POSTed).  
+
+For uploads, the url element offers two facilities.  You can set a
+request payload from a file using the ``postPayload`` attribute (the
+path is interpreted relative to the resource directory), but it's much
+more common to do a file upload like browsers do them.  Use the
+``httpUpload`` element for this, as in::
+  
+  <url> <httpUpload name="UPLOAD"
+    fileName="remote.txt">a,b,c</httpUpload> svc1/async </url>
+
+(which will work as if the user had selected a file remote.txt
+containing "a,b,c" in a browser with a file element named UPLOAD), or as
+in::
+
+  <url>
+    <httpUpload name="UPLOAD" fileName="remote.vot"
+      source="res/sample.regtest"/>
+    svc1/async
+  </url>
+
+(which will upload the file referenced in ``source``, giving the remote
+server the filename ``remote.vot``).  The ``fileName`` attribute is
+optional.
+
+Finally, you can pass arbitrary HTTP headers using the ``httpHeader``
+element.  This has an attribute ``key``; the header's value is taken
+from the element content, like this::
+
+	<url postPayload="res/testData.regtest" httpMethod="POST">
+		<httpHeader key="content-type">image/jpeg</httpHeader>
+		>upload/custom</url>
+
+RegTest Tests
+'''''''''''''
+
+Since regression tests are just procDefs, the actual assertions are
+contained in the ``code`` child of the ``regTest``.  The code in there
+sees the test itself in self, and it can access ``self.data`` (the
+response content), ``self.headers`` (a sequence of header name, value
+pairs; note that you should match the names case-insensitively here),
+and ``self.status`` (the HTTP response code), as well as the URL
+actually retrieved in ``self.url.httpURL`` (incidentally, that name is
+right; the regression framework only supports http, and it's not
+terribly likely that we'll change that).
+
+You should probably only access those attributes in a pinch and instead
+use the pre-defined assertions, which are methods on the test objects as
+in pyunit – conventional assertions are clearer to read and less likely
+to break if fixes to the regression test API become necessary.  If you
+still want to have custom tests, raise AssertionErrors to indicate a
+failure.
+
+Here's a list of assertion methods defined right now:
+
+.. replaceWithResult getRegtestAssertions(docStructure)
+
+
+All of these are methods, so you would actually write
+``self.assertHasStrings('a', 'b', 'c')`` in your test code (rather than
+pass self explicitely.
+
+When writing tests, please note that, like all procDef's bodies, the test
+code is macro-expanded by DaCHS.  This means that every backslash that
+should be seen by python needs to be escaped itself (i.e., doubled).  An
+escaped backslash in python thus is four backslashes in the RD.
+
+Finally, here's a piece of ``.vimrc`` that inserts a ``regTest``
+skeleton if you type ge in command mode (preferably at the start of
+a line; you may need to fix the indentation if you're not indenting with
+tabs.  We've thrown in a column skeleton on gn as well::
 
   augroup rd
 	  au!
 	  autocmd BufRead,BufNewFile *.rd set ts=2 tw=79
 	  au BufNewFile,BufRead *.rd map gn i<tab><tab><lt>column name="" type=""<CR><tab>unit="" ucd=""<CR>tablehead=""<CR>description=""<CR>verbLevel=""/><CR><ESC>5kf"a
-	  au BufNewFile,BufRead *.rd map ge i<tab><tab><lt>regTest title=""><CR><tab><lt>url><lt>/url><CR><lt>code><CR><lt>/code><CR><BS><lt>/regTest><ESC>5k
+	  au BufNewFile,BufRead *.rd map ge i<tab><tab><lt>regTest title=""><CR><tab><lt>url><lt>/url><CR><lt>code><CR><lt>/code><CR><BS><lt>/regTest><ESC>4k
   augroup END
+
+
+Running Tests
+'''''''''''''
+
+The first mode to run the regression tests is through ``gavo val``.  If
+you give it a ``-t`` flag, it will collect regression tests from all the
+RDs it touches and run them.  It will then output a brief report listing
+the RDs that had failed tests for closer inspection.
+
+It is recommended to run something like::
+  
+  ``gavo val -tv ALL``
+
+before committing changes into your inputs repository.  That way,
+regressions should be caught.
+
+The tests are ran against the server described through the
+``[web]serverURL`` config item.  In the recommended setup, this would be
+a server started on your own development machine, which then would
+actually test the changes you made.
+
+There is also a dedicated gavo sub-command ``test`` for executing the
+tests.  This is what you should be using for developing tests or
+investigating failures flagged with ``gavo val``.  On its command line,
+you can give on of an RD id or a cross-rd reference to a test suite,
+or a cross-rd reference to an individual test.  For example,
+
+::
+
+  gavo test res1/q 
+  gavo test res2/q#suite1 
+  gavo test res2/q#test45
+
+would run all the tests given in the RD ``res1/q``, the tests in
+the regSuite with the ``id`` suite1 in ``res2/q``, and a test with
+``id="test45`` in ``res2/q``, respectively.
+
+To traverse inputs and run tests from all RDs found there, as well as
+tests from the built-in RDs, run::
+
+  gavo test ALL
+
+``gavo test`` by default has a very terse output.  To see which tests
+are failing and what they gave as reasons, run it with the '-v' option.
+
+To debug failing regression tests (or maybe to come up with good things
+to test for), use '-d', which dumps the server response of failing tests
+to stdout.
+
+In the recommended setup with a production server and a development
+machine sharing a checkout of the same inputs, you can exercise
+production server from the development machine by giving the ``-u``
+option with what your production server has in its ``[web]serverURL``
+configuration item.  So,
+
+::
+
+  gavo test -u http://production.example.com ALL
+
+is what might help your night's sleep.
+
+
+Examples
+''''''''
+
+Here are some examples how these constructs can be used.  First, a
+simple test for string presence (which is often preferred even when
+checking XML, as it's less likely to break on schema changes; these
+usually count as noise in regression testing).  Also note how we have
+escaped embedded XML fragments; an alternative to this shown below
+is making the code a CDATA section::
+
+	<regTest title="Info page looks ok" 
+		url="siap/info">
+		<code>
+			self.assertHasStrings("SIAP Query", "siap.xml", "form", 
+				"Other services", "SIZE&lt;/td>", "Verb. Level")
+		</code>
+	</regTest>
+
+The next is a test with a "rooted" URL that's spanning lines, has
+embedded parameters (not recommended), plus an assertion on binary
+data::
+
+	<regTest title="NV Maidanak product delivery"
+		url="/getproduct/maidanak/data/Q2237p0305/Johnson_R/
+			red_kk050001.fits.gz?siap=true">
+		<code>
+			self.assertHasStrings('\\x1f\\x8b\\x08\\x08')
+		</code>
+	</regTest>
+
+This is how parameters should be passed into the request::
+
+	<regTest title="NV Maidanak SIAP returns accref.">
+		<url POS="340.12,3.3586" SIZE="0.1" INTERSECT="OVERLAPS" 
+			_TDENC="True" _DBOPTIONS_LIMIT="10">siap/siap.xml</url>
+		<code>
+			self.assertHasStrings('&lt;TD>AZT 22')
+		</code>
+	</regTest>
+
+Here's an example for a test with URL parameters and xpath assertions::
+
+	<regTest title="NV Maidanak SIAP metadata query"
+			url="siap/siap.xml?FORMAT=METADATA">
+		<code>
+			self.assertXpath("//v1:FIELD[@name='wcs_cdmatrix']", {
+				"datatype": "double",
+				"ucd": "VOX:WCS_CDMatrix",
+				"arraysize": "*",
+				"unit": "deg/pix"})
+			self.assertXpath("//v1:INFO[@name='QUERY_STATUS']", {
+				"value": "OK",
+				None: "OK",})
+			self.assertXpath("//v1:PARAM[@name='INPUT:POS']", {
+				"datatype": "char",
+				"ucd": "pos.eq",
+				"unit": "deg"})
+		</code>
+	</regTest>
+
+The following is a fairly complex example for a stateful suite doing
+inline uploads (and simple tests)::
+
+	<regSuite title="GAVO roster publication cycle" sequential="True">
+		<regTest title="Complete record yields some credible output">
+			<url httpAuthKey="gvo" parSet="form" httpMethod="POST">
+				<httpUpload name="inFile" fileName="testing_ignore.rd"
+					><![CDATA[
+						<resource schema="gvo">
+							<meta name="description">x</meta>
+							<meta name="title">A test service</meta>
+							<meta name="creationDate">2010-04-26T11:45:00</meta>
+							<meta name="subject">Testing</meta>
+							<meta name="referenceURL">http://foo.bar</meta>
+							<nullCore id="null"/>
+							<service id="run" core="null" allowed="external">
+								<meta name="shortName">u</meta>
+								<publish render="external" sets="gavo">
+									<meta name="accessURL">http://foo/bar</meta>
+								</publish></service></resource>
+					]]></httpUpload>upload/form</url>
+			<code><![CDATA[
+				self.assertHasStrings("#Published</th><td>1</td>")
+			]]></code>
+		</regTest>
+
+		<regTest title="Publication leaves traces on GAVO list" url="list/custom">
+			<code>
+				self.assertHasStrings(
+					'"/gvo/data/testing_ignore/run/external">A test service')
+			</code>
+		</regTest>
+
+		<regTest title="Unpublication yields some credible output">
+			<url httpAuthKey="gvo" parSet="form" httpMethod="POST">
+				<httpUpload name="inFile" fileName="testing_ignore.rd"
+					><![CDATA[
+					<resource schema="gvo">
+						<meta name="description">x</meta>
+						<meta name="title">A test service</meta>
+						<meta name="creationDate">2010-04-26T11:45:00</meta>
+						<meta name="subject">Testing</meta>
+						<meta name="referenceURL">http://foo.bar</meta>
+						<service id="run" allowed="external">
+							<nullCore/>
+							<meta name="shortName">u</meta></service></resource>
+					]]></httpUpload>upload/form</url>
+			<code><![CDATA[
+				self.assertHasStrings("#Published</th><td>0</td>")
+			]]></code>
+		</regTest>
+
+		<regTest title="Unpublication leaves traces on GAVO list"
+			url="list/custom">
+			<code>
+				self.assertLacksStrings(
+					'"/gvo/data/testing_ignore/run/external">A test service')
+			</code>
+		</regTest>
+
+	</regSuite>
+
+If you still run SOAP services, here's one way to test them::
+
+	<regTest id="soaptest" title="APFS SOAP returns something reasonable">
+			<url postPayload="res/soapRequest.regtest" httpMethod="POST">
+				<httpHeader key="SOAPAction">'"useService"'</httpHeader>
+				<httpHeader key="content-type">text/xml</httpHeader
+				>qall/soap/go</url>
+			<code>
+				self.assertHasStrings(
+					'="xsd:date">2008-02-03Z&lt;/tns:isodate>', 
+				'&lt;tns:raCio xsi:type="xsd:double">25.35')
+			</code>
+		</regTest>
+
+– here, ``res/soapRequest.regtest`` would contain the request body that
+you could, for example, snarf from a tcpdump log.
+
+.. _regSuite: #element-regsuite
+.. _regTest: #element-regtest
+.. _url element: #element-url
 
 
 

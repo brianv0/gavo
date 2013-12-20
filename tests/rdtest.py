@@ -625,8 +625,9 @@ _RUNNERS_RESPONSES = {
 def _fakeRetrieveResource(self, moreHeaders=""):
 	"""A stand-in for the test runner's testOpener.
 	"""
+	self.httpURL = self.getValue(base.getConfig("web", "serverURL"))
 	try:
-		return _RUNNERS_RESPONSES[self.getValue()]
+		return _RUNNERS_RESPONSES[self.httpURL]
 	except KeyError:
 		return 404, {}, "Not found"
 
@@ -657,19 +658,19 @@ class MiscRegtestTest(_RegtestTest):
 		self.assertContains("3 of 4 bad.  avg", runner.stats.getReport())
 
 	def testRelativeSource(self):
-		self.assertEqual(self.rd.tests[1].tests[0].url.getValue(),
-			"http://localhost:8080/data/regtest/foo?testParam=10%25w%2Fo+tax")
+		self.assertEqual(self.rd.tests[1].tests[0].url.getValue("http://foo"),
+			"http://foo/data/regtest/foo?testParam=10%25w%2Fo+tax")
 
 	def testRelativeSourceWithParam(self):
-		self.assertEqual(self.rd.tests[1].tests[3].url.getValue(),
-			"http://localhost:8080/data/regtest/nork?urk=zoo&oo=1&oo=2")
+		self.assertEqual(self.rd.tests[1].tests[3].url.getValue("http://foo"),
+			"http://foo/data/regtest/nork?urk=zoo&oo=1&oo=2")
 
 	def testAbsoluteSource(self):
-		self.assertEqual(self.rd.tests[1].tests[1].url.getValue(),
-			"http://localhost:8080/bar")
+		self.assertEqual(self.rd.tests[1].tests[1].url.getValue("http://foo"),
+			"http://foo/bar")
 
 	def testURISource(self):
-		self.assertEqual(self.rd.tests[1].tests[2].url.getValue(),
+		self.assertEqual(self.rd.tests[1].tests[2].url.getValue("http://foo"),
 			"ivo://ivoa.net/std/quack")
 		self.assertEqual(self.rd.tests[1].tests[2].url.getParams(), 
 			[("gobba", "&?")])
@@ -682,7 +683,6 @@ class RegtestRunTest(_RegtestTest):
 		self.assertContains("**** Test failed: Failing Test -- http://localhost:8",
 			stdout)
 		self.assertContains("3 of 9 bad.  avg", stdout)
-		print repr(stderr)
 		self.failUnless(stderr=='.........\n')
 
 	def testRunSuite(self):

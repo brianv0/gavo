@@ -1,3 +1,10 @@
+Version 0.9.1
+
+	* New regression testing framework derived from a local hack we've had
+	  in the GAVO DC for a while now.  Try it, it's your friend.  See the
+	  reference documentation for details.
+
+
 Version 0.9 (2013-02-13)
 
 	* API CHANGE: If you have custom logic (i.e., phraseMakers) on
