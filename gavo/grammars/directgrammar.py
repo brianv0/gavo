@@ -148,30 +148,39 @@ class DirectGrammar(base.Structure, base.RestrictionMixin):
 
 	_cbooster = rscdef.ResdirRelativeAttribute("cBooster", 
 		default=base.Undefined,
-		description="resdir-relative path to the booster C source.")
+		description="resdir-relative path to the booster C source.",
+		copyable=True)
 	_gzippedInput = base.BooleanAttribute("gzippedInput", default=False,
-		description="Pipe gzip before booster?")
+		description="Pipe gzip before booster?",
+		copyable=True)
 	_autoNull = base.UnicodeAttribute("autoNull", default=None,
-		description="Use this string as general NULL value")
+		description="Use this string as general NULL value",
+		copyable=True)
 	_ignoreBadRecords = base.BooleanAttribute("ignoreBadRecords",
-		default=False, description="Let booster ignore invalid records?")
+		default=False, description="Let booster ignore invalid records?",
+		copyable=True)
 	_recordSize = base.IntAttribute("recordSize", default=4000,
 		description="For bin boosters, read this many bytes to make"
-			" up a record; for line-based boosters, this is the maximum"
-			" length of an input line.")
+		" up a record; for line-based boosters, this is the maximum"
+		" length of an input line.",
+		copyable=True)
 	_preFilter = base.UnicodeAttribute("preFilter", default=None,
 		description="Pipe input through this program before handing it to"
-			" the booster; this string is shell-expanded.")
+			" the booster; this string is shell-expanded.",
+		copyable=True)
 	_customFlags = base.UnicodeAttribute("customFlags", default="",
 		description="Pass these flags to the C compiler when building the"
-		" booster.")
+		" booster.",
+		copyable=True)
 	_type = base.EnumeratedUnicodeAttribute("type", default="col", 
 		validValues=["col", "bin", "fits", "split"],
 		description="Make code for a booster parsing by column indices (col),"
 			" by splitting along separators (split), by reading fixed-length"
-			" binary records (bin), for from FITS binary tables (fits).")
+			" binary records (bin), for from FITS binary tables (fits).",
+		copyable=True)
 	_splitChar = base.UnicodeAttribute("splitChar", default="|",
-		description="For split boosters, use this as the separator")
+		description="For split boosters, use this as the separator",
+		copyable=True)
 	_rd = rscdef.RDAttribute()
 
 	isDispatching = False
