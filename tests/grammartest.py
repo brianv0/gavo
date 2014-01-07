@@ -489,6 +489,11 @@ class DirectGrammarTest(testhelpers.VerboseTest):
 		self.failUnless("MAKE_BIGINT(fi_b, ((long long*)(data[1]))[rowIndex]);" 
 			in src)
 
+	def testFITSWithAdditionalCols(self):
+		src = directgrammar.getSource("data/dgs#fitsplus")
+		self._assertCommonItems(src)
+		self.failUnless("MAKE_TEXT(fi_artificial, FILL IN VALUE);" in src)
+
 	# XXX TODO: tests for column reordering, skipping unused columns in FITS
 
 directgrammar.CBooster.silence_for_test = True

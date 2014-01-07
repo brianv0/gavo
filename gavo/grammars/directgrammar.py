@@ -81,7 +81,7 @@ class CBooster(object):
 		# is part of the custom grammar.
 		f.write("LDFLAGS += -lcfitsio\n")
 		f.write("booster: boosterskel.c func.c\n"
-			"\t$(CC) $(CFLAGS) $(LDFLAGS) %s -o booster $^\n"%self.customFlags)
+			"\t$(CC) $(CFLAGS) %s -o booster $^ $(LDFLAGS)\n"%self.customFlags)
 		f.close()
 	
 	def _build(self):
@@ -290,6 +290,24 @@ COMMON_MAIN_FOOT = """
 """
 
 
+def _getMakeMacro(item):
+	"""returns a maker macro for a column object.
+	"""
+	try:
+		return {
+			"integer": "MAKE_INT",
+			"smallint": "MAKE_SHORT",
+			"double precision": "MAKE_DOUBLE",
+			"real": "MAKE_FLOAT",
+			"char": "MAKE_CHAR_NULL",
+			"bytea": "MAKE_BYTE",
+			"text": "MAKE_TEXT",
+		}[item.type]
+	except KeyError:
+		# not a simple case; this could be a place for doing arrays and such
+		return "MAKE_somethingelse"
+
+
 class _CodeGenerator(object):
 	"""a base class for code generators.
 
@@ -432,21 +450,21 @@ class BinCodeGenerator(_CodeGenerator):
 	def getItemParser(self, item, index):
 		t = item.type
 		if t=="integer":
-			pline = "MAKE_INT(%s, *(int32_t*)(line+));"
+			pline = "%s(%s, *(int32_t*)(line+));"
 		elif t=="smallint":
-			pline = "MAKE_SHORT(%s, *(int16_t*)(line+ ));"
+			pline = "%s(%s, *(int16_t*)(line+ ));"
 		elif t=="double precision":
-			pline = "MAKE_DOUBLE(%s, *(double*)(line+ ));"
+			pline = "%s(%s, *(double*)(line+ ));"
 		elif t=="real":
-			pline = "MAKE_FLOAT(%s, *(float*)(line+ ));"
+			pline = "%s(%s, *(float*)(line+ ));"
 		elif t=="char":
-			pline = "MAKE_CHAR_NULL(%s, *(double*)(line+ ), '<nil>');"
+			pline = "%s(%s, *(double*)(line+ ), '<nil>');"
 		elif t=="bytea":
-			pline = "MAKE_BYTE(%s, *(double*)(line+ ), '<nil>');"
+			pline = "%s(%s, *(double*)(line+ ), '<nil>');"
 		else:
-			pline = "MAKE %s"
+			pline = "%s %s"
 		return ["/* %s (%s) */"%(item.description, t), 
-			pline%getNameForItem(item)]
+			pline%(_getMakeMacro(item), getNameForItem(item))]
 
 	def getPreamble(self):
 		return _CodeGenerator.getPreamble(self)+[
@@ -501,30 +519,34 @@ class FITSCodeGenerator(_CodeGenerator):
 				" at least one matching source.")
 
 	def getItemParser(self, item, index):
-		return [
-			"/* %s (%s) */"%(item.description, item.type), 
-			"if (nulls[%d][rowIndex]) {"%index,
-			"  MAKE_NULL(%s);"%getNameForItem(item),
-			"} else {",
-			"	 %s(%s, ((%s*)(data[%d]))[rowIndex]);"%(
-				self.fitsTypes[item.type][1], 
-				getNameForItem(item),
-				self.fitsTypes[item.type][2], 
-				index),
-			"}",]
+		try:
+			fitsIndex, fitsDesc = self._getFITSColDesc(item.name)
+			return [
+				"/* %s (%s) */"%(item.description, item.type), 
+				"if (nulls[%d][rowIndex]) {"%fitsIndex,
+				"  MAKE_NULL(%s);"%getNameForItem(item),
+				"} else {",
+				"	 %s(%s, ((%s*)(data[%d]))[rowIndex]);"%(
+					self.fitsTypes[item.type][1], 
+					getNameForItem(item),
+					self.fitsTypes[item.type][2], 
+					fitsIndex),
+				"}",]
+		except KeyError:
+			return ["%s(%s, FILL IN VALUE);"%(
+				_getMakeMacro(item), getNameForItem(item))]
 
 	def getPreamble(self):
 		return _CodeGenerator.getPreamble(self)+[
 			"#include <fitsio.h>",
 			"#define FITSCATCH(x) if (x) {fatalFitsError(status);}",
-			"void fatalFitsError(int status)",
-			"	{",
-			"		if (status==0) {",
-			"			return;",
-			"		}",
-			"		fits_report_error(stderr, status);",
-			"		exit(1);",
+			"void fatalFitsError(int status) {",
+			"	if (status==0) {",
+			"		return;",
 			"	}",
+			"	fits_report_error(stderr, status);",
+			"	abort();",
+			"}",
 			]
 
 	def getPrototype(self):
@@ -549,20 +571,24 @@ class FITSCodeGenerator(_CodeGenerator):
 		"""
 		res = []
 		for col in self.tableDef:
-			index, fcd = self._getFITSColDesc(col.name)
+			try:
+				index, fcd = self._getFITSColDesc(col.name)
 
-			# special handling for strings, as we need their size
-			if col.type=="text":
-				# XXX TODO: properly reject var length strings here
-				length = int(re.match("(\d+)A", fcd.format).group(1))
-				res.append("{.cSize = %d, .fitsType = TSTRING, .index=%d}"%(
-					length, index+1))
+				# special handling for strings, as we need their size
+				if col.type=="text":
+					# XXX TODO: properly reject var length strings here
+					length = int(re.match("(\d+)A", fcd.format).group(1))
+					res.append("{.cSize = %d, .fitsType = TSTRING, .index=%d}"%(
+						length, index+1))
 
-			else:
-				res.append("{.cSize = sizeof(%s), .fitsType = %s, .index=%d}"%(
-					self.fitsTypes[col.type][2], 
-					self.fitsTypes[col.type][0],
-					index+1))
+				else:
+					res.append("{.cSize = sizeof(%s), .fitsType = %s, .index=%d}"%(
+						self.fitsTypes[col.type][2], 
+						self.fitsTypes[col.type][0],
+						index+1))
+			except KeyError:
+				# table column not part of FITS table, don't read anything
+				pass
 
 		return "{\n%s\n}"%",\n".join(res)
 
@@ -572,66 +598,64 @@ class FITSCodeGenerator(_CodeGenerator):
 			"colDescs": self._getColDescs(),
 		}
 		return ("""
-	typedef struct FITSColDesc_s {
-		size_t cSize;
-		int fitsType;
-		int index;  /* in the FITS columns */
-	} FITSColDesc;
+typedef struct FITSColDesc_s {
+	size_t cSize;
+	int fitsType;
+	int index;  /* in the FITS columns */
+} FITSColDesc;
 
-	FITSColDesc COL_DESCS[%(nCols)d] = %(colDescs)s;
+FITSColDesc COL_DESCS[%(nCols)d] = %(colDescs)s;
 """%infoDict+COMMON_MAIN_HEADER
 +"""
-		fitsfile *fitsInput;
-		int ignored, i;
-		int status = 0;
-		long nRows = 0;
-		void *data[%(nCols)d];
-		char *nulls[%(nCols)d];
+	fitsfile *fitsInput;
+	int ignored, i;
+	int status = 0;
+	long nRows = 0;
+	void *data[%(nCols)d];
+	char *nulls[%(nCols)d];
 
-		if (argc>2) {
-			die(USAGE);
-		}
-		if (argc==2) {
-			FITSCATCH(fits_open_table(&fitsInput, argv[1], READONLY, &status));
-		} else {
-			die("FITS tables cannot be read from stdin.");
-		}
+	if (argc>2) {
+		die(USAGE);
+	}
+	if (argc==2) {
+		FITSCATCH(fits_open_table(&fitsInput, argv[1], READONLY, &status));
+	} else {
+		die("FITS tables cannot be read from stdin.");
+	}
 
-		FITSCATCH(fits_get_num_rows(fitsInput, &nRows, &status));
+	FITSCATCH(fits_get_num_rows(fitsInput, &nRows, &status));
 
-		for (i=0; i<%(nCols)d; i++) {
-			if (COL_DESCS[i].fitsType==TSTRING) {
-				char *stringHoldings = NULL;
-				if (!(data[i] = malloc(nRows*sizeof(char*)))
-					|| !(stringHoldings = malloc(nRows*(COL_DESCS[i].cSize+1)))) {
-					die("out of memory");
-				} else {
-					int k;
-					/* Initialize the char* in the data array */
-					for (k=0; k<nRows; k++) {
-						((char**)(data[i]))[k] = stringHoldings+k*(COL_DESCS[i].cSize+1);
-					}
-				}
-			} else{
-				if (!(data[i] = malloc(nRows*COL_DESCS[i].cSize))) {
-					die("out of memory");
+	for (i=0; i<%(nCols)d; i++) {
+		if (COL_DESCS[i].fitsType==TSTRING) {
+			char *stringHoldings = NULL;
+			if (!(data[i] = malloc(nRows*sizeof(char*)))
+				|| !(stringHoldings = malloc(nRows*(COL_DESCS[i].cSize+1)))) {
+				die("out of memory");
+			} else {
+				int k;
+				/* Initialize the char* in the data array */
+				for (k=0; k<nRows; k++) {
+					((char**)(data[i]))[k] = stringHoldings+k*(COL_DESCS[i].cSize+1);
 				}
 			}
-			if (!(nulls[i] = malloc(nRows*sizeof(char)))) {
+		} else{
+			if (!(data[i] = malloc(nRows*COL_DESCS[i].cSize))) {
 				die("out of memory");
 			}
-			FITSCATCH(fits_read_colnull(fitsInput, COL_DESCS[i].fitsType, 
-				COL_DESCS[i].index, 1, 1,
-      	nRows, data[i], nulls[i], &ignored, &status));
-		}"""%infoDict
+		}
+		if (!(nulls[i] = malloc(nRows*sizeof(char)))) {
+			die("out of memory");
+		}
+		FITSCATCH(fits_read_colnull(fitsInput, COL_DESCS[i].fitsType, 
+			COL_DESCS[i].index, 1, 1,
+     	nRows, data[i], nulls[i], &ignored, &status));
+	}"""%infoDict
 		+COMMON_MAIN_INTRO
-		+"""
-		for (i=0; i<nRows; i++) {"""
+		+"""	for (i=0; i<nRows; i++) {"""
 		+LOOP_BODY_INTRO
-		+"""
-				tuple = getTuple(data, nulls, i);"""
+		+"""		tuple = getTuple(data, nulls, i);"""
 		+LOOP_BODY_FOOT
-		+"}\n"
+		+"	}\n"
 		+COMMON_MAIN_FOOT)
 
 

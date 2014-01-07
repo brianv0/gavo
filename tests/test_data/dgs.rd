@@ -8,6 +8,11 @@
 		<column name="t" type="text"/>
 	</table>
 
+	<table id="dgtplus" onDisk="True" original="dgt">
+		<column name="artificial" description="artificial column"
+			type="text"/>
+	</table>
+
 	<data id="impcol">
 		<directGrammar id="col" type="col" cBooster="void.c"/>
 		<make table="dgt"/>
@@ -28,6 +33,12 @@
 		<sources>extable.fitstable</sources>
 		<directGrammar id="fits" type="fits" cBooster="tmp.c"/>
 		<make table="dgt"/>
+	</data>
+
+	<data id="impfitsplus">
+		<sources>extable.fitstable</sources>
+		<directGrammar id="fitsplus" type="fits" cBooster="tmp.c"/>
+		<make table="dgtplus"/>
 	</data>
 
 </resource>
