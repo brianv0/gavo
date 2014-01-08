@@ -370,6 +370,32 @@ class PredefinedTest(testhelpers.VerboseTest):
 		self.assertEqual(res.getPrimaryTable().rows, 
 			[{'y': u'right', 'x': u'bar'}])
 
+	def testMapDict(self):
+		dd, td = makeDD('  <column name="foo" type="text"/>',
+			'  <apply procDef="//procs#dictMap" name="mapFoo">'
+			'		<bind key="key">"foo"</bind>'
+			'		<bind key="mapping">{"x": "u", "0": "1"}</bind>'
+			'	</apply><idmaps>*</idmaps>')
+		res = rsc.makeData(dd, forceSource=[{'foo': "x"}])
+		self.assertEqual(res.getPrimaryTable().rows[0]["foo"], "u")
+
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Field foo: dictMap saw '1', which it was not prepared to see.",
+			rsc.makeData,
+			(dd,), forceSource=[{'foo': "1"}])
+
+	def testMapDictDefault(self):
+		dd, td = makeDD('  <column name="foo" type="text"/>',
+			'  <apply procDef="//procs#dictMap" name="mapFoo">'
+			'		<bind key="key">"foo"</bind>'
+			'		<bind key="default">None</bind>'
+			'		<bind key="mapping">{"x": "u", "0": "1"}</bind>'
+			'	</apply><idmaps>*</idmaps>')
+		res = rsc.makeData(dd, forceSource=[{'foo': "x"}, {"foo": "y"}])
+		rows = res.getPrimaryTable().rows
+		self.assertEqual(rows[0]["foo"], "u")
+		self.assertEqual(rows[1]["foo"], None)
+
 
 class IgnoreOnTest(testhelpers.VerboseTest):
 	"""tests for working ignoreOn clauses.

@@ -67,7 +67,7 @@ class MappedExpression(base.Structure):
 		description="A python expression for a value that is mapped to"
 		" NULL (None).  Equality is checked after building the value, so"
 		" this expression has to be of the column type.  Use map with"
-		" the parseWithNULL function to catch null values before type"
+		" the parseWithNull function to catch null values before type"
 		" conversion.")
 
 	def completeElement(self, ctx):

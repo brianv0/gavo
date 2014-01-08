@@ -187,7 +187,8 @@ Procedures available for rowmaker apply
 
 .. replaceWithResult _makeProcsDocumenter([
     "//procs#simpleSelect", "//procs#resolveObject",
-  	"//procs#mapValue", "//procs#fullQuery", "//siap#computePGS",
+  	"//procs#mapValue", "//procs#fullQuery", "//procs#dictMap", 
+  	"//siap#computePGS",
   	"//siap#computeBbox", "//siap#setMeta", "//ssap#setMeta",
   	"//siap#getBandFromFilter", "//ssap#setMixcMeta",
     ])(docStructure)

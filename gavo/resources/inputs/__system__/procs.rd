@@ -207,6 +207,37 @@ should look if you just want to use this.</meta>
 	</code>
 </procDef>
 
+<procDef type="apply" id="dictMap">
+	<doc>
+		Maps input values through a dictionary.
+
+		The dictionary is given in its python form here.  This apply
+		only operates on the rawdict, i.e., the value in vars is changed,
+		while nothing is changed in the rowdict.
+	</doc>
+	<setup>
+		<par key="mapping" description="Python dictionary literal giving
+			 the mapping"/>
+		<par key="default" description="Default value for missing keys
+			 (with this at the default, an error is raised)">KeyError</par>
+		<par key="key" description="Name of the input key to map"/>
+		<code>
+			def doTheMap(vars):
+				newVal = mapping.get(vars[key], default)
+				if newVal is KeyError:
+					raise base.ValidationError("dictMap saw %s, which it was"
+						" not prepared to see."%repr(vars[key]),
+						colName=key,
+						hint="This dictMap knows the keys %s"%mapping.keys())
+				vars[key] = newVal
+		</code>
+	</setup>
+	<code>
+		doTheMap(vars)
+	</code>
+</procDef>
+
+
 <procDef id="expandIntegers" type="rowfilter">
 	<doc>
 	A row processor that produces copies of rows based on integer indices.
