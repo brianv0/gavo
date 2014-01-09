@@ -4,6 +4,13 @@ Version 0.9.1
 	  in the GAVO DC for a while now.  Try it, it's your friend.  See the
 	  reference documentation for details.
 
+	* Column selection for non-HTML now always include all columns explicitely
+	  given in the output table (unless supressed by a displayHint).  If
+	  you lie about types in your output table (e.g., declare string types
+	  for things that are really ints), you may now get errors on VOTable
+	  generation.  Fix the types or have a noxml=true displayHint in these
+	  cases.
+
 
 Version 0.9 (2013-02-13)
 

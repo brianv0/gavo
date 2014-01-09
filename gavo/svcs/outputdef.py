@@ -42,13 +42,13 @@ class OutputField(rscdef.Column):
 
 
 	_formatter = base.UnicodeAttribute("formatter", description="Function"
-		" body to render this item to HTML.", copyable=True)
+		" body to render this item to HTML.", copyable=True, expand=True)
 	_wantsRow = base.BooleanAttribute("wantsRow", description="Does"
 		" formatter expect the entire row rather than the colum value only?",
 		copyable="True")
 	_select = base.UnicodeAttribute("select", description="Use this SQL"
 		" fragment rather than field name in the select list of a DB based"
-		" core.", default=base.Undefined, copyable=True)
+		" core.", default=base.Undefined, copyable=True, expand=True)
 	_sets = base.StringSetAttribute("sets", description=
 		"Output sets this field should be included in; ALL includes the field"
 		" in all output sets.",
@@ -72,6 +72,9 @@ class OutputField(rscdef.Column):
 		res = cls(None, **col.getAttributes(rscdef.Column))
 		res.stc = col.stc
 		return res.finishElement()
+
+	def expand(self, *args, **kwargs):
+		return self.parent.expand(*args, **kwargs)
 
 
 class OutputTableDef(rscdef.TableDef):
