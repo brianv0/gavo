@@ -247,7 +247,7 @@ def makeMacroDoc(name, macFunc, content):
 	args = inspect.formatargspec(args[1:], varargs, varkw, defaults
 		).replace("(", "{").replace(")", "}").replace("{}", ""
 		).replace(", ", "}{")
-	content.addRaw("*\\%s%s*\n"%(name, args))
+	content.addRaw("*\\\\%s%s*\n"%(name, args))
 	content.addRaw(utils.fixIndentation(
 		macFunc.func_doc or "undocumented", "  ", 1)+"\n")
 

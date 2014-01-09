@@ -34,7 +34,7 @@ class CSVGrammar(Grammar, FileRowAttributes):
 	Note that these grammars by default interpret the first line of
 	the input file as the column names.  When your files don't follow
 	that convention, you *must* give names (as in ``names='raj2000,
-	dej2000, magV``), or you'll lose the first line and have silly
+	dej2000, magV'``), or you'll lose the first line and have silly
 	column names.
 
 	CSVGrammars currently do not support non-ASCII inputs.
@@ -49,7 +49,7 @@ class CSVGrammar(Grammar, FileRowAttributes):
 		description="Names for the parsed fields, in sequence of the"
 		" comma separated values.  The default is to read the field names"
 		" from the first line of the csv file.  You can use macros here,"
-		" e.g., \colNames{someTable}.", expand=True,
+		r" e.g., \\colNames{someTable}.", expand=True,
 		copyable=True)
 
 	_strip = base.BooleanAttribute("strip", default=False,
