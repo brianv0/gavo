@@ -222,7 +222,6 @@ class _DatafieldsTestMixin(object):
 			self.assertEqual(c.name, n, "Got column %s instead of %s"%(c.name, n))
 
 
-
 class VerblevelBasicTest(testhelpers.VerboseTest, _DatafieldsTestMixin):
 	__metaclass__ = testhelpers.SamplesBasedAutoTest
 
@@ -247,7 +246,7 @@ class VerblevelBasicTest(testhelpers.VerboseTest, _DatafieldsTestMixin):
 				["a", "b", "c", "d", "e"]),
 		({"a": "xy", "b": "3", "c": "4", "d": "5",
 			"e": "2005-10-12T12:23:01", "_VERB": "HTML", "_FORMAT": "VOTable"},
-			["a", "b", "c", "d", "e"]),
+			["a"]),
 		({"a": "xy", "b": "3", "c": "4", "d": "5",
 			"e": "2005-10-12T12:23:01", "_FORMAT": "VOTable"},
 			["a", "b", "c", "d"])]
@@ -459,6 +458,8 @@ class GroupingTest(testhelpers.VerboseTest):
 
 
 class OutputTableTest(testhelpers.VerboseTest):
+	resources = [("adqltable", tresc.csTestTable)]
+
 	def testResolution(self):
 		base.parseFromString(rscdesc.RD,
 			"""<resource schema="test"><table id="foo">
@@ -522,6 +523,37 @@ class OutputTableTest(testhelpers.VerboseTest):
 			</service></resource>""")
 		self.assertEqual("ECLIPTIC",
 			rd.services[0].outputTable.columns[0].stc.place.frame.refFrame)
+
+	def testAutoColsSingleWildcard(self):
+		svc = base.parseFromString(svcs.Service,
+			"""<service id="quux" core="data/cores#cscore">
+				<outputTable autoCols="*"/>
+			</service>""")
+		cols = svc.getCurOutputFields()
+		self.assertEqual([c.name for c in cols],
+			["alpha", "delta", "mag", "rV", "tinyflag"])
+
+	def testAutoColsMultiWildcard(self):
+		svc = base.parseFromString(svcs.Service,
+			"""<service id="quux" core="data/cores#cscore">
+				<outputTable autoCols="*a,*g"/>
+			</service>""")
+		cols = svc.getCurOutputFields()
+		self.assertEqual([c.name for c in cols],
+			["alpha", "delta", "mag", "tinyflag"])
+
+	def testCustomTableSelection(self):
+		svc = base.parseFromString(svcs.Service,
+			"""<service id="quux" core="data/cores#cscore">
+				<outputTable verbLevel="15">
+					<outputField original="mag" unit="mmag" select="mag*1000"/>
+				</outputTable>
+			</service>""")
+		res = svc.run("form", {"verbosity": "25", "_FORMAT": "VOTable"}
+			).original.getPrimaryTable().tableDef
+		self.assertEqual(res.getColumnByName("mag").unit, "mmag")
+		self.assertEqual(res.getColumnByName("rV").unit, "km/s")
+		self.assertEqual(len(res.columns), 4)
 
 
 class TableSetTest(testhelpers.VerboseTest):

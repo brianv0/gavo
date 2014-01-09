@@ -133,7 +133,7 @@ def resolveId(ctx, id, instance=None, forceType=None):
 		return resolveComplexId(ctx, id, forceType)
 
 	srcOb = None
-	if instance is not None:
+	if instance:
 		try:
 			srcOb = _resolveOnNamepath(ctx, id, instance)
 		except common.NotFoundError:  

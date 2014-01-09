@@ -51,7 +51,7 @@ from gavo.base.osinter import (getGroupId, makeSharedDir, makeSitePath,
 
 from gavo.base.parsecontext import (
 	IdAttribute, OriginalAttribute, ReferenceAttribute, ParseContext,
-	ReferenceListAttribute, resolveId, resolveCrossId)
+	ReferenceListAttribute, resolveId, resolveCrossId, resolveNameBased)
 
 from gavo.base.sqlsupport import (getDBConnection, 
 	DBError, QueryCanceledError, IntegrityError,

@@ -52,6 +52,8 @@ def adaptTable(origTable, newColumns):
 	(3) else raise an error.
 
 	(4) Finally, stick the whole thing into a data container.
+
+	This stinks.  I'm plotting to do away with it.
 	"""
 	if hasattr(origTable, "noPostprocess"):
 		colDiffs = None
@@ -382,9 +384,6 @@ class Service(base.Structure, base.ComputedMetaMixin,
 	def onElementComplete(self):
 		self._onElementCompleteNext(Service)
 		
-		if self.outputTable is base.NotGiven:
-			self.outputTable = self.core.outputTable
-
 		# Index custom render/data functions
 		self.nevowRenderers = {}
 		for customRF in self.customRFs:
@@ -576,20 +575,29 @@ class Service(base.Structure, base.ComputedMetaMixin,
 
 	def _getVOTableOutputFields(self, queryMeta):
 		"""returns a list of OutputFields suitable for a VOTable response 
-		described by queryMeta
+		described by queryMeta.
+
+		This is at least what's given for HTML (except where a displayHint
+		of noxml is present), plus possibly additional stuff by verbLevel
+		from an outputTable's parent.
 		"""
 		verbLevel = queryMeta.get("verbosity", 20)
-		if verbLevel=="HTML":
-			fieldList = rscdef.ColumnList([
-					f for f in self.getHTMLOutputFields(queryMeta)
-				if f.displayHint.get("noxml")!="true"])
-		else:
-			baseFields = self.core.outputTable.columns
-			fieldList = rscdef.ColumnList([f for f in baseFields
-				if f.verbLevel<=verbLevel and 
-					f.displayHint.get("type")!="suppress" and
-					f.displayHint.get("noxml")!="true"])
-		return fieldList
+		fields = [f for f in self.getHTMLOutputFields(queryMeta)
+				if f.displayHint.get("noxml")!="true"]
+		
+		if verbLevel!="HTML":
+			htmlNames = set(f.name for f in fields)
+
+			for field in self.outputTable.parentTable:
+				if field.name in htmlNames:
+					continue
+				if (field.displayHint.get("type")=="suppress" 
+						or field.displayHint.get("noxml")=="true"):
+					continue
+				if field.verbLevel<=verbLevel:
+					fields.append(field)
+
+		return rscdef.ColumnList(fields)
 
 	_allSet = set(["ALL"])
 

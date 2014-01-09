@@ -576,7 +576,7 @@ class ParamBase(ColumnBase):
 
 	def __repr__(self):
 		return "<%s %s=%s>"%(self.__class__.__name__, 
-			self.name, repr(self.content_))
+			repr(self.name), repr(self.content_))
 
 	def expand(self, value):
 		"""hands up macro expansion requests to a parent, if there is one

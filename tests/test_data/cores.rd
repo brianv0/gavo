@@ -30,6 +30,9 @@
 		<inputDD id="forceQuo">
 			<contextGrammar inputTable="abcd" rowKey="a"/>
 		</inputDD>
+		<outputTable namePath="abcd">
+			<outputField original="a"/>
+		</outputTable>
 	</service>
 
 	<service id="convcat" core="abccatcore" allowed="form, static">
@@ -62,7 +65,7 @@
 	</service>
 
 	<service id="cstest" allowed="form, scs.xml">
-		<dbCore queriedTable="data/test#adql">
+		<dbCore id="cscore" queriedTable="data/test#adql">
 			<FEED source="//scs#coreDescs"/>
 			<condDesc buildFrom="mag"/>
 			<condDesc>

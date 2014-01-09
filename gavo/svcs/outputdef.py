@@ -2,10 +2,14 @@
 Output tables and their components.
 """
 
+import fnmatch
+
 from gavo import base 
 from gavo import rscdef 
+from gavo import utils 
 
 _EMPTY_TABLE = base.makeStruct(rscdef.TableDef, id="<builtin empty table>")
+_EMPTY_TABLE.getFullId = lambda: None
 
 
 class OutputField(rscdef.Column):
@@ -93,31 +97,34 @@ class OutputTableDef(rscdef.TableDef):
 			" more verbose than this.")
 
 	_autocols = base.StringListAttribute("autoCols", 
-		description="Column names obtained from fromTable.")
+		description="Column names obtained from fromTable; you can use"
+			" shell patterns into the output table's parent table (in a table"
+			" core, that's the queried table; in a service, it's the core's"
+			" output table) here.")
 
 	def __init__(self, parent, **kwargs):
 		rscdef.TableDef.__init__(self, parent, **kwargs)
+		self.parentTable = None
 		try:
-			self.namePath = self.parent.queriedTable.getFullId()
+			# am I in a table-based core?
+			self.parentTable = self.parent.queriedTable
 		except (AttributeError, base.StructureError):
+			# no.
+			pass
+
+		if not self.parentTable:
 			try:
-				self.namePath = self.parent.core.outputTable.getFullId()
+				# am I in a service with a core with output table?
+				self.parentTable = self.parent.core.outputTable
 			except (AttributeError, base.StructureError):
-				self.namePath = None
+				# no.
+				pass
 
-	def _getSourceTable(self):
-		"""returns a tableDef object to be used as a column source.
+		if not self.parentTable:
+			# no suitable column source, use an empty table:
+			self.parentTable = _EMPTY_TABLE
 
-		The rules are described at the fromTable attribute.
-		"""
-		try:
-			return self.parent.queriedTable
-		except AttributeError:  # not a TableBasedCore
-			try:
-				res =  self.parent.core.outputTable
-				return res
-			except AttributeError:  # not a service
-				return _EMPTY_TABLE
+		self.namePath = None
 
 	def _adoptColumn(self, sourceColumn):
 		# Do not overwrite existing fields here to let the user
@@ -134,20 +141,36 @@ class OutputTableDef(rscdef.TableDef):
 			raise StructureError("outputTable autocols is"
 				" only available with a parse context")
 		for name in names:
-			# names may refer to params or to columns, sort
-			# things out here.
+			self._addName(ctx, name)
+	
+	def _addName(self, ctx, name):
+		"""adopts a param or column name into the outputTable.
+
+		name may be a reference or a param or column name in the parent
+		table (as determined in the constructor, i.e., the queried table
+		of a core or the output table of a service's core.
+
+		You can also use shell patterns into parent columns.
+		"""
+		if utils.identifierPattern.match(name):
 			refOb = ctx.resolveId(name, self)
 			if refOb.name_=="param":
 				self.feedObject("param", refOb.copy(self))
 			else:
 				self._adoptColumn(refOb)
+		
+		else:
+			# it's a shell pattern into parent table
+			for col in self.parentTable:
+				if fnmatch.fnmatch(col.name, name):
+					self._adoptColumn(col)
 
 	def completeElement(self, ctx):
 		if self.autoCols:
 			self._addNames(ctx, self.autoCols)
 
 		if self.verbLevel:
-			table = self._getSourceTable()
+			table = self.parentTable
 			for col in table.columns:
 				if col.verbLevel<=self.verbLevel:
 					self._adoptColumn(col)

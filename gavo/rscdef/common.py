@@ -416,6 +416,13 @@ class NamePathAttribute(base.AtomicAttribute):
 	
 	def iterParentMethods(self):
 		def resolveName(instance, context, id):
+			if hasattr(instance, "parentTable"):
+				try:
+					return base.resolveNameBased(instance.parentTable, id)
+				except base.NotFoundError:
+					# try on real name path
+					pass
+
 			np = instance.namePath
 			if np is None and instance.parent:
 				np = getattr(instance.parent, "namePath", None)
