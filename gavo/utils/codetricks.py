@@ -239,6 +239,41 @@ class Supremum(_Comparer):
 	cmpRes = 1
 
 
+class AllEncompassingSet(set):
+	"""a set that contains everything.
+
+	Ok, so this doesn't exist.  Yes, I've read my Russell.  You see, this
+	is a restricted hack for a reason.  And even the docstring is 
+	contradictory.
+
+	Sort-of.  This now works for intersection and containing.
+	Should this reject union?
+	>>> s = AllEncompassingSet()
+	>>> s & set([1,2])
+	set([1, 2])
+	>>> "gooble" in s
+	True
+	>>> s in s
+	True
+	>>> s not in s
+	False
+	"""
+	def __init__(self):
+		set.__init__(self, [])
+	
+	def __nonzero__(self):
+		return True
+
+	def __and__(self, other):
+		return other
+	
+	intersection = __and__
+
+	def __contains__(self, el):
+		return True
+
+
+
 def iterDerivedClasses(baseClass, objects):
 	"""iterates over all subclasses of baseClass in the sequence objects.
 	"""

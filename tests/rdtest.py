@@ -718,6 +718,16 @@ class RegtestRunTest(_RegtestTest):
 			">>>> Trouble with type: //v2:RESOURCE[1] ('lots', 'meta')\n"
 			"1 of 1 bad.",
 			stdout)
+	
+	def testTagSelects(self):
+		proc, stdout, stderr = testhelpers.captureOutput(regtest.main,
+			args=(["-t", "elite", "data/regtest#dumbsuite"],))
+		self.assertContains("4 of 5 bad.", stdout)
+
+	def testWrongTagSelectsNot(self):
+		proc, stdout, stderr = testhelpers.captureOutput(regtest.main,
+			args=(["-t", "bigserver", "data/regtest#dumbsuite"],))
+		self.assertContains("3 of 4 bad.", stdout)
 
 
 if __name__=="__main__":

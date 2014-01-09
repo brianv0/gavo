@@ -404,6 +404,12 @@ class RegTest(procdef.ProcApp):
 		default=base.NotGiven,
 		description="The source from which to fetch the test data.")
 
+	_tags = base.StringSetAttribute("tags",
+		description="A list of (free-form) tags for this test.  Tagged tests"
+		" are only run when the runner is constructed with at least one"
+		" of the tags given.  This is mainly for restricting tags to production"
+		" or development servers.")
+
 	_rd = common.RDAttribute()
 
 	def retrieveData(self, serverURL):
@@ -540,8 +546,10 @@ class RegTestSuite(base.Structure):
 			" in sequence.",
 		default=False)
 
-	def itertests(self):
-		return iter(self.tests)
+	def itertests(self, tags):
+		for test in self.tests:
+			if not test.tags or test.tags&tags:
+				yield test
 
 	def completeElement(self, ctx):
 		if self.title is None:
@@ -635,8 +643,13 @@ class TestRunner(object):
 # followUp attribute on the tests.
 
 	def __init__(self, suites, serverURL=None, 
-			verbose=True, dumpNegative=False):
+			verbose=True, dumpNegative=False, tags=None):
 		self.verbose, self.dumpNegative = verbose, dumpNegative
+		if tags:
+			self.tags = tags
+		else:
+			self.tags = frozenset()
+
 		self.serverURL = serverURL or base.getConfig("web", "serverurl")
 		self.curRunning = {}
 		self.threadId = 0
@@ -672,7 +685,7 @@ class TestRunner(object):
 			if suite.sequential:
 				self._makeTestsWithState(suite)
 			else:
-				self.testList.extend(suite.itertests())
+				self.testList.extend(suite.itertests(self.tags))
 
 	def _makeTestsWithState(self, suite):
 		"""helps _makeTestList by putting suite's test in a way that they are
@@ -680,7 +693,7 @@ class TestRunner(object):
 		"""
 		# technically, this is done by just entering the suite's "head"
 		# and have that pull all the other tests in the suite behind it.
-		tests = list(suite.itertests())
+		tests = list(suite.itertests(self.tags))
 		firstTest = tests.pop(0)
 		self.testList.append(firstTest)
 		for test in tests:
@@ -869,6 +882,9 @@ def parseCommandLine(args=None):
 	parser.add_argument("-d", "--dumpNegative", help="Dump the content of"
 		" failing tests to stdout",
 		action="store_true", dest="dumpNegative")
+	parser.add_argument("-t", "--tag", help="Also run tests tagged with TAG.",
+		action="store", dest="tag", default=None, metavar="TAG")
+
 	parser.add_argument("-u", "--serverURL", help="URL of the DaCHS root"
 		" at the server to test",
 		action="store", type=str, dest="serverURL", 
@@ -880,12 +896,16 @@ def parseCommandLine(args=None):
 def main(args=None):
 	"""user interaction for gavo test.
 	"""
-
+	tags = None
 	args = parseCommandLine(args)
+	if args.tag:
+		tags = set([args.tag])
+
 	runnerArgs = {
 		"verbose": args.verbose,
 		"dumpNegative": args.dumpNegative,
 		"serverURL": args.serverURL,
+		"tags": tags,
 	}
 
 	if args.id=="ALL":

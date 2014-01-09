@@ -1,5 +1,5 @@
 <resource schema="test">
-	<regSuite>
+	<regSuite id="dumbsuite">
 		<regTest title="Failing Test" id="failtest">
 			<url testParam="10%w/o tax">foo</url>
 			<code>
@@ -21,6 +21,12 @@
 			<code>
 				self.assertXpath("//v2:RESOURCE[1]", {
 					"type": "lots"})
+			</code>
+		</regTest>
+		<regTest id="exclusive" title="tagged test" url="/bar"
+			tags="elite,prolete">
+			<code>
+				assert False, "You run a tagged test"
 			</code>
 		</regTest>
 	</regSuite>
