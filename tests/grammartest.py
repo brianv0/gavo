@@ -218,6 +218,30 @@ class KVGrammarTest(testhelpers.VerboseTest):
 			'<keyValueGrammar commentPattern="**"/>'))
 
 
+class CSVGrammarTest(testhelpers.VerboseTest):
+	def testSimple(self):
+		grammar = base.parseFromString(rscdef.getGrammar("csvGrammar"),
+			'<csvGrammar/>')
+		recs = list(grammar.parse(StringIO("la,le,lu\n1, 2, schaut")))
+		self.assertEqual(recs,
+			[{"la": '1', "le": ' 2', "lu": " schaut"}])
+
+	def testStrip(self):
+		grammar = base.parseFromString(rscdef.getGrammar("csvGrammar"),
+			'<csvGrammar strip="True"/>')
+		recs = list(grammar.parse(StringIO("la,le,lu\n1, 2, schaut")))
+		self.assertEqual(recs,
+			[{"la": '1', "le": '2', "lu": "schaut"}])
+
+	def testNames(self):
+		grammar = base.parseFromString(rscdef.getGrammar("csvGrammar"),
+			'<csvGrammar names="col1, col2, col3"/>')
+		recs = list(grammar.parse(StringIO("la,le,lu\n1,2,schaut")))
+		self.assertEqual(recs, [
+			{"col1": "la", "col2": "le", "col3": "lu"},
+			{"col1": '1', "col2": '2', "col3": "schaut"}])
+
+
 class ColDefTest(testhelpers.VerboseTest):
 	def testSimple(self):
 		g = base.parseFromString(columngrammar.ColumnGrammar,

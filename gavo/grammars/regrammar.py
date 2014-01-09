@@ -102,7 +102,7 @@ class REGrammar(Grammar, FileRowAttributes):
 			" as the new pattern.  This can be used for simple cleaning jobs;"
 			" However, records not matching recordCleaner are rejected.")
 	_names = base.StringListAttribute("names", description=
-		"Names for the parsed columns, in sequence of the fields.  You can"
+		"Names for the parsed fields, in matching sequence.  You can"
 		" use macros here, e.g., \colNames{someTable}.", expand=True)
 	_lax = base.BooleanAttribute("lax", description="allow more or less"
 		" fields in source records than there are names", default=False)
