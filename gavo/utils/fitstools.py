@@ -2,9 +2,11 @@
 Some utility functions to deal with FITS files.
 """
 
-#c Copyright 2009 the GAVO Project.
+#c Copyright 2008-2014, the GAVO project
 #c
-#c This program is free software, covered by the GNU GPL.  See COPYING.
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
 
 # I'm wasting a lot of effort on handling gzipped FITS files, which is
 # something that's not terribly common in the end.  Maybe we should

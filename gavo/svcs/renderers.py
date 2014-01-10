@@ -14,7 +14,6 @@ get at them from svcs and above, so the registry is kept here.
 #c COPYING file in the source distribution.
 
 
-
 from gavo import base
 from gavo import utils
 

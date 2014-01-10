@@ -9,7 +9,6 @@ attributes, fundamental VO conventions.
 #c COPYING file in the source distribution.
 
 
-
 # This doesn't belong here and it should go away again, but right now,
 # astLib has an issue in the de_DE (and probably other) locales.
 import locale, os

@@ -8,7 +8,6 @@ The root resource of the data center.
 #c COPYING file in the source distribution.
 
 
-
 import os
 import time
 import traceback

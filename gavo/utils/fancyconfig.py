@@ -41,9 +41,11 @@ For examples of how this is used, see pftf (http://www.tfiu.de/pftf)
 or pysmap (link coming up).
 """
 
-#c Copyright 2008, 2009 Markus Demleitner <msdemlei@users.sf.net>
+#c Copyright 2008-2014, the GAVO project
 #c
-#c This program is free software, covered by the GNU GPL.  See COPYING.
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
 
 import ConfigParser
 import re

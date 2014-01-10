@@ -6,9 +6,10 @@ This means that we do not support generic coordinates (yet), elements,
 xlink and all the other stuff.
 """
 
-#c Copyright 2009 the GAVO Project.
+#c Copyright 2008-2014, the GAVO project
 #c
-#c This program is free software, covered by the GNU GPL.  See COPYING.
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
 
 
 from itertools import *

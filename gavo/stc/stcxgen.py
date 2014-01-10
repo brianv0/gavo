@@ -12,9 +12,10 @@ keep XSD happy, and also since ASTs are actually a bit more complicated
 than trees (e.g., coordinate frames usually have multiple parents).
 """
 
-#c Copyright 2009 the GAVO Project.
+#c Copyright 2008-2014, the GAVO project
 #c
-#c This program is free software, covered by the GNU GPL.  See COPYING.
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
 
 
 import itertools

@@ -9,6 +9,7 @@ This module should be clean for from import *
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
 
+
 from gavo import utils
 
 class Error(utils.Error):

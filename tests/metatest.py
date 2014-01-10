@@ -8,7 +8,6 @@ Tests for RD metadata management.
 #c COPYING file in the source distribution.
 
 
-
 import copy
 import sys
 import traceback

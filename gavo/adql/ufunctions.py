@@ -11,7 +11,6 @@ See the userFunction docstring on how to use these.
 #c COPYING file in the source distribution.
 
 
-
 import warnings
 
 from gavo import utils

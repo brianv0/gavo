@@ -8,6 +8,7 @@ Tests having to do with various output formats.
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
 
+
 from __future__ import with_statement
 
 import datetime

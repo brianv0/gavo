@@ -11,6 +11,7 @@ support some other database, this would need massive refactoring.
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
 
+
 import contextlib
 import operator
 import os

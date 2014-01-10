@@ -12,6 +12,7 @@ to begin with, much of this is conjecture.
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
 
+
 import re
 
 from gavo.adql.common import *
