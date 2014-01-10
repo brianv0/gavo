@@ -22,6 +22,12 @@ This package deals with two ways to represent resources:
 		they are only constructed when real metadata is required.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 from gavo.registry.common import *
 from gavo.registry import oaiinter      # registration of RegistryCore
 from gavo.registry import servicelist   # registration of getWebServiceList

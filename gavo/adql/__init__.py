@@ -3,6 +3,12 @@ Parsing, annotating, and morphing queries in the Astronomical Data
 Query Language.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 from gavo.adql.annotations import annotate
 
 from gavo.adql.common import *

@@ -7,6 +7,12 @@ Thus, in the module we mostly deal with publication objects.  If you
 need the service object, use publication.parent.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 from gavo import base
 from gavo import svcs
 from gavo import utils

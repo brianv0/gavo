@@ -4,6 +4,12 @@ A grammar to parse from primary FITS headers.
 This grammar will return exactly one row per source.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 import gzip
 import re
 

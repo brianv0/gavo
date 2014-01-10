@@ -1,9 +1,17 @@
-# Fast Web->DB->JSON machinery, for now only for the portal page.  It's
-# not quite clear to me yet what to do with this kind of thing.
-#
-# It would seem we could do with more of these very lightweight
-# things; on the other hand, these bypass all metadata mangement;
-# ah, let's see.
+"""
+Fast Web->DB->JSON machinery, for now only for the portal page.  It's
+not quite clear to me yet what to do with this kind of thing.
+
+It would seem we could do with more of these very lightweight
+things; on the other hand, these bypass all metadata mangement...
+ah, let's see.
+"""
+
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
 
 import json
 

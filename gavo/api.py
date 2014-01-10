@@ -5,6 +5,12 @@ clients.
 For now, it just makes sure that standard RDs can be imported.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 from gavo import base
 from gavo import rscdesc
 from gavo import votable

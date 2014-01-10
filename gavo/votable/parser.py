@@ -6,6 +6,12 @@ There is an "almost-tight" parsing loop in the parse method.  It
 builds an xmlstan tree (mainly through the _processNodeDefault method).
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 # To fiddle with the nodes as they are generated, define an
 # _end_ELEMENTNAME method.  If you do this, you will have to do
 # any adding of children to parents yourself (it happens in 

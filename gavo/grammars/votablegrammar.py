@@ -2,6 +2,12 @@
 A grammar taking its rows from a VOTable.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 # XXX TODO: return PARAMs as the docrow
 
 import gzip

@@ -12,6 +12,12 @@ different TableDefs for all these aspects, but then I'd have a plethora
 of TableDef elements, which I think is worse than a factory function.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 from gavo import base
 from gavo.rsc import common
 

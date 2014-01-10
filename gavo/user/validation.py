@@ -6,6 +6,12 @@ Validation means giving some prognosis as to whether RD will properly work
 within both the DC and the VO.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 import re
 import sys
 

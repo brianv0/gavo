@@ -5,6 +5,12 @@ The basic idea is to monkeypatch the request object in order to
 snarf content and headers.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 import time
 
 from nevow import inevow

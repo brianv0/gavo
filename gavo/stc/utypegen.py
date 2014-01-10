@@ -22,6 +22,12 @@ To make the definition of the _gener_ methods easer, there's
 the handles decorator that you can pass a list of such child names.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 from gavo import utils
 from gavo.stc import common
 from gavo.stc import stcxgen

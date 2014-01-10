@@ -11,6 +11,12 @@ base.observer.Observer) that subscribe to events and can display or
 log them in some form appropriate to the client.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 import contextlib
 import sys
 

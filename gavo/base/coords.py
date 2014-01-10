@@ -5,6 +5,12 @@ between them.
 Basically all of this should be taken over by stc and astropysics.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 import functools
 import math
 import new

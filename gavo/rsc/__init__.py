@@ -2,6 +2,12 @@
 Instantiated resources (tables, etc), plus data mangling.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 from gavo.rsc.common import DBTableError, FLUSH
 from gavo.rsc.dbtable import DBTable
 from gavo.rsc.qtable import QueryTable

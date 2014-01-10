@@ -6,6 +6,12 @@ Everything in this module expects the product interface, i.e., tables
 must at least contain accref, owner, embargo, and accsize fields.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 # XXX TODO: this should eventually become a renderer on the product core,
 # redirected to from the current TarResponse.
 

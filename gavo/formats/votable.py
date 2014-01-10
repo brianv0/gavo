@@ -6,6 +6,12 @@ The actual implementations are in two separate modules.  Always access
 them through this module.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 from gavo.formats.votableread import (makeTableDefForVOTable,
 	makeDDForVOTable, uploadVOTable,
 	AutoQuotedNameMaker, QuotedNameMaker)

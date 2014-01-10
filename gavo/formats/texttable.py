@@ -6,6 +6,12 @@ ASCII as well, though that may be a bit tricky given that we do not
 really store sane formatting hints for most columns.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 import cStringIO
 import re
 

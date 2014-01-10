@@ -8,6 +8,12 @@ that would take some work, though, since rscdesc currently needs to know
 about grammars, cores, etc, available.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 from gavo.rscdef.builtingrammars import (GRAMMAR_REGISTRY, getGrammar)
 
 from gavo.rscdef.column import (Column, Option, Values, makeOptions,

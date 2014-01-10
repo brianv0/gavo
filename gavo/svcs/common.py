@@ -2,6 +2,12 @@
 Common functions and classes for services and cores.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 import re
 import os
 import urllib

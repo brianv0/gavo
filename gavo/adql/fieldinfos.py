@@ -8,6 +8,12 @@ here are called from the addFieldInfo methods of the respective
 nodes classes.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 # XXX TODO: This is a horrible mess.  Carefully read the SQL specification,
 # figure out the actual rules for name resolution and then write an
 # actual namespace management in annotations.py

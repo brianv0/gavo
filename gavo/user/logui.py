@@ -4,6 +4,12 @@ An observer doing logging of warnings, infos, errors, etc.
 No synchronization takes place; it's probably not worth sweating this.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 import logging
 import os
 

@@ -8,6 +8,12 @@ import all grammars seemed quite a bit of waste, so how there's this
 manual registry.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 from gavo import base
 from gavo import utils
 

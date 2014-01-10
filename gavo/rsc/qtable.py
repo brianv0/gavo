@@ -6,6 +6,12 @@ a DB query result.  All you can do with the data itself is iterate over
 the rows.  The metadata is usable as with any other table.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 from gavo import base
 from gavo import rscdef
 from gavo.rsc import dbtable

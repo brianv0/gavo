@@ -4,6 +4,12 @@ Observers are objects listening to EventDispatchers.
 They are mostly used as bases for UIs in the context of the DC.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 def listensTo(*args):
 	"""is a decorator to make a method listen to a set of events.
 

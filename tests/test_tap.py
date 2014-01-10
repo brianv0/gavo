@@ -7,6 +7,12 @@ The real big integration tap tests use the HTTP interface and are in
 an external resource package taptest.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 # IMPORTANT: If you have deferreds in your tests, *return them* form
 # the tests.  Looks weird, but that's the only way the reactor gets
 # to see them.

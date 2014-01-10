@@ -7,6 +7,12 @@ Here, we try this for data described through primary FITS headers and
 VOTables.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 # We probably want to turn this around and first create the RD and pass
 # that around so the individual analyzers can add, e.g. global metadata.
 

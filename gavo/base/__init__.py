@@ -3,6 +3,12 @@ Basic code for defining objects in the data center: Structures, their
 attributes, fundamental VO conventions.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 
 # This doesn't belong here and it should go away again, but right now,
 # astLib has an issue in the de_DE (and probably other) locales.

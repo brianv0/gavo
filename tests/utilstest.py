@@ -2,6 +2,12 @@
 Tests for the various modules in utils.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 from gavo.helpers import testhelpers
 
 from gavo import utils

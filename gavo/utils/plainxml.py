@@ -8,6 +8,12 @@ iterparse is an elementtree-inspired thin expat layer; both VOTable
 and base.structure parsing builds on it.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 import collections
 import weakref
 import xml.sax

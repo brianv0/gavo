@@ -6,6 +6,12 @@ make the parse tree more suitable for later translation into
 SQL.
 """
 
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 from gavo.adql import morphhelpers
 from gavo.adql import nodes
 
