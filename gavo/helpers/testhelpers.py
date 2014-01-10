@@ -19,12 +19,13 @@ import warnings
 from cStringIO import StringIO
 
 
-# This sets up a test environment of the DaCHS software, assuming you've
-# done a
+# This sets up a test environment of the DaCHS software.
 #
-#  createdb --encoding=UTF-8 dachstest
+# To make this work, the current user must be allowed to run
+# createdb (in practice, you should have done something like
 #
-# before.
+# sudo -u postgres -s `id -nu`
+#
 # You should be able to tear both ~/_gavo_test and the database 
 # down, and this should automatically recreate everything.  That's 
 # an integration test for DaCHS, too.
@@ -33,8 +34,8 @@ from cStringIO import StringIO
 # it manipulates the config stuff; this, in turn, runs as soon as
 # base is imported.
 
-# This forces tests to be run from the tests directory.  Reasonable, I'd
-# say.
+# The following forces tests to be run from the tests directory.  
+# Reasonable, I'd say.
 #
 # All the custom setup can be suppressed by setting a GAVO_OOTTEST
 # env var before importing this.  That's for "out of tree test"

@@ -412,6 +412,16 @@ class RegTest(procdef.ProcApp):
 
 	_rd = common.RDAttribute()
 
+	@property
+	def description(self):
+		source = ""
+		if self.rd:
+			id = self.rd.sourceId
+			if self.id:
+				id = id+"#"+self.id
+			source = " (%s)"%id
+		return self.title+source
+
 	def retrieveData(self, serverURL):
 		"""returns headers and content when retrieving the resource at url.
 
@@ -643,12 +653,14 @@ class TestRunner(object):
 # followUp attribute on the tests.
 
 	def __init__(self, suites, serverURL=None, 
-			verbose=True, dumpNegative=False, tags=None):
+			verbose=True, dumpNegative=False, tags=None,
+			timeout=20):
 		self.verbose, self.dumpNegative = verbose, dumpNegative
 		if tags:
 			self.tags = tags
 		else:
 			self.tags = frozenset()
+		self.timeout = timeout
 
 		self.serverURL = serverURL or base.getConfig("web", "serverurl")
 		self.curRunning = {}
@@ -706,7 +718,7 @@ class TestRunner(object):
 		test = self.testList.popleft()
 		newThread = threading.Thread(target=self.runOneTest, 
 			args=(test, self.threadId))
-		newThread.description = test.title
+		newThread.description = test.description
 		newThread.setDaemon(True)
 		self.curRunning[self.threadId] = newThread
 		self.threadId += 1
@@ -783,7 +795,8 @@ class TestRunner(object):
 					sys.stderr.write(".")
 					sys.stderr.flush()
 
-			evType, test, payload, traceback, dt = self.resultsQueue.get(timeout=60)
+			evType, test, payload, traceback, dt = self.resultsQueue.get(
+				timeout=self.timeout)
 			if evType=="addTest":
 				self.testList.appendleft(test)
 			elif evType=="collectThread":
@@ -900,6 +913,8 @@ def main(args=None):
 	args = parseCommandLine(args)
 	if args.tag:
 		tags = set([args.tag])
+	if args.serverURL:
+		args.serverURL = args.serverURL.rstrip("/")
 
 	runnerArgs = {
 		"verbose": args.verbose,
