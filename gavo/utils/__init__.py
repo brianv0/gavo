@@ -35,7 +35,8 @@ from gavo.utils.excs import *
 # from gavo.utils import pyfits rather than a direct import;  the
 # "master import" is in fitstools, and we get pyfits from there.
 
-from gavo.utils.fitstools import readPrimaryHeaderQuick, pyfits
+from gavo.utils.fitstools import (readPrimaryHeaderQuick, pyfits,
+	parseESODescriptors, shrinkWCSHeader, cutoutFITS, iterScaledRows)
 
 from gavo.utils.mathtricks import *
 

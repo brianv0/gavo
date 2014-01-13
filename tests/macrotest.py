@@ -111,7 +111,19 @@ class _FakeFileGrammar(grammars.Grammar):
 	name_ = "fakeFileGrammar"
 	rowIterator = _FakeRowIterator
 
-	
+
+def getCleaned(rawIter):
+	"""returns cleaned rawdicts form a rawdict iterator
+
+	(this currently just kills the parser_ key).
+	"""
+	res = []
+	for d in rawIter:
+		del d["parser_"]
+		res.append(d)
+	return res
+
+
 class GrammarMacroTest(testhelpers.VerboseTest):
 	def _testOne(self, macroDef, input, result):
 		g = base.parseFromString(_FakeFileGrammar, """<fakeFileGrammar>
@@ -126,7 +138,7 @@ class GrammarMacroTest(testhelpers.VerboseTest):
 		expectedRow = {'fake': 'sure', 'res': result}
 		if isinstance(result, Exception):
 			self.assertRaises(result.__class__,
-				lambda: list(g.parse(irp)))
+				lambda: getCleaned(g.parse(irp)))
 		else:
 			self.assertEqual(list(g.parse(irp)), 
 				[expectedRow])

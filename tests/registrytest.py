@@ -448,6 +448,7 @@ class _ResobGrammarResponse(testhelpers.TestResource):
 		tables = {}
 		rd = base.caches.getRD("data/ssatest")
 		for destTable, row in publication._rdRscRecGrammar.parse(rd):
+			del row["parser_"]
 			tables.setdefault(destTable, []).append(row)
 		return tables
 

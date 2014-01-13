@@ -355,6 +355,7 @@ class WCSAxisTest(testhelpers.VerboseTest):
 		self.assertEqual(ax.pix0ToPhys(None), None)
 		self.assertEqual(ax.physToPix0(None), None) 
 
+
 class WCSFromHeaderTest(testhelpers.VerboseTest):
 
 	_baseHdr = {
@@ -411,6 +412,34 @@ class WCSFromHeaderTest(testhelpers.VerboseTest):
 		ax = fitstools.WCSAxis.fromHeader(self._baseHdr, 2)
 		self.assertEqual(ax.cunit, None)
 
+
+class ESODescriptorsTest(testhelpers.VerboseTest):
+	def testSimple(self):
+		descs = fitstools._ESODescriptorsParser("""
+			'WSTART'         ,'R*8 '   ,    1,   6,'3E23.15',' ',' '              
+  			3.983291748046876E+03  4.011743652343751E+03  4.040604980468751E+03  
+  			4.069884765625001E+03  4.099591796875001E+03  4.129735839843751E+03
+			'NPTOT'          ,'I*4 '   ,    1,   14,'7I10',' ',' '
+       	 	 	 552       556       560       564       568       572       576
+       	 	 	 581       585       589       594       598       603       608
+      """).result
+		self.assertEqual(descs, {
+			'WSTART': [3983.291748046876, 4011.743652343751, 4040.604980468751,
+				4069.884765625001, 4099.591796875001, 4129.735839843751],
+			'NPTOT': [552, 556, 560, 564, 568, 572, 576, 581, 585, 589, 594,
+				598, 603, 608],
+		})
+	
+	def testShortArray(self):
+		self.assertRaisesWithMsg(base.SourceParseError,
+			"At character 199: Expected a float here, offending ''",
+			fitstools._ESODescriptorsParser,
+			("""
+			'WSTART'         ,'R*8 '   ,    1,   6,'3E23.15',' ',' '              
+  			3.983291748046876E+03  4.011743652343751E+03  4.040604980468751E+03  
+  			4.069884765625001E+03  4.099591796875001E+03""",))
+
+	# Maybe do a test with a real header here?
 	
 if __name__=="__main__":
 	testhelpers.main(WCSFromHeaderTest)

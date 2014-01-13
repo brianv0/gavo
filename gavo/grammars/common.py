@@ -333,9 +333,13 @@ class RowIterator(object):
 					d = row[1]
 				else:
 					d = row
-				if self.sourceRow:
-					d.update(self.sourceRow)
-				d["parser_"] = self
+
+				if isinstance(d, dict):
+					# else it could be a sentinel like FLUSH, which we leave alone
+					if self.sourceRow:
+						d.update(self.sourceRow)
+					d["parser_"] = self
+
 				yield row
 		except:
 			base.ui.notifySourceError()

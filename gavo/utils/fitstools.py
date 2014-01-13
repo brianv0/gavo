@@ -779,6 +779,149 @@ class WCSAxis(object):
 			get("NAXIS", 1))
 
 
+class ESODescriptorsError(excs.SourceParseError):
+	"""is raised when something goes wrong while parsing ESO descriptors.
+	"""
+
+
+def _makeNamed(name, re):
+	return "(?P<%s>%s)"%(name, re)
+
+
+class _ESODescriptorsParser(object):
+	"""an ad-hoc parser for ESO's descriptors.
+
+	These are sometimes in FITS files produced by MIDAS.  What I'm pretending
+	to parse here is the contatenation of the cards' values without the
+	boundaries.
+
+	The parse is happening at construction time, after which you fetch the result
+	in the result attribute.
+
+	I'm adhoccing this.  If someone digs up the docs on what the actual
+	grammar is, I'll do it properly.
+	"""
+
+	stringPat = "'[^']*'"
+	intPat = r"\d+"
+	floatPat = r"-?\d+\.\d+E[+-]\d+"
+	white = r"\s+"
+	nextToken = r"\s*"
+	headerSep = nextToken+','+nextToken
+
+	headerRE = re.compile(nextToken
+		+_makeNamed("colName", stringPat)+headerSep
+		+_makeNamed("typeCode", stringPat)+headerSep
+		+_makeNamed("startInd", intPat)+headerSep
+		+_makeNamed("endInd", intPat)+headerSep
+		+stringPat+headerSep
+		+stringPat+headerSep
+		+stringPat)
+	floatRE = re.compile(nextToken+floatPat)
+	integerRE = re.compile(nextToken+intPat)
+
+	def __init__(self, data):
+		self.data, state = data, "header"
+		self.result, self.curPos = {}, 0
+		while state!="end":
+			try:
+				state = getattr(self, "_scan_"+state)()
+			except Exception, msg:
+				raise ESODescriptorsError(str(msg),
+					location="character %s"%self.curPos,
+					offending=repr(self.data[self.curPos:self.curPos+20]))
+
+	@classmethod
+	def fromFITSHeader(cls, hdr):
+		"""returns a parser from the data in the pyfits hdr.
+		"""
+		descLines, collecting = [], False
+
+		for card in hdr.ascardlist():
+			if card.key=="HISTORY":
+				if " ESO-DESCRIPTORS END" in card.value:
+					collecting = False
+				if collecting:
+					descLines.append(card.value)
+				if " ESO-DESCRIPTORS START" in card.value:
+					collecting = True
+
+		return cls("\n".join(descLines))
+
+	def _scan_header(self):
+		"""read the next descriptor header.
+		"""
+		mat = self.headerRE.match(self.data, self.curPos)
+		if not mat:
+			if not self.data[self.curPos:].strip():
+				return "end"
+			else:
+				raise ValueError("Could not find next header")
+		
+		self.curPos = mat.end()
+		self.curCol = []
+		self.curColName = mat.group("colName")[1:-1]
+		self.yetToRead = int(mat.group("endInd"))-int(mat.group("startInd"))+1
+
+		if mat.group("typeCode")[1:-1].startswith("R"):
+			return "float"
+		elif mat.group("typeCode")[1:-1].startswith("I"):
+			return "integer"
+		else:
+			raise ValueError("Unknown type code %s"%mat.group("typeCode"))
+
+	def _scan_harvest(self):
+		"""enter a parsed column into result and prepare for the next column.
+		"""
+		self.result[self.curColName] = self.curCol
+		del self.curCol
+		del self.curColName
+		del self.yetToRead
+		return "header"
+
+	def _makeTypeScanner(typeName, literalRE, constructor):
+		"""returns a scanner function (invisible to the outside.
+
+		This is a helper method for building the parser class; typeName
+		must be the same as the name in _scan_name.  constructor is
+		a function that turns string literals into objects of the desired
+		type.
+		"""
+		def scanner(self):
+			mat = literalRE.match(self.data, self.curPos)
+			if not mat:
+				raise ValueError("Expected a %s here"%typeName)
+			self.curPos = mat.end()
+
+			self.curCol.append(constructor(mat.group()))
+			self.yetToRead -= 1
+			if self.yetToRead==0:
+				return "harvest"
+			else:
+				return typeName
+
+		return scanner
+
+	_scan_float = _makeTypeScanner("float", floatRE, float)
+	_scan_integer = _makeTypeScanner("integer", integerRE, int)
+	
+	del _makeTypeScanner
+
+
+def parseESODescriptors(hdr):
+	"""returns parsed ESO descriptors from a pyfits header hdr.
+
+	ESO descriptors are data columns stuck into FITS history lines.
+	They were produced by MIDAS.  This implementation was made
+	without actual documentation, is largely based on conjecture,
+	and is certainly incomplete.
+
+	What's returned is a dictionary mapping column keywords to lists of
+	column values.
+	"""
+	return _ESODescriptorsParser.fromFITSHeader(hdr).result
+
+
 def _test():
 	import doctest, fitstools
 	doctest.testmod(fitstools)
