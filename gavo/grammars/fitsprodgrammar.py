@@ -43,7 +43,6 @@ class FITSProdIterator(RowIterator):
 				res[card.key.replace("-", "_")] = card.value
 			except ValueError:
 				self._hackBotchedCard(card, res)
-		res["parser_"] = self
 		res["header_"] = header
 		if self.grammar.hdusField:
 			res[self.grammar.hdusField] = fitstools.openFits(self.sourceToken)

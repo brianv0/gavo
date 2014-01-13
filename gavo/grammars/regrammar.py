@@ -53,7 +53,6 @@ class REIterator(FileRowIterator):
 				res = self._makeRec(rawRec)
 			except base.SkipThis:
 				continue
-			res["parser_"] = self
 			yield res
 		self.inputFile.close()
 		self.grammar = None

@@ -27,7 +27,7 @@ class KVIterator(FileRowIterator):
 				data = data.decode(self.grammar.enc)
 		except UnicodeDecodeError, msg:
 			raise base.SourceParseError(unicode(msg), source=self.inputFile.name)
-		completeRecord = {"parser_": self}
+		completeRecord = {}
 		data = re.sub(self.grammar.commentPattern, "", data)
 		items = {}
 		for rec in self.grammar.recSplitter.split(data):
@@ -35,7 +35,7 @@ class KVIterator(FileRowIterator):
 				if rec.strip():
 					key, value = self.grammar.pairSplitter.match(rec).groups()
 					if self.grammar.yieldPairs:
-						yield {"key": key.strip(), "value": value.strip(), "parser_": self}
+						yield {"key": key.strip(), "value": value.strip()}
 					else:
 						completeRecord[key.strip()] = value.strip()
 			except:

@@ -25,7 +25,6 @@ class ListIterator(RowIterator):
 		self.recNo = 1
 		for rec in self.sourceToken:
 			res = rec.copy()
-			res["parser_"] = self
 			yield res
 			self.recNo += 1
 

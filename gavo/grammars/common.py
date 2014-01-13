@@ -328,8 +328,14 @@ class RowIterator(object):
 
 		try:
 			for row in rowSource:
+				# handle dispatched grammars here, too
+				if isinstance(row, tuple):
+					d = row[1]
+				else:
+					d = row
 				if self.sourceRow:
-					row.update(self.sourceRow)
+					d.update(self.sourceRow)
+				d["parser_"] = self
 				yield row
 		except:
 			base.ui.notifySourceError()
@@ -502,9 +508,9 @@ class Grammar(base.Structure, GrammarMacroMixin):
 	global properties of the whole document (like parameters in VOTables;
 	this will be empty for many kinds of grammars).
 
-	RowIterators should, if at all possible, return a reference to
-	themselves in the raw dicts in the parser_ key.  This is used by
-	rowmaker macros.
+	RowIterators will return a reference to themselves in the raw dicts in the
+	parser_ key unless you override their _iterRowsProcessed method (which you
+	shouldn't).  This is used by rowmaker macros.
 
 	What exactly sourceToken is is up to the concrete grammar.  While
 	typically it's a file name, it might be a sequence of dictionaries,

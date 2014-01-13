@@ -225,7 +225,6 @@ class ContextRowIterator(grammars.RowIterator):
 					row[key] = iterator.next()
 				yield row
 
-	
 	def getParameters(self):
 		return self._completeRow(self.sourceToken)
 	

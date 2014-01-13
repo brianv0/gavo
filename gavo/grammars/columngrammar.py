@@ -37,7 +37,6 @@ class SplitLineIterator(FileRowIterator):
 				continue
 
 			res = self._parse(inputLine)
-			res["parser_"] = self
 			yield res
 			self.recNo += 1
 

@@ -31,6 +31,18 @@ from gavo.helpers import testtricks
 import tresc
 
 
+def getCleaned(rawIter):
+	"""returns cleaned rawdicts form a rawdict iterator
+
+	(this currently just kills the parser_ key).
+	"""
+	res = []
+	for d in rawIter:
+		del d["parser_"]
+		res.append(d)
+	return res
+
+
 class PredefinedRowfilterTest(testhelpers.VerboseTest):
 	def testOnIndex(self):
 		dd = testhelpers.getTestRD().getById("expandOnIndex")
@@ -83,9 +95,7 @@ class SequencedRowfilterTest(testhelpers.VerboseTest):
 
 	def _getProcessedFor(self, filterDefs, input):
 		g = self._makeGrammar(filterDefs)
-		res = list(g.parse(input))
-		for row in res:
-			del row["parser_"]
+		res = getCleaned(g.parse(input))
 		return res
 
 	def testSimplePipe(self):
@@ -193,7 +203,7 @@ class EmbeddedGrammarTest(testhelpers.VerboseTest):
 					yield {'x': 1, 'y': 2}
 					yield {'x': 2, 'y': 2}
 				</code></iterator></embeddedGrammar></data></resource>""")
-		self.assertEqual(list(rd.dds[0].grammar.parse(None)),
+		self.assertEqual(getCleaned(rd.dds[0].grammar.parse(None)),
 			[{'y': 2, 'x': 1}, {'y': 2, 'x': 2}])
 
 
@@ -228,21 +238,21 @@ class CSVGrammarTest(testhelpers.VerboseTest):
 	def testSimple(self):
 		grammar = base.parseFromString(rscdef.getGrammar("csvGrammar"),
 			'<csvGrammar/>')
-		recs = list(grammar.parse(StringIO("la,le,lu\n1, 2, schaut")))
+		recs = getCleaned(grammar.parse(StringIO("la,le,lu\n1, 2, schaut")))
 		self.assertEqual(recs,
 			[{"la": '1', "le": ' 2', "lu": " schaut"}])
 
 	def testStrip(self):
 		grammar = base.parseFromString(rscdef.getGrammar("csvGrammar"),
 			'<csvGrammar strip="True"/>')
-		recs = list(grammar.parse(StringIO("la,le,lu\n1, 2, schaut")))
+		recs = getCleaned(grammar.parse(StringIO("la,le,lu\n1, 2, schaut")))
 		self.assertEqual(recs,
 			[{"la": '1', "le": '2', "lu": "schaut"}])
 
 	def testNames(self):
 		grammar = base.parseFromString(rscdef.getGrammar("csvGrammar"),
 			'<csvGrammar names="col1, col2, col3"/>')
-		recs = list(grammar.parse(StringIO("la,le,lu\n1,2,schaut")))
+		recs = getCleaned(grammar.parse(StringIO("la,le,lu\n1,2,schaut")))
 		self.assertEqual(recs, [
 			{"col1": "la", "col2": "le", "col3": "lu"},
 			{"col1": '1', "col2": '2', "col3": "schaut"}])
@@ -252,24 +262,21 @@ class ColDefTest(testhelpers.VerboseTest):
 	def testSimple(self):
 		g = base.parseFromString(columngrammar.ColumnGrammar,
 			'<columnGrammar colDefs="a:1 B:2-5 C_dfoo:4 _gobble:6-8"/>')
-		res = list(g.parse(StringIO("abcdefghijklmnoq")))[0]
-		del res["parser_"]
+		res = getCleaned(g.parse(StringIO("abcdefghijklmnoq")))[0]
 		self.assertEqual(res, {'a': 'a', 'C_dfoo': 'd', 'B': 'bcde', 
 			'_gobble': 'fgh'})
 
 	def testFunkyWhite(self):
 		g = base.parseFromString(columngrammar.ColumnGrammar,
 			'<columnGrammar colDefs="a :1 B: 2 - 5 C_dfoo: 4 _gobble : 6 -8"/>')
-		res = list(g.parse(StringIO("abcdefghijklmnoq")))[0]
-		del res["parser_"]
+		res = getCleaned(g.parse(StringIO("abcdefghijklmnoq")))[0]
 		self.assertEqual(res, {'a': 'a', 'C_dfoo': 'd', 'B': 'bcde', 
 			'_gobble': 'fgh'})
 	
 	def testHalfopen(self):
 		g = base.parseFromString(columngrammar.ColumnGrammar,
 			'<columnGrammar><colDefs>a:5- B:-5</colDefs></columnGrammar>')
-		res = list(g.parse(StringIO("abcdefg")))[0]
-		del res["parser_"]
+		res = getCleaned(g.parse(StringIO("abcdefg")))[0]
 		self.assertEqual(res, {'a': 'efg', 'B': 'abcde'})
 
 	def testBeauty(self):
@@ -279,8 +286,7 @@ class ColDefTest(testhelpers.VerboseTest):
 				B:      -5
 				gnugga: 1-2
 				</colDefs></columnGrammar>""")
-		res = list(g.parse(StringIO("abcdefg")))[0]
-		del res["parser_"]
+		res = getCleaned(g.parse(StringIO("abcdefg")))[0]
 		self.assertEqual(res, {'a': 'efg', 'B': 'abcde', 'gnugga': 'ab'})
 
 	def testErrorBadChar(self):
@@ -356,7 +362,7 @@ class BinaryGrammarTest(testhelpers.VerboseTest):
 			"""<binaryGrammar skipBytes="20"><binaryRecordDef>s(i)t(d)
 			</binaryRecordDef></binaryGrammar>""")
 		self.assertEqual(
-			list(grammar.parse(inputFile)),
+			getCleaned(grammar.parse(inputFile)),
 			self.plainExpectedResult)
 
 	def testNetworkBinfmt(self):
@@ -366,7 +372,7 @@ class BinaryGrammarTest(testhelpers.VerboseTest):
 			"""<binaryGrammar><binaryRecordDef binfmt="big">s(i)t(d)
 			</binaryRecordDef></binaryGrammar>""")
 		self.assertEqual(
-			list(grammar.parse(inputFile)),
+			getCleaned(grammar.parse(inputFile)),
 			self.plainExpectedResult)
 
 
@@ -381,7 +387,7 @@ class BinaryGrammarTest(testhelpers.VerboseTest):
 			"""<binaryGrammar armor="fortran"><binaryRecordDef>s(i)t(d)
 			</binaryRecordDef></binaryGrammar>""")
 		self.assertEqual(
-			list(grammar.parse(inputFile)),
+			getCleaned(grammar.parse(inputFile)),
 			self.plainExpectedResult)
 
 

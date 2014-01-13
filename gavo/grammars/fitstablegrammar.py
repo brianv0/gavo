@@ -23,7 +23,6 @@ class FITSTableIterator(common.RowIterator):
 		self.recordNumber = 0
 		for row in fitsTable:
 			res = dict(zip(names, row))
-			res["parser_"] = self
 			self.recordNumber += 1
 			yield res
 

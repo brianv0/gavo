@@ -217,8 +217,6 @@ class TestTypes(testhelpers.VerboseTest):
 			self.assertEqual(rows[0]["b"], 302316)
 
 
-
-
 class TestWithTableCreation(testhelpers.VerboseTest):
 	resources = [("conn", tresc.dbConnection)]
 
