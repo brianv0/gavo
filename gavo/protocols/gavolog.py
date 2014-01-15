@@ -16,6 +16,7 @@ The RotatingFileHandler in this module tries to ensure this.
 
 import grp
 import os
+import warnings
 from logging import handlers
 
 from gavo import base

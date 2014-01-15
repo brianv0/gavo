@@ -515,13 +515,13 @@ class FITSCodeGenerator(_CodeGenerator):
 		_CodeGenerator.__init__(self, grammar, tableDef)
 		# now fetch the first source to figure out its schema
 		if self.grammar.parent.sources is None:
-			raise StructureError("Cannot make FITS bintable booster without"
+			raise base.StructureError("Cannot make FITS bintable booster without"
 				" a source element on the embedding data.")
 		try:
 			self.fitsTable = pyfits.open(
 				self.grammar.parent.sources.iterSources().next())[1]
 		except StopIteration:
-			raise StructureError("Buliding a FITS bintable booster requires"
+			raise base.StructureError("Buliding a FITS bintable booster requires"
 				" at least one matching source.")
 
 	def getItemParser(self, item, index):
@@ -539,8 +539,10 @@ class FITSCodeGenerator(_CodeGenerator):
 					fitsIndex),
 				"}",]
 		except KeyError:
-			return ["%s(%s, FILL IN VALUE);"%(
-				_getMakeMacro(item), getNameForItem(item))]
+			return ["MAKE_NULL(%s); /* %s(%s, FILL IN VALUE); */"%(
+				getNameForItem(item),
+				_getMakeMacro(item), 
+				getNameForItem(item))]
 
 	def getPreamble(self):
 		return _CodeGenerator.getPreamble(self)+[
@@ -596,12 +598,13 @@ class FITSCodeGenerator(_CodeGenerator):
 				# table column not part of FITS table, don't read anything
 				pass
 
-		return "{\n%s\n}"%",\n".join(res)
+		return res
 
 	def getFooter(self):
+		colDescs = self._getColDescs()
 		infoDict = {
-			"nCols": len(self.tableDef.columns),
-			"colDescs": self._getColDescs(),
+			"nCols": len(colDescs),
+			"colDescs": "{\n%s\n}"%",\n".join(colDescs),
 		}
 		return ("""
 typedef struct FITSColDesc_s {

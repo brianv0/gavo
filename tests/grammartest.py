@@ -528,7 +528,10 @@ class DirectGrammarTest(testhelpers.VerboseTest):
 	def testFITSWithAdditionalCols(self):
 		src = directgrammar.getSource("data/dgs#fitsplus")
 		self._assertCommonItems(src)
-		self.failUnless("MAKE_TEXT(fi_artificial, FILL IN VALUE);" in src)
+		self.failUnless("FITSColDesc COL_DESCS[5] = {" in src)
+		self.failUnless("#define QUERY_N_PARS 6")
+		self.failUnless("MAKE_NULL(fi_artificial);"
+			" /* MAKE_TEXT(fi_artificial, FILL IN VALUE); */" in src)
 
 	# XXX TODO: tests for column reordering, skipping unused columns in FITS
 

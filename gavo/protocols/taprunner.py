@@ -355,7 +355,7 @@ def parseCommandLine():
 		description="runs the TAP job with <jobid> from the UWS table.")
 	opts, args = parser.parse_args()
 	if len(args)!=1:
-		parser.print_help()
+		parser.print_help(file=sys.stderr)
 		sys.exit(1)
 	return opts, args[0]
 

@@ -423,7 +423,7 @@ def procmain(processorClass, rdId, ddId):
 	processorClass.addOptions(parser)
 	opts, args = parser.parse_args()
 	if args:
-		parser.print_help()
+		parser.print_help(file=sys.stderr)
 		sys.exit(1)
 	proc = processorClass(opts, dd)
 	processed, ignored = proc.processAll()

@@ -114,7 +114,7 @@ def _parseCLArgs():
 
 	opts, args = parser.parse_args()
 	if len(args)<1:
-		parser.print_help()
+		parser.print_help(file=sys.stderr)
 		sys.exit(2)
 
 	module, funcName = common.getMatchingFunction(args[0], functions, parser)

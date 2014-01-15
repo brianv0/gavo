@@ -230,7 +230,7 @@ def parseCommandLine():
 		dest="resdir", default=os.getcwd(), action="store", type="str")
 	opts, args = parser.parse_args()
 	if len(args)!=1:
-		parser.print_help()
+		parser.print_help(file=sys.stderr)
 		sys.exit(1)
 	if not opts.srcForm:
 		ext = os.path.splitext(args[0])[1].lower()
@@ -240,7 +240,7 @@ def parseCommandLine():
 			opts.srcForm = "FITS"
 		else:
 			sys.stderr.write("Cannot guess format, use -f option: %s\n"%args[0])
-			parser.print_help()
+			parser.print_help(file=sys.stderr)
 			sys.exit(1)
 	return opts, args
 

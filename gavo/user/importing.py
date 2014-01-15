@@ -146,7 +146,7 @@ def main():
 				opts.metaOnly = True
 			user.interfaces[opts.uiName](base.ui)
 		if not args:
-			parser.print_help()
+			parser.print_help(file=sys.stderr)
 			sys.exit(1)
 		return opts, args
 
