@@ -20,6 +20,18 @@ from gavo.base import macros
 
 
 
+def getCleaned(rawIter):
+	"""returns cleaned rawdicts form a rawdict iterator
+
+	(this currently just kills the parser_ key).
+	"""
+	res = []
+	for d in rawIter:
+		del d["parser_"]
+		res.append(d)
+	return res
+
+
 class NakedMacroTest(testhelpers.VerboseTest):
 	"""tests for macros.py's MacroExpander.
 	"""
@@ -140,7 +152,7 @@ class GrammarMacroTest(testhelpers.VerboseTest):
 			self.assertRaises(result.__class__,
 				lambda: getCleaned(g.parse(irp)))
 		else:
-			self.assertEqual(list(g.parse(irp)), 
+			self.assertEqual(getCleaned(g.parse(irp)), 
 				[expectedRow])
 
 	def testInputRelative(self):

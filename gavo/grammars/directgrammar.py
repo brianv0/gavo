@@ -25,6 +25,7 @@ from gavo import base
 from gavo import utils
 from gavo import rsc
 from gavo import rscdef
+from gavo.grammars import common
 
 
 class CBooster(object):
@@ -156,37 +157,52 @@ class DirectGrammar(base.Structure, base.RestrictionMixin):
 		default=base.Undefined,
 		description="resdir-relative path to the booster C source.",
 		copyable=True)
+
 	_gzippedInput = base.BooleanAttribute("gzippedInput", default=False,
 		description="Pipe gzip before booster?",
 		copyable=True)
+
 	_autoNull = base.UnicodeAttribute("autoNull", default=None,
 		description="Use this string as general NULL value",
 		copyable=True)
+
 	_ignoreBadRecords = base.BooleanAttribute("ignoreBadRecords",
 		default=False, description="Let booster ignore invalid records?",
 		copyable=True)
+
 	_recordSize = base.IntAttribute("recordSize", default=4000,
 		description="For bin boosters, read this many bytes to make"
 		" up a record; for line-based boosters, this is the maximum"
 		" length of an input line.",
 		copyable=True)
+
 	_preFilter = base.UnicodeAttribute("preFilter", default=None,
 		description="Pipe input through this program before handing it to"
 			" the booster; this string is shell-expanded.",
 		copyable=True)
+
 	_customFlags = base.UnicodeAttribute("customFlags", default="",
 		description="Pass these flags to the C compiler when building the"
 		" booster.",
 		copyable=True)
+
 	_type = base.EnumeratedUnicodeAttribute("type", default="col", 
 		validValues=["col", "bin", "fits", "split"],
 		description="Make code for a booster parsing by column indices (col),"
 			" by splitting along separators (split), by reading fixed-length"
 			" binary records (bin), for from FITS binary tables (fits).",
 		copyable=True)
+
 	_splitChar = base.UnicodeAttribute("splitChar", default="|",
 		description="For split boosters, use this as the separator",
 		copyable=True)
+
+	_mapKeys = base.StructAttribute("mapKeys", childFactory=common.MapKeys,
+		default=None, copyable=True, 
+		description="For a FITS booster, map table column name to FITS"
+			" table names (e.g., if the FITS table name flx is to"
+			" end up in the DB column flux, say flx:flux).")
+	
 	_rd = rscdef.RDAttribute()
 
 	isDispatching = False
@@ -197,6 +213,17 @@ class DirectGrammar(base.Structure, base.RestrictionMixin):
 			if not self.recordSize:
 				raise base.StructureError("DirectGrammars reading from binary need"
 					" a recordSize attribute")
+		if self.mapKeys is not None:
+			if self.type!="fits":
+				raise base.StructureError("mapKeys is only allowed for FITS"
+					" boosters.")
+
+	def onElementComplete(self):
+		if self.type=="fits":
+			if self.mapKeys:
+				self.keyMap = self.mapKeys.maps
+			else:
+				self.keyMap = {}
 
 	def getBooster(self):
 		return CBooster(self.cBooster, self.parent,
@@ -568,7 +595,7 @@ class FITSCodeGenerator(_CodeGenerator):
 
 		Matching is case-insensitive, the first match wins.
 		"""
-		name = name.lower()
+		name = self.grammar.keyMap.get(name, name).lower()
 		for index, fitsCol in enumerate(self.fitsTable.columns):
 			if fitsCol.name.lower()==name:
 				return index, fitsCol

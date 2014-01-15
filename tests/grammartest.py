@@ -573,9 +573,11 @@ class FITSDirectGrammarTest(testhelpers.VerboseTest):
 	def testDouble(self):
 		self.assertEqual(self.imped[0][0]["d"], 5e120)
 
-	def testText(self):
+	def testTextAndMap(self):
 		self.assertEqual(self.imped[0][0]["t"], "foobar")
-# XXX TODO: add tests with NULL
+
+	def testUnknownNULL(self):
+		self.assertEqual(self.imped[0][0]["artificial"], None)
 			
 
 
