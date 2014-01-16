@@ -152,13 +152,7 @@ class ForeignKey(base.Structure):
 	"""
 	name_ = "foreignKey"
 
-	# TODO (ca. 1/2013): remove the table attribute, make destId default
-	# to base.Undefined, and remove hackery in onElementComplete
-	_table = base.UnicodeAttribute("table", default=base.NotGiven,
-		description="Fully qualified SQL name of the table holding the"
-		" key (DEPRECATED, use inTable instead).", copyable=True)
-	
-	_inTable = base.ReferenceAttribute("inTable", default=base.NotGiven,
+	_inTable = base.ReferenceAttribute("inTable", default=base.Undefined,
 		description="Reference to the table the foreign key points to.",
 		copyable=True)
 	_source = base.UnicodeAttribute("source", default=base.Undefined,
@@ -177,18 +171,8 @@ class ForeignKey(base.Structure):
 		return [s.strip() for s in raw.split(",") if s.strip()]
 
 	def onElementComplete(self):
-		if self.table is not base.NotGiven:
-			warnings.warn("DEPRECATED: Use inTable rather than table in foreignKeys",
-				DeprecationWarning)
-			self.destTableName = self.table
-			self.isADQLKey = False
-
-		elif self.inTable is not base.NotGiven:
-			self.destTableName = self.inTable.getQName()
-			self.isADQLKey = self.inTable.adql and self.inTable.adql!='hidden'
-
-		else:
-			raise base.StructureError("You must define inTable in foreignKeys")
+		self.destTableName = self.inTable.getQName()
+		self.isADQLKey = self.inTable.adql and self.inTable.adql!='hidden'
 
 		self.source = self._parseList(self.source)
 		if self.dest is base.NotGiven:

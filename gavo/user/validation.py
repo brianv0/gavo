@@ -14,6 +14,7 @@ within both the DC and the VO.
 
 import re
 import sys
+import traceback
 
 from gavo import base
 from gavo import rsc
@@ -200,7 +201,11 @@ def validateAll(args):
 		if args.verbose:
 			sys.stdout.write(rdId+" ")
 			sys.stdout.flush()
-		validateOne(rdId, args)
+		try:
+			validateOne(rdId, args)
+		except Exception, msg:
+			sys.stderr.write("Severe error while validating %s:\n"%rdId)
+			traceback.print_exc()
 	if args.verbose:
 		sys.stdout.write("\n")
 
