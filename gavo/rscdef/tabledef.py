@@ -157,11 +157,20 @@ class ForeignKey(base.Structure):
 		copyable=True)
 	_source = base.UnicodeAttribute("source", default=base.Undefined,
 		description="Comma-separated list of local columns corresponding"
-			" to the foreign key.  No sanity checks are performed here.")
+			" to the foreign key.  No sanity checks are performed here.",
+		copyable=True)
 	_dest = base.UnicodeAttribute("dest", default=base.NotGiven,
 		description="Comma-separated list of columns in the target table"
 			" belonging to its key.  No checks for their existence, uniqueness,"
 			" etc. are done here.  If not given, defaults to source.")
+	_metaOnly = base.BooleanAttribute("metaOnly", default=False,
+		description="Do not tell the database to actually create the foreign"
+			" key, just declare it in the metadata.  This is for when you want"
+			" to document a relationship but don't want the DB to actually"
+			" enforce this.  This is typically a wise thing to do when you have, say"
+			" a gigarecord of flux/density pairs and only several thousand metadata"
+			" records -- you may want to update the latter without having"
+			" to tear down the former.")
 
 	def getDescription(self):
 		return "%s:%s -> %s:%s"%(self.parent.getQName(), ",".join(self.source), 
@@ -182,6 +191,9 @@ class ForeignKey(base.Structure):
 		self._onElementCompleteNext(ForeignKey)
 	
 	def create(self, querier):
+		if self.metaOnly:
+			return
+
 		if not querier.foreignKeyExists(self.parent.getQName(), 
 				self.destTableName,
 				self.source, 
@@ -196,6 +208,9 @@ class ForeignKey(base.Structure):
 					",".join(self.dest)))
 
 	def delete(self, querier):
+		if self.metaOnly:
+			return
+
 		try:
 			constraintName = querier.getForeignKeyName(self.parent.getQName(), 
 				self.destTableName, self.source, self.dest)

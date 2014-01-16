@@ -332,7 +332,8 @@ class TableDefTest(testhelpers.VerboseTest):
 				<table id="test">
 					<column name="foo"/><column name="b"/>
 					<foreignKey inTable="xy" source="foo,b"><dest>b,c </dest></foreignKey>
-					<foreignKey inTable="data/test#adqltable" source="foo"/>
+					<foreignKey inTable="data/test#adqltable" source="foo"
+						metaOnly="True"/>
 				</table>
 			</resource>""")
 		t = rd.tables[1]
