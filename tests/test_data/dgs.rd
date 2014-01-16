@@ -32,7 +32,7 @@
 	<data id="impfits">
 		<sources>extable.fitstable</sources>
 		<directGrammar id="fits" type="fits" cBooster="tmp.c">
-			<mapKeys>text:t</mapKeys>
+			<mapKeys>t:text</mapKeys>
 		</directGrammar>
 		<make table="dgtplus"/>
 	</data>
@@ -40,7 +40,7 @@
 	<data id="impfitsplus">
 		<sources>extable.fitstable</sources>
 		<directGrammar id="fitsplus" type="fits" cBooster="tmp.c">
-			<mapKeys>text:t</mapKeys>
+			<mapKeys>t:text</mapKeys>
 		</directGrammar>
 		<make table="dgtplus"/>
 	</data>

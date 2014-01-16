@@ -550,10 +550,43 @@ class FITSCodeGenerator(_CodeGenerator):
 		except StopIteration:
 			raise base.StructureError("Buliding a FITS bintable booster requires"
 				" at least one matching source.")
+		
+		self._computeMatches()
+	
+	def _computeMatches(self):
+		"""adds .fitsIndexForCol and .colForFITSIndex attributes.
+
+		These are matches based on the respective column names, where
+		we do a case-insensitive matching for now.
+
+		Nones mean that no corresponding column is present; for FITS columns,
+		this means they are ignored.  For table columns, this means that
+		stand-in code is generated for filling out later.
+		"""
+		tableColumns = dict((col.name.lower(), col)
+			for col in self.tableDef)
+		if len(tableColumns)!=len(self.tableDef.columns):
+			raise base.StructureError("Table unsuitable for FITS boosting as"
+				" column names identical after case folding are present.",
+				hint="Use mapKeys to adapt FITS table names to resolve"
+				" the ambiguity")
+
+		self.colForFITSIndex = {}
+		for index, fitsCol in enumerate(self.fitsTable.columns):
+			columnName = self.grammar.keyMap.get(fitsCol.name, fitsCol.name).lower()
+			self.colForFITSIndex[index] = tableColumns.get(columnName)
+
+		self.fitsIndexForColName = {}
+		for index, col in self.colForFITSIndex.iteritems():
+			if col is None:
+				continue
+			self.fitsIndexForColName[col.name.lower()] = index
+	
+
 
 	def getItemParser(self, item, index):
 		try:
-			fitsIndex, fitsDesc = self._getFITSColDesc(item.name)
+			fitsIndex = self.fitsIndexForColName[item.name.lower()]
 			return [
 				"/* %s (%s) */"%(item.description, item.type), 
 				"if (nulls[%d][rowIndex]) {"%fitsIndex,
@@ -566,6 +599,7 @@ class FITSCodeGenerator(_CodeGenerator):
 					fitsIndex),
 				"}",]
 		except KeyError:
+			# no FITS table source column
 			return ["MAKE_NULL(%s); /* %s(%s, FILL IN VALUE); */"%(
 				getNameForItem(item),
 				_getMakeMacro(item), 
@@ -587,43 +621,29 @@ class FITSCodeGenerator(_CodeGenerator):
 	def getPrototype(self):
 		return "Field *getTuple(void *data[], char *nulls[], int rowIndex)"
 
-	def _getFITSColDesc(self, name):
-		"""returns a (index, pyfits column descriptor) for name.
-
-		Non-existing columns raise a KeyError.  This is doing a linear
-		search right now since it doesn't seem performanace-critical.
-
-		Matching is case-insensitive, the first match wins.
-		"""
-		name = self.grammar.keyMap.get(name, name).lower()
-		for index, fitsCol in enumerate(self.fitsTable.columns):
-			if fitsCol.name.lower()==name:
-				return index, fitsCol
-		raise KeyError(name)
-
 	def _getColDescs(self):
 		"""returns a C initializer for an array of FITSColDescs.
 		"""
 		res = []
-		for col in self.tableDef:
-			try:
-				index, fcd = self._getFITSColDesc(col.name)
+		for index, fcd in enumerate(self.fitsTable.columns):
+			col = self.colForFITSIndex[index]
+			if col is None:
+				# table column not part of FITS table, suppress reading
+				# my having .cSize=0
+				res.append("{.cSize = 0, .fitsType = 0, .index=0}")
 
+			elif col.type=="text":
 				# special handling for strings, as we need their size
-				if col.type=="text":
-					# XXX TODO: properly reject var length strings here
-					length = int(re.match("(\d+)A", fcd.format).group(1))
-					res.append("{.cSize = %d, .fitsType = TSTRING, .index=%d}"%(
-						length, index+1))
+				# XXX TODO: properly reject var length strings here
+				length = int(re.match("(\d+)A", fcd.format).group(1))
+				res.append("{.cSize = %d, .fitsType = TSTRING, .index=%d}"%(
+					length, index+1))
 
-				else:
-					res.append("{.cSize = sizeof(%s), .fitsType = %s, .index=%d}"%(
-						self.fitsTypes[col.type][2], 
-						self.fitsTypes[col.type][0],
-						index+1))
-			except KeyError:
-				# table column not part of FITS table, don't read anything
-				pass
+			else:
+				res.append("{.cSize = sizeof(%s), .fitsType = %s, .index=%d}"%(
+					self.fitsTypes[col.type][2], 
+					self.fitsTypes[col.type][0],
+					index+1))
 
 		return res
 
@@ -662,7 +682,11 @@ FITSColDesc COL_DESCS[%(nCols)d] = %(colDescs)s;
 	FITSCATCH(fits_get_num_rows(fitsInput, &nRows, &status));
 
 	for (i=0; i<%(nCols)d; i++) {
-		if (COL_DESCS[i].fitsType==TSTRING) {
+		if (COL_DESCS[i].cSize==0) {
+			/* Column not used */
+			continue; 
+
+		} else if (COL_DESCS[i].fitsType==TSTRING) {
 			char *stringHoldings = NULL;
 			if (!(data[i] = malloc(nRows*sizeof(char*)))
 				|| !(stringHoldings = malloc(nRows*(COL_DESCS[i].cSize+1)))) {
@@ -674,7 +698,8 @@ FITSColDesc COL_DESCS[%(nCols)d] = %(colDescs)s;
 					((char**)(data[i]))[k] = stringHoldings+k*(COL_DESCS[i].cSize+1);
 				}
 			}
-		} else{
+
+		} else {
 			if (!(data[i] = malloc(nRows*COL_DESCS[i].cSize))) {
 				die("out of memory");
 			}
