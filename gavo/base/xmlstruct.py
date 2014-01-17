@@ -80,7 +80,7 @@ class EventProcessor(object):
 
 		This is the main entry point for user calls.
 		"""
-		# Special handling for acitve tags: They may occur everywhere and
+		# Special handling for active tags: They may occur everywhere and
 		# thus are not not parsed by the element parsers but by us.
 		# Active tags may define ACTIVE_NOEXPAND to undo that behaviour
 		# (i.e., see active tag events themselves).

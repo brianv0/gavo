@@ -199,9 +199,9 @@ class DirectGrammar(base.Structure, base.RestrictionMixin):
 
 	_mapKeys = base.StructAttribute("mapKeys", childFactory=common.MapKeys,
 		default=None, copyable=True, 
-		description="For a FITS booster, map table column name to FITS"
-			" table names (e.g., if the FITS table name flx is to"
-			" end up in the DB column flux, say flx:flux).")
+		description="For a FITS booster, map DB table column names"
+			" to FITS column names (e.g., if the FITS table name flx is to"
+			" end up in the DB column flux, say flux:flx).")
 	
 	_rd = rscdef.RDAttribute()
 

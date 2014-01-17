@@ -395,7 +395,10 @@ class ReplayBase(ActiveTag, structure.Structure, macros.StandardMacroMixin):
 
 			if pruneStack and type=="end":
 				pruneStack.pop()
-
+	
+		# ReferenceAttribute and similar may change the element fed into;
+		# make sure the right object is returned up-tree
+		self.parent = evTarget.curParser
 
 	def replay(self, events, destination, ctx):
 		"""pushes the stored events into the destination structure.

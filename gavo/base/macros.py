@@ -240,8 +240,6 @@ class StandardMacroMixin(MacroPackage):
 		This will raise an error when the meta Key is not available unless
 		you give a default.
 		"""
-		if metaKey=='source':
-			import pdb;pdb.set_trace()
 		try:
 			val = self.getMeta(metaKey, raiseOnFail=True)
 		except meta.NoMetaKey:

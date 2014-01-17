@@ -556,5 +556,25 @@ class MixinTest(testhelpers.VerboseTest):
 		self.assertEqual(res.tables[1].columns[1].name, "b")
 
 
+class ReferenceAttributeTest(testhelpers.VerboseTest):
+	def testRefattChangeHonored(self):
+		rd = base.parseFromString(rscdesc.RD, """
+			<resource schema="test">
+				<STREAM id="woo"><var key="src">@inp+33</var></STREAM>
+				<STREAM id="loo"><var key="gno">4</var></STREAM>
+				<table id="t1"><column name="foo" type="integer"/></table>
+				<data id="make_t1"><dictlistGrammar/>
+					<make table="t1">
+						<rowmaker>
+							<FEED source="woo"/>
+							<FEED source="loo"/>
+							<map key="foo">@src+1-@gno</map></rowmaker></make></data>
+			</resource>
+			""")
+		from gavo import rsc
+		d = rsc.makeData(rd.getById("make_t1"), forceSource=[{'inp': 1}])
+		self.assertEqual(d.getPrimaryTable().rows, [{'foo': 31}])
+
+
 if __name__=="__main__":
 	testhelpers.main(MixinTest)
