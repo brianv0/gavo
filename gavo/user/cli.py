@@ -140,9 +140,11 @@ def main():
 	from gavo import base
 	from gavo import utils
 	from gavo.user import errhandle
-	from gavo.user import logui
-	if not opts.suppressLog:
+
+	if not (opts.suppressLog or os.environ.get("GAVO_LOG")=="no"):
+		from gavo.user import logui
 		logui.LoggingUI(base.ui)
+
 	if opts.enablePDB:
 		_enablePDB()
 	funcToRun = utils.loadInternalObject(module, funcName)

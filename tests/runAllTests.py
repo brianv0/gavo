@@ -32,6 +32,7 @@ else:
 	raise sys.exit(
 		'%s takes zero arguments or just "data"'%sys.argv[0])
 
+os.environ["GAVO_LOG"] = "no"
 
 import unittest
 import doctest
@@ -115,6 +116,8 @@ def runDataTests():
 
 
 if __name__=="__main__":
+	base.DEBUG = False
+
 	if len(sys.argv)==1:
 		runAllTests()
 

@@ -10,6 +10,7 @@ Helpers for trial-based tests, in particular retrieving pages.
 
 from __future__ import with_statement
 
+import os
 import urlparse
 import warnings
 
@@ -214,5 +215,6 @@ class RenderTest(TrialTest):
 			).addErrback(eb)
 
 
-from gavo.user import logui
-logui.LoggingUI(base.ui)
+if os.environ.get("GAVO_LOG")!="no":
+	from gavo.user import logui
+	logui.LoggingUI(base.ui)

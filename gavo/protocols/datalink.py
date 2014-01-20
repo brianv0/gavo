@@ -378,12 +378,6 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 			required=True,
 			std=True,
 			description="The pubisher DID of the dataset of interest"))
-		self.inputKeys.append(MS(svcs.InputKey, name="REQUEST", type="text", 
-			multiplicity="forced-single",
-			std=True,
-			description="Request type",
-			values = MS(rscdef.Values, options=[
-				MS(rscdef.Option, content_="getLinks")])))
 
 		if self.inputTable is base.NotGiven:
 			self.inputTable = MS(svcs.InputTable, params=self.inputKeys)
@@ -484,8 +478,18 @@ class DatalinkCore(DatalinkCoreBase):
 			linkDefs.extend(lds)
 			services.append(_ServiceDescriptor(descriptor.pubDID, inputKeys))
 
+		inputKeys = services[-1].inputKeys[:]
+		if renderer.name=="dlmeta":
+			# XXX TODO: Remove all keys but ID and REQUEST here?
+			inputKeys.append(MS(svcs.InputKey, name="REQUEST", type="text", 
+				multiplicity="forced-single",
+				std=True,
+				description="Request type",
+				values = MS(rscdef.Values, options=[
+					MS(rscdef.Option, content_="getLinks")])))
+
 		res = self.change(inputTable=MS(svcs.InputTable, 
-			params=services[-1].inputKeys))
+			params=inputKeys))
 
 		# this is a bit of a hack: dlmeta should return the metadata,
 		# all other renderers are supposed to want to do the processing

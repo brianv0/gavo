@@ -468,9 +468,11 @@ def trialMain(testClass):
 
 def main(testClass, methodPrefix=None):
 	from gavo import base
-	base.DEBUG = True
-	from gavo.user import logui
-	logui.LoggingUI(base.ui)
+	
+	if os.environ.get("GAVO_LOG")!="no":
+		base.DEBUG = True
+		from gavo.user import logui
+		logui.LoggingUI(base.ui)
 
 	try:
 		# two args: first one is class name, locate it in caller's globals
