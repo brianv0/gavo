@@ -71,4 +71,83 @@
 		<template key="fixed">//tpltest.html</template>
 	</service>
 
+	<regSuite id="dachs">
+		<regTest title="Auth required for protected form.">
+			<url>limited/form</url>
+			<code>
+				self.assertHTTPStatus(401)
+			</code>
+		</regTest>
+
+		<regTest title="DB timeout yields a nice response">
+			<url>timeout/form</url>
+			<code>
+				self.assertHasStrings("Just wait a while", 
+					"Query timed out (took too")
+			</code>
+		</regTest>
+	</regSuite>
+
+	<regSuite id="upload" sequential="True">
+		<regTest title="Upload service shows a form">
+			<url>upload/upload</url>
+			<code>
+				self.assertHasStrings("Insert", "Update", 'type="file"')
+			</code>
+		</regTest>
+
+		<regTest
+				title="Update of non-existing data is a no-op (may fail on state)">
+			<url parSet="form" Mode="u" httpMethod="POST">
+				<httpUpload name="File" fileName="c.foo"
+					>a: 15&#10;b:10
+				</httpUpload>upload/upload</url>
+			<code>
+				self.assertHasStrings("0 record(s) modified.")
+			</code>
+		</regTest>
+
+		<regTest
+				title="Insert of non-existing data touches one record.">
+			<url parSet="form" Mode="i" httpMethod="POST">
+				<httpUpload name="File" fileName="c.foo"
+					>a: 15&#10;b:10
+				</httpUpload>upload/upload</url>
+			<code>
+				self.assertHasStrings("1 record(s) modified.")
+			</code>
+		</regTest>
+
+		<regTest
+				title="Duplicate insertion of data yields error">
+			<url parSet="form" Mode="i" httpMethod="POST">
+				<httpUpload name="File" fileName="c.foo"
+					>a: 15&#10;b:10
+				</httpUpload>upload/upload</url>
+			<code>
+				self.assertHasStrings("Cannot enter c.foo in database: duplicate key",
+					"violates unique constraint")
+			</code>
+		</regTest>
+
+			<regTest
+				title="Updates of existing data modify db">
+			<url parSet="form" Mode="u" httpMethod="POST">
+				<httpUpload name="File" fileName="c.foo"
+					>a: 15&#10;b:10
+				</httpUpload>upload/upload</url>
+			<code>
+				self.assertHasStrings("1 record(s) modified.")
+			</code>
+		</regTest>
+	
+		<regTest title="Reset of uploads table seems to work">
+			<url>reset/form</url>
+			<code>
+				self.assertHasStrings("Matched: 0")
+			</code>
+		</regTest>
+	</regSuite>
+
+
 </resource>
