@@ -628,7 +628,7 @@ _RUNNERS_RESPONSES = {
 }
 
 
-def _fakeRetrieveResource(self, moreHeaders=""):
+def _fakeRetrieveResource(self, serverURL, timeout=0, moreHeaders=""):
 	"""A stand-in for the test runner's testOpener.
 	"""
 	self.httpURL = self.getValue(base.getConfig("web", "serverURL"))

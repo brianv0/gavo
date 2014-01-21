@@ -529,14 +529,22 @@ class FITSCodeGenerator(_CodeGenerator):
 	"""A code generator for reading from FITS binary tables.
 	"""
 	fitsTypes = {
-			"bytea": ("TBYTE", "MAKE_BYTE", "char"),
-			"text": ("TSTRING", "MAKE_TEXT", "char *"),
-			"short": ("TSHORT", "MAKE_SHORT", "short"),
-			"integer": ("TLONG", "MAKE_INT", "int"),
-			"bigint": ("TLONGLONG", "MAKE_BIGINT", "long long"),
-			"real": ("TFLOAT", "MAKE_FLOAT", "float"),
-			"double precision": ("TDOUBLE", "MAKE_DOUBLE", "double")}
-
+		"B": ("TBYTE", "char"),
+		"A": ("TSTRING", "char *"),
+		"I": ("TSHORT", "short"),
+		"J": ("TLONG", "int"),
+		"K": ("TLONGLONG", "long long"),
+		"E": ("TFLOAT", "float"),
+		"D": ("TDOUBLE", "double")}
+	makers = {
+		"bigint": "MAKE_BIGINT",
+		"bytea": "MAKE_BYTE",
+		"text": "MAKE_TEXT",
+		"integer": "MAKE_INT",
+		"real": "MAKE_FLOAT",
+		"double precision": "MAKE_DOUBLE",
+	}
+	
 	def __init__(self, grammar, tableDef):
 		from gavo.utils import pyfits
 		_CodeGenerator.__init__(self, grammar, tableDef)
@@ -582,22 +590,26 @@ class FITSCodeGenerator(_CodeGenerator):
 				continue
 			self.fitsIndexForColName[col.name.lower()] = index
 	
-
-
 	def getItemParser(self, item, index):
 		try:
 			fitsIndex = self.fitsIndexForColName[item.name.lower()]
+			fitsCol = self.fitsTable.columns[fitsIndex]
+			castTo = self.fitsTypes[
+				self._parseFITSFormat(fitsCol.format, fitsCol.name)[1]
+				][1]
+
 			return [
 				"/* %s (%s) */"%(item.description, item.type), 
 				"if (nulls[%d][rowIndex]) {"%fitsIndex,
 				"  MAKE_NULL(%s);"%getNameForItem(item),
 				"} else {",
 				"	 %s(%s, ((%s*)(data[%d]))[rowIndex]);"%(
-					self.fitsTypes[item.type][1], 
+					self.makers[item.type], 
 					getNameForItem(item),
-					self.fitsTypes[item.type][2], 
+					castTo,
 					fitsIndex),
 				"}",]
+
 		except KeyError:
 			# no FITS table source column
 			return ["MAKE_NULL(%s); /* %s(%s, FILL IN VALUE); */"%(
@@ -621,6 +633,21 @@ class FITSCodeGenerator(_CodeGenerator):
 	def getPrototype(self):
 		return "Field *getTuple(void *data[], char *nulls[], int rowIndex)"
 
+	def _parseFITSFormat(self, format, colName):
+		"""returns length and typecode for the supported FITS table types.
+
+		All others raise errors.
+		"""
+		mat = re.match("(\d*)(.)$", format)
+		if not mat:
+			raise base.ReportableError("FITS type code '%s' of %s not handled"
+				" by gavo mkboost; add handling if you can."%(format, colName))
+		if not mat.group(2) in self.fitsTypes:
+			raise base.ReportableError("FITS type '%s' of %s not handled"
+				" by gavo mkboost; add handling if you can."%(
+					mat.group(2), colName))
+		return int(mat.group(1) or "1"), mat.group(2)
+
 	def _getColDescs(self):
 		"""returns a C initializer for an array of FITSColDescs.
 		"""
@@ -631,18 +658,23 @@ class FITSCodeGenerator(_CodeGenerator):
 				# table column not part of FITS table, suppress reading
 				# my having .cSize=0
 				res.append("{.cSize = 0, .fitsType = 0, .index=0}")
+				continue
 
-			elif col.type=="text":
+			length, typecode = self._parseFITSFormat(fcd.format, fcd.name)
+			
+			if typecode=="A":
 				# special handling for strings, as we need their size
-				# XXX TODO: properly reject var length strings here
-				length = int(re.match("(\d+)A", fcd.format).group(1))
+				# var length strings have been rejected above
 				res.append("{.cSize = %d, .fitsType = TSTRING, .index=%d}"%(
 					length, index+1))
 
 			else:
+				if length!=1:
+					raise base.ReportableError("Column %s: Arrays not supported"
+						" by gavo mkboost."%fcd.name)
 				res.append("{.cSize = sizeof(%s), .fitsType = %s, .index=%d}"%(
-					self.fitsTypes[col.type][2], 
-					self.fitsTypes[col.type][0],
+					self.fitsTypes[typecode][1], 
+					self.fitsTypes[typecode][0],
 					index+1))
 
 		return res

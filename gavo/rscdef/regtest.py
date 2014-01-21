@@ -310,7 +310,7 @@ class DataURL(base.Structure):
 				("_charset_", "UTF-8")])
 		return params
 
-	def retrieveResource(self, serverURL):
+	def retrieveResource(self, serverURL, timeout=10):
 		"""returns a triple of status, headers, and content for retrieving
 		this URL.
 		"""
@@ -345,8 +345,7 @@ class DataURL(base.Structure):
 
 		if self.httpAuthKey is not base.NotGiven:
 			hdrs.update(getAuthFor(self.httpAuthKey))
-
-		conn = httplib.HTTPConnection(host, timeout=10)
+		conn = httplib.HTTPConnection(host, timeout=timeout)
 		conn.connect()
 		try:
 			conn.request(self.httpMethod, path+"?"+query, payload, hdrs)
@@ -428,7 +427,7 @@ class RegTest(procdef.ProcApp):
 			source = " (%s)"%id
 		return self.title+source
 
-	def retrieveData(self, serverURL):
+	def retrieveData(self, serverURL, timeout=20):
 		"""returns headers and content when retrieving the resource at url.
 
 		Sets  the headers and data attributes of the test instance.
@@ -437,7 +436,7 @@ class RegTest(procdef.ProcApp):
 			self.status, self.headers, self.data = None, None, None
 		else:
 			self.status, self.headers, self.data = self.url.retrieveResource(
-				serverURL)
+				serverURL, timeout=timeout)
 
 	def getDataSource(self):
 		"""returns a string pointing people to where data came from.
@@ -743,7 +742,7 @@ class TestRunner(object):
 		try:
 			try:
 				curDesc = test.title
-				test.retrieveData(self.serverURL)
+				test.retrieveData(self.serverURL, timeout=self.timeout)
 				test.compile()(test)
 				self.resultsQueue.put(("OK", test, None, None, time.time()-startTime))
 
