@@ -348,7 +348,9 @@ class DataURL(base.Structure):
 		conn = httplib.HTTPConnection(host, timeout=timeout)
 		conn.connect()
 		try:
-			conn.request(self.httpMethod, path+"?"+query, payload, hdrs)
+			if query:
+				path = path+"?"+query
+			conn.request(self.httpMethod, path, payload, hdrs)
 			resp = conn.getresponse()
 			headers = resp.getheaders()
 			content = resp.read()
