@@ -86,6 +86,90 @@
 					"Query timed out (took too")
 			</code>
 		</regTest>
+
+		<regTest title="Admin requries login">
+			<url>/seffe/__system__/adql</url>
+			<code>
+				self.assertHTTPStatus(401)
+			</code>
+		</regTest>
+
+		<regTest title="No admin link to bother regular users">
+			<url>/__system__/adql/query/form</url>
+			<code>
+				self.assertLacksStrings("Admin me")
+			</code>
+		</regTest>
+
+		<regTest title="ADQL docs appear to be in shape">
+			<url>/__system__/adql/query/info</url>
+			<code><![CDATA[
+				self.assertHasStrings("Service Documentation", "About ADQL", 
+					'">TAP examples</a>')
+			]]></code>
+		</regTest>
+
+		<regTest title="Vanity redirect works" id="cur">
+			<url>/adql</url>
+			<code>
+				self.assertHTTPStatus(301)
+				self.assertHasStrings('__system__/adql/query/form"',
+					"Moved permanently")
+			</code>
+		</regTest>
+
+		<regTest title="Table info on non-existing table yields useful error">
+			<url>/tableinfo/thistable.doesnotexist</url>
+			<code>
+				self.assertHasStrings("Table 'thistable.doesnotexist' could not be"
+					" located in data center table listing.")
+			</code>
+		</regTest>
+
+		<regTest title="ADQL tables can be listed">
+			<url>/__system__/dc_tables/list/form</url>
+			<code>
+				self.assertHasStrings("Fully qualified table", "ppmx.data", 
+					"18 088 919")
+			</code>
+		</regTest>
+
+		<regTest title="ADQL Parse errors are reported in-form">
+			<url parSet="form" query="foobar">/__system__/adql/query/form</url>
+			<code>
+				self.assertHasStrings("Service info", "Could not parse", 
+					'Expected "SELECT"')
+			</code>
+		</regTest>
+
+		<regTest title="Users table is not accessible through ADQL">
+			<url parSet="form" query="select * from dc.users"
+				>/__system__/adql/query/form</url>
+			<code>
+				self.assertHasStrings("Could not locate Table", "Result link")
+			</code>
+		</regTest>
+
+		<regTest title="TAP error message looks like it's according to standard.">
+			<url>/__system__/tap/run/tap/sync</url>
+			<code><![CDATA[
+				self.assertHasStrings('<RESOURCE type="results">',
+					'<INFO name="QUERY_STATUS" value="ERROR">',
+					'Missing mandatory parameter')
+			]]></code>
+		</regTest>
+
+		<regTest title="Obscore query returns morphed link and indicates 
+				an overflow">
+			<url LANG="ADQL" query="select top 1 access_url from ivoa.obscore" 
+				REQUEST="doQuery" FORMAT="votable/td"
+				>/__system__/tap/run/tap/sync</url>
+			<code><![CDATA[
+				self.assertHasStrings("/getproduct?key=",
+					'utype="obscore:access.reference"',
+					'<INFO name="QUERY_STATUS" value="OVERFLOW"')
+			]]></code>
+		</regTest>
 	</regSuite>
 
 	<regSuite id="upload" sequential="True">
@@ -130,7 +214,7 @@
 			</code>
 		</regTest>
 
-			<regTest
+		<regTest
 				title="Updates of existing data modify db">
 			<url parSet="form" Mode="u" httpMethod="POST">
 				<httpUpload name="File" fileName="c.foo"
