@@ -288,15 +288,23 @@ class SIAPCutoutCore(svcs.DBCore):
 		try:
 			sra = sdec = float(queryMeta.ctxArgs["cutoutSize"])
 		except (KeyError, ValueError):
-			sra, sdec = sqlPars["_sra"], sqlPars["_sdec"]
-		cosD = math.cos(sqlPars["_dec"]/180*math.pi)
-		if abs(cosD)>1e-5:
-			sra = sra/cosD
-		else:
-			sra = 360
+			try:
+				sra, sdec = sqlPars["_sra"], sqlPars["_sdec"]
+			except KeyError:
+				sra, sdec = 0.5, 0.5
+
+		if "_dec" in sqlPars:
+			cosD = math.cos(sqlPars["_dec"]/180*math.pi)
+			if abs(cosD)>1e-5:
+				sra = sra/cosD
+			else:
+				sra = 360
+
 		for record in res:
 			try:
-				self._fixRecord(record, sqlPars["_ra"], sqlPars["_dec"], sra, sdec)
+				self._fixRecord(record, 
+					sqlPars.get("_ra", record["centerAlpha"]), 
+					sqlPars.get("_dec", record["centerDelta"]), sra, sdec)
 			except ValueError:
 				# pywcs derives its (hidden) InvalidTransformError from ValueError.
 				# Anwyway, deliver slightly botched records rather
