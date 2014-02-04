@@ -483,7 +483,7 @@ class _DatalinkRendererBase(grend.ServiceBasedPage):
 			request.setResponseCode(422)
 		else:
 			request.setResponseCode(500)
-		return utils.safe_str(failure.value)
+		return utils.safe_str(failure.value)+"\n"
 
 
 class DatalinkGetDataRenderer(_DatalinkRendererBase):

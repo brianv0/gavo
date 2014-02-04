@@ -440,7 +440,7 @@ class FileRowAttributes(object):
 
 
 class GrammarMacroMixin(base.StandardMacroMixin):
-	"""is a collection of macros available to rowfilters.
+	"""A collection of macros available to rowfilters.
 
 	NOTE: All macros should return only one single physical python line,
 	or they will mess up the calculation of what constructs caused errors.
@@ -456,6 +456,20 @@ class GrammarMacroMixin(base.StandardMacroMixin):
 		return ('utils.getRelativePath(rowIter.sourceToken,'
 			' base.getConfig("inputsDir"), liberalChars=%s)'%(
 				base.parseBooleanLiteral(liberalChars)))
+
+	def macro_fullDLURL(self, dlService):
+		r"""returns a python expression giving a link pullling the standard 
+		PubDID of the current source through the datalink service dlService.
+
+		You would write \fullDLURL{dlsvc} here, and the macro will expand into
+		something like http://yourserver/currd/dlget?ID=ivo://whatever.
+
+		dlService is the id of the datalink service in the current RD.
+		"""
+		baseURL = self.rd.getById(dlService).getURL("dlget")
+		return ("'%%s?ID=%%s'%%(%s,"
+			" urllib.quote_plus(getStandardPubDID(rowIter.sourceToken)))"%(
+				repr(baseURL)))
 
 	def macro_rowsProcessed(self):
 		"""returns an expression giving the number of records already

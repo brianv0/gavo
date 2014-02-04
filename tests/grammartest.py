@@ -134,6 +134,29 @@ class SequencedRowfilterTest(testhelpers.VerboseTest):
 			{"output":4, "processed":64},])
 
 
+class MacroTest(testhelpers.VerboseTest):
+	def testDLURL(self):
+		from gavo import rscdesc
+		rd = base.parseFromString(rscdesc.RD, r"""<resource schema="test"
+				resdir=".">
+			<table id="foo"><column name="prodtblPath" type="text"/></table>
+			<data id="i">
+				<sources pattern="data/ex.fits"/>
+				<fitsProdGrammar>
+					<rowfilter procDef="//products#define">
+						<bind name="table">"foo"</bind>
+						<bind name="path">\fullDLURL{echdl}</bind>
+					</rowfilter>
+				</fitsProdGrammar>
+				<make table="foo"/></data>
+				<service id="echdl"><datalinkCore/></service></resource>""")
+		rd.sourceId = "glob/bob"
+		rows = rsc.makeData(rd.getById("i")).getPrimaryTable().rows
+		self.assertEqual(rows[0]["prodtblPath"],
+			"http://localhost:8080/glob/bob/echdl/dlget"
+			"?ID=ivo%3A%2F%2Fx-unregistred%2F%7E%3Fdata%2Fex.fits")
+
+
 ignoreTestData = [
 	{'a': 'xy', 'b': 'cc', 'd': 'yok'},
 	{'a': 'xy', 'b': 'DD'},
