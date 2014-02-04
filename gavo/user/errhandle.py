@@ -134,11 +134,13 @@ def raiseAndCatch(opts=None, output=outputError):
 	except (base.ValidationError, base.ReportableError, 
 			base.LiteralParseError, base.StructureError, base.NotFoundError,
 			base.MetaValidationError), msg:
-		
-		if getattr(msg, "inFile", None):
-			messages.append("In %s:"%msg.inFile)
-		elif getattr(msg, "pos", None):
-			messages.append("At or near %s:"%msg.pos)
+	
+		if not getattr(msg, "posInMsg", False):
+			if getattr(msg, "inFile", None):
+				messages.append("In %s:"%msg.inFile)
+			elif getattr(msg, "pos", None):
+				messages.append("At or near %s:"%msg.pos)
+
 		if getattr(msg, "row", None):
 			messages.append("Row %s"%str(msg.row))
 		messages.append(str(msg).decode("iso-8859-1", "ignore"))

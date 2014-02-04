@@ -56,7 +56,7 @@ class DALRenderer(grend.ServiceBasedPage):
 
 	implements(inevow.ICanHandleException)
 
-	resultType = "application/x-votable+xml"
+	resultType = base.votableType
 	parameterStyle = "pql"
 	urlUse = "base"
 
@@ -97,7 +97,7 @@ class DALRenderer(grend.ServiceBasedPage):
 		if not self.saneResponseCodes:
 			request.setResponseCode(code)
 		result = self._makeErrorTable(ctx, errmsg, queryStatus)
-		request.setHeader("content-type", "application/x-votable")
+		request.setHeader("content-type", base.votableType)
 		votable.write(result, request)
 		return "\n"
 
@@ -154,7 +154,7 @@ class SCSRenderer(DALRenderer):
 
 	def _writeErrorTable(self, ctx, msg, code=200, queryStatus="ERROR"):
 		request = inevow.IRequest(ctx)
-		request.setHeader("content-type", "application/x-votable")
+		request.setHeader("content-type", base.votableType)
 		votable.write(V.VOTABLE11[
 			V.DESCRIPTION[base.getMetaText(self.service, "description")],
 			V.INFO(ID="Error", name="Error",

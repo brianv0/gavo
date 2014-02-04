@@ -45,14 +45,14 @@ EST_TIME_PER_JOB = datetime.timedelta(minutes=10)
 # IANA mimes and user-readable labels.
 # Used below (1st element of value tuple) and for registry purposes.
 FORMAT_CODES = {
-	"application/x-votable+xml": 
-		("votable", "application/x-votable+xml", "VOTable, binary", 
+	base.votableType:
+		("votable", base.votableType, "VOTable, binary", 
 			"ivo://ivoa.net/std/TAPRegExt#output-votable-binary"),
 	"text/xml": 
 		("votable", "text/xml", "VOTable, binary",
 			"ivo://ivoa.net/std/TAPRegExt#output-votable-binary"),
 	"votable": 
-		("votable", "application/x-votable+xml", "VOTable, binary",
+		("votable", base.votableType, "VOTable, binary",
 			"ivo://ivoa.net/std/TAPRegEXT#output-votable-binary"),
 	"application/x-votable+xml;serialization=binary2": 
 		("votableb2", "application/x-votable+xml;serialization=binary2", 

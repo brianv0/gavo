@@ -93,7 +93,7 @@ class VOTableResult(ServiceResult):
 			fName = "truncated_votable.xml"
 		else:
 			fName = "votable.xml"
-		request.setHeader("content-type", "application/x-votable")
+		request.setHeader("content-type", base.votableType)
 		request.setHeader('content-disposition', 
 			'attachment; filename=%s'%fName)
 		return streaming.streamVOTable(request, data)

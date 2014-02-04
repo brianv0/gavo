@@ -33,7 +33,7 @@ from gavo.protocols import creds
 # monkeypatching static's mime magic
 static.File.contentTypes[".ascii"] = "application/octet-stream"
 static.File.contentTypes[".f"] = "text/x-fortran"
-static.File.contentTypes[".vot"] = "application/x-votable+xml"
+static.File.contentTypes[".vot"] = base.votableType,
 static.File.contentTypes[".rd"] = "application/x-gavo-descriptor+xml"
 static.File.contentTypes[".f90"] = "text/x-fortran"
 # this one is for co-operation with ifpages

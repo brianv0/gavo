@@ -242,7 +242,8 @@ Other Streams
 
 .. replaceWithResult getStreamsDoc(
     ['//obscore#obscore-columns']
-    +['//ssap#'+id for id in ["hcd_condDescs"]])
+    +['//ssap#'+id for id in ["hcd_condDescs"]]
+    +['//echelle#'+id for id in ["ssacols"]])
 
 
 Metadata
@@ -1416,7 +1417,8 @@ you could, for example, snarf from a tcpdump log.
 Datalink Cores
 ==============
 
-[Note: this section is in the process of implementation]
+[Note: Datalink specification in the IVOA is not yet finalized; it is
+conceivable that the DaCHS Datalink API will have to change once it is]
 
 Datalink is an IVOA protocol that allows associating various products
 and artifacts with a data set id.  Classical examples for functionality
@@ -1598,28 +1600,18 @@ of service metadata from a data descriptor.  All meta makers belonging
 to a service are unconditionally executed, and all must be generator
 bodies (i.e., contain a yield statement).
 
-Meta makers may yield input keys and/or link definitions.  The input
+Meta makers may yield input keys (``InputKey`` instances) and/or 
+link definitions (``LinkDef`` instances).  The input
 keys make up a service's interface in the usual way.
-Note, however, that since DaCHS datalink services dispatch between
-metadata and data processing queries by checking whether any parameters
-other than PUBDID are given, you must never generate defaulted input
-keys here, since the core cannot tell defaulted inputs from those passed
-in by the user and would then always do data processing.  If you
-actually need defaults, set them in the data formatters whenever the
-parameters they expect are None.
-
-Link definitions are instances of the `LinkDefinition` class.  These are
-constructed with 
-
-- the destination URL (as a string)
-- the destination contentType (a mime type as a string)
-- the relationType (another string).
 
 The classes usually required to build whatever meta makers return 
 (InputKey, Values, Option, LinkDef) are available to the code as local
-names.  You should, however, not construct them directly but use the
-``MS`` helper (which is really an alias for base.makeStruct, which takes
-care that the special postprocessing of DaCHS structures takes place).
+names.  
+
+As usual, DaCHS structs – that's InputKey, Values, and Option here –
+should not be constructed but only using the ``MS`` helper (which is
+really an alias for base.makeStruct, which takes care that the special
+postprocessing of DaCHS structures takes place).
 
 Parameter Definitions
 .....................
@@ -1759,7 +1751,7 @@ The effect should be a group like::
         utype="stc:AstroCoordArea.SpectralInterval.LoLimit"/>
     </GROUP>
 
-All this is explained in [VOTSTC].
+All this is explained in [VOTSTC]_.
 
 
 Link Definitions
@@ -2412,6 +2404,42 @@ this must be an "ssa" table (i.e., right now something that mixes in
 Hence, this has no sources element, and you must have either a custom
 or embedded grammar to deal with this input.
 
+
+Echelle Spectra
+===============
+
+Echelle spectrographs "fold" a spectrum into several orders which may be
+delivered in several independent mappings from spectral to flux
+coordinate.  In this split form, they pose some extra problems, dealt
+with in an extra system RD, ``//echelle``.  For merged Echelle spectra,
+just use the standard SSA framework.
+
+
+Table
+-----
+
+Echelle spectra have additional metadata that should end up in their SSA
+metadata table – these are things like the number of orders, the minimum
+and maximum (Echelle) order, and the like.  To pull these columns into
+your metadata table, use the ssacols stream, for example like this::
+
+	<table id="ordersmeta" onDisk="True" adql="True">
+		<meta name="description">SSA metadata for split-order 
+			Flash/Heros Echelle spectra</meta>
+		<mixin
+			[...]
+			statSpectError="0.05"
+			spectralResolution="2.5e-11"
+		>//ssap#hcd</mixin>
+		<mixin
+			calibLevel="1">//obscore#publishSSAPHCD</mixin>
+		<column name="localKey" type="text"
+			ucd="meta.id"
+			tablehead="Key"
+			description="Local observation key."
+			verbLevel="1"/>
+		<STREAM source="//echelle#ssacols"/>
+	</table>
 
 
 

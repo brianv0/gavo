@@ -142,7 +142,7 @@ class SSAPCore(svcs.DBCore):
 
 		data = rsc.makeData(dd)
 		
-		return "application/x-votable+xml", votablewrite.getAsVOTable(data)
+		return base.votableType, votablewrite.getAsVOTable(data)
 
 	def _declareGenerationParameters(self, resElement, datalinkCore):
 		"""adds a table declaring getData support to resElement as appropriate.

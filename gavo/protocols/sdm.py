@@ -31,7 +31,7 @@ from gavo.utils import pyfits
 # either keys for formats.formatData, or None if we have special
 # handling below.
 GETDATA_FORMATS = {
-	"application/x-votable+xml": "votable",
+	base.votableType: "votable",
 	"application/x-votable+xml;serialization=tabledata": "votabletd",
 	"text/plain": "tsv",
 	"text/csv": "csv",
@@ -324,8 +324,8 @@ def formatSDMData(sdmData, format, queryMeta=svcs.emptyQueryMeta):
 	"""returns a pair of mime-type and payload for a rendering of the SDM
 	Data instance sdmData in format.
 	"""
-	destMime =  str(format or "application/x-votable+xml")
-	if queryMeta["tdEnc"] and destMime=="application/x-votable+xml":
+	destMime =  str(format or base.votableType)
+	if queryMeta["tdEnc"] and destMime==base.votableType:
 		destMime = "application/x-votable+xml;serialization=tabledata"
 	formatId = GETDATA_FORMATS.get(destMime, None)
 
@@ -487,5 +487,5 @@ class SDMCore(svcs.Core):
 			hackSDMToSED(resData)
 			votContextArgs["tablecoding"] = "td"
 
-		return ("application/x-votable+xml",
+		return (base.votableType,
 			votable.asString(makeSDMVOT(resData, **votContextArgs)))

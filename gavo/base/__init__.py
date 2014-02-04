@@ -85,6 +85,9 @@ from gavo.base.unitconv import (
 
 from gavo.base.xmlstruct import parseFromString, parseFromStream, feedTo
 
+# preferred MIME type for VOTables we make
+votableType = "application/x-votable+xml"
+
 __version__ = getVersion()
 
 DEBUG = False
