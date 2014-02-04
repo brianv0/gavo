@@ -453,7 +453,7 @@ class ReGrammarTest(testhelpers.VerboseTest):
 		grammar = base.parseFromString(regrammar.REGrammar,
 			"""<reGrammar names="a,b"/>""")
 		self.assertRaisesWithMsg(base.SourceParseError,
-			"At line 2: Only 1 fields found, expected 2",
+			"At line 1: Only 1 fields found, expected 2",
 			lambda: list(grammar.parse(StringIO("1 2\n3"))),
 			())
 
@@ -476,7 +476,14 @@ class ReGrammarTest(testhelpers.VerboseTest):
 				{'a': '3', 'b': '2'},
 				{'a': '#endof', 'b': 'file.'}])
 
-
+	def testIgnoredEnd(self):
+		grammar = base.parseFromString(regrammar.REGrammar,
+			r"""<reGrammar names="a,b" recordSep="\\\\" commentPat="(?m)^\\.*$"/>""")
+		self.assertEqual(
+			getCleaned(grammar.parse(
+				StringIO("1\n2\\\\\n3 4\\\\\n\\ignore all this\n\n\\and this.\n"))), [
+				{'a': '1', 'b': '2'},
+				{'a': '3', 'b': '4'}])
 
 
 class FilteredInputTest(testhelpers.VerboseTest):
