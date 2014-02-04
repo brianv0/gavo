@@ -456,7 +456,28 @@ class ReGrammarTest(testhelpers.VerboseTest):
 			"At line 2: Only 1 fields found, expected 2",
 			lambda: list(grammar.parse(StringIO("1 2\n3"))),
 			())
-	
+
+	def testComment(self):
+		grammar = base.parseFromString(regrammar.REGrammar,
+			"""<reGrammar names="a,b" commentPat="(?m)^#.*$"/>""")
+		self.assertEqual(
+			getCleaned(grammar.parse(
+				StringIO("1 2\n# more data\n3 2\n#end of file.\n"))),
+			[{'a': '1', 'b': '2'}, {'a': '3', 'b': '2'}])
+
+	def testNoComment(self):
+		grammar = base.parseFromString(regrammar.REGrammar,
+			"""<reGrammar names="a,b"/>""")
+		self.assertEqual(
+			getCleaned(grammar.parse(
+				StringIO("1 2\n#more data\n3 2\n#endof file.\n"))), [
+				{'a': '1', 'b': '2'},
+				{'a': '#more', 'b': 'data'},
+				{'a': '3', 'b': '2'},
+				{'a': '#endof', 'b': 'file.'}])
+
+
+
 
 class FilteredInputTest(testhelpers.VerboseTest):
 	def testSimple(self):

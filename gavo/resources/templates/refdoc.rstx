@@ -1507,12 +1507,11 @@ applications that see a pubDID value and are expected to return a
 ``datalink.ProductDescriptor`` instance, or something derived from it.  
 
 In the end, this usually boils down to figuring out the value of accref
-in the product table and using what's there to construct the d.g.
-In the simplest case, the pubDID will be in DaCHS'
+in the product table and using what's there to construct the descriptor
+generatorr.  In the simplest case, the pubDID will be in DaCHS'
 "standard" format (see the ``getStandardPubDID`` rowmaker function), in
-which case the default d.g. works any you don't have to specify
-anything.  You could manually insert that default by
-saying::
+which case the default descriptor generator works and you don't have to
+specify anything.  You could manually insert that default by saying::
   
   <descriptorGenerator procDef="//datalink#fromStandardPubDID"/>
 
@@ -1528,6 +1527,10 @@ functionality is equivalent to this::
 – which might be a good place to start if you need to write your own
 d.g., e.g., because you have some special logic to encode the accref in
 the PubDID).
+
+The default ``ProductDescriptor`` class exposes all the columns from the
+products table, i.e., accref, accessPath, mime, owner, embargo, and
+sourceTable, in addition to the pubDID itself.
 
 A slightly more interesting example is provided by datalink for SSA,
 where cutouts and similar is generated from spectra.  The actual
@@ -1609,9 +1612,9 @@ The classes usually required to build whatever meta makers return
 names.  
 
 As usual, DaCHS structs – that's InputKey, Values, and Option here –
-should not be constructed but only using the ``MS`` helper (which is
-really an alias for base.makeStruct, which takes care that the special
-postprocessing of DaCHS structures takes place).
+should not be constructed directly but only using the ``MS`` helper
+(which is really an alias for base.makeStruct; it takes care that the
+special postprocessing of DaCHS structures takes place).
 
 Parameter Definitions
 .....................
@@ -1918,7 +1921,7 @@ containing a spectral data model-compliant structure, is in
     </code>
   </dataFunction>
 
-More on this will be discussed in our secion on SDM support.
+More on this will be discussed in our section on SDM support.
 
 Filtering data functions should always come with a corresponding
 metaMaker.  As an example, continuing the spectral cutout example above,

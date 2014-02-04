@@ -37,6 +37,8 @@ class REIterator(FileRowIterator):
 					break
 				buffer = buffer[curPos:]+newStuff
 				curPos = 0
+				if self.grammar.commentPat:
+					buffer = self.grammar.commentPat.sub("", buffer)
 				continue
 			res = buffer[curPos:mat.end()]
 			yield res.strip()
@@ -101,6 +103,10 @@ class REGrammar(Grammar, FileRowAttributes):
 		description="RE for separating two records in the source.")
 	_fieldSep = REAttribute("fieldSep", default=re.compile(r"\s+"), 
 		description="RE for separating two fields in a record.")
+	_commentPat = REAttribute("commentPat", default=None,
+		description="RE inter-record material to be ignored (note: make this"
+		" match the entire comment, or you'll get random mess from partly-matched"
+		" comments.  Use '(?m)^#.*$' for beginning-of-line hash-comments.")
 	_recordCleaner = REAttribute("recordCleaner", default=None,
 		description="A regular expression matched against each record."
 			" The matched groups in this RE are joined by blanks and used"
