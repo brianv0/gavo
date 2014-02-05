@@ -16,6 +16,7 @@ optionally tinkers with that data set.
 import cStringIO
 import datetime
 import os
+import urllib
 import weakref
 
 from nevow import inevow
@@ -470,7 +471,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 						parent_=self))
 		return res
 
-	def getURL(self, rendName, absolute=True):
+	def getURL(self, rendName, absolute=True, **kwargs):
 		"""returns the full canonical access URL of this service together 
 		with renderer.
 
@@ -478,12 +479,20 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		of renderers.
 
 		With absolute, a fully qualified URL is being returned.
+
+		Further keyword arguments are translated into URL parameters in the
+		query part.
 		"""
 		basePath = "%s%s/%s"%(base.getConfig("web", "nevowRoot"),
 			self.rd.sourceId, self.id)
 		if absolute:
 			basePath = base.getConfig("web", "serverURL")+basePath
-		return renderers.getRenderer(rendName).makeAccessURL(basePath)
+		res = renderers.getRenderer(rendName).makeAccessURL(basePath)
+
+		if kwargs:
+			res = res+"?"+urllib.urlencode(kwargs)
+		return res
+
 
 	# used by getBrowserURL; keep external higher than form as long as
 	# we have mess like Potsdam CdC.

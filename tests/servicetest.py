@@ -48,6 +48,27 @@ class ErrorMsgTest(testhelpers.VerboseTest):
 			</resource>"""))
 
 
+class GetURLTest(testhelpers.VerboseTest):
+	def testAbsolute(self):
+		self.assertEqual(
+			testhelpers.getTestRD("cores").getById("cstest"
+				).getURL("form"),
+			"http://localhost:8080/data/cores/cstest/form")
+
+	def testRelative(self):
+		self.assertEqual(
+			testhelpers.getTestRD("cores").getById("cstest"
+				).getURL("form", absolute=False),
+			"/data/cores/cstest/form")
+
+	def testWithParam(self):
+		self.assertEqual(
+			testhelpers.getTestRD("cores").getById("cstest"
+				).getURL("form", arg1="10%", arg2="/&!;="),
+			'http://localhost:8080/data/cores/cstest/form?arg1=10%25&'
+			'arg2=%2F%26%21%3B%3D')
+
+
 class InputDDTest(testhelpers.VerboseTest):
 	def _assertPartialDict(self, partialExpectation, result):
 		"""checks that all key/value pairs in partialExpectation are present in

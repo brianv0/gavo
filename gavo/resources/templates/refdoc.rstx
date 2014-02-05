@@ -2419,7 +2419,7 @@ just use the standard SSA framework.
 
 
 Table
------
+'''''
 
 Echelle spectra have additional metadata that should end up in their SSA
 metadata table – these are things like the number of orders, the minimum
