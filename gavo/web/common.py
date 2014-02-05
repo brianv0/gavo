@@ -36,6 +36,7 @@ static.File.contentTypes[".f"] = "text/x-fortran"
 static.File.contentTypes[".vot"] = base.votableType,
 static.File.contentTypes[".rd"] = "application/x-gavo-descriptor+xml"
 static.File.contentTypes[".f90"] = "text/x-fortran"
+static.File.contentTypes[".skyglow"] = "text/plain"
 # this one is for co-operation with ifpages
 static.File.contentTypes[".shtml"] = "text/nevow-template"
 

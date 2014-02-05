@@ -90,7 +90,7 @@ class Sesame(object):
 		if not firstResponse:
 			return None
 
-		res["otype"] = firstResponse.find("otype").text
+		res["otype"] = getattr(firstResponse.find("otype"), "text", None)
 		try:
 			res["RA"] = float(firstResponse.find("jradeg").text)
 			res["dec"] = float(firstResponse.find("jdedeg").text)
