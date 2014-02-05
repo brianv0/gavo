@@ -485,6 +485,7 @@ class RegTest(procdef.ProcApp):
 				" start with\n%s"%(msgs[:160]))
 
 	XPATH_NAMESPACE_MAP = {
+		"v": "http://www.ivoa.net/xml/VOTable/v1.2",
 		"v2": "http://www.ivoa.net/xml/VOTable/v1.2",
 		"v1": "http://www.ivoa.net/xml/VOTable/v1.1",
 		"o": "http://www.openarchives.org/OAI/2.0/",
@@ -496,6 +497,7 @@ class RegTest(procdef.ProcApp):
 
 		path is an xpath (as understood by lxml), with namespace prefixes 
 		statically mapped; there's currently v2 (VOTable 1.2), v1 (VOTable 1.1),
+		v (whatever VOTable version is the current DaCHS default),
 		and o (OAI-PMH 2.0).  If you need more prefixes, hack the source
 		and feed back your changes (monkeypatching self.XPATH_NAMESPACE_MAP
 		is another option).
@@ -782,7 +784,7 @@ class TestRunner(object):
 			print ">>>>", payload
 		elif state=="ERROR":
 			print "**** Internal Failure: %s -- %s\n"%(test.title, 
-				test.url.httpURL[0])
+				test.url.httpURL)
 			print traceback
 
 	def _runTestsReal(self, nThreads=8, showDots=False):

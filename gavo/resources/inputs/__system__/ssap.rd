@@ -878,14 +878,14 @@
 		<!-- WILDTARGET and WILDTARGETCASE are funky special cases. -->
 		<LOOP>
 			<csvItems>
-				keyName,        parClass
-				WILDTARGET,     PQLNocaseShellPatternPar
-				WILDTARGETCASE, PQLShellPatternPar
+				keyName,        parClass,                 addDesc
+				WILDTARGET,     PQLNocaseShellPatternPar, (case insensitive)
+				WILDTARGETCASE, PQLShellPatternPar,       (case sensitive)
 			</csvItems>
 			<events>
 				<condDesc id="\keyName\+_cond">
 					<inputKey name="\keyName" type="text" tablehead="Name Pattern"
-						description="Shell pattern of target observed"
+						description="Shell pattern of target observed \addDesc"
 						multiplicity="single"/>
 					<phraseMaker>
 						<code>

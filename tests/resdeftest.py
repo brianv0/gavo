@@ -636,5 +636,25 @@ class GroupTest(testhelpers.VerboseTest):
 		self.failUnless(list(g2.groups[0].iterColumns())[0] is t2.columns[2])
 
 
+class ChangeTest(testhelpers.VerboseTest):
+	def testCopyTable(self):
+		orig = base.parseFromString(rscdef.TableDef, '<table id="a" onDisk="True"'
+			' temporary="True"><column name="col"/></table>')
+		copy = orig.change(id="b")
+		self.assertEqual(copy.id, "b")
+		self.assertEqual(copy.onDisk, False)
+		self.assertEqual(copy.temporary, True)
+		self.assertEqual(copy.columns[0].name, "col")
+
+	def testCopyWithRDAttr(self):
+		rd = base.parseFromString(rscdesc.RD, '<resource resdir="/" schema="test">'
+			'<data id="a" updating="True"><customGrammar module="foo"/>'
+			'</data></resource>')
+		copy = rd.getById("a").change(auto=False)
+		self.assertEqual(copy.id, None)
+		self.assertEqual(copy.auto, False)
+		self.assertEqual(copy.updating, True)
+
+
 if __name__=="__main__":
 	testhelpers.main(ParamTest)

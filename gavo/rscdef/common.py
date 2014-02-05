@@ -70,9 +70,17 @@ class ResdirRelativeAttribute(base.FunctionRelativePathAttribute):
 	"""
 	def __init__(self, name, default=None, description="Undocumented", **kwargs):
 		base.FunctionRelativePathAttribute.__init__(self, name, 
-			baseFunction=lambda instance: instance.rd.resdir,
+			baseFunction=self.getResdir,
 			default=default, description=description, **kwargs)
 
+	def getResdir(self, instance):
+		if instance.rd is None:
+			# we don't have a parent yet, but someone wants to see our
+			# value.  This can happen if an element is validated before
+			# it is adopted (which we probably should forbid).  Here, we
+			# hack around it and hope nobody trips over it
+			return None
+		return instance.rd.resdir
 
 class ProfileListAttribute(base.AtomicAttribute):
 	"""An attribute containing a comma separated list of profile names.

@@ -137,9 +137,9 @@ feeding the tables mixing in a given mixin.
 
 .. replaceWithResult getMixinDocs(docStructure, [
   "//products#table", "//scs#positions", "//scs#q3cindex",
-	"//siap#bbox", "//siap#pgs", "//ssap#hcd", "//obscore#publish",
-	"//obscore#publishSIAP", "//ssap#sdm-instance", "//ssap#mixc",
-	"//obscore#publishSSAPHCD"])
+  "//siap#bbox", "//siap#pgs", "//ssap#hcd", "//obscore#publish",
+  "//obscore#publishSIAP", "//ssap#sdm-instance", "//ssap#mixc",
+  "//obscore#publishSSAPHCD"])
 
 
 Triggers
@@ -187,10 +187,10 @@ Procedures available for rowmaker apply
 
 .. replaceWithResult _makeProcsDocumenter([
     "//procs#simpleSelect", "//procs#resolveObject",
-  	"//procs#mapValue", "//procs#fullQuery", "//procs#dictMap", 
-  	"//siap#computePGS",
-  	"//siap#computeBbox", "//siap#setMeta", "//ssap#setMeta",
-  	"//siap#getBandFromFilter", "//ssap#setMixcMeta",
+    "//procs#mapValue", "//procs#fullQuery", "//procs#dictMap", 
+    "//siap#computePGS",
+    "//siap#computeBbox", "//siap#setMeta", "//ssap#setMeta",
+    "//siap#getBandFromFilter", "//ssap#setMixcMeta",
     ])(docStructure)
 
 
@@ -199,7 +199,7 @@ Procedures available for grammar rowfilters
 
 .. replaceWithResult _makeProcsDocumenter([
     "//procs#expandComma", "//procs#expandDates",
-	  "//products#define", "//procs#expandIntegers",
+    "//products#define", "//procs#expandIntegers",
     ])(docStructure)
 
 
@@ -1157,9 +1157,9 @@ Finally, you can pass arbitrary HTTP headers using the ``httpHeader``
 element.  This has an attribute ``key``; the header's value is taken
 from the element content, like this::
 
-	<url postPayload="res/testData.regtest" httpMethod="POST">
-		<httpHeader key="content-type">image/jpeg</httpHeader>
-		>upload/custom</url>
+  <url postPayload="res/testData.regtest" httpMethod="POST">
+    <httpHeader key="content-type">image/jpeg</httpHeader>
+    >upload/custom</url>
 
 RegTest Tests
 '''''''''''''
@@ -1201,10 +1201,10 @@ a line; you may need to fix the indentation if you're not indenting with
 tabs.  We've thrown in a column skeleton on gn as well::
 
   augroup rd
-	  au!
-	  autocmd BufRead,BufNewFile *.rd set ts=2 tw=79
-	  au BufNewFile,BufRead *.rd map gn i<tab><tab><lt>column name="" type=""<CR><tab>unit="" ucd=""<CR>tablehead=""<CR>description=""<CR>verbLevel=""/><CR><ESC>5kf"a
-	  au BufNewFile,BufRead *.rd map ge i<tab><tab><lt>regTest title=""><CR><tab><lt>url><lt>/url><CR><lt>code><CR><lt>/code><CR><BS><lt>/regTest><ESC>4k
+    au!
+    autocmd BufRead,BufNewFile *.rd set ts=2 tw=79
+    au BufNewFile,BufRead *.rd map gn i<tab><tab><lt>column name="" type=""<CR><tab>unit="" ucd=""<CR>tablehead=""<CR>description=""<CR>verbLevel=""/><CR><ESC>5kf"a
+    au BufNewFile,BufRead *.rd map ge i<tab><tab><lt>regTest title=""><CR><tab><lt>url><lt>/url><CR><lt>code><CR><lt>/code><CR><BS><lt>/regTest><ESC>4k
   augroup END
 
 
@@ -1279,131 +1279,131 @@ usually count as noise in regression testing).  Also note how we have
 escaped embedded XML fragments; an alternative to this shown below
 is making the code a CDATA section::
 
-	<regTest title="Info page looks ok" 
-		url="siap/info">
-		<code>
-			self.assertHasStrings("SIAP Query", "siap.xml", "form", 
-				"Other services", "SIZE&lt;/td>", "Verb. Level")
-		</code>
-	</regTest>
+  <regTest title="Info page looks ok" 
+    url="siap/info">
+    <code>
+      self.assertHasStrings("SIAP Query", "siap.xml", "form", 
+        "Other services", "SIZE&lt;/td>", "Verb. Level")
+    </code>
+  </regTest>
 
 The next is a test with a "rooted" URL that's spanning lines, has
 embedded parameters (not recommended), plus an assertion on binary
 data::
 
-	<regTest title="NV Maidanak product delivery"
-		url="/getproduct/maidanak/data/Q2237p0305/Johnson_R/
-			red_kk050001.fits.gz?siap=true">
-		<code>
-			self.assertHasStrings('\\x1f\\x8b\\x08\\x08')
-		</code>
-	</regTest>
+  <regTest title="NV Maidanak product delivery"
+    url="/getproduct/maidanak/data/Q2237p0305/Johnson_R/
+      red_kk050001.fits.gz?siap=true">
+    <code>
+      self.assertHasStrings('\\x1f\\x8b\\x08\\x08')
+    </code>
+  </regTest>
 
 This is how parameters should be passed into the request::
 
-	<regTest title="NV Maidanak SIAP returns accref.">
-		<url POS="340.12,3.3586" SIZE="0.1" INTERSECT="OVERLAPS" 
-			_TDENC="True" _DBOPTIONS_LIMIT="10">siap/siap.xml</url>
-		<code>
-			self.assertHasStrings('&lt;TD>AZT 22')
-		</code>
-	</regTest>
+  <regTest title="NV Maidanak SIAP returns accref.">
+    <url POS="340.12,3.3586" SIZE="0.1" INTERSECT="OVERLAPS" 
+      _TDENC="True" _DBOPTIONS_LIMIT="10">siap/siap.xml</url>
+    <code>
+      self.assertHasStrings('&lt;TD>AZT 22')
+    </code>
+  </regTest>
 
 Here's an example for a test with URL parameters and xpath assertions::
 
-	<regTest title="NV Maidanak SIAP metadata query"
-			url="siap/siap.xml?FORMAT=METADATA">
-		<code>
-			self.assertXpath("//v1:FIELD[@name='wcs_cdmatrix']", {
-				"datatype": "double",
-				"ucd": "VOX:WCS_CDMatrix",
-				"arraysize": "*",
-				"unit": "deg/pix"})
-			self.assertXpath("//v1:INFO[@name='QUERY_STATUS']", {
-				"value": "OK",
-				None: "OK",})
-			self.assertXpath("//v1:PARAM[@name='INPUT:POS']", {
-				"datatype": "char",
-				"ucd": "pos.eq",
-				"unit": "deg"})
-		</code>
-	</regTest>
+  <regTest title="NV Maidanak SIAP metadata query"
+      url="siap/siap.xml?FORMAT=METADATA">
+    <code>
+      self.assertXpath("//v1:FIELD[@name='wcs_cdmatrix']", {
+        "datatype": "double",
+        "ucd": "VOX:WCS_CDMatrix",
+        "arraysize": "*",
+        "unit": "deg/pix"})
+      self.assertXpath("//v1:INFO[@name='QUERY_STATUS']", {
+        "value": "OK",
+        None: "OK",})
+      self.assertXpath("//v1:PARAM[@name='INPUT:POS']", {
+        "datatype": "char",
+        "ucd": "pos.eq",
+        "unit": "deg"})
+    </code>
+  </regTest>
 
 The following is a fairly complex example for a stateful suite doing
 inline uploads (and simple tests)::
 
-	<regSuite title="GAVO roster publication cycle" sequential="True">
-		<regTest title="Complete record yields some credible output">
-			<url httpAuthKey="gvo" parSet="form" httpMethod="POST">
-				<httpUpload name="inFile" fileName="testing_ignore.rd"
-					><![CDATA[
-						<resource schema="gvo">
-							<meta name="description">x</meta>
-							<meta name="title">A test service</meta>
-							<meta name="creationDate">2010-04-26T11:45:00</meta>
-							<meta name="subject">Testing</meta>
-							<meta name="referenceURL">http://foo.bar</meta>
-							<nullCore id="null"/>
-							<service id="run" core="null" allowed="external">
-								<meta name="shortName">u</meta>
-								<publish render="external" sets="gavo">
-									<meta name="accessURL">http://foo/bar</meta>
-								</publish></service></resource>
-					]]></httpUpload>upload/form</url>
-			<code><![CDATA[
-				self.assertHasStrings("#Published</th><td>1</td>")
-			]]></code>
-		</regTest>
+  <regSuite title="GAVO roster publication cycle" sequential="True">
+    <regTest title="Complete record yields some credible output">
+      <url httpAuthKey="gvo" parSet="form" httpMethod="POST">
+        <httpUpload name="inFile" fileName="testing_ignore.rd"
+          ><![CDATA[
+            <resource schema="gvo">
+              <meta name="description">x</meta>
+              <meta name="title">A test service</meta>
+              <meta name="creationDate">2010-04-26T11:45:00</meta>
+              <meta name="subject">Testing</meta>
+              <meta name="referenceURL">http://foo.bar</meta>
+              <nullCore id="null"/>
+              <service id="run" core="null" allowed="external">
+                <meta name="shortName">u</meta>
+                <publish render="external" sets="gavo">
+                  <meta name="accessURL">http://foo/bar</meta>
+                </publish></service></resource>
+          ]]></httpUpload>upload/form</url>
+      <code><![CDATA[
+        self.assertHasStrings("#Published</th><td>1</td>")
+      ]]></code>
+    </regTest>
 
-		<regTest title="Publication leaves traces on GAVO list" url="list/custom">
-			<code>
-				self.assertHasStrings(
-					'"/gvo/data/testing_ignore/run/external">A test service')
-			</code>
-		</regTest>
+    <regTest title="Publication leaves traces on GAVO list" url="list/custom">
+      <code>
+        self.assertHasStrings(
+          '"/gvo/data/testing_ignore/run/external">A test service')
+      </code>
+    </regTest>
 
-		<regTest title="Unpublication yields some credible output">
-			<url httpAuthKey="gvo" parSet="form" httpMethod="POST">
-				<httpUpload name="inFile" fileName="testing_ignore.rd"
-					><![CDATA[
-					<resource schema="gvo">
-						<meta name="description">x</meta>
-						<meta name="title">A test service</meta>
-						<meta name="creationDate">2010-04-26T11:45:00</meta>
-						<meta name="subject">Testing</meta>
-						<meta name="referenceURL">http://foo.bar</meta>
-						<service id="run" allowed="external">
-							<nullCore/>
-							<meta name="shortName">u</meta></service></resource>
-					]]></httpUpload>upload/form</url>
-			<code><![CDATA[
-				self.assertHasStrings("#Published</th><td>0</td>")
-			]]></code>
-		</regTest>
+    <regTest title="Unpublication yields some credible output">
+      <url httpAuthKey="gvo" parSet="form" httpMethod="POST">
+        <httpUpload name="inFile" fileName="testing_ignore.rd"
+          ><![CDATA[
+          <resource schema="gvo">
+            <meta name="description">x</meta>
+            <meta name="title">A test service</meta>
+            <meta name="creationDate">2010-04-26T11:45:00</meta>
+            <meta name="subject">Testing</meta>
+            <meta name="referenceURL">http://foo.bar</meta>
+            <service id="run" allowed="external">
+              <nullCore/>
+              <meta name="shortName">u</meta></service></resource>
+          ]]></httpUpload>upload/form</url>
+      <code><![CDATA[
+        self.assertHasStrings("#Published</th><td>0</td>")
+      ]]></code>
+    </regTest>
 
-		<regTest title="Unpublication leaves traces on GAVO list"
-			url="list/custom">
-			<code>
-				self.assertLacksStrings(
-					'"/gvo/data/testing_ignore/run/external">A test service')
-			</code>
-		</regTest>
+    <regTest title="Unpublication leaves traces on GAVO list"
+      url="list/custom">
+      <code>
+        self.assertLacksStrings(
+          '"/gvo/data/testing_ignore/run/external">A test service')
+      </code>
+    </regTest>
 
-	</regSuite>
+  </regSuite>
 
 If you still run SOAP services, here's one way to test them::
 
-	<regTest id="soaptest" title="APFS SOAP returns something reasonable">
-			<url postPayload="res/soapRequest.regtest" httpMethod="POST">
-				<httpHeader key="SOAPAction">'"useService"'</httpHeader>
-				<httpHeader key="content-type">text/xml</httpHeader
-				>qall/soap/go</url>
-			<code>
-				self.assertHasStrings(
-					'="xsd:date">2008-02-03Z&lt;/tns:isodate>', 
-				'&lt;tns:raCio xsi:type="xsd:double">25.35')
-			</code>
-		</regTest>
+  <regTest id="soaptest" title="APFS SOAP returns something reasonable">
+      <url postPayload="res/soapRequest.regtest" httpMethod="POST">
+        <httpHeader key="SOAPAction">'"useService"'</httpHeader>
+        <httpHeader key="content-type">text/xml</httpHeader
+        >qall/soap/go</url>
+      <code>
+        self.assertHasStrings(
+          '="xsd:date">2008-02-03Z&lt;/tns:isodate>', 
+        '&lt;tns:raCio xsi:type="xsd:double">25.35')
+      </code>
+    </regTest>
 
 – here, ``res/soapRequest.regtest`` would contain the request body that
 you could, for example, snarf from a tcpdump log.
@@ -1658,17 +1658,39 @@ for this).  You'll almost always want this when accepting floating-point
 valued parameters, as matching these exactly is at least tricky and
 rarely useful.
 
+If the thing you are matching against actually is a column in a database
+table, it is usually a good idea to build the input key from the column,
+much like with the original mechanism in condition descriptors.  In
+python code, this looks like this::
+
+  <metaMaker>
+    <code>
+      baseIK = InputKey.fromColumn(
+        rd.getById("orders").getColumnByName("ecorder")
+       ).change(
+        values=MS(Values, 
+          min=descriptor.ssaRow["order_min"],
+          max=descriptor.ssaRow["order_max"]))
+      for ik in genLimitKeys(baseIk):
+        yield ik
+    </code>
+  </metaMaker>
+
+This takes input key metadata from the column ecorder in the table
+orders.  The change method can take additional keyword/value pairs to
+change further properties.
+
 When publishing FITS cubes, you will usually use the
 `//datalink#fits_makeWCSParams`_ meta maker; it accepts similar QSTCS
 specifications as well.  To find out what parameter names the individual
 axes are mapped to, first use makeWCSParams without the STC metadata::
 
- 	<service id="d" allowed="dlmeta,dlget,form">
-		<datalinkCore>
-			<descriptorGenerator procDef="//datalink#fits_genDesc"/>
-			<metaMaker procDef="//datalink#fits_makeWCSParams"/>
-		</datalinkCore>
-	</service>
+   <service id="d" allowed="dlmeta,dlget,form">
+    <datalinkCore>
+      <descriptorGenerator procDef="//datalink#fits_genDesc"/>
+      <metaMaker procDef="//datalink#fits_makeWCSParams"/>
+    </datalinkCore>
+  </service>
 
 Then have a look at the metadata produced for a file.  Unless you did
 something special, to do that you can just take the accref of a file
@@ -1718,8 +1740,8 @@ given as measured, change the ``fits_makeWCSParams`` call to::
   <metaMaker procDef="//datalink#fits_makeWCSParams>
     <setup>
       <bind key="stcs"
-				>('PositionInterval ICRS "RA_MIN" "DEC_MIN" "RA_MAX" "DEC_MAX"\n'
-					'SpectralInterval TOPOCENTER "WAVELEN_1_MIN" "WAVELEN_1_MAX"')
+        >('PositionInterval ICRS "RA_MIN" "DEC_MIN" "RA_MAX" "DEC_MAX"\n'
+          'SpectralInterval TOPOCENTER "WAVELEN_1_MIN" "WAVELEN_1_MAX"')
        </bind>
     </setup>
   </metaMaker>
@@ -1851,21 +1873,21 @@ table (e.g., because you don't want the error files to show up there).
 In such cases, a good pattern is to put a static renderer next to the
 datalink renderer and then write a meta maker like this::
 
-	<service id="d" allowed="dlget,dlmeta,static">
-		<property name="staticData">data/errors</property>
+  <service id="d" allowed="dlget,dlmeta,static">
+    <property name="staticData">data/errors</property>
 
-		<datalinkCore>
-			...
-			<metaMaker>
-				<code>
-					stem = descriptor.accref.split("/")[-1].split("_")[0]
-					yield LinkDef(makeAbsoluteURL(
-						"\rdId/d/static/%s_err.fits"%stem),
-						"image/fits", "errors")
-				</code>
-			</metaMaker>
-		</datalinkCore>
-	</service>
+    <datalinkCore>
+      ...
+      <metaMaker>
+        <code>
+          stem = descriptor.accref.split("/")[-1].split("_")[0]
+          yield LinkDef(makeAbsoluteURL(
+            "\rdId/d/static/%s_err.fits"%stem),
+            "image/fits", "errors")
+        </code>
+      </metaMaker>
+    </datalinkCore>
+  </service>
 
 Note, however, that the static renderer does not enforce any access
 control.  That means that embargoed files must never be within the
@@ -1951,19 +1973,19 @@ formatter; this is less useful).
 Here's an example for FormatNow; a similar thing is contained in the
 STREAM ``//datalink#fits_genKindPar``::
 
-	<dataFunction>
-		<setup>
-			<code>
-				from gavo.utils import fitstools
-			</code>
-		</setup>
-		<code>
-			if args["KIND"]=="HEADER":
-				descriptor.data = ("application/fits-header", 
-					fitstools.serializeHeader(descriptor.data[0].header))
-				raise DeliverNow()
-		</code>
-	</dataFunction>
+  <dataFunction>
+    <setup>
+      <code>
+        from gavo.utils import fitstools
+      </code>
+    </setup>
+    <code>
+      if args["KIND"]=="HEADER":
+        descriptor.data = ("application/fits-header", 
+          fitstools.serializeHeader(descriptor.data[0].header))
+        raise DeliverNow()
+    </code>
+  </dataFunction>
 
 
 
@@ -2036,15 +2058,15 @@ A plain FITS cutout service is assembled like this::
 
   <service id="dl">
     <meta name="title">Generic FITS datalink service</meta>
-		<datalinkCore>
-			<descriptorGenerator procDef="//datalink#fits_genDesc"/>
-			<metaMaker procDef="//datalink#fits_makeWCSParams"/>
-			<dataFunction procDef="//datalink#fits_makeHDUList"/>
-			<dataFunction procDef="//datalink#fits_doWCSCutout"/>
-			<FEED source="//datalink#fits_genKindPar"/>
-			<dataFormatter procDef="//datalink#fits_formatHDUs"/>
-		</datalinkCore>
-	</service>
+    <datalinkCore>
+      <descriptorGenerator procDef="//datalink#fits_genDesc"/>
+      <metaMaker procDef="//datalink#fits_makeWCSParams"/>
+      <dataFunction procDef="//datalink#fits_makeHDUList"/>
+      <dataFunction procDef="//datalink#fits_doWCSCutout"/>
+      <FEED source="//datalink#fits_genKindPar"/>
+      <dataFormatter procDef="//datalink#fits_formatHDUs"/>
+    </datalinkCore>
+  </service>
 
 This works for all FITS files in the products table and has no usable
 STC metadata.  Good datalink services do better; by giving more
@@ -2057,22 +2079,22 @@ above, and so a more realistic datalink service might look like this::
 
   <service id="dl">
     <meta name="title">Datalink service for califa cubes</meta>
-		<datalinkCore>
-			<descriptorGenerator procDef="//datalink#fits_genDesc">
-			  <bind key="accrefStart">califa/data/cubes"</bind>
-			</descriptorGenerator>
-			<metaMaker procDef="//datalink#fits_makeWCSParams">
+    <datalinkCore>
+      <descriptorGenerator procDef="//datalink#fits_genDesc">
+        <bind key="accrefStart">califa/data/cubes"</bind>
+      </descriptorGenerator>
+      <metaMaker procDef="//datalink#fits_makeWCSParams">
         <bind key="stcs"
-				  >('PositionInterval ICRS "RA_MIN" "DEC_MIN" "RA_MAX" "DEC_MAX"\n'
-					  'SpectralInterval TOPOCENTER "WAVELEN_1_MIN" "WAVELEN_1_MAX"')
+          >('PositionInterval ICRS "RA_MIN" "DEC_MIN" "RA_MAX" "DEC_MAX"\n'
+            'SpectralInterval TOPOCENTER "WAVELEN_1_MIN" "WAVELEN_1_MAX"')
          </bind>
-			  </metaMaker>
-			<dataFunction procDef="//datalink#fits_makeHDUList"/>
-			<dataFunction procDef="//datalink#fits_doWCSCutout"/>
-			<FEED source="//datalink#fits_genKindPar"/>
-			<dataFormatter procDef="//datalink#fits_formatHDUs"/>
-		</datalinkCore>
-	</service>
+        </metaMaker>
+      <dataFunction procDef="//datalink#fits_makeHDUList"/>
+      <dataFunction procDef="//datalink#fits_doWCSCutout"/>
+      <FEED source="//datalink#fits_genKindPar"/>
+      <dataFormatter procDef="//datalink#fits_formatHDUs"/>
+    </datalinkCore>
+  </service>
 
 All of this (and potentially more as we expand the manipulation options)
 is included with the `//datalink#fits_standardDLFuncs`_ STREAM; the above
@@ -2080,14 +2102,14 @@ specification then boils down to::
 
   <service id="dl">
     <meta name="title">Shortened FITS datalink service.</meta>
-		<datalinkCore>
-		  <FEED source="//datalink#fits_standardDLFuncs"
-		    stcs='PositionInterval ICRS "RA_MIN" "DEC_MIN" "RA_MAX" 
-		      "DEC_MAX"\n
-					  SpectralInterval TOPOCENTER "WAVELEN_1_MIN" "WAVELEN_1_MAX"'
-				accrefStart="califa/data/cubes"/>
-		</datalinkCore>
-	</service>
+    <datalinkCore>
+      <FEED source="//datalink#fits_standardDLFuncs"
+        stcs='PositionInterval ICRS "RA_MIN" "DEC_MIN" "RA_MAX" 
+          "DEC_MAX"\n
+            SpectralInterval TOPOCENTER "WAVELEN_1_MIN" "WAVELEN_1_MAX"'
+        accrefStart="califa/data/cubes"/>
+    </datalinkCore>
+  </service>
 
 
 TODO: Custom function, return link to error file.
@@ -2099,20 +2121,20 @@ SSAP auxillary datalink
 Another use for datalink cores in DaCHS is for server-side processing of
 spectra.  A typical service there looks like this::
 
-	<service id="ssaaux" allowed="dlmeta,dlget">
-		<meta name="title">Datalink service to retrieve individual spectra</meta>
-		<datalinkCore>
-			<descriptorGenerator procDef="//datalink#sdm_genDesc">
-				<bind name="ssaTD">"\rdId#slitspectra"</bind>
-			</descriptorGenerator>
-			<dataFunction procDef="//datalink#sdm_genData">
-				<bind name="builder">"\rdId#get_slitcomponent"</bind>
-			</dataFunction>
-			<FEED source="//datalink#sdm_plainfluxcalib"/>
-			<FEED source="//datalink#sdm_cutout"/>
-			<FEED source="//datalink#sdm_format"/>
-		</datalinkCore>
-	</service>
+  <service id="ssaaux" allowed="dlmeta,dlget">
+    <meta name="title">Datalink service to retrieve individual spectra</meta>
+    <datalinkCore>
+      <descriptorGenerator procDef="//datalink#sdm_genDesc">
+        <bind name="ssaTD">"\rdId#slitspectra"</bind>
+      </descriptorGenerator>
+      <dataFunction procDef="//datalink#sdm_genData">
+        <bind name="builder">"\rdId#get_slitcomponent"</bind>
+      </dataFunction>
+      <FEED source="//datalink#sdm_plainfluxcalib"/>
+      <FEED source="//datalink#sdm_cutout"/>
+      <FEED source="//datalink#sdm_format"/>
+    </datalinkCore>
+  </service>
 
 For SDM processing, the descriptor contains the SSA row, and thus
 the descriptor generator needs to know the SSA table that keeps the
@@ -2135,43 +2157,43 @@ case, the ``//ssap#sdm-instance`` mixin is sufficient and bring columns
 name ``flux`` and ``spectral``. Here's how you'd add flux errors if you
 needed to::
 
-	<table id="instance" onDisk="False">
-		<mixin ssaTable="slitspectra"
-			spectralDescription="Wavelength"
-			fluxDescription="Flux"
-			>//ssap#sdm-instance</mixin>
+  <table id="instance" onDisk="False">
+    <mixin ssaTable="slitspectra"
+      spectralDescription="Wavelength"
+      fluxDescription="Flux"
+      >//ssap#sdm-instance</mixin>
 
-		<meta name="description">A spectrum from a slit spectrum obtained
-			for systems of quasars and lensing galaxies.  See 
-			ivo://org.gavo.dc/mlqso/q/q</meta>
+    <meta name="description">A spectrum from a slit spectrum obtained
+      for systems of quasars and lensing galaxies.  See 
+      ivo://org.gavo.dc/mlqso/q/q</meta>
 
-		<column name="fluxerror" unit="ADU" ucd="stat.error;phot.flux;em.opt"/>
-	</table>
+    <column name="fluxerror" unit="ADU" ucd="stat.error;phot.flux;em.opt"/>
+  </table>
 
 What's referenced in the datalink core's builder data function then is a
 ``data`` element that builds this table.  Here's one that fills the table
 from the database::
 
-	<data id="get_slitcomponent">
-		<!-- datamaker to pull spectra values out of the database -->
-		<embeddedGrammar>
-			<iterator>
-				<code>
-					obsId = self.sourceToken["accref"].split("/")[-1]
-					with base.getTableConn() as conn:
-						for row in conn.queryToDicts(
-								"SELECT lambda as spectral, flux, error as fluxerror"
-								" WHERE obsId=%(obsid)s ORDER BY lambda"):
-							yield row
-				</code>
-			</iterator>
- 		</embeddedGrammar>
-  	<make table="instance">
-   		<parmaker>
-     		<apply procDef="//ssap#feedSSAToSDM"/>
-   		</parmaker>
-  	</make>
-	</data>
+  <data id="get_slitcomponent">
+    <!-- datamaker to pull spectra values out of the database -->
+    <embeddedGrammar>
+      <iterator>
+        <code>
+          obsId = self.sourceToken["accref"].split("/")[-1]
+          with base.getTableConn() as conn:
+            for row in conn.queryToDicts(
+                "SELECT lambda as spectral, flux, error as fluxerror"
+                " WHERE obsId=%(obsid)s ORDER BY lambda"):
+              yield row
+        </code>
+      </iterator>
+     </embeddedGrammar>
+    <make table="instance">
+       <parmaker>
+         <apply procDef="//ssap#feedSSAToSDM"/>
+       </parmaker>
+    </make>
+  </data>
 
 The ``parmaker`` with the ``//ssap#feedSSAToSDM`` call is generic.  You
 will in general have to write custom code for the embedded grammar; just
@@ -2426,23 +2448,23 @@ metadata table – these are things like the number of orders, the minimum
 and maximum (Echelle) order, and the like.  To pull these columns into
 your metadata table, use the ssacols stream, for example like this::
 
-	<table id="ordersmeta" onDisk="True" adql="True">
-		<meta name="description">SSA metadata for split-order 
-			Flash/Heros Echelle spectra</meta>
-		<mixin
-			[...]
-			statSpectError="0.05"
-			spectralResolution="2.5e-11"
-		>//ssap#hcd</mixin>
-		<mixin
-			calibLevel="1">//obscore#publishSSAPHCD</mixin>
-		<column name="localKey" type="text"
-			ucd="meta.id"
-			tablehead="Key"
-			description="Local observation key."
-			verbLevel="1"/>
-		<STREAM source="//echelle#ssacols"/>
-	</table>
+  <table id="ordersmeta" onDisk="True" adql="True">
+    <meta name="description">SSA metadata for split-order 
+      Flash/Heros Echelle spectra</meta>
+    <mixin
+      [...]
+      statSpectError="0.05"
+      spectralResolution="2.5e-11"
+    >//ssap#hcd</mixin>
+    <mixin
+      calibLevel="1">//obscore#publishSSAPHCD</mixin>
+    <column name="localKey" type="text"
+      ucd="meta.id"
+      tablehead="Key"
+      description="Local observation key."
+      verbLevel="1"/>
+    <STREAM source="//echelle#ssacols"/>
+  </table>
 
 
 
