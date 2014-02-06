@@ -29,7 +29,7 @@ from gavo.registry import tableset
 from gavo.registry import servicelist
 from gavo.registry.common import *
 from gavo.registry.model import (
-	OAI, VOR, VOG, DC, RI, VS, SIA, SCS, OAIDC, VSTD)
+	OAI, VOR, VOG, DC, RI, VS, SIA, SCS, OAIDC, VSTD, DOC)
 
 
 SF = meta.stanFactory
@@ -137,6 +137,12 @@ _standardsMetaBuilder = meta.ModelBasedBuilder([
 	('key', SF(VSTD.key), [
 		('name', SF(VSTD.name), []),
 		('description', SF(VSTD.description), [])])])
+
+
+_documentMetaBuilder = meta.ModelBasedBuilder([
+	('language', SF(DOC.language), ()),
+	('accessURL', SF(DOC.accessURL), ()),
+	('sourceURL', SF(DOC.sourceURL), ()),])
 
 
 def _stcResourceProfile(metaValue, localattrs=None):
@@ -440,6 +446,14 @@ class StandardsResourceMaker(ResourceMaker):
 	def _makeResource(self, registry, setNames):
 		return ResourceMaker._makeResource(self, registry, setNames) [
 			_standardsMetaBuilder.build(registry)]
+
+
+class DocResourceMaker(ResourceMaker):
+	resourceClass = DOC.Document
+	resType = "document"
+	def _makeResource(self, registry, setNames):
+		return ResourceMaker._makeResource(self, registry, setNames) [
+			_documentMetaBuilder.build(registry)]
 
 
 class DeletedResourceMaker(ResourceMaker):

@@ -800,9 +800,6 @@ class TestRunner(object):
 		while self.testList or self.curRunning:
 			while len(self.curRunning)<nThreads and self.testList:
 				self._spawnThread()
-				if showDots:
-					sys.stderr.write(".")
-					sys.stderr.flush()
 
 			evType, test, payload, traceback, dt = self.resultsQueue.get(
 				timeout=self.timeout)
@@ -813,6 +810,12 @@ class TestRunner(object):
 				deadThread.join()
 			else:
 				self.stats.add(evType, dt, test.title, "", test.rd.sourceId)
+				if showDots:
+					if evType=="OK":
+						sys.stderr.write(".")
+					else:
+						sys.stderr.write("E")
+					sys.stderr.flush()
 				self._printStat(evType, test, payload, traceback)
 
 		if showDots:

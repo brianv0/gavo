@@ -361,6 +361,53 @@ class StandardsTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 		self.assertEqual(el[1].text, "This one's open")
 
 
+class _DocRec(testhelpers.TestResource):
+	def make(self, ignored):
+		class Container(meta.MetaMixin):
+			resType = "document"
+			rd = base.caches.getRD("//services")
+		container = Container()
+		container.setMetaParent(container.rd)
+
+		meta.parseMetaStream(container, """
+			recTimestamp: 2010-10-10T10:10:10Z
+			sets: ivo_managed
+			status: active
+			title: a test document
+			subject: testing
+			referenceURL: http://bar/doc/fancy
+			identifier: ivo://foo.bar
+			language: en
+			language: de
+			accessURL: http://bar/doc/fancy/doc
+			accessURL: http://foo/fancy/doc
+			sourceURL: http://foo/fancy/src
+			""")
+		return getGetRecordResponse(container)
+	
+
+class DocumentResTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
+	resources = [("srcAndTree", _DocRec())]
+	
+	def testIsValid(self):
+		self.assertValidates(self.srcAndTree[0])
+	
+	def testLanguages(self):
+		langs = self.srcAndTree[1].xpath("//language")
+		self.assertEqual(len(langs), 2)
+		self.assertEqual(langs[0].text, "en")
+		self.assertEqual(langs[1].text, "de")
+
+	def testAccessURLs(self):
+		urls = self.srcAndTree[1].xpath("//accessURL")
+		self.assertEqual(len(urls), 2)
+		self.assertEqual(urls[1].text, "http://foo/fancy/doc")
+	
+	def testSourceURL(self):
+		urls = self.srcAndTree[1].xpath("//sourceURL")
+		self.assertEqual(len(urls), 1)
+
+
 class DataPublicationMetaTest(testhelpers.VerboseTest):
 # Tests concerning metadata handling with the table data registry interface
 	resources = [("conn", tresc.dbConnection)]

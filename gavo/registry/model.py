@@ -46,8 +46,8 @@ registerPrefix("tr", "http://www.ivoa.net/xml/TAPRegExt/v1.0",
 	schemaURL("TAPRegExt-v1.0.xsd"))
 registerPrefix("vstd", "http://www.ivoa.net/xml/StandardsRegExt/v1.0",
 	schemaURL("StandardsRegExt-1.0.xsd"))
-
-
+registerPrefix("doc", "http://www.ivoa.net/xml/DocRegExt/v1.0",
+	schemaURL("DocRegExt-1.0.xsd"))
 
 
 class OAI(object):
@@ -735,3 +735,20 @@ class VSTD(object):
 	class key(VSTDElement): pass
 	class description(VSTDElement): pass
 	class name(VSTDElement): pass
+
+
+class DOC(object):
+	"""A container for elements from DocRegExt.
+	"""
+	class DOCElement(Element):
+		_prefix = "doc"
+		_local = True
+
+	class Document(RI.Resource):
+		_a_xsi_type = "doc:Document"
+		_additionalPrefixes = frozenset(["doc", "xsi"])
+
+	class language(DOCElement): pass
+	class accessURL(DOCElement): pass
+	class sourceURL(DOCElement): pass
+

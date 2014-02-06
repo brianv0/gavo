@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema 
+xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+xmlns:vr="http://www.ivoa.net/xml/VOResource/v1.0" 
+xmlns:vm="http://www.ivoa.net/xml/VOMetadata/v0.1" 
+xmlns:doc="http://www.ivoa.net/xml/DocRegExt/v1.0"
+version="1.0note"
+targetNamespace="http://www.ivoa.net/xml/DocRegExt/v1.0" 
+elementFormDefault="unqualified" 
+attributeFormDefault="unqualified" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <xs:annotation>
+	<xs:appinfo>
+		<vm:schemaName>DocRegExt</vm:schemaName>
+		<vm:schemaPrefix>xs</vm:schemaPrefix>
+		<vm:targetPrefix>doc</vm:targetPrefix>
+	</xs:appinfo>
+	<xs:documentation>
+	A description of a document/education-like resource.
+	</xs:documentation>
+  </xs:annotation>
+  <xs:import namespace="http://www.ivoa.net/xml/VOResource/v1.0" 
+  	schemaLocation="http://www.ivoa.net/xml/VOResource/VOResource-v1.0.xsd"/>
+	<xs:import namespace="http://www.ivoa.net/xml/VOResource/v1.0"
+				schemaLocation="http://vo.ari.uni-heidelberg.de/docs/schemata/VOResource-v1.0.xsd"/>
+
+	<xs:complexType name="Document">
+		<xs:annotation>
+			<xs:documentation>
+			A natural-language document.
+			</xs:documentation>
+			<xs:documentation>
+				Natual-language documents suitable for registration include
+				worked-out use cases, tutorials, courses, or even material like
+				reference cards, provided they cover Virtual Observatory techniques.
+			</xs:documentation>
+		</xs:annotation>
+
+		<xs:complexContent>
+			<xs:extension base="vr:Resource">
+				<xs:sequence>
+					<xs:element name="language" type="xs:string"
+						minOccurs="1" maxOccurs="unbounded">
+							<xs:annotation>
+								<xs:documentation>
+									A language the document is available in.
+								</xs:documentation>
+								<xs:documentation>
+									Declaring support for a language does not necessarily mean
+									a given translation is up to date or maintained.  Having
+									a complete text in a language of some previous version of
+									a master document is enough.
+								</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+
+						<xs:element name="accessURL" type="vr:AccessURL" minOccurs="0"
+							maxOccurs="unbounded">
+							<xs:annotation>
+								<xs:documentation>
+									A URL allowing access to one or more renderings of 
+									the document.
+								</xs:documentation>
+								<xs:documentation>
+									Dereferencing the URL will allow access to ready-to-use
+									forms of the document (e.g., PDF, HTML).  
+								
+									For documents available in multiple languages, this should
+									typically be a "landing page" containing links to the
+									different language versions; this could be identical to the
+									resource's reference URL.  
+									
+									Multiple access URLs may be given; there is no requirement
+									that the various access URLs offer the same content.  Clients
+									are advised to consult all access URLs for the most
+									recent and appropriate rendering of the document.
+								</xs:documentation>
+							</xs:annotation> 
+						</xs:element>
+
+						<xs:element name="sourceURL" type="xs:anyURI" minOccurs="0"
+							maxOccurs="unbounded">
+							<xs:annotation>
+								<xs:documentation>
+									A URL allowing access to an editable version of the document.
+								</xs:documentation>
+								<xs:documentation>
+									The sourceURL could point to version control systems,
+									complete files (e.g., in Open Document Format) or
+									landing pages as with access URLs.
+								
+									Multiple source URLs may be given; there is no requirement
+									that the various access URLs offer the same content.  Clients
+									are advised to consult all source URLs for the most
+									recent and most appropriate document version.
+								</xs:documentation>
+							</xs:annotation> 
+						</xs:element>
+	
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+</xs:schema>
