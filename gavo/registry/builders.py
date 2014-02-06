@@ -99,7 +99,11 @@ _vrResourceBuilder = meta.ModelBasedBuilder([
 					"ivoId": "ivoId"})]),
 		(None, SF(lambda: VOR.relationship[VOR.relationshipType["mirror-of"]]), [
 			('mirrorOf', SF(VOR.relatedResource), (), {
+					"ivoId": "ivoId"})]),
+		(None, SF(lambda: VOR.relationship[VOR.relationshipType["uses"]]), [
+			('uses', SF(VOR.relatedResource), (), {
 					"ivoId": "ivoId"})]),]),
+
 ])
 
 
@@ -142,7 +146,7 @@ _standardsMetaBuilder = meta.ModelBasedBuilder([
 _documentMetaBuilder = meta.ModelBasedBuilder([
 	('language', SF(DOC.language), ()),
 	('accessURL', SF(DOC.accessURL), ()),
-	('sourceURL', SF(DOC.sourceURL), ()),])
+	('sourceURI', SF(DOC.sourceURI), ()),])
 
 
 def _stcResourceProfile(metaValue, localattrs=None):

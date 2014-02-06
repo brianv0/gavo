@@ -381,7 +381,11 @@ class _DocRec(testhelpers.TestResource):
 			language: de
 			accessURL: http://bar/doc/fancy/doc
 			accessURL: http://foo/fancy/doc
-			sourceURL: http://foo/fancy/src
+			sourceURI: http://foo/fancy/src
+			uses: Sample useful resource
+			uses.ivoId: ivo://useful/sample1
+			uses: Crapola junkyard bad example
+			uses.ivoId: ivo://crapola/work
 			""")
 		return getGetRecordResponse(container)
 	
@@ -403,9 +407,18 @@ class DocumentResTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 		self.assertEqual(len(urls), 2)
 		self.assertEqual(urls[1].text, "http://foo/fancy/doc")
 	
-	def testSourceURL(self):
-		urls = self.srcAndTree[1].xpath("//sourceURL")
+	def testSourceURI(self):
+		urls = self.srcAndTree[1].xpath("//sourceURI")
 		self.assertEqual(len(urls), 1)
+
+	def testRelationships(self):
+		relations = self.srcAndTree[1].xpath("//relationship")
+		self.assertEqual(len(relations), 1)
+		t = relations[0].xpath("relationshipType")[0]
+		self.assertEqual(t.text, "uses")
+		ids = relations[0].xpath("relatedResource")
+		self.assertEqual(ids[0].text, "Sample useful resource")
+		self.assertEqual(ids[1].attrib["ivo-id"], "ivo://crapola/work")
 
 
 class DataPublicationMetaTest(testhelpers.VerboseTest):

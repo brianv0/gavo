@@ -750,5 +750,5 @@ class DOC(object):
 
 	class language(DOCElement): pass
 	class accessURL(DOCElement): pass
-	class sourceURL(DOCElement): pass
+	class sourceURI(DOCElement): pass
 

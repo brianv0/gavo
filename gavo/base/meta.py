@@ -804,7 +804,8 @@ class RelatedResourceMeta(MetaValue):
 	"""A meta value containing an ivo-id and a name of a related resource.
 
 	These are intended for serviceFor, servedBy, derivedFrom,
-	mirrorOf, and relatedTo metas.
+	mirrorOf, and relatedTo metas.  Plus, new and non-standard for
+	DocRegExt, uses.
 
 	It should look like this::
 
@@ -994,6 +995,7 @@ _typesForKeys = {
 	"relatedTo": "relResource",
 	"mirrorOf": "relResource",
 	"derivedFrom": "relResource",
+	"uses": "relResource",
 	"_news": "news",
 	"referenceURL": "link",
 	"info": "info",

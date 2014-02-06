@@ -78,14 +78,14 @@ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 							</xs:annotation> 
 						</xs:element>
 
-						<xs:element name="sourceURL" type="xs:anyURI" minOccurs="0"
+						<xs:element name="sourceURI" type="xs:anyURI" minOccurs="0"
 							maxOccurs="unbounded">
 							<xs:annotation>
 								<xs:documentation>
 									A URL allowing access to an editable version of the document.
 								</xs:documentation>
 								<xs:documentation>
-									The sourceURL could point to version control systems,
+									The sourceURI could point to version control systems,
 									complete files (e.g., in Open Document Format) or
 									landing pages as with access URLs.
 								
