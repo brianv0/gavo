@@ -216,6 +216,11 @@ class TestTypes(testhelpers.VerboseTest):
 				[{"b": numpy.int(302316)}]) as rows:
 			self.assertEqual(rows[0]["b"], 302316)
 
+	def testNumpyArray(self):
+		with digestedTable(self.conn, "n_a_t", "(b double precision[])",
+				[{"b": numpy.array([1.0, 1.5, 2])}]) as rows:
+			self.assertEqual(rows[0]["b"], [1.0, 1.5, 2.0])
+
 
 class TestWithTableCreation(testhelpers.VerboseTest):
 	resources = [("conn", tresc.dbConnection)]

@@ -81,7 +81,10 @@ class SqlSetAdapter(object):
 
 
 class SqlArrayAdapter(object):
-	"""is an adapter that formats python sequences as SQL arrays
+	"""An adapter that formats python sequences as SQL arrays
+
+	This makes, in the shameful tradition of VOTable, empty arrays equal to
+	NULL.
 	"""
 	def __init__(self, seq):
 		self._seq = seq
@@ -90,7 +93,7 @@ class SqlArrayAdapter(object):
 		pass
 
 	def getquoted(self):
-		if not self._seq:
+		if len(self._seq)==0:
 			return 'NULL'
 		qobjs = [str(psycopg2.extensions.adapt(o).getquoted()) 
 			for o in self._seq]
@@ -130,6 +133,7 @@ class IntableAdapter(object):
 
 
 psycopg2.extensions.register_adapter(tuple, SqlArrayAdapter)
+psycopg2.extensions.register_adapter(numpy.ndarray, SqlArrayAdapter)
 psycopg2.extensions.register_adapter(list, SqlSetAdapter)
 psycopg2.extensions.register_adapter(set, SqlSetAdapter)
 psycopg2.extensions.register_adapter(frozenset, SqlSetAdapter)
