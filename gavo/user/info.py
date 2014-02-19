@@ -87,6 +87,12 @@ def annotateDBTable(td):
 				"BOOL_OR(%(name)s IS NULL)", nameMaker))
 		annotators.append(annotator)
 	table = rsc.TableForDef(td)
+
+	if not hasattr(table, "iterQuery"):
+		raise base.ReportableError("Table %s cannot be queried."%td.getQName(),
+			hint="This is probably because it is an in-memory table.  Add"
+			" onDisk='True' to make tables reside in the database.")
+
 	resultRow = list(table.iterQuery(outputFields, ""))[0]
 	for annotator in annotators:
 		annotator.annotate(resultRow)

@@ -690,7 +690,7 @@ class RegtestRunTest(_RegtestTest):
 			stdout)
 		self.assertContains("3 of 9 bad.  avg", stdout)
 		self.assertEqual(stderr.count("."), 6)
-		self.assertEqual(stderr.count("F"), 3)
+		self.assertEqual(stderr.count("E"), 3)
 
 	def testRunSuite(self):
 		proc, stdout, stderr = testhelpers.captureOutput(regtest.main,
