@@ -663,8 +663,9 @@ class TestRunner(object):
 
 	def __init__(self, suites, serverURL=None, 
 			verbose=True, dumpNegative=False, tags=None,
-			timeout=20):
+			timeout=20, failFile=None):
 		self.verbose, self.dumpNegative = verbose, dumpNegative
+		self.failFile = failFile
 		if tags:
 			self.tags = tags
 		else:
@@ -759,6 +760,9 @@ class TestRunner(object):
 				# races be damned
 				if self.dumpNegative:
 					print "Content of failing test:\n%s\n"%test.data
+				if self.failFile:
+					with open(self.failFile, "w") as f:
+						f.write(test.data)
 
 			except Exception, ex:
 				f = StringIO()
@@ -909,6 +913,11 @@ def parseCommandLine(args=None):
 		action="store_true", dest="dumpNegative")
 	parser.add_argument("-t", "--tag", help="Also run tests tagged with TAG.",
 		action="store", dest="tag", default=None, metavar="TAG")
+	parser.add_argument("-D", "--dump-to", help="Dump the content of"
+		" last failing test to FILE", metavar="FILE",
+		action="store", type=str, dest="failFile", 
+		default=None)
+
 
 	parser.add_argument("-u", "--serverURL", help="URL of the DaCHS root"
 		" at the server to test",
@@ -933,6 +942,7 @@ def main(args=None):
 		"dumpNegative": args.dumpNegative,
 		"serverURL": args.serverURL,
 		"tags": tags,
+		"failFile": args.failFile,
 	}
 
 	if args.id=="ALL":
