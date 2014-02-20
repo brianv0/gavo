@@ -42,8 +42,8 @@ registerPrefix("sia", "http://www.ivoa.net/xml/SIA/v1.1",
 	schemaURL("SIA-v1.1.xsd"))
 registerPrefix("ssap", "http://www.ivoa.net/xml/SSA/v1.1",
 	schemaURL("SSA-v1.1.xsd"))
-registerPrefix("tr", "http://www.ivoa.net/xml/TAPRegExt/v1.0",
-	schemaURL("TAPRegExt-v1.0.xsd"))
+registerPrefix("tr", "http://www.ivoa.net/xml/TAPRegExt/v1.1",
+	schemaURL("TAPRegExt-v1.1.xsd"))
 registerPrefix("vstd", "http://www.ivoa.net/xml/StandardsRegExt/v1.0",
 	schemaURL("StandardsRegExt-1.0.xsd"))
 registerPrefix("doc", "http://www.ivoa.net/xml/DocRegExt/v1.0",

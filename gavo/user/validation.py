@@ -182,12 +182,12 @@ def validateOne(rdId, args):
 	"""outputs to stdout various information on the RD identified by rdId.
 	"""
 	rd = loadRD(rdId)
+	if rd is None:
+		return
 
 	if args.runTests:
 		TestsCollector.addRD(rd)
 
-	if rd is None:
-		return
 	validSoFar = validateServices(rd, args)
 	validSoFar = validSoFar and validateRowmakers(rd, args)
 	validSoFar = validSoFar and validateTables(rd, args)

@@ -2167,7 +2167,7 @@ needed to::
       for systems of quasars and lensing galaxies.  See 
       ivo://org.gavo.dc/mlqso/q/q</meta>
 
-    <column name="fluxerror" unit="ADU" ucd="stat.error;phot.flux;em.opt"/>
+    <column name="fluxerror" ucd="stat.error;phot.flux.density;em.wl"/>
   </table>
 
 What's referenced in the datalink core's builder data function then is a

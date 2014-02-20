@@ -424,8 +424,8 @@ def mangle_fluxcalib(sdmTable, newCalib):
 		"FLUXCALIB")
 
 
-################## The SDM core (usable in dcc: accrefs).  Do we still
-################## want this?
+################## The SDM core (usable in dcc: accrefs).  
+################## Superceded by datalink, scheduled for removal Jan 2015
 
 class SDMCore(svcs.Core):
 	"""A core for making (VO)Tables according to the Spectral Data Model.

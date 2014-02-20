@@ -47,7 +47,8 @@
 		<column name="ssa_bandpass" type="text"
 			utype="ssa:DataID.Bandpass" ucd="instr.bandpass"
 			tablehead="Bandpass" verbLevel="15" 
-			description="Bandpass (i.e., rough spectral location) of this dataset"/>
+			description="Bandpass (i.e., rough spectral location) of this dataset;
+			use something generic like 'Optical' here."/>
 		<column name="ssa_cversion" type="text"
 			utype="ssa:DataID.Version" ucd="meta.version;meta.dataset"
 			tablehead="C. Version" verbLevel="25" 
