@@ -61,6 +61,40 @@ class TestWCSTrafos(unittest.TestCase):
 		self._testInvertibilityReal()
 
 
+class PixelScaleTest(testhelpers.VerboseTest):
+	wcs = {
+		"CRPIX1": 50, "CRPIX2": 50,
+		"CD1_1": 1E-04,  "CD1_2": -1E-06,
+		"CD2_1": -1E-06, "CD2_2": -1E-04,
+		"CTYPE1": 'RA---TAN', "CTYPE2": 'DEC--TAN',
+		"CRVAL1": None, "CRVAL2": None,
+		"NAXIS1": 100, "NAXIS2": 100,
+		"CUNIT1": "deg", "CUNIT2": "deg",}
+
+	def testEquator(self):
+		wcs = self.wcs.copy()
+		wcs["CRVAL1"], wcs["CRVAL2"] = 0, 0
+		self.assertAlmostEqualVector(coords.getPixelSizeDeg(wcs), (1e-4, 1e-4))
+
+	def testStitch(self):
+		wcs = self.wcs.copy()
+		wcs["CRVAL1"], wcs["CRVAL2"] = -1e-3, 0
+		self.assertAlmostEqualVector(coords.getPixelSizeDeg(wcs), (1e-4, 1e-4))
+	
+	def testNorth(self):
+		wcs = self.wcs.copy()
+		wcs["CRVAL1"], wcs["CRVAL2"] = 359.99, 70
+		self.assertAlmostEqualVector(coords.getPixelSizeDeg(wcs), (1e-4, 1e-4))
+
+	def testPole(self):
+		wcs = self.wcs.copy()
+		wcs["CRVAL1"], wcs["CRVAL2"] = 10, -90
+		rasz, decsz = coords.getPixelSizeDeg(wcs)
+		self.assertAlmostEqual(decsz, 1e-4, 5)
+		self.failIf(rasz>1)
+
+
+
 class TestWCSBbox(unittest.TestCase):
 	"""Tests for conversion from WCS coordinates to bboxes and box relations.
 

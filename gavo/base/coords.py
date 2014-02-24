@@ -181,15 +181,17 @@ def getPixelSizeDeg(wcsFields):
 	"""returns the sizes of a pixel at roughly the center of the image for
 	wcsFields.
 
-	There's probably an issue here at the stitching line.  TODO: unit test
-	and fix.
+	Near the pole, this gets a bit weird; we do some limitation of the width
+	of RA pixels there.
 	"""
 	wcs = getWCS(wcsFields)
 	width, height = wcs._dachs_header["NAXIS1"], wcs._dachs_header["NAXIS2"]
+	cosDelta = max(0.01, math.cos(pix2sky(wcs, (width/2, height/2))[1]*DEG))
+
 	p0 = pix2sky(wcs, (width/2, height/2))
 	p1 = pix2sky(wcs, (width/2+1, height/2))
 	p2 = pix2sky(wcs, (width/2, height/2+1))
-	return abs(p1[0]-p0[0]), abs(p2[1]-p0[1])
+	return abs(p1[0]-p0[0])*cosDelta, abs(p2[1]-p0[1])
 
 
 def getWCSTrafo(wcsFields):
