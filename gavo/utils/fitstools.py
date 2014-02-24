@@ -803,7 +803,7 @@ class _ESODescriptorsParser(object):
 	"""
 
 	stringPat = "'[^']*'"
-	intPat = r"\d+"
+	intPat = r"-?\d+"
 	floatPat = r"-?\d+\.\d+E[+-]\d+"
 	white = r"\s+"
 	nextToken = r"\s*"

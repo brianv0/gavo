@@ -17,13 +17,11 @@ from gavo.user.common import Arg, exposedFunction, makeParser
 
 
 @exposedFunction([
-	Arg("rdId", help="an RD id (or a path to RD xml)"),
-	Arg("ddIds", help="optional dd ids to select (as for imp or drop)",
-		nargs='*')],
+	Arg("rdId", help="an RD id (or a path to RD xml)"),],
 	help="show what data items are avalailable")
 def dds(args):
 	rd = rscdesc.openRD(args.rdId)
-	for dd in common.getPertainingDDs(rd, args.ddIds):
+	for dd in rd.dds:
 		outLine = dd.id
 		if dd.auto:
 			outLine += "*"
