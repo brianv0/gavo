@@ -567,6 +567,18 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 			query = self.tableDef.expand(query)
 		return DBMethodsMixin.query(self, query, data)
 
+	def getSelectClause(self, resultTableDef):
+		"""returns the select clause to come up with resultTableDef.
+		"""
+		parts = []
+		for of in resultTableDef:
+			select = getattr(of, "select", None)
+			if select:
+				parts.append("%s AS %s"%(select, of.name))
+			else:
+				parts.append(of.name)
+		return ", ".join(parts)
+
 	def getQuery(self, resultTableDef, fragment, pars=None,
 			distinct=False, limits=None, groupBy=None):
 		"""returns a result table definition, query string and a parameters
@@ -584,9 +596,9 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 		query = ["SELECT "]
 		if distinct:
 			query.append("DISTINCT ")
-		query.append(", ".join([getattr(c, "select", c.name)
-			for c in resultTableDef])+" ")
+		query.append(self.getSelectClause(resultTableDef)+" ")
 		query.append("FROM %s "%self.tableName)
+
 		if fragment and fragment.strip():
 			query.append("WHERE %s "%fragment)
 		if groupBy:

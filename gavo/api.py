@@ -37,4 +37,7 @@ from gavo.rsc import (TableForDef, DBTable, makeData, parseValidating,
 
 from gavo.rscdef import TableDef
 
+from gavo.user.logui import LoggingUI
+
 from gavo.votable import VOTableError, ADQLTAPJob
+

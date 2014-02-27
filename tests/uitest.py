@@ -68,13 +68,15 @@ class MiscCLITest(testhelpers.VerboseTest):
 
 	def testShowDD(self):
 		self.assertOutput(cli.main, argList=["show", "dds", "//tap"],
-			expectedStdout="createSchema*\nimport_examples*\ncreateJobTable*\n")
+			expectedStdout="importTablesFromRD\nimportColumnsFromRD\nimport"
+				"GroupsFromRD\nimportFkeysFromRD\ncreateSchema*\n"
+				"import_examples*\ncreateJobTable*\n")
 
 	def testShowDDBad(self):
-		self.assertOutput(cli.main, argList=["show", "dds", "//dc_tables", "bla"],
+		self.assertOutput(cli.main, argList=["show", "dds", "//nonex"],
 			expectedRetcode=1,
 			expectedStderr=lambda msg: 
-				"The DD 'bla' you are trying to import" in msg)
+				"resource descriptor '__system__/nonex' could not be located")
 
 	def testVersion(self):
 		self.assertOutput(cli.main, argList=["--version"],

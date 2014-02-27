@@ -74,6 +74,10 @@ class CBooster(object):
 		query_n_pars = mat.group(1)
 
 		f = open(os.path.join(wd, "Makefile"), "w")
+
+		if self.dataDesc.grammar.type=="fits":
+			f.write("LDFLAGS += -lcfitsio\n")
+
 		f.write("LDFLAGS += -lm\n"
 			"CFLAGS += -Wall -DINPUT_LINE_MAX=%d -DQUERY_N_PARS=%s\n"%(
 				self.recordSize, query_n_pars))
@@ -84,9 +88,6 @@ class CBooster(object):
 			f.write("CFLAGS += -DIGNORE_BAD_RECORDS\n")
 		f.write("CFLAGS += -g\n")
 
-		# XXX TODO: make the following conditional on fitssource when that
-		# is part of the custom grammar.
-		f.write("LDFLAGS += -lcfitsio\n")
 		f.write("booster: boosterskel.c func.c\n"
 			"\t$(CC) $(CFLAGS) %s -o booster $^ $(LDFLAGS)\n"%self.customFlags)
 		f.close()
