@@ -319,6 +319,7 @@ class FormMixin(formal.ResourceMixin):
 			return
 		args = inevow.IRequest(ctx).args
 
+		# do remainig work in function as this can be recursive
 		def process(container):
 			for item in container.items:
 				if isinstance(item, formal.Group):

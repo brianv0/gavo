@@ -554,6 +554,12 @@ class ServiceBasedPage(ResourceBasedPage):
 		# Set to true when we notice we need to fix the service's output fields
 		self.fieldsChanged = False 
 
+		self._logRequestArgs(request)
+		self._fillServiceDefaults(request.args)
+
+	def _logRequestArgs(self, request):
+		"""leaves the actual arguments of a request in the log.
+		"""
 		try:
 			if request.args:
 				# even if there are args, don't log them if only boring ones
@@ -565,6 +571,13 @@ class ServiceBasedPage(ResourceBasedPage):
 		except: # don't fail because of logging problems
 			base.ui.notifyError("Formatting of request args failed.")
 
+	def _fillServiceDefaults(self, args):
+		"""a hook to enter default parameters based on the service.
+		"""
+		if self.service.hasProperty("defaultFormSortKey"):
+			if "_DBOPTIONS_ORDER" not in args:
+				args["_DBOPTIONS_ORDER"] = self.service.getProperty(
+					"defaultFormSortKey").split(",")
 
 	def processData(self, rawData, queryMeta=None):
 		"""calls the actual service.

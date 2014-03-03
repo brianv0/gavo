@@ -300,6 +300,14 @@ class Service(base.Structure, base.ComputedMetaMixin,
 	output column to preselect a sort order.  Note again that this will
 	slow down responses for all be the smallest tables unless there is
 	an index on the corresponding column.
+
+	Properties evaluated:
+
+	* defaultFormSortKey -- a key to sort on by default.  This differs
+	  from the dbCore's sortKey in that this does not suppress the
+	  widget itself, it just sets a default for its value.  Don't use
+	  this unless you have to; the combination of sort and limit can
+	  have disastrous effects on the run time of queries.
 	"""
 	name_ = "service"
 

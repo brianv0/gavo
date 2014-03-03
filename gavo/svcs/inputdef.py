@@ -37,6 +37,13 @@ class InputKey(column.ParamBase):
 	You can give a "defaultForForm" property on inputKeys to supply
 	a string literal default that will be pre-filled in the form
 	renderer and is friends but not for other renderers (like S*AP).
+
+	Properties evaluated:
+
+	* defaultForForm -- a value entered into form fields by default
+	  (be stingy with those; while it's nice to not have to set things
+	  presumably right for almost everyone, having to delete stuff
+	  you don't want over and over is really annoying).
 	"""
 	name_ = "inputKey"
 
