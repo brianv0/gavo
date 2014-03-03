@@ -574,10 +574,10 @@ class ServiceBasedPage(ResourceBasedPage):
 	def _fillServiceDefaults(self, args):
 		"""a hook to enter default parameters based on the service.
 		"""
-		if self.service.hasProperty("defaultFormSortKey"):
+		if self.service.hasProperty("defaultSortKey"):
 			if "_DBOPTIONS_ORDER" not in args:
 				args["_DBOPTIONS_ORDER"] = self.service.getProperty(
-					"defaultFormSortKey").split(",")
+					"defaultSortKey").split(",")
 
 	def processData(self, rawData, queryMeta=None):
 		"""calls the actual service.
