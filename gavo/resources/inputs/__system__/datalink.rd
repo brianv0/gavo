@@ -596,7 +596,10 @@
 	<STREAM id="fits_genKindPar">
 		<doc>This stream should be included in FITS-handling datalink services;
 		it adds parameter and code to just retrieve the FITS header to the
-		core.</doc>
+		core.
+		
+		For this to work as expected, it must be immediately before the
+		formatter.</doc>
 		<metaMaker name="genKindPar">
 			<code>
 				yield MS(InputKey, name="KIND", type="text",
@@ -623,6 +626,44 @@
 		</dataFunction>
 	</STREAM>
 
+	<STREAM id="fits_genPixelPar">
+		<doc>This stream should be included  in FITS-handling datalink services;
+		it add parameters and code to perform cut-outs along pixel coordinates.
+		</doc>
+		<metaMaker name="genPixelPars">
+			<code>
+				for axisInd in range(descriptor.hdr["NAXIS"]):
+					fitsInd = axisInd+1
+					minVal, maxVal = 1, descriptor.hdr["NAXIS%s"%fitsInd]
+					if maxVal==minVal:
+						continue
+
+					for ik in genLimitKeys(MS(InputKey, name="PIXEL_%s"%fitsInd,
+							type="integer", unit="",
+							description="Pixel coordinate along axis %s"%fitsInd,
+							ucd="pos.cartesian;instr.pixel", multiplicity="single",
+							values=MS(Values, min=minVal, max=maxVal))):
+						yield ik
+			</code>
+		</metaMaker>
+
+		<dataFunction name="cutoutPixelPars">
+			<code>
+				from gavo.utils import fitstools
+				slices = []
+				for fitsInd in range(1, descriptor.hdr["NAXIS"]+1):
+					parBase = "PIXEL_%s"%fitsInd
+					axMin, axMax = args[parBase+"_MIN"], args[parBase+"_MAX"]
+					if axMin is not None or axMax is not None:
+						slices.append([fitsInd, axMin, axMax])
+
+				if slices:
+					descriptor.data[0] = fitstools.cutoutFITS(descriptor.data[0],
+						*slices)
+			</code>
+		</dataFunction>
+	</STREAM>
+
 	<STREAM id="fits_standardDLFuncs">
 		<doc>
 			Pulls in all "standard" datalink functions for FITSes, including
@@ -644,6 +685,7 @@
 		 </metaMaker>
 		<dataFunction procDef="//datalink#fits_makeHDUList" name="makeHDUList"/>
 		<dataFunction procDef="//datalink#fits_doWCSCutout" name="doWCSCutout"/>
+		<FEED source="//datalink#fits_genPixelPar"/>
 		<FEED source="//datalink#fits_genKindPar"/>
 		<dataFormatter procDef="//datalink#fits_formatHDUs" name="formatHDUs"/>
 	</STREAM>

@@ -235,7 +235,8 @@ Datalink-related Streams
 
 .. replaceWithResult getStreamsDoc(
     ['//datalink#'+id for id in ["sdm_plainfluxcalib", "sdm_cutout",
-      "sdm_format", "fits_genKindPar", "fits_standardDLFuncs"]])
+      "sdm_format", "fits_genKindPar", "fits_genPixelPar",
+      "fits_standardDLFuncs"]])
 
 Other Streams
 '''''''''''''
@@ -2046,6 +2047,55 @@ are not really usable after discovery.
 
 An alternative is to add the capability to the service that houses the
 discovered datasets.  TODO: Tell people how :-)
+
+
+Datalink and Obscore
+''''''''''''''''''''
+
+In particular for larger datasets like cubes, it is rude to put the
+entire dataset into an obscore table.  Although obscore gives expected
+download sizes, clients nevertheless do not usually expecte to have to
+retrieve several gigabytes or even terabytes of data when dereferencing
+an obscore access URL.
+
+Instead, the access URL in the obscore table can point to a datalink
+service.  There are various ways to effect this, but the recommended one
+is to precompute datalink URLs in the embedding table and then pass
+that column to obscore.  This entails defining a suitable column, which
+could look like this::
+
+	<column name="dlurl" type="text"
+		ucd="meta.ref.url"
+		tablehead="DL"
+		description="URL of a datalink document for this dataset"
+		verbLevel="1" displayHint="type=url"/>
+
+Then fill this column in the rowmaker::
+
+	<var key="obs_id">\standardPubDID</var>
+		<map key="dlurl">makeAbsoluteURL(
+  		"\rdId/*dl*/dlmeta?ID="+urllib.quote(@obs_id))</map>
+
+– you'll need to change ``*dl*`` to the id of your datalink service.
+It is true that this stores quite a bit of stuff in the database that
+could be computed at runtime.  However, even when you have 1e5 datasets,
+we'd be only talking of savings of the order of 10 MB, at the cost of a
+seriously ugly obscore expression and reduced debuggability.  Having
+said that, it wouldn't be too hard to build these URLs in the obscore
+mixin.  With these column, however, you can just state::
+
+  <mixin
+		accessURL="dlurl"
+		size="10"
+		mime="'application/x-votable+xml;content=datalink'"
+    ... (all the other stuff) ...
+    >//obscore#publish</mixin>
+
+This says that what's coming back is going to be about 10k; it's hard to
+predict the exact size of a datalink response, and there's no need to
+sweat things for a couple of k more or less.  The mime type given here
+is defined by Datalink exactly this purpose.  This is non-negotiable if
+you want clients to understand your data.
 
 
 Datalink Examples

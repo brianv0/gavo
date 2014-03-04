@@ -489,31 +489,36 @@ class RegTest(procdef.ProcApp):
 		"v2": "http://www.ivoa.net/xml/VOTable/v1.2",
 		"v1": "http://www.ivoa.net/xml/VOTable/v1.1",
 		"o": "http://www.openarchives.org/OAI/2.0/",
+		"h": "http://www.w3.org/1999/xhtml",
 	}
 
 	@utils.document
 	def assertXpath(self, path, assertions):
 		"""checks an xpath assertion.
 
-		path is an xpath (as understood by lxml), with namespace prefixes 
-		statically mapped; there's currently v2 (VOTable 1.2), v1 (VOTable 1.1),
-		v (whatever VOTable version is the current DaCHS default),
-		and o (OAI-PMH 2.0).  If you need more prefixes, hack the source
-		and feed back your changes (monkeypatching self.XPATH_NAMESPACE_MAP
+		path is an xpath (as understood by lxml), with namespace
+		prefixes statically mapped; there's currently v2 (VOTable
+		1.2), v1 (VOTable 1.1), v (whatever VOTable version
+		is the current DaCHS default), h (the namespace of the
+		XHTML elements DaCHS generates), and o (OAI-PMH 2.0).
+		If you need more prefixes, hack the source and feed back
+		your changes (monkeypatching self.XPATH_NAMESPACE_MAP
 		is another option).
 
 		path must match exactly one element.
 
-		assertions is a dictionary mapping attribute names to their
-		expected value.  Use the key None to check the element content,
-		and match for None if you expect an empty element.
+		assertions is a dictionary mapping attribute names to
+		their expected value.  Use the key None to check the
+		element content, and match for None if you expect an
+		empty element.
 
-		If you need an RE match rather than equality, there's EqualingRE
-		in your code's namespace.
+		If you need an RE match rather than equality, there's
+		EqualingRE in your code's namespace.
 
-		This needs lxml (debian package python-lxml) installed.  As it's only
-		a matter of time until lxml will become a hard DaCHS dependency,
-		installing it is a good idea anyway.
+		This needs lxml (debian package python-lxml) installed.
+		As it's only a matter of time until lxml will become
+		a hard DaCHS dependency, installing it is a good idea
+		anyway.
 		"""
 		tree = lxtree.fromstring(self.data)
 		res = tree.xpath(path, namespaces=self.XPATH_NAMESPACE_MAP)

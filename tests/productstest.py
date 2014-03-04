@@ -770,6 +770,37 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 			"ID": rscdef.getStandardPubDID("data/excube.fits")}).original
 		self.failUnless("<DATA><TABLEDATA>" in data)
 
+	def testPixelMeta(self):
+		svc = base.parseFromString(svcs.Service, """<service id="foo">
+			<datalinkCore>
+				<descriptorGenerator procDef="//datalink#fits_genDesc"/>
+				<FEED source="//datalink#fits_genPixelPar"/>
+			</datalinkCore></service>""")
+		svc.parent = testhelpers.getTestRD()
+		mime, data = svc.run("dlmeta", {
+			"ID": rscdef.getStandardPubDID("data/excube.fits")}).original
+		tree = testhelpers.getXMLTree(data, debug=False)
+		self.assertEqual(tree.xpath("//PARAM[@name='PIXEL_3_MIN']/VALUES/MAX"
+			)[0].get("value"), "4")
+		self.assertEqual(tree.xpath("//PARAM[@name='PIXEL_1_MAX']"
+			)[0].get("datatype"), "int")
+
+	def testPixelCutout(self):
+		svc = base.parseFromString(svcs.Service, """<service id="foo">
+			<datalinkCore>
+				<FEED source="//datalink#fits_standardDLFuncs"
+					stcs="" accrefStart=""/>
+			</datalinkCore></service>""")
+		svc.parent = testhelpers.getTestRD()
+		mime, data = svc.run("dlget", {
+			"ID": rscdef.getStandardPubDID("data/excube.fits"),
+				"PIXEL_1_MIN": "4", "PIXEL_1_MAX": "4",
+				"PIXEL_3_MIN": "2", "PIXEL_3_MAX": "2"}).original
+		self.assertEqual(mime, "application/fits")
+		self.failUnless("NAXIS1  =                    1" in data)
+		self.failUnless("NAXIS2  =                    7" in data)
+		self.failUnless("NAXIS3  =                    1" in data)
+
 
 class DatalinkSTCTest(testhelpers.VerboseTest):
 	resources = [("fitsTable", _fitsTable)]
