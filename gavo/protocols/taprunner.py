@@ -256,7 +256,11 @@ def runTAPJobNoState(parameters, jobId, queryProfile, timeout):
 	# The following makes us bail out if a bad format was passed -- no
 	# sense spending the CPU on executing the query then, so we get the
 	# format here.
-	format = normalizeTAPFormat(parameters.get("format", "votable"))
+	defaultFormat = "votable"
+	if base.getConfig("ivoa", "votDefaultEncoding")=="td":
+		defaultFormat = "votable/td"
+
+	format = normalizeTAPFormat(parameters.get("format", defaultFormat))
 
 	res = _makeDataFor(getQTableFromJob(
 		parameters, jobId, queryProfile, timeout))

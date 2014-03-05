@@ -117,8 +117,9 @@ class CBooster(object):
 		if os.path.exists(self.srcName):
 			utils.runInSandbox(self._copySources, self._build, self._retrieveBinary)
 		else:
-			base.ui.notifyError("Booster for grammar with id %s does not exist."
-				"  You will not be able to import the enclosing data.")
+			base.ui.notifyError("Booster source does not exist."
+				"  You will not be able to import the enclosing data.",
+				hint="Use gavo mkboost to create a skeleton for the booster.")
 
 	def getOutput(self, argName):
 		"""returns a pipe you can read the booster's output from.

@@ -1790,17 +1790,20 @@ example could look like this::
 
   <metaMaker>
     <code>
-      yield LinkDef(makeAbsoluteURL(
-        "get/"+descriptor.accref[:-5]+".err.fits"),
-        "image/fits", semantics="errors")
-      yield LinkDef("http://foo.bar/raw/"+descriptor.accref.split("/")[-1],
-        "image/fits", semantics="raw")
+      yield LinkDef(descriptor.PubDID,
+        makeAbsoluteURL("get/"+descriptor.accref[:-5]+".err.fits"),
+        contentType="image/fits", semantics="errors",
+        description="Errors for this dataset")
+      yield LinkDef(descriptor.pubDID,
+        "http://foo.bar/raw/"+descriptor.accref.split("/")[-1],
+        contentType="image/fits", semantics="raw",
+        description="Un-flatfielded, uncalibrated source data")
     </code>
   </metaMaker>
 
-LinkDefs also accept keyword arguments for the columns of the
-``//datalink#dlresponse`` table.  At the time of this writing, these
-include:
+In addition to the pubDID and the access URL, LinkDefs accept keyword
+arguments for the columns of the ``//datalink#dlresponse`` table.  At
+the time of this writing, these include:
 
 serviceType
   This is a URI saying what kind of a service is behind accessURL if it
@@ -1882,9 +1885,9 @@ datalink renderer and then write a meta maker like this::
       <metaMaker>
         <code>
           stem = descriptor.accref.split("/")[-1].split("_")[0]
-          yield LinkDef(makeAbsoluteURL(
+          yield LinkDef(descriptor.pubDID, makeAbsoluteURL(
             "\rdId/d/static/%s_err.fits"%stem),
-            "image/fits", "errors")
+            contentType="image/fits", semantics="qa")
         </code>
       </metaMaker>
     </datalinkCore>

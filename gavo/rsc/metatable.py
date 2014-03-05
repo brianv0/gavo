@@ -61,8 +61,8 @@ class MetaTableHandler(object):
 		self._createObjects()
 
 	def _createObjects(self):
-		self.readerConnection = base.getDBConnection("trustedquery",
-			autocommitted=True)
+		self.readerConnection = base.getDBConnection(
+			"trustedquery", autocommitted=True)
 		querier = base.UnmanagedQuerier(self.readerConnection)
 		if not querier.tableExists("dc.columnmeta"):
 			# this is for bootstrapping: the first gavo imp dc_tables doesn't have

@@ -284,8 +284,8 @@ class TestRoleSetting(TestPrivs):
 				querier.query("create user privtestuser")
 				querier.query("create user testadmin")
 		except base.DBError: # probably left over from a previous crash
-			sys.stderr.write("Test roles already present?  Rats.\n")
-			raise
+			sys.stderr.write("Test roles already present."
+				" Hope we'll clear them later.\n")
 		
 		self.profDir = base.getConfig("configDir") 
 		with open(os.path.join(self.profDir, "privtest"), "w") as f:

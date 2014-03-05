@@ -170,9 +170,9 @@ def registerType(oid, name, castFunc):
 
 class DebugCursor(psycopg2.extensions.cursor):
 	def execute(self, sql, args=None):
-		print "Executing %s %s"%(id(self.connection), sql)
+		print "Executing %s %s"%(self.connection.pid, sql)
 		res = psycopg2.extensions.cursor.execute(self, sql, args)
-		print "Finished %s %s"%(id(self.connection), self.query)
+		print "Finished %s %s"%(self.connection.pid, self.query)
 		return res
 	
 	def executemany(self, sql, args=[]):
@@ -232,25 +232,30 @@ class GAVOConnection(psycopg2.extensions.connection):
 
 
 class DebugConnection(GAVOConnection):
+	def __init__(self, *args, **kwargs):
+		self.pid = "unknown"
+		GAVOConnection.__init__(self, *args, **kwargs)
+		self._setPID()
+
 	def cursor(self, *args, **kwargs):
 		kwargs["cursor_factory"] = DebugCursor
 		return psycopg2.extensions.connection.cursor(self, *args, **kwargs)
 
 	def commit(self):
-		print "Commit %s"%id(self)
+		print "Commit %s"%self.pid
 		return GAVOConnection.commit(self)
 	
 	def rollback(self):
-		print "Rollback %s"%id(self)
+		print "Rollback %s"%self.pid
 		return GAVOConnection.rollback(self)
 
-
-	def getPID(self):
+	def _setPID(self):
 		cursor = self.cursor()
 		cursor.execute("SELECT pg_backend_pid()")
 		pid = list(cursor)[0][0]
 		cursor.close()
-		return pid
+		self.commit()
+		self.pid = pid
 
 
 def getDBConnection(profile, debug=debug, autocommitted=False):
@@ -266,9 +271,9 @@ def getDBConnection(profile, debug=debug, autocommitted=False):
 	if debug:
 		conn = psycopg2.connect(connection_factory=DebugConnection,
 			**profile.getArgs())
-		print "NEW CONN using %s (%s)"%(profile.name, conn.getPID()), id(conn)
+		print "NEW CONN %s with pid %s"%(profile.name, conn.pid)
 		def closer():
-			print "CONNECTION CLOSE", id(conn)
+			print "CONNECTION CLOSE", conn.pid
 			return DebugConnection.close(conn)
 		conn.close = closer
 	else:
@@ -983,15 +988,12 @@ def _makeConnectionManager(profileName, minConn=3, maxConn=20,
 		conn = pool[0].getconn()
 		try:
 			yield conn
+			conn.commit()
 		except Exception, ex:
 			# controlled block bombed out, do error handling
-			if not autocommitted:
-				conn.rollback()
+			conn.rollback()
 			_cleanupAfterDBError(ex, conn, pool, poolLock)
 			raise
-
-		if not autocommitted:
-			conn.commit()
 
 		try:
 			pool[0].putconn(conn, close=conn.closed)
