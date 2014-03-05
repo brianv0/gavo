@@ -935,6 +935,34 @@ class CustomConnectionPool(psycopg2.pool.ThreadedConnectionPool):
 		return conn
 
 
+def _cleanupAfterDBError(ex, conn, pool, poolLock):
+	"""removes conn from pool after an error occurred.
+
+	This is a helper for getConnFromPool below.
+	"""
+	if isinstance(ex, OperationalError) and conn.fileno()==-1: 
+		# this is probably a db server restart.  Invalidate all connections
+		# immediately.
+		utils.sendUIEvent("Warning", "Suspecting a database restart."
+			"  Discarding old connection pool, making a new one.")
+		with poolLock:
+			if pool:
+				pool[0].closeall()
+				pool.pop()
+				return
+
+		# Make sure the connection is closed; something bad happened
+		# in it, so we don't want to re-use it
+		try:
+			pool[0].putconn(conn, close=True)
+		except InterfaceError:  
+			# Connection already closed
+			pass
+		except Exception, msg:
+			utils.sendUIEvent("Error", 
+				"Disaster: %s while force-closing connection"%msg)
+
+
 def _makeConnectionManager(profileName, minConn=3, maxConn=20,
 		autocommitted=True):
 	"""returns a context manager for a connection pool for profileName
@@ -956,33 +984,14 @@ def _makeConnectionManager(profileName, minConn=3, maxConn=20,
 		try:
 			yield conn
 		except Exception, ex:
+			# controlled block bombed out, do error handling
 			if not autocommitted:
 				conn.rollback()
-			if isinstance(ex, OperationalError) and conn.fileno()==-1: 
-				# this is probably a db server restart.  Invalidate all connections
-				# immediately.
-				utils.sendUIEvent("Warning", "Suspecting a database restart."
-					"  Discarding old connection pool, making a new one.")
-				with poolLock:
-					if pool:
-						pool[0].closeall()
-						pool.pop()
-			# Make sure the connection is closed, since we're not going
-			# to re-use it
-			try:
-				pool[0].putconn(conn, close=True)
-			except InterfaceError:  
-				# Connection already closed
-				pass
-			except Exception, msg:
-				utils.sendUIEvent("Error", "Disaster: %s while putting connection"%msg)
+			_cleanupAfterDBError(ex, conn, pool, poolLock)
 			raise
 
-		else:
-			# no exception raised, commit if not autocommitted
-			if not autocommitted:
-				conn.commit()
-
+		if not autocommitted:
+			conn.commit()
 
 		try:
 			pool[0].putconn(conn, close=conn.closed)

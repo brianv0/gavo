@@ -409,10 +409,6 @@ class SDMDatalinkMetaTest(testhelpers.VerboseTest):
 				self.data[0].xpath("GROUP/PARAM[@name='FLUXCALIB']/VALUES/OPTION")), 
 			set(['UNCALIBRATED', 'RELATIVE']))
 
-	def testIdColDeclaredDS(self):
-		param = self.data[0].xpath("GROUP/PARAM[@name='ID']")[0]
-		self.assertEqual(param.get("ucd"), "meta.id;meta.main")
-
 	def testAccessURLGivenDS(self):
 		self.assertEqual(self.data[0].xpath(
 				"PARAM[@name='accessURL']")[0].get("value"),
@@ -421,11 +417,7 @@ class SDMDatalinkMetaTest(testhelpers.VerboseTest):
 	def testIdColDeclaredDS(self):
 		param = self.data[0].xpath("GROUP/PARAM[@name='ID']")[0]
 		self.assertEqual(param.get("ucd"), "meta.id;meta.main")
-		link = param.xpath("LINK")[0]
-		self.assertEqual(link.get("content-role"), "ddl:id-source")
-		srcField = self.data[-1].xpath(
-			"//FIELD[@ID='%s']"%link.get("value")[1:])[0]
-		self.assertEqual(srcField.get("name"), "ssa_pubDID")
+		self.assertEqual(param.get("ref"), "ssa_pubDID")
 
 	def testAccessURLGivenDL(self):
 		self.assertEqual(self.data[1].xpath(

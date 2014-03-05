@@ -1,5 +1,9 @@
 """
 Handling table metadata in the dc.(table|column)meta tables.
+
+This has been a mediocre plan, and it's almost unused these days except
+to locate RDs for tables.  Hence, we should tear this entire thing down
+and have the table->RD mapping stowed somewhere else.
 """
 
 #c Copyright 2008-2014, the GAVO project
@@ -7,6 +11,7 @@ Handling table metadata in the dc.(table|column)meta tables.
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
 
+import functools
 
 from gavo import base
 from gavo.rsc import dbtable
@@ -17,6 +22,20 @@ class ColumnError(base.Error):
 	"""is raised by the MetaTableHandler when some operation on 
 	columns doesn't work out.
 	"""
+
+
+def _retryProtect(m):
+	"""decorates m such that any function call is retried after self.reset
+	is called.
+	"""
+	def f(self, *args, **kwargs):
+		try:
+			return m(self, *args, **kwargs)
+		except:
+			self.reset()
+			return m(self, *args, **kwargs)
+
+	return functools.update_wrapper(f, m)
 
 
 class MetaTableHandler(object):
@@ -39,7 +58,9 @@ class MetaTableHandler(object):
 	"""
 	def __init__(self):
 		self.rd = base.caches.getRD("__system__/dc_tables")
-	
+		self._createObjects()
+
+	def _createObjects(self):
 		self.readerConnection = base.getDBConnection("trustedquery",
 			autocommitted=True)
 		querier = base.UnmanagedQuerier(self.readerConnection)
@@ -57,12 +78,21 @@ class MetaTableHandler(object):
 		self.tablesRowdef = self.rd.getTableDefById("tablemeta")
 
 	def close(self):
-		self.readerConnection.close()
+		try:
+			self.readerConnection.close()
+		except base.InterfaceError:
+			# connection already closed
+			pass
+
+	def reset(self):
+		self.close()
+		self._createObjects()
 
 	def queryTablesTable(self, fragment, pars={}):
 		return self.tablesTable.iterQuery(self.tablesTable.tableDef, 
 			fragment, pars)
 
+	@_retryProtect
 	def getColumn(self, colName, tableName=""):
 		"""returns a dictionary with the information available
 		for colName.
@@ -93,7 +123,8 @@ class MetaTableHandler(object):
 			raise base.ui.logOldExc(
 				ColumnError("No info for %s in %s"%(colName, tableName)))
 		return rscdef.Column.fromMetaTableRow(match)
-	
+
+	@_retryProtect
 	def getColumnsForTable(self, tableName):
 		"""returns a field definition list for tableName.
 
@@ -110,7 +141,8 @@ class MetaTableHandler(object):
 			limits=("ORDER BY colInd", {}))
 		return [rscdef.Column.fromMetaTableRow(row)
 			for row in res]
-	
+
+	@_retryProtect
 	def getTableDefForTable(self, tableName):
 		if not "." in tableName:
 			tableName = "public."+tableName

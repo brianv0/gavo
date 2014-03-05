@@ -184,7 +184,10 @@ class _ServiceDescriptor(object):
 			param = votablewrite._addID(ik,
 				votablewrite.makeFieldFromColumn(V.PARAM, ik), ctx)
 			if linkIdTo and ik.name=="ID":
-				param[V.LINK(content_role="ddl:id-source", value="#"+linkIdTo)]
+				# TODO: Kill the LINK child (older proposal implemented by some
+				# splat betas) some time after June 2014
+				param = param(ref=linkIdTo)[
+					V.LINK(content_role="ddl:id-source", value="#"+linkIdTo)]
 			inputParams[param]
 
 		return res
