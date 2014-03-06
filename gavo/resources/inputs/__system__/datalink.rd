@@ -377,11 +377,20 @@
 		if successful, containing the spatial transformation only.  All
 		other transformations, if present, are in miscWCS, by a dict mapping
 		axis labels to the fitstools.WCS1Trans instances.
+		
+		If individual metadata in the header are wrong or to give better
+		metadata, use axisMetaOverrides.  This will not generate standard
+		parameters for non-spatial axis (LAMBDA and friends).  There are
+		other datalink streams for those.
 		</doc>
 		<setup>
 			<par key="stcs" description="A QSTC expression describing the
 				STC structure of the parameters.  If you don't give this,
 				no STC structure will be declared.">None</par>
+			<par key="axisMetaOverrides" description="A python dictionary
+				mapping fits axis indices (1-based) to dictionaries of
+				inputKey constructor arguments; for spatial axis, use the
+				axis name instead of the axis index.">{}</par>
 			<code>
 				from gavo.utils import fitstools
 
@@ -432,11 +441,16 @@
 							"pos.eq.ra", "WCSLONG")]:
 						if name:
 							vertexCoos = footprint[:,colInd]
-							for ik in genLimitKeys(MS(InputKey, name=name,
-									unit="deg", stc=parSTC,
-									description=description,
-									ucd=baseUCD, multiplicity="single",
-									values=MS(Values, min=min(vertexCoos), max=max(vertexCoos)))):
+							paramArgs = {"name": name, "unit": "deg", 
+									"description": description,
+									"ucd": baseUCD}
+							if name in axisMetaOverrides:
+								paramArgs.update(axisMetaOverrides[name])
+
+							for ik in genLimitKeys(MS(InputKey,  multiplicity="single",
+									stc=parSTC,
+									values=MS(Values, min=min(vertexCoos), max=max(vertexCoos)),
+									**paramArgs)):
 								yield ik
 							descriptor.axisNames[name] = cutoutName
 
@@ -457,11 +471,16 @@
 						minPhys, maxPhys = ax.getLimits()
 
 						# FIXME: ucd inference
-						for ik in genLimitKeys(MS(InputKey, name=ax.name,
-								unit=ax.cunit, stc=parSTC,
-								description="Coordinate along axis number %s"%fitsAxis,
-								ucd=None, multiplicity="single",
-								values=MS(Values, min=minPhys, max=maxPhys))):
+						paramArgs = {"name": ax.name, "unit": ax.cunit, 
+							"stc": parSTC,
+							"description": "Coordinate along axis number %s"%fitsAxis,
+							"ucd": None}
+						if fitsAxis in axisMetaOverrides:
+							paramArgs.update(axisMetaOverrides[fitsAxis])
+
+						for ik in genLimitKeys(MS(InputKey,  multiplicity="single",
+							values=MS(Values, min=minPhys, max=maxPhys),
+							**paramArgs)):
 							yield ik
 
 				if stcs is None:

@@ -666,20 +666,27 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 		svc = base.parseFromString(svcs.Service, """<service id="foo">
 			<datalinkCore>
 				<descriptorGenerator procDef="//datalink#fits_genDesc"/>
-				<metaMaker procDef="//datalink#fits_makeWCSParams"/>
+				<metaMaker procDef="//datalink#fits_makeWCSParams">
+					<bind key="axisMetaOverrides">{
+						"RA": {"ucd": "pos.eq.ra;meta.special"},
+						3:    {"name": "LAMBDA", "unit": "0.1nm"}}
+					</bind>
+				</metaMaker>
 			</datalinkCore></service>""")
 		svc.parent = testhelpers.getTestRD()
 
 		mime, data = svc.run("dlmeta", {
 			"ID": [rscdef.getStandardPubDID("data/excube.fits")]}).original
 		tree = testhelpers.getXMLTree(data, debug=False)
+		self.assertEqual(tree.xpath("//PARAM[@name='RA_MAX']")[0].get("ucd"),
+			"par.max;pos.eq.ra;meta.special")
 		self.assertEqual(tree.xpath("//PARAM[@name='RA_MAX']/VALUES/MIN"
 			)[0].get("value"), "359.3580942")
 		self.assertEqual(tree.xpath("//PARAM[@name='DEC_MIN']/VALUES/MAX"
 			)[0].get("value"), "30.9848485045")
-		self.assertEqual(tree.xpath("//PARAM[@name='COO_3_MIN']/VALUES/MIN"
+		self.assertEqual(tree.xpath("//PARAM[@name='LAMBDA_MIN']/VALUES/MIN"
 			)[0].get("value"), "3749.0")
-		self.assertEqual(tree.xpath("//PARAM[@name='COO_3_MIN']/VALUES/MAX"
+		self.assertEqual(tree.xpath("//PARAM[@name='LAMBDA_MIN']/VALUES/MAX"
 			)[0].get("value"), "3755.0")
 
 	def testCutoutNoSpatialCube(self):

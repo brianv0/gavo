@@ -1063,6 +1063,17 @@ You must given them a ``title``, which is used when reporting problems
 with them.  Otherwise, the crucial children of these are ``url`` and, as
 always with procDefs, ``code``.
 
+Here are some hints on development:
+
+1) Give the test you're just developing an id; at the GAVO DC, we're
+   usually using cur; that way, we run variations of 
+   ``gavo test rdId#cur`, and only the test in question is run.
+2) After defining the url, just put an ``assert False`` into the test
+   code.  Then run ``gavo test -Devidence.xml rdId#cur`` or similar.
+   Then investigate ``evidence.xml`` (possibly after piping through
+   ``xmlstarlet fo``) for stable and strong indicators that things are
+   working.
+
 RegTest URLs
 ''''''''''''
 
