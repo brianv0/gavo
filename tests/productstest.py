@@ -669,9 +669,12 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 				<metaMaker procDef="//datalink#fits_makeWCSParams">
 					<bind key="axisMetaOverrides">{
 						"RA": {"ucd": "pos.eq.ra;meta.special"},
-						3:    {"name": "LAMBDA", "unit": "0.1nm"}}
+						3:    {"name": "ANGSTROMS", "unit": "0.1nm"}}
 					</bind>
 				</metaMaker>
+				<FEED source="//datalink#fits_standardLambdaCutout"
+					spectralAxis="3"
+					wavelengthUnit="'0.1nm'"/>
 			</datalinkCore></service>""")
 		svc.parent = testhelpers.getTestRD()
 
@@ -684,10 +687,15 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 			)[0].get("value"), "359.3580942")
 		self.assertEqual(tree.xpath("//PARAM[@name='DEC_MIN']/VALUES/MAX"
 			)[0].get("value"), "30.9848485045")
-		self.assertEqual(tree.xpath("//PARAM[@name='LAMBDA_MIN']/VALUES/MIN"
+		self.assertEqual(tree.xpath("//PARAM[@name='ANGSTROMS_MIN']/VALUES/MIN"
 			)[0].get("value"), "3749.0")
-		self.assertEqual(tree.xpath("//PARAM[@name='LAMBDA_MIN']/VALUES/MAX"
+		self.assertEqual(tree.xpath("//PARAM[@name='ANGSTROMS_MIN']/VALUES/MAX"
 			)[0].get("value"), "3755.0")
+		lmaxPar = tree.xpath("//PARAM[@name='LAMBDA_MAX']")[0]
+		self.assertEqual(lmaxPar.get("ucd"), "par.max;em.wl")
+		self.assertEqual(lmaxPar.get("unit"), "m")
+		self.assertEqual(lmaxPar.xpath("VALUES/MAX")[0].get("value"),
+			"3.755e-07")
 
 	def testCutoutNoSpatialCube(self):
 		svc = base.parseFromString(svcs.Service, """<service id="foo">
@@ -708,6 +716,32 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 		self.assertEqual(mime, "application/fits")
 		hdr = fitstools.readPrimaryHeaderQuick(StringIO(data))
 		self.assertEqual(hdr["NAXIS1"], 11)
+		self.assertEqual(hdr["NAXIS2"], 7)
+		self.assertEqual(hdr["NAXIS3"], 2)
+
+	def testCutoutLAMBDACube(self):
+		svc = base.parseFromString(svcs.Service, """<service id="foo">
+			<datalinkCore>
+				<descriptorGenerator procDef="//datalink#fits_genDesc"/>
+				<metaMaker procDef="//datalink#fits_makeWCSParams"/>
+				<dataFunction procDef="//datalink#fits_makeHDUList"/>
+				<FEED source="//datalink#fits_standardLambdaCutout"
+					spectralAxis="3"
+					wavelengthUnit="'0.1nm'"/>
+				<dataFunction procDef="//datalink#fits_doWCSCutout"/>
+				<dataFormatter procDef="//datalink#fits_formatHDUs"/>
+			</datalinkCore></service>""")
+
+		mime, data = svc.run("dlget", {
+				"ID": [rscdef.getStandardPubDID("data/excube.fits")],
+				"LAMBDA_MIN": ["3.755e-7"],
+				"RA_MIN": ["359.359"],
+				"DEC_MIN": ["30.39845"],
+				}).original
+
+		self.assertEqual(mime, "application/fits")
+		hdr = fitstools.readPrimaryHeaderQuick(StringIO(data))
+		self.assertEqual(hdr["NAXIS1"], 8)
 		self.assertEqual(hdr["NAXIS2"], 7)
 		self.assertEqual(hdr["NAXIS3"], 2)
 

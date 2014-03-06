@@ -217,6 +217,8 @@ Procedures available for datalink cores
     "fits_makeHDUList",
     "fits_doWCSCutout",
     "fits_formatHDUs",
+    "fits_makeLambdaSlice",
+    "fits_makeLambdaMeta",
     ])(docStructure)
 
 
@@ -236,7 +238,7 @@ Datalink-related Streams
 .. replaceWithResult getStreamsDoc(
     ['//datalink#'+id for id in ["sdm_plainfluxcalib", "sdm_cutout",
       "sdm_format", "fits_genKindPar", "fits_genPixelPar",
-      "fits_standardDLFuncs"]])
+      "fits_standardDLFuncs", fits_standardLambdaCutout]])
 
 Other Streams
 '''''''''''''
