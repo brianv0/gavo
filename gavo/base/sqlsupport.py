@@ -170,9 +170,9 @@ def registerType(oid, name, castFunc):
 
 class DebugCursor(psycopg2.extensions.cursor):
 	def execute(self, sql, args=None):
-		print "Executing %s %s"%(self.connection.pid, sql)
+		print "Executing %s %s"%(id(self.connection), sql)
 		res = psycopg2.extensions.cursor.execute(self, sql, args)
-		print "Finished %s %s"%(self.connection.pid, self.query)
+		print "Finished %s %s"%(id(self.connection), self.query)
 		return res
 	
 	def executemany(self, sql, args=[]):
@@ -232,30 +232,25 @@ class GAVOConnection(psycopg2.extensions.connection):
 
 
 class DebugConnection(GAVOConnection):
-	def __init__(self, *args, **kwargs):
-		self.pid = "unknown"
-		GAVOConnection.__init__(self, *args, **kwargs)
-		self._setPID()
-
 	def cursor(self, *args, **kwargs):
 		kwargs["cursor_factory"] = DebugCursor
 		return psycopg2.extensions.connection.cursor(self, *args, **kwargs)
 
 	def commit(self):
-		print "Commit %s"%self.pid
+		print "Commit %s"%id(self)
 		return GAVOConnection.commit(self)
 	
 	def rollback(self):
-		print "Rollback %s"%self.pid
+		print "Rollback %s"%id(self)
 		return GAVOConnection.rollback(self)
 
-	def _setPID(self):
+
+	def getPID(self):
 		cursor = self.cursor()
 		cursor.execute("SELECT pg_backend_pid()")
 		pid = list(cursor)[0][0]
 		cursor.close()
-		self.commit()
-		self.pid = pid
+		return pid
 
 
 def getDBConnection(profile, debug=debug, autocommitted=False):
@@ -271,9 +266,9 @@ def getDBConnection(profile, debug=debug, autocommitted=False):
 	if debug:
 		conn = psycopg2.connect(connection_factory=DebugConnection,
 			**profile.getArgs())
-		print "NEW CONN %s with pid %s"%(profile.name, conn.pid)
+		print "NEW CONN using %s (%s)"%(profile.name, conn.getPID()), id(conn)
 		def closer():
-			print "CONNECTION CLOSE", conn.pid
+			print "CONNECTION CLOSE", id(conn)
 			return DebugConnection.close(conn)
 		conn.close = closer
 	else:
@@ -940,35 +935,7 @@ class CustomConnectionPool(psycopg2.pool.ThreadedConnectionPool):
 		return conn
 
 
-def _cleanupAfterDBError(ex, conn, pool, poolLock):
-	"""removes conn from pool after an error occurred.
-
-	This is a helper for getConnFromPool below.
-	"""
-	if isinstance(ex, OperationalError) and conn.fileno()==-1: 
-		# this is probably a db server restart.  Invalidate all connections
-		# immediately.
-		utils.sendUIEvent("Warning", "Suspecting a database restart."
-			"  Discarding old connection pool, making a new one.")
-		with poolLock:
-			if pool:
-				pool[0].closeall()
-				pool.pop()
-				return
-
-		# Make sure the connection is closed; something bad happened
-		# in it, so we don't want to re-use it
-		try:
-			pool[0].putconn(conn, close=True)
-		except InterfaceError:  
-			# Connection already closed
-			pass
-		except Exception, msg:
-			utils.sendUIEvent("Error", 
-				"Disaster: %s while force-closing connection"%msg)
-
-
-def _makeConnectionManager(profileName, minConn=3, maxConn=20,
+def _makeConnectionManager(profileName, minConn=3, maxConn=100,
 		autocommitted=True):
 	"""returns a context manager for a connection pool for profileName
 	connections.
@@ -988,12 +955,34 @@ def _makeConnectionManager(profileName, minConn=3, maxConn=20,
 		conn = pool[0].getconn()
 		try:
 			yield conn
-			conn.commit()
 		except Exception, ex:
-			# controlled block bombed out, do error handling
-			conn.rollback()
-			_cleanupAfterDBError(ex, conn, pool, poolLock)
+			if not autocommitted:
+				conn.rollback()
+			if isinstance(ex, OperationalError) and conn.fileno()==-1: 
+				# this is probably a db server restart.  Invalidate all connections
+				# immediately.
+				utils.sendUIEvent("Warning", "Suspecting a database restart."
+					"  Discarding old connection pool, making a new one.")
+				with poolLock:
+					if pool:
+						pool[0].closeall()
+						pool.pop()
+			# Make sure the connection is closed, since we're not going
+			# to re-use it
+			try:
+				pool[0].putconn(conn, close=True)
+			except InterfaceError:  
+				# Connection already closed
+				pass
+			except Exception, msg:
+				utils.sendUIEvent("Error", "Disaster: %s while putting connection"%msg)
 			raise
+
+		else:
+			# no exception raised, commit if not autocommitted
+			if not autocommitted:
+				conn.commit()
+
 
 		try:
 			pool[0].putconn(conn, close=conn.closed)
