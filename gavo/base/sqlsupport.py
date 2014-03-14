@@ -894,7 +894,8 @@ def _initPsycopg(conn):
 
 
 class CustomConnectionPool(psycopg2.pool.ThreadedConnectionPool):
-	"""A threaded connection pool that returns trustedquery connections.
+	"""A threaded connection pool that returns connections made via
+	profileName.
 	"""
 	def __init__(self, minconn, maxconn, profileName, autocommitted=True):
 # make sure no additional arguments come in, since we don't
@@ -935,7 +936,35 @@ class CustomConnectionPool(psycopg2.pool.ThreadedConnectionPool):
 		return conn
 
 
-def _makeConnectionManager(profileName, minConn=3, maxConn=100,
+def _cleanupAfterDBError(ex, conn, pool, poolLock):
+	"""removes conn from pool after an error occurred.
+
+	This is a helper for getConnFromPool below.
+	"""
+	if isinstance(ex, OperationalError) and conn.fileno()==-1: 
+		# this is probably a db server restart.  Invalidate all connections
+		# immediately.
+		utils.sendUIEvent("Warning", "Suspecting a database restart."
+			"  Discarding old connection pool, making a new one.")
+		with poolLock:
+			if pool:
+				pool[0].closeall()
+				pool.pop()
+				return
+
+	# Make sure the connection is closed; something bad happened
+	# in it, so we don't want to re-use it
+	try:
+		pool[0].putconn(conn, close=True)
+	except InterfaceError:  
+		# Connection already closed
+		pass
+	except Exception, msg:
+		utils.sendUIEvent("Error", 
+			"Disaster: %s while force-closing connection"%msg)
+
+
+def _makeConnectionManager(profileName, minConn=5, maxConn=5,
 		autocommitted=True):
 	"""returns a context manager for a connection pool for profileName
 	connections.
@@ -956,26 +985,8 @@ def _makeConnectionManager(profileName, minConn=3, maxConn=100,
 		try:
 			yield conn
 		except Exception, ex:
-			if not autocommitted:
-				conn.rollback()
-			if isinstance(ex, OperationalError) and conn.fileno()==-1: 
-				# this is probably a db server restart.  Invalidate all connections
-				# immediately.
-				utils.sendUIEvent("Warning", "Suspecting a database restart."
-					"  Discarding old connection pool, making a new one.")
-				with poolLock:
-					if pool:
-						pool[0].closeall()
-						pool.pop()
-			# Make sure the connection is closed, since we're not going
-			# to re-use it
-			try:
-				pool[0].putconn(conn, close=True)
-			except InterfaceError:  
-				# Connection already closed
-				pass
-			except Exception, msg:
-				utils.sendUIEvent("Error", "Disaster: %s while putting connection"%msg)
+			# controlled block bombed out, do error handling
+			_cleanupAfterDBError(ex, conn, pool, poolLock)
 			raise
 
 		else:

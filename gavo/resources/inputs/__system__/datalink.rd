@@ -788,11 +788,11 @@
 			have them; the STREAM already puts in single quotes.
 		</doc>
 		<descriptorGenerator procDef="//datalink#fits_genDesc" name="genFITSDesc">
-		  <bind key="accrefStart">'\accrefStart'</bind>
+			<bind key="accrefStart">'\accrefStart'</bind>
 		</descriptorGenerator>
 		<metaMaker procDef="//datalink#fits_makeWCSParams" name="getWCSParams">
-      <bind key="stcs">'\stcs'</bind>
-		 </metaMaker>
+			<bind key="stcs">'\stcs'</bind>
+		</metaMaker>
 		<dataFunction procDef="//datalink#fits_makeHDUList" name="makeHDUList"/>
 		<dataFunction procDef="//datalink#fits_doWCSCutout" name="doWCSCutout"/>
 		<FEED source="//datalink#fits_genPixelPar"/>

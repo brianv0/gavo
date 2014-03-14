@@ -256,6 +256,12 @@ class StandardMacroMixin(MacroPackage):
 		"""
 		return aString.upper()
 
+	def macro_decapitalize(self, aString):
+		"""returns aString with the first character lowercased.
+		"""
+		if aString:
+			return aString[0].lower()+aString[1:]
+
 	def macro_test(self, *args):
 		"""always "test macro expansion".
 		"""

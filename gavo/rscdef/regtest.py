@@ -398,6 +398,8 @@ class RegTest(procdef.ProcApp):
 	requiredType = "regTest"
 	formalArgs = "self"
 
+	runCount = 1
+
 	additionalNamesForProcs = {
 		"EqualingRE": EqualingRE}
 
@@ -668,9 +670,9 @@ class TestRunner(object):
 
 	def __init__(self, suites, serverURL=None, 
 			verbose=True, dumpNegative=False, tags=None,
-			timeout=20, failFile=None):
+			timeout=20, failFile=None, nRepeat=1):
 		self.verbose, self.dumpNegative = verbose, dumpNegative
-		self.failFile = failFile
+		self.failFile, self.nRepeat = failFile, nRepeat
 		if tags:
 			self.tags = tags
 		else:
@@ -738,6 +740,10 @@ class TestRunner(object):
 		self.curRunning[self.threadId] = newThread
 		self.threadId += 1
 		newThread.start()
+
+		if test.runCount<self.nRepeat:
+			test.runCount += 1
+			self.testList.append(test)
 
 	def runOneTest(self, test, threadId):
 		"""runs test and puts the results in the result queue.
@@ -913,11 +919,13 @@ def parseCommandLine(args=None):
 		help="RD id or cross-RD identifier for a testable thing.")
 	parser.add_argument("-v", "--verbose", help="Talk while working",
 		action="store_true", dest="verbose")
-	parser.add_argument("-d", "--dumpNegative", help="Dump the content of"
+	parser.add_argument("-d", "--dump-negative", help="Dump the content of"
 		" failing tests to stdout",
 		action="store_true", dest="dumpNegative")
 	parser.add_argument("-t", "--tag", help="Also run tests tagged with TAG.",
 		action="store", dest="tag", default=None, metavar="TAG")
+	parser.add_argument("-R", "--n-repeat", help="Run each test N times",
+		action="store", dest="nRepeat", type=int, default=None, metavar="N")
 	parser.add_argument("-D", "--dump-to", help="Dump the content of"
 		" last failing test to FILE", metavar="FILE",
 		action="store", type=str, dest="failFile", 
@@ -948,6 +956,7 @@ def main(args=None):
 		"serverURL": args.serverURL,
 		"tags": tags,
 		"failFile": args.failFile,
+		"nRepeat": args.nRepeat,
 	}
 
 	if args.id=="ALL":

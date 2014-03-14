@@ -169,12 +169,16 @@ class GrammarMacroTest(testhelpers.VerboseTest):
 
 
 class RDMacroTest(testhelpers.VerboseTest):
-	def testInternallink(self):
+	def testSundry(self):
 		rd = base.parseFromString(rscdesc.RD, r"""<resource schema="test">
+			<macDef name="base">Foo Bar</macDef>
 			<meta name="testing" format="rst">Go to 
-			\internallink{h/e/l/l}</meta></resource>""")
+			\internallink{h/e/l/l}</meta>
+			<meta name="lowername">\decapitalize{\base}</meta></resource>""")
 		self.failUnless("</a>" in 
 			rd.getMeta("testing").getContent(targetFormat="html", macroPackage=rd))
+		self.assertEqual(base.getMetaText(rd, "lowername"),
+			"foo Bar")
 
 
 class TableMacroTest(testhelpers.VerboseTest):

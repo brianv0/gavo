@@ -1075,6 +1075,9 @@ Here are some hints on development:
    Then investigate ``evidence.xml`` (possibly after piping through
    ``xmlstarlet fo``) for stable and strong indicators that things are
    working.
+3) If you get a BadCode for a test you're just writing, the message may
+   not always be terribly helpful.  To see what's actually bugging
+   python, run ``gavo --debug test ...`` and check dcInfos.
 
 RegTest URLs
 ''''''''''''

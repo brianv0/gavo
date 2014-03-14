@@ -287,7 +287,7 @@
 	<STREAM id="mixc_morefields">
 		<doc>
 			The fields that a mixc table needs on top of what hcd has; for
-			simplicity, this is simply everything that hdc has as a parameter.
+			simplicity, this is everything that hcd has as a parameter.
 		</doc>
 
 		<LFEED source="ssa_allpars"/>
