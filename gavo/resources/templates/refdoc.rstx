@@ -1207,6 +1207,11 @@ All of these are methods, so you would actually write
 ``self.assertHasStrings('a', 'b', 'c')`` in your test code (rather than
 pass self explicitely.
 
+When writing tests, you can, in addition, use assertions from python's
+unittest TestCases (e.g., assertEqual and friends).  This is provided in
+particular for use to check values in VOTables coming back from services
+together with the ``getFirstVOTableRow`` method.
+
 When writing tests, please note that, like all procDef's bodies, the test
 code is macro-expanded by DaCHS.  This means that every backslash that
 should be seen by python needs to be escaped itself (i.e., doubled).  An

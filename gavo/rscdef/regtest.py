@@ -2,13 +2,13 @@
 A micro-framework for regression tests within RDs.
 
 The basic idea is that there's small pieces of python almost-declaratively
-defining tests for a given piece of data.  These things can then be
+defining tests for a given piece of data.	These things can then be
 run while (or rather, after) executing gavo val.
 """
 
 #c Copyright 2008-2014, the GAVO project
 #c
-#c This program is free software, covered by the GNU GPL.  See the
+#c This program is free software, covered by the GNU GPL.	See the
 #c COPYING file in the source distribution.
 
 
@@ -24,6 +24,7 @@ import sys
 import time
 import threading
 import traceback
+import unittest
 import urllib
 import urlparse
 from cStringIO import StringIO
@@ -38,6 +39,7 @@ except ImportError:
 	pass
 
 from gavo import base
+from gavo import votable
 from gavo import utils
 from gavo.base import attrdef
 from gavo.imp import argparse
@@ -78,7 +80,7 @@ def getAuthFor(authKey):
 class EqualingRE(object):
 	"""A value that compares equal based on RE matches.
 
-	This is a helper mainly for GetHasXPathsTests.  Use an instance of
+	This is a helper mainly for GetHasXPathsTests.	Use an instance of
 	this class to check against an RE rather than a plain string.
 	"""
 	def __init__(self, pattern):
@@ -101,7 +103,7 @@ class DynamicOpenVocAttribute(base.AttributeDef):
 	of pairs.
 
 	The finished sequence is available as a freeAttrs attribute on the
-	embedding instance.  No parsing is done, everything is handled as
+	embedding instance.	No parsing is done, everything is handled as
 	a string.
 	"""
 	typeDesc_ = "any attribute not otherwise used"
@@ -140,34 +142,34 @@ class DynamicOpenVocAttribute(base.AttributeDef):
 
 
 class _FormData(MIMEMultipart):
-  """is a container for multipart/form-data encoded messages.
+	"""is a container for multipart/form-data encoded messages.
 
-  This is usually used for file uploads.
-  """
-  def __init__(self):
-    MIMEMultipart.__init__(self, "form-data")
-    self.epilogue = ""
-  
-  def addFile(self, paramName, fileName, data):
-    """attaches the contents of fileName under the http parameter name
-    paramName.
-    """
-    msg = Message()
-    msg.set_type("application/octet-stream")
-    msg["Content-Disposition"] = "form-data"
-    msg.set_param("name", paramName, "Content-Disposition")
-    msg.set_param("filename", fileName, "Content-Disposition")
-    msg.set_payload(data)
-    self.attach(msg)
+	This is usually used for file uploads.
+	"""
+	def __init__(self):
+		MIMEMultipart.__init__(self, "form-data")
+		self.epilogue = ""
+	
+	def addFile(self, paramName, fileName, data):
+		"""attaches the contents of fileName under the http parameter name
+		paramName.
+		"""
+		msg = Message()
+		msg.set_type("application/octet-stream")
+		msg["Content-Disposition"] = "form-data"
+		msg.set_param("name", paramName, "Content-Disposition")
+		msg.set_param("filename", fileName, "Content-Disposition")
+		msg.set_payload(data)
+		self.attach(msg)
 
-  def addParam(self, paramName, paramVal):
-    """adds a form parameter paramName with the (string) value paramVal
-    """
-    msg = Message()
-    msg["Content-Disposition"] = "form-data"
-    msg.set_param("name", paramName, "Content-Disposition")
-    msg.set_payload(paramVal)
-    self.attach(msg)
+	def addParam(self, paramName, paramVal):
+		"""adds a form parameter paramName with the (string) value paramVal
+		"""
+		msg = Message()
+		msg["Content-Disposition"] = "form-data"
+		msg.set_param("name", paramName, "Content-Disposition")
+		msg.set_payload(paramVal)
+		self.attach(msg)
 
 
 class Upload(base.Structure):
@@ -210,7 +212,7 @@ class Upload(base.Structure):
 	def validate(self):
 		if (self.content_ and self.source
 			or not (self.content_ or self.source)):
-			raise  base.StructureError("Exactly one of element content and source"
+			raise	base.StructureError("Exactly one of element content and source"
 				" attribute must be given for an upload.")
 
 
@@ -221,18 +223,18 @@ class DataURL(base.Structure):
 	let you specify uploads, authentication, headers and http methods,
 	while at the same time saving you manual escaping of parameters.
 
-	The bodies is the path to run the test against.  This is
+	The bodies is the path to run the test against.	This is
 	interpreted as relative to the RD if there's no leading slash,
 	relative to the server if there's a leading slash, and absolute
 	if there's a scheme.
 
 	The attributes are translated to parameters, except for a few
-	pre-defined names.  If you actually need those as URL parameters,
+	pre-defined names.	If you actually need those as URL parameters,
 	should at us and we'll provide some way of escaping these.
 
-	We don't actually parse the URLs coming in here.  GET parameters
+	We don't actually parse the URLs coming in here.	GET parameters
 	are appended with a & if there's a ? in the existing URL, with a ?
-	if not.  Again, shout if this is too dumb for you (but urlparse
+	if not.	Again, shout if this is too dumb for you (but urlparse
 	really isn't all that robust either...)
 	"""
 	name_ = "url"
@@ -284,7 +286,7 @@ class DataURL(base.Structure):
 
 
 	def getValue(self, serverURL):
-		"""returns a pair of full request URL  and postable payload for this
+		"""returns a pair of full request URL	and postable payload for this
 		test.
 		"""
 		urlBase = re.sub(r"\s+", "", self.content_)
@@ -391,7 +393,7 @@ class DataURL(base.Structure):
 		self._validateNext(DataURL)
 
 
-class RegTest(procdef.ProcApp):
+class RegTest(procdef.ProcApp, unittest.TestCase):
 	"""A regression test.
 	"""
 	name_ = "regTest"
@@ -414,27 +416,32 @@ class RegTest(procdef.ProcApp):
 		description="The source from which to fetch the test data.")
 
 	_tags = base.StringSetAttribute("tags",
-		description="A list of (free-form) tags for this test.  Tagged tests"
+		description="A list of (free-form) tags for this test.	Tagged tests"
 		" are only run when the runner is constructed with at least one"
-		" of the tags given.  This is mainly for restricting tags to production"
+		" of the tags given.	This is mainly for restricting tags to production"
 		" or development servers.")
 
 	_rd = common.RDAttribute()
+
+	def __init__(self, *args, **kwargs):
+		unittest.TestCase.__init__(self, "fakeForPyUnit")
+		procdef.ProcApp.__init__(self, *args, **kwargs)
+
+	def fakeForPyUnit(self):
+		raise AssertionError("This is not a pyunit test right now")
 
 	@property
 	def description(self):
 		source = ""
 		if self.rd:
 			id = self.rd.sourceId
-			if self.id:
-				id = id+"#"+self.id
 			source = " (%s)"%id
 		return self.title+source
 
 	def retrieveData(self, serverURL, timeout=20):
 		"""returns headers and content when retrieving the resource at url.
 
-		Sets  the headers and data attributes of the test instance.
+		Sets	the headers and data attributes of the test instance.
 		"""
 		if self.url is base.NotGiven:
 			self.status, self.headers, self.data = None, None, None
@@ -476,7 +483,7 @@ class RegTest(procdef.ProcApp):
 		As we've not yet found a python XSD validator capable enough to
 		deal with the complex web of schema files in the VO, this
 		requires a little piece of java (which also means that these tests
-		are fairly resource demanding).  In a checkout of DaCHS, go to the
+		are fairly resource demanding).	In a checkout of DaCHS, go to the
 		schemata subdirectory and run python makeValidator.py (this needs 
 		a JDK as well as some external libraries; see the makeValidator source).
 		"""
@@ -510,7 +517,7 @@ class RegTest(procdef.ProcApp):
 		path must match exactly one element.
 
 		assertions is a dictionary mapping attribute names to
-		their expected value.  Use the key None to check the
+		their expected value.	Use the key None to check the
 		element content, and match for None if you expect an
 		empty element.
 
@@ -553,18 +560,13 @@ class RegTest(procdef.ProcApp):
 				key, value, self.headers))
 
 	@utils.document
-	def assertFirstVOTableRow(self, expectation):
-		"""checks that the first line of the content interpreted as a VOTable
-		matches expectation.
-
-		row is a dictionary mapping field names to python-typed values.
+	def getFirstVOTableRow(self):
+		"""interprets data as a VOTable and returns the first row as a dictionary
 		"""
-		data, metadata = votable.load(StringIO(self.content))
+		data, metadata = votable.load(StringIO(self.data))
 		for row in metadata.iterDicts(data):
-			if row!=expectation:
-				pass
-			break
-
+			return row
+			
 
 class RegTestSuite(base.Structure):
 	"""A suite of regression tests.
@@ -655,14 +657,14 @@ class TestStatistics(object):
 			if status!="OK":
 				failures.setdefault(srcRD, []).append("%s %s"%(status, title))
 
-		return "\n".join("From %s:\n  %s\n\n"%(srcRD, 
-				"\n  ".join(badTests))
+		return "\n".join("From %s:\n	%s\n\n"%(srcRD, 
+				"\n	".join(badTests))
 			for srcRD, badTests in failures.iteritems())
 
 	def save(self, target):
 		"""saves the entire test statistics to target.
 
-		This is a pickle of basically what's added with add.  No tools
+		This is a pickle of basically what's added with add.	No tools
 		for doing something with this are provided so far.
 		"""
 		with open(target, "w") as f:
@@ -673,11 +675,11 @@ class TestRunner(object):
 	"""A runner for regression tests.
 
 	It is constructed with a sequence of suites (RegTestSuite instances)
-	and allows running these in parallel.  It honors the suites' wishes
+	and allows running these in parallel.	It honors the suites' wishes
 	as to being executed sequentially.
 	"""
 
-# The real trick here are the test suites with state (sequential=True.  For
+# The real trick here are the test suites with state (sequential=True.	For
 # those, the individual tests must be serialized, which happens using the magic
 # followUp attribute on the tests.
 
@@ -761,7 +763,7 @@ class TestRunner(object):
 	def runOneTest(self, test, threadId):
 		"""runs test and puts the results in the result queue.
 
-		This is usually run in a thread.  However, threadId is only
+		This is usually run in a thread.	However, threadId is only
 		used for reporting, so you may run this without threads.
 
 		To support sequential execution, if test has a followUp attribute,
