@@ -47,7 +47,7 @@ registerPrefix("tr", "http://www.ivoa.net/xml/TAPRegExt/v1.1",
 registerPrefix("vstd", "http://www.ivoa.net/xml/StandardsRegExt/v1.0",
 	schemaURL("StandardsRegExt-1.0.xsd"))
 registerPrefix("doc", "http://www.ivoa.net/xml/DocRegExt/v1.0",
-	schemaURL("DocRegExt-1.0.xsd"))
+	schemaURL("DocRegExt-v1.0.xsd"))
 
 
 class OAI(object):
