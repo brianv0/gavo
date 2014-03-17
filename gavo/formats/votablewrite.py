@@ -106,7 +106,7 @@ def _iterResourceMeta(ctx, dataSet):
 	"""adds resource metadata to the Resource parent.
 	"""
 	yield V.DESCRIPTION[base.getMetaText(dataSet, "description", 
-		macroPackage=dataSet.dd.rd)]
+		macroPackage=dataSet.dd.rd, propagate=False)]
 	for el in  itertools.chain(
 			_iterInfoInfos(dataSet), _iterWarningInfos(dataSet)):
 		yield el
@@ -406,7 +406,7 @@ def makeTable(ctx, table):
 		# may need to add ids to the respective items.  XSD-correct ordering of 
 		# the elements is done by xmlstan.
 		V.DESCRIPTION[base.getMetaText(table, "description", 
-			macroPackage=table.tableDef)],
+			macroPackage=table.tableDef, propagate=False)],
 		_iterGroups(table.tableDef, sm),
 		_iterFields(sm),
 		_iterTableParams(sm),

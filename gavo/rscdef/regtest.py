@@ -552,6 +552,19 @@ class RegTest(procdef.ProcApp):
 			raise AssertionError("Header %s=%s not found in %s"%(
 				key, value, self.headers))
 
+	@utils.document
+	def assertFirstVOTableRow(self, expectation):
+		"""checks that the first line of the content interpreted as a VOTable
+		matches expectation.
+
+		row is a dictionary mapping field names to python-typed values.
+		"""
+		data, metadata = votable.load(StringIO(self.content))
+		for row in metadata.iterDicts(data):
+			if row!=expectation:
+				pass
+			break
+
 
 class RegTestSuite(base.Structure):
 	"""A suite of regression tests.
