@@ -79,6 +79,54 @@ class ProductDescriptor(object):
 				pass
 
 
+class DatalinkError(object):
+	"""A datalink error.
+
+	These are usually constructed using one of the classmethods
+
+
+	* AuthenticationError -- Not authenticated (and authentication required)
+	* AuthorizationError -- Not authorized (to access the resource)
+	* NotFoundError -- Unknown ID value
+	* UsageError -- Invalid input (e.g. no ID values)
+	* TransientError -- Service is not currently able to function
+	* FatalError -- Service cannot perform requested action
+	* Error -- General error (not covered above)
+
+	all of which take the pubDID that caused the failure and a human-oriented
+	error message.
+	"""
+	def __init__(self, code, pubDID, message, exceptionClass):
+		self.code, self.pubDID, self.message = code, pubDID, message
+		self.exceptionClass = exceptionClass
+	
+	@classmethod
+	def _addErrorMaker(cls, errCode, exceptionClass):
+		def meth(inner, pubDID, message):
+			return inner(errCode, pubDID, message, exceptionClass)
+		setattr(cls, errCode, classmethod(meth))
+
+	def asDict(self):
+		"""returns an error row for the datalink response.
+		"""
+		return {"ID": self.pubDID, "errorMessage":
+			"%s: %s"%(self.code, self.message)}
+
+	def raiseException(self):
+		raise self.exceptionClass(self.message+" (pubDID: %s)"%self.pubDID)
+
+for errName, exClass in [
+		("AuthenticationError", svcs.ForbiddenURI), 
+		("AuthorizationError", svcs.ForbiddenURI),
+		("NotFoundError", svcs.UnknownURI),
+		("UsageError", svcs.BadMethod),
+		("TransientError", svcs.BadMethod),
+		("FatalError", svcs.Error),
+		("Error", svcs.Error)]:
+	DatalinkError._addErrorMaker(errName, exClass)
+del errName, exClass
+
+
 class DescriptorGenerator(rscdef.ProcApp):
 	"""A procedure application for making product descriptors for PUBDIDs
 	
@@ -105,6 +153,7 @@ class DescriptorGenerator(rscdef.ProcApp):
 
 	additionalNamesForProcs = {
 		"ProductDescriptor": ProductDescriptor,
+		"DatalinkError": DatalinkError,
 	}
 
 
@@ -228,6 +277,7 @@ class MetaMaker(rscdef.ProcApp):
 	  - Values -- the class to make for input parameters' values attributes
 	  - Options -- used by Values
 	  - LinkDef -- a class to define further links within datalink services.
+	  - DatalinkError -- a container of datalink error generators
 	"""
 	name_ = "metaMaker"
 	requiredType = "metaMaker"
@@ -239,6 +289,7 @@ class MetaMaker(rscdef.ProcApp):
 		"Values": rscdef.Values,
 		"Option": rscdef.Option,
 		"LinkDef": LinkDef,
+		"DatalinkError": DatalinkError,
 	}
 
 
@@ -382,26 +433,6 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 			std=True,
 			description="The pubisher DID of the dataset of interest"))
 
-		self.inputKeys.append(MS(svcs.InputKey, name="RESPONSEFORMAT", 
-			type="text", 
-			ucd="meta.code.mime",
-			multiplicity="single",
-			required=False,
-			std=True,
-			description="Format of the request document",
-			values=rscdef.Values.fromOptions(
-				["application/x-votable+xml;content=datalink"])))
-
-		self.inputKeys.append(MS(svcs.InputKey, name="REQUEST", 
-			type="text", 
-			ucd="meta.code",
-			multiplicity="single",
-			required=False,
-			std=True,
-			description="Request type (must be getLinks)",
-			values=rscdef.Values.fromOptions(
-				["getLinks"])))
-
 		if self.inputTable is base.NotGiven:
 			self.inputTable = MS(svcs.InputTable, params=self.inputKeys)
 
@@ -411,16 +442,23 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 		"""returns a pair of linkDefs, inputKeys for a datalink desriptor
 		and this core.
 		"""
-		linkDefs, inputKeys = [], self.inputKeys[:]
+		linkDefs, inputKeys, errors = [], self.inputKeys[:], []
 	
 		for metaMaker in self.metaMakers:
-			for item in metaMaker.compile(self)(descriptor):
-				if isinstance(item, LinkDef):
-					linkDefs.append(item)
-				else:
-					inputKeys.append(item)
+			try:
+				for item in metaMaker.compile(self)(descriptor):
+					if isinstance(item, LinkDef):
+						linkDefs.append(item)
+					elif isinstance(item, DatalinkError):
+						errors.append(item)
+					else:
+						inputKeys.append(item)
+			except Exception, ex:
+				errors.append(DatalinkError.Error(descriptor.pubDID),
+					"Unexpected failure while creating"
+					" datalink: %s"%utils.safe_str(ex))
 	
-		return linkDefs, inputKeys
+		return linkDefs, inputKeys, errors
 
 	def getDatalinksResource(self, ctx, service):
 		"""returns a VOTable RESOURCE element with the data links.
@@ -448,7 +486,7 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 
 		data = rsc.makeData(
 			base.caches.getRD("//datalink").getById("make_response"),
-			forceSource=self.datalinkLinks+internalLinks)
+			forceSource=self.datalinkLinks+internalLinks+self.errors)
 		data.setMeta("_type", "results")
 
 		return votablewrite.makeResource(
@@ -495,21 +533,40 @@ class DatalinkCore(DatalinkCoreBase):
 		This method is mainly for helping adaptForRenderer.  Do read the
 		docstring there.
 		"""
-		linkDefs, services = [], []
+		linkDefs, services, errors = [], [], []
 		for descriptor in descriptors:
-			lds, inputKeys = self.getMetaForDescriptor(descriptor)
-			linkDefs.extend(lds)
-			services.append(_ServiceDescriptor(descriptor.pubDID, inputKeys))
+			if isinstance(descriptor, DatalinkError):
+				errors.append(descriptor)
 
-		inputKeys = services[-1].inputKeys[:]
+			else:
+				lds, inputKeys, lerrs = self.getMetaForDescriptor(descriptor)
+				linkDefs.extend(lds)
+				errors.extend(lerrs)
+				services.append(_ServiceDescriptor(descriptor.pubDID, inputKeys))
+
+		inputKeys = self.inputKeys[:]
+		if services:
+			inputKeys.extend(services[-1].inputKeys)
+
 		if renderer.name=="dlmeta":
-			# XXX TODO: Remove all keys but ID and REQUEST here?
-			inputKeys.append(MS(svcs.InputKey, name="REQUEST", type="text", 
-				multiplicity="forced-single",
+			inputKeys.append(MS(svcs.InputKey, name="REQUEST", 
+				type="text", 
+				ucd="meta.code",
+				multiplicity="single",
+				required=False,
 				std=True,
-				description="Request type",
-				values = MS(rscdef.Values, options=[
-					MS(rscdef.Option, content_="getLinks")])))
+				description="Request type (must be getLinks)",
+				values=rscdef.Values.fromOptions(
+					["getLinks"])))
+			inputKeys.append(MS(svcs.InputKey, name="RESPONSEFORMAT", 
+				type="text", 
+				ucd="meta.code.mime",
+				multiplicity="single",
+				required=False,
+				std=True,
+				description="Format of the request document",
+				values=rscdef.Values.fromOptions(
+					["application/x-votable+xml;content=datalink"])))
 
 		res = self.change(inputTable=MS(svcs.InputTable, 
 			params=inputKeys))
@@ -520,12 +577,15 @@ class DatalinkCore(DatalinkCoreBase):
 		if renderer.name=="dlmeta":
 			res.run = res.runForMeta
 		else:
+			if isinstance(descriptors[-1], DatalinkError):
+				descriptors[-1].raiseException()
 			res.run = res.runForData
 
 		res.nocache = True
 		res.datalinkLinks = linkDefs
 		res.datalinkServices = services
 		res.descriptors = descriptors
+		res.errors = errors
 		return res
 
 	def adaptForRenderer(self, renderer):

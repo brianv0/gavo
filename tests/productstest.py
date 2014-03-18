@@ -402,13 +402,13 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 			</datalinkCore></service>""")
 
 		self.assertRaisesWithMsg(svcs.ForbiddenURI,
-			"This datalink service not available with the pubDID"
-			" 'ivo://x-unregistred/~?goo/boo'",
+			"This datalink service not available with this pubDID"
+			" (pubDID: ivo://x-unregistred/~?goo/boo)",
 			svc.run,
 			("dlget", {"ID": [rscdef.getStandardPubDID("goo/boo")]}))
 
 		self.assertRaisesWithMsg(svcs.UnknownURI,
-			"Not a pubDID from this site: ivo://great.scott/goo/boo",
+			"Not a pubDID from this site. (pubDID: ivo://great.scott/goo/boo)",
 			svc.run,
 			("dlget", {"ID": ["ivo://great.scott/goo/boo"]}))
 
@@ -477,6 +477,13 @@ class _MetaMakerTestData(testhelpers.TestResource):
 					yield LinkDef(descriptor.pubDID, "http://foo/baz", 
 						contentType="test/gold", 
 						semantics="calibration")
+					</code>
+				</metaMaker>
+				<metaMaker>
+					<code>
+						if descriptor.pubDID.endswith("b.imp"):
+							yield DatalinkError.NotFoundError("ivo://not.asked.for",
+								"Cannot locate other mess")
 					</code>
 				</metaMaker>
 				<dataFunction procDef="//datalink#generateProduct"/>
@@ -588,14 +595,15 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 		("serviceResult", _metaMakerTestData)]
 
 	def testAllLinks(self):
-		self.assertEqual(len(self.rows), 8)
+		self.assertEqual(len(self.rows), 9)
 		for r in self.rows.values():
 			self.assertEqual(len(r), 1)
 	
 	def testAllWithId(self):
 		self.assertEqual(set(r[0] for r in self.rows), 
 			set(['ivo://x-unregistred/~?data/b.imp',
-				'ivo://x-unregistred/~?data/a.imp']))
+				'ivo://x-unregistred/~?data/a.imp',
+				'ivo://not.asked.for']))
 	
 	def testAccessURLStatic(self):
 		self.assertEqual(self.rows[
@@ -623,7 +631,7 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 	
 	def testSemantics(self):
 		self.assertEqual(set(r[1] for r in self.rows), 
-			set(['science', 'calibration', 'self', 'access']))
+			set(['science', 'calibration', 'self', 'access', None]))
 
 	def testSizes(self):
 		self.assertEqual(self.rows[('ivo://x-unregistred/~?data/a.imp', 
@@ -647,9 +655,29 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 		self.assertEqual(selfRow["contentType"], "text/plain")
 		self.assertEqual(selfRow["contentLength"], 73)
 
+	def testMetaError(self):
+		errors = self.rows[('ivo://not.asked.for', None)]
+		self.assertEqual(errors[0]["errorMessage"],
+			'NotFoundError: Cannot locate other mess')
+
 
 class DatalinkFITSTest(testhelpers.VerboseTest):
 	resources = [("fitsTable", _fitsTable)]
+
+	def testNotFound(self):
+		svc = base.parseFromString(svcs.Service, """<service id="foo">
+			<datalinkCore>
+				<descriptorGenerator procDef="//datalink#fits_genDesc">
+					<bind key="accrefStart">"data/"</bind>
+				</descriptorGenerator>
+			</datalinkCore></service>""")
+		svc.parent = testhelpers.getTestRD()
+
+		mime, data = svc.run("dlmeta", {
+			"ID": ["ivo://junky.ivorn/made/up"]}).original
+		self.assertEqual("application/x-votable+xml;content=datalink", mime)
+		self.failUnless("<TR><TD>ivo://junky.ivorn/made/up</TD><TD></TD>"
+			"<TD></TD><TD>NotFoundError: Not a pubDID from this site.</TD>" in data)
 
 	def testMakeDescriptor(self):
 		svc = base.parseFromString(svcs.Service, """<service id="foo">

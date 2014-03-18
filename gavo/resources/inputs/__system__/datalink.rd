@@ -151,8 +151,8 @@
 				matchingRows = list(ssaTable.iterQuery(ssaTable.tableDef, 
 					"ssa_pubdid=%(pubdid)s", {"pubdid": pubDID}))
 				if not matchingRows:
-					raise svcs.UnknownURI("No spectrum with pubDID %s known here"%
-						pubDID)
+					return DatalinkError.NotFoundError(pubDID,
+						"No spectrum with this pubDID known here")
 
 				# the relevant metadata for all rows with the same PubDID should
 				# be identical, and hence we can blindly take the first result.
@@ -332,11 +332,13 @@
 					try:
 						accref = getAccrefFromStandardPubDID(pubDID)
 					except ValueError:
-						raise UnknownURI("Not a pubDID from this site: %s"%pubDID)
+						return DatalinkError.NotFoundError(pubDID,
+							"Not a pubDID from this site.")
 
 					if accrefStart and not accref.startswith(accrefStart):
-						raise ForbiddenURI("This datalink service not available"
-							" with the pubDID '%s'"%pubDID)
+						return DatalinkError.AuthenticationError(pubDID,
+							"This datalink service not available"
+							" with this pubDID")
 
 					descriptor = ProductDescriptor.fromAccref(pubDID, accref)
 					with open(os.path.join(base.getConfig("inputsDir"), 
@@ -348,8 +350,6 @@
 					descriptor.slices = []
 
 					return descriptor
-				
-				from gavo.svcs import ForbiddenURI, UnknownURI
 			</code>
 
 			<par key="accrefStart" description="A start of accrefs the parent

@@ -361,7 +361,7 @@ class GetDataTest(_WithSSATableTest):
 
 	def testBadPubDID(self):
 		self.assertRaisesWithMsg(svcs.UnknownURI,
-			"No spectrum with pubDID ivo://test.inv/bad known here",
+			"No spectrum with this pubDID known here (pubDID: ivo://test.inv/bad)",
 			self.runService,
 				("c", {"REQUEST": "getData", "PUBDID": 'ivo://test.inv/bad'}))
 
@@ -542,7 +542,7 @@ class SDMDatalinkTest(_WithSSATableTest):
 
 	def testBadPubDID(self):
 		self.assertRaisesWithMsg(svcs.UnknownURI,
-			"No spectrum with pubDID ivo://test.inv/bad known here",
+			"No spectrum with this pubDID known here (pubDID: ivo://test.inv/bad)",
 			self.runService,
 				("dl", {"ID": 'ivo://test.inv/bad'}))
 
