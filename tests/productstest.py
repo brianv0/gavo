@@ -14,6 +14,8 @@ import os
 import struct
 import tarfile
 
+from nevow.testutil import FakeRequest
+
 from gavo.helpers import testhelpers
 
 from gavo import api
@@ -26,6 +28,7 @@ from gavo.protocols import products
 from gavo.utils import fitstools
 from gavo.utils import pyfits
 from gavo.web import producttar
+from gavo.web import vosi
 
 import tresc
 
@@ -477,8 +480,6 @@ class _MetaMakerTestData(testhelpers.TestResource):
 					</code>
 				</metaMaker>
 				<dataFunction procDef="//datalink#generateProduct"/>
-
-				<dataFunction procDef="//datalink#generateProduct"/>
 			</datalinkCore>
 			<publish render="dlmeta" sets="ivo_managed"/>
 			</service>""")
@@ -547,9 +548,26 @@ class DatalinkMetaMakerTest(testhelpers.VerboseTest):
 		self.assertEqual(intfEl.xpath("accessURL")[0].text, 
 			'http://localhost:8080/data/test/foo/dlmeta')
 
-		paramEl = intfEl.xpath("param")[0]
-		self.assertEqual(paramEl.attrib["std"], "true")
-		self.assertEqual(paramEl.xpath("name")[0].text, "ID")
+		self.assertEqual(self.serviceResult[3].xpath("/capability")[0].attrib[
+			"standardID"], "ivo://ivoa.net/std/DataLink#links")
+
+	def testCapabilityParameters(self):
+		intfEl = self.serviceResult[3].xpath("//interface")[0]
+		for el in intfEl.xpath("param"):
+			parName = el.xpath("name")[0].text
+			if parName=="ID":
+				self.assertEqual(el.attrib["std"], "true")
+				self.assertEqual(el.xpath("ucd")[0].text, "meta.id;meta.main")
+
+			elif parName=="RESPONSEFORMAT":
+				self.assertEqual(el.xpath("dataType")[0].text, "string")
+
+			elif parName=="REQUEST":
+				self.assertEqual(el.xpath("description")[0].text, 
+					"Request type (must be getLinks)")
+
+			else:
+				raise AssertionError("Unexpected Parameter %s"%parName)
 
 
 class _MetaMakerTestRows(testhelpers.TestResource):

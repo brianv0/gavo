@@ -228,6 +228,13 @@ class Values(base.Structure):
 
 	validValues = None
 
+	@classmethod
+	def fromOptions(cls, labels):
+		"""returns Values with the elements of labels as valid options.
+		"""
+		return base.makeStruct(cls, 
+			options=[base.makeStruct(Option, content_=l) for l in labels])
+
 	def makePythonVal(self, literal, sqltype):
 		return typesystems.sqltypeToPython(sqltype)(literal)
 

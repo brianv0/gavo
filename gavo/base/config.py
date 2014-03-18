@@ -447,7 +447,8 @@ _config = Configuration(
 		IntConfigItem("defaultMAXREC", "2000",
 			"Default match limit for ADQL queries via the UWS/TAP"),
 		IntConfigItem("hardMAXREC", "20000000",
-			"Default match limit for ADQL queries via the UWS/TAP"),
+			"Hard match limit (i.e., users cannot raise MAXREC or TOP beyond that)"
+			" for ADQL queries via the UWS/TAP"),
 		StringConfigItem("csvDialect", "excel", "CSV dialect as defined"
 			" by the python csv module used when writing CSV files."),
 ),

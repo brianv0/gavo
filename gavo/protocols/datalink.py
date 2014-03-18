@@ -382,6 +382,26 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 			std=True,
 			description="The pubisher DID of the dataset of interest"))
 
+		self.inputKeys.append(MS(svcs.InputKey, name="RESPONSEFORMAT", 
+			type="text", 
+			ucd="meta.code.mime",
+			multiplicity="single",
+			required=False,
+			std=True,
+			description="Format of the request document",
+			values=rscdef.Values.fromOptions(
+				["application/x-votable+xml;content=datalink"])))
+
+		self.inputKeys.append(MS(svcs.InputKey, name="REQUEST", 
+			type="text", 
+			ucd="meta.code",
+			multiplicity="single",
+			required=False,
+			std=True,
+			description="Request type (must be getLinks)",
+			values=rscdef.Values.fromOptions(
+				["getLinks"])))
+
 		if self.inputTable is base.NotGiven:
 			self.inputTable = MS(svcs.InputTable, params=self.inputKeys)
 
@@ -584,5 +604,3 @@ class DatalinkCore(DatalinkCoreBase):
 				return descriptor.data
 
 		return self.dataFormatter.compile(self)(descriptor, args)
-
-

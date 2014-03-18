@@ -132,7 +132,7 @@ class VOSICapabilityRenderer(VOSIRenderer):
 	name = "capabilities"
 
 	# experimental is for stuff that's not supposed to go to the VO
-	# registry proper but still look like it is.
+	# registry proper but still looks like it is.
 	# However: Would we want unpublished services to have VOSI?
 	vosiSet = set(['ivo_managed', 'experimental'])
 
