@@ -17,6 +17,7 @@ import traceback
 from nevow import inevow
 from twisted.internet import defer
 
+from gavo import base
 from gavo import registry
 from gavo import svcs
 from gavo import utils
@@ -131,15 +132,20 @@ class VOSICapabilityRenderer(VOSIRenderer):
 	"""
 	name = "capabilities"
 
-	# experimental is for stuff that's not supposed to go to the VO
-	# registry proper but still looks like it is.
-	# However: Would we want unpublished services to have VOSI?
-	vosiSet = set(['ivo_managed', 'experimental'])
-
 	def _getTree(self, request):
-		root = CAP.capabilities[[
-			capabilities.getCapabilityElement(pub)
-				for pub in self.service.getPublicationsForSet(self.vosiSet)]]
+		root = CAP.capabilities
+
+		for renderName in ["availability", "capabilities", "tableMetadata"
+				]+list(self.service.allowed):
+			try:
+				cap = capabilities.getCapabilityElement(base.makeStruct(
+						svcs.Publication, render=renderName, sets=["vosi"],
+						parent_=self.service))
+				root = root[cap]
+			except Exception:
+				base.ui.notifyWarning("Error while creating VOSI capability"
+					" for %s"%(self.service.getURL(renderName, absolute=False)))
+
 		return root
 
 

@@ -154,6 +154,11 @@
 	</data>
 
 	<service id="scs" allowed="scs.xml">
+		<meta name="testQuery">
+			<meta name="ra">10</meta>
+			<meta name="dec">20</meta>
+			<meta name="sr">1</meta>
+		</meta>
 		<dbCore queriedTable="conecat">
     	<condDesc original="//scs#protoInput"/>
 		</dbCore>

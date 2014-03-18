@@ -376,6 +376,13 @@ class SCSTest(ArchiveTest):
 			{"RA": [1], "DEC": ["2"], "SR": ["1.5"]},
 			['AAAAATA/9AAAAAAAAEAEAAAAAAAA', 'datatype="char"'])
 
+	def testCapability(self):
+		return self.assertGETHasStrings("/data/cores/scs/capabilities", {}, [
+			'standardID="ivo://ivoa.net/std/VOSI#capabilities"',
+			'standardID="ivo://ivoa.net/std/ConeSearch"',
+			'xsi:type="vs:ParamHTTP',
+			'<name>SR</name>',
+			'<sr>1</sr>'])
 
 
 # module-level resource management
