@@ -436,6 +436,11 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 		if self.inputTable is base.NotGiven:
 			self.inputTable = MS(svcs.InputTable, params=self.inputKeys)
 
+		# this is a cheat for service.getTableSet to pick up the datalink
+		# table.  If we fix this for TAP, we should fix it here, too.
+		self.queriedTable = base.caches.getRD("//datalink").getById(
+			"dlresponse")
+
 		self._completeElementNext(DatalinkCoreBase, ctx)
 
 	def getMetaForDescriptor(self, descriptor):
@@ -548,6 +553,8 @@ class DatalinkCore(DatalinkCoreBase):
 		if services:
 			inputKeys.extend(services[-1].inputKeys)
 
+		# The queriedTable hack here is to get our table into the VOSI
+		# endpoint; we should fix this when we fix this for TAP.
 		if renderer.name=="dlmeta":
 			inputKeys.append(MS(svcs.InputKey, name="REQUEST", 
 				type="text", 
