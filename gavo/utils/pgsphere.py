@@ -316,6 +316,7 @@ def preparePgSphere(conn):
 				register_type(
 					new_type((oid,), "spoint", cls._castFromPgSphere))
 			psycopg2._pgsphereLoaded = True
+		conn.commit()
 	except:
 		psycopg2._pgsphereLoaded = False
 		raise
