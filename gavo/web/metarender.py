@@ -272,6 +272,15 @@ class RendExplainer(object):
 			" a pubdid, usually via a direct link."]
 
 	@classmethod
+	def _explain_dlmeta(cls, service):
+		return T.invisible["a datalink interface for discovering access"
+			" options (processed data, related datasets...) for a dataset."
+			" You usually need a publisherDID to use this kind of service."
+			" For special applications, the base URL of this service might"
+			" still come handy: %s"%service.getURL("dlmeta")]
+
+
+	@classmethod
 	def _explainEverything(cls, service):
 		return T.invisible["a renderer with some custom access method that"
 			" should be mentioned in the service description"]
