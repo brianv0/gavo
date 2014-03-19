@@ -534,7 +534,7 @@ class FITSCodeGenerator(_CodeGenerator):
 		"B": ("TBYTE", "char"),
 		"A": ("TSTRING", "char *"),
 		"I": ("TSHORT", "short"),
-		"J": ("TLONG", "int"),
+		"J": ("TLONG", "long"),
 		"K": ("TLONGLONG", "long long"),
 		"E": ("TFLOAT", "float"),
 		"D": ("TDOUBLE", "double")}
