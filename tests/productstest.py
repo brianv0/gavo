@@ -607,27 +607,27 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 	
 	def testAccessURLStatic(self):
 		self.assertEqual(self.rows[
-			('ivo://x-unregistred/~?data/b.imp', 'science')][0]["accessURL"], 
+			('ivo://x-unregistred/~?data/b.imp', 'science')][0]["access_url"], 
 			'http://foo/bar')
 
 	def testAccessURLAccess(self):
 		self.assertEqual(self.rows[
-			('ivo://x-unregistred/~?data/b.imp', 'access')][0]["accessURL"],
+			('ivo://x-unregistred/~?data/b.imp', 'access')][0]["access_url"],
 			'http://localhost:8080/data/test/foo/dlget')
 
 	def testAccessURLSelf(self):
 		self.assertEqual(self.rows[
-			('ivo://x-unregistred/~?data/b.imp', 'self')][0]["accessURL"],
+			('ivo://x-unregistred/~?data/b.imp', 'self')][0]["access_url"],
 			'http://localhost:8080/data/test/foo/dlget?'
 				'ID=ivo%3A%2F%2Fx-unregistred%2F%7E%3Fdata%2Fb.imp')
 		self.assertEqual(self.rows[
-			('ivo://x-unregistred/~?data/a.imp', 'self')][0]["accessURL"],
+			('ivo://x-unregistred/~?data/a.imp', 'self')][0]["access_url"],
 			'http://localhost:8080/data/test/foo/dlget?'
 				'ID=ivo%3A%2F%2Fx-unregistred%2F%7E%3Fdata%2Fa.imp')
 	
 	def testMimes(self):
 		self.assertEqual(self.rows[('ivo://x-unregistred/~?data/a.imp', 
-			'calibration')][0]["contentType"], 'test/gold')
+			'calibration')][0]["content_type"], 'test/gold')
 	
 	def testSemantics(self):
 		self.assertEqual(set(r[1] for r in self.rows), 
@@ -635,14 +635,14 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 
 	def testSizes(self):
 		self.assertEqual(self.rows[('ivo://x-unregistred/~?data/a.imp', 
-			'science')][0]["contentLength"], 500002) 
+			'science')][0]["content_length"], 500002) 
 		self.assertEqual(self.rows[('ivo://x-unregistred/~?data/a.imp', 
-			'calibration')][0]["contentLength"], None) 
+			'calibration')][0]["content_length"], None) 
 
 	def testServiceLink(self):
 		svcRow = self.rows[('ivo://x-unregistred/~?data/a.imp', 
 			'access')][0]
-		resId = svcRow["serviceType"][1:]
+		resId = svcRow["service_def"]
 		for res in self.serviceResult[1].xpath("//RESOURCE"):
 			if res.attrib.get("ID")==resId:
 				break
@@ -652,12 +652,12 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 
 	def testSelfMeta(self):
 		selfRow = self.rows[('ivo://x-unregistred/~?data/b.imp', 'self')][0]
-		self.assertEqual(selfRow["contentType"], "text/plain")
-		self.assertEqual(selfRow["contentLength"], 73)
+		self.assertEqual(selfRow["content_type"], "text/plain")
+		self.assertEqual(selfRow["content_length"], 73)
 
 	def testMetaError(self):
 		errors = self.rows[('ivo://not.asked.for', None)]
-		self.assertEqual(errors[0]["errorMessage"],
+		self.assertEqual(errors[0]["error_message"],
 			'NotFoundError: Cannot locate other mess')
 
 
@@ -676,7 +676,7 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 		mime, data = svc.run("dlmeta", {
 			"ID": ["ivo://junky.ivorn/made/up"]}).original
 		self.assertEqual("application/x-votable+xml;content=datalink", mime)
-		self.failUnless("<TR><TD>ivo://junky.ivorn/made/up</TD><TD></TD>"
+		self.failUnless("<TR><TD>ivo://junky.ivorn/made/up</TD>"
 			"<TD></TD><TD>NotFoundError: Not a pubDID from this site.</TD>" in data)
 
 	def testMakeDescriptor(self):

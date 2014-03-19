@@ -109,7 +109,7 @@ class DatalinkError(object):
 	def asDict(self):
 		"""returns an error row for the datalink response.
 		"""
-		return {"ID": self.pubDID, "errorMessage":
+		return {"ID": self.pubDID, "error_message":
 			"%s: %s"%(self.code, self.message)}
 
 	def raiseException(self):
@@ -186,7 +186,15 @@ class LinkDef(object):
 		"""returns the link definition in a form suitable for ingestion
 		in //datalink#dlresponse.
 		"""
-		return self.dlRow
+		return {
+			"ID": self.dlRow["ID"],
+			"access_url": self.dlRow["accessURL"],
+			"service_def": self.dlRow["serviceType"],
+			"error_message": self.dlRow["errorMessage"],
+			"description": self.dlRow["description"],
+			"semantics": self.dlRow["semantics"],
+			"content_type": self.dlRow["contentType"],
+			"content_length": self.dlRow["contentLength"]}
 
 
 class _ServiceDescriptor(object):
@@ -479,7 +487,7 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 
 		if "dlget" in service.allowed:
 			internalLinks = [LinkDef(s.pubDID, service.getURL("dlget"),
-					serviceType="#"+ctx.getOrMakeIdFor(s), semantics="access")
+					serviceType=ctx.getOrMakeIdFor(s), semantics="access")
 				for s in self.datalinkServices]
 			internalLinks.extend(LinkDef(d.pubDID, 
 					service.getURL("dlget")+"?ID="+urllib.quote_plus(d.pubDID),

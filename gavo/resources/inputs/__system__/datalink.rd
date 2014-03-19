@@ -10,22 +10,22 @@
 			description="Publisher data set id; this is an identifier for
 				the dataset in question and can be used to retrieve the data."
 			verbLevel="1"/>
-		<column name="accessURL" type="text"
+		<column name="access_url" type="text"
 			ucd="meta.ref.url"
 			tablehead="URL"
 			description="URL to retrieve the data or access the service."
 			verbLevel="1" displayHint="type=url"/>
-		<column name="serviceType" type="text"
+		<column name="error_message" type="text"
+			ucd="meta.code.error"
+			tablehead="Why not?"
+			description="If accessURL is empty, this column give the reason why."
+			verbLevel="20"/>
+		<column name="service_def" type="text"
 			ucd="meta.code"
 			tablehead="Svc. Type"
 			description="Identifier for the type of service if accessURL refers
 				to a service."
 			verbLevel="1"/>
-		<column name="errorMessage" type="text"
-			ucd="meta.code.error"
-			tablehead="Why not?"
-			description="If accessURL is empty, this column give the reason why."
-			verbLevel="20"/>
 		<column name="description" type="text"
 			ucd="meta.note"
 			tablehead="Description"
@@ -37,13 +37,13 @@
 			description="What kind of data is linked here?  Standard identifiers
 				here include science, calibration, preview, info, auxiliary" 
 				verbLevel="1"/>
-		<column name="contentType" type="text"
+		<column name="content_type" type="text"
 			ucd="meta.code.mime"
 			tablehead="MIME"
 			description="MIME type for the data returned."
 			verbLevel="1"/>
-		<column name="contentLength" type="bigint"
-			ucd="phys.size;meta.file"
+		<column name="content_length" type="bigint"
+			ucd="phys.size;meta.file" unit="byte"
 			tablehead="Size"
 			description="Size of the resource at access_url"
 			verbLevel="1">
