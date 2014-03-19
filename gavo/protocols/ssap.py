@@ -313,7 +313,8 @@ class SSAPCore(svcs.DBCore):
 				V.PARAM(name="accessURL", datatype="char", arraysize="*",
 					value=service.getURL("dlmeta")),
 				V.GROUP(name="inputParams")[
-					V.PARAM(name="ID", datatype="char", arraysize="*",
+					V.PARAM(name="ID", datatype="char", arraysize="*", 
+						ref=pubDIDId,
 						ucd="meta.id;meta.main")[
 						V.LINK(content_role="ddl:id-source", value="#"+pubDIDId)]]]]
 

@@ -427,10 +427,8 @@ class SDMDatalinkMetaTest(testhelpers.VerboseTest):
 	def testIdColDeclaredDL(self):
 		param = self.data[1].xpath("GROUP/PARAM[@name='ID']")[0]
 		self.assertEqual(param.get("ucd"), "meta.id;meta.main")
-		link = param.xpath("LINK")[0]
-		self.assertEqual(link.get("content-role"), "ddl:id-source")
 		srcField = self.data[-1].xpath(
-			"//FIELD[@ID='%s']"%link.get("value")[1:])[0]
+			"//FIELD[@ID='%s']"%param.get("ref"))[0]
 		self.assertEqual(srcField.get("name"), "ssa_pubDID")
 	
 
