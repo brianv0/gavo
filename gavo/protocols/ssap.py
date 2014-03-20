@@ -308,7 +308,7 @@ class SSAPCore(svcs.DBCore):
 
 			# odd and crooked, almost WD-method of pointing to dl metadata service
 			vot[V.RESOURCE(type="service")[
-				V.PARAM(name="standardId", datatype="char", arraysize="*",
+				V.PARAM(name="standardID", datatype="char", arraysize="*",
 					value="ivo://ivoa.net/std/DataLink#links"),
 				V.PARAM(name="accessURL", datatype="char", arraysize="*",
 					value=service.getURL("dlmeta")),
