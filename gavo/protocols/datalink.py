@@ -234,7 +234,7 @@ class _ServiceDescriptor(object):
 				name="accessURL", ucd="meta.ref.url",
 				value=accessURL)]
 
-		inputParams = V.GROUP(name="inputParams")
+		inputParams = V.GROUP(name="input")
 		res = res[inputParams]
 
 		for ik in self.inputKeys:
