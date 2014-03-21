@@ -15,6 +15,7 @@ support some other database, this would need massive refactoring.
 import contextlib
 import operator
 import os
+import random
 import re
 import sys
 import threading
@@ -830,6 +831,25 @@ def getDBMeta(key):
 		if not res:
 			raise KeyError(key)
 		return res[0][0]
+
+
+@contextlib.contextmanager
+def savepointOn(connection):
+	"""sets up a section protected by a savepoint that will be released
+	after use.
+
+	If an exception happens in the controlled section, the connection
+	will be rolled back to the savepoint.
+	"""
+	savepointName = "auto_%s"%(random.randint(0, 2147483647))
+	connection.execute("SAVEPOINT %s"%savepointName)
+	try:
+		yield
+		connection.execute("RELEASE SAVEPOINT %s"%savepointName)
+	except:
+		connection.execute("ROLLBACK TO SAVEPOINT %s"%savepointName)
+		connection.execute("RELEASE SAVEPOINT %s"%savepointName)
+		raise
 
 
 @contextlib.contextmanager

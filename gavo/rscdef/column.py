@@ -242,8 +242,8 @@ class Values(base.Structure):
 		if not getattr(ctx, "doQueries", True):
 			return
 		try:
-			with base.AdhocQuerier(base.getTableConn) as q:
-				for row in q.query(self.parent.parent.expand(
+			with base.getTableConn() as conn:
+				for row in conn.query(self.parent.parent.expand(
 						"SELECT DISTINCT %s"%(self.fromdb))):
 					self._options.feedObject(self, base.makeStruct(Option,
 						content_=row[0]))

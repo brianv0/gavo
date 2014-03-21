@@ -484,5 +484,32 @@ class TestQueryExpands(TestWithTableCreation):
 		self.assertRaises(base.MacroError, self.table.query, "\monkmacrobad")
 
 
+class TestIgnoreFrom(testhelpers.VerboseTest):
+	resources = [("connection", tresc.dbConnection)]
+
+	def testWorksWithoutTable(self):
+		rsc.TableForDef(testhelpers.getTestRD().getById("prodtest"),
+			connection=self.connection, create=False).drop()
+		self.data = rsc.makeData(
+			testhelpers.getTestRD().getById("productimport"),
+			rsc.getParseOptions(keepGoing=True),
+			connection=self.connection)
+		self.assertEqual(
+			set(self.connection.query("select object from test.prodtest")),
+			set([('gabriel',), ('michael',)]))
+
+	def testWorksWithTable(self):
+		data1 = rsc.makeData(
+			testhelpers.getTestRD().getById("productimport"),
+			rsc.getParseOptions(keepGoing=True),
+			connection=self.connection)
+		self.assertEqual(data1.nAffected, 2)
+		data2 = rsc.makeData(
+			testhelpers.getTestRD().getById("productimport"),
+			rsc.getParseOptions(updateMode=True, keepGoing=True),
+			connection=self.connection)
+		self.assertEqual(data2.nAffected, 0)
+	
+
 if __name__=="__main__":
 	testhelpers.main(AdhocQuerierTest)

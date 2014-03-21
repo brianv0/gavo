@@ -62,15 +62,13 @@ class IgnoreSpec(base.Structure):
 		self.inputsDir = base.getConfig("inputsDir")
 		self.ignoredSet = set()
 
-		if self.fromdb:
-			assert connection is not None
-			q = base.UnmanagedQuerier(connection)
+		if self.fromdb and connection is not None:
 			try:
-				self.ignoredSet |= set(r[0] 
-					for r in q.query(self.fromdb))
+				with base.savepointOn(connection):
+					self.ignoredSet |= set(r[0] 
+						for r in connection.query(self.fromdb))
 			except base.DBError: # table probably doesn't exist yet.
-				if base.DEBUG:
-					base.ui.logError()
+				base.ui.notifyError("ignore fromdb failed (probably no table yet)")
 
 		if self.fromfile:
 			for ln in open(self.fromfile):

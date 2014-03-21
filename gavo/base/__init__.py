@@ -61,6 +61,7 @@ from gavo.base.parsecontext import (
 from gavo.base.sqlsupport import (getDBConnection, 
 	DBError, QueryCanceledError, IntegrityError,
 	AdhocQuerier, UnmanagedQuerier,
+	savepointOn,
 	connectionConfiguration,
 	getUntrustedConn,
 	getTableConn, getAdminConn, getUntrustedConn,

@@ -304,7 +304,8 @@
 	</rowmaker>
 
 	<data id="productimport">
-		<sources><pattern>data/*.imp</pattern></sources>
+		<sources><pattern>data/*.imp</pattern>
+			<ignoreSources fromdb="select accref from test.prodtest"/></sources>
 		<keyValueGrammar id="pi-gram">
 			<rowfilter procDef="//products#define">
         <bind key="owner">"X_test"</bind>

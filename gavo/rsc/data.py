@@ -400,21 +400,16 @@ def processSource(data, source, feeder, opts, connection=None):
 		if connection is None:
 			raise base.ReportableError("Can only ignore source errors"
 				" with an explicit connection", hint="This is a programming error.")
-		cursor = connection.cursor()
-		cursor.execute("SAVEPOINT thisSource")
 		try:
-			_processSourceReal(data, source, feeder, opts)
+			with base.savepointOn(connection):
+				_processSourceReal(data, source, feeder, opts)
 			feeder.flush()
 		except Exception, ex:
 			feeder.reset()
-			cursor.execute("ROLLBACK TO SAVEPOINT thisSource")
-			cursor.execute("RELEASE SAVEPOINT thisSource")
 			if not isinstance(ex, base.ExecutiveAction):
 				base.ui.notifyError("Error while importing source; changes from"
 					" this source will be rolled back, processing will continue."
 					" (%s)"%utils.safe_str(ex))
-		else:
-			cursor.execute("RELEASE SAVEPOINT thisSource")
 
 
 def makeData(dd, parseOptions=common.parseNonValidating,
