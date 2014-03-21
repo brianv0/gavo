@@ -361,6 +361,13 @@ class DatalinkTest(ArchiveTest):
 			{"ID": "ivo://x-unregistred/~?data/excube.fits"},
 			['<DESCRIPTION>The latitude coordinate, lower limit</DESCRIPTION>'
 				'<VALUES><MIN value="30.9831815872">',])
+
+	def testMetadataError(self):
+		return self.assertGETHasStrings("/data/cores/dl/dlmeta", 
+			{"ID": "ivo://x-unregistred/~?data/excube.fit"},
+			["TR><TD>ivo://x-unregistred/~?data/excube.fit</TD><TD></TD><TD>"
+				"NotFoundError: accref 'data/excube.fit' could not be located"
+				" in product table</TD>"])
 	
 	def testSpecCutout(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlget", {

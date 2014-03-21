@@ -495,7 +495,7 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 					contentType=d.mime,
 					contentLength=d.estimateSize(),
 					semantics="self", )
-				for d in self.descriptors)
+				for d in self.descriptors if isinstance(d, ProductDescriptor))
 
 		data = rsc.makeData(
 			base.caches.getRD("//datalink").getById("make_response"),
@@ -640,7 +640,17 @@ class DatalinkCore(DatalinkCoreBase):
 
 		pubDIDs = self._getPubDIDs(args)
 		descGen = self.descriptorGenerator.compile(self)
-		descriptors = [descGen(pubDID, args) for pubDID in pubDIDs]
+		descriptors = []
+		for pubDID in pubDIDs:
+			try:
+				descriptors.append(descGen(pubDID, args))
+			except base.NotFoundError, ex:
+				descriptors.append(DatalinkError.NotFoundError(pubDID,
+					utils.safe_str(ex)))
+# TODO: Catch more "known" exceptions, e.g. Authorization
+			except Exception, ex:
+				descriptors.append(DatalinkError.Error(pubDID,
+					utils.safe_str(ex)))
 
 		return self.adaptForDescriptors(renderer, descriptors)
 
