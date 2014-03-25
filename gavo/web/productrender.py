@@ -48,7 +48,6 @@ def preview2DFITS(inputProduct, width):
 		scale = 1
 	
 
-
 def previewJPEG(inputProduct, width):
 	"""returns a JPEG with about width from a JPEG inputProduct.
 	"""

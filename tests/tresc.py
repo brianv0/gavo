@@ -86,7 +86,9 @@ class ProdtestTable(testhelpers.TestResource):
 		"sourceTable": "/////////////////////",
 		"owner": None,
 		"embargo": None,
-		"mime": "application/x-bogus"}
+		"mime": "application/x-bogus",
+		"datalink": None,
+		"preview": 'AUTO'}
 
 	@contextlib.contextmanager
 	def prodtblRow(self, **kwargs):

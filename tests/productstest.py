@@ -181,6 +181,8 @@ class RaccrefTest(_TestWithProductsTable):
 			'mime': 'text/plain', 
 			'owner': 'X_test', 
 			'accref': 'data/a.imp', 
+			'datalink': None,
+			'preview': 'AUTO',
 			'sourceTable': 'test.prodtest'})
 
 

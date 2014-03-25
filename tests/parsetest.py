@@ -117,9 +117,9 @@ class TestProductsImport(RowsetTest):
 		self.assertQueryReturns(
 				"select * from dc.products where sourceTable='test.prodtest'",
 			[(u'data/a.imp', u'X_test', datetime.date(2030, 12, 31), 
-					'text/plain', u'data/a.imp', u'test.prodtest'),
+					'text/plain', u'data/a.imp', u'test.prodtest', 'AUTO', None),
 			 (u'data/b.imp', u'X_test', datetime.date(2003, 12, 31), 
-					'text/plain', u'data/b.imp', u'test.prodtest'),])
+					'text/plain', u'data/b.imp', u'test.prodtest', 'AUTO', None),])
 
 	def testInMetatable(self):
 		self.assertQueryReturns(

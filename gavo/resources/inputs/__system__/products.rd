@@ -33,6 +33,17 @@ machinery -->
 		<column name="sourceTable" type="text" verbLevel="10"
 			tablehead="Source Table"
 			description="Name of table containing metadata" required="True"/>
+		<column name="preview" type="text"
+			description="Location of a preview; this can be NULL if no preview
+				is available, 'AUTO' if DaCHS is supposed to try and make its
+				own previews based on MIME guessing, dcc://rd.id/svcid for a datalink
+				service with a preview shortcut, or a file name or URL."
+			verbLevel="40"/>
+		<column name="datalink" type="text"
+			description="RD id of the 'default' datalink service for this
+				file; this is to allow the global datalink service (sitting on the ~
+				resource and used by obscore) forward datalink requests globally."
+			verbLevel="40"/>
 	</table>
 
 	<!-- as the result definition, use this: -->
@@ -43,12 +54,15 @@ machinery -->
 	</data>
 
 	<rowmaker id="productsMaker">
- 		<map dest="accref" src="prodtblAccref"/>
+		<!-- the row make for the products table itself -->
+		<map dest="accref" src="prodtblAccref"/>
 		<map dest="owner" src="prodtblOwner"/>
 		<map dest="embargo" src="prodtblEmbargo"/>
 		<map dest="accessPath" src="prodtblPath"/>
 		<map dest="sourceTable" src="prodtblTable"/>
 		<map dest="mime" src="prodtblMime"/>
+		<map dest="preview" src="prodtblPreview"/>
+		<map dest="datalink" src="prodtblDatalink"/>
 	</rowmaker>
 
 	<!-- material for tables mixing in products -->
@@ -107,6 +121,12 @@ machinery -->
 				>\inputSize</par>
 			<par late="True" key="mime" description="MIME-type for the product"
 				>'image/fits'</par>
+			<par late="True" key="preview" description="file path to a preview,
+				dcc://rd.id/svcid id of a preview-enabled datalink service, None
+				to disable previews, or 'AUTO' to make DaCHS guess."
+				>'AUTO'</par>
+			<par key="datalink" description="id of a datalink service that
+				understands this file's pubDID.">None</par>
 		</setup>
 		<code>
 			newVars = {}
@@ -119,6 +139,8 @@ machinery -->
 			row["prodtblFsize"] = fsize
 			row["prodtblTable"] = table
 			row["prodtblMime"] = mime
+			row["prodtblPreview"] = preview
+			row["prodtblDatalink"] = datalink
 			yield row
 		</code>
 	</procDef>

@@ -27,7 +27,7 @@ from gavo import rscdesc
 from gavo import utils
 
 
-CURRENT_SCHEMAVERSION = 5
+CURRENT_SCHEMAVERSION = 6
 
 
 def showProgress(msg):
@@ -218,6 +218,24 @@ class To5Upgrader(Upgrader):
 			connection=connection, runCommit=False)
 
 
+class To6Upgrader(Upgrader):
+	version = 5
+	
+	@classmethod
+	def u_000_remetaObscore(cls, connection):
+		"""update obscore metadata to fix the erroneous id"""
+		rsc.makeData(base.caches.getRD("//obscore").getById("create"),
+			connection=connection, runCommit=False, 
+			parseOptions=rsc.getParseOptions(metaOnly=True))
+	
+	u_010_addPreviewColumn = ("ALTER TABLE dc.products ADD COLUMN"
+		" preview TEXT DEFAULT 'AUTO'")
+	u_020_dedefaultPreviewColumn = ("ALTER TABLE dc.products ALTER COLUMN"
+		" preview DROP DEFAULT")
+	u_30_addDatalinkColumn = ("ALTER TABLE dc.products ADD COLUMN"
+		" datalink TEXT")
+
+
 def iterStatements(startVersion, endVersion=CURRENT_SCHEMAVERSION, 
 		upgraders=None):
 	"""yields all upgraders from startVersion to endVersion in sequence.
@@ -258,10 +276,11 @@ def upgrade(forceDBVersion=None, dryRun=False):
 				statement(conn)
 			else:
 				showProgress("> executing %s ..."%utils.makeEllipsis(statement, 60))
-				conn.query(statement)
+				ignored = conn.execute(statement)
 			showProgress(" ok\n")
 		if dryRun:
 			conn.rollback()
+		conn.commit()
 
 
 def parseCommandLine():

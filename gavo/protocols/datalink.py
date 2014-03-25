@@ -58,7 +58,8 @@ class ProductDescriptor(object):
 	data = None
 
 	def __init__(self, pubDID, accref, accessPath, mime, 
-			owner=None, embargo=None, sourceTable=None):
+			owner=None, embargo=None, sourceTable=None, datalink=None,
+			preview=None):
 		self.pubDID = pubDID
 		self.accref, self.accessPath, self.mime = accref, accessPath, mime
 		self.owner, self.embargo, self.sourceTable = owner, embargo, sourceTable
