@@ -410,6 +410,16 @@ class InputKeyTest(testhelpers.VerboseTest):
 		opts = list(rendered.children[0](None, rendered.data))
 		self.assertEqual(opts[0][0].attributes["type"], "checkbox")
 
+	def testWithEnumeratedDefaultedRequired(self):
+		ftype, fwid, rendered = self._getKeyProps(
+			'<condDesc><inputKey name="m" type="text" required="True"'
+			' multiplicity="forced-single"><values default="i">'
+			' <option>i</option><option>u</option></values></inputKey></condDesc>')
+		self.failUnless(isinstance(ftype, formal.types.String))
+		opts = [c.children[0].attributes["value"]
+			for c in rendered.children[0](None, rendered.data)]
+		self.assertEqual(opts, ['i', 'u'])
+	
 	def testManualWF(self):
 		ftype, fwid, rendered = self._getKeyProps(
 			'<condDesc><inputKey type="text" name="x" widgetFactory="'

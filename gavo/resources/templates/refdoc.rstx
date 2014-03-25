@@ -1919,6 +1919,50 @@ control.  That means that embargoed files must never be within the
 staticData (or they are not embargoed any more...)
 
 
+Metadata Error Messages
+'''''''''''''''''''''''
+
+Both description generators and meta makers can return (or yield, in the
+case of meta makers) error messages instead of either a descriptor or a
+link definition.  This allows more fine-tuned control over the messages
+generated than raising an exception.
+
+Error messages are constructed using class functions of
+``DatalinkError``, which is visible to both procedure types.  The class
+function names correspond to the message types defined in the datalink
+spec and match the semantics given there:
+
+* AuthenticationError
+* AuthorizationError
+* NotFoundError
+* UsageError
+* TransientError
+* FatalError
+* Error
+
+Thus, a descriptor generator could look like this::
+
+  <descriptorGenerator>
+    <setup>
+      <code>
+        class MyCustomDescriptor(ProductDescriptor):
+          ...
+      </code>
+    </setup>
+		<code>
+			with base.getTableConn() as conn:
+				matchingRows = list(conn.queryToDicts(
+				  "select physPath from schema.myTable where pub_did=%(pubDID)s",
+				  locals()))
+				if not matchingRows:
+					return DatalinkError.NotFoundError(pubDID,
+						"No dataset with this pubDID known here")
+				return MyCustomDescriptor.fromFile(matchingRows[0]["physPath"])
+		</code>
+	</descriptorGenerator>
+
+
+
 Data Functions
 ''''''''''''''
 

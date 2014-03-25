@@ -211,7 +211,8 @@ def _getDisplayOptions(ik):
 			for o in ik.values.options:
 				if o.content_==ik.values.default:
 					noneOption = o
-				options.append(o)
+				else:
+					options.append(o)
 	else:  # no default given, make up ANY option as noneOption unless
 	       # ik is required.
 		options.extend(ik.values.options)
