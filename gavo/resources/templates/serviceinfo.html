@@ -145,6 +145,12 @@
 
 		</div>
 
+		<n:invisible n:render="ifmeta copyright">
+		<h2>Copyright, License, Acknowledgements</h2>
+		<p n:render="metahtml">copyright</p>
+		</n:invisible>
+
+
 		<p>
 			<a>
 				<n:attr name="href">/getRR/<n:invisible n:render="string" n:data="internalpath"/>
