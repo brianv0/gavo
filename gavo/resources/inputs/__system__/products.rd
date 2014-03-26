@@ -26,6 +26,8 @@ machinery -->
 
 	<table id="products" primary="accref" system="True" onDisk="True"
 			dupePolicy="overwrite" forceUnique="True">
+		<!-- Warning: column names and table structure are reflected at least
+		in protocols.products, so be careful if you change things here. -->
 		<FEED source="basicColumns"/>
 		<column name="accessPath" type="text" tablehead="Path to access data" 
 			required="True" verbLevel="5" 

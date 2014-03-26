@@ -126,7 +126,7 @@ def _makePreviewFromCutout(args, prod, request):
 	handle, fName = tempfile.mkstemp(".fits", "cutout", 
 		dir=base.getConfig("tempDir"))
 	f = os.fdopen(handle, "w")
-	mime = prod.contentType
+	mime = prod.pr["mime"]
 
 	def makeCutout():
 		def feedProduct():
@@ -165,8 +165,8 @@ def makePreviewFromProduct(prod, request):
 		pass
 
 	if isinstance(prod, products.FileProduct):  # static file: just dump
-		args[:0] = [prod.sourceSpec]
-		return PreviewCacheManager.getPreviewFor(prod.contentType, args
+		args[:0] = [prod.rAccref.localpath]
+		return PreviewCacheManager.getPreviewFor(prod.pr["mime"], args
 			).addCallback(deliverJpeg, request
 			).addErrback(deliverFailPreview, request)
 	else:

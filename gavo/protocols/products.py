@@ -2,6 +2,13 @@
 Products, a grammar to make them, and a core turning accrefs into lists
 of products.
 
+There is a substantial overlap between what's going on there and datalink
+(and datalink uses some of the products mentioned here).  The cutouts
+and scale things here shouldn't be developed on, all this should
+move towards datalink.  Meanwhile, we still have siapCutoutCore and
+friends that relies on the mess here, so all this is going to remain
+for the forseeable future.  Just don't extend it.
+
 The "user-visible" part are just accrefs, as modelled by the RAccref
 -- they can contain instructions for cutouts or scaling, hence the additional
 structure.
@@ -14,7 +21,7 @@ synchronous iterData methods.  They must also work as nevow resources and thus
 have implement asynchronuous renderHTTP(ctx) methods.  It's a bit unfortunate
 that we thus depend on nevow here, but we'd have to reimplement quite a bit of
 it if we don't, and for now it doesn't seem we'll support a different framework
-in the forseeable future.  
+in the forseeable future.
 """
 
 #c Copyright 2008-2014, the GAVO project
@@ -84,20 +91,24 @@ class ProductBase(object):
 	reason you should never hand out products yourself but always
 	expose the to the user through the product core.
 
-	The iterData method has to yield reasonable-sized chunks of
+	The actual constructor requires a RAccref, which is exposed as the 
+	rAccref attribute.  Do not use the productsRow attribute from rAccref, 
+	though, as constructors may want to manipulate the content of the 
+	product row (e.g., in NonExistingProduct).  Access the product
+	row as self.pr in product classes.
+
+	In addition to those, all Products have a name attribute,
+	which must be something suitable as a file name; the default
+	constructor calls a _makeName method to come up with one, and
+	you should simply override it.
+
+	The iterData method has to yield reasonably-sized chunks of
 	data (self.chunkSize should be a good choice).	It must be
 	synchronuous.
 
 	Products usually are used as nevow resources.  Therefore, they
 	must have a renderHTTP method.	This must be asynchronuous,
 	i.e., it should not block for extended periods of time.
-
-	All products must at least have the attributes sourceSpec
-	(a string with an interpretation that's up to the subclass),
-	contentType (which should usually be what renderHTTP puts into
-	its content-type), and name (something suitable as a file name;
-	the default constructor calls a _makeName method to come up with
-	one, and you should simply override it).
 
 	Products also work as rudimentary files via read and close
 	methods; by default, these are implemented on top of iterData.
@@ -112,8 +123,11 @@ class ProductBase(object):
 	chunkSize = 2**16
 	_curIterator = None
 
-	def __init__(self, sourceSpec, contentType):
-		self.sourceSpec, self.contentType = str(sourceSpec), str(contentType)
+	def __init__(self, rAccref):
+		# If you change things here, change NonExistingProduct's constructor
+		# as well.
+		self.rAccref = rAccref
+		self.pr = self.rAccref.productsRow
 		self._makeName()
 
 	def _makeName(self):
@@ -121,16 +135,15 @@ class ProductBase(object):
 
 	def __str__(self):
 		return "<%s %s (%s)>"%(self.__class__.__name__,
-			self.sourceSpec, 
-			self.contentType)
+			self.name,
+			self.pr["mime"])
 	
 	def __repr__(self):
 		return str(self)
 	
 	def __eq__(self, other):
 		return (isinstance(other, self.__class__) 
-			and self.sourceSpec==other.sourceSpec
-			and self.contentType==other.contentType)
+			and self.rAccref==other.rAccref)
 	
 	def __ne__(self, other):
 		return not self==other
@@ -141,7 +154,7 @@ class ProductBase(object):
 
 	@classmethod
 	def hasRealFile(cls, openMethod):
-		"""changes class such that read and close work an an actual file-like 
+		"""changes cls such that read and close work an an actual file-like 
 		object rather than the inefficient iterData.
 
 		openMethod has to be an instance method of the class returning
@@ -204,55 +217,22 @@ class ProductBase(object):
 class FileProduct(ProductBase):
 	"""A product corresponding to a local file.
 
-	Mime types are guessed based on a class-local dictionary; this
-	is done so we don't depend on nevow here.  If nevow is available,
-	we use its static.File mechanism to deliver the data.
-
-	All this mime guessing is just a fallback when not using the
-	fromRAccref constructor.
-
 	As long as the accessPath in the RAccref's productsRow corresponds
 	to a real file and no params are in the RAccref, this will return
 	a product.
 	"""
-	def __init__(self, sourcePath, contentType=None):
-		ProductBase.__init__(self, sourcePath, contentType)
-		if contentType is None:
-			self.contentType = self._guessContentType()
-
 	@classmethod
 	def fromRAccref(cls, rAccref, grammar=None):
-		if rAccref.params:  # not a plain file
+		if set(rAccref.params)-set(["preview"]):  # not a plain file
 			return None
 		if os.path.exists(rAccref.localpath):
-			return cls(rAccref.localpath, rAccref.productsRow["mime"])
+			return cls(rAccref)
 
 	def _makeName(self):
-		self.name = os.path.basename(self.sourceSpec)
+		self.name = os.path.basename(self.rAccref.localpath)
 	
-	# we probably should be using nevow.static's version of this for
-	# consistency, but the interface there is too cumbersome for now.
-	# It's not regularly used by the DC software any more, anyway.
-	magicMap = {
-		".txt": "text/plain",
-		".fits": "image/fits",
-		".gz": "application/octet-stream",
-		".jpg": "image/jpeg",
-		".jpeg": "image/jpeg",
-	}
-
-	def _guessContentType(self):
-		"""fills the contentType attribute with a guess for the content type
-		inferred from sourceSpec's extension.
-		"""
-		self.contentType = "application/octet-stream"
-		if self.sourceSpec is None:
-			return
-		_, ext = os.path.splitext(self.sourceSpec.lower())
-		return self.magicMap.get(ext, self.contentType)
-
 	def _openUnderlyingFile(self):
-		return open(self.sourceSpec)
+		return open(self.rAccref.localpath)
 
 	def iterData(self):
 		with self._openUnderlyingFile() as f:
@@ -265,12 +245,12 @@ class FileProduct(ProductBase):
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-disposition", 'attachment; filename="%s"'%
 			str(self.name))
-		request.setLastModified(os.path.getmtime(self.sourceSpec))
-		res = static.File(self.sourceSpec)
+		request.setLastModified(os.path.getmtime(self.rAccref.localpath))
+		res = static.File(self.rAccref.localpath)
 		# we set the type manually to avoid having different mime types
 		# by our and nevow's estimate.  This forces us to clamp encoding
 		# to None now.  I *guess* we should do something about .gz and .bz2
-		res.type = self.contentType
+		res.type = self.pr["mime"]
 		res.encoding = None
 		return res
 
@@ -291,7 +271,7 @@ class UnauthorizedProduct(FileProduct):
 				or dbRow["embargo"]<datetime.date.today()):
 			return None
 		if grammar is None or dbRow["owner"] not in grammar.groups:
-			return cls(rAccref.localpath)
+			return cls(rAccref)
 
 	def __str__(self):
 		return "<Protected product %s, access denied>"%self.name
@@ -309,9 +289,21 @@ class NonExistingProduct(ProductBase):
 	iterData here raises an IOError, renderHTTP an UnknownURI.
 
 	These should normally yield 404s.
+
+	We don't immediately raise some error here as archive generation
+	shouldn't fail just because a single part of it is missing.
 	"""
+	def __init__(self, rAccref):
+		#	as rAccref.productsRow is bad here, don't call the base constructor
+		self.rAccref = rAccref
+		self.pr = {
+			'accessPath': None, 'accref': None,
+			'embargo': None, 'owner': None,
+			'mime': 'text/html', 'sourceTable': None,
+			'datalink': None, 'preview': None}
+
 	def __str__(self):
-		return "<Non-existing product %s>"%self.sourceSpec
+		return "<Non-existing product %s>"%self.rAccref.accref
 
 	def __eq__(self, other):
 		return self.__class__==other.__class__
@@ -321,16 +313,16 @@ class NonExistingProduct(ProductBase):
 		try:
 			ignored = rAccref.productsRow
 		except base.NotFoundError:
-			return cls(rAccref.accref, "text/html")
+			return cls(rAccref)
 
 	def _makeName(self):
 		self.name = "missing.html"
 
 	def iterData(self):
-		raise IOError("%s does not exist"%self.sourceSpec)
+		raise IOError("%s does not exist"%self.rAccref.accref)
 
 	def renderHTTP(self, ctx):
-		raise svcs.UnknownURI(self.sourceSpec)
+		raise svcs.UnknownURI(self.rAccref.accref)
 
 
 class InvalidProduct(NonExistingProduct):
@@ -350,43 +342,38 @@ class InvalidProduct(NonExistingProduct):
 	hardcoded into getProductForRAccref.
 	"""
 	def __str__(self):
-		return "<Invalid product %s>"%self.sourceSpec
+		return "<Invalid product %s>"%self.rAccref
 
 	@classmethod
 	def fromRAccref(cls, rAccref, grammar=None):
-		return cls(rAccref.accref, "text/html")
+		return cls(rAccref)
 	
 	def _makeName(self):
 		self.name = "invalid.html"
 	
 	def iterData(self):
-		raise IOError("%s is invalid"%self.sourceSpec)
+		raise IOError("%s is invalid"%self.rAccref)
 
 
 class RemoteProduct(ProductBase):
 	"""A class for products at remote sites, given by their URL.
 	"""
 	def _makeName(self):
-		self.name = urlparse.urlparse(self.sourceSpec
+		self.name = urlparse.urlparse(self.pr["accessPath"]
 			).path.split("/")[-1] or "file"
 
 	def __str__(self):
-		return "<Remote %s at %s>"%(self.contentType, self.sourceSpec)
+		return "<Remote %s at %s>"%(self.pr["mime"], self.pr["accessPath"])
 	
-	def __eq__(self, other):
-		return (isinstance(other, self.__class__) 
-			and self.sourceSpec==other.sourceSpec)
-
 	_schemePat = re.compile("(https?|ftp)://")
 
 	@classmethod
 	def fromRAccref(cls, rAccref, grammar=None):
 		if cls._schemePat.match(rAccref.productsRow["accessPath"]):
-			return cls(rAccref.productsRow["accessPath"], 
-				rAccref.productsRow["mime"])
+			return cls(rAccref)
 
 	def iterData(self):
-		f = urllib.urlopen(self.sourceSpec)
+		f = urllib.urlopen(self.pr["accessPath"])
 		while True:
 			data = f.read(self.chunkSize)
 			if data=="":
@@ -394,52 +381,43 @@ class RemoteProduct(ProductBase):
 			yield data
 
 	def renderHTTP(self, ctx):
-		raise svcs.WebRedirect(self.sourceSpec)
+		raise svcs.WebRedirect(self.pr["accessPath"])
 
 
 class CutoutProduct(ProductBase):
 	"""A class representing cutouts from FITS files.
 	
-	This currently only works for local FITS files.  Objects are
-	constructed with the path to the full source and the cutout
-	parameters, a dictionary containing the keys ra, dec, sra, and sdec.
-
+	This only works for local FITS files with "good" properties. 
+	For everything else, use datalink.
+	
 	We assume the cutouts are smallish -- they are, right now, not
 	streamed, but accumulated in memory.
 	"""
-	def __init__(self, sourceSpec, cutoutPars):
-		ProductBase.__init__(self, sourceSpec, "image/fits")
-		self.getfitsArgs = self._computeGetfitsArgs(cutoutPars)
+	def __init__(self, rAccref):
+		ProductBase.__init__(self, rAccref)
+		self.getfitsArgs = self._computeGetfitsArgs()
 	
 	def _makeName(self):
-		self.name = "cutout-"+os.path.basename(self.sourceSpec)
+		self.name = "<cutout-"+os.path.basename(self.pr["accessPath"])
 
 	def __str__(self):
-		return "<FITS cutout of %s, (%fx%f)>"%(self.sourceSpec,
-			self.cutoutPars[2], self.cutoutPars[3])
-
-	def __eq__(self, other):
-		return (isinstance(other, self.__class__) 
-			and self.sourceSpec==other.sourceSpec
-			and self.getfitsArgs==other.getfitsArgs)
+		return "cutout-%s %s>"%(self.name, self.rAccref.params)
 
 	_myKeys = frozenset(["ra", "dec", "sra", "sdec"])
 
 	@classmethod
 	def fromRAccref(cls, rAccref, grammar=None):
-		if len(set(rAccref.params.keys())&cls._myKeys)==4:
-			if rAccref.productsRow["mime"]!="image/fits":
-				raise base.ValidationError("Cannot generate cutouts for anything"
-					" but FITS yet.", "accref")
-			return cls(rAccref.localpath, rAccref.params)
+		if (len(set(rAccref.params.keys())&cls._myKeys)==4
+				and rAccref.productsRow["mime"]=="image/fits"):
+			return cls(rAccref)
 
-	def _computeGetfitsArgs(self, params):
+	def _computeGetfitsArgs(self):
 		"""returns a list of command line arguments for getfits to cut out
 		the field specified in sqlPars from the image specified in item.
 		"""
-		ra, dec, sra, sdec = [params[key] for key in 
+		ra, dec, sra, sdec = [self.rAccref.params[key] for key in 
 			["ra", "dec", "sra", "sdec"]]
-		f = open(self.sourceSpec)
+		f = open(self.rAccref.localpath)
 		header = fitstools.readPrimaryHeaderQuick(f)
 		ra, dec = float(ra), float(dec),
 		sra, sdec = float(sra), float(sdec),
@@ -457,7 +435,7 @@ class CutoutProduct(ProductBase):
 
 		minX, maxX = clampX(min(xVals)), clampX(max(xVals))
 		minY, maxY = clampY(min(yVals)), clampY(max(yVals))
-		return ["-s", self.sourceSpec, 
+		return ["-s", self.rAccref.localpath, 
 			"%d-%d"%(minX, maxX), "%d-%d"%(minY, maxY)]
 
 	def _getProcessParameters(self):
@@ -487,10 +465,12 @@ class CutoutProduct(ProductBase):
 		prog, args = self._getProcessParameters()
 		return svcs.runWithData(prog, "", args, swallowStderr=True
 			).addCallback(self._deliver, ctx)
-	
+
+#TODO: make this using streaming.streamOut as for ScaledFITSProduct
+
 	def _deliver(self, result, ctx):
 		request = inevow.IRequest(ctx)
-		request.setHeader("content-type", self.contentType)
+		request.setHeader("content-type", "image/fits")
 		request.setHeader("content-disposition", 'attachment; filename="%s"'%
 			str(self.name))
 		return str(result)
@@ -503,12 +483,12 @@ class ScaledFITSProduct(ProductBase):
 	class is constructed with a full rAccref.
 	"""
 	def __init__(self, rAccref):
-		ProductBase.__init__(self, rAccref.localpath, rAccref.productsRow["mime"])
+		ProductBase.__init__(self, rAccref)
 		self.scale = rAccref.params["scale"]
 		self.baseAccref = rAccref.accref
 	
 	def __str__(self):
-		return "<Scaled version of %s>"%(self.sourceSpec)
+		return "<%s scaled by %s>"%(self.name, self.scale)
 
 	@classmethod
 	def fromRAccref(cls, rAccref, grammar=None):
@@ -517,17 +497,14 @@ class ScaledFITSProduct(ProductBase):
 			return cls(rAccref)
 
 	def _makeName(self):
-		self.name = "scaled-"+os.path.basename(self.sourceSpec)
+		self.name = "scaled-"+os.path.basename(self.pr["accref"])
 
 	def iterData(self):
-		if self.contentType!="image/fits":
-			raise base.ValidationError("Cannot generate scaled versions"
-				" for anything but FITS yet.", "accref")
 		scale = int(self.scale)
-		if scale<1:
+		if scale<2:
 			scale = 2
 		
-		with open(self.sourceSpec) as f:
+		with open(self.rAccref.localpath) as f:
 			oldHdr = fitstools.readPrimaryHeaderQuick(f)
 			newHdr = fitstools.shrinkWCSHeader(oldHdr, scale)
 			newHdr.update("FULLURL", str(makeProductLink(self.baseAccref)))
@@ -546,15 +523,15 @@ class ScaledFITSProduct(ProductBase):
 
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
-		request.setHeader("content-type", self.contentType)
+		request.setHeader("content-type", "image/fits")
 		return streaming.streamOut(self._writeStuffTo, request)
 
 
 class DCCProduct(ProductBase):
 	"""A class representing a product returned by a DC core.
 
-	These products are constructed with a complete rAccref, which also
-	becomes the product's sourceSpec.
+	Do not use this any more.  It is superseded by datalink.  You can put
+	datalink URLs into dc.product's accessPath.
 
 	The source path of the rAccref's productsRow must have the form
 	dcc://<rd.id>/<core id>?<coreAccref>; rd.id is the rd id with slashes
@@ -573,10 +550,9 @@ class DCCProduct(ProductBase):
 	See SDMCore for an example for how this can work.
 	"""
 	def __init__(self, rAccref):
-		ProductBase.__init__(self, rAccref.productsRow["accessPath"], 
-			rAccref.productsRow["mime"])
+		ProductBase.__init__(self, rAccref)
 		self.params = rAccref.params
-		self.name = os.path.basename(rAccref.productsRow["accref"])
+		self.name = os.path.basename(self.pr["accref"])
 		self._parseAccessPath()
 
 	_schemePat = re.compile("dcc://")
@@ -592,10 +568,11 @@ class DCCProduct(ProductBase):
 	def _parseAccessPath(self):
 		# The scheme is manually handled to shoehorn urlparse into supporting
 		# queries (and, potentially, fragments)
-		if not self.sourceSpec.startswith("dcc:"):
+		ap = self.pr["accessPath"]
+		if not ap.startswith("dcc:"):
 			raise svcs.UnknownURI("DCC products can only be generated for dcc"
 				" URIs")
-		res = urlparse.urlparse(self.sourceSpec[4:])
+		res = urlparse.urlparse(ap[4:])
 		self.core = base.caches.getRD(
 			res.netloc.replace(".", "/")).getById(res.path.lstrip("/"))
 		self.accref = res.query
@@ -605,7 +582,8 @@ class DCCProduct(ProductBase):
 		inData["accref"] = self.accref
 		inputTable = rsc.TableForDef(self.core.inputTable)
 		inputTable.setParams(inData, raiseOnBadKeys=False)
-		self.contentType, data = self.core.run(self, inputTable, queryMeta)
+		self.generatedContentType, data = self.core.run(
+			self, inputTable, queryMeta)
 		yield data
 	
 	def renderHTTP(self, ctx):
@@ -614,11 +592,12 @@ class DCCProduct(ProductBase):
 		).addCallback(self._deliver, ctx)
 	
 	def _deliver(self, resultIterator, ctx):
+		result = "".join(resultIterator)
 		request = inevow.IRequest(ctx)
-		request.setHeader("content-type", self.contentType)
+		request.setHeader("content-type", self.generatedContentType)
 		request.setHeader("content-disposition", 'attachment; filename="%s"'%
 			str(self.name))
-		return "".join(resultIterator)
+		return result
 
 
 # The following list is checked by getProductForRAccref in sequence.
@@ -781,6 +760,7 @@ class RAccref(object):
 		("sra", float), # cutouts
 		("sdec", float),# cutouts
 		("scale", int), # FITS scaling
+		("preview", base.parseBooleanLiteral), # return a preview?
 	))
 
 	def __init__(self, accref, inputDict={}):
@@ -821,7 +801,6 @@ class RAccref(object):
 		"""
 		return cls.fromPathAndArgs(path, request.args)
 
-
 	@classmethod
 	def fromString(cls, keyString):
 		"""returns a fat product key from a string representation.
@@ -854,10 +833,16 @@ class RAccref(object):
 			if not res:
 				raise base.NotFoundError(self.accref, "accref", "product table",
 					hint="Product URLs may disappear, though in general they should"
-					" not.  If you have an ivo-id for the file you are trying to"
+					" not.  If you have an IVORN (pubDID) for the file you are trying to"
 					" locate, you may still find it by querying the ivoa.obscore table"
 					" using TAP and ADQL.")
 			self._productsRowCache = res[0]
+		
+			# make sure whatever can end up being written to something
+			# file-like
+			for key in ["mime", "accessPath", "accref"]:
+				self._productsRowCache[key] = str(self._productsRowCache[key])
+
 			return self._productsRowCache
 
 	def __str__(self):
@@ -874,6 +859,7 @@ class RAccref(object):
 
 	def __eq__(self, other):
 		return (isinstance(other, RAccref) 
+			and self.accref==other.accref
 			and self.params==other.params)
 
 	def __ne__(self, other):

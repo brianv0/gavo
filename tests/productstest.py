@@ -185,6 +185,10 @@ class RaccrefTest(_TestWithProductsTable):
 			'preview': 'AUTO',
 			'sourceTable': 'test.prodtest'})
 
+	def testPreview(self):
+		prod = products.RAccref.fromString("data/a.imp?preview=true")
+		self.assertEqual(prod.params, {"preview": True})
+
 
 class ProductsCoreTest(_TestWithProductsTable):
 	def _getProductFor(self, accref, moreFields={}):
@@ -267,10 +271,9 @@ class ProductsCoreTest(_TestWithProductsTable):
 		prod = self._getProductFor("data/b.imp?scale=3")
 	
 	def testCutoutProduct(self):
-		self.assertRaisesWithMsg(base.ValidationError,
-			"Field accref: Cannot generate cutouts for anything but FITS yet.",
-			self._getProductFor,
-			("data/b.imp?ra=3&dec=4&sra=2&sdec=4",))
+		res = self._getProductFor("data/b.imp?ra=3&dec=4&sra=2&sdec=4")
+		self.assertEqual(str(res), "<Invalid product data/b.imp?"
+			"sdec=4.0&dec=4.0&ra=3.0&sra=2.0>")
 
 
 class _FITSTable(tresc.RDDataResource):
@@ -373,8 +376,7 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 							class MogrifiedProduct(products.ProductBase):
 								def __init__(self, input, offset):
 									self.input, self.offset = input, offset
-									products.ProductBase.__init__(self,
-										input.sourceSpec, input.contentType)
+									products.ProductBase.__init__(self, input.rAccref)
 
 								def iterData(self):
 									for chunk in self.input.iterData():
@@ -985,9 +987,9 @@ class _FakeProduct(products.ProductBase):
 		yield "end"
 
 
-class FileIntfTest(testhelpers.VerboseTest):
+class FileIntfTest(ProductsCoreTest):
 	def testFallbackBuffering(self):
-		p = _FakeProduct("fake", "application/testdata")
+		p = _FakeProduct(products.RAccref.fromString("data/a.imp"))
 		self.assertEqual(p.read(1), "1")
 		self.assertEqual(p.read(1), "2")
 		self.assertEqual(p.read(7), "341234 ")
@@ -997,9 +999,8 @@ class FileIntfTest(testhelpers.VerboseTest):
 		p.close()
 	
 	def testNativeRead(self):
-		p = products.FileProduct(
-			os.path.join(base.getConfig("inputsDir"), "data/ex.fits"), "image/fits")
-		self.assertEqual(p.read(10), "SIMPLE  = ")
+		p = self._getProductFor("data/a.imp")
+		self.assertEqual(p.read(10), "alpha: 23 ")
 		self.failUnless(isinstance(p._openedInputFile, file))
 		p.close()
 		self.assertEqual(p._openedInputFile, None)

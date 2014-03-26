@@ -161,7 +161,7 @@ class ProductTarMaker(object):
 			elif isinstance(src, products.FileProduct):
 				# actual file in the file system
 				targetName = nameGen.makeName(src.name)
-				outputTar.add(str(src.sourceSpec), nameGen.makeName(src.name))
+				outputTar.add(str(src.rAccref.localpath), nameGen.makeName(src.name))
 
 			else: # anything else is read from the src
 				outputTar.addfile(*self._getTarInfoFromProduct(src,
