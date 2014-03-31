@@ -582,8 +582,8 @@
 			>scircle(ssa_location, ssa_aperture*pi()/180.)</mixinPar> -->
 		<mixinPar name="collection">\getParam{ssa_collection}{NULL}</mixinPar>
 		<mixinPar name="creatorDID">ssa_creatorDID</mixinPar>
-		<mixinPar name="dec">lat(ssa_location)</mixinPar>
-		<mixinPar name="ra">long(ssa_location)</mixinPar>
+		<mixinPar name="dec">degrees(lat(ssa_location))</mixinPar>
+		<mixinPar name="ra">degrees(long(ssa_location))</mixinPar>
 		<mixinPar name="emMax">ssa_specend</mixinPar>
 		<mixinPar name="emMin">ssa_specstart</mixinPar>
 		<mixinPar name="expTime">\getParam{ssa_timeExt}{NULL}</mixinPar>
