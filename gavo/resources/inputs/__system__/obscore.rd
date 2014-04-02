@@ -473,6 +473,10 @@
 			You must change these if you obscore-publish tables not mixin
 			in products.
 		</doc>
+
+		<LFEED source="_publishProduct"/>
+		<LFEED source="_publishCommon"/>
+
 		<mixinPar name="productType" description="Data product type; one
 			of image, cube, spectrum, sed, timeseries, visibility, event, or
 			NULL if None of the above"/>
@@ -505,8 +509,6 @@
 			data set assigned by the creator.  Leave NULL unless the creator
 			actually assigned an IVO id herself.">NULL</mixinPar>
 
-		<LFEED source="_publishProduct"/>
-		<LFEED source="_publishCommon"/>
 	</mixinDef>
 
 	<mixinDef id="publishSIAP">
@@ -522,6 +524,9 @@
 			mean, refer to //obscore#publish.
 		</doc>
 		
+		<LFEED source="_publishProduct"/>
+		<LFEED source="_publishCommon"/>
+
 		<mixinPar name="productType" description="preset for SIAP"
 			>'image'</mixinPar>
 		<mixinPar name="title" description="preset for SIAP"
@@ -557,10 +562,6 @@
 		<mixinPar name="creatorDID" description="Global identifier of the
 			data set assigned by the creator.  Leave NULL unless the creator
 			actually assigned an IVO id herself.">NULL</mixinPar>
-
-		<LFEED source="_publishProduct"/>
-		<LFEED source="_publishCommon"/>
-
 	</mixinDef>
 
 	<mixinDef id="publishSSAPHCD">
@@ -575,6 +576,9 @@
 			To find out what the parameters described as "preset for SSAP"
 			mean, refer to //obscore#publish.
 		</doc>
+
+		<LFEED source="_publishProduct"/>
+		<LFEED source="_publishCommon"/>
 
 		<mixinPar name="coverage"
 			>NULL</mixinPar>
@@ -599,9 +603,6 @@
 		<mixinPar name="targetName">ssa_targname</mixinPar>
 		<mixinPar name="targetClass">ssa_targclass</mixinPar>
 		<mixinPar name="title">ssa_dstitle</mixinPar>
-
-		<LFEED source="_publishProduct"/>
-		<LFEED source="_publishCommon"/>
 	</mixinDef>
 
 	<table id="emptyobscore" onDisk="True" system="True"
