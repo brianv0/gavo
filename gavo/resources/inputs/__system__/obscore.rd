@@ -590,7 +590,7 @@
 		<mixinPar name="ra">degrees(long(ssa_location))</mixinPar>
 		<mixinPar name="emMax">ssa_specend</mixinPar>
 		<mixinPar name="emMin">ssa_specstart</mixinPar>
-		<mixinPar name="expTime">\getParam{ssa_timeExt}{NULL}</mixinPar>
+		<mixinPar name="expTime">ssa_timeExt</mixinPar>
 		<mixinPar name="fov">ssa_aperture</mixinPar>
 		<mixinPar name="instrumentName">'\getParam{ssa_instrument}{NULL}'</mixinPar>
 		<mixinPar name="oUCD">'\getParam{ssa_fluxucd}'</mixinPar>
