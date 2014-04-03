@@ -59,6 +59,7 @@ from gavo.base import valuemappers
 from gavo.protocols import creds
 from gavo.svcs import streaming
 from gavo.utils import fitstools
+from gavo.utils import pyfits
 
 MS = base.makeStruct
 
@@ -387,94 +388,57 @@ class RemoteProduct(ProductBase):
 class CutoutProduct(ProductBase):
 	"""A class representing cutouts from FITS files.
 	
-	This only works for local FITS files with "good" properties. 
-	For everything else, use datalink.
+	This only works for local FITS files with two axes.  For everything 
+	else, use datalink.
 	
 	We assume the cutouts are smallish -- they are, right now, not
 	streamed, but accumulated in memory.
 	"""
-	def __init__(self, rAccref):
-		ProductBase.__init__(self, rAccref)
-		self.getfitsArgs = self._computeGetfitsArgs()
-	
 	def _makeName(self):
 		self.name = "<cutout-"+os.path.basename(self.pr["accessPath"])
 
 	def __str__(self):
-		return "cutout-%s %s>"%(self.name, self.rAccref.params)
+		return "<cutout-%s %s>"%(self.name, self.rAccref.params)
 
-	_myKeys = frozenset(["ra", "dec", "sra", "sdec"])
+	_myKeys = ["ra", "dec", "sra", "sdec"]
+	_myKeySet = frozenset(_myKeys)
 
 	@classmethod
 	def fromRAccref(cls, rAccref, grammar=None):
-		if (len(set(rAccref.params.keys())&cls._myKeys)==4
+		if (len(set(rAccref.params.keys())&cls._myKeySet)==4
 				and rAccref.productsRow["mime"]=="image/fits"):
 			return cls(rAccref)
 
-	def _computeGetfitsArgs(self):
-		"""returns a list of command line arguments for getfits to cut out
-		the field specified in sqlPars from the image specified in item.
-		"""
-		ra, dec, sra, sdec = [self.rAccref.params[key] for key in 
-			["ra", "dec", "sra", "sdec"]]
-		f = open(self.rAccref.localpath)
-		header = fitstools.readPrimaryHeaderQuick(f)
-		ra, dec = float(ra), float(dec),
-		sra, sdec = float(sra), float(sdec),
-		getPixCoo = coords.getInvWCSTrafo(header)
-
-		def clampX(x):
-			return min(header["NAXIS1"], max(0, x))
-		def clampY(y):
-			return min(header["NAXIS2"], max(0, y))
-
-		corners = [getPixCoo(*args) for args in (
-			(ra+sra/2, dec+sdec/2), (ra-sra/2, dec+sdec/2),
-			(ra+sra/2, dec-sdec/2), (ra-sra/2, dec-sdec/2))]
-		xVals, yVals = [c[0] for c in corners], [c[1] for c in corners]
-
-		minX, maxX = clampX(min(xVals)), clampX(max(xVals))
-		minY, maxY = clampY(min(yVals)), clampY(max(yVals))
-		return ["-s", self.rAccref.localpath, 
-			"%d-%d"%(minX, maxX), "%d-%d"%(minY, maxY)]
-
-	def _getProcessParameters(self):
-		"""returns a pair of program name and program args to start the
-		actual cutout.
-		"""
-		prog = base.getBinaryName(os.path.join(base.getConfig("inputsDir"),
-			"__system", "bin", "getfits"))
-		return prog, self.getfitsArgs
-
 	def iterData(self):
-		prog, args = self._getProcessParameters()
-		devnull = open("/dev/null", "w")
-		pipe = subprocess.Popen([prog]+args, self.chunkSize,
-			stdout=subprocess.PIPE, close_fds=True, stderr=devnull)
-		devnull.close()
-		while True:
-			data = pipe.stdout.read(self.chunkSize)
-			if not data:
-				break
-			yield data
-		res = pipe.wait()
-		if res:
-			raise IOError("Broken pipe, return value %d"%res)
+		ra, dec, sra, sdec = [self.rAccref.params[k] for k in self._myKeys]
+		hdus = pyfits.open(self.rAccref.localpath)
+		try:
+			skyWCS = coords.getWCS(hdus[0].header)
+			pixelFootprint = numpy.asarray(
+				numpy.round(skyWCS.wcs_sky2pix([
+					(ra-sra/2., dec-sdec/2.),
+					(ra+sra/2., dec+sdec/2.)], 1)), numpy.int32)
+			res = fitstools.cutoutFITS(hdus[0], 
+				(skyWCS.latAxis, min(pixelFootprint[:,0]), max(pixelFootprint[:,0])),
+				(skyWCS.longAxis, min(pixelFootprint[:,1]), max(pixelFootprint[:,1])))
+		finally:
+			hdus.close()
+
+		bytes = StringIO()
+		res.writeto(bytes)
+		del res
+
+		yield bytes.getvalue()
+
+	def _writeStuffTo(self, destF):
+		for chunk in self.iterData():
+			destF.write(chunk)
 
 	def renderHTTP(self, ctx):
-		prog, args = self._getProcessParameters()
-		return svcs.runWithData(prog, "", args, swallowStderr=True
-			).addCallback(self._deliver, ctx)
-
-#TODO: make this using streaming.streamOut as for ScaledFITSProduct
-
-	def _deliver(self, result, ctx):
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "image/fits")
-		request.setHeader("content-disposition", 'attachment; filename="%s"'%
-			str(self.name))
-		return str(result)
-		
+		return streaming.streamOut(self._writeStuffTo, request)
+	
 
 class ScaledFITSProduct(ProductBase):
 	"""A class representing a scaled FITS file.

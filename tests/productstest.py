@@ -298,11 +298,13 @@ class MangledFITSProductsTest(testhelpers.VerboseTest):
 			struct.unpack("!f", resFile.read(4))[0],
 			7437.5556640625)
 
-# Revive when (and if) we do cutouts in pure python; right now, there's
-# no cutout binary in the test sandbox
-#	def testCutoutFITS(self):
-#		prod = products.getProductForRAccref("data/ex.fits?ra=168.24389&dec=22.21526&sra=0.0085&sdec=0.0142")
-#		open("zw.fits", "w").write("".join(prod.iterData()))
+	def testCutoutFITS(self):
+		prod = products.getProductForRAccref(
+			"data/ex.fits?ra=168.24572&dec=22.214473&sra=0.01&sdec=0.01")
+		stuff = prod.read()
+		self.failUnless("NAXIS1  =                   12" in stuff)
+		self.failUnless("NAXIS2  =                   23" in stuff)
+		self.failUnless(" E\xf6\xc0\x00E" in stuff)
 
 
 class DatalinkElementTest(testhelpers.VerboseTest):
