@@ -411,7 +411,7 @@ class CutoutProduct(ProductBase):
 
 	def iterData(self):
 		ra, dec, sra, sdec = [self.rAccref.params[k] for k in self._myKeys]
-		hdus = pyfits.open(self.rAccref.localpath)
+		hdus = pyfits.open(self.rAccref.localpath, do_not_scale_image_data=True)
 		try:
 			skyWCS = coords.getWCS(hdus[0].header)
 			pixelFootprint = numpy.asarray(
