@@ -526,7 +526,7 @@ def cutoutFITS(hdu, *cuts):
 
 	# fix for fortran-vs-C column order
 	slices.reverse()
-	newHDU = pyfits.PrimaryHDU(data=hdu.data[slices],
+	newHDU = pyfits.PrimaryHDU(data=hdu.section[tuple(slices)],
 		header=newHeader)
 	return newHDU
 
