@@ -185,6 +185,19 @@ def _to_mjd(args):
 	return "ts_to_jd(%s)"%nodes.flatten(args[0])
 
 
+@userFunction("ivo_string_agg",
+	"(expression, delimiter TEXT) -> TEXT",
+	"""
+	Docs TBD; this is just postgres' string_agg
+	""",
+	"text")
+def _string_agg(args):
+	if len(args)!=2:
+		raise UfuncError("ivo_string_agg takes exactly two arguments")
+	return "string_agg(%s, %s)"%(
+		nodes.flatten(args[0]), nodes.flatten(args[1]))
+
+
 class UserFunction(nodes.FunctionNode):
 	"""A node processing user defined functions.
 

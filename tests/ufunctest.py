@@ -227,6 +227,27 @@ class RRFunctionsTest(testhelpers.VerboseTest):
 	]
 	
 
+class AggFunctionsTest(testhelpers.VerboseTest):
+	resources = [
+		("ssaTestTable", tresc.ssaTestTable),
+		("querier", adqltest.adqlQuerier)]
+
+	def testStringAggMorph(self):
+		self.assertEqual(
+			getMorphed("select ivoid, ivo_string_agg(res_subject, ',')"
+				" from rr.res_subject group by ivoid"),
+			"SELECT ivoid, string_agg(res_subject, ',')"
+			" FROM rr.res_subject GROUP BY ivoid")
+
+	def testStringAddExec(self):
+		res = adqlglue.query(self.querier,
+			"SELECT ivo_string_agg(accref || mime, '#') as goo, ssa_pubdid"
+				" from test.hcdtest group by ssa_pubdid order by ssa_pubdid").rows
+		self.assertEqual(res[0]["ssa_pubdid"], 'ivo://test.inv/test1')
+		self.assertEqual(set(res[0]["goo"].split("#")),
+			set('data/spec1.ssatestimage/jpeg#data/spec1.ssatest.'
+				'votapplication/x-votable+xml'.split("#")))
+
 
 if __name__=="__main__":
 	testhelpers.main(UfuncDefTest)
