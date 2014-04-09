@@ -300,11 +300,11 @@ class MangledFITSProductsTest(testhelpers.VerboseTest):
 
 	def testCutoutFITS(self):
 		prod = products.getProductForRAccref(
-			"data/ex.fits?ra=168.24572&dec=22.214473&sra=0.01&sdec=0.01")
+			"data/ex.fits?ra=168.24572&dec=22.214473&sra=0.005&sdec=0.005")
 		stuff = prod.read()
-		self.failUnless("NAXIS1  =                   12" in stuff)
-		self.failUnless("NAXIS2  =                   23" in stuff)
-		self.failUnless(" E\xf6\xc0\x00E" in stuff)
+		self.failUnless("NAXIS1  =                    4" in stuff)
+		self.failUnless("NAXIS2  =                   15" in stuff)
+		self.failUnless(" \xa0q\xa0[\x9f" in stuff)
 
 
 class DatalinkElementTest(testhelpers.VerboseTest):

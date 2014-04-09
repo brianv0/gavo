@@ -8,7 +8,7 @@ Code dealing with product (i.e., fits file) delivery.
 #c COPYING file in the source distribution.
 
 
-import cStringIO
+from cStringIO import StringIO
 import datetime
 import hashlib
 import os
@@ -22,36 +22,30 @@ from nevow import inevow
 
 from zope.interface import implements
 
+import Image
+
+import numpy
+
 from gavo import base
 from gavo import svcs
 from gavo import utils
 from gavo.protocols import products
+from gavo.utils import pyfits
+from gavo.utils import fitstools
 from gavo.web import grend
 
 class ItemNotFound(base.Error):
 	pass
 
 
+# TODO: make this configurable -- globally?  by service?
+PREVIEW_SIZE = 200
+
 errorPng = ('iVBORw0KGgoAAAANSUhEUgAAAGQAAAAUAQMAAABBDgrWAAAABlBMVEUAAAD///+'
 	'l2Z/dAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH2AoYCBM7M1OqPQAAAAh0RVh0Q29tb'
 	'WVudAD2zJa/AAAAa0lEQVQY02P4jwQ+MFDA+1f//7/8c3kQ7489iPev/vl8MG/+f4g0hDfhsUr'
 	'F3T8Sx+dMeAzkTT6pVhT6ry59zuSTQJ7xwXUFjv8qgLyDQN7n833Fj/8VAXnnQbyHHRLZ/woYj'
 	'wg/pMidxPEAITLlun9HY4kAAAAASUVORK5CYII=').decode("base64")
-
-
-def preview2DFITS(inputProduct, width):
-	"""returns a JPEG with about width from a FITS inputProduct.
-	"""
-	oldHdr = fitstools.readPrimaryHeaderQuick(inputProduct)
-	scale = oldHdr["NAXIS1"]/width
-	if scale==0:
-		scale = 1
-	
-
-def previewJPEG(inputProduct, width):
-	"""returns a JPEG with about width from a JPEG inputProduct.
-	"""
-	raise NotImplementedError("Write me")
 
 
 class PreviewCacheManager(object):
@@ -123,35 +117,39 @@ class PreviewCacheManager(object):
 
 
 def _makePreviewFromCutout(args, prod, request):
-	handle, fName = tempfile.mkstemp(".fits", "cutout", 
-		dir=base.getConfig("tempDir"))
-	f = os.fdopen(handle, "w")
-	mime = prod.pr["mime"]
+	if prod.pr["mime"]!="image/fits":
+		raise base.DataError("Cutout previews only for image/fits")
 
-	def makeCutout():
-		def feedProduct():
-			for chunk in prod.iterData():
-				f.write(chunk)
-		return threads.deferToThread(feedProduct)
+	f = StringIO(prod.read())
+	hdu = pyfits.open(f)[0]
+	origWidth, origHeight = hdu.header["NAXIS2"], hdu.header["NAXIS1"]
+	size = max(origWidth, origHeight)
+	scale = max(1, size//PREVIEW_SIZE+1)
+	destWidth, destHeight = origWidth//scale, origHeight//scale
 
-	def makePreview(_):
-		f.close()
-		args[:0] = [fName]
-		return svcs.runWithData(PreviewCacheManager.previewNames[mime], 
-			"", args)
+# TODO: refactor this and the code in fitstools 
+	summedInds = range(scale)
+	img = numpy.zeros((destWidth, destHeight), 'float32')
 
-	def cleanUp(arg):
-		# arg can be a result or a failure -- both a simply handed through up.
-		try:
-			os.unlink(fName)
-		except os.error:
-			pass
-		return arg
+	data = hdu.data
+	for rowInd in range(destHeight):
+		wideRow = (numpy.sum(
+			data[:,rowInd*scale:(rowInd+1)*scale], 1, 'float32'
+			)/scale)[:destWidth*scale]
+		# horizontal scaling via reshaping to a matrix and then summing over
+		# its columns.
+		newRow = numpy.sum(
+			numpy.transpose(wideRow.reshape((destWidth, scale))), 0)/scale
+		img[:,rowInd] = newRow
 
-	return makeCutout(
-		).addCallback(makePreview
-		).addCallback(cleanUp
-		).addErrback(cleanUp)
+	f.close()
+
+	pixMax, pixMin = numpy.max(img), numpy.min(img)
+	img = numpy.asarray((img-pixMin)/(pixMax-pixMin)*255, 'uint8')
+	f = StringIO()
+	Image.fromarray(img).save(f, format="jpeg")
+	return defer.succeed(f.getvalue())
+
 
 	
 def makePreviewFromProduct(prod, request):

@@ -518,7 +518,7 @@ def cutoutFITS(hdu, *cuts):
 			if newAxisLength==0:
 				newAxisLength = 1
 				lastPix = firstPix+1
-			slices.append(slice(firstPix, lastPix, 1))
+			slices.append(slice(int(firstPix), int(lastPix), 1))
 
 			newHeader["NAXIS%d"%(index+1)] = newAxisLength
 			refpixKey = "CRPIX%d"%(index+1)

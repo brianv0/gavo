@@ -414,9 +414,8 @@ _config = Configuration(
 			"Webdir-relative path to a favicon"),
 		BooleanConfigItem("enableTests", "False",
 			"Enable test pages (don't if you don't know why)"),
-		IntConfigItem("maxPreviewWidth", "300", "Hard limit for the width"
-			" of previews (necessary because previews on protected items"
-			" are free)"),
+		IntConfigItem("maxPreviewWidth", "300", "Ignored, only present"
+			" for backward compatiblity"),
 		ListConfigItem("graphicMimes", "image/fits,image/jpeg", "MIME types"
 			" considered as graphics (for SIAP, mostly)"),
 		StringConfigItem("adsMirror", 
