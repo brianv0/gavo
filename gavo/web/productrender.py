@@ -143,6 +143,7 @@ def _makePreviewFromCutout(args, prod, request):
 		img[:,rowInd] = newRow
 
 	f.close()
+	img = numpy.flipud(img)
 
 	pixMax, pixMin = numpy.max(img), numpy.min(img)
 	img = numpy.asarray((img-pixMin)/(pixMax-pixMin)*255, 'uint8')
