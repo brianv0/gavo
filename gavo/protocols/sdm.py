@@ -361,18 +361,19 @@ def mangle_cutout(sdmTable, low, high):
 	Both low and high must be given.  If you actually want half-open intervals,
 	do it in interface code (low=-1 and high=1e308 should do fine).
 	"""
-	spectralUnit = sdmTable.tableDef.getByUtype(
-		"spec:Spectrum.Char.SpectralAxis.Unit").value
+	spectralColumn = sdmTable.tableDef.getByUtype(
+		"spec:Spectrum.Data.SpectralAxis.Value")
+
+	spectralUnit = spectralColumn.unit
 	# convert low and high from meters to the unit on the 
 	# spectrum's spectral axis
 	factor = base.computeConversionFactor("m", spectralUnit)
 	low = low*factor
 	high = high*factor
 
-	spectralName = sdmTable.tableDef.getByUtype(
-		"spec:Spectrum.Data.SpectralAxis.Value").name
 	# Whoa! we should have an API that allows replacing table rows safely
 	# (this stuff will blow up when we have indices):
+	spectralName = spectralColumn.name
 	sdmTable.rows=[
 		row for row in sdmTable.rows if low<=row[spectralName]<=high]
 

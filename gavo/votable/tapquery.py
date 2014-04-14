@@ -446,7 +446,7 @@ def request(host, path, data="", customHeaders={}, method="GET",
 	(i.e., for sync querying).
 	"""
 	headers = {"connection": "close",
-		"user-agent": "Python TAP library http://vo.uni-hd.de/odocs"}
+		"user-agent": "Python TAP library http://soft.g-vo.org/subpkgs"}
 	if not isinstance(data, basestring):
 		if _canUseFormEncoding(data):
 			data = urllib.urlencode(data)
