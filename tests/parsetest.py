@@ -117,9 +117,11 @@ class TestProductsImport(RowsetTest):
 		self.assertQueryReturns(
 				"select * from dc.products where sourceTable='test.prodtest'",
 			[(u'data/a.imp', u'X_test', datetime.date(2030, 12, 31), 
-					'text/plain', u'data/a.imp', u'test.prodtest', 'AUTO', None),
+					'text/plain', u'data/a.imp', u'test.prodtest', 
+					'data/broken.imp', None, 'text/plain'),
 			 (u'data/b.imp', u'X_test', datetime.date(2003, 12, 31), 
-					'text/plain', u'data/b.imp', u'test.prodtest', 'AUTO', None),])
+					'text/plain', u'data/b.imp', u'test.prodtest', 
+					'http://example.com/borken.jpg', None, 'image/jpeg'),])
 
 	def testInMetatable(self):
 		self.assertQueryReturns(

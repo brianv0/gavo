@@ -158,8 +158,6 @@ class FilteredInputFile(object):
 		self.origFile.close()
 
 
-_atPattern = re.compile("@(%s)"%utils.identifierPattern.pattern[:-1])
-
 class Rowfilter(procdef.ProcApp):
 	"""A generator for rows coming from a grammar.
 
@@ -182,7 +180,7 @@ class Rowfilter(procdef.ProcApp):
 	formalArgs = "row, rowIter"
 
 	def getFuncCode(self):
-		return _atPattern.sub(r'row["\1"]', (procdef.ProcApp.getFuncCode(self)))
+		return rscdef.replaceProcDefAt(procdef.ProcApp.getFuncCode(self), "row")
 
 
 def compileRowfilter(filters):

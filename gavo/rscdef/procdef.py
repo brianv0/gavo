@@ -80,7 +80,7 @@ class ProcPar(RDParameter):
 		# Allow non-python syntax when things look like macro calls.
 		if self.content_ and not "\\" in self.content_:
 			utils.ensureExpression(
-				common.replaceRMKAt(self.content_), self.key)
+				common.replaceProcDefAt(self.content_), self.key)
 
 
 class Binding(ProcPar):

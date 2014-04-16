@@ -456,13 +456,13 @@ class NamePathAttribute(base.AtomicAttribute):
 
 _atPattern = re.compile("@(%s)"%utils.identifierPattern.pattern[:-1])
 
-def replaceRMKAt(src):
-	"""replaces @<identifier> with vars["<identifier>"] in src.
+def replaceProcDefAt(src, dictName="vars"):
+	"""replaces @<identifier> with <dictName>["<identifier>"] in src.
 
 	We do this to support this shortcut in the vicinity of rowmakers (i.e.,
 	there and in procApps).
 	"""
-	return _atPattern.sub(r'vars["\1"]', src)
+	return _atPattern.sub(r'%s["\1"]'%dictName, src)
 
 
 @utils.document

@@ -59,10 +59,11 @@ class ProductDescriptor(object):
 
 	def __init__(self, pubDID, accref, accessPath, mime, 
 			owner=None, embargo=None, sourceTable=None, datalink=None,
-			preview=None):
+			preview=None, preview_mime=None):
 		self.pubDID = pubDID
 		self.accref, self.accessPath, self.mime = accref, accessPath, mime
 		self.owner, self.embargo, self.sourceTable = owner, embargo, sourceTable
+		self.preview_mime = preview_mime
 
 	@classmethod
 	def fromAccref(cls, pubDID, accref):

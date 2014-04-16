@@ -23,6 +23,7 @@ from gavo import base
 from gavo import rscdef
 from gavo import svcs
 from gavo import votable
+from gavo.helpers import testtricks
 from gavo.protocols import datalink
 from gavo.protocols import products
 from gavo.utils import fitstools
@@ -182,7 +183,8 @@ class RaccrefTest(_TestWithProductsTable):
 			'owner': 'X_test', 
 			'accref': 'data/a.imp', 
 			'datalink': None,
-			'preview': 'AUTO',
+			'preview': 'data/broken.imp',
+			'preview_mime': "text/plain",
 			'sourceTable': 'test.prodtest'})
 
 	def testPreview(self):
@@ -282,6 +284,40 @@ class _FITSTable(tresc.RDDataResource):
 	dataId = "import_fitsprod"
 
 _fitsTable = _FITSTable()
+
+
+class StaticPreviewTest(testhelpers.VerboseTest):
+
+	resources = [('conn', tresc.prodtestTable), ('users', tresc.testUsers)]
+
+	def testStaticPreviewLocal(self):
+		prod = products.getProductForRAccref("data/a.imp?preview=True")
+		self.failUnless(isinstance(prod, products.StaticPreview))
+		self.assertEqual(prod.read(200), 'kaputt.\n')
+
+	def testStaticPreviewRemote(self):
+		prod = products.getProductForRAccref("data/b.imp?preview=True")
+		self.failUnless(isinstance(prod, products.RemotePreview))
+		self.assertEqual(str(prod),
+			'<Remote image/jpeg at http://example.com/borken.jpg>')
+
+
+class AutoPreviewTest(testhelpers.VerboseTest):
+
+	resources = [('fits', _fitsTable)]
+
+	def testAutoPreviewMiss(self):
+		prod = products.getProductForRAccref("data/ex.fits?preview=True")
+		self.failUnless(isinstance(prod, products.FileProduct))
+
+	def testAutoPreviewHit(self):
+		cacheLocation = products.PreviewCacheManager.getCacheName(
+			"data/ex.fits")
+		with testtricks.testFile(os.path.basename(cacheLocation),
+				"Abc, die Katze", inDir=os.path.dirname(cacheLocation)):
+			prod = products.getProductForRAccref("data/ex.fits?preview=True")
+			self.failUnless(isinstance(prod, products.StaticPreview))
+			self.assertEqual(prod.read(200), "Abc, die Katze")
 
 
 class MangledFITSProductsTest(testhelpers.VerboseTest):

@@ -21,7 +21,8 @@ from gavo.rscdef.column import (Column, Option, Values, makeOptions,
 
 from gavo.rscdef.common import (RDAttribute, ResdirRelativeAttribute,
 	ColumnListAttribute, NamePathAttribute, ColumnList, IVOMetaMixin,
-	getStandardPubDID, getAccrefFromStandardPubDID, getInputsRelativePath)
+	getStandardPubDID, getAccrefFromStandardPubDID, getInputsRelativePath,
+	replaceProcDefAt)
 
 from gavo.rscdef.dddef import (DataDescriptor, Make,
 	SourceSpec)

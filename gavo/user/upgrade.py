@@ -27,7 +27,7 @@ from gavo import rscdesc
 from gavo import utils
 
 
-CURRENT_SCHEMAVERSION = 6
+CURRENT_SCHEMAVERSION = 7
 
 
 def showProgress(msg):
@@ -235,6 +235,12 @@ class To6Upgrader(Upgrader):
 	u_30_addDatalinkColumn = ("ALTER TABLE dc.products ADD COLUMN"
 		" datalink TEXT")
 
+class To7Upgrader(Upgrader):
+	version = 6
+
+	u_010_addPreviewMIMEColumn = ("ALTER TABLE dc.products ADD COLUMN"
+		" preview_mime TEXT")
+	
 
 def iterStatements(startVersion, endVersion=CURRENT_SCHEMAVERSION, 
 		upgraders=None):

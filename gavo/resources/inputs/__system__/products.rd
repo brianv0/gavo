@@ -38,13 +38,15 @@ machinery -->
 		<column name="preview" type="text"
 			description="Location of a preview; this can be NULL if no preview
 				is available, 'AUTO' if DaCHS is supposed to try and make its
-				own previews based on MIME guessing, dcc://rd.id/svcid for a datalink
-				service with a preview shortcut, or a file name or URL."
+				own previews based on MIME guessing, or a file name, or an URL."
 			verbLevel="40"/>
 		<column name="datalink" type="text"
 			description="RD id of the 'default' datalink service for this
 				file; this is to allow the global datalink service (sitting on the ~
 				resource and used by obscore) forward datalink requests globally."
+			verbLevel="40"/>
+		<column name="preview_mime" type="text"
+			description="MIME type of a previw (if any)"
 			verbLevel="40"/>
 	</table>
 
@@ -64,6 +66,7 @@ machinery -->
 		<map dest="sourceTable" src="prodtblTable"/>
 		<map dest="mime" src="prodtblMime"/>
 		<map dest="preview" src="prodtblPreview"/>
+		<map dest="preview_mime" src="prodtblPreviewMime"/>
 		<map dest="datalink" src="prodtblDatalink"/>
 	</rowmaker>
 
@@ -127,6 +130,8 @@ machinery -->
 				dcc://rd.id/svcid id of a preview-enabled datalink service, None
 				to disable previews, or 'AUTO' to make DaCHS guess."
 				>'AUTO'</par>
+			<par late="True" key="preview_mime" 
+				description="MIME-type for the preview (if there is one).">None</par>
 			<par key="datalink" description="id of a datalink service that
 				understands this file's pubDID.">None</par>
 		</setup>
@@ -142,6 +147,7 @@ machinery -->
 			row["prodtblTable"] = table
 			row["prodtblMime"] = mime
 			row["prodtblPreview"] = preview
+			row["prodtblPreviewMime"] = preview_mime
 			row["prodtblDatalink"] = datalink
 			yield row
 		</code>

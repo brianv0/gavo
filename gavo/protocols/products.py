@@ -32,6 +32,7 @@ in the forseeable future.
 
 from __future__ import with_statement
 
+import base64
 import cgi
 import datetime
 import re
@@ -45,6 +46,7 @@ from cStringIO import StringIO
 import numpy
 from nevow import inevow
 from nevow import static
+from twisted.internet import defer
 from twisted.internet import threads
 from zope.interface import implements
 
@@ -63,6 +65,7 @@ from gavo.utils import pyfits
 
 MS = base.makeStruct
 
+REMOTE_URL_PATTERN = re.compile("(https?|ftp)://")
 
 @utils.memoized
 def getProductsTable():
@@ -75,6 +78,70 @@ def getProductsTable():
 	td = base.caches.getRD("//products").getById("products")
 	conn = base.getDBConnection("admin", autocommitted=True)
 	return rsc.TableForDef(td, connection=conn)
+
+
+class PreviewCacheManager(object):
+	"""is a class that manages the preview cache.
+
+	It's really the class that manages it, so don't bother creating instances.
+
+	The normal operation is that you pass the accref of the file you want a
+	preview for and optionally a preview generating function to getPreviewFor.
+	If a cached preview already exists, you get back its content (the mime
+	type must be taken from the products table).
+
+	If the file does not exist yes, and a generating function has been passed,
+	the generating function is called with the accref, and whatever data is
+	returned  from it is written.  Any failures while writing the preview are
+	ignored, so we should be able to run cacheless. Errors during preview
+	generation not caught.
+
+	If not generating function has been passed and no cache exists,
+	you'll get a CacheMiss exception (which is derived from NotFoundError).
+
+	A cache file is touched when it is used, so you can clean up rarely used
+	cache files by deleting all files in the preview cache older than some 
+	limit.
+	"""
+	cachePath = base.getConfig("web", "previewCache")
+
+	@classmethod
+	def getCacheName(cls, accref):
+		"""returns the full path a preview for accref is be stored under.
+		"""
+		return os.path.join(cls.cachePath, base64.b64encode(accref, "$!"))
+
+	@classmethod
+	def getCachedPreviewPath(cls, accref):
+		"""returns the path to a cached preview if it exists, None otherwise.
+		"""
+		cacheName = cls.getCacheName(accref)
+		if os.path.exists(cacheName):
+			return cacheName
+		return None
+
+	@classmethod
+	def getPreviewFor(cls, accref, previewMaker):
+		"""returns a deferred firing the data for a preview.
+
+		If previewMaker is given, it will be used to generate a preview
+		via deferToThread.
+		"""
+		cacheName = cls.getCacheName(accref)
+		if os.path.exists(cacheName):
+			# Cache hit
+			try:
+				os.utime(cacheName, None)
+			except os.error:
+				pass   # don't fail just because we can't touch
+
+			with open(cacheName) as f:
+				return defer.succeed(f.read())
+
+		else:
+			# Cache miss
+			return threads.deferToThread(previewMaker, accref)
+
 
 
 class ProductBase(object):
@@ -258,6 +325,85 @@ class FileProduct(ProductBase):
 FileProduct.hasRealFile(FileProduct._openUnderlyingFile)
 
 
+class StaticPreview(FileProduct):
+	"""A product that's a cached or pre-computed preview.
+	"""
+
+	@classmethod
+	def fromRAccref(cls, rAccref, grammar=None):
+		if not rAccref.params.get("preview"):
+			return None
+		# no static previews on cutouts
+		if rAccref.params.get("sra"):
+			return None
+
+		previewPath = rAccref.productsRow["preview"]
+		localName = None
+
+		if previewPath is None:
+			return None
+
+		elif previewPath=="AUTO":
+			localName = PreviewCacheManager.getCachedPreviewPath(rAccref.accref)
+
+		else:
+			# remote URLs can't happen here as RemotePreview is checked
+			# before us.
+			localName = os.path.join(base.getConfig("inputsDir"), previewPath)
+
+		if localName is None:
+			return None
+		elif os.path.exists(localName):
+			rAccref.productsRow["accessPath"] = localName
+			rAccref.productsRow["mime"] = rAccref.productsRow["preview_mime"
+				] or "image/jpeg"
+			return cls(rAccref)
+
+
+class RemoteProduct(ProductBase):
+	"""A class for products at remote sites, given by their URL.
+	"""
+	def _makeName(self):
+		self.name = urlparse.urlparse(self.pr["accessPath"]
+			).path.split("/")[-1] or "file"
+
+	def __str__(self):
+		return "<Remote %s at %s>"%(self.pr["mime"], self.pr["accessPath"])
+	
+	@classmethod
+	def fromRAccref(cls, rAccref, grammar=None):
+		if REMOTE_URL_PATTERN.match(rAccref.productsRow["accessPath"]):
+			return cls(rAccref)
+
+	def iterData(self):
+		f = urllib.urlopen(self.pr["accessPath"])
+		while True:
+			data = f.read(self.chunkSize)
+			if data=="":
+				break
+			yield data
+
+	def renderHTTP(self, ctx):
+		raise svcs.WebRedirect(self.pr["accessPath"])
+
+
+class RemotePreview(RemoteProduct):
+	"""A preview that's on a remote server.
+	"""
+	@classmethod
+	def fromRAccref(cls, rAccref, grammar=None):
+		if not rAccref.params.get("preview"):
+			return None
+		# no static previews on cutouts
+		if rAccref.params.get("sra"):
+			return None
+		
+		if REMOTE_URL_PATTERN.match(rAccref.productsRow["preview"]):
+			rAccref.productsRow["accessPath"] = rAccref.productsRow["preview"]
+			rAccref.productsRow["mime"] = rAccref.productsRow["preview_mime"]
+			return cls(rAccref)
+
+
 class UnauthorizedProduct(FileProduct):
 	"""A local file that is not delivered to the current client. 
 
@@ -354,35 +500,6 @@ class InvalidProduct(NonExistingProduct):
 	
 	def iterData(self):
 		raise IOError("%s is invalid"%self.rAccref)
-
-
-class RemoteProduct(ProductBase):
-	"""A class for products at remote sites, given by their URL.
-	"""
-	def _makeName(self):
-		self.name = urlparse.urlparse(self.pr["accessPath"]
-			).path.split("/")[-1] or "file"
-
-	def __str__(self):
-		return "<Remote %s at %s>"%(self.pr["mime"], self.pr["accessPath"])
-	
-	_schemePat = re.compile("(https?|ftp)://")
-
-	@classmethod
-	def fromRAccref(cls, rAccref, grammar=None):
-		if cls._schemePat.match(rAccref.productsRow["accessPath"]):
-			return cls(rAccref)
-
-	def iterData(self):
-		f = urllib.urlopen(self.pr["accessPath"])
-		while True:
-			data = f.read(self.chunkSize)
-			if data=="":
-				break
-			yield data
-
-	def renderHTTP(self, ctx):
-		raise svcs.WebRedirect(self.pr["accessPath"])
 
 
 class CutoutProduct(ProductBase):
@@ -568,6 +685,8 @@ class DCCProduct(ProductBase):
 # Each product is asked in turn, and the first that matches wins.
 # So, ORDER IS ALL-IMPORTANT here.
 PRODUCT_CLASSES = [
+	RemotePreview,
+	StaticPreview,
 	NonExistingProduct,
 	UnauthorizedProduct,
 	RemoteProduct,

@@ -307,11 +307,24 @@
 		<sources><pattern>data/*.imp</pattern>
 			<ignoreSources fromdb="select accref from test.prodtest"/></sources>
 		<keyValueGrammar id="pi-gram">
+			<rowfilter name="make_preview_paths">
+				<code>
+					if row["object"]=='gabriel':
+						row["preview"] = 'data/broken.imp'
+						row["preview_mime"] = 'text/plain'
+					elif row["object"]=='michael':
+						row["preview"] = 'http://example.com/borken.jpg'
+						row["preview_mime"] = 'image/jpeg'
+					yield row
+				</code>
+			</rowfilter>
 			<rowfilter procDef="//products#define">
         <bind key="owner">"X_test"</bind>
         <bind key="embargo">row["embargo"]</bind>
         <bind key="table">"test.prodtest"</bind>
         <bind key="mime">"text/plain"</bind>
+        <bind key="preview">@preview</bind>
+        <bind key="preview_mime">@preview_mime</bind>
 			</rowfilter>
 		</keyValueGrammar>
 		<rowmaker id="pi_rmk" original="prodrowbase">

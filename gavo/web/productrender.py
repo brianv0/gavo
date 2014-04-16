@@ -49,7 +49,10 @@ errorPng = ('iVBORw0KGgoAAAANSUhEUgAAAGQAAAAUAQMAAABBDgrWAAAABlBMVEUAAAD///+'
 
 
 class PreviewCacheManager(object):
-	"""is a class that manages the preview cache.
+	"""ON THE WAY OUT.
+
+	Make the renderer below use the protocols.products.PreviewCacheManager
+	and then delete this.
 
 	It's really the class that manages it, so don't bother creating instances.
 

@@ -72,8 +72,8 @@ class XSDTestMixin(object):
 
 
 @contextlib.contextmanager
-def testFile(name, content, writeGz=False):
-	"""a context manager that creates a file name with content in tempDir.
+def testFile(name, content, writeGz=False, inDir=base.getConfig("tempDir")):
+	"""a context manager that creates a file name with content in inDir.
 
 	The full path name is returned.
 
@@ -84,10 +84,10 @@ def testFile(name, content, writeGz=False):
 	about the name.
 	"""
 	if name is None:
-		handle, destName = tempfile.mkstemp(dir=base.getConfig("tempDir"))
+		handle, destName = tempfile.mkstemp(dir=inDir)
 		os.close(handle)
 	else:
-		destName = os.path.join(base.getConfig("tempDir"), name)
+		destName = os.path.join(inDir, name)
 
 	if writeGz:
 		f = gzip.GzipFile(destName, mode="wb")

@@ -115,7 +115,7 @@ class MappedExpression(base.Structure):
 			utils.ensureExpression(self.nullExpr)
 
 		if self.content_:
-			utils.ensureExpression(common.replaceRMKAt(self.content_), self.name_)
+			utils.ensureExpression(common.replaceProcDefAt(self.content_), self.name_)
 
 		if self.nullExcs is not base.NotGiven:
 			utils.ensureExpression(self.nullExcs, "%s.nullExcs"%(self.name_))
@@ -218,7 +218,7 @@ class ApplyDef(procdef.ProcApp):
 	formalArgs = "vars, result, targetTable"
 	
 	def getFuncCode(self):
-		return common.replaceRMKAt(procdef.ProcApp.getFuncCode(self))
+		return common.replaceProcDefAt(procdef.ProcApp.getFuncCode(self))
 
 
 class RowmakerMacroMixin(base.StandardMacroMixin):
@@ -470,7 +470,7 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		rmk = self._buildForTable(tableDef)
 		source, lineMap = rmk._getSource(tableDef)
 		globals = rmk._getGlobals(tableDef)
-		return Rowmaker(common.replaceRMKAt(source), 
+		return Rowmaker(common.replaceProcDefAt(source), 
 			self.id, globals, tableDef.getDefaults(), lineMap)
 
 	def compileForTableDef(self, tableDef):
