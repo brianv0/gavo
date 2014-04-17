@@ -38,7 +38,11 @@ def safeReplaced(fName):
 	When there are errors, however, the old content remains.
 	"""
 	targetDir = os.path.abspath(os.path.dirname(fName))
-	oldMode = os.stat(fName)[0]
+	try:
+		oldMode = os.stat(fName)[0]
+	except os.error:
+		oldMode = None
+
 	handle, tempName = tempfile.mkstemp(".temp", "", dir=targetDir)
 	targetFile = os.fdopen(handle, "w")
 
@@ -54,10 +58,11 @@ def safeReplaced(fName):
 	else:
 		safeclose(targetFile)
 		os.rename(tempName, fName)
-		try:
-			os.chmod(fName, oldMode)
-		except os.error:
-			pass
+		if oldMode is not None:
+			try:
+				os.chmod(fName, oldMode)
+			except os.error:
+				pass
 
 
 class _UrlopenRemotePasswordMgr(urllib2.HTTPPasswordMgr):

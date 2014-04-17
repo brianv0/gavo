@@ -12,6 +12,7 @@ Maybe we should allow additional modules to be specified in gavorc?
 #c COPYING file in the source distribution.
 
 
+import base64
 import datetime
 import math
 import os
@@ -165,6 +166,7 @@ def toMJD(literal):
 		return literal-stc.JD_MJD
 	else:
 		return literal
+
 
 @utils.document
 def makeTimestamp(date, time):
@@ -338,6 +340,16 @@ def genLimitKeys(inputKey):
 	yield inputKey.change(name=name+"_MAX", 
 		ucd=ucd and "par.max;"+ucd,
 		description=description.rstrip(".")+", upper limit")
+
+
+@utils.document
+def getFlatName(accref):
+	"""returns a unix-compatible file name for an access reference.
+
+	The file name will not contain terrible characters, let alone
+	slashes.  This is used to, e.g., keep all previews in one directory.
+	"""
+	return base64.b64encode(accref, "$!")
 
 
 def addProcDefObject(name, func):

@@ -13,15 +13,25 @@ a good idea to use the event mechanism here.
 
 from __future__ import with_statement
 
+from cStringIO import StringIO
 import os
 import shutil
 import sys
 import textwrap
 
+import matplotlib
+matplotlib.use("Agg")
+from matplotlib import pyplot
+
+import Image
+
 from gavo import base
+from gavo import rsc
+from gavo import rscdef
 from gavo import utils
 from gavo.helpers import anet
 from gavo.helpers import fitstricks
+from gavo.protocols import products
 from gavo.utils import fitstools
 from gavo.utils import pyfits
 
@@ -403,6 +413,65 @@ class AnetHeaderProcessor(HeaderProcessor):
 	def historyFilter(self, value):
 		return ("suite" in value or
 			"blind" in value)
+
+
+class PreviewMaker(FileProcessor):
+	def _createAuxillaries(self, dd):
+		self.previewDir = dd.rd.getAbsPath(
+			dd.getProperty("previewDir"))
+		if not os.path.isdir(self.previewDir):
+			os.makedirs(self.previewDir)
+		self.sdmDD = self.dd.rd.getById("build_sdm_data")
+
+	def getPreviewPath(self, srcName):
+		return os.path.join(self.previewDir,
+			rscdef.getFlatName(self.getProductKey(srcName)))
+
+	def classify(self, srcName):
+		if os.path.exists(self.getPreviewPath(srcName)):
+			return "with"
+		else:
+			return "without"
+	
+	def process(self, srcName):
+		if self.classify(srcName)=="with":
+			return
+		with utils.safeReplaced(self.getPreviewPath(srcName)) as f:
+			f.write(self.getPreviewData(srcName))
+
+
+class SpectralPreviewMaker(PreviewMaker):
+	def _createAuxillaries(self, dd):
+		PreviewMaker._createAuxillaries(self, dd)
+		self.sdmDD = self.dd.rd.getById("build_sdm_data")
+
+	def getPreviewData(self, srcName):
+		table = rsc.makeData(self.sdmDD, forceSource={
+			"accref": self.getProductKey(srcName)}).getPrimaryTable()
+		data = [(r["spectral"], r["flux"]) for r in table.rows]
+		data.sort()
+
+		fig = pyplot.figure(figsize=(4,2))
+		ax = fig.add_axes([0,0,1,1], frameon=False)
+		ax.semilogy(
+			[r[0] for r in data], 
+			[r[1] for r in data],
+			color="black")
+		ax.xaxis.set_major_locator(matplotlib.ticker.NullLocator())
+		ax.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
+		ax.yaxis.set_minor_locator(matplotlib.ticker.NullLocator())
+
+		rendered = StringIO()
+		pyplot.savefig(rendered, format="png", dpi=50)
+		pyplot.close()
+
+		rendered = StringIO(rendered.getvalue())
+		im = Image.open(rendered)
+		im = im.convert("L")
+		im = im.convert("P", palette=Image.ADAPTIVE, colors=8)
+		compressed = StringIO()
+		im.save(compressed, format="png", bits=3)
+		return compressed.getvalue()
 
 
 def procmain(processorClass, rdId, ddId):

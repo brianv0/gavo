@@ -35,7 +35,8 @@ from gavo.rscdef.procdef import ProcDef, ProcApp
 
 from gavo.rscdef.rmkdef import RowmakerDef, ParmakerDef, MapRule
 
-from gavo.rscdef.rmkfuncs import addProcDefObject, IgnoreThisRow
+from gavo.rscdef.rmkfuncs import (addProcDefObject, IgnoreThisRow,
+	getFlatName)
 
 from gavo.rscdef.rowtriggers import IgnoreOn, TriggerPulled
 

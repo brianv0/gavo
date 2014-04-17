@@ -32,7 +32,6 @@ in the forseeable future.
 
 from __future__ import with_statement
 
-import base64
 import cgi
 import datetime
 import re
@@ -109,7 +108,7 @@ class PreviewCacheManager(object):
 	def getCacheName(cls, accref):
 		"""returns the full path a preview for accref is be stored under.
 		"""
-		return os.path.join(cls.cachePath, base64.b64encode(accref, "$!"))
+		return os.path.join(cls.cachePath, rscdef.getFlatName(accref))
 
 	@classmethod
 	def getCachedPreviewPath(cls, accref):
@@ -141,7 +140,6 @@ class PreviewCacheManager(object):
 		else:
 			# Cache miss
 			return threads.deferToThread(previewMaker, accref)
-
 
 
 class ProductBase(object):
@@ -318,7 +316,7 @@ class FileProduct(ProductBase):
 		# we set the type manually to avoid having different mime types
 		# by our and nevow's estimate.  This forces us to clamp encoding
 		# to None now.  I *guess* we should do something about .gz and .bz2
-		res.type = self.pr["mime"]
+		res.type = str(self.pr["mime"])
 		res.encoding = None
 		return res
 
@@ -328,7 +326,7 @@ FileProduct.hasRealFile(FileProduct._openUnderlyingFile)
 class StaticPreview(FileProduct):
 	"""A product that's a cached or pre-computed preview.
 	"""
-
+	
 	@classmethod
 	def fromRAccref(cls, rAccref, grammar=None):
 		if not rAccref.params.get("preview"):

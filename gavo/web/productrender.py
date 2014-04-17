@@ -224,7 +224,9 @@ class ProductRenderer(grend.ServiceBasedPage):
 		rsc = result.original.getPrimaryTable().rows[0]['source']
 		request = inevow.IRequest(ctx)
 
-		if doPreview:
+		# TODO: figure out a good way to see whether what we've got already is a
+		# preview.
+		if doPreview and not "Preview" in rsc.__class__.__name__:
 			res = makePreviewFromProduct(rsc, request)
 			return res
 

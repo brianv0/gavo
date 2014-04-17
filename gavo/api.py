@@ -35,9 +35,8 @@ from gavo.formats.votablewrite import (writeAsVOTable, getAsVOTable,
 from gavo.rsc import (TableForDef, DBTable, makeData, parseValidating,
 	parseNonValidating, getParseOptions, Data)
 
-from gavo.rscdef import TableDef
+from gavo.rscdef import TableDef, getFlatName
 
 from gavo.user.logui import LoggingUI
 
 from gavo.votable import VOTableError, ADQLTAPJob
-

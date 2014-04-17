@@ -513,6 +513,12 @@ class GrammarMacroMixin(base.StandardMacroMixin):
 		"""
 		return ",".join(c.name for c in self.rd.getById(tableRef))
 
+	def macro_property(self, property):
+		"""returns the value of property on the parent DD.
+		"""
+		return self.parent.getProperty(property)
+
+
 
 class Grammar(base.Structure, GrammarMacroMixin):
 	"""An abstract grammar.
