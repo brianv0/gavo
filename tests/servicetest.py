@@ -460,6 +460,10 @@ class InputFieldSelectionTest(testhelpers.VerboseTest):
 				('SR', 'real'), ('MAXREC', 'integer'),
 				("mag", "pql-float"), (u'rV', u'vexpr-float')])
 
+	def testSSAPPrune(self):
+		svc = base.caches.getRD("data/ssatest").getById("d")
+		self.failIf("FORMAT" in
+			[k.name for k in svc.getInputKeysFor("ssap.xml")])
 
 
 class GroupingTest(testhelpers.VerboseTest):

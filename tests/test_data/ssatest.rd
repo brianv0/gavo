@@ -187,4 +187,12 @@
 		<property name="datalink">dl</property>
 		<property name="returnData"/>
 	</service>
+
+	<service id="d">
+		<ssapCore queriedTable="hcdtest">
+			<FEED source="//ssap#hcd_condDescs">
+				<PRUNE id="formatCond"/>
+			</FEED>
+		</ssapCore>
+	</service>
 </resource>

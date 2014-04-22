@@ -427,6 +427,8 @@ _config = Configuration(
 		ListConfigItem("preloadRDs", "", "RD ids to preload at the server"
 			" start (this is mainly for RDs that have execute children"
 			" that should run regularly)."),
+		BooleanConfigItem("jsSource", "False", "Set to true to serve"
+			" out locally developed javascript un-minified (for debugging it)"),
 	),
 
 	Section('adql', "Settings concerning the built-in ADQL core",

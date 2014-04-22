@@ -132,6 +132,12 @@ class doctypedStan(loaders.stan):
 			rootEl(xmlns="http://www.w3.org/1999/xhtml")], pattern)
 
 
+if base.getConfig("web", "jsSource"):
+	JSEXT = ".src.js"
+else:
+	JSEXT = ".js"
+
+
 class CommonRenderers(object):
 	"""A base for renderer (python) mixins within the DC.
 
@@ -168,8 +174,8 @@ class CommonRenderers(object):
 			T.script(src=base.makeSitePath("/static/js/jquery-gavo.js"), 
 				type="text/javascript"),
 			T.script(type='text/javascript', src=base.makeSitePath(
-				'/formal.js')),
-			T.script(src=base.makeSitePath("/static/js/gavo.js"),
+				'static/js/formal'+JSEXT)),
+			T.script(src=base.makeSitePath("/static/js/gavo"+JSEXT),
 				type="text/javascript"),
 			originalChildren,
 		]

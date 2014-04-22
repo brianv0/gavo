@@ -41,12 +41,6 @@ class ItemNotFound(base.Error):
 # TODO: make this configurable -- globally?  by service?
 PREVIEW_SIZE = 200
 
-errorPng = ('iVBORw0KGgoAAAANSUhEUgAAAGQAAAAUAQMAAABBDgrWAAAABlBMVEUAAAD///+'
-	'l2Z/dAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH2AoYCBM7M1OqPQAAAAh0RVh0Q29tb'
-	'WVudAD2zJa/AAAAa0lEQVQY02P4jwQ+MFDA+1f//7/8c3kQ7489iPev/vl8MG/+f4g0hDfhsUr'
-	'F3T8Sx+dMeAzkTT6pVhT6ry59zuSTQJ7xwXUFjv8qgLyDQN7n833Fj/8VAXnnQbyHHRLZ/woYj'
-	'wg/pMidxPEAITLlun9HY4kAAAAASUVORK5CYII=').decode("base64")
-
 
 class PreviewCacheManager(object):
 	"""ON THE WAY OUT.
@@ -191,9 +185,9 @@ def deliverJpeg(data, request):
 
 def deliverFailPreview(failure, request):
 	failure.printTraceback()
-	data = errorPng
+	data = "Not an image (preview generation failed, please report)"
 	request.setResponseCode(500)
-	request.setHeader("content-type", "image/png")
+	request.setHeader("content-type", "text/plain")
 	request.setHeader("content-length", str(len(data)))
 	request.write(data)
 	return ""

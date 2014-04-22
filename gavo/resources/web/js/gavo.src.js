@@ -75,48 +75,6 @@ function htmlEscape(str) {
 
 
 
-///////////// Code handling previews
-
-function insertPreviewURL(node, previewHref) {
-// replaces the text content of node with a preview image pointed to
-// by previewHref (for products).
-	node.removeAttribute("onmouseover");
-	node.attributes["class"].nodeValue += " busy";
-	var image = document.createElement("img")
-	image.setAttribute("src", previewHref);
-
-	function checkFinished(self, nextCheck) {
-		if (image.complete) {
-			if (image.height>0) { // make sure there's an image (if mozilla).
-				node.replaceChild(image, node.firstChild);
-			} else { // load of preview image failed; could be ok for non-images.
-				node.style.textDecoration = 'underline';
-			}
-			node.attributes["class"].nodeValue = 
-				node.attributes["class"].nodeValue.slice(0, -5);
-		} else {
-			window.setTimeout(function() {self(self, nextCheck*1.1);}, nextCheck);
-		}
-	}
-
-	checkFinished(checkFinished, 100);
-}
-
-function insertPreview(node, width) {
-// replaces the text content of node with a DC-generated preview
-// image.  node has to have a href attribute pointing to a DC
-// FITS product for this to work.
-	if (node.getAttribute("href")) {
-		var oldHref = node.getAttribute("href");
-		var newPars = "preview=True&width="+width;
-		var joiner = "?";
-		// TODO: do actual URL parsing here
-		if (oldHref.indexOf("?")!=-1) { // assume we have a query
-			joiner = "&";
-		}
-		insertPreviewURL(node, oldHref+joiner+newPars);
-	}
-}
 
 ///////////// Code for generating GET-URLs for forms
 
@@ -678,3 +636,37 @@ function openVOPlot() {
 		'/__system__/run/voplot/fixed?source='+encodeURIComponent(votURL),
 		"_self");
 }
+
+
+function insertPreview(node, width) {
+// replaces the text content of node with a DC-generated preview
+// image.  node has to have a href attribute pointing to a DC
+// FITS product for this to work (width is ignored these days).
+	if (!node.getAttribute("href")) {
+		return;
+	}
+	var oldHref = node.getAttribute("href");
+	var newPars = "preview=True&width="+width;
+	var joiner = "?";
+	// TODO: do actual URL parsing here
+	if (oldHref.indexOf("?")!=-1) { // assume we have a query
+		joiner = "&";
+	}
+
+	node.removeAttribute("onmouseover");
+	$(node).addClass("busy");
+
+	var previewURL = oldHref+joiner+newPars;
+	var img = $("<img/>").attr("src", previewURL
+		).attr("alt", "[preview image]");
+
+	img.bind("load", function() {
+		node.replaceChild(img[0], node.firstChild);
+		$(node).removeClass("busy");
+	});
+	// TODO: use "complete" here when we've updated jquery
+	img.bind("error", function() {
+		$(node).removeClass("busy");
+	});
+}
+

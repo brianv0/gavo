@@ -769,7 +769,7 @@
 		<condDesc id="formatCond">
 			<inputKey original="//ssap#instance.mime" name="FORMAT" type="text"
 				std="True" multiplicity="single"/>
-			<phraseMaker>
+			<phraseMaker id="makeFormatPhrase">
 				<setup>
 					<par name="compliantFormats">frozenset([
 						"application/x-votable+xml"])</par>
