@@ -238,7 +238,7 @@ Datalink-related Streams
 .. replaceWithResult getStreamsDoc(
     ['//datalink#'+id for id in ["sdm_plainfluxcalib", "sdm_cutout",
       "sdm_format", "fits_genKindPar", "fits_genPixelPar",
-      "fits_standardDLFuncs", fits_standardLambdaCutout]])
+      "fits_standardDLFuncs", "fits_standardLambdaCutout"]])
 
 Other Streams
 '''''''''''''
@@ -1067,7 +1067,7 @@ Here are some hints on development:
 
 1) Give the test you're just developing an id; at the GAVO DC, we're
    usually using cur; that way, we run variations of 
-   ``gavo test rdId#cur`, and only the test in question is run.
+   ``gavo test rdId#cur``, and only the test in question is run.
 2) After defining the url, just put an ``assert False`` into the test
    code.  Then run ``gavo test -Devidence.xml rdId#cur`` or similar.
    Then investigate ``evidence.xml`` (possibly after piping through
@@ -1431,6 +1431,7 @@ you could, for example, snarf from a tcpdump log.
 .. _regSuite: #element-regsuite
 .. _regTest: #element-regtest
 .. _url element: #element-url
+
 
 
 
@@ -1947,17 +1948,17 @@ Thus, a descriptor generator could look like this::
           ...
       </code>
     </setup>
-		<code>
-			with base.getTableConn() as conn:
-				matchingRows = list(conn.queryToDicts(
-				  "select physPath from schema.myTable where pub_did=%(pubDID)s",
-				  locals()))
-				if not matchingRows:
-					return DatalinkError.NotFoundError(pubDID,
-						"No dataset with this pubDID known here")
-				return MyCustomDescriptor.fromFile(matchingRows[0]["physPath"])
-		</code>
-	</descriptorGenerator>
+    <code>
+      with base.getTableConn() as conn:
+        matchingRows = list(conn.queryToDicts(
+          "select physPath from schema.myTable where pub_did=%(pubDID)s",
+          locals()))
+        if not matchingRows:
+          return DatalinkError.NotFoundError(pubDID,
+            "No dataset with this pubDID known here")
+        return MyCustomDescriptor.fromFile(matchingRows[0]["physPath"])
+    </code>
+  </descriptorGenerator>
 
 
 
@@ -2130,17 +2131,17 @@ is to precompute datalink URLs in the embedding table and then pass
 that column to obscore.  This entails defining a suitable column, which
 could look like this::
 
-	<column name="dlurl" type="text"
-		ucd="meta.ref.url"
-		tablehead="DL"
-		description="URL of a datalink document for this dataset"
-		verbLevel="1" displayHint="type=url"/>
+  <column name="dlurl" type="text"
+    ucd="meta.ref.url"
+    tablehead="DL"
+    description="URL of a datalink document for this dataset"
+    verbLevel="1" displayHint="type=url"/>
 
 Then fill this column in the rowmaker::
 
-	<var key="obs_id">\standardPubDID</var>
-		<map key="dlurl">makeAbsoluteURL(
-  		"\rdId/*dl*/dlmeta?ID="+urllib.quote(@obs_id))</map>
+  <var key="obs_id">\standardPubDID</var>
+    <map key="dlurl">makeAbsoluteURL(
+      "\rdId/*dl*/dlmeta?ID="+urllib.quote(@obs_id))</map>
 
 – you'll need to change ``*dl*`` to the id of your datalink service.
 It is true that this stores quite a bit of stuff in the database that
@@ -2151,9 +2152,9 @@ said that, it wouldn't be too hard to build these URLs in the obscore
 mixin.  With these column, however, you can just state::
 
   <mixin
-		accessURL="dlurl"
-		size="10"
-		mime="'application/x-votable+xml;content=datalink'"
+    accessURL="dlurl"
+    size="10"
+    mime="'application/x-votable+xml;content=datalink'"
     ... (all the other stuff) ...
     >//obscore#publish</mixin>
 
@@ -2315,6 +2316,101 @@ The ``parmaker`` with the ``//ssap#feedSSAToSDM`` call is generic.  You
 will in general have to write custom code for the embedded grammar; just
 yield rows matching the instance table.
 
+
+Product Previews
+================
+
+DaCHS has built-in machinery to generate previews from normal, 2D FITS
+and JPEG files, where these are versions of the original dataset scaled
+to be about 200 pixels in width, delivered as JPEG files.  These
+previews are shown on mousing over product links in the web interface,
+and they turn up as preview links in datalink interfaces.  This
+also generates previews for cutouts.
+
+For any other sort of data, DaCHS does not automatically generate
+previews.  To still provide previews – which is highly recommended –
+there is a framework allowing you to compute and serve out custom
+previews.  This is based on the ``preview`` and ``preview_mime`` columns
+which are usually set using parameters in ``//products#define``.
+
+You could use external previews by having http (or ftp) URLs, which
+could look like this::
+
+  <rowfilter procDef="//products#define">
+    ...
+    <bind key="preview">("http://example.org/previews/"
+      +"/".join(\inputRelativePath.split("/")[2:]))</bind>
+    <bind key="preview_mime">"image/png"/bind>
+  </rowfilter>
+
+(this assumes takes away to path elements from the relative paths, which
+typically reproduces an external hierachy).  If you need to do more
+complex manipulations, you can have a custom rowfilter, maybe like
+this if you have both FITS files (for which you want DaCHS' default
+behaviour selected with ``AUTO``) and ``.complex`` files with some
+external preview::
+
+  <rowfilter name="make_preview_paths">
+    <code>
+      srcName = os.path.basename(rowIter.sourceToken)
+      if srcName.endswith(".fits"):
+        row["preview"] = 'AUTO'
+        row["preview_mime"] = None
+      else:
+        row["preview"] = ('http://example.com/previews'
+          +os.path.splitext(srcName)[0]+"-preview.jpeg")
+        row["preview_mime"] = 'image/jpeg'
+      yield row
+    </code>
+  </rowfilter>
+  <rowfilter procDef="//products#define">
+    ...
+    <bind key="preview">@preview</bind>
+    <bind key="preview_mime">@preview_mime</bind>
+  </rowfilter>
+
+More commonly, however, you'll have local previews.  If they already
+exist, use a static renderer and enter full local URLs as above.
+
+If you don't have pre-computed previews, let DaCHS handle them for you.
+You need to do three things:
+
+a) define where the preview files are.  This happens via a
+   ``previewDir`` property on the importing data descriptor, like this::
+
+    <data id="import">
+      <property key="previewDir">previews</property>
+      ...
+b) say that the previews are standard DaCHS generated in the
+   ``//products#define`` rowfilter.  The main thing you have to
+   decide here is the MIME type of the previews you're generating
+   (i.e., use the ``standardPreviewPath`` macro unless you know what
+   you are doing)::
+
+      <rowfilter procDef="//products#define">
+        <bind name="table">"\schema.data"</bind>
+        <bind name="mime">"image/fits"</bind>
+        <bind name="preview_mime">"image/png"</bind>
+        <bind name="preview">\standardPreviewPath</bind>
+      </rowfilter>
+    
+   
+c) actually compute the previews.  This is usually not defined in the RD
+   but rather using DaCHS' processing framework. `Precomputing
+   previews`_ in the processor documentation covers this in more detail;
+   the upshot is taht this can be as simple as::
+
+     from gavo.helpers import processing
+
+     class PreviewMaker(processing.SpectralPreviewMaker):
+       sdmId = "build_sdm_data"
+
+     if __name__=="__main__":
+       processing.procmain(PreviewMaker, "flashheros/q", "import")
+
+
+
+.. _precomputing previews: http://docs.g-vo.org/DaCHS/processors.html#precomputing-previews
 
 
 Writing Custom Cores
