@@ -171,6 +171,7 @@ class ProductsSkippingTest(RowsetTest):
 				[(u'data/a.imp',), (u'data/b.imp',)])
 		finally:
 			data.dropTables(parseOptions)
+			self.conn.commit()
 
 	def testImportWithSkipBehavesKeepGoing(self):
 		self._testImportWithSkipBehavesConsistently(rsc.parseValidating.change(

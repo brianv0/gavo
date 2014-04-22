@@ -715,8 +715,6 @@ type
 noxml
   if 'true' (exactly like this), do not include this column in VOTables.
 
-width
-  preview width in pixels.
 
 Note that not any combination of display hints is correctly
 interpreted.  The interpretation is greedy, and only one formatter at a

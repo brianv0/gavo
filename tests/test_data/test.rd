@@ -319,12 +319,12 @@
 				</code>
 			</rowfilter>
 			<rowfilter procDef="//products#define">
-        <bind key="owner">"X_test"</bind>
-        <bind key="embargo">row["embargo"]</bind>
-        <bind key="table">"test.prodtest"</bind>
-        <bind key="mime">"text/plain"</bind>
-        <bind key="preview">@preview</bind>
-        <bind key="preview_mime">@preview_mime</bind>
+				<bind key="owner">"X_test"</bind>
+				<bind key="embargo">row["embargo"]</bind>
+				<bind key="table">"test.prodtest"</bind>
+				<bind key="mime">"text/plain"</bind>
+				<bind key="preview">@preview</bind>
+				<bind key="preview_mime">@preview_mime</bind>
 			</rowfilter>
 		</keyValueGrammar>
 		<rowmaker id="pi_rmk" original="prodrowbase">
@@ -333,13 +333,16 @@
 	</data>
 
 	<data id="productimport-skip">
+		<property key="previewDir">prefoo</property>
 		<sources><pattern>data/[ab].imp</pattern></sources>
 		<keyValueGrammar>
 			<rowfilter procDef="//products#define">
-     		<bind key="table">"test.prodskip"</bind>
-     	</rowfilter>
+		 		<bind key="table">"test.prodskip"</bind>
+		 		<bind key="preview">\standardPreviewPath</bind>
+		 		<bind key="preview_mime">"image/png"</bind>
+		 	</rowfilter>
 		</keyValueGrammar>
-		<make>
+		<make role="primary">
 			<table id="prodskip" onDisk="True" mixin="//products#table">
 				<column name="object" type="text"/>
 			</table>
@@ -354,7 +357,7 @@
 		<sources><pattern>data/*.imp</pattern></sources>
 		<keyValueGrammar>
 			<rowfilter procDef="//products#define">
-        <bind key="table">"test.prodtest"</bind>
+				<bind key="table">"test.prodtest"</bind>
 			</rowfilter>
 		</keyValueGrammar>
 		<make table="prodtest">
@@ -366,7 +369,7 @@
 		<sources pattern="data/*.fits"/>
 		<fitsProdGrammar>
 			<rowfilter procDef="//products#define">
-        <bind key="table">"test.prodtest"</bind>
+				<bind key="table">"test.prodtest"</bind>
 			</rowfilter>
 		</fitsProdGrammar>
 		<make table="prodtest" role="primary">

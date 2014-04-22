@@ -469,6 +469,20 @@ class GrammarMacroMixin(base.StandardMacroMixin):
 			" urllib.quote_plus(getStandardPubDID(rowIter.sourceToken)))"%(
 				repr(baseURL)))
 
+	def macro_standardPreviewPath(self):
+		"""returns an expression for the standard path for a custom preview.
+
+		This consists of resdir, the name of the previewDir property on the
+		embedding DD, and the flat name of the input relative path.  See
+		the introduction to custom previews for details.
+		"""
+		constantPrefix = os.path.join(
+			rscdef.getInputsRelativePath(self.parent.rd.resdir),
+			self.parent.getProperty("previewDir"))+"/"
+		inputsDir = base.getConfig("inputsDir")
+		return (repr(constantPrefix)
+			+"+getFlatName(getInputsRelativePath(rowIter.sourceToken))")
+
 	def macro_rowsProcessed(self):
 		"""returns an expression giving the number of records already
 		ingested for this source.
@@ -517,7 +531,6 @@ class GrammarMacroMixin(base.StandardMacroMixin):
 		"""returns the value of property on the parent DD.
 		"""
 		return self.parent.getProperty(property)
-
 
 
 class Grammar(base.Structure, GrammarMacroMixin):

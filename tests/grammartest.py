@@ -87,6 +87,15 @@ class PredefinedRowfilterTest(testhelpers.VerboseTest):
 			{'a': u'foo', 'b': 23}, {'a': u'bar', 'b': 23}, 
 			{'a': u'quux', 'b': 3}])
 
+	def testStandardPreviewPath(self):
+		dd = testhelpers.getTestRD().getById("productimport-skip")
+		res = set()
+		for source in dd.iterSources(None):
+			for row in dd.grammar.parse(source, None):
+				res.add(row["prodtblPreview"])
+		self.assertEqual(res, set(['./prefoo/ZGF0YS9hLmltcA==',
+			'./prefoo/ZGF0YS9iLmltcA==']))
+
 
 class SequencedRowfilterTest(testhelpers.VerboseTest):
 	def _makeGrammar(self, rowgenDefs):
