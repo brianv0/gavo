@@ -342,6 +342,17 @@ class MangledFITSProductsTest(testhelpers.VerboseTest):
 		self.failUnless("NAXIS2  =                   15" in stuff)
 		self.failUnless(" \xa0q\xa0[\x9f" in stuff)
 
+	def testPreviewFITS(self):
+		stuff = products.computePreviewFor(
+			products.getProductForRAccref("data/ex.fits"))
+		self.assertTrue("JFIF" in stuff)
+
+	def testPreviewCutout(self):
+		stuff = products.computePreviewFor(
+			products.getProductForRAccref(
+			"data/ex.fits?ra=168.24572&dec=22.214473&sra=0.005&sdec=0.005"))
+		self.assertTrue("JFIF" in stuff)
+
 
 class DatalinkElementTest(testhelpers.VerboseTest):
 	resources = [("prodtestTable", tresc.prodtestTable)]

@@ -253,6 +253,22 @@ class ScalingTest(testhelpers.VerboseTest):
 		self.assertEqual(len(pixelRows[0]), 2)
 		self.assertEqual(int(pixelRows[0][-1]), 8621)
 
+	def testIterScaledRowsSlow(self):
+		pixelRows =  list(fitstools.iterScaledRows(
+			open(self._getExFits(), "rb"), 5,
+			slow=True))
+		self.assertEqual(len(pixelRows), 4)
+		self.assertEqual(len(pixelRows[0]), 2)
+		self.assertEqual(int(pixelRows[0][-1]), 8621)
+
+	def testIterScaledRowsWidth(self):
+		pixelRows =  list(fitstools.iterScaledRows(open(self._getExFits()), 
+			destSize=5))
+		self.assertEqual(len(pixelRows), 4)
+		self.assertEqual(len(pixelRows[0]), 2)
+		self.assertEqual(int(pixelRows[0][-1]), 8621)
+
+
 
 class ReadHeaderTest(testhelpers.VerboseTest):
 	def testMaxBlocks(self):

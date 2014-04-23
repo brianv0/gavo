@@ -624,7 +624,26 @@ def iterFITSRows(hdr, f):
 		yield decoder(f)
 
 
-def iterScaledRows(inFile, factor, hdr=None):
+def _iterSetupFast(inFile, hdr):
+	"""helps iterScaledRows for the case of a simple, real-file FITS.
+	"""
+	if hdr is None:
+		hdr = readPrimaryHeaderQuick(inFile)
+	return hdr, iterFITSRows(hdr, inFile)
+
+
+def _iterSetupCompatible(inFile, hdr):
+	"""helps iterScaledRows for when _iterSetupFast will not work.
+	"""
+	hdus = pyfits.open(inFile)
+	
+	def iterRows():
+		for row in hdus[0].data[:,:]:
+			yield row
+
+	return hdus[0].header, iterRows()
+
+def iterScaledRows(inFile, factor=None, destSize=None, hdr=None, slow=False):
 	"""iterates over numpy arrays of pixel rows within the open FITS
 	stream inFile scaled by it integer in factor.
 
@@ -633,20 +652,35 @@ def iterScaledRows(inFile, factor, hdr=None):
 
 	A FITS header for this data can be obtained using shrinkWCSHeader.
 
+	You can pass in either a factor the file is to be scaled down, or
+	an approximate size desired.  If both are given, factor takes precedence,
+	if none is given, it's an error.
+
 	If you pass in hdr, it will not be read from inFile; the function then
 	expects the file pointer to point to the start of the first data block.
 	Use this if you've already read the header of a non-seekable FITS.
-	"""
-	factor = int(factor)
-	assert factor>1
 
-	if hdr is None:
-		inFile.seek(0, 0)
-		hdr = readPrimaryHeaderQuick(inFile)
+	iterScaledRows will try to use a hand-hacked interface guaranteed to
+	stream.  This only works for plain, 2D-FITSes from real files.
+	iterScaledRows normally notices when it should fall back to
+	pyfits code, but if it doesn't you can pass slow=True.
+	"""
+	if isinstance(inFile, file) and not slow:
+		hdr, rows = _iterSetupFast(inFile, hdr)
+	else:
+		hdr, rows = _iterSetupCompatible(inFile, hdr)
+
+	if factor is None:
+		if destSize is None:
+			raise base.DataError("iterScaledRows needs either factor or destSize.")
+		size = max(hdr["NAXIS1"], hdr["NAXIS2"])
+		factor = max(1, size//destSize+1)
+
+	factor = int(factor)
+	assert factor>0
 
 	rowLength = hdr["NAXIS1"]
 	destRowLength = rowLength//factor
-	rows = iterFITSRows(hdr, inFile)
 	summedInds = range(factor)
 
 	for index in xrange(hdr["NAXIS2"]//factor):

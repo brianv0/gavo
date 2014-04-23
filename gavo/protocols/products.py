@@ -34,6 +34,7 @@ from __future__ import with_statement
 
 import cgi
 import datetime
+import gzip
 import re
 import os
 import struct
@@ -43,6 +44,9 @@ import urlparse
 from cStringIO import StringIO
 
 import numpy
+
+import Image
+
 from nevow import inevow
 from nevow import static
 from twisted.internet import defer
@@ -62,9 +66,14 @@ from gavo.svcs import streaming
 from gavo.utils import fitstools
 from gavo.utils import pyfits
 
-MS = base.makeStruct
+
+# TODO: make this configurable -- globally?  by service?
+PREVIEW_SIZE = 200
 
 REMOTE_URL_PATTERN = re.compile("(https?|ftp)://")
+
+MS = base.makeStruct
+
 
 @utils.memoized
 def getProductsTable():
@@ -79,24 +88,82 @@ def getProductsTable():
 	return rsc.TableForDef(td, connection=conn)
 
 
+def _jpegFromNumpyArray(pixels):
+	"""returns a normalized JPEG for numpy pixels.
+
+	pixels is assumed to come from FITS arrays, which are flipped wrt to
+	jpeg coordinates, which is why we're flipping here.
+	"""
+	pixels = numpy.flipud(pixels)
+	pixMax, pixMin = numpy.max(pixels), numpy.min(pixels)
+	pixels = numpy.asarray((pixels-pixMin)/(pixMax-pixMin)*255, 'uint8')
+	f = StringIO()
+	Image.fromarray(pixels).save(f, format="jpeg")
+	return f.getvalue()
+
+
+def makePreviewFromFITS(product):
+	"""returns image/jpeg bytes for a preview of a product spitting out a
+	2D FITS.
+	"""
+	if hasattr(product, "getFile"):
+		# hack to preserve no-so-well-thought out existing functionality
+		if product.rAccref.accref.endswith(".gz"):
+			inFile = gzip.GzipFile(fileobj=product.getFile())
+		else:
+			inFile = product.getFile()
+
+		pixels = numpy.array([row 
+			for row in fitstools.iterScaledRows(inFile, 
+				destSize=PREVIEW_SIZE)])
+	else:
+		raise NotImplementedError("TODO: Fix fitstools.iterScaledRows"
+			" to be more accomodating to weird things")
+	return _jpegFromNumpyArray(pixels)
+
+
+def makePreviewFromPIL(product):
+	"""returns image/jpeg bytes for a preview of the PIL-readable product.
+	"""
+	im = Image.open(product).thumbnail(PREVIEW_SIZE)
+	f = StringIO()
+	im.save(f, format="jpeg")
+	return f.getvalue()
+
+
+_PIL_COMPATIBLE_MIMES = frozenset(['image/jpeg', 'image/png'])
+
+def computePreviewFor(product):
+	"""returns image/jpeg bytes containing a preview of product.
+
+	This only works for a select subset of products.  You're usually
+	better off using static previews.
+	"""
+	if hasattr(product, "makePreview"):
+		return product.makePreview()
+
+	sourceMime = product.pr["mime"]
+	if sourceMime=='image/fits':
+		return makePreviewFromFITS(product)
+	elif sourceMime in _PIL_COMPATIBLE_MIMES:
+		return makePreviewWithPIL(product)
+	else:
+		raise base.DataError("Cannot make automatic preview for %s"%
+			sourceMime)
+
+
 class PreviewCacheManager(object):
 	"""is a class that manages the preview cache.
 
 	It's really the class that manages it, so don't bother creating instances.
 
-	The normal operation is that you pass the accref of the file you want a
-	preview for and optionally a preview generating function to getPreviewFor.
-	If a cached preview already exists, you get back its content (the mime
-	type must be taken from the products table).
+	The normal operation is that you pass the product you want a preview to
+	getPreviewFor.  If a cached preview already exists, you get back its content
+	(the mime type must be taken from the products table).
 
-	If the file does not exist yes, and a generating function has been passed,
-	the generating function is called with the accref, and whatever data is
-	returned  from it is written.  Any failures while writing the preview are
-	ignored, so we should be able to run cacheless. Errors during preview
-	generation not caught.
-
-	If not generating function has been passed and no cache exists,
-	you'll get a CacheMiss exception (which is derived from NotFoundError).
+	If the file does not exist yet, some internal magic tries to come up with
+	a preview and determines whether it should be cached, in which case it does
+	so provided a preview has been generated successfully.
 
 	A cache file is touched when it is used, so you can clean up rarely used
 	cache files by deleting all files in the preview cache older than some 
@@ -120,12 +187,22 @@ class PreviewCacheManager(object):
 		return None
 
 	@classmethod
-	def getPreviewFor(cls, accref, previewMaker):
-		"""returns a deferred firing the data for a preview.
+	def saveToCache(self, data, cacheName):
+		try:
+			with open(cacheName, "w") as f:
+				f.write(data)
+		except IOError: # caching failed, don't care
+			pass
+		return data
 
-		If previewMaker is given, it will be used to generate a preview
-		via deferToThread.
+	@classmethod
+	def getPreviewFor(cls, product):
+		"""returns a deferred firing the data for a preview.
 		"""
+		if not product.rAccref.previewIsCacheable():
+			return threads.deferToThread(computePreviewFor, product)
+
+		accref = product.rAccref.accref
 		cacheName = cls.getCacheName(accref)
 		if os.path.exists(cacheName):
 			# Cache hit
@@ -139,7 +216,9 @@ class PreviewCacheManager(object):
 
 		else:
 			# Cache miss
-			return threads.deferToThread(previewMaker, accref)
+			return threads.deferToThread(computePreviewFor, product
+				).addCallback(cls.saveToCache, cacheName)
+
 
 
 class ProductBase(object):
@@ -180,9 +259,15 @@ class ProductBase(object):
 	methods; by default, these are implemented on top of iterData.
 	Clients must never mix calls to the file interface and to
 	iterData.  Derived classes that are based on actual files should
-	set up optimized read and close methods using the hasRealFile
-	class method.  Again, the assumption is made there that clients
+	set up optimized read and close methods using the setupRealFile
+	class method (look for the getFile method on the instance to see
+	if there's a real file).  Again, the assumption is made there that clients
 	use either iterData or read, but never both.
+
+	If a product knows how to (quickly) generate a preview for itself,
+	it can define a makePreview() method.  This must return content
+	for a mime type conventional for that kind of product (which is laid
+	down in the products table).
 	"""
 	implements(inevow.IResource)
 
@@ -219,7 +304,7 @@ class ProductBase(object):
 		return None # ProductBase is not responsible for anything.
 
 	@classmethod
-	def hasRealFile(cls, openMethod):
+	def setupRealFile(cls, openMethod):
 		"""changes cls such that read and close work an an actual file-like 
 		object rather than the inefficient iterData.
 
@@ -227,6 +312,9 @@ class ProductBase(object):
 		an opened input file.
 		"""
 		cls._openedInputFile = None
+
+		def getFileMethod(self):
+			return openMethod(self)
 
 		def readMethod(self, size=None):
 			if self._openedInputFile is None:
@@ -240,6 +328,7 @@ class ProductBase(object):
 
 		cls.read = readMethod
 		cls.close = closeMethod
+		cls.getFile = getFileMethod
 
 	def iterData(self):
 		raise NotImplementedError("Internal error: %s products do not"
@@ -278,7 +367,7 @@ class ProductBase(object):
 		for _ in self.iterData():
 			pass
 		self._curIterator = None
-
+	
 
 class FileProduct(ProductBase):
 	"""A product corresponding to a local file.
@@ -298,7 +387,9 @@ class FileProduct(ProductBase):
 		self.name = os.path.basename(self.rAccref.localpath)
 	
 	def _openUnderlyingFile(self):
-		return open(self.rAccref.localpath)
+		# the stupid "rb" is not here for windows but for pyfits, which has
+		# checks for the b now and then.
+		return open(self.rAccref.localpath, "rb")
 
 	def iterData(self):
 		with self._openUnderlyingFile() as f:
@@ -320,7 +411,7 @@ class FileProduct(ProductBase):
 		res.encoding = None
 		return res
 
-FileProduct.hasRealFile(FileProduct._openUnderlyingFile)
+FileProduct.setupRealFile(FileProduct._openUnderlyingFile)
 
 
 class StaticPreview(FileProduct):
@@ -524,7 +615,7 @@ class CutoutProduct(ProductBase):
 				and rAccref.productsRow["mime"]=="image/fits"):
 			return cls(rAccref)
 
-	def iterData(self):
+	def _getCutoutHDU(self):
 		ra, dec, sra, sdec = [self.rAccref.params[k] for k in self._myKeys]
 		hdus = pyfits.open(self.rAccref.localpath, do_not_scale_image_data=True)
 		try:
@@ -539,6 +630,10 @@ class CutoutProduct(ProductBase):
 		finally:
 			hdus.close()
 
+		return res
+
+	def iterData(self):
+		res = self._getCutoutHDU()
 		bytes = StringIO()
 		res.writeto(bytes)
 		del res
@@ -554,6 +649,30 @@ class CutoutProduct(ProductBase):
 		request.setHeader("content-type", "image/fits")
 		return streaming.streamOut(self._writeStuffTo, request)
 	
+	def makePreview(self):
+		inData = self._getCutoutHDU().data
+		origWidth, origHeight = inData.shape
+		size = max(origWidth, origHeight)
+		scale = max(1, size//PREVIEW_SIZE+1)
+		destWidth, destHeight = origWidth//scale, origHeight//scale
+
+		# There's very similar code in fitstools.iterScaledRows
+		# -- it would be nice to refactor things so this can be shared.
+		summedInds = range(scale)
+		img = numpy.zeros((destWidth, destHeight), 'float32')
+
+		for rowInd in range(destHeight):
+			wideRow = (numpy.sum(
+				inData[:,rowInd*scale:(rowInd+1)*scale], 1, 'float32'
+				)/scale)[:destWidth*scale]
+			# horizontal scaling via reshaping to a matrix and then summing over
+			# its columns.
+			newRow = numpy.sum(
+				numpy.transpose(wideRow.reshape((destWidth, scale))), 0)/scale
+			img[:,rowInd] = newRow
+
+		return _jpegFromNumpyArray(img)
+
 
 class ScaledFITSProduct(ProductBase):
 	"""A class representing a scaled FITS file.
@@ -589,7 +708,7 @@ class ScaledFITSProduct(ProductBase):
 			newHdr.update("FULLURL", str(makeProductLink(self.baseAccref)))
 			yield fitstools.serializeHeader(newHdr)
 
-			for row in fitstools.iterScaledRows(f, scale):
+			for row in fitstools.iterScaledRows(f, scale, hdr=oldHdr):
 				# Unfortunately, numpy's byte swapping for floats is broken in
 				# many wide-spread revisions.  So, we cannot do the fast
 				#	yield row.newbyteorder(">").tostring()
@@ -731,9 +850,6 @@ class ProductIterator(grammars.RowIterator):
 class ProductsGrammar(grammars.Grammar):
 	"""A grammar for "parsing" annotated RAccref to Product
 	objects.
-
-	The RAccref must have their product table rows in 
-	productsRow attributes (ProductCore.addFSSources does that).
 
 	Product objects are instances of classes derived from ProductBase.
 	"""
@@ -966,6 +1082,16 @@ class RAccref(object):
 			self._localpathCache = os.path.join(base.getConfig("inputsDir"), 
 				self.productsRow["accessPath"])
 		return self._localpathCache
+
+	def previewIsCacheable(self):
+		"""returns True if the a preview generated for this rAccref
+		is representative for all representative rAccrefs.
+
+		Basically, scaled versions all have the same preview, cutouts do not.
+		"""
+		if "ra" in self.params:
+			return False
+		return True
 
 
 def unquoteProductKey(key):

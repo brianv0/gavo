@@ -4,6 +4,11 @@ Version 0.9.1
 	  in the GAVO DC for a while now.  Try it, it's your friend.  See the
 	  reference documentation for details.
 
+	* New framework for having operator-defined previews.  Please have a look
+	  at http://docs.g-vo.org/DaCHS/ref.html#product-previews for details.
+	  An unfortunate side effect is that all your cached previews are now 
+	  invalid.  Remove all files in (presumably) /var/gavo/web/previewCache.
+
 	* Column selection for non-HTML now always include all columns explicitely
 	  given in the output table (unless supressed by a displayHint).  If
 	  you lie about types in your output table (e.g., declare string types
