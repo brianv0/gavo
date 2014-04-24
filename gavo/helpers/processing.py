@@ -119,22 +119,94 @@ class FileProcessor(object):
 			action="store_true", dest="doReport", default=False)
 		parser.add_option("--verbose", help="Be more talkative",
 			action="store_true", dest="beVerbose", default=False)
+		parser.add_option("--n-procs", "-j", help="Run NUM processes in"
+			" parallel", action="store", dest="nParallel", default=1,
+			metavar="NUM", type=int)
 
-	def _runProcessor(self, procFunc):
+	_doneSentinel = ("MAGIC: QUEUE DONE",)
+
+	def iterJobs(self, nParallel):
+		"""executes process() in parallel for all sources and iterates 
+		over the results.
+
+		We use this rather than multiprocessing's Pool, as that cannot
+		call methods.  I'm working around this here.
+		"""
+		import multiprocessing
+
+		taskQueue = multiprocessing.Queue(nParallel*4)
+		doneQueue = multiprocessing.Queue()
+
+		def worker(inQueue, outQueue):
+			for srcId in iter(inQueue.get, None):
+				try:
+					outQueue.put(self.process(srcId))
+				except Exception, ex:
+					outQueue.put(ex)
+			outQueue.put(self._doneSentinel)
+
+		# create nParallel workers
+		activeWorkers = 0
+		for i in range(nParallel):
+			multiprocessing.Process(target=worker, 
+				args=(taskQueue, doneQueue)).start()
+			activeWorkers += 1
+
+		# feed them their tasks
+		toDo = iter(self.dd.sources)
+		while True:
+			try:
+				taskQueue.put(toDo.next())
+			except StopIteration:
+				break
+
+			while not doneQueue.empty():
+				yield doneQueue.get()
+
+		# ask them to quit and wait until all have said they're quitting
+		for i in range(nParallel):
+			taskQueue.put(None)
+		taskQueue.close()
+		while activeWorkers:
+			item = doneQueue.get()
+			if item==self._doneSentinel:
+				activeWorkers -= 1
+			else:
+				yield item
+
+
+	def _runProcessor(self, procFunc, nParallel=1):
+		"""calls procFunc for all sources in self.dd.
+
+		This is the default, single-tasking implementation.
+		"""
 		processed, ignored = 0, 0
-		for source in self.dd.sources:
+
+		if nParallel==1:
+			def iterProcResults():
+				for source in self.dd.sources:
+					yield procFunc(source)
+			resIter = iterProcResults()
+		else:
+			resIter = self.iterJobs(nParallel)
+
+		while True:
 			if (self.opts.requireFrag is not None 
 					and not self.opts.requireFrag in source):
 				continue
 			try:
-				procFunc(source)
+				res = resIter.next()
+				if isinstance(res, Exception):
+					raise res
+			except StopIteration:
+				break
 			except KeyboardInterrupt:
 				sys.exit(2)
 			except Exception, msg:
 				if self.opts.bailOnError:
 					raise
-				sys.stderr.write("Skipping %s (%s, %s)\n"%(
-					source, msg.__class__.__name__, msg))
+				sys.stderr.write("Skipping a source: (%s, %s)\n"%(
+					msg.__class__.__name__, msg))
 				ignored += 1
 			processed += 1
 			sys.stdout.write("%6d (-%5d)\r"%(processed, ignored))
@@ -150,7 +222,8 @@ class FileProcessor(object):
 			procFunc = self.addClassification
 		else:
 			procFunc = self.process
-		processed, ignored = self._runProcessor(procFunc)
+		processed, ignored = self._runProcessor(procFunc, 
+			nParallel=self.opts.nParallel)
 		if self.opts.doReport:
 			if self.opts.beVerbose:
 				self.printVerboseReport(processed, ignored)
@@ -421,7 +494,6 @@ class PreviewMaker(FileProcessor):
 			dd.getProperty("previewDir"))
 		if not os.path.isdir(self.previewDir):
 			os.makedirs(self.previewDir)
-		self.sdmDD = self.dd.rd.getById("build_sdm_data")
 
 	def getPreviewPath(self, srcName):
 		return os.path.join(self.previewDir,
@@ -443,7 +515,7 @@ class PreviewMaker(FileProcessor):
 class SpectralPreviewMaker(PreviewMaker):
 	def _createAuxillaries(self, dd):
 		PreviewMaker._createAuxillaries(self, dd)
-		self.sdmDD = self.dd.rd.getById("build_sdm_data")
+		self.sdmDD = self.dd.rd.getById(self.sdmId)
 
 	def getPreviewData(self, srcName):
 		table = rsc.makeData(self.sdmDD, forceSource={
