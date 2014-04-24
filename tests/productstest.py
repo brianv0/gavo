@@ -648,7 +648,7 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 		("serviceResult", _metaMakerTestData)]
 
 	def testAllLinks(self):
-		self.assertEqual(len(self.rows), 9)
+		self.assertEqual(len(self.rows), 11)
 		for r in self.rows.values():
 			self.assertEqual(len(r), 1)
 	
@@ -684,7 +684,7 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 	
 	def testSemantics(self):
 		self.assertEqual(set(r[1] for r in self.rows), 
-			set(['science', 'calibration', 'self', 'access', None]))
+			set(['science', 'calibration', 'self', 'access', None, 'preview']))
 
 	def testSizes(self):
 		self.assertEqual(self.rows[('ivo://x-unregistred/~?data/a.imp', 
@@ -712,6 +712,20 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 		errors = self.rows[('ivo://not.asked.for', None)]
 		self.assertEqual(errors[0]["error_message"],
 			'NotFoundError: Cannot locate other mess')
+
+	def testPreviewMetaURL(self):
+		previewRow = self.rows[('ivo://x-unregistred/~?data/b.imp', 'preview')][0]
+		self.assertEqual(previewRow["access_url"],
+			"http://example.com/borken.jpg")
+		self.assertEqual(previewRow["content_type"],
+			"image/jpeg")
+
+	def testPreviewMetaAuto(self):
+		previewRow = self.rows[('ivo://x-unregistred/~?data/a.imp', 'preview')][0]
+		self.assertEqual(previewRow["access_url"],
+			"http://localhost:8080/getproduct/data/a.imp?preview=True")
+		self.assertEqual(previewRow["content_type"],
+			"text/plain")
 
 
 class DatalinkFITSTest(testhelpers.VerboseTest):

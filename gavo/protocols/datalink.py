@@ -63,7 +63,7 @@ class ProductDescriptor(object):
 		self.pubDID = pubDID
 		self.accref, self.accessPath, self.mime = accref, accessPath, mime
 		self.owner, self.embargo, self.sourceTable = owner, embargo, sourceTable
-		self.preview_mime = preview_mime
+		self.preview, self.preview_mime = preview, preview_mime
 
 	@classmethod
 	def fromAccref(cls, pubDID, accref):
@@ -491,13 +491,26 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 			internalLinks = [LinkDef(s.pubDID, service.getURL("dlget"),
 					serviceType=ctx.getOrMakeIdFor(s), semantics="access")
 				for s in self.datalinkServices]
-			internalLinks.extend(LinkDef(d.pubDID, 
-					service.getURL("dlget")+"?ID="+urllib.quote_plus(d.pubDID),
-					description="The full dataset.",
-					contentType=d.mime,
-					contentLength=d.estimateSize(),
-					semantics="self", )
-				for d in self.descriptors if isinstance(d, ProductDescriptor))
+			for d in self.descriptors:
+				if not isinstance(d, ProductDescriptor):
+					continue
+				internalLinks.append(LinkDef(d.pubDID, 
+						service.getURL("dlget")+"?ID="+urllib.quote_plus(d.pubDID),
+						description="The full dataset.",
+						contentType=d.mime,
+						contentLength=d.estimateSize(),
+						semantics="self"))
+
+				if d.preview:
+					if d.preview.startswith("http"):
+						previewLink = d.preview
+					else:
+						previewLink = products.makeProductLink(
+							products.RAccref(d.accref, 
+								inputDict={"preview": True}))
+					internalLinks.append(LinkDef(d.pubDID,
+						previewLink, description="A preview.",
+						contentType=d.preview_mime, semantics="preview"))
 
 		data = rsc.makeData(
 			base.caches.getRD("//datalink").getById("make_response"),

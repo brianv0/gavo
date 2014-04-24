@@ -254,11 +254,7 @@ def _productMapperFactory(colDesc):
 	if colDesc["displayHint"].get("nopreview"):
 		mouseoverHandler = None
 	else:
-		try:
-			pWidth = int(colDesc["displayHint"].get("width", "200"))
-		except ValueError:
-			pWidth = 200
-		mouseoverHandler = "insertPreview(this, %s)"%pWidth
+		mouseoverHandler = "insertPreview(this, null)"
 	fixedArgs = ""
 	def coder(val):
 		if val:
