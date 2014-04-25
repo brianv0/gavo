@@ -984,7 +984,7 @@ def _cleanupAfterDBError(ex, conn, pool, poolLock):
 			"Disaster: %s while force-closing connection"%msg)
 
 
-def _makeConnectionManager(profileName, minConn=5, maxConn=5,
+def _makeConnectionManager(profileName, minConn=5, maxConn=20,
 		autocommitted=True):
 	"""returns a context manager for a connection pool for profileName
 	connections.

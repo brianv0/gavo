@@ -185,7 +185,10 @@ class FileProcessor(object):
 		if nParallel==1:
 			def iterProcResults():
 				for source in self.dd.sources:
-					yield procFunc(source)
+					try:
+						yield procFunc(source)
+					except Exception, ex:
+						yield ex
 			resIter = iterProcResults()
 		else:
 			resIter = self.iterJobs(nParallel)
