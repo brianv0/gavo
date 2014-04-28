@@ -123,20 +123,6 @@ class TestProductsImport(RowsetTest):
 					'text/plain', u'data/b.imp', u'test.prodtest', 
 					'http://example.com/borken.jpg', None, 'image/jpeg'),])
 
-	def testInMetatable(self):
-		self.assertQueryReturns(
-			"select colInd, fieldName, description"
-			" from dc.columnmeta where tableName='test.prodtest'"
-			" order by colInd", [
-			(0, u'object', u''),
-			(1, u'alpha', u''),
-			(2, u'delta', u''),
-			(3, u'accref', u'Access key for the data'),
-			(4, u'owner', u'Owner of the data'),
-			(5, u'embargo', u'Date the data will become/became public'),
-			(6, u'mime', u'MIME type of the file served'),
-			(7, u'accsize', u'Size of the data in bytes'),])
-
 	def testNoMixinInMem(self):
 		self.assertRaisesWithMsg(base.StructureError, 
 			"Tables mixing in product must be onDisk, but foo is not",
@@ -252,11 +238,6 @@ class CleanedupTest(RowsetTest):
 	def testNotInProducts(self):
 		self.assertQueryReturns(
 			"select * from dc.products where sourceTable='test.prodtest'",
-			[])
-
-	def testNotInMetatable(self):
-		self.assertQueryReturns(
-			"select * from dc.columnmeta where tableName='test.prodtest'",
 			[])
 
 	def testNotInDc_tables(self):

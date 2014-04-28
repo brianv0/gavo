@@ -9,9 +9,8 @@ tables and the RDs the tables come from. -->
 -->
 
 <resource resdir="__system" schema="dc">
-	<meta name="description">Column description and related metadata for
-		the tables within the data holdings.
-		This is primarily for use with ADQL queries.</meta>
+	<meta name="description">Table-related metadata for
+		the tables within this data center.</meta>
 
 
 	<table id="tablemeta" onDisk="True" system="True" forceUnique="True"
@@ -38,39 +37,6 @@ tables and the RDs the tables come from. -->
 		<column name="adql" type="boolean" required="True"
 			description="True if this table may be accessed using ADQL"
 			verbLevel="30"/>
-	</table>
-
-	<table id="columnmeta" onDisk="True" system="True">
-		<meta name="description">A table mapping field names and their
-			principal properties (types, ucds, descriptions...).</meta>
-
-		<column original="tablemeta.tableName"
-			description="Fully qualified name of the table the column is in"/>
-		<foreignKey source="tableName,sourceRD" inTable="tablemeta"/>
-
-		<column name="fieldName" type="text"
-			description="SQL identifier for the column"/>
-		<column name="unit" type="text" description="Unit for the value"/>
-		<column name="ucd" type="text" description="UCD for the column"/>
-		<column name="description" type="text" 
-			description="A one-line characterization of the value"/>
-		<column name="tablehead" type="text" 
-			description="A string suitable as a table heading for the values"/>
-		<column name="utype" type="text" description="The utype for the column"/>
-		<column name="colInd" type="integer" required="True"
-			description="Index of the column within the table"/>
-		<column name="type" type="text" 
-			description="SQL type of this column"/>
-		<column name="verbLevel" type="integer" 
-			description="Level of verbosity at which to include this column">
-			<values nullLiteral="9999"/>
-		</column>
-		<column name="displayHint" type="text"
-			description="Hints how to display that item for human consumption"/>
-		<column original="tablemeta.sourceRD"
-			description="Id of the resource descriptor containing the 
-				column's definition"/>
-		<primary>tableName,fieldName</primary>
 	</table>
 
 	<table id="metastore" onDisk="True" system="True" primary="key"
@@ -108,7 +74,6 @@ tables and the RDs the tables come from. -->
 
 	<data id="import">
 		<make table="tablemeta"/>
-		<make table="columnmeta"/>
 		<make table="metastore">
 			<script lang="python" type="postCreation">
 				from gavo.user import upgrade
@@ -118,20 +83,6 @@ tables and the RDs the tables come from. -->
 			</script>
 		</make>
 	</data>
-
-	<outputTable id="metaRowdef" namePath="columnmeta">
-		<meta name="description">The definition of the input to
-		column.fromMetaTableRow</meta>
-		<outputField original="description"/>
-		<outputField original="fieldName"/>
-		<outputField original="unit"/>
-		<outputField original="ucd"/>
-		<outputField original="tablehead"/>
-		<outputField original="utype"/>
-		<outputField original="type"/>
-		<outputField original="verbLevel"/>
-		<outputField original="displayHint"/>
-	</outputTable>
 
 	<fixedQueryCore id="queryList"
 		query="SELECT tableName, tableName, tableDesc, resDesc FROM dc.tablemeta WHERE adql ORDER BY tableName">

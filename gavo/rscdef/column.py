@@ -513,19 +513,6 @@ class ColumnBase(base.Structure, base.MetaMixin):
 			return self.tablehead
 		return self.name.capitalize()
 		
-	@classmethod
-	def fromMetaTableRow(cls, metaRow):
-		"""returns a Column instance for a row from the meta table.
-		"""
-		col = cls(None)
-		for (dest, src) in [("description", "description"), 
-				("unit", "unit"), ("ucd", "ucd"), ("tablehead", "tablehead"),
-				("utype", "utype"), 
-				("verbLevel","verbLevel"), ("type", "type"), ("name", "fieldName"),
-				("displayHint", "displayHint")]:
-			col.feedEvent(None, "value", dest, metaRow[src])
-		return col
-
 
 class Column(ColumnBase):
 	"""A database column.

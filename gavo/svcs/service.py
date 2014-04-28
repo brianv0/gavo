@@ -563,12 +563,12 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		# core or the renderer...
 		if "tap" in self.allowed:
 			mth = base.caches.getMTH(None)
-			for row in mth.queryTablesTable("adql"):
+			for tableName in mth.getTAPTables():
 				try:
-					tables.append(mth.getTableDefForTable(row["tableName"]))
+					tables.append(mth.getTableDefForTable(tableName))
 				except:
 					base.ui.notifyError("Failure trying to retrieve table definition"
-						" for table %s.  Please fix RD."%row["tableName"])
+						" for table %s.  Please fix the corresponding RD."%tableName)
 
 		return [t for t in tables if t is not None and t.rd is not None]
 

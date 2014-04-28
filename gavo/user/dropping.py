@@ -23,7 +23,6 @@ def _do_dropTable(tableName):
 	"""
 	with base.AdhocQuerier(base.getWritableAdminConn) as q:
 		for metaTableName, columnName in [
-				("dc.columnmeta", "tableName"),
 				("dc.tablemeta", "tableName"),
 				("ivoa._obscoresources", "tableName"),
 				("tap_schema.tables", "table_name"),

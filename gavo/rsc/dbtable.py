@@ -146,35 +146,12 @@ class MetaTableMixin(object):
 			"tableDesc": base.getMetaText(self.tableDef, "description"),
 			"resDesc": base.getMetaText(self.tableDef.rd, "description"),})
 
-	def _cleanColumns(self):
-		"""removes information about self.tableDef from columnmeta.
-		"""
-		self.query(
-			"DELETE FROM dc.columnmeta WHERE tableName=%(tableName)s",
-			{"tableName": self.tableDef.getQName()})
-
-	def _defineColumns(self):
-		"""adds information about self.tableDef to columnmeta.
-		"""
-		tableName = self.tableDef.getQName()
-		rd = base.caches.getRD(self.__metaRDId)
-		t = DBTable(rd.getTableDefById("columnmeta"),
-			connection=self.connection)
-		makeRow = rd.getById("fromColumnList").compileForTableDef(
-			t.tableDef)
-		with t.getFeeder(notify=False) as feeder:
-			for colInd, column in enumerate(self.tableDef):
-				items = {"tableName": tableName, "colInd": colInd, "column": column}
-				feeder.add(makeRow(items, t))
-
 	def addToMeta(self):
 		self.cleanFromMeta()  # Don't force people to clean first on meta updates
 		self._addToSourceTable()
-		self._defineColumns()
 
 	def cleanFromMeta(self):
 		self._cleanFromSourceTable()
-		self._cleanColumns()
 
 
 class DBMethodsMixin(sqlsupport.QuerierMixin):

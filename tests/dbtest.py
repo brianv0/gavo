@@ -363,17 +363,6 @@ class TestMetaTable(TestWithTableCreation):
 		self.assertEqual(srcRd.split("/")[-1], 'test')
 		self.assertEqual(adql, False)
 
-	def testColInfo(self):
-		mh = rsc.MetaTableHandler()
-		res = mh.getColumnsForTable(self.tableDef.getQName())
-		self.assertEqual([(f.name, f.type, f.getLabel())
-				for f in res], [
-			(u'anint', 'integer', u'An Integer'), 
-			(u'afloat', 'real', u'Some Real'), 
-			(u'adouble', 'double precision', u'And a Double'), 
-			(u'atext', 'text', u'A string must be in here as well'), 
-			(u'adate', 'date', u'When')])
-
 
 class TestMetaTableADQL(TestWithTableCreation):
 	tableName = "adqltable"
@@ -386,14 +375,6 @@ class TestMetaTableADQL(TestWithTableCreation):
 		self.assertEqual(qName, 'test.adqltable')
 		self.assertEqual(srcRd.split("/")[-1], 'test')
 		self.assertEqual(adql, True)
-
-	def testColInfo(self):
-		mh = rsc.MetaTableHandler()
-		res = mh.getColumnsForTable(self.tableDef.getQName())
-		self.assertEqual([(f.name, f.type, f.getLabel()) 
-				for f in res], [
-			(u'foo', 'double precision', 'Foo'), ])
-		mh.close()
 
 
 class TestPgSphere(testhelpers.VerboseTest):
