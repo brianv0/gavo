@@ -296,6 +296,14 @@ def findAllRDs():
 	return rds
 
 
+def findPublishedRDs():
+	"""returns the ids of all RDs which have been published before.
+	"""
+	with base.getTableConn() as conn:
+		return [r['sourcerd'] for r in conn.queryToDicts(
+			"select distinct sourcerd from dc.resources")]
+
+
 def getRDs(args):
 	"""returns a list of RDs from a list of more-or-less RD ids.
 	"""
@@ -311,12 +319,11 @@ def getRDs(args):
 def parseCommandLine():
 	import optparse
 	parser = optparse.OptionParser(usage="%prog [options] {<rd-name>}")
-	parser.add_option("-a", "--all", help="search everything below inputsDir"
-		" for publications.", dest="all", action="store_true")
+	parser.add_option("-a", "--all", help="re-publish all RDs that"
+		" have been published before (only use with -k unless you know"
+		" what you are doing).", dest="all", action="store_true")
 	parser.add_option("-m", "--meta-too", help="update meta information, too",
 		dest="meta", action="store_true")
-	parser.add_option("-f", "--fixed", help="ignored", action="store_true",
-		dest="ignored")
 	parser.add_option("-k", "--keep-timestamps", help="Preserve the"
 		" time stamp of the last record modification.  This may sometimes"
 		" be desirable when updating a schema to avoid a reharvesting of"
@@ -373,7 +380,7 @@ def main():
 	opts, args = parseCommandLine()
 	getServicesRD().touchTimestamp()
 	if opts.all:
-		args = findAllRDs()
+		args = findPublishedRDs()
 	updateServiceList(getRDs(args), metaToo=opts.meta, 
 		keepTimestamp=opts.keepTimestamp)
 	tryServiceReload()

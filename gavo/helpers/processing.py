@@ -174,7 +174,6 @@ class FileProcessor(object):
 			else:
 				yield item
 
-
 	def _runProcessor(self, procFunc, nParallel=1):
 		"""calls procFunc for all sources in self.dd.
 

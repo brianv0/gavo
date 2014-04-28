@@ -71,33 +71,41 @@ def _do_dropRD(opts, rdId, selectedIds=()):
 	try:
 		rd = api.getRD(os.path.join(os.getcwd(), rdId))
 	except api.RDNotFound:
-		rd = api.getRD(rdId, forImport=True)
+		try:
+			rd = api.getRD(rdId, forImport=True)
+		except api.RDNotFound:
+			rd = None
 	
-	
-	if opts.dropAll:
-		dds = rd.dds
-	else:
-		dds = common.getPertainingDDs(rd, selectedIds)
 
-	parseOptions = api.getParseOptions(systemImport=opts.systemImport)
 	with base.AdhocQuerier(base.getWritableAdminConn) as querier:
+		if rd is not None:
+			if opts.dropAll:
+				dds = rd.dds
+			else:
+				dds = common.getPertainingDDs(rd, selectedIds)
 
-		for dd in dds:
-			res = api.Data.drop(dd, connection=querier.connection, 
-				parseOptions=parseOptions)
+			parseOptions = api.getParseOptions(systemImport=opts.systemImport)
 
-		if not selectedIds or opts.dropAll:
-			from gavo.registry import servicelist
-			servicelist.cleanServiceTablesFor(rd, querier.connection)
-			tap.unpublishFromTAP(rd, querier.connection)
+			for dd in dds:
+				res = api.Data.drop(dd, connection=querier.connection, 
+					parseOptions=parseOptions)
+
+			if not selectedIds or opts.dropAll:
+				from gavo.registry import servicelist
+				servicelist.cleanServiceTablesFor(rd, querier.connection)
+				tap.unpublishFromTAP(rd, querier.connection)
 		
-		# purge from system tables that have sourceRD
-		# all traces that may have been left from this RD
+		else:
+			# If the RD doesn't exist any more, just manually purge it
+			# from wherever it could have been mentioned.
 			for tableName in ["dc.tablemeta", "tap_schema.tables", 
-					"tap_schema.columns", "tap_schema.keys", "tap_schema.key_columns"]:
+					"tap_schema.columns", "tap_schema.keys", "tap_schema.key_columns",
+					"dc.resources", "dc.interfaces", "dc.sets", "dc.subjects",
+					"dc.authors", "dc.res_dependencies"]:
 				if querier.tableExists(tableName):
-					querier.query("delete from %s where sourceRd=%%(sourceRD)s"%tableName,
-						{"sourceRD": rd.sourceId})
+					querier.query(
+						"delete from %s where sourceRd=%%(sourceRD)s"%tableName,
+						{"sourceRD": rdId})
 
 
 def dropRD():
