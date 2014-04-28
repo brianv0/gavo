@@ -325,12 +325,11 @@ class GetDataTest(_WithSSATableTest):
 			)[0].get("value"), "1e-10")
 
 	def testEmptyCutoutFails(self):
-		self.assertRaisesWithMsg(base.EmptyData,
-			"Spectrum is empty.",
-			self.runService,
-			("c", {"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
+		mime, payload = self.runService("c", 
+			{"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
 				"FORMAT": "application/x-votable+xml",
-				"BAND": "/1.927e-8"}))
+				"BAND": "/1.927e-8"}).original
+		self.assertTrue('<STREAM encoding="base64"></STREAM>' in payload)
 
 	def testOriginalCalibOk(self):
 		mime, payload = self.runService("c",
@@ -503,12 +502,11 @@ class SDMDatalinkTest(_WithSSATableTest):
 			)[0].get("value"), "1e-10")
 
 	def testEmptyCutoutFails(self):
-		self.assertRaisesWithMsg(base.EmptyData,
-			"Spectrum is empty.",
-			self.runService,
-			("dl", {"ID": 'ivo://test.inv/test1', 
+		res = self.runService("dl", {"ID": 'ivo://test.inv/test1', 
 				"FORMAT": "application/x-votable+xml",
-				"LAMBDA_MAX": "1.927e-8"}))
+				"LAMBDA_MAX": "1.927e-8"})
+		mime, payload = res.original
+		self.assertTrue('<STREAM encoding="base64"></STREAM>' in payload)
 
 	def testOriginalCalibOk(self):
 		mime, payload = self.runService("dl",

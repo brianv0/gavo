@@ -251,6 +251,63 @@ class PruneTest(testhelpers.VerboseTest):
 			</data>""")
 		self.assertEqual(" ".join(c.name for c in dd.tables[0]), "neuro")
 
+	def testRecursivePune(self):
+		dd = base.parseFromString(rscdef.DataDescriptor, """
+			<data>
+				<STREAM id="srcev">
+					<column name="a"/>
+					<column name="b"/>
+				</STREAM>
+				<STREAM id="pruned">
+					<FEED source="srcev">
+						<PRUNE name="a"/>
+					</FEED>
+				</STREAM>
+				<table id="foo">
+					<FEED source="pruned"/>
+				</table>
+			</data>""")
+		self.assertEqual(" ".join(c.name for c in dd.tables[0]), "b")
+
+	def testRecursivePuneWithId(self):
+		dd = base.parseFromString(rscdef.DataDescriptor, """
+			<data>
+				<STREAM id="srcev">
+					<column name="a"/>
+					<column name="b" id="kill"/>
+				</STREAM>
+				<STREAM id="pruned">
+					<FEED source="srcev">
+						<PRUNE id="kill"/>
+					</FEED>
+				</STREAM>
+				<table id="foo">
+					<FEED source="pruned"/>
+				</table>
+			</data>""")
+		self.assertEqual(" ".join(c.name for c in dd.tables[0]), "a")
+
+	def testRecursivePuneLate(self):
+		dd = base.parseFromString(rscdef.DataDescriptor, """
+			<data>
+				<STREAM id="srcev">
+					<column name="a"/>
+					<column name="b" id="kill"/>
+				</STREAM>
+				<STREAM id="pruned">
+					<FEED source="srcev"/>
+					<column name="c"/>
+				</STREAM>
+				<table id="foo">
+					<FEED source="pruned">
+						<PRUNE id="kill"/>
+					</FEED>
+				</table>
+			</data>""")
+		self.assertEqual(" ".join(c.name for c in dd.tables[0]), "a c")
+
+
+
 
 class EditTest(testhelpers.VerboseTest):
 	def testProd(self):

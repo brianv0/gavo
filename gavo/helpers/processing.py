@@ -18,6 +18,7 @@ import os
 import shutil
 import sys
 import textwrap
+import traceback
 
 import matplotlib
 matplotlib.use("Agg")
@@ -141,7 +142,11 @@ class FileProcessor(object):
 			for srcId in iter(inQueue.get, None):
 				try:
 					outQueue.put(self.process(srcId))
+				except base.SkipThis:
+					continue
 				except Exception, ex:
+					if self.opts.bailOnError:
+						traceback.print_exc()
 					outQueue.put(ex)
 			outQueue.put(self._doneSentinel)
 
@@ -153,7 +158,7 @@ class FileProcessor(object):
 			activeWorkers += 1
 
 		# feed them their tasks
-		toDo = iter(self.dd.sources)
+		toDo = self.iterIdentifiers()
 		while True:
 			try:
 				taskQueue.put(toDo.next())
@@ -183,10 +188,14 @@ class FileProcessor(object):
 
 		if nParallel==1:
 			def iterProcResults():
-				for source in self.dd.sources:
+				for source in self.iterIdentifiers():
 					try:
 						yield procFunc(source)
+					except base.SkipThis:
+						continue
 					except Exception, ex:
+						if self.opts.bailOnError:
+							traceback.print_exc()
 						yield ex
 			resIter = iterProcResults()
 		else:
@@ -206,7 +215,7 @@ class FileProcessor(object):
 				sys.exit(2)
 			except Exception, msg:
 				if self.opts.bailOnError:
-					raise
+					sys.exit(1)
 				sys.stderr.write("Skipping a source: (%s, %s)\n"%(
 					msg.__class__.__name__, msg))
 				ignored += 1
@@ -214,6 +223,15 @@ class FileProcessor(object):
 			sys.stdout.write("%6d (-%5d)\r"%(processed, ignored))
 			sys.stdout.flush()
 		return processed, ignored
+
+	def iterIdentifiers(self):
+		"""iterates over all identifiers that should be processed.
+
+		This is usually the paths of the files to be processed.
+		You can, however, override it to do something else if that
+		fits your problem (example: Previews in SSA use the accref).
+		"""
+		return iter(self.dd.sources)
 
 	def processAll(self):
 		"""calls the process method of processor for all sources of the data
@@ -497,21 +515,21 @@ class PreviewMaker(FileProcessor):
 		if not os.path.isdir(self.previewDir):
 			os.makedirs(self.previewDir)
 
-	def getPreviewPath(self, srcName):
+	def getPreviewPath(self, accref):
 		return os.path.join(self.previewDir,
-			rscdef.getFlatName(self.getProductKey(srcName)))
+			rscdef.getFlatName(accref))
 
-	def classify(self, srcName):
-		if os.path.exists(self.getPreviewPath(srcName)):
+	def classify(self, accref):
+		if os.path.exists(self.getPreviewPath(accref)):
 			return "with"
 		else:
 			return "without"
 	
-	def process(self, srcName):
-		if self.classify(srcName)=="with":
+	def process(self, accref):
+		if self.classify(accref)=="with":
 			return
-		with utils.safeReplaced(self.getPreviewPath(srcName)) as f:
-			f.write(self.getPreviewData(srcName))
+		with utils.safeReplaced(self.getPreviewPath(accref)) as f:
+			f.write(self.getPreviewData(accref))
 
 
 class SpectralPreviewMaker(PreviewMaker):
@@ -519,9 +537,20 @@ class SpectralPreviewMaker(PreviewMaker):
 		PreviewMaker._createAuxillaries(self, dd)
 		self.sdmDD = self.dd.rd.getById(self.sdmId)
 
-	def getPreviewData(self, srcName):
+	def iterIdentifiers(self):
+		"""iterates over the accrefs in the first table of dd.
+		"""
+		tableId = self.dd.makes[0].table.getQName()
+		with base.getTableConn() as conn:
+			for r in conn.queryToDicts("select accref from %s"%tableId):
+				yield r["accref"]
+
+	def getPreviewData(self, accref):
+		if accref.endswith(".vot"):
+			# same preview as without
+			raise base.SkipThis()
 		table = rsc.makeData(self.sdmDD, forceSource={
-			"accref": self.getProductKey(srcName)}).getPrimaryTable()
+			"accref": accref}).getPrimaryTable()
 		data = [(r["spectral"], r["flux"]) for r in table.rows]
 		data.sort()
 
