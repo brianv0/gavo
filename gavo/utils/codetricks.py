@@ -36,37 +36,54 @@ from gavo.utils import excs
 class CachedGetter(object):
 	"""A cache for a callable.
 
-	This is basically memoization, except that these are supposed to be
-	singletons;  CachedGetters should be used where the construction of
-	a resource (e.g., a grammar) should be deferred until it is actually
-	needed to save on startup times.
+	This is basically memoization, except that these are supposed
+	to be singletons;  CachedGetters should be used where the
+	construction of a resource (e.g., a grammar) should be deferred
+	until it is actually needed to save on startup times.
 
-	The resource is created on the first call, all further calls just return
-	references to the original object.
+	The resource is created on the first call, all further calls
+	just return references to the original object.
 
-	You can also leave out the getter argument and add an argumentless method 
-	impl computing the value to cache.
+	You can also leave out the getter argument and add an argumentless
+	method impl computing the value to cache.
 
-	Using a CachedGetter also serializes generation, so you can also use
-	it when getter isn't thread-safe.
+	Using a CachedGetter also serializes generation, so you can also
+	use it when getter isn't thread-safe.
+
+	At construction, you can pass a f(thing) -> bool in an isAlive
+	keyword argument.  If you do, the function will be called with the
+	cache before the cache is being returned.  If it returns false,
+	the resource is re-made (no concurrency control is enforced here).
 	"""
 	def __init__(self, getter, *args, **kwargs):
 		if getter is None:
 			getter = self.impl
 		self.cache, self.getter = None, getter
+		
+		self.isAlive = kwargs.pop("isAlive", None)
 		self.args, self.kwargs = args, kwargs
 		self.lock = threading.Lock()
 	
 	def __call__(self):
+		if (self.isAlive is not None
+				and self.cache is not None 
+				and not self.isAlive(self.cache)):
+			self.cache = None
+
 		if self.cache is None:
 			with self.lock:
 				# Second and following in already have the cache set and return here
 				if self.cache is not None:
 					return self.cache
 				self.cache = self.getter(*self.args, **self.kwargs)
-				del self.args
-				del self.kwargs
-				del self.lock
+
+				# If the cache is immortal, do away with the stuff needed
+				# for its creation 
+				if self.isAlive is None:
+					del self.args
+					del self.kwargs
+					del self.lock
+		
 		return self.cache
 
 

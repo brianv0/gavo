@@ -75,17 +75,20 @@ REMOTE_URL_PATTERN = re.compile("(https?|ftp)://")
 MS = base.makeStruct
 
 
-@utils.memoized
-def getProductsTable():
-	"""returns a DBTable for the product table.
+def _getProductsTable():
+	"""returns an instance of the products table.
 
-	This is memoized, i.e., it will be the same table for all threads.
-	This should be ok as long as pycopg's promise of its thread-safety
-	holds.
+	Clients should use the getProductsTable below to save the cost of
+	constructing the table.
 	"""
 	td = base.caches.getRD("//products").getById("products")
 	conn = base.getDBConnection("admin", autocommitted=True)
 	return rsc.TableForDef(td, connection=conn)
+
+
+getProductsTable = utils.CachedGetter(
+	_getProductsTable,
+	isAlive=lambda t: not t.connection.closed)
 
 
 def _jpegFromNumpyArray(pixels):

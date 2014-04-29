@@ -100,5 +100,21 @@ class LoadModuleTest(testhelpers.VerboseTest):
 			"utils.codetricks", "noexist")
 
 
+class CachedGetterTest(testhelpers.VerboseTest):
+	def testNormal(self):
+		g = utils.CachedGetter(lambda c: [c], 3)
+		self.assertEqual(g(), [3])
+		g().append(4)
+		self.assertEqual(g(), [3, 4])
+	
+	def testMortal(self):
+		g = utils.CachedGetter(lambda c: [c], 3,
+			isAlive=lambda l: len(l)<3)
+		g().append(4)
+		self.assertEqual(g(), [3,4])
+		g().append(5)
+		self.assertEqual(g(), [3])
+
+
 if __name__=="__main__":
-	testhelpers.main(StanXMLTest)
+	testhelpers.main(CachedGetterTest)
