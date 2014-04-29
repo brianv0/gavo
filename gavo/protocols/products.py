@@ -63,6 +63,7 @@ from gavo.base import coords
 from gavo.base import valuemappers
 from gavo.protocols import creds
 from gavo.svcs import streaming
+from gavo.utils import imgtools
 from gavo.utils import fitstools
 from gavo.utils import pyfits
 
@@ -91,21 +92,6 @@ getProductsTable = utils.CachedGetter(
 	isAlive=lambda t: not t.connection.closed)
 
 
-def _jpegFromNumpyArray(pixels):
-	"""returns a normalized JPEG for numpy pixels.
-
-	pixels is assumed to come from FITS arrays, which are flipped wrt to
-	jpeg coordinates, which is why we're flipping here.
-	"""
-	pixels = numpy.flipud(pixels)
-	pixMax, pixMin = numpy.max(pixels), numpy.min(pixels)
-	pixels = numpy.asarray(numpy.power(
-		(pixels-pixMin)/(pixMax-pixMin), 0.25)*255, 'uint8')
-	f = StringIO()
-	Image.fromarray(pixels).save(f, format="jpeg")
-	return f.getvalue()
-
-
 def makePreviewFromFITS(product):
 	"""returns image/jpeg bytes for a preview of a product spitting out a
 	2D FITS.
@@ -123,7 +109,7 @@ def makePreviewFromFITS(product):
 	else:
 		raise NotImplementedError("TODO: Fix fitstools.iterScaledRows"
 			" to be more accomodating to weird things")
-	return _jpegFromNumpyArray(pixels)
+	return imgtools.jpegFromNumpyArray(pixels)
 
 
 def makePreviewFromPIL(product):
@@ -629,8 +615,8 @@ class CutoutProduct(ProductBase):
 					(ra-sra/2., dec-sdec/2.),
 					(ra+sra/2., dec+sdec/2.)], 1)), numpy.int32)
 			res = fitstools.cutoutFITS(hdus[0], 
-				(skyWCS.latAxis, min(pixelFootprint[:,0]), max(pixelFootprint[:,0])),
-				(skyWCS.longAxis, min(pixelFootprint[:,1]), max(pixelFootprint[:,1])))
+				(skyWCS.longAxis, min(pixelFootprint[:,0]), max(pixelFootprint[:,0])),
+				(skyWCS.latAxis, min(pixelFootprint[:,1]), max(pixelFootprint[:,1])))
 		finally:
 			hdus.close()
 
@@ -675,7 +661,7 @@ class CutoutProduct(ProductBase):
 				numpy.transpose(wideRow.reshape((destWidth, scale))), 0)/scale
 			img[:,rowInd] = newRow
 
-		return _jpegFromNumpyArray(img)
+		return imgtools.jpegFromNumpyArray(img)
 
 
 class ScaledFITSProduct(ProductBase):
