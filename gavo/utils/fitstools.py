@@ -629,6 +629,9 @@ def _iterSetupFast(inFile, hdr):
 	"""
 	if hdr is None:
 		hdr = readPrimaryHeaderQuick(inFile)
+	if hdr["NAXIS"]==0:
+		# presumably a compressed FITS
+		return _iterSetupCompatible(inFile, hdr)
 	return hdr, iterFITSRows(hdr, inFile)
 
 
@@ -636,12 +639,16 @@ def _iterSetupCompatible(inFile, hdr):
 	"""helps iterScaledRows for when _iterSetupFast will not work.
 	"""
 	hdus = pyfits.open(inFile)
+	extInd = 0
+	if len(hdus)>1 and isinstance(hdus[1], pyfits.CompImageHDU):
+		extInd = 1
 	
 	def iterRows():
-		for row in hdus[0].data[:,:]:
+		for row in hdus[extInd].data[:,:]:
 			yield row
 
-	return hdus[0].header, iterRows()
+	return hdus[extInd].header, iterRows()
+
 
 def iterScaledRows(inFile, factor=None, destSize=None, hdr=None, slow=False):
 	"""iterates over numpy arrays of pixel rows within the open FITS

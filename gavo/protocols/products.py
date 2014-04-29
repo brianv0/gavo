@@ -96,7 +96,8 @@ def _jpegFromNumpyArray(pixels):
 	"""
 	pixels = numpy.flipud(pixels)
 	pixMax, pixMin = numpy.max(pixels), numpy.min(pixels)
-	pixels = numpy.asarray((pixels-pixMin)/(pixMax-pixMin)*255, 'uint8')
+	pixels = numpy.asarray(numpy.power(
+		(pixels-pixMin)/(pixMax-pixMin), 0.25)*255, 'uint8')
 	f = StringIO()
 	Image.fromarray(pixels).save(f, format="jpeg")
 	return f.getvalue()
