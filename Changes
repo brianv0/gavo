@@ -1,15 +1,15 @@
-Version 0.9.1
+Version 0.9.1 (2014-04-30)
 
 	* New regression testing framework derived from a local hack we've had
 	  in the GAVO DC for a while now.  Try it, it's your friend.  See the
-	  reference documentation for details.
+	  http://docs.g-vo.org/DaCHS/ref.html#regression-testing
 
 	* New framework for having operator-defined previews.  Please have a look
 	  at http://docs.g-vo.org/DaCHS/ref.html#product-previews for details.
 	  An unfortunate side effect is that all your cached previews are now 
 	  invalid.  Remove all files in (presumably) /var/gavo/web/previewCache.
 
-	* Column selection for non-HTML now always include all columns explicitely
+	* Column selection for non-HTML now always includes all columns explicitely
 	  given in the output table (unless supressed by a displayHint).  If
 	  you lie about types in your output table (e.g., declare string types
 	  for things that are really ints), you may now get errors on VOTable
@@ -19,6 +19,8 @@ Version 0.9.1
 	* Removed the table attribute on ForeignKeys (that's been deprecated
 		for more than a year now).  Use the inTable attribute with an
 		actual table reference instead.
+	
+	* Datalink support bumped to WD-2014-02-28
 
 
 Version 0.9 (2013-12-13)

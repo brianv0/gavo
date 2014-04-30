@@ -635,12 +635,15 @@ def _iterSetupFast(inFile, hdr):
 	return hdr, iterFITSRows(hdr, inFile)
 
 
-def _iterSetupCompatible(inFile, hdr):
+def _iterSetupCompatible(inFile, hdr, extInd=0):
 	"""helps iterScaledRows for when _iterSetupFast will not work.
+
+	Using extInd, you can select a different extension.  extInd=0 
+	will automatically select extension 1 if that's a compressed image
+	HDU.
 	"""
 	hdus = pyfits.open(inFile)
-	extInd = 0
-	if len(hdus)>1 and isinstance(hdus[1], pyfits.CompImageHDU):
+	if extInd==0 and len(hdus)>1 and isinstance(hdus[1], pyfits.CompImageHDU):
 		extInd = 1
 	
 	def iterRows():
@@ -650,7 +653,8 @@ def _iterSetupCompatible(inFile, hdr):
 	return hdus[extInd].header, iterRows()
 
 
-def iterScaledRows(inFile, factor=None, destSize=None, hdr=None, slow=False):
+def iterScaledRows(inFile, factor=None, destSize=None, hdr=None, slow=False,
+		extInd=0):
 	"""iterates over numpy arrays of pixel rows within the open FITS
 	stream inFile scaled by it integer in factor.
 
@@ -667,15 +671,18 @@ def iterScaledRows(inFile, factor=None, destSize=None, hdr=None, slow=False):
 	expects the file pointer to point to the start of the first data block.
 	Use this if you've already read the header of a non-seekable FITS.
 
+	extInd lets you select a different extension.  extInd=0 means the first
+	image HDU, which may be in extension 1 for compressed images.
+
 	iterScaledRows will try to use a hand-hacked interface guaranteed to
 	stream.  This only works for plain, 2D-FITSes from real files.
 	iterScaledRows normally notices when it should fall back to
 	pyfits code, but if it doesn't you can pass slow=True.
 	"""
-	if isinstance(inFile, file) and not slow:
+	if isinstance(inFile, file) and not slow and extInd==0:
 		hdr, rows = _iterSetupFast(inFile, hdr)
 	else:
-		hdr, rows = _iterSetupCompatible(inFile, hdr)
+		hdr, rows = _iterSetupCompatible(inFile, hdr, extInd)
 
 	if factor is None:
 		if destSize is None:

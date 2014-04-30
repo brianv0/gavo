@@ -2398,7 +2398,7 @@ b) say that the previews are standard DaCHS generated in the
 c) actually compute the previews.  This is usually not defined in the RD
    but rather using DaCHS' processing framework. `Precomputing
    previews`_ in the processor documentation covers this in more detail;
-   the upshot is taht this can be as simple as::
+   the upshot is that this can be as simple as::
 
      from gavo.helpers import processing
 

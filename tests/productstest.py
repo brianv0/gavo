@@ -336,11 +336,11 @@ class MangledFITSProductsTest(testhelpers.VerboseTest):
 
 	def testCutoutFITS(self):
 		prod = products.getProductForRAccref(
-			"data/ex.fits?ra=168.24572&dec=22.214473&sra=0.005&sdec=0.005")
+			"data/ex.fits?ra=168.24511&dec=22.214493&sra=0.001&sdec=0.001")
 		stuff = prod.read()
 		self.failUnless("NAXIS1  =                    4" in stuff)
-		self.failUnless("NAXIS2  =                   15" in stuff)
-		self.failUnless(" \xa0q\xa0[\x9f" in stuff)
+		self.failUnless("NAXIS2  =                    5" in stuff)
+		self.failUnless(" \xa8D\xaaG" in stuff)
 
 	def testPreviewFITS(self):
 		stuff = products.computePreviewFor(

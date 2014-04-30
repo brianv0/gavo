@@ -87,6 +87,8 @@ def testFile(name, content, writeGz=False, inDir=base.getConfig("tempDir")):
 		handle, destName = tempfile.mkstemp(dir=inDir)
 		os.close(handle)
 	else:
+		if not os.path.isdir(inDir):
+			os.makedirs(inDir)
 		destName = os.path.join(inDir, name)
 
 	if writeGz:
