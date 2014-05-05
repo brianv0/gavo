@@ -671,6 +671,7 @@ class Configuration(object):
 			section, name, value = defaultSection, arg1, arg2
 		else:
 			section, name, value = arg1, arg2, arg3
+
 		if section.lower() in self.sections:
 			return self.sections[section.lower()].set(name, value, origin)
 		else:

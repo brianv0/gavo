@@ -210,7 +210,8 @@ of where we messed up, and we'll try to improve.
 
 				CREATE OR REPLACE FUNCTION ivo_hasword(haystack TEXT, needle TEXT)
 				RETURNS INTEGER AS $func$
-					SELECT CASE WHEN to_tsvector('english', $1) @@ plainto_tsquery($2) 
+					SELECT CASE WHEN to_tsvector('english', $1) @@
+							plainto_tsquery('english', $2) 
 						THEN 1 
 						ELSE 0 
 					END

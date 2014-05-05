@@ -236,7 +236,7 @@ class PQLIRTest(testhelpers.VerboseTest):
 		sqlPars = {}
 		sql = cs.getSQL("foo", sqlPars)
 		self.assertEqual(sql, 
-			"(to_tsvector('english', foo) @@ plainto_tsquery(%(foo0)s))")
+			"(to_tsvector('english', foo) @@ plainto_tsquery('english', %(foo0)s))")
 		self.assertEqual(sqlPars, {'foo0': 'abc ef'})
 	
 	def testEnumeration(self):
@@ -244,8 +244,8 @@ class PQLIRTest(testhelpers.VerboseTest):
 		sqlPars = {}
 		sql = cs.getSQL("foo", sqlPars)
 		self.assertEqual(sql, 
-			"(to_tsvector('english', foo) @@ plainto_tsquery(%(foo0)s)"
-			" OR to_tsvector('english', foo) @@ plainto_tsquery(%(foo1)s))")
+			"(to_tsvector('english', foo) @@ plainto_tsquery('english', %(foo0)s)"
+			" OR to_tsvector('english', foo) @@ plainto_tsquery('english', %(foo1)s))")
 		self.assertEqual(sqlPars, {"foo0": " urgl", 'foo1': 'abc ef'})
 	
 	def testNoRange(self):

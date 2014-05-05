@@ -67,7 +67,7 @@ else:
 		try:
 			dsn = initdachs.DSN(dbname)
 			subprocess.call(["createdb", "--template=template0", 
-				"--encoding=UTF-8", dbname])
+				"--encoding=UTF-8", "--locale=C", dbname])
 			initdachs.createFSHierarchy(dsn, "test")
 
 			with open(os.path.join(base.getConfig("configDir"), "defaultmeta.txt"),
@@ -100,6 +100,15 @@ else:
 			sys.stderr.write("Creation of test environment failed.  Remove %s\n"
 				" before trying again.\n"%(base.getConfig("rootDir")))
 			sys.exit(1)
+
+		# see if we can build the XSD validator -- this will only work if
+		# we're being called from within the tests subdirectory.
+		try:
+			os.chdir("/".join(TEST_BASE.split("/")[:-1]+["schemata"]))
+			subprocess.call(["python", "makeValidator.py"])
+		finally:
+			os.chdir(TEST_BASE)
+		
 
 	else:
 		# run any pending upgrades (that's a test for them, too... of sorts)

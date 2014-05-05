@@ -114,7 +114,7 @@ def _hasword(args):
 	return None
 
 _makeBooleanizer("ivo_hasword", 
-	"(to_tsvector('english', %(1)s) @@ plainto_tsquery(%(2)s))")
+	"(to_tsvector('english', %(1)s) @@ plainto_tsquery('english', %(2)s))")
 
 
 @userFunction("ivo_nocasematch",

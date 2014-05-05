@@ -84,11 +84,13 @@ class SimpleParseTest(testhelpers.VerboseTest):
 
 	def testNonExistingSource(self):
 		dd = self._getDD()
-		self.assertRaisesWithMsg(base.SourceParseError, 
-			"At start: I/O operation failed ([Errno 2] No such file or directory:"
-			" u'/home/msdemlei/gavo/trunk/tests/testInput.txt')",
-			rsc.makeData,
-			(dd,))
+		try:
+			rsc.makeData(dd)
+		except base.SourceParseError, ex:
+			msg = str(ex)
+			self.assertTrue(msg.startswith(
+				"At start: I/O operation failed ([Errno 2] No such file or directory:"))
+			self.assertTrue(msg.endswith("tests/testInput.txt')"))
 
 
 class RowsetTest(testhelpers.VerboseTest):

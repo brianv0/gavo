@@ -527,7 +527,7 @@ class FilteredInputTest(testhelpers.VerboseTest):
 			())
 
 	def testReadWithSizeAndClose(self):
-		f = common.FilteredInputFile("yes", StringIO("abc"))
+		f = common.FilteredInputFile("yes", StringIO("abc"), silent=True)
 		self.assertEqual("y\n"*10, f.read(20))
 		f.close()
 		self.assertEqual(f.process.returncode, -15)

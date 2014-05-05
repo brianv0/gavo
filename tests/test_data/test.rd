@@ -196,7 +196,15 @@
 	</table>
 
 	<data id="viziertest">
-		<dictlistGrammar/>
+		<sources><item>$a$A$aaab$baaab$BAaab$B*$X33+4$a,b$a|b$\it</item></sources>
+		<embeddedGrammar>
+			<iterator>
+				<code>
+					for s in self.sourceToken.split("$"):
+						yield {"s": s}
+				</code>
+			</iterator>
+		</embeddedGrammar>
 		<table id="vizierstrings" onDisk="true">
 			<column name="s" type="text"/>
 		</table>

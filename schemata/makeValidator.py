@@ -776,12 +776,14 @@ public class xsdval
 
 
 def main():
-	f = open("xsdval.java", "w")
-	f.write(javaSource%
-    " ".join("%s %s"%(tns, xsd) for tns, xsd in getLocations()))
-	f.close()
+	with open("xsdval.java", "w") as f:
+		f.write(javaSource%
+    	" ".join("%s %s"%(tns, xsd) for tns, xsd in getLocations()))
 	os.system("javac xsdval.java")
-	shutil.move("xsdval.class", "../tests/xsdval.class")
+
+	from gavo import base
+	shutil.move("xsdval.class", os.path.join(
+		base.getConfig("cacheDir"), "xsdval.class"))
 
 
 if __name__=="__main__":

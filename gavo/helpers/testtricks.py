@@ -15,6 +15,7 @@ import gzip
 import os
 import subprocess
 import tempfile
+import unittest
 import urllib
 
 from gavo import base
@@ -25,8 +26,17 @@ def getXSDErrorsXerces(data, leaveOffending=False):
 	if data is valid.
 
 	See the docstring of XSDTestMixin for how to make this work.
+
+	This raises a unittest.SkipTest exception if the validator cannot be
+	found.
 	"""
-	classpath = ":".join(base.getConfig("xsdclasspath"))
+	# schemata/makeValidator.py dumps its validator class in the cacheDir
+	validatorDir = base.getConfig("cacheDir")
+	if not os.path.exists(os.path.join(validatorDir, "xsdval.class")):
+		raise unittest.SkipTest("java XSD valdiator not found -- run"
+			" schemata/makeValidator.py")
+
+	classpath = ":".join([validatorDir]+base.getConfig("xsdclasspath"))
 	handle, inName = tempfile.mkstemp("xerctest", "rm")
 	try:
 		with os.fdopen(handle, "w") as f:

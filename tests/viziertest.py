@@ -314,15 +314,9 @@ class PatternsSQLGenerTest(_SQLGenerTest):
 class _ViztestTable(testhelpers.TestResource):
 	resources = [("conn", tresc.dbConnection)]
 
-	_testData = [{"s": ""},
-		{"s": "a"}, {"s": "A"}, {"s": "aaab"}, {"s": "baaab"},
-		{"s": "BAaab"}, {"s": "B*"}, {"s": "X33+4"}, {"s": "a,b"},
-		{"s": "a|b"}, {"s": r"\it"},]
-
 	def make(self, deps):
 		dd = testhelpers.getTestRD().getById("viziertest")
-		d = rsc.makeData(dd, forceSource=self._testData, 
-			connection=deps["conn"])
+		d = rsc.makeData(dd, connection=deps["conn"])
 		return d.getPrimaryTable()
 	
 	def clean(self, res):
@@ -434,9 +428,8 @@ class _VizTable(testhelpers.TestResource):
 	def make(self, deps):
 		self.conn = deps["conn"]
 		dd = testhelpers.getTestRD().getById("viziertest")
-		itemsInDb = _MATCH_MATRIX[0][1:]
-		data = rsc.makeData(dd, forceSource=[{"s": item}
-			for item in itemsInDb], connection=self.conn)
+		data = rsc.makeData(dd, forceSource="$".join(_MATCH_MATRIX[0][1:]),
+			connection=self.conn)
 		return data.getPrimaryTable()
 
 	def clean(self, ignored):
