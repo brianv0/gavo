@@ -534,30 +534,32 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		except base.NotFoundError: # renderer name not known
 			return False
 
-	def getTableSet(self, physical=False):
+	def getTableSet(self):
 		"""returns a list of table definitions that have something to do with
 		this service.
 
 		This is for VOSI-type queries.  Usually, that's just the core's
-		queried table, except when there is a TAP renderer on the service.
+		queried table or an output table, except when there is a TAP renderer on
+		the service.
 
-		When you pass physical=True, output or input table definitions will
-		not be returned, only tables that actually are on the database.
+		All this is a bit heuristic; but then again, there's no rigorous 
+		definition for what's to be in a tables endpoint either.
 		"""
 		tables = []
 		
 		# output our own outputTable if it sounds reasonable; if so,
 		# add the core's queried table, too, if it has one.
 		if self.outputTable and self.outputTable.columns:
-			if not physical:
-				tables.append(self.outputTable)
+			tables.append(self.outputTable)
 			tables.append(getattr(self.core, "queriedTable", None))
-		# if our outputTable is no good, just use the one of the core
+
 		else:
-			if physical:
-				tables.append(getattr(self.core, "queriedTable", None))
-			else:
-				tables.append(getattr(self.core, "outputTable", None))
+			# if our outputTable is no good, just use the one of the core
+			qt = getattr(self.core, "queriedTable", None)
+			if qt is None:
+				qt = getattr(self.core, "outputTable", None)
+			if qt is not None:
+				tables.append(qt)
 
 		# XXX TODO: this type of stuff should probably be done in the
 		# core or the renderer...

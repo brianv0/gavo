@@ -141,16 +141,13 @@ def getTablesetForSchemaCollection(schemas):
 	return res
 
 
-def getTablesetForService(service, physical=False):
+def getTablesetForService(service):
 	"""returns a VS.tableset for a dbCore-based service.
 
 	This is for VOSI queries.  It uses the service's getTableset
 	method to find out the service's table set.
-
-	If you pass physical=True, only actual database tables will be returned,
-	not output tables or similar (this is mainly for TAP).
 	"""
-	tables = service.getTableSet(physical=physical)
+	tables = service.getTableSet()
 	if not tables:
 		return VS.tableset[
 			VS.schema[

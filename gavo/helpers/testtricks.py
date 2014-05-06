@@ -117,6 +117,12 @@ def testFile(name, content, writeGz=False, inDir=base.getConfig("tempDir")):
 			pass
 
 
+'''
+This could become a python-based XSD validation function only depending
+on lxml.  For now, lxml doesn't realize it already has schemas for a given
+namespace when importing new xsds, with is fatal in a system was complex
+as the VO one.  So, this simply doesn't work yet.
+
 VO_SCHEMATA = [
 "simpledc20021212.xsd",
 "Characterisation-v1.11.xsd",
@@ -212,4 +218,4 @@ try:
 except ImportError:
 	# no lxml
 	pass
-
+'''
