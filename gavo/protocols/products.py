@@ -143,7 +143,7 @@ def computePreviewFor(product):
 	if sourceMime=='image/fits':
 		return makePreviewFromFITS(product)
 	elif sourceMime in _PIL_COMPATIBLE_MIMES:
-		return makePreviewFromPIL(product)
+		return makePreviewWithPIL(product)
 	else:
 		raise base.DataError("Cannot make automatic preview for %s"%
 			sourceMime)
