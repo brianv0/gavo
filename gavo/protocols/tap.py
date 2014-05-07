@@ -10,13 +10,9 @@ TAP: schema maintenance, job/parameter definition incl. upload and UWS actions.
 
 from __future__ import with_statement
 
-import cPickle as pickle
 import datetime
 import os
-import shutil
 import signal
-import subprocess
-import tempfile
 import threading
 import warnings
 
@@ -25,7 +21,6 @@ from twisted.internet import protocol
 import twisted.internet.utils
 
 from gavo import base
-from gavo import formats
 from gavo import rsc
 from gavo import svcs
 from gavo import utils
@@ -269,7 +264,7 @@ class _TAPBackendProtocol(protocol.ProcessProtocol):
 			pass
 
 
-class TAPTransitions(uws.UWSTransitions):
+class TAPTransitions(uws.SimpleUWSTransitions):
 	"""The transition function for TAP jobs.
 
 	There's a hack here: After each transition, when you've released
@@ -277,16 +272,7 @@ class TAPTransitions(uws.UWSTransitions):
 	PhaseAction does this).
 	"""
 	def __init__(self):
-		uws.UWSTransitions.__init__(self, "TAP", [
-			(uws.PENDING, uws.QUEUED, "queueJob"),
-			(uws.PENDING, uws.ABORTED, "markAborted"),
-			(uws.QUEUED, uws.ABORTED, "markAborted"),
-			(uws.QUEUED, uws.EXECUTING, "startJob"),
-			(uws.EXECUTING, uws.COMPLETED, "completeJob"),
-			(uws.EXECUTING, uws.ABORTED, "killJob"),
-			(uws.EXECUTING, uws.ERROR, "errorOutJob"),
-			(uws.COMPLETED, uws.ERROR, "ignoreAndLog"),
-			])
+		uws.SimpleUWSTransitions.__init__(self, "TAP")
 
 	def _startJobTwisted(self, wjob):
 		"""starts a job by forking a new process when we're running 
@@ -326,12 +312,11 @@ class TAPTransitions(uws.UWSTransitions):
 	def queueJob(self, newState, wjob, ignored):
 		"""puts a job on the queue.
 		"""
-		wjob.change(phase=uws.QUEUED)
+		uws.SimpleUWSTransitions.queueJob(self, newState, wjob, ignored)
 		wjob.uws.scheduleProcessQueueCheck()
 
 	def errorOutJob(self, newPhase, wjob, ignored):
-		wjob.change(phase=newPhase, endTime=datetime.datetime.utcnow())
-		self.flagError(newPhase, wjob, ignored)
+		uws.SimpleUWSTransitions.errorOutJob(self, newPhase, wjob, ignored)
 		wjob.uws.scheduleProcessQueueCheck()
 
 	def completeJob(self, newPhase, wjob, ignored):
@@ -369,19 +354,6 @@ class TAPTransitions(uws.UWSTransitions):
 				raise TAPError(None, ex)
 		finally:
 			wjob.uws.scheduleProcessQueueCheck()
-
-	def markAborted(self, newState, wjob, ignored):
-		"""simply marks job as aborted.
-
-		This is what happens if you abort a job from QUEUED or
-		PENDING.
-		"""
-		wjob.change(phase=uws.ABORTED,
-			endTime=datetime.datetime.utcnow())
-
-	def ignoreAndLog(self, newState, wjob, exc):
-		base.ui.logErrorOccurred("Request to push COMPLETED job to ERROR: %s"%
-			str(exc))
 
 
 ########################## The TAP UWS job
@@ -503,21 +475,13 @@ class UploadParameter(uws.JobParameter):
 		return LocalFile(job.jobId, job.getWD(), destFName)
 
 
-class TAPJob(uws.BaseUWSJob):
+class TAPJob(uws.UWSJobWithWD):
 	_jobsTDId = "//tap#tapjobs"
 	_transitions = TAPTransitions()
 
 	_parameter_maxrec = MaxrecParameter
 	_parameter_lang = LangParameter
 	_parameter_upload = UploadParameter
-
-	@classmethod
-	def getNewId(self, uws, conn):
-		# our id is the base name of the jobs's temporary directory.
-		uwsWD = base.getConfig("uwsWD")
-		utils.ensureDir(uwsWD, mode=0775, setGroupTo=base.getGroupId())
-		jobDir = tempfile.mkdtemp("", "", dir=uwsWD)
-		return os.path.basename(jobDir)
 
 	@property
 	def quote(self):
@@ -534,95 +498,6 @@ class TAPJob(uws.BaseUWSJob):
 				{'dt': self.destructionTime}, conn)[0]["count"]
 		return datetime.datetime.utcnow()+nBefore*EST_TIME_PER_JOB
 
-	def getWD(self):
-		return os.path.join(base.getConfig("uwsWD"), self.jobId)
-
-	def prepareForDestruction(self):
-		shutil.rmtree(self.getWD())
-
-	# results management: We use a pickled list in the jobs dir to manage 
-	# the results.  I once had a table of those in the DB and it just
-	# wasn't worth it.  One issue, though: this potentially races
-	# if two different processes/threads were to update the results
-	# at the same time.  This could be worked around by writing
-	# the results pickle only from within changeableJobs.
-	# 
-	# The list contains dictionaries having resultName and resultType keys.
-	@property
-	def _resultsDirName(self):
-		return os.path.join(self.getWD(), "__RESULTS__")
-
-	def _loadResults(self):
-		try:
-			with open(self._resultsDirName) as f:
-				return pickle.load(f)
-		except IOError:
-			return []
-
-	def _saveResults(self, results):
-		handle, srcName = tempfile.mkstemp(dir=self.getWD())
-		with os.fdopen(handle, "w") as f:
-			pickle.dump(results, f)
-		# The following operation will bomb on windows when the second
-		# result is saved.  Tough luck.
-		os.rename(srcName, self._resultsDirName)
-
-	def _addResultInJobDir(self, mimeType, name):
-		resTable = self._loadResults()
-		resTable.append(
-			{'resultName': name, 'resultType': mimeType})
-		self._saveResults(resTable)
-
-	def addResult(self, source, mimeType, name=None):
-		"""adds a result, with data taken from source.
-
-		source may be a file-like object or a byte string.
-
-		If no name is passed, a name is auto-generated.
-		"""
-		if name is None:
-			name = utils.intToFunnyName(id(source))
-		with open(os.path.join(self.getWD(), name), "w") as destF:
-			if isinstance(source, baseString):
-				destF.write(source)
-			else:
-				utils.cat(source, destF)
-		self._addResultInJobDir(mimeType, name)
-
-	def openResult(self, mimeType, name):
-		"""returns a writable file that adds a result.
-		"""
-		self._addResultInJobDir(mimeType, name)
-		return open(os.path.join(self.getWD(), name), "w")
-
-	def getResult(self, resName):
-		"""returns a pair of file name and mime type for a named job result.
-
-		If the result does not exist, a NotFoundError is raised.
-		"""
-		res = [r for r in self._loadResults() if resName==r["resultName"]]
-		if not res:
-			raise base.NotFoundError(resName, "job result",
-				"uws job %s"%self.jobId)
-		res = res[0]
-		return os.path.join(self.getWD(), res["resultName"]), res["resultType"]
-
-	def getResults(self):
-		"""returns a list of this service's results.
-
-		The list contains dictionaries having at least resultName and resultType
-		keys.
-		"""
-		return self._loadResults()
-
-	def openFile(self, name, mode="r"):
-		"""returns an open file object for a file within the job's work directory.
-
-		No path parts are allowed on name.
-		"""
-		if "/" in name:
-			raise ValueError("No path components allowed on job files.")
-		return open(os.path.join(self.getWD(), name), mode)
 
 
 #################### The TAP worker system

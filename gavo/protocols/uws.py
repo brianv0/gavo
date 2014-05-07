@@ -13,6 +13,9 @@ from __future__ import with_statement
 import cPickle as pickle
 import contextlib
 import datetime
+import os
+import shutil
+import tempfile
 import weakref
 
 from cStringIO import StringIO
@@ -457,17 +460,22 @@ class BaseUWSJob(object):
 	  table for this kind of job
 	- a _transitions attribute giving a UWSTransitions instance that defines
 	  what to do on transistions
+	- as needed, class methods _default_<parName> if you need to default
+	  parameters in newly created jobs
+	- as needed, methods _decode_<parName> and _encode_<parName>
+	  to bring uws parameters (i.e., everything that has a DB column)
+	  from and to the DB representation from *python* values.
+
+	You may want to override:
+
 	- a class method getNewId(uws, writableConn) -> str, a method 
 	  allocating a unique id for a new job and returning it.  Beware
 	  of races here; if your allocation is through the database table,
 	  you'll have to lock it *and* write a preliminary record with your new
-	  id.
-	- as needed, class methods _default_<parName> if you need to default
-	  parameters in newly created jobs
-	- as needed, methods _decode_<parName> and _encode_<parName>
-	  to bring uws parameters (i.e., everything that has a DB row)
-	  from and to the DB representation from *python* values.
-	
+	  id.  The default implementation does this, but if you want
+	  something in the file system, you probably don't want to
+	  use that.
+
 	If have have non-string items in the parameters dictionary, define
 	class attributes _parameters_<parname.lower()> with JobParameter
 	values saying how they are serialized and deserialized.  You
@@ -706,6 +714,125 @@ class BaseUWSJob(object):
 		self.update()
 
 
+class UWSJobWithWD(BaseUWSJob):
+	"""A UWS job with a working directory.
+
+	This generates ids from directory names in a directory (the
+	uwsWD) shared for all UWSes on the system.
+
+	It also adds methods 
+	
+	- getWD() -> str returning the working directory
+	- addResult(self, source, mimeType, name=None) to add a new
+	  result
+	- openResult(self, mimeType, name) -> file to get an open file in the
+	  WD to write to in order to generate a result
+	- getResult(self, resName) -> str to get the *path* of a result with
+	  resName
+	- getResults(self) -> list-of-dicts to get dicts describing all
+	  results available
+	- openFile(self) -> file to get a file letting you read an existing
+	  result.
+	"""
+	@classmethod
+	def getNewId(self, uws, conn):
+		# our id is the base name of the jobs's temporary directory.
+		uwsWD = base.getConfig("uwsWD")
+		utils.ensureDir(uwsWD, mode=0775, setGroupTo=base.getGroupId())
+		jobDir = tempfile.mkdtemp("", "", dir=uwsWD)
+		return os.path.basename(jobDir)
+
+	def getWD(self):
+		return os.path.join(base.getConfig("uwsWD"), self.jobId)
+
+	def prepareForDestruction(self):
+		shutil.rmtree(self.getWD())
+
+	# results management: We use a pickled list in the jobs dir to manage 
+	# the results.  I once had a table of those in the DB and it just
+	# wasn't worth it.  One issue, though: this potentially races
+	# if two different processes/threads were to update the results
+	# at the same time.  This could be worked around by writing
+	# the results pickle only from within changeableJobs.
+	# 
+	# The list contains dictionaries having resultName and resultType keys.
+	@property
+	def _resultsDirName(self):
+		return os.path.join(self.getWD(), "__RESULTS__")
+
+	def _loadResults(self):
+		try:
+			with open(self._resultsDirName) as f:
+				return pickle.load(f)
+		except IOError:
+			return []
+
+	def _saveResults(self, results):
+		handle, srcName = tempfile.mkstemp(dir=self.getWD())
+		with os.fdopen(handle, "w") as f:
+			pickle.dump(results, f)
+		# The following operation will bomb on windows when the second
+		# result is saved.  Tough luck.
+		os.rename(srcName, self._resultsDirName)
+
+	def _addResultInJobDir(self, mimeType, name):
+		resTable = self._loadResults()
+		resTable.append(
+			{'resultName': name, 'resultType': mimeType})
+		self._saveResults(resTable)
+
+	def addResult(self, source, mimeType, name=None):
+		"""adds a result, with data taken from source.
+
+		source may be a file-like object or a byte string.
+
+		If no name is passed, a name is auto-generated.
+		"""
+		if name is None:
+			name = utils.intToFunnyName(id(source))
+		with open(os.path.join(self.getWD(), name), "w") as destF:
+			if isinstance(source, baseString):
+				destF.write(source)
+			else:
+				utils.cat(source, destF)
+		self._addResultInJobDir(mimeType, name)
+
+	def openResult(self, mimeType, name):
+		"""returns a writable file that adds a result.
+		"""
+		self._addResultInJobDir(mimeType, name)
+		return open(os.path.join(self.getWD(), name), "w")
+
+	def getResult(self, resName):
+		"""returns a pair of file name and mime type for a named job result.
+
+		If the result does not exist, a NotFoundError is raised.
+		"""
+		res = [r for r in self._loadResults() if resName==r["resultName"]]
+		if not res:
+			raise base.NotFoundError(resName, "job result",
+				"uws job %s"%self.jobId)
+		res = res[0]
+		return os.path.join(self.getWD(), res["resultName"]), res["resultType"]
+
+	def getResults(self):
+		"""returns a list of this service's results.
+
+		The list contains dictionaries having at least resultName and resultType
+		keys.
+		"""
+		return self._loadResults()
+
+	def openFile(self, name, mode="r"):
+		"""returns an open file object for a file within the job's work directory.
+
+		No path parts are allowed on name.
+		"""
+		if "/" in name:
+			raise ValueError("No path components allowed on job files.")
+		return open(os.path.join(self.getWD(), name), mode)
+
+
 class UWSTransitions(object):
 	"""An abstract base for classes defining the behaviour of a UWS.
 
@@ -793,3 +920,64 @@ class UWSTransitions(object):
 	def noteEndTime(self, newPhase, wjob, ignored):
 		wjob.change(endTime=datetime.datetime.utcnow())
 
+
+class SimpleUWSTransitions(UWSTransitions):
+	"""A UWSTransitions with sensible transitions pre-defined.
+	
+	See the source for what we consider sensible :-)
+
+	The idea here is that you simply override (and usually up-call)
+	the methods queueJob, markAborted, startJob, completeJob,
+	killJob, errorOutJob, and ignoreAndLog.
+	"""
+	def __init__(self, name):
+		UWSTransitions.__init__(self, name, [
+			(PENDING, QUEUED, "queueJob"),
+			(PENDING, ABORTED, "markAborted"),
+			(QUEUED, ABORTED, "markAborted"),
+			(QUEUED, EXECUTING, "startJob"),
+			(EXECUTING, COMPLETED, "completeJob"),
+			(EXECUTING, ABORTED, "killJob"),
+			(EXECUTING, ERROR, "errorOutJob"),
+			(COMPLETED, ERROR, "ignoreAndLog"),
+			])
+
+	def queueJob(self, newState, wjob, ignored):
+		"""puts a job on the queue.
+		"""
+		wjob.change(phase=QUEUED)
+
+	def markAborted(self, newState, wjob, ignored):
+		"""simply marks job as aborted.
+
+		This is what happens if you abort a job from QUEUED or
+		PENDING.
+		"""
+		wjob.change(phase=ABORTED,
+			endTime=datetime.datetime.utcnow())
+
+	def ignoreAndLog(self, newState, wjob, exc):
+		"""logs an attempt to transition when it's impossible but
+		shouldn't result in an error.
+
+		This is mainly so COMPLETED things don't fail just because of some
+		mishap.
+		"""
+		base.ui.logErrorOccurred("Request to push %s job to ERROR: %s"%(
+			wjob.phase, str(exc)))
+
+	def errorOutJob(self, newPhase, wjob, ignored):
+		"""pushes a job to an error state.
+
+		This is called by a worker; leaving the error message itself
+		is part of the worker's duty.
+		"""
+		wjob.change(phase=newPhase, endTime=datetime.datetime.utcnow())
+		self.flagError(newPhase, wjob, ignored)
+
+	def killJob(self, newPhase, wjob, ignored):
+		"""should abort a job.
+
+		There's really not much we can do here, so this is a no-op.
+		"""
+		base.ui.notifyWarning("%s UWSes cannot kill jobs"%self.name)

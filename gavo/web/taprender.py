@@ -311,6 +311,9 @@ class _FakeUploadedFile(object):
 		self.filename = name
 		self.file = StringIO(content)
 
+# TODO: we should probably define different renderers for sync,
+# async, and examples.  The renderer shouldn't have to dispatch
+# like that.
 
 class TAPRenderer(grend.ServiceBasedPage):
 	"""A renderer speaking all of TAP (including sync, async, and VOSI).

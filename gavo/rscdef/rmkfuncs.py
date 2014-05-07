@@ -349,6 +349,11 @@ def getFlatName(accref):
 	The file name will not contain terrible characters, let alone
 	slashes.  This is used to, e.g., keep all previews in one directory.
 	"""
+	# just in case someone passes in a full file path, strip it
+	if accref.startswith("/"):
+		accref = utils.getRelativePath(accref,
+			base.getConfig("inputsDir"), liberalChars=True)
+
 	return base64.b64encode(accref, "$!")
 
 

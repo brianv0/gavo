@@ -58,7 +58,7 @@ class ProductRenderer(grend.ServiceBasedPage):
 
 	def _deliverPreview(self, content, product, request):
 		previewMime = product.pr["preview_mime"] or "image/jpeg"
-		request.setHeader("content-type", previewMime)
+		request.setHeader("content-type", str(previewMime))
 		request.setHeader("content-length", len(content))
 		return content
 	

@@ -143,7 +143,7 @@ def computePreviewFor(product):
 	if sourceMime=='image/fits':
 		return makePreviewFromFITS(product)
 	elif sourceMime in _PIL_COMPATIBLE_MIMES:
-		return makePreviewWithPIL(product)
+		return makePreviewFromPIL(product)
 	else:
 		raise base.DataError("Cannot make automatic preview for %s"%
 			sourceMime)
@@ -215,7 +215,6 @@ class PreviewCacheManager(object):
 			# Cache miss
 			return threads.deferToThread(computePreviewFor, product
 				).addCallback(cls.saveToCache, cacheName)
-
 
 
 class ProductBase(object):
