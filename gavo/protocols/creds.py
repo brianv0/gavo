@@ -16,7 +16,6 @@ matters unnecessarily.
 from __future__ import with_statement
 
 from gavo import base
-from gavo.base import sqlsupport
 
 
 # this should only be changed for unit tests

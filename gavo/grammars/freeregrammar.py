@@ -9,7 +9,6 @@ A grammar based on repeated application of REs
 
 
 import re
-import sys
 
 from gavo import base
 from gavo.grammars import common

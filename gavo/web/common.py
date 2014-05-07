@@ -8,11 +8,10 @@ Common code for the nevow based interface.
 #c COPYING file in the source distribution.
 
 
-import os
 import urllib
 
 from nevow import appserver
-from nevow import tags as T, entities as E
+from nevow import tags as T
 from nevow import loaders
 from nevow import inevow
 from nevow import rend

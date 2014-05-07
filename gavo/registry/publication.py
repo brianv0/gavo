@@ -21,9 +21,6 @@ records.
 import datetime
 import itertools
 import os
-import sys
-import time
-import traceback
 import warnings
 
 import pkg_resources
@@ -34,8 +31,6 @@ from gavo import rsc
 from gavo import utils
 
 from gavo.registry import builders
-from gavo.registry import identifiers
-from gavo.registry import nonservice
 from gavo.registry.common import *
 
 
@@ -362,6 +357,7 @@ def tryServiceReload():
 		f = utils.urlopenRemote(base.makeAbsoluteURL("/seffe/__system__/services"),
 			urllib.urlencode({"__nevow_form__": "adminOps", "submit": "Reload RD"}),
 			creds=("gavoadmin", pw))
+		f.read()
 	except IOError, ex:
 		base.ui.notifyWarning("Could not reload services RD (%s).  This means"
 			" that the registry time stamp on the server will be out of date."
@@ -374,7 +370,6 @@ def main():
 	"""handles the user interaction for gavo publish.
 	"""
 	from gavo import rscdesc
-	from gavo import web
 	from gavo.user import plainui
 	plainui.SemiStingyPlainUI(base.ui)
 	opts, args = parseCommandLine()

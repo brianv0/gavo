@@ -8,8 +8,8 @@ Coding and decoding from tabledata.
 #c COPYING file in the source distribution.
 
 
+# needed for the code below
 import re
-import traceback
 
 from gavo.votable import coding
 from gavo.votable import common

@@ -15,10 +15,7 @@ These then have to be picked up by renderers and formatted for delivery.
 
 
 import itertools
-import os
 import sys
-import traceback
-import weakref
 
 from gavo import base
 from gavo import rsc

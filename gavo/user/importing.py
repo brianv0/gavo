@@ -9,8 +9,6 @@ The user interface to importing resources into the VO.
 
 
 import sys
-import os
-import traceback
 from optparse import OptionParser
 
 from gavo import base

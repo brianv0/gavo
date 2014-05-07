@@ -28,8 +28,7 @@ frequency needs division of the value.
 from itertools import *
 import math
 
-from gavo import utils
-from gavo.utils import memoized, identity
+from gavo.utils import memoized
 from gavo.stc.common import *
 
 

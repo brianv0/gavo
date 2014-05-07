@@ -511,10 +511,19 @@ class NameMap(object):
 		return self.namesDict[name.lower()]
 
 
+_STANDARD_ENTITIES = {
+		'lt': '<',
+		'gt': '>',
+		'amp': '&',
+		'apos': "'",
+		'quot': '"',
+}
+
+
 def _decodeEntityref(matob):
-	entRef = mat.group(1)
-	if entRef in _standardEntities:
-		return xmlEntites[entRef]
+	entRef = matob.group(1)
+	if entRef in _STANDARD_ENTITIES:
+		return _STANDARD_ENTITIES[entRef]
 	elif entRef.startswith("#x"):
 		return unichr(int(entRef[2:], 16))
 	elif entRef.startswith("#"):

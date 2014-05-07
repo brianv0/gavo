@@ -21,7 +21,6 @@ STC by inspecting modelgroups.stcAvailable.
 #c COPYING file in the source distribution.
 
 
-from gavo.votable import common
 from gavo.votable.model import VOTable as V
 
 
@@ -92,7 +91,6 @@ def unmarshal_STC(tableNode):
 	system are STC ASTs; colInfo maps column ids to the column utype in
 	system.
 	"""
-	columnsInfo = {}
 	for obsLocGroup in _getUtypedGroupsFromAny(tableNode, 
 			"stc:CatalogEntryLocation"):
 		utypes, colInfo = [], {}

@@ -14,8 +14,6 @@ and have the table->RD mapping stowed somewhere else.
 import functools
 
 from gavo import base
-from gavo.rsc import dbtable
-from gavo import rscdef
 
 
 

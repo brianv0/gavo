@@ -10,7 +10,6 @@ Resources that are not services.
 
 from gavo import base
 from gavo import rscdef
-from gavo import svcs
 from gavo import utils
 from gavo.registry import common
 

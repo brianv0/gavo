@@ -10,6 +10,7 @@ File- and directory related helpers for resource utilites.
 
 import os
 import re
+import warnings
 
 from gavo import base
 from gavo import rscdef

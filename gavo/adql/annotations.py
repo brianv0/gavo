@@ -25,7 +25,6 @@ import contextlib
 
 from gavo import utils
 from gavo import stc
-from gavo.adql import nodes
 from gavo.adql.common import *
 
 

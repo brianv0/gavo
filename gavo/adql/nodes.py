@@ -8,10 +8,7 @@ Node classes and factories used in ADQL tree processing.
 #c COPYING file in the source distribution.
 
 
-import itertools
 import re
-import sys
-import traceback
 import weakref
 
 from gavo import stc

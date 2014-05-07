@@ -8,7 +8,6 @@ An interface to querying TAP servers (i.e., a TAP client).
 #c COPYING file in the source distribution.
 
 
-import datetime
 import httplib
 import socket
 import time
@@ -502,7 +501,7 @@ def _makeAtomicValueSetter(methodPath, serializer, parameterName):
 # This is for building ADQLTAPJob's properties (phase, etc.)
 	def setter(self, value):
 		destURL = self.jobPath+methodPath
-		response = request(self.destHost, destURL, 
+		request(self.destHost, destURL, 
 			{parameterName: serializer(value)}, method="POST",
 			expectedStatus=303)
 	return setter
@@ -575,24 +574,24 @@ class ADQLTAPJob(_WithEndpoint):
 		"""
 		if self.jobPath is not None:
 			if usePOST:
-				response = request(self.destHost, self.jobPath, method="POST",
+				request(self.destHost, self.jobPath, method="POST",
 					data={"ACTION": "DELETE"}, expectedStatus=303, 
 					timeout=self.timeout)
 			else:
-				response = request(self.destHost, self.jobPath, method="DELETE",
+				request(self.destHost, self.jobPath, method="DELETE",
 					expectedStatus=303, timeout=self.timeout)
 
 	def start(self):
 		"""asks the remote side to start the job.
 		"""
-		response = request(self.destHost, self.jobPath+"/phase", 
+		request(self.destHost, self.jobPath+"/phase", 
 			{"PHASE": "RUN"}, method="POST", expectedStatus=303, 
 			timeout=self.timeout)
 
 	def abort(self):
 		"""asks the remote side to abort the job.
 		"""
-		response = request(self.destHost, self.jobPath+"/phase", 
+		request(self.destHost, self.jobPath+"/phase", 
 			{"PHASE": "ABORT"}, method="POST", expectedStatus=303,
 			timeout=self.timeout)
 

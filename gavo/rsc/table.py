@@ -19,6 +19,7 @@ of TableDef elements, which I think is worse than a factory function.
 
 
 from gavo import base
+from gavo import rscdef
 from gavo.rsc import common
 
 import sys

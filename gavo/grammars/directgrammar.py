@@ -23,7 +23,6 @@ import subprocess
 
 from gavo import base
 from gavo import utils
-from gavo import rsc
 from gavo import rscdef
 from gavo.grammars import common
 

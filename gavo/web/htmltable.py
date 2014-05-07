@@ -10,24 +10,19 @@ A renderer for Data to HTML/stan
 
 import datetime
 import itertools
-import math
+import os
 import re
 import urlparse
 import urllib
-import os
-import sys
-import traceback
-import weakref
 
 from nevow import flat
 from nevow import loaders
 from nevow import rend
-from nevow import tags as T, entities as E
+from nevow import tags as T
 
 from gavo import base
 from gavo import formats
 from gavo import rsc
-from gavo import rscdef
 from gavo import svcs
 from gavo import stc
 from gavo import utils

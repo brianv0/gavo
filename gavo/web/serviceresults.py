@@ -9,13 +9,10 @@
 
 
 import os
-import urllib
-import urlparse
 
 from nevow import inevow
-from nevow import rend
 from nevow import static
-from nevow import tags as T, entities as E
+from nevow import tags as T
 from twisted.internet import threads
 
 
@@ -24,12 +21,10 @@ from gavo import utils
 from gavo.formats import csvtable
 from gavo.formats import fitstable
 from gavo.formats import texttable
-from gavo.imp import formal
 from gavo.imp.formal import types as formaltypes
 from gavo.imp.formal.util import render_cssid
 from gavo.svcs import customwidgets
 from gavo.svcs import streaming
-from gavo.web import common
 from gavo.web import producttar
 
 __docformat__ = "restructuredtext en"
@@ -175,7 +170,7 @@ _getFormat = utils.buildClassResolver(ServiceResult,
 def getFormat(formatName):
 	try:
 		return _getFormat(formatName)
-	except KeyError, ex:
+	except KeyError:
 		raise base.ValidationError("Unknown format '%s'."%formatName,
 			"_OUTPUT")
 
@@ -222,7 +217,7 @@ class OutputFormat(object):
 		defaultNames = set([f.name
 			for f in self.service.getHTMLOutputFields(queryMeta, 
 				ignoreAdditionals=True)])
-		selectedFields = set(queryMeta["additionalFields"])
+		
 		for key in coreNames-defaultNames:
 			try:
 				self.availableFields.append((core.outputTable.getColumnByName(key),

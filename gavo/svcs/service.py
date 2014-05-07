@@ -13,15 +13,13 @@ optionally tinkers with that data set.
 #c COPYING file in the source distribution.
 
 
-import cStringIO
-import datetime
 import os
 import urllib
-import weakref
 
 from nevow import inevow
+
+# this is required for making custom render functions work
 from nevow import tags as T, entities as E
-from twisted.python import components
 
 from zope.interface import implements
 
@@ -29,7 +27,6 @@ from gavo import base
 from gavo import rsc
 from gavo import rscdef
 from gavo import utils
-from gavo.base import meta
 from gavo.rsc import table
 from gavo.rscdef import rmkdef
 from gavo.svcs import common
@@ -37,7 +34,6 @@ from gavo.svcs import core
 from gavo.svcs import inputdef
 from gavo.svcs import outputdef
 from gavo.svcs import renderers
-from gavo.svcs import standardcores
 
 
 def adaptTable(origTable, newColumns):
@@ -564,6 +560,9 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		# XXX TODO: this type of stuff should probably be done in the
 		# core or the renderer...
 		if "tap" in self.allowed:
+			# tap never has "native" tables, so start afresh
+			tables = []
+
 			mth = base.caches.getMTH(None)
 			for tableName in mth.getTAPTables():
 				try:

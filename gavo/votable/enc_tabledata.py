@@ -8,8 +8,7 @@ Encoding to tabledata.
 #c COPYING file in the source distribution.
 
 
-import traceback
-
+# utils is necessary for embedded code
 from gavo import utils
 from gavo.utils import stanxml
 from gavo.votable import coding

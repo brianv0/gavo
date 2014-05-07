@@ -14,11 +14,9 @@ import datetime
 import os
 import signal
 import threading
-import warnings
 
 from twisted.internet import reactor
 from twisted.internet import protocol
-import twisted.internet.utils
 
 from gavo import base
 from gavo import rsc
@@ -320,7 +318,7 @@ class TAPTransitions(uws.SimpleUWSTransitions):
 		wjob.uws.scheduleProcessQueueCheck()
 
 	def completeJob(self, newPhase, wjob, ignored):
-		wjob.change(phase=newPhase, endTime=datetime.datetime.utcnow())
+		uws.SimpleUWSTransitions.completeJob(self, newPhase, wjob, ignored)
 		wjob.uws.scheduleProcessQueueCheck()
 
 	def killJob(self, newState, wjob, ignored):
@@ -664,7 +662,7 @@ class TAPUWS(uws.UWS):
 						# process couldn't see the pids anyway.
 						if base.IS_DACHS_SERVER:
 							self._ensureJobsAreRunning()
-				except Exception, ex:
+				except Exception:
 					base.ui.notifyError("Error during queue processing, TAP"
 						" is probably botched now.")
 			finally:

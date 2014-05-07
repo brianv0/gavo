@@ -13,11 +13,9 @@ xlink and all the other stuff.
 
 
 from itertools import *
-import math
 import operator
 import re
 
-from gavo.stc import sphermath
 from gavo.stc import times
 from gavo.stc import units
 from gavo.stc.common import *

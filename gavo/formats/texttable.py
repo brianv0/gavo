@@ -13,7 +13,6 @@ really store sane formatting hints for most columns.
 
 
 import cStringIO
-import re
 
 from gavo import base
 from gavo import rsc

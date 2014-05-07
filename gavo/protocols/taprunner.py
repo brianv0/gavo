@@ -22,21 +22,17 @@ ABORTED or ERROR.
 from __future__ import with_statement
 
 import datetime
-import os
 import sys
 import time
-import traceback
 
 from gavo import base
 from gavo import formats
 from gavo import rsc
-from gavo import rscdef
 from gavo import rscdesc
 from gavo import svcs
 from gavo import utils
 from gavo import votable
 from gavo.base import valuemappers
-from gavo.grammars import votablegrammar
 from gavo.formats import votableread
 from gavo.formats import votablewrite
 from gavo.protocols import adqlglue
@@ -271,7 +267,7 @@ def runTAPJobNoState(parameters, jobId, queryProfile, timeout):
 			_getResultType(format, job.parameters.get("format")), "result")
 		writeResultTo(format, res, destF)
 		destF.close()
-	except Exception, ex:
+	except Exception:
 		# DB errors can occur here since we're streaming directly from
 		# the database.
 		svcs.mapDBErrors(*sys.exc_info())

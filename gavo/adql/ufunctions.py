@@ -11,11 +11,8 @@ See the userFunction docstring on how to use these.
 #c COPYING file in the source distribution.
 
 
-import warnings
-
 from gavo import utils
 from gavo.adql import common
-from gavo.adql import grammar
 from gavo.adql import fieldinfo
 from gavo.adql import morphhelpers
 from gavo.adql import nodes
@@ -73,7 +70,7 @@ def _makeBooleanizer(funcName, booleanExpr):
 	"""
 	def _booleanizeThis(node, operator, operand):
 		if len(node.args)!=2:
-			raise UfuncError("%s takes exactly two arguments"%funcName)
+			raise common.UfuncError("%s takes exactly two arguments"%funcName)
 		return morphhelpers.addNotToBooleanized(
 			booleanExpr%{
 				'1': nodes.flatten(node.args[0]), 
@@ -93,7 +90,7 @@ def _makeBooleanizer(funcName, booleanExpr):
 	"integer")
 def _match(args):
 	if len(args)!=2:
-		raise UfuncError("gavo_match takes exactly two arguments")
+		raise common.UfuncError("gavo_match takes exactly two arguments")
 	return "(CASE WHEN %s ~ %s THEN 1 ELSE 0 END)"%(
 		nodes.flatten(args[1]), nodes.flatten(args[0]))
 
@@ -110,7 +107,7 @@ def _match(args):
 	"integer")
 def _hasword(args):
 	if len(args)!=2:
-		raise UfuncError("ivo_hasword takes exactly two arguments")
+		raise common.UfuncError("ivo_hasword takes exactly two arguments")
 	return None
 
 _makeBooleanizer("ivo_hasword", 
@@ -129,7 +126,7 @@ _makeBooleanizer("ivo_hasword",
 	"integer")
 def _nocasematch(args):
 	if len(args)!=2:
-		raise UfuncError("ivo_nocasematch takes exactly two arguments")
+		raise common.UfuncError("ivo_nocasematch takes exactly two arguments")
 	return None
 
 _makeBooleanizer("ivo_nocasematch", "(%(1)s ilike %(2)s)")
@@ -148,7 +145,7 @@ _makeBooleanizer("ivo_nocasematch", "(%(1)s ilike %(2)s)")
 	"integer")
 def _hashlist_has(args):
 	if len(args)!=2:
-		raise UfuncError("ivo_haslist_has takes exactly two arguments")
+		raise common.UfuncError("ivo_haslist_has takes exactly two arguments")
 	return None
 
 _makeBooleanizer("ivo_hashlist_has", 
@@ -166,7 +163,7 @@ _makeBooleanizer("ivo_hashlist_has",
 	""")
 def _to_mjd(args):
 	if len(args)!=1:
-		raise UfuncError("gavo_to_mjd takes exactly one timestamp argument")
+		raise common.UfuncError("gavo_to_mjd takes exactly one timestamp argument")
 	return "ts_to_mjd(%s)"%nodes.flatten(args[0])
 
 
@@ -181,7 +178,7 @@ def _to_mjd(args):
 	""")
 def _to_mjd(args):
 	if len(args)!=1:
-		raise UfuncError("gavo_to_jd takes exactly one timestamp argument")
+		raise common.UfuncError("gavo_to_jd takes exactly one timestamp argument")
 	return "ts_to_jd(%s)"%nodes.flatten(args[0])
 
 
@@ -193,7 +190,7 @@ def _to_mjd(args):
 	"text")
 def _string_agg(args):
 	if len(args)!=2:
-		raise UfuncError("ivo_string_agg takes exactly two arguments")
+		raise common.UfuncError("ivo_string_agg takes exactly two arguments")
 	return "string_agg(%s, %s)"%(
 		nodes.flatten(args[0]), nodes.flatten(args[1]))
 

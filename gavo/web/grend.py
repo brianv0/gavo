@@ -14,27 +14,21 @@ the result for the user.
 
 import os
 
-from nevow import tags as T, entities as E
+from nevow import tags as T
 from nevow import loaders
 from nevow import inevow
 from nevow import rend
 from nevow import url
-from nevow import util as nevowutil
 
-from twisted.internet import defer
 from twisted.internet import threads
-from twisted.python import failure
 from twisted.python import log
 from zope.interface import implements
 
 from gavo import base
 from gavo import svcs
-from gavo import rscdef
 from gavo.protocols import creds
 from gavo.web import common
 from gavo.web import htmltable
-from gavo.web import serviceresults
-from gavo.web import weberrors
 
 
 __docformat__ = "restructuredtext en"
@@ -202,7 +196,7 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 				],
 				T.div(class_="exploBody")[
 					self._doRenderMeta(ctx, raiseOnFail=True)]]
-		except base.MetaError, ex:
+		except base.MetaError:
 			return ""
 
 	def render_intro(self, ctx, data):

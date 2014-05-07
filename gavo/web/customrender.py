@@ -7,6 +7,9 @@ User-defined renderers.
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
 
+import imp
+
+from nevow import url
 
 from gavo import svcs
 from gavo.web import grend

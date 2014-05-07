@@ -18,7 +18,6 @@ renderer on the infinite light curve?
 
 
 import cStringIO
-import traceback
 
 import Image
 
@@ -28,9 +27,6 @@ from nevow import static
 
 from twisted.internet import threads
 from twisted.internet import defer
-from twisted.python import failure
-
-from zope.interface import implements
 
 from gavo import base
 from gavo import svcs
@@ -126,8 +122,6 @@ class JpegRenderer(formrender.FormMixin, grend.ServiceBasedPage,
 
 	docFactory = svcs.loadSystemTemplate("defaultresponse.html")
 
-
-import traceback
 
 # XXX TODO: This is crap.  It belongs to the lightcurve and should either
 # become much more generic or become a custom renderer.

@@ -14,11 +14,9 @@ import urllib
 import numpy
 
 from gavo import base
-from gavo import rscdef
 from gavo import svcs
 from gavo.base import coords
 from gavo.protocols import products
-from gavo.protocols import simbadinterface
 from gavo.utils import DEG
 from gavo.utils import pgsphere
 
@@ -265,7 +263,6 @@ class SIAPCutoutCore(svcs.DBCore):
 			"NAXIS1": record["pixelSize"][0],
 			"NAXIS2": record["pixelSize"][1],
 		})
-		trafo = coords.getWCSTrafo(wcsFields)
 		invTrafo = coords.getInvWCSTrafo(wcsFields)
 		upperLeft = invTrafo(centerAlpha-sizeAlpha/2, centerDelta-sizeDelta/2)
 		lowerRight = invTrafo(centerAlpha+sizeAlpha/2, centerDelta+sizeDelta/2)

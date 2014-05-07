@@ -28,9 +28,6 @@ of inheriting from factory registry instances.
 
 import datetime
 import re
-import urllib
-import urlparse
-import weakref
 
 from gavo import adql
 from gavo import stc

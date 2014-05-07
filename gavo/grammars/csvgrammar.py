@@ -13,7 +13,6 @@ from __future__ import with_statement
 import csv
 
 from gavo import base
-from gavo import utils
 from gavo.grammars.common import Grammar, FileRowIterator, FileRowAttributes
 
 

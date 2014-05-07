@@ -17,8 +17,6 @@ information in the constructed objects themselves.
 
 
 import new
-import warnings
-import weakref
 
 from gavo import utils
 from gavo.base import attrdef

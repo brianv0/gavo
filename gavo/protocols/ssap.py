@@ -9,8 +9,6 @@ The SSAP core and supporting code.
 #c COPYING file in the source distribution.
 
 
-from cStringIO import StringIO
-
 from gavo import base
 from gavo import rsc
 from gavo import rscdef
@@ -19,8 +17,6 @@ from gavo import utils
 from gavo import votable
 from gavo.formats import votablewrite
 from gavo.protocols import datalink
-from gavo.protocols import sdm
-from gavo.svcs import pql
 from gavo.svcs import outputdef
 from gavo.votable import V
 

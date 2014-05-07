@@ -13,6 +13,7 @@ import sys
 
 from gavo import base
 from gavo import rscdesc  # (register getRD)
+from gavo.base import sqlsupport
 from gavo.user.common import Arg, exposedFunction, makeParser
 from gavo.protocols import uws
 
@@ -150,7 +151,6 @@ def tapabort(querier, args):
 def allcols(querier, args):
 	from gavo import registry
 	from gavo import rsc
-	from gavo import rscdesc
 	from gavo.protocols import tap
 
 	for rdId in registry.findAllRDs():
@@ -209,7 +209,6 @@ def declaredel(querier, args):
 	help="Precompute previews for the product interface columns in a table.")
 def cacheprev(querier, args):
 	from gavo import api
-	from gavo.protocols import products
 	from gavo.web.productrender import PreviewCacheManager
 	from twisted.internet import reactor
 
@@ -249,7 +248,6 @@ def cacheprev(querier, args):
 	help="Make suggestions for UCDs of columns not having one (based"
 	" on their descriptions; this uses a GAVO web service).")
 def suggestucds(querier, args):
-	from gavo import api
 	import SOAPpy
 	import urllib
 	
@@ -276,7 +274,6 @@ def suggestucds(querier, args):
 	help="Show the statements to create the indices on a table.")
 def indexStatements(querier, args):
 	import re
-	from gavo import api
 	td = base.resolveId(None, args.tableId)
 	for ind in td.indices:
 		print "\n".join(re.sub(r"\s+", " ", s) for s in ind.iterCode())

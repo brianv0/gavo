@@ -13,14 +13,12 @@ from __future__ import with_statement
 import datetime
 import grp
 import os
-import pkg_resources
 import pwd
 import signal
 import sys
 import time
 import warnings
 
-from nevow import appserver
 from nevow import inevow
 from nevow import rend
 from twisted.internet import reactor
@@ -114,7 +112,6 @@ def _reloadConfig():
 	"""
 	base.caches.clearCaches()
 
-	from gavo.web import root
 	root.loadUserVanity(root.ArchiveService)
 	config.makeFallbackMeta(reload=True)
 	config.loadConfig()

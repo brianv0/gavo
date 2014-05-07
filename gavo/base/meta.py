@@ -30,13 +30,9 @@ item for the main key.
 #c COPYING file in the source distribution.
 
 
-import copy
 import re
 import textwrap
-import traceback
 import urllib
-import warnings
-import weakref
 
 from gavo import utils
 from gavo.base import attrdef

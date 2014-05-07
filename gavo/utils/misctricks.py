@@ -16,7 +16,6 @@ import os
 import re
 import struct
 import threading
-import time
 import urllib2
 
 from gavo.utils import excs
@@ -226,7 +225,7 @@ class StreamBuffer(object):
 			self.curSize += len(leftOver)
 			return chunk+char
 
-		this(cannot, happen)
+		raise AssertionError("This cannot happen")
 	
 	
 	def getRest(self):
@@ -381,7 +380,6 @@ def rstxToHTML(source, **userOverrides):
 	core.publish_parts.
 	"""
 	sourcePath, destinationPath = None, None
-	doctitle = False
 	if not isinstance(source, unicode):
 		source = source.decode("utf-8")
 	

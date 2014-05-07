@@ -10,12 +10,10 @@ Tables on disk
 
 from __future__ import with_statement
 
-import os
 import sys
 
 from gavo import base
 from gavo import rscdef
-from gavo import utils
 from gavo.base import sqlsupport
 from gavo.rsc import common
 from gavo.rsc import table

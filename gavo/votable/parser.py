@@ -118,6 +118,7 @@ def parse(inFile, watchset=DEFAULT_WATCHSET, ignoreUnknowns=False):
 	elements = computeElements()
 	elementStack = [None]  # None is VOTABLE's parent
 	iterator = utils.iterparse(inFile, common.VOTableParseError)
+	content = []
 
 	for type, tag, payload in iterator:
 		if type=="data":
@@ -174,7 +175,6 @@ def readRaw(inFile):
 	"""returns a V.VOTABLE instance with filled-in data for the input from
 	inFile.
 	"""
-	res = None
 	for el in parse(inFile, [model.VOTable.TABLE, model.VOTable.VOTABLE]):
 		if isinstance(el, tableparser.Rows):
 			el.tableDefinition.rows = list(el)

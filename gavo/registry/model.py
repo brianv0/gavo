@@ -10,7 +10,6 @@ The schema and XML namespaces for OAI/VOR documents.
 
 from gavo import base
 from gavo.base import typesystems
-from gavo.utils import ElementTree
 from gavo.utils.stanxml import Element, schemaURL, registerPrefix, xsiPrefix
 
 

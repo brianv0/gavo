@@ -20,8 +20,6 @@ from math import sin, cos, tan, atan, acos
 from gavo import utils
 from gavo.stc import common
 from gavo.stc import conform
-from gavo.stc import dm
-from gavo.stc import spherc
 from gavo.stc import stcsast
 
 from gavo.utils import DEG
@@ -448,7 +446,7 @@ def joinBboxes(*bboxes):
 	i.e., lower left and upper right corners.
 	"""
 	if not bboxes:
-		raise stc.InternalError("bbox join without bbox")
+		raise common.InternalError("bbox join without bbox")
 	minRA, maxRA = utils.Supremum, utils.Infimum
 	minDec, maxDec = utils.Supremum, utils.Infimum
 

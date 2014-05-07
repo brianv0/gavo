@@ -28,7 +28,6 @@ from __future__ import with_statement
 import calendar
 import datetime
 import heapq
-import os
 import sys
 import subprocess
 import time

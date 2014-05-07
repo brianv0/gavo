@@ -15,7 +15,6 @@ here, and it's nice if the user has a way to figure out what's wrong.
 from __future__ import with_statement
 
 import datetime
-import grp
 import os
 import sys
 import textwrap

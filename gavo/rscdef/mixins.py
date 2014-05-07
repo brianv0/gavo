@@ -9,7 +9,6 @@ Resource mixins.
 
 
 import threading
-import warnings
 
 from gavo import base
 from gavo.base import activetags

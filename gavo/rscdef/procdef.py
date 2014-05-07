@@ -7,9 +7,6 @@ Basic handling for embedded procedures.
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
 
-
-import itertools
-
 from gavo import base
 from gavo import utils
 from gavo.rscdef import common

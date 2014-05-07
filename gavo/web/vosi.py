@@ -12,8 +12,6 @@ capabilities).
 #c COPYING file in the source distribution.
 
 
-import traceback
-
 from nevow import inevow
 from twisted.internet import defer
 
@@ -23,8 +21,6 @@ from gavo import svcs
 from gavo import utils
 from gavo.base import meta
 from gavo.registry import capabilities
-from gavo.registry import model
-from gavo.utils import ElementTree
 from gavo.utils.stanxml import Element, registerPrefix, schemaURL, xsiPrefix
 from gavo.web import grend
 

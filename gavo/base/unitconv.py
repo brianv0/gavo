@@ -22,8 +22,6 @@ http://svn.ari.uni-heidelberg.de/svn/gavo/python/trunk/tests/unitconvtest.py
 from __future__ import with_statement
 
 import math
-import re
-import traceback
 
 
 from gavo import utils
@@ -428,7 +426,7 @@ class getUnitGrammar(utils.CachedResource):
 	@classmethod
 	def impl(cls):
 		from gavo.imp.pyparsing import (Word, Literal, Regex, 
-			Optional, ZeroOrMore, MatchFirst, ParseException, nums, alphas,
+			Optional, ZeroOrMore, alphas,
 			Suppress, Forward, White)
 
 		with utils.pyparsingWhitechars(''):

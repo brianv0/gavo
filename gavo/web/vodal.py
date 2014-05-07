@@ -12,11 +12,8 @@ import datetime
 
 from nevow import appserver
 from nevow import inevow
-from nevow import rend
 
 from twisted.internet import defer
-from twisted.internet import threads
-from twisted.python import failure
 
 from zope.interface import implements
 
@@ -27,14 +24,9 @@ from gavo import rsc
 from gavo import svcs
 from gavo import utils
 from gavo import votable
-from gavo.imp import formal
-from gavo.imp.formal import form
-from gavo.protocols import uwsactions
 from gavo.svcs import streaming
-from gavo.utils import ElementTree
 from gavo.votable import V
 from gavo.web import common
-from gavo.web import formrender
 from gavo.web import grend
 
 

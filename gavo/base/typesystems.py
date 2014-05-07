@@ -42,10 +42,8 @@ probably tricky).
 # XXX TODO: Think how this can be "inverted" by just defining types and
 # collecting all their aspects in a single class
 
-import datetime
 import numpy
 import re
-import time
 
 from gavo import utils
 from gavo.base import common

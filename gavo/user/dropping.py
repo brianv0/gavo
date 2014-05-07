@@ -9,7 +9,6 @@ Dropping resources.  For now, you can only drop entire RDs.
 
 
 import os
-import sys
 
 from gavo import api
 from gavo import base
@@ -86,7 +85,7 @@ def _do_dropRD(opts, rdId, selectedIds=()):
 			parseOptions = api.getParseOptions(systemImport=opts.systemImport)
 
 			for dd in dds:
-				res = api.Data.drop(dd, connection=querier.connection, 
+				api.Data.drop(dd, connection=querier.connection, 
 					parseOptions=parseOptions)
 
 			if not selectedIds or opts.dropAll:

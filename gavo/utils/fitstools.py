@@ -15,18 +15,17 @@ Some utility functions to deal with FITS files.
 
 from __future__ import with_statement
 
-import contextlib
 import datetime
 import gzip
 import os
 import re
-import sys
 import tempfile
 import warnings
 
-from gavo.utils import excs
-from gavo.utils import misctricks
-from gavo.utils import ostricks
+from . import codetricks
+from . import excs
+from . import misctricks
+from . import ostricks
 
 # Make sure we get the numpy version of pyfits.  This is the master
 # import that all others should use (from gavo.utils import pyfits).
@@ -369,9 +368,8 @@ def writeGz(hdus, fitsName, compressLevel=5, mode=0664):
 	zipped files (which is a bit tricky, admittedly).  So, we'll probably
 	have to live with this kludge for a while.
 	"""
-	handle, pathname = tempfile.mkstemp(suffix="fits", 
-		dir=base.getConfig("tempDir"))
-	with base.silence():
+	handle, pathname = tempfile.mkstemp(suffix="fits")
+	with codetricks.silence():
 		hdus.writeto(pathname, clobber=True)
 	os.close(handle)
 	rawFitsData = open(pathname).read()
@@ -431,7 +429,7 @@ class GzHeaderManipulator(PlainHeaderManipulator):
 	def __init__(self, fName, compressLevel=5):
 		self.origFile = fName
 		handle, self.uncompressedName = tempfile.mkstemp(
-			suffix="fits", dir=base.getConfig("tempDir"))
+			suffix="fits")
 		destFile = os.fdopen(handle, "w")
 		destFile.write(gzip.open(fName).read())
 		destFile.close()
@@ -686,7 +684,7 @@ def iterScaledRows(inFile, factor=None, destSize=None, hdr=None, slow=False,
 
 	if factor is None:
 		if destSize is None:
-			raise base.DataError("iterScaledRows needs either factor or destSize.")
+			raise excs.DataError("iterScaledRows needs either factor or destSize.")
 		size = max(hdr["NAXIS1"], hdr["NAXIS2"])
 		factor = max(1, size//destSize+1)
 

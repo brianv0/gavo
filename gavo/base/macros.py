@@ -11,13 +11,12 @@ A macro mechanism primarily for string replacement in resource descriptors.
 from __future__ import with_statement
 
 import datetime
-import time
 import urllib
 
 from gavo.imp.pyparsing import (
-	Word, OneOrMore, ZeroOrMore, QuotedString, Forward,
-	SkipTo, Optional, StringEnd, Regex, LineEnd, Suppress, ParserElement,
-	Literal, White, ParseException, dblQuotedString)
+	ZeroOrMore, Forward,
+	Regex, Suppress,
+	Literal)
 
 
 from gavo import utils

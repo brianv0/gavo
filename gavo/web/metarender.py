@@ -9,7 +9,6 @@ Renderers that take services "as arguments".
 
 
 import cgi
-import os
 import urllib
 
 from nevow import inevow
@@ -17,8 +16,6 @@ from nevow import loaders
 from nevow import rend
 from nevow import tags as T, entities as E
 from nevow import url
-
-from zope.interface import implements
 
 from gavo import base
 from gavo import registry

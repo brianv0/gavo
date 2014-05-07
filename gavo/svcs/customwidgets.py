@@ -9,27 +9,22 @@ etc)
 #c COPYING file in the source distribution.
 
 
-import urllib
-
 from twisted.python import components
 
-from nevow import tags as T, entities as E
-from nevow import inevow
-from nevow.util import getPOSTCharset
+from nevow import tags as T
+# makeWidgetFactory below relies on this
 
 from zope.interface import implements
 
 from gavo import base
 from gavo import rscdef
-from gavo.base import typesystems
 from gavo.imp import formal
 from gavo.imp.formal import iformal
 from gavo.imp.formal import types as formaltypes
-from gavo.imp.formal import validation
 from gavo.imp.formal import widget
+from gavo.imp.formal import widgetFactory
 from gavo.imp.formal.util import render_cssid
 from gavo.imp.formal.widget import *
-from gavo.imp.formal import widgetFactory
 
 
 class DBOptions(object):

@@ -9,7 +9,6 @@ Binary VOTable encoding.
 
 
 import struct
-import traceback
 
 from gavo.votable import coding
 from gavo.votable import common

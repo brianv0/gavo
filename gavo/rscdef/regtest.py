@@ -15,6 +15,7 @@ run while (or rather, after) executing gavo val.
 from __future__ import with_statement
 
 import collections
+import cPickle as pickle
 import httplib
 import os
 import Queue
@@ -41,7 +42,6 @@ except ImportError:
 from gavo import base
 from gavo import votable
 from gavo import utils
-from gavo.base import attrdef
 from gavo.imp import argparse
 from . import common
 from . import procdef
@@ -668,7 +668,7 @@ class TestStatistics(object):
 		for doing something with this are provided so far.
 		"""
 		with open(target, "w") as f:
-			cPickle.dump(self.runs, f)
+			pickle.dump(self.runs, f)
 
 
 class TestRunner(object):
@@ -772,7 +772,6 @@ class TestRunner(object):
 		startTime = time.time()
 		try:
 			try:
-				curDesc = test.title
 				test.retrieveData(self.serverURL, timeout=self.timeout)
 				test.compile()(test)
 				self.resultsQueue.put(("OK", test, None, None, time.time()-startTime))

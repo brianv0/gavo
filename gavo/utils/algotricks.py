@@ -9,7 +9,6 @@ Some fundamental algorithms not found in the standard library.
 
 
 import itertools
-import sys
 
 
 class IndexedGraph(object):

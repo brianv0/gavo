@@ -139,7 +139,7 @@ class OutputTableDef(rscdef.TableDef):
 		# Do not overwrite existing fields here to let the user
 		# override individually
 		try:
-			existing = self.getColumnByName(sourceColumn.name)
+			self.getColumnByName(sourceColumn.name)
 		except base.NotFoundError:
 			self.feedObject("outputField", OutputField.fromColumn(sourceColumn))
 
@@ -147,7 +147,7 @@ class OutputTableDef(rscdef.TableDef):
 		# since autoCols is not copyable, we can require
 		# that _addNames only be called when there's a real parse context.
 		if ctx is None:
-			raise StructureError("outputTable autocols is"
+			raise base.StructureError("outputTable autocols is"
 				" only available with a parse context")
 		for name in names:
 			self._addName(ctx, name)

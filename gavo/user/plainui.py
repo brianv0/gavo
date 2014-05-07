@@ -8,7 +8,6 @@ Observers for running interactive programs in the terminal.
 #c COPYING file in the source distribution.
 
 
-from gavo import utils
 from gavo.base import ObserverBase, listensTo
 
 class StingyPlainUI(ObserverBase):

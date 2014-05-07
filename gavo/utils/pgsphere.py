@@ -17,7 +17,7 @@ import math
 import re
 
 import psycopg2
-from psycopg2.extensions import (adapt, register_adapter, AsIs, register_type,
+from psycopg2.extensions import (register_adapter, AsIs, register_type,
 	new_type)
 
 from gavo.utils import codetricks

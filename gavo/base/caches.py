@@ -26,9 +26,6 @@ An alternative interface to registering caches is the registerCache function
 #c COPYING file in the source distribution.
 
 
-import time
-
-
 class CacheRegistry:
 	"""is a registry for caches kept to be able to clear them.
 
@@ -77,8 +74,6 @@ def _makeCache(creator, isDirty):
 	_cacheRegistry.register(cache)
 
 	def func(id):
-		ct = 0
-
 		if isDirty is not None and id in cache and isDirty(cache[id]):
 			clearForName(id)
 

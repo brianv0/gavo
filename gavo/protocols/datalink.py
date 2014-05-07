@@ -18,7 +18,6 @@ from gavo import rsc
 from gavo import rscdef
 from gavo import svcs
 from gavo import utils
-from gavo import votable
 from gavo.protocols import products
 from gavo.formats import votablewrite
 from gavo.votable import V, modelgroups

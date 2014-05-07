@@ -12,13 +12,11 @@ from __future__ import with_statement
 
 import grp
 import os
-import traceback
 
 from gavo import base
 from gavo import rsc
 from gavo import rscdef
 from gavo.svcs import core
-from gavo.svcs import inputdef
 from gavo.svcs import outputdef
 from gavo.svcs import standardcores
 

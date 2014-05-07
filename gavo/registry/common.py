@@ -8,8 +8,6 @@ Common code and definitions for registry support.
 #c COPYING file in the source distribution.
 
 
-import re
-
 from gavo import base
 from gavo import rsc
 from gavo import utils

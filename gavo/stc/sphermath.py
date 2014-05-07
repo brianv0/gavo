@@ -12,7 +12,6 @@ import math
 import new
 import numpy
 
-from gavo import utils
 from gavo.stc import units
 from gavo.stc.common import *
 
@@ -183,8 +182,6 @@ def _solveStumpffEquation(betaR, betaT, maxIter=100):
 				break
 			odd = dd
 			oddel = ddel
-		od = d
-		odel = delta
 	else:
 		raise STCError("6-vector relativistic correction failed to converge")
 	return curEstR, curEstT, d, delta

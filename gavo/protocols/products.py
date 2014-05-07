@@ -32,13 +32,11 @@ in the forseeable future.
 
 from __future__ import with_statement
 
-import cgi
 import datetime
 import gzip
 import re
 import os
 import struct
-import subprocess
 import urllib
 import urlparse
 from cStringIO import StringIO
@@ -654,7 +652,6 @@ class CutoutProduct(ProductBase):
 
 		# There's very similar code in fitstools.iterScaledRows
 		# -- it would be nice to refactor things so this can be shared.
-		summedInds = range(scale)
 		img = numpy.zeros((destWidth, destHeight), 'float32')
 
 		for rowInd in range(destHeight):

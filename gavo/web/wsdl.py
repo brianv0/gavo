@@ -9,17 +9,13 @@ Code to expose our services via SOAP and WSDL.
 
 
 import cStringIO
-import datetime
-import sys
 
 import ZSI
 from ZSI import TC
 
 from gavo import base
-from gavo import svcs
 from gavo.base import valuemappers
 from gavo.utils.stanxml import (Element, schemaURL, registerPrefix)
-from gavo.utils import ElementTree
 
 
 SOAPNamespace = 'http://schemas.xmlsoap.org/wsdl/soap/'
@@ -309,57 +305,27 @@ def datetimeMapperFactory(colProps):
 		return mapper
 _registerMF(datetimeMapperFactory)
 
-if hasattr(ZSI.SoapWriter, "serialize_header"):
-	# New ZSI: Use real namespaces and str(x) to get result
+def serializePrimaryTable(data, service):
+	"""returns a SOAP serialization of the DataSet data's primary table.
+	"""
+	table = data.getPrimaryTable()
+	tns = base.getMetaText(service, "identifier")
+	class Row(TC.Struct):
+		def __init__(self):
+			TC.Struct.__init__(self, None, [
+				sqltypeToTC(f.type)(pname=(tns, f.name))
+					for f in table.tableDef],
+				pname=(tns, "outRow"))
 
-	def serializePrimaryTable(data, service):
-		"""returns a SOAP serialization of the DataSet data's primary table.
-		"""
-		table = data.getPrimaryTable()
-		tns = base.getMetaText(service, "identifier")
-		class Row(TC.Struct):
-			def __init__(self):
-				TC.Struct.__init__(self, None, [
-					sqltypeToTC(f.type)(pname=(tns, f.name))
-						for f in table.tableDef],
-					pname=(tns, "outRow"))
+	class Table(list):
+		typecode = TC.Array((tns, 'outRow'), Row(), 
+			pname=(tns, 'outList'))
 
-		class Table(list):
-			typecode = TC.Array((tns, 'outRow'), Row(), 
-				pname=(tns, 'outList'))
-
-		mapped = Table(
-			base.SerManager(table, mfRegistry=_wsdlMFRegistry).getMappedValues())
-		sw = ZSI.SoapWriter(nsdict={"tns": tns})
-		sw.serialize(mapped).close()
-		return str(sw)
-
-else:  # old ZSI -- nuke at some point
-
-	def serializePrimaryTable(data, service):
-		"""returns a SOAP serialization of the DataSet data's primary table.
-		"""
-		table = data.getPrimaryTable()
-		class Row(TC.Struct):
-			def __init__(self):
-				TC.Struct.__init__(self, None, [
-			sqltypeToTC(f.type)("tns:"+f.name)
-				for f in table.tableDef], 'tns:outRow')
-
-		class Table:
-			def __init__(self, name):
-				pass
-		Table.typecode = TC.Array('outRow', Row(), 'tns:outList')
-
-		outF = cStringIO.StringIO()
-		sw = ZSI.SoapWriter(outF, 
-			nsdict={"tns": base.getMetaText(service, "identifier")})
-		mapped = list(base.SerManager(table).getMappedValues(table))
-		sw.serialize(mapped, Table.typecode)
-		sw.close()
-		return outF.getvalue()
-
-
+	mapped = Table(
+		base.SerManager(table, mfRegistry=_wsdlMFRegistry).getMappedValues())
+	sw = ZSI.SoapWriter(nsdict={"tns": tns})
+	sw.serialize(mapped).close()
+	return str(sw)
 
 
 def unicodeXML(obj):
@@ -378,31 +344,3 @@ def formatFault(exc, service):
 		val = ZSI.Fault(ZSI.Fault.Server, unicodeXML(exc))
 	return val.AsSOAP(
 		nsdict={"tns": base.getMetaText(service, "identifier")})
-
-
-def _tryWSDL():
-	from gavo.parsing import importparser
-	from gavo import resourcecache
-	from gavo.web import common
-	rd = resourcecache.getRd("ucds/ui")
-	sv = rd.get_service("ui")
-	print makeSOAPWSDLForService(sv, common.QueryMeta()).render()
-
-
-def _trySOAP():
-	from gavo.parsing import importparser
-	from gavo import resourcecache
-	from gavo.web import common
-	qm = common.QueryMeta()
-	rd = resourcecache.getRd("ucds/ui")
-	sv = rd.get_service("ui")
-	core = sv.get_core()
-	core._makeOutputDD()
-	try:
-		data = core._parseOutput(core._compute(""), qm)
-		print serializePrimaryTable(data, sv)
-	except Exception, exc:
-		print formatFault(exc, sv)
-
-if __name__=="__main__":
-	_trySOAP()

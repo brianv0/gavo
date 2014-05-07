@@ -26,8 +26,6 @@ an example that shows how that would look like.
 
 from __future__ import with_statement
 
-from gavo import utils
-
 
 def joinOperatorExpr(operator, operands):
 	"""filters empty operands and joins the rest using operator.

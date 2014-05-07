@@ -23,7 +23,6 @@ from gavo import stc
 from gavo.helpers import testtricks
 from gavo.imp import argparse
 from gavo.registry import builders
-from gavo.registry import identifiers
 from gavo.registry import publication
 from gavo.user import errhandle
 
@@ -120,7 +119,9 @@ def validateServices(rd, args):
 		if not isIVOPublished(svc):
 			# require sane metadata only if the VO will see the service
 			continue
-		svcId = base.getMetaText(svc, "identifier")
+
+		# error out if the identifier cannot be generated
+		base.getMetaText(svc, "identifier")
 		registryRecord = None
 		try:
 			registryRecord = builders.getVORMetadataElement(svc)
@@ -153,7 +154,7 @@ def validateRowmakers(rd, args):
 		for m in dd.makes:
 			m.table.onDisk = False
 			try:
-				rawTable = rsc.TableForDef(m.table)
+				rsc.TableForDef(m.table)
 				m.rowmaker.compileForTableDef(m.table)
 			finally:
 				m.table.onDisk = True

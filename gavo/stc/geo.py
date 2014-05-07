@@ -55,7 +55,6 @@ def geocToGeod(long, phip, rho=1, refSys=WGS84):
 	z = refSys.a*rho*math.sin(phip)
 
 	e2 = 2*refSys.f-refSys.f**2
-	lam = math.atan2(y, x)
 	r = math.sqrt(x**2+y**2)
 	phi = math.atan2(z, r)
 

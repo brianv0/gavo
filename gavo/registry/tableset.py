@@ -14,12 +14,10 @@ only if case-normalized (i.e., all-lower in DaCHS).
 
 
 import itertools
-import operator
 
 from gavo import base
 from gavo import svcs
 from gavo.base import typesystems
-from gavo.registry import capabilities
 from gavo.registry.model import VS0, VS
 
 

@@ -12,18 +12,13 @@ from __future__ import with_statement
 
 import os
 import re
-import traceback
 from cStringIO import StringIO
 
 from nevow import inevow
 from nevow import rend
-from nevow import url
-from nevow import util
 from twisted.internet import threads
-from twisted.python import log
 
 from gavo import base
-from gavo import formats
 from gavo import rsc
 from gavo import svcs
 from gavo import utils

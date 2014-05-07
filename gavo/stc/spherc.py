@@ -12,17 +12,15 @@ Spherical sky coordinates and helpers.
 # stuff from astropy.
 
 from itertools import *
-from math import sin, cos, tan, atan, acos
+from math import sin, cos
 import math
 
 import numpy
 from numpy import linalg as la
 
-from gavo.stc import common
 from gavo.stc import sphermath
 from gavo.stc import times
 from gavo.stc import units
-from gavo.stc import stcsast
 from gavo.stc.common import *
 from gavo.utils import DEG, ARCSEC, memoized
 
@@ -198,9 +196,9 @@ def prec_Newcomb(fromEquinox, toEquinox):
 	T = times.getSeconds(fromEquinox-_dtB1850)/(tropicalYear*86400*100)
 	t = times.getSeconds(toEquinox-fromEquinox)/(tropicalYear*86400*100)
 
-	common = 2303.5548+(1.39720+0.000059*T)*T
-	zeta = (common+(0.30242-0.000269*T+0.017996*t)*t)*t
-	z = (common+(1.09478+0.000387*T+0.018324*t)*t)*t
+	polyVal = 2303.5548+(1.39720+0.000059*T)*T
+	zeta = (polyVal+(0.30242-0.000269*T+0.017996*t)*t)*t
+	z = (polyVal+(1.09478+0.000387*T+0.018324*t)*t)*t
 	theta = (2005.1125+(-0.85294-0.000365*T)*T
 		+(-0.42647-0.000365*T-0.041802*t)*t)*t
 	return zeta*ARCSEC, z*ARCSEC, theta*ARCSEC

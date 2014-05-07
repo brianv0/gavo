@@ -10,20 +10,16 @@ Description and definition of tables.
 
 import itertools
 import re
-import traceback
-import warnings
 
 from gavo import adql
 from gavo import base
 from gavo import stc
 from gavo import utils
-from gavo.base import structure
 from gavo.rscdef import column
 from gavo.rscdef import common
 from gavo.rscdef import group
 from gavo.rscdef import mixins
 from gavo.rscdef import rmkfuncs
-from gavo.rscdef import scripting
 
 
 MS = base.makeStruct
@@ -267,7 +263,7 @@ class ADQLVisibilityAttribute(base.BooleanAttribute):
 
 	def unparse(self, value):
 		if value=="hidden":
-			return hidden
+			return value
 		return base.BooleanAttribute.unparse(self, value)
 
 

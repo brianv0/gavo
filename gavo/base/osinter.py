@@ -43,8 +43,8 @@ def makeSharedDir(path, writable=True):
 				"Could not create directory %s"%path,
 				hint="The operating system reported: %s"%err)
 		except Exception, msg:
-			bailOut("Could not create directory %s (%s)"%(
-				path, msg))
+			raise utils.ReportableError(
+				"Could not create directory %s (%s)"%(path, msg))
 
 	gavoGroup = getGroupId()
 	stats = os.stat(path)
@@ -56,7 +56,7 @@ def makeSharedDir(path, writable=True):
 		except Exception, msg:
 			raise utils.ReportableError(
 				"Cannot set %s to group ownership %s, group writable"%(
-					path, setGroupTo),
+					path, gavoGroup),
 				hint="Certain directories must be writable by multiple user ids."
 				"  They must therefore belong to the group %s and be group"
 				" writeable.  The attempt to make sure that's so just failed"

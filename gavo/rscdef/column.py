@@ -8,12 +8,8 @@ Description of columns (and I/O fields).
 #c COPYING file in the source distribution.
 
 
-import re
-import warnings
-
 from gavo import base
 from gavo import utils
-from gavo.base import literals
 from gavo.base import typesystems
 from gavo.base.attrdef import *
 from gavo.utils import codetricks

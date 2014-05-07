@@ -27,7 +27,6 @@ from gavo import grammars
 from gavo import rscdef
 from gavo import votable
 from gavo import utils
-from gavo.base import typesystems
 from gavo.grammars import fitsprodgrammar
 from gavo.formats import votableread
 from gavo.utils import ElementTree
@@ -247,7 +246,6 @@ def parseCommandLine():
 
 def main():
 	# hack to make id and onDisk copyable so we see them on iterEvent
-	from gavo.base.meta import MetaMixin
 	rscdef.TableDef._id.copyable = rscdef.TableDef._onDisk.copyable = True
 	rscdef.DataDescriptor._id.copyable = True
 	opts, args = parseCommandLine()

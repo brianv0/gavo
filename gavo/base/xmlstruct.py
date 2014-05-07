@@ -14,16 +14,12 @@ via a named attribute.
 
 
 import re
-import warnings
 from cStringIO import StringIO
-from xml.sax import make_parser, SAXException
-from xml.sax.handler import ContentHandler
 
 from gavo import utils
 from gavo.base import activetags
 from gavo.base import common
 from gavo.base import parsecontext
-from gavo.base import structure
 
 
 ALL_WHITESPACE = re.compile("\s*$")

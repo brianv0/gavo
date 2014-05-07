@@ -10,7 +10,6 @@ Code to bind the adql library to the data center software.
 
 import sys
 
-from twisted.python import log
 
 from gavo import adql
 from gavo import base
@@ -20,8 +19,6 @@ from gavo import stc
 from gavo import svcs
 from gavo import utils
 from gavo.base import meta
-from gavo.base import sqlsupport
-from gavo.base import typesystems
 
 
 def makeFieldInfo(column):

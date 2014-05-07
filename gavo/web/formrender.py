@@ -15,7 +15,7 @@ from nevow import flat
 from nevow import inevow
 from nevow import loaders
 from nevow import rend
-from nevow import tags as T, entities as E
+from nevow import tags as T
 from twisted.internet import defer, reactor
 from twisted.python.components import registerAdapter
 
@@ -536,23 +536,6 @@ class Form(FormMixin,
 		if self.runOnEmptyInputs:
 			inevow.IRequest(ctx).args[formal.FORMS_KEY] = ["genForm"]
 		return FormMixin.renderHTTP(self, ctx)
-
-	def _formatStreaming(self, ctx):
-		"""returns a resource streaming out an HTML table.
-
-		Our result tables may be so large that stan-internal operations
-		("".join, etc) may block the event loop for several seconds.  To
-		work around this, we format large tables ourselves and use the
-		streaming framwork to deliver the stuff.  This means we're 
-		basically re-implementing renderSynchronously (with some additional
-		hacks, though we can't support deferreds since all this is running
-		in a thread).
-		"""
-# this is not done right now; we're getting by asynchronously.
-		def produceData(destFile):
-			streamStan(doc, ctx, destFile)
-
-		return streaming.streamOut(produceData, inevow.IRequest(ctx))
 
 	def _formatOutput(self, res, ctx):
 		"""actually delivers the whole document.

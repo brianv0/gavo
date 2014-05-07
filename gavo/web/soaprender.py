@@ -8,8 +8,6 @@ SOAP rendering and related classes.
 #c COPYING file in the source distribution.
 
 
-import traceback
-
 from nevow import inevow
 
 from twisted.web import soap

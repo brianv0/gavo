@@ -14,10 +14,6 @@ it's family.
 #c COPYING file in the source distribution.
 
 
-import re
-import struct
-import traceback
-
 from gavo.votable import coding
 from gavo.votable import common
 from gavo.votable.dec_binary import *

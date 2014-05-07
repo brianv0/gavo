@@ -18,9 +18,6 @@ import shutil
 import tempfile
 import weakref
 
-from cStringIO import StringIO
-
-from twisted.python import log
 
 from gavo import base
 from gavo import rsc
@@ -416,7 +413,7 @@ class JobParameter(object):
 		# gone haywire: ignore any values longer than 50k
 		if isinstance(value, basestring) and len(value)>50000:
 			base.ui.notifyWarning("UWS Parameter %s discarded as too long; first"
-				" bytes: %s"%(key, repr(value[:20])))
+				" bytes: %s"%(name, repr(value[:20])))
 		cls.updateParameter(name, cls._deserialize(value), job)
 
 	@classmethod
@@ -791,7 +788,7 @@ class UWSJobWithWD(BaseUWSJob):
 		if name is None:
 			name = utils.intToFunnyName(id(source))
 		with open(os.path.join(self.getWD(), name), "w") as destF:
-			if isinstance(source, baseString):
+			if isinstance(source, basestring):
 				destF.write(source)
 			else:
 				utils.cat(source, destF)
@@ -981,3 +978,8 @@ class SimpleUWSTransitions(UWSTransitions):
 		There's really not much we can do here, so this is a no-op.
 		"""
 		base.ui.notifyWarning("%s UWSes cannot kill jobs"%self.name)
+	
+	def completeJob(self, newPhase, wjob, ignored):
+		"""pushes a job into the completed state.
+		"""
+		wjob.change(phase=newPhase, endTime=datetime.datetime.utcnow())

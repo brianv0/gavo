@@ -18,8 +18,6 @@ calls.
 #c COPYING file in the source distribution.
 
 
-import re
-
 from gavo.adql import morphhelpers
 from gavo.adql import nodes
 from gavo.adql.nodes import flatten

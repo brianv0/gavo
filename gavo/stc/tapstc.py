@@ -282,7 +282,7 @@ if __name__=="__main__":
 # compute the Euler angles given above.  pgsphere has its rotation
 # matrices opposite to ours (ccw rather than cw), hence the negation
 	from kapteyn import celestial
-	from gavo.stc import spherc, sphermath
+	from gavo.stc import sphermath
 	print "FK4:", tuple(-a for a in 
 		sphermath.getEulerAnglesFromMatrix(
 			celestial.skymatrix("icrs", "fk4 B1950.0")[0]))

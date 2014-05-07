@@ -65,7 +65,7 @@ import re
 from gavo import utils
 from gavo.utils import Undefined
 from gavo.base import literals
-from gavo.base.common import LiteralParseError, StructureError, NotGiven
+from gavo.base.common import LiteralParseError, NotGiven
 
 
 class Recursive(object):

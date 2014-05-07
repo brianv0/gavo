@@ -27,12 +27,10 @@ from nevow import rend
 from nevow import static
 
 from gavo import base
-from gavo import rsc
 from gavo import svcs
 from gavo import utils
 from gavo.protocols import uws
 from gavo.utils import stanxml
-from gavo.utils import ElementTree
 from gavo.votable import V
 
 

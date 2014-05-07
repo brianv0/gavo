@@ -11,11 +11,9 @@ A caching proxy for CDS' Simbad object resolver.
 import cPickle
 import os
 import socket
-import sys
 import tempfile
 import urllib
 import warnings
-import xml.sax
 
 from gavo import base
 from gavo import utils

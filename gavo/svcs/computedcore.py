@@ -18,7 +18,6 @@ from gavo import rsc
 from gavo import rscdef
 from gavo.svcs import core
 from gavo.svcs import outputdef
-from gavo.svcs import service
 
 
 argMFRegistry = base.ValueMapperFactoryRegistry()

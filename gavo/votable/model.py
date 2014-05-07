@@ -7,9 +7,6 @@ xmlstan elements of VOTable.
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
 
-
-import re
-
 from gavo import utils
 from gavo.utils import ElementTree
 from gavo.utils.stanxml import (

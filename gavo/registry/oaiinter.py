@@ -15,7 +15,6 @@ is web-callable.
 
 
 import datetime
-import re
 import time
 import urllib
 import urlparse
@@ -28,7 +27,6 @@ from gavo.registry import builders
 from gavo.registry import identifiers
 from gavo.registry.common import *
 from gavo.registry.model import OAI
-from gavo.utils import ElementTree
 
 
 ########################### Generic Processing of PMH requests
@@ -112,7 +110,7 @@ def parseResumptionToken(pars):
 			pars["resumptionToken"].decode("hex").decode("zlib")))
 		queryDate = float(newPars.pop("queryDate"))
 		offset = int(newPars.pop("nextOffset"))
-	except KeyError, item:
+	except KeyError, msg:
 		raise base.ui.logOldExc(BadResumptionToken("Incomplete resumption token"))
 	except Exception, msg:
 		raise base.ui.logOldExc(BadResumptionToken(str(msg)))

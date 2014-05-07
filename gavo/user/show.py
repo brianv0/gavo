@@ -10,9 +10,7 @@ Maybe gavo config and gavo info should be folded in here if this grows.
 #c COPYING file in the source distribution.
 
 
-from gavo import base
 from gavo import rscdesc  # (register getRD)
-from gavo.user import common
 from gavo.user.common import Arg, exposedFunction, makeParser
 
 

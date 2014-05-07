@@ -51,7 +51,6 @@ class Delay(rend.Page):
 	"""A page returning some data after some time has passed.
 	"""
 	def renderHTTP(self, ctx):
-		import time
 		from twisted.internet import task
 		request = inevow.IRequest(ctx)
 		delay = int(request.args.get("seconds", [10])[0])

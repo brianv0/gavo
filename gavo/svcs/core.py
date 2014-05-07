@@ -46,9 +46,6 @@ adaptForRenderer method.
 #c COPYING file in the source distribution.
 
 
-import sets
-import weakref
-
 from gavo import base
 from gavo import rscdef
 from gavo import utils

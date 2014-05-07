@@ -8,20 +8,12 @@ A renderer to do RD-based maintainance.
 #c COPYING file in the source distribution.
 
 
-import os
 import sys
 import traceback
-import urllib
 
-from nevow import inevow
-from nevow import rend
-from nevow import tags as T, entities as E
-from nevow import url
-
-from zope.interface import implements
+from nevow import tags as T
 
 from gavo import base
-from gavo import registry
 from gavo import stc
 from gavo import svcs
 from gavo.imp import formal
@@ -158,7 +150,7 @@ class AdminRenderer(formal.ResourceMixin,
 		except base.RDNotFound:
 			raise base.ui.logOldExc(
 				svcs.UnknownURI("No such resource descriptor: %s"%rdId))
-		except Exception, ex: # RD is botched.  Clear cache and give an error
+		except Exception: # RD is botched.  Clear cache and give an error
 			base.caches.clearForName(rdId)
 			self._extractDamageInfo()
 		return self, ()

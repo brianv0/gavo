@@ -111,7 +111,7 @@ class To0Upgrader(Upgrader):
 		for sourceRD, resId in connection.query("select sourcrd, resid"
 				" from dc.resources"):
 			try:
-				res = base.getRD(sourceRD).getById(resid)
+				res = base.getRD(sourceRD).getById(resId)
 				authors = "; ".join(m.getContent("text") 
 					for m in res.iterMeta("creator.name", propagate=True))
 			except: 

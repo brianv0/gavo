@@ -10,10 +10,9 @@ Renderers supporting upload cores.
 
 from nevow import inevow
 from nevow import loaders
-from nevow import tags as T, entities as E
+from nevow import tags as T
 
 from gavo import base
-from gavo import svcs
 from gavo.web import formrender
 
 

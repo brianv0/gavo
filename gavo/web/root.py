@@ -10,22 +10,16 @@ The root resource of the data center.
 
 import os
 import time
-import traceback
-import sys
 from cStringIO import StringIO
 
-from twisted.internet import defer
-from twisted.python import failure
 # we put some calculations into threads.
 from twisted.python import threadable
 threadable.init()
 
 from nevow import appserver
-from nevow import context
 from nevow import inevow
 from nevow import rend
 from nevow import static
-from nevow import url
 
 from gavo import base
 from gavo import svcs
@@ -172,7 +166,7 @@ class ArchiveService(rend.Page):
 			if len(parts)>2:
 				options.append(parts.pop())
 				if options[-1] not in cls.knownVanityOptions:
-					raise VanityLineError("Bad option '%s'"%option, lineNo, src)
+					raise VanityLineError("Bad option '%s'"%options[-1], lineNo, src)
 			dest, src = parts
 			yield src, dest, options
 	

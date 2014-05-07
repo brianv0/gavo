@@ -16,7 +16,7 @@ class TriggerPulled(base.Error):
 	def __init__(self, msg, triggerName):
 		base.Error.__init__(self, msg)
 		self.triggerName = triggerName
-		args = [msg, triggerName]
+		self.args = [msg, triggerName]
 
 
 _triggerRegistry = {}

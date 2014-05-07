@@ -81,7 +81,7 @@ class ColRangeAttribute(base.UnicodeAttribute):
 				return slice(col-1, col)
 		except ValueError:
 			raise base.ui.logOldExc(
-				base.LiteralParseError("colRanges", val, hint="A column range,"
+				base.LiteralParseError("colRanges", value, hint="A column range,"
 				" (either int1-int2 or just an int) is expected here."))
 
 

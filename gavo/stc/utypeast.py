@@ -18,8 +18,6 @@ immediately below the utype pair for their parent.
 #c COPYING file in the source distribution.
 
 
-import itertools
-
 from gavo import utils
 from gavo.stc import common
 from gavo.stc import stcxast

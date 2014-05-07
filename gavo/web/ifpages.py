@@ -10,11 +10,9 @@ Infrastructure pages.
 
 import datetime
 import os
-import time
 
 import pkg_resources
 from nevow import inevow
-from nevow import loaders
 from nevow import rend
 from nevow import static
 from nevow import url

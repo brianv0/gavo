@@ -21,8 +21,6 @@ from cStringIO import StringIO
 
 from gavo import base
 from gavo import rsc
-from gavo import rscdef
-from gavo import stc
 from gavo import utils
 from gavo import votable
 from gavo.base import meta

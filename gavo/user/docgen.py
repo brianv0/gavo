@@ -17,7 +17,6 @@ import traceback
 
 import pkg_resources
 
-from gavo import api
 from gavo import base
 from gavo import rscdef
 from gavo import rscdesc
@@ -290,7 +289,6 @@ def getActiveTagDocs(docStructure):
 
 def getRendererDocs(docStructure):
 	from gavo.svcs import RENDERER_REGISTRY, getRenderer
-	res = []
 	content = RSTFragment()
 	for rendName in sorted(RENDERER_REGISTRY):
 		rend = getRenderer(rendName)
@@ -462,7 +460,7 @@ def makeReferenceDocs():
 			else:
 				try:
 					res.extend(eval(" ".join(code)))
-				except Exception, msg:
+				except Exception, ex:
 					sys.stderr.write("Invalid code near line %s: '%s'\n"%(
 						lnCount, " ".join(code)))
 					raise

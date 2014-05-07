@@ -10,19 +10,13 @@ Common functions and classes for services and cores.
 
 import re
 import os
-import urllib
 
-
-from nevow import tags as T, entities as E
 from nevow import inevow
 from nevow import loaders
 
 import pkg_resources
 
-from zope.interface import implements
-
 from gavo import base
-from gavo.base import meta
 
 
 class Error(base.Error):

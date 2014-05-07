@@ -9,8 +9,7 @@ Building STC-X documents, xmlstan-style.
 
 
 from gavo.stc.common import *
-from gavo.utils import ElementTree
-from gavo.utils.stanxml import Element, Error, schemaURL
+from gavo.utils.stanxml import Element
 
 
 class NamespaceWithSubsGroup(type):

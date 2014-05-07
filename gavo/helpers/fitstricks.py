@@ -17,7 +17,6 @@ fitstools and probably should be removed completely.
 #c COPYING file in the source distribution.
 
 
-from gavo.utils import fitstools
 from gavo.utils import pyfits
 
 from gavo.utils.fitstools import replacePrimaryHeader

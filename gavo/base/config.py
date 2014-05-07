@@ -12,7 +12,6 @@ from __future__ import with_statement
 
 import ConfigParser
 import cStringIO
-import grp
 import os
 import re
 import shlex

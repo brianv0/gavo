@@ -15,9 +15,6 @@ preparations your row iterator has to perform.
 #c COPYING file in the source distribution.
 
 
-import os
-import weakref
-
 from gavo import base
 from gavo import rscdef
 from gavo import utils

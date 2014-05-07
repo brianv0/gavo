@@ -12,6 +12,7 @@ import sys
 import textwrap
 
 from gavo import stc
+from gavo import utils
 
 
 def cmd_resprof(opts, srcSTCS):
@@ -72,7 +73,7 @@ def cmd_parseUtypes(opts):
 			pass
 		else:
 			continue
-		raise ReportableError("Not a proper input line for STC-S: %r"%ln)
+		raise base.ReportableError("Not a proper input line for STC-S: %r"%ln)
 	print stc.getSTCS(stc.parseFromUtypes(types))
 
 
@@ -116,7 +117,6 @@ def bailOnExc(opts, msg):
 
 def main():
 	opts, cmd, args = parseArgs()
-	errmsg = None
 	try:
 		handler = globals()["cmd_"+cmd]
 	except KeyError:

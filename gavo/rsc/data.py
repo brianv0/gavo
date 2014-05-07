@@ -17,7 +17,6 @@ from gavo import rscdef
 from gavo import utils
 from gavo.base import sqlsupport
 from gavo.rsc import common
-from gavo.rsc import dbtable
 from gavo.rsc import table
 from gavo.rsc import tables
 

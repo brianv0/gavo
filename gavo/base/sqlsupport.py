@@ -13,18 +13,15 @@ support some other database, this would need massive refactoring.
 
 
 import contextlib
-import operator
 import os
 import random
 import re
-import sys
 import threading
 from itertools import *
 
 import numpy
 
 from gavo import utils
-from gavo.base import caches
 from gavo.base import config
 
 debug = "GAVO_SQL_DEBUG" in os.environ

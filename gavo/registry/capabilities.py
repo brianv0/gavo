@@ -337,7 +337,6 @@ class TAPCapabilityMaker(CapabilityMaker):
 		res = CapabilityMaker._makeCapability(self, publication)
 		
 		with base.getTableConn() as conn:
-			service = publication.parent
 			from gavo.protocols import tap
 			from gavo.adql import ufunctions
 			res[[

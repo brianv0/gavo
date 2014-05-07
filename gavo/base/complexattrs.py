@@ -28,7 +28,6 @@ of internal structure, add methods
 from gavo.base import attrdef
 from gavo.base import common
 from gavo.base import literals
-from gavo.base import structure
 
 __docformat__ = "restructuredtext en"
 

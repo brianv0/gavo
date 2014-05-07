@@ -13,7 +13,6 @@ doing regular work.  testtricks is the module for that kind for stuff.
 
 from __future__ import with_statement
 
-import cPickle as pickle
 import gc
 import os
 import re

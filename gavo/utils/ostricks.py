@@ -13,8 +13,9 @@ import os
 import tempfile
 import urllib2
 
-from gavo.utils import codetricks
-from gavo.utils import misctricks
+from . import codetricks
+from . import excs
+from . import misctricks
 
 
 def safeclose(f):
@@ -105,7 +106,7 @@ def urlopenRemote(url, data=None, creds=(None, None)):
 	that cares to ask.  For both reasons, don't use any valuable credentials
 	here.
 	"""
-	_temp_credentials = creds # see _UrlopenRemotePasswrodMgr above
+	ignored = creds # see _UrlopenRemotePasswrodMgr above
 	try:
 		return _restrictedURLOpener.open(url, data)
 	except (urllib2.URLError, ValueError), msg:
@@ -178,4 +179,4 @@ class NotInstalledModuleStub(object):
 		self.modName = modName
 
 	def __getattr__(self, name):
-		raise RuntimeError("%s not installed"%self.modName)
+		raise excs.NotFoundError(self.modName, "module", "this system")

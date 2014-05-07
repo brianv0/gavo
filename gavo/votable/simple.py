@@ -14,7 +14,6 @@ where table is a numpy array.
 
 try:
 	import numpy
-	from numpy import rec
 
 	# map from VOTable datatypes to numpy type designators:
 	numpyType = {

@@ -8,12 +8,8 @@ Streaming out large computed things using twisted and threads.
 #c COPYING file in the source distribution.
 
 
-import sys
 import time
 import threading
-import traceback
-
-from nevow import appserver
 
 from twisted.internet import reactor
 from twisted.internet.interfaces import IPushProducer
@@ -194,7 +190,7 @@ def streamVOTable(request, data, **contextOpts):
 				True: "td", False: "binary"}[data.queryMeta["tdEnc"]]
 		if "version" not in contextOpts:
 			contextOpts["version"] = data.queryMeta.get("VOTableVersion")
-		tableMaker = votablewrite.writeAsVOTable(
+		votablewrite.writeAsVOTable(
 			data.original, outputFile,
 			ctx=votablewrite.VOTableContext(**contextOpts))
 	return streamOut(writeVOTable, request)

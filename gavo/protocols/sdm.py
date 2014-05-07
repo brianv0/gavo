@@ -329,7 +329,6 @@ def formatSDMData(sdmData, format, queryMeta=svcs.emptyQueryMeta):
 		destMime = "application/x-votable+xml;serialization=tabledata"
 	formatId = GETDATA_FORMATS.get(destMime, None)
 
-	sdmTable = sdmData.getPrimaryTable()
 	sdmData.addMeta("_votableRootAttributes", 
 		'xmlns:spec="http://www.ivoa.net/xml/SpectrumModel/v1.01"')
 

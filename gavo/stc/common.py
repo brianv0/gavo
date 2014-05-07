@@ -29,7 +29,7 @@ class STCSParseError(STCError):
 	"""
 	def __init__(self, msg, expr=None, pos=None):
 		STCError.__init__(self, msg)
-		args = [msg, expr, pos]
+		self.args = [msg, expr, pos]
 		self.pos, self.expr = pos, expr
 	
 
@@ -211,7 +211,7 @@ class ColRef(Stub):
 		return self
 
 	def apply(self, func):
-		return func(name, self.dest, {}, [])
+		return func(self, self.dest, {}, [])
 
 
 class GeometryColRef(ColRef):

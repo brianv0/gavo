@@ -30,15 +30,13 @@ Extensions to what the note says:
 from __future__ import with_statement
 
 
-import copy
-
 from gavo.imp.pyparsing import (
 	Word, Literal, Optional, alphas, CaselessKeyword,
-		ZeroOrMore, OneOrMore, SkipTo, srange, StringEnd, Or, MatchFirst,
-		Suppress, Keyword, Forward, QuotedString, Group, printables, nums,
-		CaselessLiteral, ParseException, Regex, sglQuotedString, alphanums,
-		dblQuotedString, White, ParseException, ParseResults, Empty,
-		ParserElement, ParseSyntaxException)
+		ZeroOrMore, OneOrMore, StringEnd,
+		Suppress, Forward, QuotedString, 
+		ParseException, Regex, alphanums,
+		ParseException, ParseResults, 
+		ParseSyntaxException)
 
 from gavo import utils
 from gavo.stc import stcsdefaults

@@ -11,7 +11,6 @@ Basically all of this should be taken over by stc and astropysics.
 #c COPYING file in the source distribution.
 
 
-import functools
 import math
 import new
 from math import sin, cos, pi
@@ -341,7 +340,7 @@ class Vector3(object):
 	def setx(self, x): self.coos[0] = x
 	x = property(getx, setx)
 	def gety(self): return self.coos[1]
-	def sety(self, y): self.coos[1] = x
+	def sety(self, y): self.coos[1] = y
 	y = property(gety, sety)
 	def getz(self): return self.coos[2]
 	def setz(self, z): self.coos[2] = z

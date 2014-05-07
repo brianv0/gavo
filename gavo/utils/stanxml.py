@@ -349,10 +349,10 @@ class Element(object):
 				return
 			attrs = self._makeAttrDict()
 			return func(self, self.text_,
-				self._makeAttrDict(), self._getChildIter())
+				attrs, self._getChildIter())
 		except Error:
 			raise
-		except Exception, msg:
+		except Exception:
 			misctricks.sendUIEvent("Info",
 				"Internal failure while building XML; context is"
 				" %s node with children %s"%(
@@ -413,7 +413,7 @@ class NSRegistry(object):
 		try:
 			return cls._registry[prefix]
 		except KeyError:
-			raise excs.NotFoundError(ns, "XML namespace prefix",
+			raise excs.NotFoundError(prefix, "XML namespace prefix",
 				"registry of prefixes.", hint="The registry is filled"
 				" by modules as they are imported -- maybe you need to import"
 				" the right module?")

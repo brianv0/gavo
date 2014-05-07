@@ -13,7 +13,6 @@ space and time for velocities.
 #c COPYING file in the source distribution.
 
 
-from gavo import utils
 from gavo.stc import sphermath
 from gavo.stc import times
 from gavo.stc import units

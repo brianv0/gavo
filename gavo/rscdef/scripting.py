@@ -14,14 +14,10 @@ documentation.
 
 from __future__ import with_statement
 
-import re
-import sys
-import weakref
-
 from gavo.imp.pyparsing import (
-	Word, OneOrMore, ZeroOrMore, QuotedString, Forward,
-	SkipTo, Optional, StringEnd, Regex, LineEnd, Suppress, ParserElement,
-	Literal, White, ParseException, dblQuotedString)
+	OneOrMore, ZeroOrMore, QuotedString, Forward,
+	SkipTo, StringEnd, Regex, Suppress,
+	Literal)
 
 from gavo import base
 from gavo import utils

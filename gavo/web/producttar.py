@@ -19,13 +19,10 @@ from cStringIO import StringIO
 import os
 import tarfile
 import time
-import urllib
 
 from gavo import base
 from gavo import grammars
 from gavo import rsc
-from gavo import rscdef
-from gavo import svcs
 from gavo import utils
 from gavo.protocols import products
 from gavo.svcs import streaming
@@ -161,7 +158,7 @@ class ProductTarMaker(object):
 			elif isinstance(src, products.FileProduct):
 				# actual file in the file system
 				targetName = nameGen.makeName(src.name)
-				outputTar.add(str(src.rAccref.localpath), nameGen.makeName(src.name))
+				outputTar.add(str(src.rAccref.localpath), targetName)
 
 			else: # anything else is read from the src
 				outputTar.addfile(*self._getTarInfoFromProduct(src,

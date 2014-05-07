@@ -11,11 +11,9 @@ A grammar taking its rows from a VOTable.
 # XXX TODO: return PARAMs as the docrow
 
 import gzip
-import re
 from itertools import *
 
 from gavo import base
-from gavo import utils
 from gavo import votable
 from gavo.base import valuemappers
 from gavo.grammars import common

@@ -133,10 +133,10 @@ from __future__ import with_statement
 
 from gavo.imp.pyparsing import (
 	Word, Literal, Optional, alphas, CaselessKeyword,
-	ZeroOrMore, OneOrMore, SkipTo, srange, StringEnd, Or, MatchFirst,
-	Suppress, Keyword, Forward, QuotedString, Group, printables, nums,
+	ZeroOrMore, OneOrMore, StringEnd,
+	Forward, nums, ParseSyntaxException,
 	CaselessLiteral, ParseException, Regex, sglQuotedString, alphanums,
-	dblQuotedString, ParserElement, White, ParseSyntaxException,
+	ParserElement, White, 
 	ParseExpression)
 
 from gavo import utils
@@ -283,7 +283,7 @@ class LongestMatch(ParseExpression):
 			return self.name
 
 		if self.strRepr is None:
-			self.strRepr = "{" + " ^ ".join( [ _ustr(e) for e in self.exprs ] ) + "}"
+			self.strRepr = "{" + " ^ ".join( [ str(e) for e in self.exprs ] ) + "}"
 
 		return self.strRepr
 

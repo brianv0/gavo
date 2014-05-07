@@ -13,14 +13,11 @@ but rather just raise the appropriate exceptions from svcs.
 #c COPYING file in the source distribution.
 
 
-import sys
 import urlparse
 
-from nevow import context
 from nevow import inevow
-from nevow import loaders
 from nevow import rend
-from nevow import tags as T, entities as E
+from nevow import tags as T
 from twisted.internet import defer
 from twisted.python import failure
 from twisted.python import log

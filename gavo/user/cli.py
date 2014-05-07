@@ -17,7 +17,6 @@ from __future__ import with_statement
 # While we do this, we import api; that should take care of most
 # of the real startup time.
 
-import imp
 import os
 import sys
 import textwrap

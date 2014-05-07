@@ -10,9 +10,10 @@ A renderer that queries a single field in a service.
 
 from nevow import inevow
 from nevow import rend
-from nevow import tags as T, entities as E
+from nevow import tags as T
 from twisted.internet import defer
 
+from gavo import base
 from gavo import svcs
 from gavo.svcs import streaming
 from gavo.web import common

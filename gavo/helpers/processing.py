@@ -15,7 +15,6 @@ from __future__ import with_statement
 
 from cStringIO import StringIO
 import os
-import shutil
 import sys
 import textwrap
 import traceback
@@ -32,7 +31,6 @@ from gavo import rscdef
 from gavo import utils
 from gavo.helpers import anet
 from gavo.helpers import fitstricks
-from gavo.protocols import products
 from gavo.utils import fitstools
 from gavo.utils import pyfits
 
@@ -140,6 +138,10 @@ class FileProcessor(object):
 
 		def worker(inQueue, outQueue):
 			for srcId in iter(inQueue.get, None):
+				if (self.opts.requireFrag is not None 
+						and not self.opts.requireFrag in source):
+					continue
+
 				try:
 					outQueue.put(self.process(srcId))
 				except base.SkipThis:
@@ -189,6 +191,10 @@ class FileProcessor(object):
 		if nParallel==1:
 			def iterProcResults():
 				for source in self.iterIdentifiers():
+					if (self.opts.requireFrag is not None 
+							and not self.opts.requireFrag in source):
+						continue
+
 					try:
 						yield procFunc(source)
 					except base.SkipThis:
@@ -202,9 +208,6 @@ class FileProcessor(object):
 			resIter = self.iterJobs(nParallel)
 
 		while True:
-			if (self.opts.requireFrag is not None 
-					and not self.opts.requireFrag in source):
-				continue
 			try:
 				res = resIter.next()
 				if isinstance(res, Exception):
