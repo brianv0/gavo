@@ -112,12 +112,19 @@ def makePreviewFromFITS(product):
 	return imgtools.jpegFromNumpyArray(pixels)
 
 
-def makePreviewFromPIL(product):
+def makePreviewWithPIL(product):
 	"""returns image/jpeg bytes for a preview of the PIL-readable product.
 	"""
-	im = Image.open(product).thumbnail(PREVIEW_SIZE)
+	# TODO: Teach products to at least accept seek(0) and directly read from
+	# them; at least make read(None) work properly
+	fullsize = StringIO(product.read(1000000000))
+	im = Image.open(fullsize)
+	scale = max(im.size)/float(PREVIEW_SIZE)
+	resized = im.resize((
+		int(im.size[0]/scale),
+		int(im.size[1]/scale)))	
 	f = StringIO()
-	im.save(f, format="jpeg")
+	resized.save(f, format="jpeg")
 	return f.getvalue()
 
 
