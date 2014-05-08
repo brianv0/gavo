@@ -15,9 +15,12 @@ import contextlib
 import datetime
 import os
 import shutil
+import signal
 import tempfile
 import weakref
 
+from twisted.internet import protocol
+from twisted.internet import reactor
 
 from gavo import base
 from gavo import rsc
@@ -42,14 +45,29 @@ __docformat__ = "restructuredtext en"
 
 
 class UWSError(base.Error):
-	def __init__(self, msg, jobId, hint=None):
-		base.Error.__init__(self, msg, hint)
-		self.args = [msg, jobId, hint]
+	"""UWS-related errors, mainly to communicate with web renderers.
+
+	UWSErrors are constructed with a displayable message (may be None to
+	autogenerate one), a jobId (give one; the default None is only there
+	to avoid breaking legacy code) and optionally a source exception and a hint.
+	"""
+	def __init__(self, msg, jobId=None, sourceEx=None, hint=None):
+		base.Error.__init__(self, msg, hint=hint)
 		self.msg = msg
 		self.jobId = jobId
-
+		self.sourceEx = sourceEx
+		self.args = [self.msg, self.jobId, self.sourceEx, self.hint]
+	
 	def __str__(self):
-		return "Error in processing job %s: %s"%(self.jobId, self.msg)
+		if self.msg:
+			return self.msg
+		elif self.sourceEx:
+			return "UWS on job %s operation failed (%s, %s)"%(
+				self.jobId,
+				self.sourceEx.__class__.__name__,
+				str(self.sourceEx))
+		else:
+			return "Unspecified UWS related error (id: %s)"%self.jobId
 
 
 class JobNotFound(base.NotFoundError, UWSError):
@@ -842,8 +860,7 @@ class UWSTransitions(object):
 
 	The main interface to UWSTransitions is getTransition(p1, p2) -> callable
 	It returns a callable that should push the automaton from phase p1
-	to phase p2 or raise an ValidationError for a field phase.  The
-	default implementation should work.
+	to phase p2 or raise an ValidationError for a field phase.
 
 	The callable has the signature f(desiredPhase, wjob, input) -> None.
 	It must alter the uwsJob object as appropriate.  input is some object
@@ -921,11 +938,18 @@ class UWSTransitions(object):
 class SimpleUWSTransitions(UWSTransitions):
 	"""A UWSTransitions with sensible transitions pre-defined.
 	
-	See the source for what we consider sensible :-)
+	See the source for what we consider sensible.
 
 	The idea here is that you simply override (and usually up-call)
 	the methods queueJob, markAborted, startJob, completeJob,
 	killJob, errorOutJob, and ignoreAndLog.
+
+	You will have to define startJob and provide some way to execute
+	startJob on QUEUED jobs (there's nothing wrong with immediately
+	calling self.startJob(...) if you don't mind the DoS danger).
+
+	Once you have startJob, you'll probably want to define killJob as
+	well.
 	"""
 	def __init__(self, name):
 		UWSTransitions.__init__(self, name, [
@@ -976,6 +1000,9 @@ class SimpleUWSTransitions(UWSTransitions):
 		"""should abort a job.
 
 		There's really not much we can do here, so this is a no-op.
+
+		Do not up-call here, you'll get a (then spurious) warning
+		if you do.
 		"""
 		base.ui.notifyWarning("%s UWSes cannot kill jobs"%self.name)
 	
@@ -983,3 +1010,127 @@ class SimpleUWSTransitions(UWSTransitions):
 		"""pushes a job into the completed state.
 		"""
 		wjob.change(phase=newPhase, endTime=datetime.datetime.utcnow())
+
+
+def _replaceFDs(inFName, outFName):
+# This is used for clean forking and doesn't actually belong here.
+# utils.ostricks should take this.
+  """closes all (findable) file descriptors and replaces stdin with inF
+  and stdout/err with outF.
+  """
+  for fd in range(255, -1, -1):
+    try:
+      os.close(fd)
+    except os.error:
+      pass
+  ifF, outF = open(inFName), open(outFName, "w")
+  os.dup(outF.fileno())
+
+
+
+class _UWSBackendProtocol(protocol.ProcessProtocol):
+	"""The protocol used for taprunners when spawning them under a twisted
+	reactor.
+	"""
+	def __init__(self, jobId, workerSystem):
+		self.jobId = jobId
+		self.workerSystem = workerSystem
+
+	def outReceived(self, data):
+		base.ui.notifyInfo("TAP client %s produced output: %s"%(
+			self.jobId, data))
+	
+	def errReceived(self, data):
+		base.ui.notifyInfo("TAP client %s produced an error message: %s"%(
+			self.jobId, data))
+	
+	def processEnded(self, statusObject):
+		"""tries to ensure the job is in an admitted end state.
+		"""
+		try:
+			job = self.workerSystem.getJob(self.jobId)
+			if job.phase==QUEUED or job.phase==EXECUTING:
+				try:
+					raise UWSError("Job hung in %s"%job.phase, job.jobId)
+				except UWSError, ex:
+					self.workerSystem.changeToPhase(self.jobId, ERROR, ex)
+		except JobNotFound: # job already deleted
+			pass
+
+
+class ProcessBasedUWSTransitions(SimpleUWSTransitions):
+	"""A SimpleUWSTransistions that processes its stuff in a child process.
+
+	Inheriting classes must implement the getCommandLine(wjob) method --
+	it must return a command (suitable for reactor.spawnProcess and
+	os.execlp and a list of arguments suitable for reactor.spawnProcess.
+	"""
+	def getCommandLine(self, wjob):
+		raise NotImplementedError("%s transitions do not define how"
+			" to get a command line"%self.__class__.__name__)
+
+	def _startJobTwisted(self, wjob):
+		"""starts a job by forking a new process when we're running 
+		within a twisted reactor.
+		"""
+		assert wjob.phase==QUEUED
+		cmd, args = self.getCommandLine(wjob)
+		pt = reactor.spawnProcess(_UWSBackendProtocol(wjob.jobId, wjob.uws),
+			cmd, args=args,
+				env=os.environ)
+		wjob.change(pid=pt.pid, phase=EXECUTING)
+
+	def _startJobNonTwisted(self, wjob):
+		"""forks off a new process when (hopefully) a manual child reaper 
+		is in place.
+		"""
+		cmd, args = self.getCommandLine(wjob)
+		pid = os.fork()
+		if pid==0:
+			_replaceFDs("/dev/zero", "/dev/null")
+			os.execlp(cmd, *args)
+		elif pid>0:
+			wjob.change(pid=pid, phase=EXECUTING)
+		else:
+			raise Exception("Could not fork")
+	
+	def startJob(self, newState, wjob, ignored):
+		"""causes a process to be started that executes job.
+
+		This dispatches according to whether or not we are within a twisted
+		event loop, mostly for testing support.
+		"""
+		if reactor.running:
+			return self._startJobTwisted(wjob)
+		else:
+			return self._startJobNonTwisted(wjob)
+
+	def killJob(self, newState, wjob, ignored):
+		"""tries to kill/abort job.
+
+		Actually, there are two different scenarios here: Either the job as
+		a non-NULL startTime.  In that case, the child job is in control 
+		and will manage the state itself.  Then kill -INT will do the right 
+		thing.
+
+		However, if startTime is NULL, the child is still starting up.  Sending
+		a kill -INT may to many things, and most of them we don't want.
+		So, in this case we kill -TERM the child, do state management ourselves
+		and hope for the best.
+		"""
+		try:
+			pid = wjob.pid
+			if pid is None:
+				raise UWSError("Job is not running")
+			if wjob.startTime is None:
+				# the child job is not up yet, kill it brutally and manage
+				# state ourselves
+				os.kill(pid, signal.SIGTERM)
+				self.markAborted(ABORTED, wjob, ignored)
+			else:
+				# child job is up, can manage state itself
+				os.kill(pid, signal.SIGINT)
+		except UWSError:
+			raise
+		except Exception, ex:
+			raise UWSError(None, ex)

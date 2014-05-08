@@ -12,11 +12,7 @@ from __future__ import with_statement
 
 import datetime
 import os
-import signal
 import threading
-
-from twisted.internet import reactor
-from twisted.internet import protocol
 
 from gavo import base
 from gavo import rsc
@@ -108,26 +104,11 @@ UPLOAD_METHODS = {
 }
 
 
-class TAPError(base.Error):
-	"""TAP-related errors, mainly to communicate with web renderers.
+class TAPError(uws.UWSError):
+	"""here for backward compatibility.
 
-	TAPErrors are constructed with a displayable message (may be None to
-	autogenerate one) and optionally a source exception and a hint.
+	Deprecated.
 	"""
-	def __init__(self, msg, sourceEx=None, hint=None):
-		base.Error.__init__(self, msg, hint=hint)
-		self.msg = msg
-		self.sourceEx = sourceEx
-	
-	def __str__(self):
-		if self.msg:
-			return self.msg
-		elif self.sourceEx:
-			return "TAP operation failed (%s, %s)"%(
-				self.sourceEx.__class__.__name__,
-				str(self.sourceEx))
-		else:
-			return "Unspecified TAP related error"
 
 
 ######################## registry interface helpers
@@ -217,52 +198,7 @@ def getAccessibleTables():
 ########################## Maintaining TAP jobs
 
 
-def _replaceFDs(inFName, outFName):
-# This is used for clean forking and doesn't actually belong here.
-# utils.ostricks should take this.
-  """closes all (findable) file descriptors and replaces stdin with inF
-  and stdout/err with outF.
-  """
-  for fd in range(255, -1, -1):
-    try:
-      os.close(fd)
-    except os.error:
-      pass
-  ifF, outF = open(inFName), open(outFName, "w")
-  os.dup(outF.fileno())
-
-
-
-class _TAPBackendProtocol(protocol.ProcessProtocol):
-	"""The protocol used for taprunners when spawning them under a twisted
-	reactor.
-	"""
-	def __init__(self, jobId):
-		self.jobId = jobId
-
-	def outReceived(self, data):
-		base.ui.notifyInfo("TAP client %s produced output: %s"%(
-			self.jobId, data))
-	
-	def errReceived(self, data):
-		base.ui.notifyInfo("TAP client %s produced an error message: %s"%(
-			self.jobId, data))
-	
-	def processEnded(self, statusObject):
-		"""tries to ensure the job is in an admitted end state.
-		"""
-		try:
-			job = workerSystem.getJob(self.jobId)
-			if job.phase==uws.QUEUED or job.phase==uws.EXECUTING:
-				try:
-					raise uws.UWSError("Job hung in %s"%job.phase, job.jobId)
-				except uws.UWSError, ex:
-					workerSystem.changeToPhase(self.jobId, uws.ERROR, ex)
-		except uws.JobNotFound: # job already deleted
-			pass
-
-
-class TAPTransitions(uws.SimpleUWSTransitions):
+class TAPTransitions(uws.ProcessBasedUWSTransitions):
 	"""The transition function for TAP jobs.
 
 	There's a hack here: After each transition, when you've released
@@ -272,41 +208,8 @@ class TAPTransitions(uws.SimpleUWSTransitions):
 	def __init__(self):
 		uws.SimpleUWSTransitions.__init__(self, "TAP")
 
-	def _startJobTwisted(self, wjob):
-		"""starts a job by forking a new process when we're running 
-		within a twisted reactor.
-		"""
-		assert wjob.phase==uws.QUEUED
-		pt = reactor.spawnProcess(_TAPBackendProtocol(wjob.jobId),
-			"gavo", args=["gavo", "tap", "--", str(wjob.jobId)],
-				env=os.environ)
-		wjob.change(pid=pt.pid, phase=uws.EXECUTING)
-
-	def _startJobNonTwisted(self, wjob):
-		"""forks off a new process when (hopefully) a manual child reaper 
-		is in place.
-		"""
-		pid = os.fork()
-		if pid==0:
-			_replaceFDs("/dev/zero", "/dev/null")
-			os.execlp("gavo", "gavo", "--disable-spew", 
-				"tap", "--", wjob.jobId)
-		elif pid>0:
-			wjob.change(pid=pid, phase=uws.EXECUTING)
-		else:
-			raise Exception("Could not fork")
-	
-	def startJob(self, newState, wjob, ignored):
-		"""causes a process to be started that executes job.
-
-		This dispatches according to whether or not we are within a twisted
-		event loop, mostly for testing support.
-		"""
-		if reactor.running:
-			return self._startJobTwisted(wjob)
-		else:
-			return self._startJobNonTwisted(wjob)
-
+	def getCommandLine(self, wjob):
+		return "gavo", ["gavo", "tap", "--", str(wjob.jobId)]
 	def queueJob(self, newState, wjob, ignored):
 		"""puts a job on the queue.
 		"""
@@ -321,35 +224,9 @@ class TAPTransitions(uws.SimpleUWSTransitions):
 		uws.SimpleUWSTransitions.completeJob(self, newPhase, wjob, ignored)
 		wjob.uws.scheduleProcessQueueCheck()
 
-	def killJob(self, newState, wjob, ignored):
-		"""tries to kill/abort job.
-
-		Actually, there are two different scenarios here: Either the job as
-		a non-NULL startTime.  In that case, taprunner is in control and will
-		manage the state itself.  Then kill -INT will do the right thing.
-
-		However, if startTime is NULL, taprunner is still starting up.  Sending
-		a kill -INT may to many things, and most of them we don't want.
-		So, in this case we kill -TERM the child, do state management ourselves
-		and hope for the best.
-		"""
+	def killJob(self, newPhase, wjob, ignored):
 		try:
-			try:
-				pid = wjob.pid
-				if pid is None:
-					raise TAPError("Job is not running")
-				if wjob.startTime is None:
-					# the taprunner is not up yet, kill it brutally and manage
-					# state ourselves
-					os.kill(pid, signal.SIGTERM)
-					self.markAborted(uws.ABORTED, wjob, ignored)
-				else:
-					# taprunner is up, can manage state itself
-					os.kill(pid, signal.SIGINT)
-			except TAPError:
-				raise
-			except Exception, ex:
-				raise TAPError(None, ex)
+			uws.ProcessBasedUWSTransitions.killJob(self, newPhase, wjob, ignored)
 		finally:
 			wjob.uws.scheduleProcessQueueCheck()
 

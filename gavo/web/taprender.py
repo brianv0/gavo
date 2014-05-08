@@ -94,7 +94,7 @@ class TAPQueryResource(rend.Page):
 					" jobs, this probably means the operators killed it.",
 					jobId)
 			else:
-				raise uws.UWSError("Internal error.  Invalid UWS phase.")
+				raise uws.UWSError("Internal error.  Invalid UWS phase.", jobId)
 		finally:
 			tap.workerSystem.destroy(jobId)
 

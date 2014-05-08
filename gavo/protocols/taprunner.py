@@ -33,6 +33,7 @@ from gavo import svcs
 from gavo import utils
 from gavo import votable
 from gavo.base import valuemappers
+from gavo.formats import csvtable
 from gavo.formats import votableread
 from gavo.formats import votablewrite
 from gavo.protocols import adqlglue
