@@ -27,6 +27,7 @@ from gavo.protocols import taprunner
 from gavo.protocols import uws
 from gavo.protocols import uwsactions
 from gavo.svcs import streaming
+from gavo.web import asyncrender
 from gavo.web import common
 from gavo.web import grend
 from gavo.web import vosi
@@ -35,32 +36,6 @@ from gavo.web import vosi
 @utils.memoized
 def getTAPVersion():
 	return base.caches.getRD(tap.RD_ID).getProperty("TAP_VERSION")
-
-
-class UWSRedirect(rend.Page):
-	"""a redirection for UWS (i.e., 303).
-
-	The DC-global redirects use a 302 status, munge redirection URLs, and 
-	we don't want any HTML payload here anyway.
-
-	The locations used here are relative to the tap-renderer's URL
-	(i.e., async/ points to the async root).
-	"""
-	def __init__(self, location):
-		self.location = str(
-			"%s/%s"%(self.getServiceURL(), location))
-
-	@utils.memoized
-	def getServiceURL(self):
-		return base.caches.getRD(tap.RD_ID).getById("run").getURL("tap")
-
-	def renderHTTP(self, ctx):
-		req = inevow.IRequest(ctx)
-		req.code = 303
-		req.setHeader("location", self.location)
-		req.setHeader("content-type", "text/plain")
-		req.write("Go here: %s\n"%self.location)
-		return ""
 
 
 class TAPQueryResource(rend.Page):
@@ -139,83 +114,6 @@ def getSyncResource(ctx, service, segments):
 			"type": "ParameterError",
 			"msg": "Invalid REQUEST: '%s'"%request,
 			"hint": "Only doQuery and getCapabilities supported here"})
-
-
-class MethodAwareResource(rend.Page):
-	"""is a rend.Page with behaviour depending on the HTTP method.
-	"""
-	def __init__(self, service):
-		self.service = service
-		rend.Page.__init__(self)
-
-	def _doBADMETHOD(self, ctx, request):
-		raise svcs.BadMethod(request.method)
-
-	def renderHTTP(self, ctx):
-		request = inevow.IRequest(ctx)
-		handlingMethod = getattr(self, "_do"+request.method, self._doBADMETHOD)
-		return threads.deferToThread(handlingMethod, ctx, request
-			).addCallback(self._deliverResult, request
-			).addErrback(self._deliverError, request)
-
-
-class UWSErrorMixin(object):
-	def _deliverError(self, failure, request):
-		if not isinstance(failure.value, uws.JobNotFound):
-			base.ui.notifyFailure(failure)
-		request.setHeader("content-type", "text/xml")
-		return uwsactions.ErrorResource(failure.value)
-
-
-class JoblistResource(MethodAwareResource, UWSErrorMixin):
-	"""The web resource corresponding to async root.
-
-	GET yields a job list, POST creates a job.
-	"""
-	def _doGET(self, ctx, request):
-		res = uwsactions.getJobList(tap.workerSystem)
-		return res
-	
-	def _doPOST(self, ctx, request):
-		jobId = tap.workerSystem.getNewIdFromRequest(request)
-		return UWSRedirect("async/%s"%jobId)
-
-	def _deliverResult(self, res, request):
-		request.setHeader("content-type", "text/xml")
-		return res
-
-
-class JobResource(rend.Page, UWSErrorMixin):
-	"""The web resource corresponding to async requests for jobs.
-	"""
-	def __init__(self, service, segments):
-		self.service, self.segments = service, segments
-
-	def renderHTTP(self, ctx):
-		request = inevow.IRequest(ctx)
-		return threads.deferToThread(
-			uwsactions.doJobAction, tap.workerSystem, request, self.segments
-		).addCallback(self._deliverResult, request
-		).addErrback(self._redirectAsNecessary, ctx
-		).addErrback(self._deliverError, request)
-
-	def _redirectAsNecessary(self, failure, ctx):
-		failure.trap(svcs.WebRedirect)
-		return UWSRedirect(failure.value.rawDest)
-
-	def _deliverResult(self, result, request):
-		if hasattr(result, "renderHTTP"):  # it's a finished resource
-			return result
-		# content-type is set by uwsaction._JobActions.dispatch
-		request.write(utils.xmlrender(result).encode("utf-8"))
-		return ""
-	
-
-def getAsyncResource(ctx, service, segments):
-	if segments:
-		return JobResource(service, segments)
-	else:
-		return JoblistResource(service)
 
 
 class _TAPEx(rend.DataFactory):
@@ -375,7 +273,8 @@ class TAPRenderer(grend.ServiceBasedPage):
 				if segments[0]=='sync':
 					res = getSyncResource(ctx, self.service, segments[1:])
 				elif segments[0]=='async':
-					res = getAsyncResource(ctx, self.service, segments[1:])
+					res = asyncrender.getAsyncResource(
+						ctx, tap.WORKER_SYSTEM, "tap", self.service, segments[1:])
 				elif segments[0]=='availability':
 					res = vosi.VOSIAvailabilityRenderer(ctx, self.service)
 				elif segments[0]=='capabilities':

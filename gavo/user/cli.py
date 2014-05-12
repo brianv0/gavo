@@ -30,6 +30,7 @@ functions = [
 	("adql", ("protocols.adqlglue", "localquery")),
 	("config", ("base.config", "main")),
 	("drop", ("user.dropping", "dropRD")),
+	("dlrun", ("protocols.dlasync", "main")),
 	("purge", ("user.dropping", "dropTable")),
 	("gendoc", ("user.docgen", "main")),
 	("import", ("user.importing", "main")),

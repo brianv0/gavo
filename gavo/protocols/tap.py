@@ -210,6 +210,7 @@ class TAPTransitions(uws.ProcessBasedUWSTransitions):
 
 	def getCommandLine(self, wjob):
 		return "gavo", ["gavo", "tap", "--", str(wjob.jobId)]
+
 	def queueJob(self, newState, wjob, ignored):
 		"""puts a job on the queue.
 		"""
@@ -611,4 +612,6 @@ class TAPUWS(uws.UWS):
 		"""
 		return "%s/%s/%s"%(self.baseURL, "async", jobId)
 
-workerSystem = TAPUWS()
+WORKER_SYSTEM = TAPUWS()
+# TODO: deprecated name, fix this and delete the alias
+workerSystem = WORKER_SYSTEM

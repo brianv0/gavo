@@ -296,7 +296,7 @@ class ParameterAction(JobAction):
 		with job.getWritable() as wjob:
 			for key in request.args:
 				wjob.setSerializedPar(key, utils.getfirst(request.args, key, None))
-		raise svcs.WebRedirect("async/"+job.jobId)
+		raise svcs.WebRedirect(job.jobId)
 
 JobActions.addStandardAction(ParameterAction)
 
@@ -313,7 +313,7 @@ class PhaseAction(JobAction):
 			job.uws.changeToPhase(job.jobId, uws.ABORTED, timeout=self.timeout)
 		else:
 			raise base.ValidationError("Bad phase: %s"%newPhase, "phase")
-		raise svcs.WebRedirect("async/"+job.jobId)
+		raise svcs.WebRedirect(job.jobId)
 	
 	def doGET(self, job, request):
 		job.uws.checkProcessQueue()
@@ -339,7 +339,7 @@ class _SettableAction(JobAction):
 		with job.getWritable() as wjob:
 			args = {self.attName: val}
 			wjob.change(**args)
-		raise svcs.WebRedirect("async/"+job.jobId)
+		raise svcs.WebRedirect(job.jobId)
 
 	def doGET(self, job, request):
 		request.setHeader("content-type", "text/plain")
@@ -445,7 +445,7 @@ class RootAction(JobAction):
 	name = ""
 	def doDELETE(self, job, request):
 		job.uws.destroy(job.jobId)
-		raise svcs.WebRedirect("async")
+		raise svcs.WebRedirect("")
 
 	def doPOST(self, wjob, request):
 		# (Extension to let web browser delete jobs)

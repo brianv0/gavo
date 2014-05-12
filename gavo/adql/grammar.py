@@ -474,8 +474,10 @@ def getADQLGrammarCopy():
 			Args(userDefinedFunctionParam) 
 			+ ZeroOrMore( "," + Args(userDefinedFunctionParam) ) 
 				+ ')')
-		numericValueFunction << (trigFunction | mathFunction | userDefinedFunction |
-			numericGeometryFunction)
+		numericValueFunction << (trigFunction 
+			| mathFunction 
+			| userDefinedFunction 
+			| numericGeometryFunction)
 
 		characterPrimary << (generalLiteral | valueExpressionPrimary | 
 			userDefinedFunction)

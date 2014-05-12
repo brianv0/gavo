@@ -288,8 +288,8 @@ def runTAPJob(jobId, queryProfile="untrustedquery"):
 	try:
 		runTAPJobNoState(parameters, jobId, queryProfile, timeout)
 	except Exception, ex:
-		tap.workerSystem.changeToPhase(jobId, uws.ERROR, ex)
 		base.ui.notifyError("While executing TAP job %s: %s"%(jobId, ex))
+		tap.workerSystem.changeToPhase(jobId, uws.ERROR, ex)
 	else:
 		tap.workerSystem.changeToPhase(jobId, uws.COMPLETED, None)
 
@@ -378,7 +378,9 @@ def main():
 		except SystemExit:
 			pass
 		except uws.JobNotFound: # someone destroyed the job before I was done
-			base.ui.notifyInfo("giving up non-existing TAP job %s."%jobId)
+			errmsg = "Giving up non-existing TAP job %s."%jobId
+			sys.stderr.write(errmsg+"\n")
+			base.ui.notifyInfo(errmsg)
 		except Exception, ex:
 			base.ui.notifyError("taprunner %s major failure"%jobId)
 			# try to push job into the error state -- this may well fail given

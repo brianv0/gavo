@@ -796,4 +796,23 @@
 		<FEED source="//datalink#fits_genKindPar"/>
 		<dataFormatter procDef="//datalink#fits_formatHDUs" name="formatHDUs"/>
 	</STREAM>
+
+
+	<!-- ************************************************ async support -->
+
+	<table id="datalinkjobs" system="True">
+		<meta name="description">A table managing datalink jobs submitted
+			asynchronously (the dlasync renderer)</meta>
+
+		<FEED source="//uws#uwsfields"/>
+		<column name="pid" type="integer" 
+				description="A unix pid to kill to make the job stop">
+			<values nullLiteral="-1"/>
+		</column>
+	</table>
+
+	<data id="import">
+		<make table="datalinkjobs"/>
+	</data>
+
 </resource>
