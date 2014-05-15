@@ -536,6 +536,8 @@ class PreviewMaker(FileProcessor):
 
 
 class SpectralPreviewMaker(PreviewMaker):
+	linearFluxes = False
+
 	def _createAuxillaries(self, dd):
 		PreviewMaker._createAuxillaries(self, dd)
 		self.sdmDD = self.dd.rd.getById(self.sdmId)
@@ -559,7 +561,13 @@ class SpectralPreviewMaker(PreviewMaker):
 
 		fig = pyplot.figure(figsize=(4,2))
 		ax = fig.add_axes([0,0,1,1], frameon=False)
-		ax.semilogy(
+
+		if self.linearFluxes:
+			plotter = ax.plot
+		else:
+			plotter = ax.semilogy
+
+		plotter(
 			[r[0] for r in data], 
 			[r[1] for r in data],
 			color="black")
