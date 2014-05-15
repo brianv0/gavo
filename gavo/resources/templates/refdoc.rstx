@@ -2340,7 +2340,7 @@ could look like this::
     ...
     <bind key="preview">("http://example.org/previews/"
       +"/".join(\inputRelativePath.split("/")[2:]))</bind>
-    <bind key="preview_mime">"image/png"/bind>
+    <bind key="preview_mime">"image/jpeg"/bind>
   </rowfilter>
 
 (this assumes takes away to path elements from the relative paths, which
@@ -2390,7 +2390,7 @@ b) say that the previews are standard DaCHS generated in the
       <rowfilter procDef="//products#define">
         <bind name="table">"\schema.data"</bind>
         <bind name="mime">"image/fits"</bind>
-        <bind name="preview_mime">"image/png"</bind>
+        <bind name="preview_mime">"image/jpeg"</bind>
         <bind name="preview">\standardPreviewPath</bind>
       </rowfilter>
     

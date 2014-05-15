@@ -172,19 +172,21 @@
 		
 		<column name="t_min" type="double precision"
 			description="Lower bound of times represented in the data set, as MJD"
-			unit="d" 
+			unit="d" xtype="mjd"
 			utype="obscore:char.timeaxis.coverage.bounds.limits.interval.starttime"
 			ucd="time.start;obs.exposure"
-			verbLevel="10">
+			verbLevel="10"
+			displayHint="type=humanDate">
 			<property name="std">1</property>
 		</column>
 																					 
 		<column name="t_max" type="double precision"
 			description="Upper bound of times represented in the data set, as MJD"
-			unit="d" 
+			unit="d" xtype="mjd"
 			utype="obscore:char.timeaxis.coverage.bounds.limits.interval.stoptime"
 			ucd="time.end;obs.exposure"
-			verbLevel="10">
+			verbLevel="10"
+			displayHint="type=humanDate">
 			<property name="std">1</property>
 		</column>
 

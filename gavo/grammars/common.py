@@ -473,15 +473,19 @@ class GrammarMacroMixin(base.StandardMacroMixin):
 		"""returns an expression for the standard path for a custom preview.
 
 		This consists of resdir, the name of the previewDir property on the
-		embedding DD, and the flat name of the input relative path.  See
-		the introduction to custom previews for details.
+		embedding DD, and the flat name of the accref (which this macro
+		assumes to see in its namespace as accref; this is usually the
+		case in //products#define, which is where this macro would typically be
+		used).
+		
+		See the introduction to custom previews for details.
 		"""
 		constantPrefix = os.path.join(
 			rscdef.getInputsRelativePath(self.parent.rd.resdir),
 			self.parent.getProperty("previewDir"))+"/"
 		inputsDir = base.getConfig("inputsDir")
 		return (repr(constantPrefix)
-			+"+getFlatName(getInputsRelativePath(rowIter.sourceToken))")
+			+"+getFlatName(accref)")
 
 	def macro_rowsProcessed(self):
 		"""returns an expression giving the number of records already
