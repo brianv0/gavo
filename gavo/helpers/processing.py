@@ -551,9 +551,6 @@ class SpectralPreviewMaker(PreviewMaker):
 				yield r["accref"]
 
 	def getPreviewData(self, accref):
-		if accref.endswith(".vot"):
-			# same preview as without
-			raise base.SkipThis()
 		table = rsc.makeData(self.sdmDD, forceSource={
 			"accref": accref}).getPrimaryTable()
 		data = [(r["spectral"], r["flux"]) for r in table.rows]
@@ -566,7 +563,7 @@ class SpectralPreviewMaker(PreviewMaker):
 			plotter = ax.plot
 		else:
 			plotter = ax.semilogy
-
+		
 		plotter(
 			[r[0] for r in data], 
 			[r[1] for r in data],

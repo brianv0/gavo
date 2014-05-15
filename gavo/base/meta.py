@@ -920,7 +920,7 @@ class LogoMeta(MetaValue):
 	  <meta name="_somelogo" type="logo">http://foo.bar/quux.png</meta>
 	"""
 	def _getContentAsHTML(self, content):
-		return u'<img class="metalogo" src="%s" height="16" alt="[Logo]"/>'%(
+		return u'<img class="metalogo" src="%s" alt="[Logo]"/>'%(
 				unicode(content).strip())
 
 
