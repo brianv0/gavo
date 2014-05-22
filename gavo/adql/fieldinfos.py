@@ -151,7 +151,6 @@ class TableFieldInfos(FieldInfos):
 		# annotate any join specs present
 		with context.customResolver(result.getFieldInfo):
 			_annotateNodeRecurse(tableNode, context)
-
 		return result
 
 	def _collectSubTables(self, node, context):
@@ -216,9 +215,13 @@ class QueryFieldInfos(FieldInfos):
 
 		# annotate the children of the where clause, too -- their types
 		# and such may be needed by morphers
-		if queryNode.whereClause:
-			with context.customResolver(result.getFieldInfo):
+		with context.customResolver(result.getFieldInfo):
+			if queryNode.whereClause:
 				_annotateNodeRecurse(queryNode.whereClause, context)
+			if queryNode.having:
+				_annotateNodeRecurse(queryNode.having, context)
+			if queryNode.groupby:
+				_annotateNodeRecurse(queryNode.groupby, context)
 
 		for col in queryNode.getSelectFields():
 			result.addColumn(col.name, col.fieldInfo)

@@ -124,4 +124,3 @@ def dumpFieldInfoedTree(tree):
 		else:
 			return res
 	pprint.pprint(traverse(tree))
-

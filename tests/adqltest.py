@@ -943,6 +943,7 @@ class ColResTest(ColumnTest):
 		self._assertColumns(cols, [
 			("real", 'deg', 'pos.eq.ra;meta.main', False)])
 
+
 class ExprColTest(ColumnTest):
 	def testCharConcat(self):
 		cols = self._getColSeq("select flag||'ab' as cat from crazy")
@@ -1146,6 +1147,18 @@ class JoinColResTest(ColumnTest):
 			'dist', 'width', 'height', 'ra1', 'ra2', 'dist', 'width', 
 			'height', 'ra1', 'ra2', 'mass', 'mag', 'speed'])
 
+	def testHaving1(self):
+		cols = self._getColSeq(
+			"SELECT ct FROM crazy "
+			"JOIN ("
+			"  SELECT height FROM spatial"
+			"  JOIN spatial2 ON (ra2=dist)"
+			"  GROUP BY height"
+			"  HAVING (height>avg(dist))) AS q "
+			"ON (wot=height)")
+		self._assertColumns(cols, [
+			('integer', '', '', False)])
+
 
 class UploadColResTest(ColumnTest):
 	def setUp(self):
@@ -1240,7 +1253,6 @@ class STCTest(ColumnTest):
 				"select region('Circle FK4 10 10 1')"
 				" from spatial")
 		self.assertEqual(cs[0][1].unit, "deg")
-
 
 
 class FunctionNodeTest(unittest.TestCase):

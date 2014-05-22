@@ -140,9 +140,6 @@ class Element(object):
 	are never qualified here.  If you need qualified attributes, you'll
 	have to use attribute name translation.
 
-	Local elements like this will only work properly if you give the parent 
-	elements the appropriate xmlns attribute.
-
 	The content of the DOM may be anything recognized by addChild.
 	In particular, you can give objects a serializeToXMLStan method returning
 	strings or an Element to make them good DOM citizens.

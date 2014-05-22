@@ -348,7 +348,17 @@ class MetaPagesTest(ArchiveTest):
 
 
 class DatalinkTest(ArchiveTest):
-	def testErrorDocument(self):
+	def testErrorDocumentMetaGeneral(self):
+		return self.assertGETHasStrings("/data/cores/dl/dlmeta", 
+			{"ID": "broken"},
+			["<TD>Error: global name 'ddt' is not defined</TD>"])
+
+	def testErrorDocumentMetaNotFound(self):
+		return self.assertGETHasStrings("/data/cores/dl/dlmeta", 
+			{"ID": "ivo://not.here"},
+			["<TD>NotFoundError: Not a pubDID from this site.</TD>"])
+
+	def testErrorDocumentAccess(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlget", 
 			{"ID": "broken"},
 			["global name 'ddt' is not defined"])
