@@ -106,7 +106,8 @@ def urlopenRemote(url, data=None, creds=(None, None)):
 	that cares to ask.  For both reasons, don't use any valuable credentials
 	here.
 	"""
-	ignored = creds # see _UrlopenRemotePasswrodMgr above
+	# The name in the next line is used in _UrlopenRemotePasswrodMgr
+	_temp_credentials = creds # (do not change)
 	try:
 		return _restrictedURLOpener.open(url, data)
 	except (urllib2.URLError, ValueError), msg:
