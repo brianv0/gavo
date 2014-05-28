@@ -383,7 +383,7 @@ class HeaderProcessor(FileProcessor):
 	def _getHeader(self, srcName):
 		"""override this or _mungeHeader.
 		"""
-		return self._mungeHeader(self.getPrimaryHeader(srcName))
+		return self._mungeHeader(srcName, self.getPrimaryHeader(srcName))
 
 	@staticmethod
 	def getPrimaryHeader(srcName):
