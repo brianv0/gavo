@@ -81,7 +81,7 @@
 			description="Column name">
 			<property name="std">1</property>
 		</column>
-		<column name="description" type="text" 
+		<column name="description" type="unicode" 
 			description="Brief description of column">
 			<property name="std">1</property>
 		</column>

@@ -82,7 +82,7 @@ def _parseTAPParameters(jobId, parameters):
 			raise uws.UWSError("This service only supports REQUEST=doQuery", jobId)
 		if parameters["lang"] not in SUPPORTED_LANGS:
 			raise uws.UWSError("This service only supports LANG=ADQL", jobId)
-		query = parameters["query"]
+		query = parameters["query"].decode("utf-8")
 	except KeyError, key:
 		raise base.ui.logOldExc(base.ValidationError(
 			"Required parameter %s missing."%key, key))
@@ -145,7 +145,7 @@ def runTAPQuery(query, timeout, connection, tdsForUploads, maxrec):
 	try:
 		pgQuery, tableTrunk = adqlglue.morphADQL(query,
 			tdsForUploads=tdsForUploads, externalLimit=maxrec)
-		base.ui.notifyInfo("Sending to postgres: %s"%pgQuery)
+		base.ui.notifyInfo("Sending to postgres: %s"%repr(pgQuery))
 		
 		result = rsc.QueryTable(tableTrunk.tableDef, pgQuery, connection)
 		# XXX Hack: this is a lousy fix for postgres' seqscan love with

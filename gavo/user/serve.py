@@ -234,9 +234,15 @@ def _startServer():
 @exposedFunction(help="start the server and put it in the background.")
 def start(args):
 	oldPID = PIDManager.getPID()
-	if oldPID is not None:  # Presumably, there already is a server running
-		sys.exit("It seems there's already a server (pid %s) running."
-			" Try 'gavo serve stop'."%(PIDManager.getPID()))
+	if oldPID is not None:  # Server could already be running,.. .
+		if os.path.exists("/proc/%s"%oldPID):
+			# ...if the PID is active, give up right away
+			sys.exit("It seems there's already a server (pid %s) running."
+				" Try 'gavo serve stop'."%(PIDManager.getPID()))
+		else:
+			warnings.warn("Unclean server shutdown suspected, trying to clean up...")
+			_stopServer()
+
 	daemonize(
 		open(os.path.join(base.getConfig("logDir"), "server.stderr"), "a"), 
 		_startServer)
