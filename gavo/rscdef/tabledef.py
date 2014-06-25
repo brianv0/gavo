@@ -173,6 +173,9 @@ class ForeignKey(base.Structure):
 			self.destTableName, ".".join(self.dest))
 
 	def _parseList(self, raw):
+		if isinstance(raw, list):
+			# we're being copied
+			return raw
 		return [s.strip() for s in raw.split(",") if s.strip()]
 
 	def onElementComplete(self):

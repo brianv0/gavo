@@ -183,9 +183,10 @@ def _to_mjd(args):
 
 
 @userFunction("ivo_string_agg",
-	"(expression, delimiter TEXT) -> TEXT",
+	"(expression TEXT, delimiter TEXT) -> TEXT",
 	"""
-	Docs TBD; this is just postgres' string_agg
+	An aggregate function returning all values of
+	expression within a GROUP contcatenated with delimiter
 	""",
 	"text")
 def _string_agg(args):

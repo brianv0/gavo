@@ -250,6 +250,7 @@ of where we messed up, and we'll try to improve.
 					SELECT to_char($1, 'J')::double precision
   					+ to_char($1,'ssss')::double precision/86400-0.5
 				$func$ LANGUAGE SQL STABLE;
+
 			]]></script>
 		</make>
 	</data>
