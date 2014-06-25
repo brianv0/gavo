@@ -428,7 +428,8 @@ class FileRowAttributes(object):
 	_preFilter = base.UnicodeAttribute("preFilter", description="Shell"
 		" command to pipe the input through before passing it on to the"
 		" grammar.  Classical examples include zcat or bzcat, but you"
-		" can commit arbitrary shell atrocities here.")
+		" can commit arbitrary shell atrocities here.",
+		copyable=True)
 
 	def completeElement(self, ctx):
 		if ctx.restricted:

@@ -67,6 +67,10 @@ class ColRangeAttribute(base.UnicodeAttribute):
 	from one.
 	"""
 	def parse(self, value):
+		if isinstance(value, slice):
+			#	we're already parsed
+			return value
+
 		try:
 			if "-" in value:
 				startLit, endLit = value.split("-")
@@ -105,15 +109,17 @@ class ColumnGrammar(Grammar, FileRowAttributes):
 	name_ = "columnGrammar"
 
 	_til = base.IntAttribute("topIgnoredLines", default=0, description=
-		"Skip this many lines at the top of each source file.")
+		"Skip this many lines at the top of each source file.",
+		copyable=True)
 	_cols = base.DictAttribute("colRanges", description="Mapping of"
-		" source keys to column ranges.", itemAttD=ColRangeAttribute("col"))
+		" source keys to column ranges.", itemAttD=ColRangeAttribute("col"),
+		copyable=True)
 	_colDefs = base.ActionAttribute("colDefs", description="Shortcut"
 		" way of defining cols", methodName="_parseColDefs")
 	_commentIntroducer = base.UnicodeAttribute("commentIntroducer",
 		default=base.NotGiven, description="A character sequence"
 		" that, when found at the beginning of a line makes this line"
-		" ignored")
+		" ignored", copyable=True)
 
 	def _getColDefGrammar(self):
 		with utils.pyparsingWhitechars("\n\t\r "):
