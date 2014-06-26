@@ -307,7 +307,7 @@ class SSAPCore(svcs.DBCore):
 				V.PARAM(name="standardID", datatype="char", arraysize="*",
 					value="ivo://ivoa.net/std/DataLink#links"),
 				V.PARAM(name="accessURL", datatype="char", arraysize="*",
-					value=service.getURL("dlmeta")),
+					value=self.rd.getById(datalinkId).getURL("dlmeta")),
 				V.GROUP(name="inputParams")[
 					V.PARAM(name="ID", datatype="char", arraysize="*", 
 						ref=pubDIDId,

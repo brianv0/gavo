@@ -355,7 +355,7 @@ class TableDef(base.Structure, base.ComputedMetaMixin, common.PrivilegesMixin,
 	_foreignKeys = base.StructListAttribute("foreignKeys", 
 		childFactory=ForeignKey, 
 		description="Foreign keys used in this table", 
-		copyable=True)
+		copyable=False)
 
 	_groups = base.StructListAttribute("groups",
 		childFactory=group.Group,
