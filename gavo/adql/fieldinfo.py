@@ -84,7 +84,7 @@ class Coercions(object):
 		"""
 		try:
 			startNodes = [self.typesIndex[t] for t in typeSeq]
-		except KeyError, ex: # don't know at least one type
+		except KeyError: # don't know at least one type
 			return self.root.name
 		try:
 			return reduce(self._unify, startNodes).name

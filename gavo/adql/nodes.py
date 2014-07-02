@@ -351,10 +351,10 @@ class FunctionNode(FieldInfoedNode):
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
 		try:
-			args = parseArgs(_parseResult["args"])
+			args = parseArgs(_parseResult["args"]) #noflake: locals returned
 		except KeyError: # Zero-Arg function
 			pass
-		funName = _parseResult["fName"].upper()
+		funName = _parseResult["fName"].upper() #noflake: locals returned
 		return locals()
 
 	def flatten(self):
@@ -456,7 +456,7 @@ class PlainTableRef(ColumnBearingNode):
 			originalTable = _parseResult.get("tableName")
 		else:
 			tableName = getChildOfType(_parseResult, "tableName")
-			originalTable = tableName
+			originalTable = tableName  #noflake: locals returned
 		return locals()
 
 	def addFieldInfos(self, context):
@@ -492,9 +492,6 @@ class DerivedTable(ColumnBearingNode):
 	_a_query = None
 	_a_tableName = None
 
-# These just delegate all column bearing stuff to their embedded query
-	def getAllNames(self):
-		return self.query.getAllNames()
 	def getFieldInfo(self, name):
 		return self.query.getFieldInfo(name)
 	
@@ -541,9 +538,10 @@ class JoinSpecification(ADQLNode, TransparentMixin):
 	def _getInitKWs(cls, _parseResult):
 		predicate = _parseResult[0].upper()
 		if predicate=="USING":
-			usingColumns = [n for n in _parseResult["columnNames"] if n!=',']
+			usingColumns = [ #noflake: locals returned
+				n for n in _parseResult["columnNames"] if n!=',']
 			del n
-		children = list(_parseResult)
+		children = list(_parseResult) #noflake: locals returned
 		return locals()
 
 
@@ -576,11 +574,11 @@ class JoinedTable(ColumnBearingNode):
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
-		leftOperand = _parseResult[0]
-		operator = _parseResult[1]
-		rightOperand = _parseResult[2]
+		leftOperand = _parseResult[0] #noflake: locals returned
+		operator = _parseResult[1] #noflake: locals returned
+		rightOperand = _parseResult[2] #noflake: locals returned
 		if len(_parseResult)>3:
-			joinSpecification = _parseResult[3]
+			joinSpecification = _parseResult[3] #noflake: locals returned
 		return locals()
 
 	def flatten(self):
@@ -841,7 +839,7 @@ class FromClause(ADQLNode):
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
-		tableReference = _parseResult[1]
+		tableReference = _parseResult[1] #noflake: locals returned
 		return locals()
 	
 	def flatten(self):
@@ -907,10 +905,10 @@ class DerivedColumn(FieldInfoedNode):
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
-		expr = _parseResult["expr"]
-		alias = _parseResult.get("alias")
+		expr = _parseResult["expr"] #noflake: locals returned
+		alias = _parseResult.get("alias") #noflake: locals returned
 		if alias is not None:
-			name = alias
+			name = alias #noflake: locals returned
 		return locals()
 	
 	def flatten(self):
@@ -945,10 +943,10 @@ class SelectList(ADQLNode):
 	def _getInitKWs(cls, _parseResult):
 		allFieldsQuery = _parseResult.get("starSel", False)
 		if allFieldsQuery:
-			selectFields = None  # Will be filled in by query, we don't have
-			                     # the from clause here.
+			# Will be filled in by query, we don't have the from clause here.
+			selectFields = None  #noflake: locals returned
 		else:
-			selectFields = list(_parseResult.get("fieldSel"))
+			selectFields = list(_parseResult.get("fieldSel")) #noflake: locals returned
 		return locals()
 	
 	def flatten(self):
@@ -971,7 +969,7 @@ class Comparison(ADQLNode):
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
-		op1, opr, op2 = _parseResult
+		op1, opr, op2 = _parseResult #noflake: locals returned
 		return locals()
 	
 	def flatten(self):
@@ -1233,7 +1231,7 @@ class CharacterStringLiteral(FieldInfoedNode):
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
-		value = "".join(_c[1:-1] for _c in _parseResult)
+		value = "".join(_c[1:-1] for _c in _parseResult) #noflake: locals returned
 		return locals()
 
 	def flatten(self):
@@ -1312,7 +1310,7 @@ class Point(GeometryNode):
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
-		x, y = parseArgs(_parseResult["args"])
+		x, y = parseArgs(_parseResult["args"]) #noflake: locals returned
 		return locals()
 
 
@@ -1325,7 +1323,7 @@ class Circle(GeometryNode):
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
-		x, y, radius = parseArgs(_parseResult["args"])
+		x, y, radius = parseArgs(_parseResult["args"]) #noflake: locals returned
 		return locals()
 
 
@@ -1338,7 +1336,8 @@ class Box(GeometryNode):
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
-		x, y, width, height = parseArgs(_parseResult["args"])
+		x, y, width, height = parseArgs( #noflake: locals returned
+			_parseResult["args"])
 		return locals()
 
 

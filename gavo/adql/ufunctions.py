@@ -176,7 +176,7 @@ def _to_mjd(args):
 	good to second-precision unless you are careful in the construction
 	of the timestamp.
 	""")
-def _to_mjd(args):
+def _to_jd(args):
 	if len(args)!=1:
 		raise common.UfuncError("gavo_to_jd takes exactly one timestamp argument")
 	return "ts_to_jd(%s)"%nodes.flatten(args[0])

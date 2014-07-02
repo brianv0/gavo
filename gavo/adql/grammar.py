@@ -134,11 +134,12 @@ from __future__ import with_statement
 from gavo.imp.pyparsing import (
 	Word, Literal, Optional, alphas, CaselessKeyword,
 	ZeroOrMore, OneOrMore, StringEnd,
-	Forward, nums, ParseSyntaxException,
+	Forward, nums, 
 	CaselessLiteral, ParseException, Regex, sglQuotedString, alphanums,
 	ParserElement, White, 
 	ParseExpression)
 
+from gavo.imp.pyparsing import ParseSyntaxException #noflake: exported name
 from gavo import utils
 from gavo import stc
 
@@ -381,7 +382,8 @@ def getADQLGrammarCopy():
 # numeric expressions/terms
 		numericValueExpression = Forward()
 		numericValueFunction = Forward()
-		numericExpressionPrimary = ( unsignedLiteral | columnReference
+		numericExpressionPrimary = ( #noflake: name exported through locals()
+			unsignedLiteral | columnReference
 			| setFunctionSpecification | '(' + valueExpression + ')')
 		numericPrimary = numericValueFunction | valueExpressionPrimary 
 		factor = Optional( sign ) + numericPrimary
