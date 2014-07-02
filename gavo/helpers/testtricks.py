@@ -1,5 +1,9 @@
 """
-helper functions and classes for unit tests and similar.
+Helper functions and classes for unit tests and similar.
+
+Whatever is useful to unit tests from here should be imported into
+testhelpers, too.  Unit test modules should not be forced to import
+this.
 """
 
 #c Copyright 2008-2014, the GAVO project
@@ -16,7 +20,6 @@ import os
 import subprocess
 import tempfile
 import unittest
-import urllib
 
 from gavo import base
 

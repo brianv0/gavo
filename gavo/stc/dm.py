@@ -743,7 +743,6 @@ def binarizeCompound(compound):
 	"""
 	if not isinstance(compound, _Compound):
 		return compound
-	oc = compound
 	compound = compound.binarizeOperands()
 	if len(compound.children)==1:
 		return compound.children[0]

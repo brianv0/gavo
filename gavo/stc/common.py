@@ -13,7 +13,7 @@ import math
 import operator
 
 from gavo import utils
-from gavo.utils import ElementTree
+from gavo.utils import ElementTree #noflake:clients expect this name
 from gavo.utils.stanxml import Stub, registerPrefix, schemaURL
 
 

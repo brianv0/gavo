@@ -18,3 +18,4 @@ Use the code in protocols for the core and possible library-like functionality.
 #c COPYING file in the source distribution.
 
 
+# Not checked by pyflakes: API file with gratuitous imports

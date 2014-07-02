@@ -11,8 +11,8 @@ A small user interface for testing STC.
 import sys
 import textwrap
 
+from gavo import base
 from gavo import stc
-from gavo import utils
 
 
 def cmd_resprof(opts, srcSTCS):

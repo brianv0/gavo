@@ -365,10 +365,13 @@ def _makeSpatialIntervalSerializer(stcClasses):
 			stcClasses[node.frame.nDim-1]
 		posNode = context.getPosForInterval(node)
 		clsArgs, cooArgs = _getSpatialUnits(posNode)
-		if len(set(posNode.unit))==1:
-			unit = posNode.unit[0]
-		elif posNode.unit:
-			units = posNode.unit
+
+# check where we should stick these units at some point
+#		if len(set(posNode.unit))==1:
+#			unit = posNode.unit[0]
+#		elif posNode.unit:
+#			units = posNode.unit
+
 		return intervClass(frame_id=node.frame.id, fill_factor=node.fillFactor,
 				**clsArgs)[
 				lowerClass[valueSerializer(node.lowerLimit, **cooArgs)],

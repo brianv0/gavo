@@ -104,7 +104,7 @@ def _makeKwValuesBuilder(kwName, tuplify=False, units=_noIter):
 			yield kwName, (tuple(buildArgs["vals"]),)
 			for res in units(node, buildArgs): yield res
 	else:
-		def buildNode(node, buildArgs, context):
+		def buildNode(node, buildArgs, context): #noflake: previous def conditional
 			yield kwName, (buildArgs["vals"],)
 			for res in units(node, buildArgs): yield res
 	return buildNode
@@ -121,7 +121,7 @@ def _makeKwValueBuilder(kwName, tuplify=False, units=_noIter):
 			yield kwName, tuple(buildArgs.get("vals", ())),
 			for res in units(node, buildArgs): yield res
 	else:
-		def buildNode(node, buildArgs, context):
+		def buildNode(node, buildArgs, context): #noflake: previous def conditional
 			yield kwName, buildArgs.get("vals", None),
 			for res in units(node, buildArgs): yield res
 	return buildNode
@@ -143,7 +143,7 @@ def _makeKwFloatBuilder(kwName, multiple=True, units=_noIter):
 				yield kwName, (float(node.text),)
 			for res in units(node, buildArgs): yield res
 	else:
-		def buildNode(node, buildArgs, context):
+		def buildNode(node, buildArgs, context): #noflake: previous def conditional
 			if isinstance(node.text, ColRef):
 				yield kwName, node.text
 			elif node.text and node.text.strip():
@@ -226,7 +226,6 @@ def _makeSpatialUnits(nDim, *unitSources):
 
 def _fixSpatialUnits(node, buildArgs, context):
 	nDim = context.peekDim()
-	ln = _localname(node.tag)
 
 	# buildArgs["unit"] may have been left in build_args from upstream
 	buildArgs["unit"] = _makeSpatialUnits(nDim, buildArgs.pop("unit", None),
@@ -332,7 +331,7 @@ def _makeIntervalBuilder(kwName, astClass, frameName, tuplify=False):
 			else:
 				return (v,)
 	else:
-		def mkVal(v):
+		def mkVal(v): #noflake: previous def conditional
 			return v
 	def buildNode(node, buildArgs, context):
 		context.pushDim(_guessNDim(_localname(node.tag)))

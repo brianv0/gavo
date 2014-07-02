@@ -300,7 +300,7 @@ def _resolve(fName, solverParameters={}, sexControl=None, objectFilter=None,
 	"""
 	try:
 		_solveField(fName, solverParameters, sexControl, objectFilter, verbose)
-	except Exception, ex:
+	except Exception:
 		_copyCurrentTree(copyTo)
 		raise
 	_copyCurrentTree(copyTo)

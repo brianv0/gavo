@@ -15,7 +15,8 @@ import subprocess
 import sys
 import time
 
-from gavo import ui
+from gavo import base
+from gavo import ui  #noflake: Need side effect
 
 CTL_CD_EJECT = 0x5309
 CTL_CD_QCHANGE = 0x5325

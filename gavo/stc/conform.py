@@ -83,7 +83,6 @@ def iterSpatialChanges(baseSTC, sysSTC, slaComp=False):
 	if bVel:
 		yield "velocity", bVel.change(value=vel, frame=destFrame)
 		if baseSTC.velocityAs:
-			sTrafo = sixTrans.getVelocityTransformer(trafo, bPlace.value)
 			yield "velocityAs", _transformAreas(baseSTC.velocityAs, 
 				sixTrans.getVelocityTransformer(trafo, bPlace.value), srcFrame, 
 				destFrame)

@@ -17,10 +17,6 @@ fitstools and probably should be removed completely.
 #c COPYING file in the source distribution.
 
 
-from gavo.utils import pyfits
-
-from gavo.utils.fitstools import replacePrimaryHeader
-
 def copyFields(header, cardList, ignoredHeaders):
 	"""copies over all cards from cardList into header, excluding headers
 	named in ignoredHeaders.

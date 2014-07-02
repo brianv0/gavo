@@ -139,7 +139,7 @@ class FileProcessor(object):
 		def worker(inQueue, outQueue):
 			for srcId in iter(inQueue.get, None):
 				if (self.opts.requireFrag is not None 
-						and not self.opts.requireFrag in source):
+						and not self.opts.requireFrag in srcId):
 					continue
 
 				try:
@@ -596,7 +596,7 @@ def procmain(processorClass, rdId, ddId):
 	plate catalogs or similar.
 	"""
 	import optparse
-	from gavo import rscdesc
+	from gavo import rscdesc  #noflake: for registration
 	rd = base.caches.getRD(rdId)
 	dd = rd.getById(ddId)
 	parser = optparse.OptionParser()

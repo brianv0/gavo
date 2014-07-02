@@ -59,7 +59,7 @@ else:
 		warnings.warn("testhelpers imported from non-test directory.  This"
 			" is almost certainly not what you want (or set GAVO_OOTTEST).")
 
-	from gavo import base
+	from gavo import base #noflake: import above is conditional
 	dbname = "dachstest"
 	if not os.path.exists(base.getConfig("rootDir")):
 		from gavo.user import initdachs
@@ -86,7 +86,7 @@ else:
 
 			from gavo.registry import publication
 			from gavo import rsc
-			from gavo import rscdesc
+			from gavo import rscdesc #noflake: caches registration
 			from gavo import base
 			publication.updateServiceList([base.caches.getRD("//services")])
 
@@ -94,7 +94,6 @@ else:
 			rsc.makeData(
 				base.caches.getRD("data/ssatest").getById("test_import"))
 		except:
-			import traceback
 			traceback.print_exc()
 			sys.stderr.write("Creation of test environment failed.  Remove %s\n"
 				" before trying again.\n"%(base.getConfig("rootDir")))
@@ -120,9 +119,9 @@ else:
 
 
 
-from gavo.helpers.testtricks import *
 from gavo.imp import testresources
-from gavo.imp.testresources import TestResource
+from gavo.imp.testresources import TestResource  #noflake: need name
+from gavo.helpers.testtricks import XSDTestMixin, testFile
 
 # Here's the deal on TestResource: When setting up complicated stuff for
 # tests (like, a DB table), define a TestResource for it.  Override
@@ -424,7 +423,7 @@ class SamplesBasedAutoTest(type):
 
 
 def getTestRD(id="test.rd"):
-	from gavo import rscdesc
+	from gavo import rscdesc  #noflake: import above is conditional
 	from gavo import base
 	return base.caches.getRD("data/%s"%id)
 

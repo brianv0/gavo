@@ -17,7 +17,6 @@ which is then added to the current dictionary.
 
 import datetime
 import itertools
-import pprint
 
 from gavo.stc import dm
 from gavo.stc import stcs

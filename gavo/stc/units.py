@@ -25,7 +25,7 @@ frequency needs division of the value.
 #c COPYING file in the source distribution.
 
 
-from itertools import *
+import itertools
 import math
 
 from gavo.utils import memoized
@@ -174,14 +174,14 @@ def getParallaxConverter(fromUnit, toUnit, reverse=False):
 	angularConv = getBasicConverter(fromUnit, "arcsec", reverse)
 	distanceConv = getBasicConverter("pc", toUnit, reverse)
 	if reverse:
-		def conv(val):
+		def conv(val):  #noflake: local function
 			res = distanceConv(val)
 			if res>maxDistance:
 				return 0.
 			else:
 				return angularConv(1./res)
 	else:
-		def conv(val):
+		def conv(val):  #noflake: local function
 			res = angularConv(val)
 			if res<1/maxDistance:
 				return distanceConv(maxDistance)
@@ -238,7 +238,7 @@ def getVectorConverter(fromUnits, toUnits, reverse=False):
 	they implement.
 	"""
 	if not fromUnits:  # no base unit given, we give up
-		def convert(val):
+		def convert(val): #noflake: local function
 			return val
 		return convert
 
@@ -253,11 +253,11 @@ def getVectorConverter(fromUnits, toUnits, reverse=False):
 		except STCUnitError:  # try parallax for the last unit only
 			convs.append(getParallaxConverter(fromUnits[2], toUnits[2], reverse))
 
-	def convert(val):
+	def convert(val): #noflake: local function
 		if not hasattr(val, "__iter__"):
 			# someone sneaked in a scalar.  Sigh
 			val = (val,)
-		return tuple(f(c) for f, c in izip(convs, val))
+		return tuple(f(c) for f, c in itertools.izip(convs, val))
 	if reverse:
 		convert.fromUnit, convert.toUnit = toUnits, fromUnits
 	else:
@@ -280,9 +280,10 @@ def getVelocityConverter(fromSpaceUnits, fromTimeUnits, toSpace, toTime,
 	toSpace = _expandUnits(fromSpaceUnits, toSpace)
 	toTime = _expandUnits(fromTimeUnits, toTime)
 	convs = tuple(getRedshiftConverter(fs, ft, ts, tt, reverse) 
-		for fs, ft, ts, tt in izip(fromSpaceUnits, fromTimeUnits, toSpace, toTime))
+		for fs, ft, ts, tt in itertools.izip(
+			fromSpaceUnits, fromTimeUnits, toSpace, toTime))
 	def convert(val):
-		return tuple(f(c) for f, c in izip(convs, val))
+		return tuple(f(c) for f, c in itertools.izip(convs, val))
 	return convert
 
 

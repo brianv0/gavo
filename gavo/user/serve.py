@@ -197,7 +197,6 @@ class _Scheduler(object):
 			base.ui.notifyWarning("Cancelling schedule at %s"%cls.lastDelayedCall.getTime())
 			cls.lastDelayedCall.cancel()
 
-		base.ui.notifyWarning("Waking up after %s seconds"%(wakeTime))
 		cls.lastDelayedCall = reactor.callLater(wakeTime, job)
 
 

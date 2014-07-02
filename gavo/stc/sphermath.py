@@ -15,7 +15,7 @@ import numpy
 from gavo.stc import units
 from gavo.stc.common import *
 
-from gavo.utils.mathtricks import cartToSpher, spherToCart
+from gavo.utils.mathtricks import cartToSpher, spherToCart #noflake
 
 # filled in for distances not given, in rad (units also insert this for
 # parallaxes too small)

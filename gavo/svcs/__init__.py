@@ -17,6 +17,7 @@ structure carrying lots of information on the query being processed.
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
 
+# Not checked by pyflakes: API file with gratuitous imports
 
 from gavo.svcs.common import (Error, UnknownURI, ForbiddenURI, WebRedirect,
 	Authenticate, BadMethod,

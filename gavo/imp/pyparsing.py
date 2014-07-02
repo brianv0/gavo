@@ -1,3 +1,5 @@
+# Not checked by pyflakes: External module
+
 # module pyparsing.py
 #
 # Copyright (c) 2003-2009  Paul T. McGuire

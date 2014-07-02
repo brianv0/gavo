@@ -415,7 +415,9 @@ class DocumentResTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 		relations = self.srcAndTree[1].xpath("//relationship")
 		self.assertEqual(len(relations), 1)
 		t = relations[0].xpath("relationshipType")[0]
-		self.assertEqual(t.text, "uses")
+
+		# until VOResource is fixed, we turn "uses" into related-to
+		self.assertEqual(t.text, "related-to")
 		ids = relations[0].xpath("relatedResource")
 		self.assertEqual(ids[0].text, "Sample useful resource")
 		self.assertEqual(ids[1].attrib["ivo-id"], "ivo://crapola/work")

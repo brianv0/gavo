@@ -421,7 +421,7 @@ class SDMDatalinkMetaTest(testhelpers.VerboseTest):
 	def testAccessURLGivenDL(self):
 		self.assertEqual(self.data[1].xpath(
 				"PARAM[@name='accessURL']")[0].get("value"),
-			"http://localhost:8080/data/ssatest/c/dlmeta")
+			"http://localhost:8080/data/ssatest/dl/dlmeta")
 	
 	def testIdColDeclaredDL(self):
 		param = self.data[1].xpath("GROUP/PARAM[@name='ID']")[0]
@@ -946,5 +946,6 @@ class MixcTableTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
+	from gavo.formats import texttable
 	base.DEBUG = True
 	testhelpers.main(SDMDatalinkTest)

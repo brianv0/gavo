@@ -8,6 +8,7 @@ attributes, fundamental VO conventions.
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
 
+# Not checked by pyflakes: API file with gratuitous imports
 
 # This doesn't belong here and it should go away again, but right now,
 # astLib has an issue in the de_DE (and probably other) locales.

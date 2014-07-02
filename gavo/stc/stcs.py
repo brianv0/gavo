@@ -33,8 +33,8 @@ from __future__ import with_statement
 from gavo.imp.pyparsing import (
 	Word, Literal, Optional, alphas, CaselessKeyword,
 		ZeroOrMore, OneOrMore, StringEnd,
-		Suppress, Forward, QuotedString, 
-		ParseException, Regex, alphanums,
+		Suppress, Forward, 
+		Regex, alphanums,
 		ParseException, ParseResults, 
 		ParseSyntaxException)
 
@@ -440,7 +440,8 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 			
 
 # top level
-		stcsPhrase = (Optional( timeSubPhrase )("time") +
+		stcsPhrase = ( #noflake: stcsPhrase is returned through locals()
+			Optional( timeSubPhrase )("time") + 
 			Optional( spaceSubPhrase )("space") +
 			Optional( spectralSubPhrase )("spectral") +
 			Optional( redshiftSubPhrase )("redshift") +
