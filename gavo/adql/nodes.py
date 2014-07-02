@@ -1360,7 +1360,7 @@ class Polygon(GeometryNode):
 
 	def addFieldInfo(self, name):
 		# XXX TODO: add a proper field info here
-		self.fieldInfo = fieldinfo.FieldInfo("adql:POLYGON", "", "")
+		self.fieldInfo = fieldinfo.FieldInfo("POLYGON", "", "")
 
 
 _regionMakers = [] 

@@ -63,7 +63,7 @@ class PgSAdapter(object):
 	testing here really is mainly for unit tests with hand-crafted values).
 
 	Also, all subclasses you should provide an asPoly returning a spherical
-	polygon.  This is used when uploading VOTables with adql:REGION columns.
+	polygon.  This is used when uploading VOTables with REGION columns.
 	"""
 	pgType = None
 

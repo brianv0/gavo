@@ -502,7 +502,7 @@ class TAPPublicationTest(testhelpers.VerboseTest):
 			res = list(q.query(
 				"select column_name, unit, datatype"
 				" from tap_schema.columns where table_name='test.adql'"))
-			self.failUnless(("alpha", "deg", "adql:REAL") in res)
+			self.failUnless(("alpha", "deg", "REAL") in res)
 	
 	def testSTCGroupPresent(self):
 		with base.AdhocQuerier() as q:

@@ -27,7 +27,19 @@ from gavo import rscdesc
 from gavo import utils
 
 
-CURRENT_SCHEMAVERSION = 8
+CURRENT_SCHEMAVERSION = 9
+
+
+class AnnotatedString(str):
+	"""a string with an annotation.
+	
+	This is (optionally) used to hold SQL statements here; the annotation
+	is shown to the user instead of the naked statement when present.
+	"""
+	def __new__(cls, content, annotation):
+		res = str.__new__(cls, content)
+		res.annotation = annotation
+		return res
 
 
 def showProgress(msg):
@@ -248,6 +260,14 @@ class To8Upgrader(Upgrader):
 	u_010_removeColumnsMeta = ("DROP TABLE dc.columnmeta")
 
 
+class To9Upgrader(Upgrader):
+	version = 8
+	u_010_chuckADQLPrefix = AnnotatedString("UPDATE TAP_SCHEMA.columns"
+			" SET datatype=substring(datatype from 6)"
+			" WHERE datatype LIKE 'adql:%%'",
+		"Remove adql: prefix in TAP_SCHEMA.columns.datatype")
+
+
 def iterStatements(startVersion, endVersion=CURRENT_SCHEMAVERSION, 
 		upgraders=None):
 	"""yields all upgraders from startVersion to endVersion in sequence.
@@ -287,7 +307,8 @@ def upgrade(forceDBVersion=None, dryRun=False):
 				# custom user feedback
 				statement(conn)
 			else:
-				showProgress("> executing %s ..."%utils.makeEllipsis(statement, 60))
+				showProgress(getattr(statement, "annotation",
+					"> executing %s ..."%utils.makeEllipsis(statement, 60)))
 				ignored = conn.execute(statement)
 			showProgress(" ok\n")
 		if dryRun:

@@ -292,7 +292,7 @@ class AnnotatedColumn(object):
 	  column's values or otherwise obtained
 	- name -- a name for the column
 	- dbtype -- the column's database type
-	- xtype -- the column's xtype ("ADQL:timestamp")
+	- xtype -- the column's xtype ("adql:TIMESTAMP")
 	- datatype, arraysize -- a VOTable type for the column
 	- displayHint -- a parsed display hint
 	- note -- a reference to a table not (these get entered by SerManager)

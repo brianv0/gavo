@@ -271,7 +271,7 @@ parseSimpleSTCS = getSimpleSTCSParser()
 def simpleSTCSToPolygon(stcsExpr):
 	"""returns an spoly for an STC-S region specification.
 
-	This is used to let people upload VOTables with adql:REGION items.
+	This is used to let people upload VOTables with REGION items.
 	"""
 	if stcsExpr is None:
 		return None
