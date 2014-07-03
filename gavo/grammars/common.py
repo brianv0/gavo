@@ -28,7 +28,7 @@ class ParseError(base.Error):
 	def __init__(self, msg, location=None, record=None):
 		base.Error.__init__(self, msg)
 		self.location, self.record = location, record
-		args = [msg, location, record]
+		self.args = [msg, location, record]
 
 
 class REAttribute(base.UnicodeAttribute):
@@ -193,7 +193,7 @@ def compileRowfilter(filters):
 	"""
 	if not filters:
 		return
-	iters = [f.compile() for f in filters]
+	iters = [f.compile() for f in filters] #noflake: code gen
 	src = [
 		"def iterPipe(row, rowIter):",
 		"  for item0 in iters[0](row, rowIter):"]
@@ -484,7 +484,6 @@ class GrammarMacroMixin(base.StandardMacroMixin):
 		constantPrefix = os.path.join(
 			rscdef.getInputsRelativePath(self.parent.rd.resdir),
 			self.parent.getProperty("previewDir"))+"/"
-		inputsDir = base.getConfig("inputsDir")
 		return (repr(constantPrefix)
 			+"+getFlatName(accref)")
 

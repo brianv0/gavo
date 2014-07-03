@@ -326,7 +326,7 @@ class IntListConfigItem(ListConfigItem):
 	def _parse(self, value):
 		try:
 			return [int(s) for s in ListConfigItem._parse(self, value)]
-		except ValueError, msg:
+		except ValueError:
 			raise ParseError("Non-integer in integer list")
 	
 	def _unparse(self, value):

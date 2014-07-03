@@ -393,7 +393,6 @@ class RegistryCore(svcs.Core, base.RestrictionMixin):
 			else:
 				pars[argName] = argVal[0]
 		
-		offset = 0
 		if "resumptionToken" in pars:
 			pars = parseResumptionToken(pars)
 

@@ -29,7 +29,7 @@ class KVIterator(FileRowIterator):
 			raise base.SourceParseError(unicode(msg), source=self.inputFile.name)
 		completeRecord = {}
 		data = re.sub(self.grammar.commentPattern, "", data)
-		items = {}
+
 		for rec in self.grammar.recSplitter.split(data):
 			try:
 				if rec.strip():
@@ -43,6 +43,7 @@ class KVIterator(FileRowIterator):
 				raise base.ui.logOldExc(
 					base.SourceParseError("Not a key value pair: %s"%(repr(rec)),
 						source=self.inputFile.name))
+
 		if not self.grammar.yieldPairs:
 			yield self.grammar.mapKeys.doMap(completeRecord)
 		self.inputFile.close()

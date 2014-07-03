@@ -12,7 +12,7 @@ import os
 import sys
 
 from gavo import base
-from gavo import rscdesc  # (register getRD)
+from gavo import rscdesc  #noflake: for cache registration
 from gavo.base import sqlsupport
 from gavo.user.common import Arg, exposedFunction, makeParser
 from gavo.protocols import uws

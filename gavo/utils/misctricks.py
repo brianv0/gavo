@@ -36,7 +36,7 @@ class NotInstalledModuleStub(object):
 try:
 	from docutils import core as rstcore
 except ImportError:
-	rstcore = NotInstalledModuleStub("docutils")
+	rstcore = NotInstalledModuleStub("docutils") #noflake: conditional import
 
 
 
@@ -516,7 +516,7 @@ try:
 
 	def _makeKVLGrammar():
 		from gavo.imp.pyparsing import (
-			Word,alphas, QuotedString, Regex, OneOrMore, Empty)
+			Word,alphas, QuotedString, Regex, OneOrMore)
 
 		with pyparsingWhitechars(" \t"):
 			keyword = Word(alphas+"_")("key")
@@ -563,8 +563,8 @@ try:
 		return " ".join(sorted(parts))
 
 except ImportError, ex:  # no pyparsing, let clients bomb if they need it.
-	@contextlib.contextmanager
-	def pyparsingWhitechars(arg):
+	@contextlib.contextmanager #noflake: conditional definition
+	def pyparsingWhitechars(arg): 
 		raise ex
 		yield
 

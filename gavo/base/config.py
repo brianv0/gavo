@@ -10,7 +10,6 @@ Definition of DC config options and their management including I/O.
 
 from __future__ import with_statement
 
-import ConfigParser
 import cStringIO
 import os
 import re
@@ -23,10 +22,10 @@ from gavo.base import attrdef
 from gavo.base import meta
 from gavo.base import structure
 from gavo.utils import fancyconfig
-from gavo.utils.fancyconfig import ConfigItem, StringConfigItem,\
-	EnumeratedConfigItem, IntConfigItem, PathConfigItem, ListConfigItem,\
-	BooleanConfigItem, DictConfigItem, Section, DefaultSection, MagicSection,\
-	PathRelativeConfigItem, ParseError, SetConfigItem, ExpandedPathConfigItem
+from gavo.utils.fancyconfig import (StringConfigItem, #noflake: exported names
+	EnumeratedConfigItem, IntConfigItem, PathConfigItem, ListConfigItem,
+	BooleanConfigItem, Section, DefaultSection, MagicSection,
+	PathRelativeConfigItem, ParseError, SetConfigItem, ExpandedPathConfigItem)
 
 defaultSettingsPath = "/etc/gavo.rc"
 

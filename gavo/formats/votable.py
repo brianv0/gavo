@@ -11,6 +11,7 @@ them through this module.
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
 
+# Not checked by pyflakes: API file with gratuitous imports
 
 from gavo.formats.votableread import (makeTableDefForVOTable,
 	makeDDForVOTable, uploadVOTable,

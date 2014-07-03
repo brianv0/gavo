@@ -16,27 +16,31 @@ import base64
 import datetime
 import math
 import os
-import pprint
-import re
-import sys
+import pprint #noflake: exported name
+import re #noflake: exported name
+import sys #noflake: exported name
 import time
-import traceback
-import urllib
+import traceback #noflake: exported name
+import urllib #noflake: exported name
 
 from gavo import base
 from gavo import stc
 from gavo import utils
-from gavo.base import (coords, parseBooleanLiteral, parseInt, sqlmunge,
+from gavo.base import ( #noflake: exported names
+	coords, parseBooleanLiteral, parseInt, sqlmunge,
 	makeSitePath, makeAbsoluteURL)
 from gavo.base.literals import *
-from gavo.rscdef.common import (getStandardPubDID, getAccrefFromStandardPubDID,
+from gavo.rscdef.common import ( #noflake: exported names
+	getStandardPubDID, getAccrefFromStandardPubDID,
 	getInputsRelativePath)
-from gavo.stc import parseSimpleSTCS
-from gavo.stc.times import (dateTimeToJdn, dateTimeToMJD, dateTimeToJYear,
+from gavo.stc import parseSimpleSTCS #noflake: exported name
+from gavo.stc.times import ( #noflake: exported names
+	dateTimeToJdn, dateTimeToMJD, dateTimeToJYear,
 	bYearToDateTime, jdnToDateTime, mjdToDateTime, TTtoTAI, TAItoTT)
 from gavo.utils import codetricks
-from gavo.utils import dmsToDeg, hmsToDeg, DEG, parseISODT
-from gavo.utils import pgsphere
+from gavo.utils import ( #noflake: exported names
+	dmsToDeg, hmsToDeg, DEG, parseISODT)
+from gavo.utils import pgsphere #noflake: exported names
 
 
 # degrees per mas

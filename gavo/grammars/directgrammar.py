@@ -842,7 +842,7 @@ def getSource(grammarId):
 
 
 def main():
-	from gavo import rscdesc
+	from gavo import rscdesc #noflake: cache registration
 	try:
 		opts, grammarId = parseCmdLine()
 		print getSource(grammarId)

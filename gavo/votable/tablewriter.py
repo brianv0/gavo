@@ -43,7 +43,7 @@ def asString(root, xmlDecl=False):
 	res = StringIO()
 	try:
 		write(root, res, xmlDecl=xmlDecl)
-	except Exception, ex:
+	except Exception:
 		# something bad happened while generating the VOTable.  We probably
 		# have unwound the element stack and left an error INFO, so probably
 		# the document is all right.  Let's return it, but try to report an

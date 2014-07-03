@@ -41,7 +41,7 @@ def makeBaseRecord(res, keepTimestamp=False):
 	base.validateStructure(res)
 	# bomb out if, for some reason, we can't come up with a resource record
 	# for this guy
-	ignored = builders.getVOResourceElement(res)
+	builders.getVOResourceElement(res)
 
 	rec = {}
 	rec["ivoid"] = base.getMetaText(res, "identifier")
@@ -369,7 +369,7 @@ def tryServiceReload():
 def main():
 	"""handles the user interaction for gavo publish.
 	"""
-	from gavo import rscdesc
+	from gavo import rscdesc #noflake: register cache
 	from gavo.user import plainui
 	plainui.SemiStingyPlainUI(base.ui)
 	opts, args = parseCommandLine()

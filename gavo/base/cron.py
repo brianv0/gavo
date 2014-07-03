@@ -96,7 +96,7 @@ class AbstractJob(object):
 		"""
 		try:
 			self.callable()
-		except Exception, ex:
+		except Exception:
 			utils.sendUIEvent("Error",
 				"Failure in timed job %s.  Trying to send maintainer a mail."%
 					utils.safe_str(self))

@@ -85,7 +85,6 @@ class EventDispatcher(object):
 		"""
 		origCallbacks = self.callbacks[evName]
 		self.callbacks[evName] = []
-		exInfo = None
 		try:
 			yield
 		finally:

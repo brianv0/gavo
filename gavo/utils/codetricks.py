@@ -221,7 +221,8 @@ class _CmpType(type):
 class _Comparer(object):
 	__metaclass__ = _CmpType
 	def __init__(self, *args, **kwargs):
-		raise Error("%s classes can't be instanciated."%self.__class__.__name__)
+		raise excs.Error(
+			"%s classes can't be instanciated."%self.__class__.__name__)
 
 
 class Infimum(_Comparer):

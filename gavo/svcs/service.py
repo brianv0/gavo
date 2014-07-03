@@ -18,8 +18,7 @@ import urllib
 
 from nevow import inevow
 
-# this is required for making custom render functions work
-from nevow import tags as T, entities as E
+from nevow import tags as T, entities as E #noflake: for custom render fcts
 
 from zope.interface import implements
 

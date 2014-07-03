@@ -29,7 +29,7 @@ from gavo.registry import tableset
 from gavo.registry import servicelist
 from gavo.registry.common import *
 from gavo.registry.model import (
-	OAI, VOR, VOG, DC, RI, VS, SIA, SCS, OAIDC, VSTD, DOC)
+	OAI, VOR, VOG, DC, RI, VS, OAIDC, VSTD, DOC)
 
 
 SF = meta.stanFactory

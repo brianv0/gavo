@@ -146,7 +146,7 @@ def _getErrorInfo(votString):
 			if isinstance(el, V.INFO):
 				if el.name=="QUERY_STATUS" and el.value=="ERROR":
 					return el.text_
-	except Exception, msg:
+	except Exception:
 		# votString's not a suitable VOTable, fall through to return votString
 		pass
 	return votString

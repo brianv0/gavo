@@ -66,7 +66,7 @@ class GuardedFunctionFactory(object):
 			try:
 				try:
 					callable(execDef.rd, execDef)
-				except Exception, msg:
+				except Exception:
 					base.ui.notifyError("Uncaught exception in timed job %s."
 						" Trying to send traceback to the maintainer."%execDef.jobName)
 					cron.sendMailToAdmin("DaCHS Job %s failed"%execDef.jobName,

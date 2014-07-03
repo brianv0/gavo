@@ -18,7 +18,7 @@ import traceback
 
 from gavo import base
 from gavo import rsc
-from gavo import rscdesc
+from gavo import rscdesc #noflake: for cache registration
 from gavo import stc
 from gavo.helpers import testtricks
 from gavo.imp import argparse
@@ -75,11 +75,11 @@ def loadRD(rdId):
 		rd = base.caches.getRD(rdId)
 	except base.RDNotFound:
 		outputError(rdId, "Could not be located")
-	except base.LiteralParseError, ex:
+	except base.LiteralParseError:
 		outputError(rdId, "Bad literal in RD, message follows", True)
-	except base.StructureError, ex:
+	except base.StructureError:
 		outputError(rdId, "Malformed RD input, message follows", True)
-	except base.Error, ex:
+	except base.Error:
 		outputError(rdId, "Syntax or internal error, message follows", True)
 	else:
 		return rd
@@ -204,7 +204,7 @@ def validateAll(args):
 			sys.stdout.flush()
 		try:
 			validateOne(rdId, args)
-		except Exception, msg:
+		except Exception:
 			sys.stderr.write("Severe error while validating %s:\n"%rdId)
 			traceback.print_exc()
 	if args.verbose:

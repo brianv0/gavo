@@ -70,7 +70,7 @@ class _DataFeeder(table._Feeder):
 				try:
 					procRow = makeRow(srcRow, table)
 					feeder.add(procRow)
-				except rscdef.IgnoreThisRow, msg:
+				except rscdef.IgnoreThisRow:
 					pass
 			if make.rowSource=="parameters":
 				parAdders.setdefault(make.role, []).append(addRow)

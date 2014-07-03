@@ -365,9 +365,7 @@ def _getRegionId(regionSpec, pat=re.compile("[A-Za-z_]+")):
 	if mat:
 		return mat.group()
 
-# simbadregion needs sesame services, so have them register themselves in
-# the cache
-from gavo.protocols import simbadinterface
+from gavo.protocols import simbadinterface #noflake: cache registration
 
 
 def _makeSimbadRegion(regionSpec):
@@ -392,7 +390,7 @@ adql.registerRegionMaker(_makeSimbadRegion)
 def localquery():
 	"""run the argument as an ADQL query.
 	"""
-	from gavo import rscdesc
+	from gavo import rscdesc #noflake: cache registration
 	from gavo import formats
 
 	q = sys.argv[1]

@@ -8,8 +8,6 @@ Code to expose our services via SOAP and WSDL.
 #c COPYING file in the source distribution.
 
 
-import cStringIO
-
 import ZSI
 from ZSI import TC
 

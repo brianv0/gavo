@@ -37,7 +37,8 @@ try:
 except ImportError:  
 	# pyfits is not installed; don't die, since the rest of gavo.utils
 	# will still work.
-	pyfits = misctricks.NotInstalledModuleStub("pyfits and/or numpy")
+	pyfits = misctricks.NotInstalledModuleStub( #noflake: exported name
+		"pyfits and/or numpy")
 
 else:
 	# I need some parts of pyfits' internals, and it's version-dependent
@@ -597,7 +598,7 @@ def _makeDecoder(hdr):
 			return numpy.asarray(
 				numpy.fromfile(f, numType, rowLength), 'float32')*bscale+bzero
 	else:
-		def read(f):
+		def read(f):  #noflake: conditional definition
 			return numpy.fromfile(f, numType, rowLength)
 
 	return read

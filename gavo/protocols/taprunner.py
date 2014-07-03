@@ -28,12 +28,12 @@ import time
 from gavo import base
 from gavo import formats
 from gavo import rsc
-from gavo import rscdesc
+from gavo import rscdesc #noflake: cache registration
 from gavo import svcs
 from gavo import utils
 from gavo import votable
 from gavo.base import valuemappers
-from gavo.formats import csvtable
+from gavo.formats import csvtable #noflake: format registration
 from gavo.formats import votableread
 from gavo.formats import votablewrite
 from gavo.protocols import adqlglue

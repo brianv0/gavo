@@ -29,7 +29,7 @@ become an even worse nightmare than it already is.
 # XXX TODO: We probably should move that into a metaclass and automatically
 # infer args;  beware, however, of traps due to inheritance.
 
-from gavo.utils.fancyconfig import NoConfigItem
+from gavo.utils.fancyconfig import NoConfigItem #noflake: exported name
 
 
 class Error(Exception):
@@ -234,6 +234,7 @@ class SkipThis(ExecutiveAction):
 
 
 try:
-	from gavo.imp.pyparsing import ParseBaseException as ParseException
+	from gavo.imp.pyparsing import ( #noflake: exported name
+		ParseBaseException as ParseException)
 except ImportError:
 	pass

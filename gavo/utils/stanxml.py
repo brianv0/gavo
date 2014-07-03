@@ -23,7 +23,7 @@ from cStringIO import StringIO
 try:
 	from xml.etree import cElementTree as ElementTree
 except ImportError:
-	from elementtree import ElementTree
+	from elementtree import ElementTree #noflake: conditional import
 
 from gavo.utils import autonode
 from gavo.utils import excs

@@ -23,7 +23,7 @@ import sys
 
 from gavo import base
 from gavo import rsc
-from gavo import rscdesc
+from gavo import rscdesc  #noflake: for cache registration
 from gavo import utils
 
 
@@ -124,7 +124,7 @@ class To0Upgrader(Upgrader):
 				" from dc.resources"):
 			try:
 				res = base.getRD(sourceRD).getById(resId)
-				authors = "; ".join(m.getContent("text") 
+				authors = "; ".join(m.getContent("text") #noflake: used through locals
 					for m in res.iterMeta("creator.name", propagate=True))
 			except: 
 				# don't worry if fetching authors fails; people will notice...
@@ -138,7 +138,7 @@ class To0Upgrader(Upgrader):
 	def u_010_makeMetastore(cls, connection):
 		"""create the meta store"""
 		td = base.caches.getRD("//dc_tables").getById("metastore")
-		table = rsc.TableForDef(td, create=True, connection=connection)
+		rsc.TableForDef(td, create=True, connection=connection)
 
 
 class To1Upgrader(Upgrader):
@@ -182,7 +182,7 @@ class To2Upgrader(Upgrader):
 			cls._upgradeTable(mth.getTableDefForTable(tableName), fieldName,
 				connection)
 
-		from gavo import rscdesc, rsc
+		from gavo import rsc
 		rsc.makeData(base.caches.getRD("//obscore").getById("create"),
 			connection=connection, runCommit=False)
 
@@ -309,7 +309,7 @@ def upgrade(forceDBVersion=None, dryRun=False):
 			else:
 				showProgress(getattr(statement, "annotation",
 					"> executing %s ..."%utils.makeEllipsis(statement, 60)))
-				ignored = conn.execute(statement)
+				conn.execute(statement)
 			showProgress(" ok\n")
 		if dryRun:
 			conn.rollback()

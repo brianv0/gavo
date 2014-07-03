@@ -541,7 +541,7 @@ class NonExistingProduct(ProductBase):
 	@classmethod
 	def fromRAccref(cls, rAccref, grammar=None):
 		try:
-			ignored = rAccref.productsRow
+			rAccref.productsRow
 		except base.NotFoundError:
 			return cls(rAccref)
 

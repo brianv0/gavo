@@ -7,12 +7,11 @@ Coding and decoding from binary.
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
 
-import re
-import struct
+import re #noflake: used by generated code
+import struct #noflake: used by generated code
 
 from gavo.votable import coding
-# common, struct, re is needed for some of the code below
-from gavo.votable import common
+from gavo.votable import common #noflake: used by generated code
 from gavo.votable.model import VOTable
 
 

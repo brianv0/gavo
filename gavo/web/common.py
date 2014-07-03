@@ -19,7 +19,7 @@ from nevow import static
 try:
     from twisted.web import http
 except ImportError:
-    from twisted.protocols import http
+    from twisted.protocols import http #noflake: conditional import
 
 
 from gavo import base

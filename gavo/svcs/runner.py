@@ -15,7 +15,7 @@ import os
 from twisted.internet import protocol
 from twisted.internet import reactor 
 from twisted.internet import defer
-from twisted.python import threadable
+from twisted.python import threadable #noflake: declaration for twisted
 
 from gavo import base
 

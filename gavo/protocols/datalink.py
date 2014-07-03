@@ -179,7 +179,7 @@ class LinkDef(object):
 			semantics=None, 
 			contentType=None, 
 			contentLength=None):
-		ID = pubDID
+		ID = pubDID #noflake: used in locals()
 		del pubDID
 		self.dlRow = locals()
 

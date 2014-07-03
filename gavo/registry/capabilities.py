@@ -19,8 +19,7 @@ from gavo import utils
 from gavo.base import meta
 from gavo.base import typesystems
 from gavo.registry.common import *
-from gavo.registry.model import (OAI, OAIDC, VOR, VOG, DC, RI, VS,
-	SIA, SCS, SSAP, TR)
+from gavo.registry.model import (VOR, VOG, VS, SIA, SCS, SSAP, TR)
 
 
 ###################### Helpers (TODO: Move to tableset, I guess)

@@ -30,8 +30,8 @@ from gavo import utils
 from gavo.base import cron
 
 # Ward against typos
-from gavo.votable.tapquery import (PENDING, QUEUED, EXECUTING, COMPLETED,
-	ERROR, ABORTED, UNKNOWN)
+from gavo.votable.tapquery import ( #noflake: exported names
+	PENDING, QUEUED, EXECUTING, COMPLETED, ERROR, ABORTED, UNKNOWN)
 
 END_STATES = set([COMPLETED, ERROR, ABORTED])
 

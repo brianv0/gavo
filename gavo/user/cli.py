@@ -156,7 +156,7 @@ def main():
 
 	try:
 		funcToRun()
-	except Exception, ex:
+	except Exception:
 		if opts.alwaysTracebacks:
 			traceback.print_exc()
 		sys.exit(errhandle.raiseAndCatch(opts))

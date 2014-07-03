@@ -5,7 +5,7 @@ A UWS-based interface to datalink
 from __future__ import with_statement
 
 from .. import base
-from .. import rscdesc
+from .. import rscdesc #noflake: cache registration
 from . import uws
 from . import uwsactions
 

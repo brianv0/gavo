@@ -8,9 +8,6 @@ Common code for DaCHS's base package.
 #c COPYING file in the source distribution.
 
 
-import contextlib
-import threading
-
 from gavo.utils.excs import *
 
 

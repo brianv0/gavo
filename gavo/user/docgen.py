@@ -460,7 +460,7 @@ def makeReferenceDocs():
 			else:
 				try:
 					res.extend(eval(" ".join(code)))
-				except Exception, ex:
+				except Exception:
 					sys.stderr.write("Invalid code near line %s: '%s'\n"%(
 						lnCount, " ".join(code)))
 					raise

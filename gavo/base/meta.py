@@ -300,7 +300,7 @@ class MetaMixin(object):
 
 	def __hasMetaParent(self):
 		try:
-			_ = self.__metaParent
+			self.__metaParent # assert existence
 			return True
 		except AttributeError:
 			return False
@@ -1226,7 +1226,7 @@ class ModelBasedBuilder(object):
 							macroPackage=macroPackage)
 				return [factory(childContent, localattrs=moreAttrs)]
 		else:
-			def processContent(childContent, metaItem):
+			def processContent(childContent, metaItem): #noflake: conditional def
 				return childContent
 
 		if key is None:

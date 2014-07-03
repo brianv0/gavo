@@ -13,7 +13,7 @@ Basically all of this should be taken over by stc and astropysics.
 
 import math
 import new
-from math import sin, cos, pi
+from math import sin, cos, pi #noflake: exported names
 import re
 import warnings
 

@@ -22,7 +22,7 @@ import time
 from gavo import utils
 from gavo.stc import parseSimpleSTCS
 from gavo.utils import pgsphere
-from gavo.utils import identity
+from gavo.utils import identity #noflake: exported name
 
 @utils.document
 def parseInt(literal):

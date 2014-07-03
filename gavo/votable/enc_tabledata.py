@@ -8,8 +8,7 @@ Encoding to tabledata.
 #c COPYING file in the source distribution.
 
 
-# utils is necessary for embedded code
-from gavo import utils
+from gavo import utils #noflake: used in generated code
 from gavo.utils import stanxml
 from gavo.votable import coding
 from gavo.votable import common

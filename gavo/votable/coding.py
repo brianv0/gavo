@@ -103,7 +103,7 @@ def getNullvalue(field, validator, default=None):
 	if nullvalue is None or nullvalue=='':
 		return default
 	else:
-		_ = validator(nullvalue)
+		validator(nullvalue)
 	return nullvalue
 
 

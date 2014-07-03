@@ -700,7 +700,7 @@ class Param(ParamBase):
 
 		try:
 			# the value property will bomb on malformed literals
-			_ = self.value
+			self.value
 		except ValueError, msg:
 			raise base.LiteralParseError(self.name, self.content_,
 				hint="Param content must be parseable by the DC default parsers."

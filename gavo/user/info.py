@@ -11,7 +11,7 @@ Commands for obtaining information about various things in the data center.
 from gavo import base
 from gavo import rsc
 from gavo import rscdef
-from gavo import rscdesc # (register getRD)
+from gavo import rscdesc #noflake: for cache registration
 from gavo import svcs
 from gavo import utils
 from gavo.imp.argparse import ArgumentParser

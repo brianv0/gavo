@@ -100,7 +100,7 @@ def raiseAndCatch(opts=None, output=outputError):
 		else:
 			messages.append("Parse error: %s"%utils.safe_str(msg))
 		if msg.record:
-			messsages.append("")
+			messages.append("")
 			messages.append("Offending input was:\n")
 			messages.append(repr(msg.record)+"\n")
 

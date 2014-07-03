@@ -35,7 +35,7 @@ try:
 except AttributeError:  # UNICODEARRAY only at psycopg2 >2.0
 	pass
 
-from psycopg2.extras import DictCursor
+from psycopg2.extras import DictCursor #noflake: exported name
 
 class Error(utils.Error):
 	pass
@@ -151,9 +151,10 @@ for numpyType, adapter in [
 		# what's not there we don't need to adapt
 		pass
 
-from psycopg2 import (OperationalError, DatabaseError, IntegrityError,
-	ProgrammingError, InterfaceError, DataError, InternalError)
-from psycopg2.extensions import QueryCanceledError
+from psycopg2 import (OperationalError, #noflake: exported names
+	DatabaseError, IntegrityError, ProgrammingError, 
+	InterfaceError, DataError, InternalError)
+from psycopg2.extensions import QueryCanceledError #noflake: exported name
 from psycopg2 import Error as DBError
 
 
@@ -384,9 +385,11 @@ class PostgresQueryMixin(object):
 		"""
 		try:
 			srcOID = self.getOIDForTable(srcTableName, schema)
-			srcColInds = self._getColIndices(srcOID, srcColNames)
+			srcColInds = self._getColIndices( #noflake: used in locals()
+				srcOID, srcColNames) 
 			destOID = self.getOIDForTable(destTableName, schema)
-			destColInds = self._getColIndices(destOID, destColNames)
+			destColInds = self._getColIndices( #noflake: used in locals()
+				destOID, destColNames)
 		except Error: # Some of the items related probably don't exist
 			return False
 		try:
@@ -939,7 +942,7 @@ class CustomConnectionPool(psycopg2.pool.ThreadedConnectionPool):
 				# fallback for old psycopg2
 				conn.set_isolation_level(
 					psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
-			except ProgrammingError, ex:
+			except ProgrammingError:
 				utils.sendUIEvent("Warning", "Uncommitted transaction escaped; please"
 					" investigate and fix")
 				conn.commit()

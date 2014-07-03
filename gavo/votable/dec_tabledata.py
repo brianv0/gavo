@@ -8,8 +8,7 @@ Coding and decoding from tabledata.
 #c COPYING file in the source distribution.
 
 
-# needed for the code below
-import re
+import re #noflake: used by generated code
 
 from gavo.votable import coding
 from gavo.votable import common

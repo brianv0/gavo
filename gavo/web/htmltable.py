@@ -336,7 +336,7 @@ def _urlMapperFactory(colDesc):
 		def makeAnchor(data):
 			return anchorText
 	else:
-		def makeAnchor(data):
+		def makeAnchor(data): #noflake: conditional definition
 			return urllib.unquote(
 				urlparse.urlparse(data)[2].split("/")[-1])
 

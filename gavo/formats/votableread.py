@@ -234,8 +234,8 @@ def _getRowMaker(table):
 	This is mainly just building a row dictionary, except we also
 	parse xtyped columns.
 	"""
-	from gavo.base.literals import parseDefaultDatetime
-	from gavo.stc import parseSimpleSTCS, simpleSTCSToPolygon
+	from gavo.base.literals import parseDefaultDatetime #noflake: code gen
+	from gavo.stc import parseSimpleSTCS, simpleSTCSToPolygon #noflake: code gen
 
 	parts = []
 	for colInd, col in enumerate(table.tableDef):
