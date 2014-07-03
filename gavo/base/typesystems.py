@@ -230,31 +230,31 @@ class ToADQLConverter(FromSQLConverter):
 	typeSystem = "adql"
 
 	simpleMap = {
-		"smallint": ("SMALLINT", None),
-		"integer": ("INTEGER", None),
-		"bigint": ("BIGINT", None),
-		"real": ("REAL", None),
-		"boolean": ("INTEGER", None),
-		"double precision": ("DOUBLE", None),
-		"text": ("VARCHAR(*)", None),
-		"unicode": ("VARCHAR(*)", None),
+		"smallint": ("SMALLINT", 1),
+		"integer": ("INTEGER", 1),
+		"bigint": ("BIGINT", 1),
+		"real": ("REAL", 1),
+		"boolean": ("INTEGER", 1),
+		"double precision": ("DOUBLE", 1),
+		"text": ("VARCHAR", None),
+		"unicode": ("VARCHAR", None),
 		"char": ("CHAR", 1),
-		"date": ("VARCHAR(*)", None),
-		"timestamp": ("TIMESTAMP", None),
-		"time": ("VARCHAR(*)", None),
-		"box": ("REGION", None),
-		"spoint": ("POINT", None),
-		"scircle": ("REGION", None),
-		"spoly": ("REGION", None),
-		"sbox": ("REGION", None),
+		"date": ("VARCHAR", None),
+		"timestamp": ("TIMESTAMP", 1),
+		"time": ("VARCHAR", None),
+		"box": ("REGION", 1),
+		"spoint": ("POINT", 1),
+		"scircle": ("REGION", 1),
+		"spoly": ("REGION", 1),
+		"sbox": ("REGION", 1),
 		"bytea": ("BLOB", None),
 	}
 
 	def mapComplex(self, type, length):
 		if type in self._charTypes:
-			return ("VARCHAR(*)", None)
+			return ("VARCHAR", None)
 		if type=="bytea":
-			return ("BINARY(*)", None)
+			return ("BLOB", None)
 		if type in self.simpleMap:
 			return self.simpleMap[type][0], length
 

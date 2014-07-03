@@ -266,6 +266,12 @@ class To9Upgrader(Upgrader):
 			" SET datatype=substring(datatype from 6)"
 			" WHERE datatype LIKE 'adql:%%'",
 		"Remove adql: prefix in TAP_SCHEMA.columns.datatype")
+	u_020_setSize1OnAtoms = AnnotatedString("UPDATE tap_schema.columns"
+		" SET \"size\"=1 WHERE NOT datatype LIKE '%%(*)'",
+		"Set size=1 in TAP_SCHEMA.columns for atomic types")
+	u_030_removeArrayMarkInText = AnnotatedString("UPDATE tap_schema.columns"
+		" SET datatype=replace(datatype, '(*)', '') WHERE datatype LIKE '%%(*)'",
+		"Turn VARCHAR(*) into simple VARCHAR (size=NULL already set for those)")
 
 
 def iterStatements(startVersion, endVersion=CURRENT_SCHEMAVERSION, 
@@ -307,8 +313,8 @@ def upgrade(forceDBVersion=None, dryRun=False):
 				# custom user feedback
 				statement(conn)
 			else:
-				showProgress(getattr(statement, "annotation",
-					"> executing %s ..."%utils.makeEllipsis(statement, 60)))
+				showProgress("> "+getattr(statement, "annotation",
+					"executing %s"%utils.makeEllipsis(statement, 60))+"... ")
 				conn.execute(statement)
 			showProgress(" ok\n")
 		if dryRun:
