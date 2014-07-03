@@ -9,5 +9,5 @@ Output formats.
 
 # Not checked by pyflakes: API file with gratuitous imports
 
-from gavo.formats.common import (formatData, getMIMEFor,
+from gavo.formats.common import (formatData, getFormatted, getMIMEFor,
 	registerDataWriter, CannotSerializeIn, checkFormatIsValid)

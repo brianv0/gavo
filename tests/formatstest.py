@@ -12,6 +12,7 @@ Tests having to do with various output formats.
 from __future__ import with_statement
 
 import datetime
+import json
 import math
 import os
 import re
@@ -26,6 +27,7 @@ from gavo import rsc
 from gavo import rscdef
 from gavo import rscdesc
 from gavo.base import valuemappers
+from gavo.formats import jsontable
 from gavo.formats import fitstable
 from gavo.formats import texttable
 from gavo.formats import csvtable
@@ -126,6 +128,54 @@ class FITSWriterTest(unittest.TestCase):
 		self.assertEqual(resTup[0], -1)
 		self.failIf(resTup[1]==resTup[1]) # "isNan"
 		self.assertEqual(resTup[2], "None") # Well, that should probably be sth else...
+
+
+class _TestDataTable(testhelpers.TestResource):
+	"""A fairly random table with mildly challenging data.
+	"""
+	def make(self, deps):
+		dd = testhelpers.getTestRD().getById("tableMaker")
+		data = rsc.makeData(dd, forceSource=[
+			(1, 2, 3, "Wäre es da nicht besser,\n die Regierung setzte das Volk"
+				" ab\tund wählte ein anderes?", '2004-05-05'),
+			(None, None, None, None, None)])
+		return data
+
+
+class _JSONTable(testhelpers.TestResource):
+	"""A table that went through JSON serialisation.
+
+	The resource is (json-text, decoded-json).
+	"""
+	resources = [("data", _TestDataTable())]
+
+	def make(self, deps):
+		jsText = formats.getFormatted("json", deps["data"])
+		decoded = json.loads(jsText)
+		return jsText, decoded
+
+
+class JSONOutputTest(testhelpers.VerboseTest):
+	resources = [("tAndD", _JSONTable())]
+
+	def testColumns(self):
+		c1, c2, c3, c4, c5 = self.tAndD[1]["columns"]
+		self.assertEqual(c1["datatype"], "int")
+		self.assertEqual(c2["name"], "afloat")
+		self.assertEqual(c3["arraysize"], "1")
+		self.assertEqual(c4["description"], u'Just by a \xb5.')
+		self.assertEqual(c5["datatype"], "double")
+
+	def testContains(self):
+		self.assertEqual(self.tAndD[1]["contains"], "table")
+	
+	def testData(self):
+		self.assertEqual(self.tAndD[1]["data"], [
+			[1, 2.0, 3.0, u'W\xe4re es da nicht besser,\n'
+				u' die Regierung setzte das Volk ab\tund w\xe4hlte ein anderes?', 
+				2453130.5], 
+			[None, None, None, None, None]])
+
 
 
 class TextOutputTest(unittest.TestCase):
@@ -310,6 +360,11 @@ class NullValueTest(testhelpers.VerboseTest):
 				'\x80\x00\x00\x00\x7f\xc0\x00\x00\x7f\xf8\x00\x00\x00\x00\x00\x00'
 				'NoneNoneNone')
 		self._runTestForFormat("fits", assertion)
+
+	def testJSON(self):
+		self.assertEqual(
+			json.loads(formats.getFormatted("json", self.nullsTable))["data"],
+			[None, None, None, None, None, None])
 
 
 class _ExplicitNullTestTable(testhelpers.TestResource):

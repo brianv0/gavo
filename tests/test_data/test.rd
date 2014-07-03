@@ -109,7 +109,7 @@
 		<column name="afloat" tablehead="Some Real"/>
 		<column name="adouble" tablehead="And a Double"
 			type="double precision"/>
-		<column name="atext" type="text"
+		<column name="atext" type="unicode" description="Just by a µ."
 			tablehead="A string must be in here as well"/>
 		<column name="adate" tablehead="When" type="date"/>
 	</table>

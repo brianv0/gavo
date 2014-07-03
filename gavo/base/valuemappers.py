@@ -367,6 +367,8 @@ class SerManager(utils.IdManagerMixin):
 			SerManager itself
 		- mfRegistry -- a map factory registry.  Default is the defaltMFRegistry,
 		  which is suitable for VOTables.
+	
+	Iterate over a SerManager to retrieve the annotated columns.
 	"""
 	# Filled out on demand
 	_nameDict = None

@@ -17,6 +17,8 @@ instance.
 #c COPYING file in the source distribution.
 
 
+from cStringIO import StringIO
+
 from gavo import base
 
 _formatDataRegistry = {}
@@ -64,3 +66,15 @@ def formatData(key, table, outputFile, acquireSamples=True):
 	"""
 	checkFormatIsValid(key)
 	_formatDataRegistry[key](table, outputFile, acquireSamples=acquireSamples)
+
+
+def getFormatted(key, table, acquireSamples=False):
+	"""returns a string containing a representation of table in the
+	format given by key.
+
+	This is just wrapping formatData; it might use large amounts of memory
+	for large data.
+	"""
+	buffer = StringIO()
+	formatData(key, table, buffer, acquireSamples)
+	return buffer.getvalue()
