@@ -15,8 +15,6 @@ to begin with, much of this is conjecture.
 
 import re
 
-from gavo.adql.common import *
-
 
 class _CoercNode(object):
 	"""An entry in the coercion tree.
@@ -285,7 +283,7 @@ class FieldInfo(object):
 
 	def copyModified(self, **kwargs):
 		consArgs = {"type": self.type, "unit": self.unit, "ucd": self.ucd,
-			"userData": self.userData, "tainted": tainted, "stc": self.stc}
+			"userData": self.userData, "tainted": self.tainted, "stc": self.stc}
 		consArgs.update(kwargs)
 		return FieldInfo(**kwargs)
 

@@ -11,17 +11,16 @@ Spherical sky coordinates and helpers.
 # XXX TODO: Replace the actual transformations performed here with
 # stuff from astropy.
 
-from itertools import *
 from math import sin, cos
 import math
 
 import numpy
 from numpy import linalg as la
 
+from gavo.stc import common
 from gavo.stc import sphermath
 from gavo.stc import times
 from gavo.stc import units
-from gavo.stc.common import *
 from gavo.utils import DEG, ARCSEC, memoized
 
 
@@ -164,9 +163,9 @@ def prec_IAU1976(fromEquinox, toEquinox):
 	"""
 	# time differences have to be in julian centuries
 	# captial T in Lieske
-	fromDiff = times.getSeconds(fromEquinox-times.dtJ2000)/secsPerJCy 
+	fromDiff = times.getSeconds(fromEquinox-times.dtJ2000)/common.secsPerJCy 
 	# lowercase T in Lieske
-	toDiff = times.getSeconds(toEquinox-fromEquinox)/secsPerJCy  
+	toDiff = times.getSeconds(toEquinox-fromEquinox)/common.secsPerJCy  
 
 	# Lieske's expressions yield arcsecs, fix below
 	zeta = toDiff*(2306.2181+1.39656*fromDiff-0.000139*fromDiff**2
@@ -193,8 +192,8 @@ def prec_Newcomb(fromEquinox, toEquinox):
 	machinery below, but that really shouldn't matter.
 	"""
 	# time differences have to be in tropical centuries
-	T = times.getSeconds(fromEquinox-_dtB1850)/(tropicalYear*86400*100)
-	t = times.getSeconds(toEquinox-fromEquinox)/(tropicalYear*86400*100)
+	T = times.getSeconds(fromEquinox-_dtB1850)/(common.tropicalYear*86400*100)
+	t = times.getSeconds(toEquinox-fromEquinox)/(common.tropicalYear*86400*100)
 
 	polyVal = 2303.5548+(1.39720+0.000059*T)*T
 	zeta = (polyVal+(0.30242-0.000269*T+0.017996*t)*t)*t
@@ -301,7 +300,7 @@ _fk5ToFK4Matrix = numpy.transpose(numpy.array([
 # 276)).  We ignore the difference between tropical and julian centuries.
 _b1950ETermsPos = numpy.array([-1.62557e-6, -0.31919e-6, -0.13843e-6])
 _b1950ETermsVel = numpy.array([1.245e-3, -1.580e-3, -0.659e-3])
-_yallopK = secsPerJCy/(units.oneAU/1e3)
+_yallopK = common.secsPerJCy/(units.oneAU/1e3)
 _yallopKSla = 21.095;
 _pcPerCyToKmPerSec = units.getRedshiftConverter("pc", "cy", "km", "s")
 
@@ -335,7 +334,7 @@ def _yallopToSv(yallop6, yallopK, rvAndPrlx):
 	rxy2 = x**2+y**2
 	r = math.sqrt(z**2+rxy2)
 	if rxy2==0:
-		raise STCValueError("No spherical proper motion on poles.")
+		raise common.STCValueError("No spherical proper motion on poles.")
 	alpha = math.atan2(y, x)
 	if alpha<0:
 		alpha += 2*math.pi
@@ -436,7 +435,7 @@ def _getEclipticMatrix(epoch):
 
 	Strictly, epoch should be a TDB.
 	"""
-	t = times.getSeconds(epoch-times.dtJ2000)/secsPerJCy
+	t = times.getSeconds(epoch-times.dtJ2000)/common.secsPerJCy
 	obliquity = (84381.448+(-46.8150+(-0.00059+0.001813*t)*t)*t)*ARCSEC
 	return sphermath.getRotX(obliquity)
 
@@ -661,15 +660,6 @@ def getTrafoFunction(srcTriple, dstTriple, sixTrans):
 		return nullTransform
 	trafoPath = _simplifyPath(_findTransformsPath(srcTriple, dstTriple))
 	if trafoPath is None:
-		raise STCValueError("Cannot find a transform from %s to %s"%(
+		raise common.STCValueError("Cannot find a transform from %s to %s"%(
 			srcTriple, dstTriple))
 	return _pathToFunction(trafoPath, sixTrans)
-
-
-#def _test():
-#	import doctest, spherc
-#	doctest.testmod(spherc)
-
-
-if __name__=="__main__":
-	_test()

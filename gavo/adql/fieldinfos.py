@@ -20,7 +20,7 @@ nodes classes.
 
 from __future__ import with_statement
 
-from gavo.adql.common import *
+from gavo.adql import common
 
 
 class FieldInfos(object):
@@ -75,7 +75,7 @@ class FieldInfos(object):
 		for t in self.subTables:
 			if self._namesMatch(t, refName):
 				return t
-		raise TableNotFound(refName.qName)
+		raise common.TableNotFound(refName.qName)
 
 	def addColumn(self, label, info):
 		"""adds a new visible column to this info.
@@ -99,14 +99,14 @@ class FieldInfos(object):
 		parent's name later.
 		"""
 		colName = colName.lower()
-		fi = self.columns.get(colName, Absent)
-		if fi is Absent:
-			raise ColumnNotFound(colName)
+		fi = self.columns.get(colName, common.Absent)
+		if fi is common.Absent:
+			raise common.ColumnNotFound(colName)
 		if fi is None:
 			# This can happen on joined tables
 			if refName is not None:
 				return self.locateTable(refName).getFieldInfo(colName)
-			raise AmbiguousColumn(colName)
+			raise common.AmbiguousColumn(colName)
 		return fi
 
 
@@ -280,7 +280,7 @@ class QueryFieldInfos(FieldInfos):
 				matched.append(subCols[colName])
 
 		# XXX TODO: build a qualified colName here if necessary
-		return getUniqueMatch(matched, colName)
+		return common.getUniqueMatch(matched, colName)
 
 	def getFieldInfo(self, colName, refName=None):
 		"""returns a field info for colName in self or any tables this

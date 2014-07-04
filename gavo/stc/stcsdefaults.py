@@ -16,9 +16,6 @@ the module:
 #c COPYING file in the source distribution.
 
 
-from gavo.stc.common import *
-
-
 def getSpaceFlavor(node):
 	if node["type"]=="Convex":
 		return "UNITSPHER"

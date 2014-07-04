@@ -18,10 +18,10 @@ which is then added to the current dictionary.
 import datetime
 import itertools
 
+from gavo.stc import common
 from gavo.stc import dm
 from gavo.stc import stcs
 from gavo.stc import syslib
-from gavo.stc.common import *
 
 
 def _combine(*dicts):
@@ -56,8 +56,8 @@ def _computeFlavor(node):
 	try:
 		return stcsFlavors[(node.nDim, node.flavor)]
 	except KeyError:
-		raise STCValueError("Coordinate Frame %s cannot be represented it STC-S"%
-			node)
+		raise common.STCValueError("Coordinate Frame %s cannot"
+			" be represented it STC-S"%node)
 
 # Simple translations of STC-X reference frame literals to STC-S
 _frameTrans = {
@@ -108,7 +108,7 @@ def _wiggleToCST(node, nDim):
 	elif isinstance(node, dm.RadiusWiggle):
 		return tuple((r,)*nDim for r in node.radii)
 	else:
-		raise STCValueError("Cannot serialize %s wiggles into STC-S"%
+		raise common.STCValueError("Cannot serialize %s wiggles into STC-S"%
 			node.__class__.__name__)
 
 
@@ -213,7 +213,7 @@ def _makeASTItemsGetter(cooName, areaName):
 		if not areas and not coo:
 			return None
 		if len(areas)>1:
-			raise STCValueError("STC-S does not support more than one area"
+			raise common.STCValueError("STC-S does not support more than one area"
 				" but %s has length %d"%(areaName, len(areas)))
 		if areas:
 			area = areas[0]
@@ -380,10 +380,10 @@ def _flattenValue(val, node=None):
 		return " ".join(_flattenValue(v) for v in val)
 	elif isinstance(val, datetime.datetime):
 		return val.isoformat()
-	elif isinstance(val, ColRef):
+	elif isinstance(val, common.ColRef):
 		return '"%s"'%val.dest
 	else:
-		raise STCValueError("Cannot serialize %r to STC-S"%val)
+		raise common.STCValueError("Cannot serialize %r to STC-S"%val)
 
 
 def _makePosValueFlattener(key):

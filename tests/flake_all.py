@@ -46,9 +46,9 @@ def checkOne(filename):
 			
 			# globally ignore import * warnings (and decide whether to get
 			# rid of the imports or fix pyflakes)
-			if (msg.message
-					=="'from %s import *' used; unable to detect undefined names"):
-				continue
+#			if (msg.message
+#					=="'from %s import *' used; unable to detect undefined names"):
+#				continue
 
 			print msg
 

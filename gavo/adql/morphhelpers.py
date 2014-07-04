@@ -9,10 +9,6 @@ Helpers for morphing modules
 
 
 from gavo.adql import nodes
-from gavo.adql.common import *
-
-class MorphError(Error):
-	pass
 
 
 class State(object):
@@ -164,7 +160,7 @@ class Morpher(object):
 
 	def _traverse(self, node, state):
 		if node.type in self.earlyMorphers:
-			res = self.earlyMorphers[node.type](newNode, state)
+			res = self.earlyMorphers[node.type](node, state)
 			if res is not None:
 				return res
 

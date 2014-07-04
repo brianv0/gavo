@@ -8,7 +8,7 @@ Common code for DaCHS's base package.
 #c COPYING file in the source distribution.
 
 
-from gavo.utils.excs import *
+from gavo.utils.excs import *  #noflake: really want those names
 
 
 class NotGivenType(type):

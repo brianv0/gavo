@@ -27,7 +27,7 @@ in serious loops.
 import sys
 
 from gavo.stc.common import (STCError, STCSParseError, STCLiteralError,
-	STCValueError, STCNotImplementedError,
+	STCValueError, STCNotImplementedError, STCUnitError,
 	STCNamespace, stcSpaceRefFrames, stcRefPositions, ColRef)
 
 from gavo.stc.times import (parseISODT, 

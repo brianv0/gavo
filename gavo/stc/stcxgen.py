@@ -21,8 +21,8 @@ than trees (e.g., coordinate frames usually have multiple parents).
 import itertools
 
 from gavo import utils
+from gavo.stc import common
 from gavo.stc import dm
-from gavo.stc.common import *
 from gavo.stc.stcx import STC
 
 
@@ -37,7 +37,7 @@ def addId(node):
 def strOrNull(val):
 	if val is None:
 		return None
-	elif isinstance(val, ColRef):
+	elif isinstance(val, common.ColRef):
 		return val
 	else:
 		return str(val)
@@ -46,7 +46,7 @@ def strOrNull(val):
 def isoformatOrNull(val):
 	if val is None:
 		return None
-	elif isinstance(val, ColRef):
+	elif isinstance(val, common.ColRef):
 		return val
 	else:
 		return val.isoformat()
@@ -64,7 +64,7 @@ def _getFromSTC(elName, itemDesc):
 	try:
 		return getattr(STC, elName)
 	except AttributeError:
-		raise STCValueError("No such %s: %s"%(itemDesc, elName))
+		raise common.STCValueError("No such %s: %s"%(itemDesc, elName))
 
 
 class Context(object):
@@ -87,7 +87,8 @@ def serialize_RefPos(node, context):
 		return getattr(STC, node.standardOrigin or "UNKNOWNRefPos")[
 			STC.PlanetaryEphem[node.planetaryEphemeris]]
 	except AttributeError:
-		raise STCValueError("No such standard origin: %s"%node.standardOrigin)
+		raise common.STCValueError(
+			"No such standard origin: %s"%node.standardOrigin)
 
 
 def _fudgeEquinox(eq):
@@ -174,7 +175,7 @@ def _serialize_Wiggle(node, serializer, wiggles):
 	elif isinstance(node, dm.MatrixWiggle):
 		return [matrixClass[_wrapMatrix(m, strOrNull)] for m in node.matrices]
 	else:
-		STCValueError("Cannot serialize %s errors to STC-X"%
+		raise common.STCValueError("Cannot serialize %s errors to STC-X"%
 			node.__class__.__name__)
 
 
@@ -231,14 +232,14 @@ _nones = (None, None, None)
 def _wrap1D(val, unit=_nones, timeUnit=_nones):
 	if not val:
 		return
-	if isinstance(val, ColRef):
+	if isinstance(val, common.ColRef):
 		return val
 	return str(val[0])
 
 def _wrap2D(val, unit=_nones, timeUnit=_nones):
 	if not val:
 		return
-	if isinstance(val, ColRef):
+	if isinstance(val, common.ColRef):
 		return val
 	return [STC.C1(pos_unit=unit[0], vel_time_unit=timeUnit[0])[val[0]], 
 		STC.C2(pos_unit=unit[1], vel_time_unit=timeUnit[1])[val[1]]]
@@ -246,7 +247,7 @@ def _wrap2D(val, unit=_nones, timeUnit=_nones):
 def _wrap3D(val, unit=_nones, timeUnit=_nones):
 	if not val:
 		return
-	if isinstance(val, ColRef):
+	if isinstance(val, common.ColRef):
 		return val
 	return [STC.C1(pos_unit=unit[0], vel_time_unit=timeUnit[0])[val[0]], 
 		STC.C2(pos_unit=unit[1], vel_time_unit=timeUnit[1])[val[1]], 
@@ -422,7 +423,7 @@ def serialize_Circle(node, context):
 			STC.Center[_wrap3D(node.center)],
 		]
 	else:
-		raise STCValueError("Spheres are only defined in 2 and 3D")
+		raise common.STCValueError("Spheres are only defined in 2 and 3D")
 
 
 def serialize_Ellipse(node, context):
@@ -431,7 +432,7 @@ def serialize_Ellipse(node, context):
 	if _getDim(node.center)==2:
 		cls, wrap = STC.Ellipse, _wrap2D
 	else:
-		raise STCValueError("Ellipses are only defined in 2D")
+		raise common.STCValueError("Ellipses are only defined in 2D")
 	return _makeBaseGeometry(cls, node, context)[
 		STC.Center[wrap(node.center)],
 		STC.SemiMajorAxis[node.smajAxis],
@@ -444,7 +445,7 @@ def serialize_Box(node, context):
 	if node.geoColRef:
 		return STC.Box[node.geoColRef]
 	if _getDim(node.center)!=2:
-		raise STCValueError("Boxes are only available in 2D")
+		raise common.STCValueError("Boxes are only available in 2D")
 	return _makeBaseGeometry(STC.Box, node, context)[
 		STC.Center[_wrap2D(node.center)],
 		STC.Size[_wrap2D(node.boxsize)]]
@@ -454,7 +455,7 @@ def serialize_Polygon(node, context):
 	if node.geoColRef:
 		return STC.Polygon[node.geoColRef]
 	if node.vertices and _getDim(node.vertices[0])!=2:
-		raise STCValueError("Polygons are only available in 2D")
+		raise common.STCValueError("Polygons are only available in 2D")
 	return _makeBaseGeometry(STC.Polygon, node, context)[
 		[STC.Vertex[STC.Position[_wrap2D(v)]] for v in node.vertices]]
 
@@ -478,7 +479,7 @@ serialize_Union =  serialize_Intersection = serialize_MultiCompound
 
 def serialize_Difference(node, context):
 	if len(node.children)!=2:
-		raise STCValueError("Difference is only supported with two operands")
+		raise common.STCValueError("Difference is only supported with two operands")
 	op1 = _nodeToStan(node.children[0], context)
 	op2 = _nodeToStan(node.children[1], context)
 	# Banzai!  To save myself the trouble of having all those icky *2
@@ -488,7 +489,7 @@ def serialize_Difference(node, context):
 
 def serialize_Not(node, context):
 	if len(node.children)!=1:
-		raise STCValueError("Not is only supported with one operand")
+		raise common.STCValueError("Not is only supported with one operand")
 	return STC.Negation[_nodeToStan(node.children[0], context)]
 
 

@@ -13,9 +13,9 @@ import weakref
 
 from gavo import stc
 from gavo import utils
+from gavo.adql import common
 from gavo.adql import fieldinfo
 from gavo.adql import fieldinfos
-from gavo.adql.common import *
 from gavo.imp import pyparsing
 from gavo.stc import tapstc
 
@@ -137,9 +137,9 @@ def _uniquify(matches, default, exArgs):
 	if len(matches)==0:
 		if default is not BOMB_OUT: 
 			return default
-		raise NoChild(*exArgs)
+		raise common.NoChild(*exArgs)
 	if len(matches)!=1:
-		raise MoreThanOneChild(*exArgs)
+		raise common.MoreThanOneChild(*exArgs)
 	return matches[0]
 
 
@@ -228,7 +228,7 @@ class ADQLNode(utils.AutoNode):
 		try:
 			return cls(**cleanNamespace(initArgs))
 		except TypeError:
-			raise BadKeywords("%s, %s"%(cls, cleanNamespace(initArgs)))
+			raise common.BadKeywords("%s, %s"%(cls, cleanNamespace(initArgs)))
 
 	def _setupNode(self):
 		for cls in reversed(self.__class__.mro()):
@@ -322,7 +322,7 @@ class FieldInfoedNode(ADQLNode):
 				msg = "More than one"
 			else:
 				msg = "No"
-			raise Error("%s child with fieldInfo with"
+			raise common.Error("%s child with fieldInfo with"
 				" no behaviour defined in %s, children %s"%(
 					msg,
 					self.__class__.__name__,
@@ -621,7 +621,7 @@ class JoinedTable(ColumnBearingNode):
 		"""
 		if self.operator.isCrossJoin():
 			if self.joinSpecification is not None:
-				raise Error("Cannot use cross join with a join predicate.")
+				raise common.Error("Cannot use cross join with a join predicate.")
 			return "CROSS"
 		if self.joinSpecification is not None:
 			if self.joinSpecification.predicate=="USING":
@@ -745,7 +745,7 @@ class QuerySpecification(ColumnBearingNode):
 				for sf in self.fromClause.getFieldsForTable(f.sourceTable):
 					yield sf
 			else:
-				raise Error("Unexpected %s in select list"%getType(f))
+				raise common.Error("Unexpected %s in select list"%getType(f))
 
 	def getSelectFields(self):
 		if self.selectList.allFieldsQuery:
@@ -1027,7 +1027,7 @@ class CombiningFINode(FieldInfoedNode):
 				self.fieldInfo = fieldinfo.FieldInfo(
 					_guessNumericType(self.children[0]), "", "")
 			else:
-				raise Error("Oops -- did not expect '%s' when annotating %s"%(
+				raise common.Error("Oops -- did not expect '%s' when annotating %s"%(
 					"".join(self.children), self))
 		elif len(infoChildren)==1:
 			self.fieldInfo = infoChildren[0].fieldInfo
@@ -1382,7 +1382,7 @@ def registerRegionMaker(fun):
 @symbolAction("region")
 def makeRegion(children):
 	if len(children)!=4 or not isinstance(children[2], CharacterStringLiteral):
-		raise RegionError("Invalid argument to REGION: '%s'."%
+		raise common.RegionError("Invalid argument to REGION: '%s'."%
 			"".join(flatten(c) for c in children[2:-1]),
 			hint="Here, regions must be simple strings; concatenations or"
 			" non-constant parts are forbidden.  Use ADQL geometry expressions"
@@ -1392,7 +1392,7 @@ def makeRegion(children):
 		res = r(arg)
 		if res is not None:
 			return res
-	raise RegionError("Invalid argument to REGION: '%s'."%
+	raise common.RegionError("Invalid argument to REGION: '%s'."%
 		arg, hint="None of the region parsers known to this service could"
 		" make anything of your string.  While STC-S should in general"
 		" be comprehendable to TAP services, it's probably better to"
@@ -1415,7 +1415,7 @@ class STCSRegion(FieldInfoedNode):
 			stc=tapstc.getSTCForTAP(self.cooSys))
 	
 	def flatten(self):
-		raise FlattenError("STCRegion objectcs cannot be flattened, they"
+		raise common.FlattenError("STCRegion objectcs cannot be flattened, they"
 			" must be morphed.")
 
 

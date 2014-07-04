@@ -485,9 +485,7 @@ class ActionAttribute(UnicodeAttribute):
 		getattr(instance, self.methodName)(ctx)
 			
 
-# The public interface actually is everything.  Since it's much prettier
-# in the attribute lists of the classes, let's allow from ... import *
-# here.
+# __init__ does in import * from this.  You shouldn't.
 
 __all__ = ["LiteralParseError", "Undefined", "UnicodeAttribute", 
 	"IntAttribute", "BooleanAttribute", "AtomicAttribute", 

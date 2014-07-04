@@ -11,10 +11,10 @@ provides the handler functions.  All this is tied together in parseSTCS.
 #c COPYING file in the source distribution.
 
 
+from gavo.stc import common
 from gavo.stc import dm
 from gavo.stc import stcs
 from gavo.stc import syslib
-from gavo.stc.common import *
 
 
 def buildTree(tree, context, pathFunctions={}, nameFunctions={},
@@ -56,7 +56,7 @@ def buildTree(tree, context, pathFunctions={}, nameFunctions={},
 				resDict.setdefault(k, []).extend(v)
 			else:
 				if k in resDict:
-					raise STCInternalError("Attempt to overwrite key '%s', old"
+					raise common.STCInternalError("Attempt to overwrite key '%s', old"
 						" value %s, new value %s (this should probably have been"
 						" a tuple)"%(k, resDict[k], v))
 				resDict[k] = v
@@ -136,7 +136,7 @@ def iterVectors(values, dim, spatial):
 
 	The function does not check if the last vector is actually complete.
 	"""
-	if isinstance(values, ColRef):
+	if isinstance(values, common.ColRef):
 		yield values
 		return
 	if dim==1 and not spatial:
@@ -188,22 +188,22 @@ def _validateCoos(values, nDim, minItems, maxItems):
 
 	minItems and maxItems may both be None to signify no limit.
 	"""
-	if isinstance(values, GeometryColRef):
+	if isinstance(values, common.GeometryColRef):
 		values.expectedLength = nDim
 	numItems = len(values)/nDim
 	if numItems*nDim!=len(values):
 		# special case: a *single* ColRef is good for anything (could be
 		# an array or something)
-		if len(values)==1 and isinstance(values[0], ColRef):
+		if len(values)==1 and isinstance(values[0], common.ColRef):
 			return
-		raise STCSParseError("%s is not valid input to create %d-dimensional"
+		raise common.STCSParseError("%s is not valid input to create %d-dimensional"
 			" coordinates"%(values, nDim))
 	if minItems is not None and numItems<minItems:
-		raise STCSParseError("Expected at least %d coordinates in %s."%(
+		raise common.STCSParseError("Expected at least %d coordinates in %s."%(
 			minItems, values))
 	if maxItems is not None and numItems>maxItems:
-		raise STCValueError("Expected not more than %d coordinates in %s."%(
-			maxItems, values))
+		raise common.STCValueError(
+			"Expected not more than %d coordinates in %s."%(maxItems, values))
 
 
 def _makeCooValues(nDim, values, minItems=None, maxItems=None, spatial=False):
@@ -218,7 +218,7 @@ def _makeCooValues(nDim, values, minItems=None, maxItems=None, spatial=False):
 	"""
 	if values is None:
 		if minItems:
-			raise STCSParseError("Expected at least %s coordinate items but"
+			raise common.STCSParseError("Expected at least %s coordinate items but"
 				" found none."%minItems)
 		else:
 			return
@@ -238,7 +238,7 @@ def _addUnitRedshift(args, node, frame):
 	elif unit:
 		parts = unit.split("/")
 		if len(parts)!=2:
-			raise STCSParseError("'%s' is not a valid unit for redshifts"%unit)
+			raise common.STCSParseError("'%s' is not a valid unit for redshifts"%unit)
 		args["unit"] = parts[0]
 		args["velTimeUnit"] = parts[1]
 
@@ -251,7 +251,7 @@ def _mogrifySpaceUnit(unit, nDim):
 		elif len(parts)==1:
 			return (unit,)*nDim
 		else:
-			raise STCSParseError("'%s' is not a valid for unit %d-dimensional"
+			raise common.STCSParseError("'%s' is not a valid for unit %d-dimensional"
 				" spatial coordinates"%(unit, nDim))
 
 
@@ -268,7 +268,8 @@ def _addUnitVelocity(args, node, frame):
 		for uS in parts:
 			up = uS.split("/")
 			if len(up)!=2:
-				raise STCSParseError("'%s' is not a valid unit for velocities."%uS)
+				raise common.STCSParseError(
+					"'%s' is not a valid unit for velocities."%uS)
 			su.append(up[0])
 			vu.append(up[1])
 		args["unit"] = _mogrifySpaceUnit(" ".join(su), nDim)
@@ -403,7 +404,7 @@ def _makeGeometryKeyIterator(argDesc, clsName):
 		"    pass"]
 	# Everthing below here just coordinates
 	parseLines.extend([
-		'    if isinstance(coos, GeometryColRef):',
+		'    if isinstance(coos, common.GeometryColRef):',
 		'      yield "geoColRef", coos',
 		'      return'])
 	for name, code in argDesc:
@@ -421,12 +422,13 @@ def _makeGeometryKeyIterator(argDesc, clsName):
 			parseLines.append('    yield "%s", _makeCooValues(4, coos)'%name)
 			parseLines.append('    coos = []')
 	parseLines.append('  except IndexError:')
-	parseLines.append('    raise STCSParseError("Not enough coordinates'
+	parseLines.append('    raise common.STCSParseError("Not enough coordinates'
 		' while parsing %s")'%clsName)
-	parseLines.append('  if coos: raise STCSParseError("Too many coordinates'
+	parseLines.append(
+		'  if coos: raise common.STCSParseError("Too many coordinates'
 		' while building %s, remaining: %%s"%%coos)'%clsName)
 	exec "\n".join(parseLines)
-	return iterKeys
+	return iterKeys  #noflake: name created via exec
 
 
 def _makeGeometryKeyIterators():

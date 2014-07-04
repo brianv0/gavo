@@ -214,7 +214,7 @@ def updateServiceList(rds, metaToo=False, connection=None, onlyWarn=True,
 	msg = None
 	for rd in rds:
 		if rd.sourceId.startswith("/"):
-			raise Error("Resource descriptor ID must not be absolute, but"
+			raise base.Error("Resource descriptor ID must not be absolute, but"
 				" '%s' seems to be."%rd.sourceId)
 		try:
 			data = rsc.makeData(dd, forceSource=rd, parseOptions=parseOptions,

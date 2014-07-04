@@ -320,8 +320,8 @@ class ToPythonCodeConverter(ToPythonBase):
 	The values of the map are simple string interpolation templates, with a
 	single %s for the name of the variable to be converted.  
 
-	The code assumes whatever executes those literals has done a
-	from gavo.base.literals import * or use gavo.base.literals.defaultParsers()
+	The code assumes whatever executes those literals has done the equvialent
+	of gavo.base.literals import * or use gavo.base.literals.defaultParsers()
 	"""
 	typeSystem = "pythonsrc"
 

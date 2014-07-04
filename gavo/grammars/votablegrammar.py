@@ -11,7 +11,7 @@ A grammar taking its rows from a VOTable.
 # XXX TODO: return PARAMs as the docrow
 
 import gzip
-from itertools import *
+import itertools
 
 from gavo import base
 from gavo import votable
@@ -36,7 +36,7 @@ class VOTableRowIterator(common.RowIterator):
 			for f in self.rowSource.tableDefinition.
 					iterChildrenOfType(votable.V.FIELD)]
 		for row in self.rowSource:
-			yield dict(izip(fieldNames, row))
+			yield dict(itertools.izip(fieldNames, row))
 		self.grammar = None
 
 	def getLocator(self):

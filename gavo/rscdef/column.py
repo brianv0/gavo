@@ -11,7 +11,6 @@ Description of columns (and I/O fields).
 from gavo import base
 from gavo import utils
 from gavo.base import typesystems
-from gavo.base.attrdef import *
 from gavo.utils import codetricks
 
 __docformat__ = "restructuredtext en"
@@ -24,7 +23,7 @@ EXPLICIT_NULL_TYPES = set([
 	"smallint", "integer", "bigint", "char", "boolean", "bytea"])
 
 
-class TypeNameAttribute(AtomicAttribute):
+class TypeNameAttribute(base.AtomicAttribute):
 	"""An attribute with values constrained to types we understand.
 	"""
 	@property
@@ -37,7 +36,7 @@ class TypeNameAttribute(AtomicAttribute):
 		try:
 			typesystems.sqltypeToPython(value)
 		except base.Error:
-			raise base.ui.logOldExc(LiteralParseError(self.name_, value, 
+			raise base.ui.logOldExc(base.LiteralParseError(self.name_, value, 
 				hint="A supported SQL type was expected here.  If in doubt,"
 				" check base/typeconversions.py, in particular ToPythonCodeConverter."))
 		return value
@@ -46,7 +45,7 @@ class TypeNameAttribute(AtomicAttribute):
 		return value
 
 
-class ColumnNameAttribute(UnicodeAttribute):
+class ColumnNameAttribute(base.UnicodeAttribute):
 	"""An attribute containing a column name.
 
 	Column names are special in that you can prefix them with "quoted/"
@@ -87,7 +86,7 @@ class _AttBox(object):
 		self.payload = payload
 
 
-class TableManagedAttribute(AttributeDef):
+class TableManagedAttribute(base.AttributeDef):
 	"""An attribute not settable from XML for holding information
 	managed by the parent table.
 	
@@ -129,7 +128,7 @@ class RoEmptyDict(dict):
 _roEmptyDict = RoEmptyDict()
 
 
-class DisplayHintAttribute(AtomicAttribute):
+class DisplayHintAttribute(base.AtomicAttribute):
 	"""is a display hint.
 
 	Display hint literals are comma-separated key=value sequences.
@@ -142,7 +141,7 @@ class DisplayHintAttribute(AtomicAttribute):
 	typeDesc_ = "Display hint"
 
 	def __init__(self, name, description, **kwargs):
-		AtomicAttribute.__init__(self, name, default=_roEmptyDict, 
+		base.AtomicAttribute.__init__(self, name, default=_roEmptyDict, 
 			description=description, **kwargs)
 
 	def parse(self, value):
@@ -151,7 +150,7 @@ class DisplayHintAttribute(AtomicAttribute):
 		try:
 			return dict([f.split("=") for f in value.split(",")])
 		except (ValueError, TypeError):
-			raise base.ui.logOldExc(LiteralParseError(self.name_, value, 
+			raise base.ui.logOldExc(base.LiteralParseError(self.name_, value, 
 				hint="DisplayHints have a format like tag=value{,tag=value}"))
 
 	def unparse(self, value):
@@ -198,25 +197,29 @@ class Values(base.Structure):
 	"""
 	name_ = "values"
 
-	_min = UnicodeAttribute("min", default=None, description="Minimum acceptable"
+	_min = base.UnicodeAttribute("min", default=None, 
+		description="Minimum acceptable"
 		" value as a datatype literal", copyable=True)
-	_max = UnicodeAttribute("max", default=None, description="Maximum acceptable"
+	_max = base.UnicodeAttribute("max", default=None, 
+	description="Maximum acceptable"
 		" value as a datatype literal", copyable=True)
 	_options = base.StructListAttribute("options", 
 		childFactory=Option,
 		description="List of acceptable values (if set)", copyable=True)
-	_default = UnicodeAttribute("default", default=None, description="A default"
+	_default = base.UnicodeAttribute("default", default=None, 
+		description="A default"
 		" value (currently only used for options).", copyable=True)
-	_nullLiteral = UnicodeAttribute("nullLiteral", default=None, description=
+	_nullLiteral = base.UnicodeAttribute("nullLiteral", default=None, 
+		description=
 		"An appropriate value representing a NULL for this column in VOTables"
 		" and similar places.  You usually should only set it for integer"
 		" types and chars.  Note that rowmakers mak no use of this nullLiteral,"
 		" i.e., you can and should choose null values independently of your"
 		" your source.  Again, for reals, floats and (mostly) text you probably"
 		" do not want to do this.", copyable=True)
-	_multiOk = BooleanAttribute("multiOk", False, "Deprecated, use"
+	_multiOk = base.BooleanAttribute("multiOk", False, "Deprecated, use"
 		" multiplicity=multiple instead.", copyable=True)
-	_fromDB = ActionAttribute("fromdb", "_evaluateFromDB", description=
+	_fromDB = base.ActionAttribute("fromdb", "_evaluateFromDB", description=
 		"A query fragment returning just one column to fill options from (will"
 		" add to options if some are given).  Do not write SELECT or anything,"
 		" just the column name and the where clause.")
@@ -313,19 +316,19 @@ class ColumnBase(base.Structure, base.MetaMixin):
 	_type = TypeNameAttribute("type", default="real", description=
 		"datatype for the column (SQL-like type system)",
 		copyable=True, before="unit")
-	_unit = UnicodeAttribute("unit", default="", description=
+	_unit = base.UnicodeAttribute("unit", default="", description=
 		"Unit of the values", copyable=True, before="ucd")
-	_ucd = UnicodeAttribute("ucd", default="", description=
+	_ucd = base.UnicodeAttribute("ucd", default="", description=
 		"UCD of the column", copyable=True, before="description")
-	_description = NWUnicodeAttribute("description", 
+	_description = base.NWUnicodeAttribute("description", 
 		default="", copyable=True,
 		description="A short (one-line) description of the values in this column.")
-	_tablehead = UnicodeAttribute("tablehead", default=None,
+	_tablehead = base.UnicodeAttribute("tablehead", default=None,
 		description="Terse phrase to put into table headers for this"
 			" column", copyable=True)
-	_utype = UnicodeAttribute("utype", default=None, description=
+	_utype = base.UnicodeAttribute("utype", default=None, description=
 		"utype for this column", copyable=True)
-	_required = BooleanAttribute("required", default=False,
+	_required = base.BooleanAttribute("required", default=False,
 		description="Record becomes invalid when this column is NULL", 
 		copyable=True)
 	_displayHint = DisplayHintAttribute("displayHint", 
@@ -333,13 +336,13 @@ class ColumnBase(base.Structure, base.MetaMixin):
 			" <kw>=<value>{,<kw>=<value>}, where what is interpreted depends"
 			" on the output format.  See, e.g., documentation on HTML renderers"
 			" and the formatter child of outputFields.", copyable=True)
-	_verbLevel = IntAttribute("verbLevel", default=20,
+	_verbLevel = base.IntAttribute("verbLevel", default=20,
 		description="Minimal verbosity level at which to include this column", 
 		copyable=True)
 	_values = base.StructAttribute("values", default=None,
 		childFactory=Values, description="Specification of legal values", 
 		copyable=True)
-	_fixup = UnicodeAttribute("fixup", description=
+	_fixup = base.UnicodeAttribute("fixup", description=
 		"A python expression the value of which will replace this column's"
 		" value on database reads.  Write a ___ to access the original"
 		' value.  You can use macros for the embedding table.'
@@ -348,10 +351,10 @@ class ColumnBase(base.Structure, base.MetaMixin):
 		' It will *only* kick in when tuples are deserialized from the'
 		" database, i.e., *not* for values taken from tables in memory.",
 		default=None, copyable=True)
-	_note = UnicodeAttribute("note", description="Reference to a note meta"
+	_note = base.UnicodeAttribute("note", description="Reference to a note meta"
 		" on this table explaining more about this column", default=None,
 		copyable=True)
-	_xtype = UnicodeAttribute("xtype", description="VOTable xtype giving"
+	_xtype = base.UnicodeAttribute("xtype", description="VOTable xtype giving"
 		" the serialization form", default=None, copyable=True)
 	_stc = TableManagedAttribute("stc", description="Internally used"
 		" STC information for this column (do not assign to unless instructed"

@@ -11,7 +11,6 @@ Trees of ADQL expressions and operations on them.
 from gavo import utils
 from gavo.adql import grammar
 from gavo.adql import nodes
-from gavo.adql.common import *
 
 _grammarCache = None
 

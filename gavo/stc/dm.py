@@ -12,19 +12,19 @@ xlink and all the other stuff.
 #c COPYING file in the source distribution.
 
 
-from itertools import *
+import itertools
 import operator
 import re
 
 from gavo.stc import times
 from gavo.stc import units
-from gavo.stc.common import *
+from gavo.stc import common
 
 
 ################ Coordinate Systems
 
 
-class RefPos(ASTNode):
+class RefPos(common.ASTNode):
 	"""is a reference position.
 
 	Right now, this is just a wrapper for a RefPos id, as defined by STC-S,
@@ -39,7 +39,7 @@ class RefPos(ASTNode):
 
 NullRefPos = RefPos()
 
-class _CoordFrame(ASTNode):
+class _CoordFrame(common.ASTNode):
 	"""is an astronomical coordinate frame.
 	"""
 	_a_name = None
@@ -94,7 +94,7 @@ class SpaceFrame(_CoordFrame):
 			return None
 		mat = re.match("([B|J])([0-9.]+)", self.equinox)
 		if not mat:
-			raise STCValueError("Equinoxes must be [BJ]<float>, but %s isn't"%(
+			raise common.STCValueError("Equinoxes must be [BJ]<float>, but %s isn't"%(
 				self.equinox))
 		if mat.group(1)=='B':
 			return times.bYearToDateTime(float(mat.group(2)))
@@ -110,7 +110,7 @@ class SpaceFrame(_CoordFrame):
 		flavours.  The other cases need more thought anyway.
 		"""
 		if self.flavor!="SPHERICAL" or (self.nDim!=2 and self.nDim!=3):
-			raise STCValueError("Can only conform 2/3-spherical coordinates")
+			raise common.STCValueError("Can only conform 2/3-spherical coordinates")
 		return (self.refFrame, self.getEquinox(), self.refPos.standardOrigin)
 
 
@@ -124,7 +124,7 @@ class RedshiftFrame(_CoordFrame):
 	_a_type = None
 
 
-class CoordSys(ASTNode):
+class CoordSys(common.ASTNode):
 	"""is an astronomical coordinate system.
 	"""
 	_a_timeFrame = None
@@ -160,7 +160,7 @@ class VelocityType(_CooTypeSentinel):
 ############### Coordinates and their intervals
 
 
-class _WiggleSpec(ASTNode):
+class _WiggleSpec(common.ASTNode):
 	"""A base for "wiggle" specifications.
 
 	These are Errors, Resolutions, Sizes, and PixSizes.  They may come
@@ -207,7 +207,7 @@ class RadiusWiggle(_WiggleSpec):
 	def adaptValuesWith(self, unitConverter):
 		if unitConverter is None:
 			return self
-		return self.change(radii=tuple(unitConverter(repeat(r))[0] 
+		return self.change(radii=tuple(unitConverter(itertools.repeat(r))[0] 
 			for r in self.radii))
 	
 	def getValues(self):
@@ -223,10 +223,10 @@ class MatrixWiggle(_WiggleSpec):
 	_a_origUnit = None
 
 	def adaptValuesWith(self, unitConverter):
-		raise STCValueError("Matrix wiggles cannot be transformed.")
+		raise common.STCValueError("Matrix wiggles cannot be transformed.")
 
 
-class _CoordinateLike(ASTNode):
+class _CoordinateLike(common.ASTNode):
 	"""An abstract base for everything that has a frame.
 
 	They can return a position object of the proper type and with the
@@ -382,7 +382,7 @@ class _VelocityMixin(object):
 	def _setupNode(self):
 		if self.unit:
 			if not self.velTimeUnit or len(self.unit)!=len(self.velTimeUnit):
-				raise STCValueError("Invalid units for Velocity: %s/%s."%(
+				raise common.STCValueError("Invalid units for Velocity: %s/%s."%(
 					repr(self.unit), repr(self.velTimeUnit)))
 		self._setupNodeNext(_VelocityMixin)
 
@@ -417,7 +417,7 @@ class _RedshiftMixin(object):
 
 	def _setupNode(self):
 		if self.unit and not self.velTimeUnit:
-			raise STCValueError("Invalid units for Redshift: %s/%s."%(
+			raise common.STCValueError("Invalid units for Redshift: %s/%s."%(
 				repr(self.unit), repr(self.velTimeUnit)))
 		self._setupNodeNext(_RedshiftMixin)
 
@@ -661,10 +661,10 @@ class Convex(_Geometry):
 	_a_vectors = ()
 
 	def getTransformed(self, sTrafo, destFrame):
-		raise STCNotImplementedError("Cannot transform convexes yet.")
+		raise common.STCNotImplementedError("Cannot transform convexes yet.")
 
 	def adaptValuesWith(self, converter):
-		raise STCNotImplementedError("Cannot adapt units for convexes yet.")
+		raise common.STCNotImplementedError("Cannot adapt units for convexes yet.")
 
 	def _getValuesSplit(self):
 		return reduce(operator.add, self.vectors)
@@ -775,7 +775,7 @@ def debinarizeCompound(compound):
 
 ################ Toplevel
 
-class STCSpec(ASTNode):
+class STCSpec(common.ASTNode):
 	"""is an STC specification, i.e., the root of an STC tree.
 	"""
 	_a_astroSystem = None
@@ -858,7 +858,7 @@ class STCSpec(ASTNode):
 			for n in self.iterNodes():
 				if hasattr(n, "getValues"):
 					self._colRefs.extend(
-						v.dest for v in n.getValues() if isinstance(v, ColRef))
+						v.dest for v in n.getValues() if isinstance(v, common.ColRef))
 		return self._colRefs
 	
 	def stripUnits(self):

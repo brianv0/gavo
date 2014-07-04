@@ -13,7 +13,7 @@ import datetime
 import math
 
 from gavo import utils
-from gavo.stc.common import *
+from gavo.stc import common
 
 
 JD_MJD = 2400000.5
@@ -22,7 +22,7 @@ def parseISODT(value):
 	try:
 		return utils.parseISODT(value)
 	except ValueError, ex:
-		raise STCLiteralError(unicode(ex), value)
+		raise common.STCLiteralError(unicode(ex), value)
 
 
 @utils.document
@@ -48,7 +48,7 @@ def bYearToDateTime(bYear):
 
 	This uses the formula given by Lieske, J.H., A&A 73, 282 (1979).
 	"""
-	jdn = (bYear-1900.0)*tropicalYear+2415020.31352
+	jdn = (bYear-1900.0)*common.tropicalYear+2415020.31352
 	return jdnToDateTime(jdn)
 
 
@@ -87,7 +87,7 @@ def dateTimeToMJD(dt):
 	return dateTimeToJdn(dt)-JD_MJD
 
 def dateTimeToBYear(dt):
-	return (dateTimeToJdn(dt)-2415020.31352)/tropicalYear+1900.0
+	return (dateTimeToJdn(dt)-2415020.31352)/common.tropicalYear+1900.0
 
 
 @utils.document
@@ -139,7 +139,7 @@ def TTtoTDB(tt):
 
 	The simplified formula 2.222-1 from [EXS] is used.
 	"""
-	return tt+_getTDBOffset(tdb)
+	return tt+_getTDBOffset(tt)
 
 
 _L_G = 6.969291e-10  # [EXS], p. 47
@@ -181,7 +181,7 @@ def TTtoTCB(tt):
 
 	This uses [EXS] 2.223-2 and the approximate conversion from TT to TDB.
 	"""
-	return TTtoTDB(tt)-_getTCBminusTDB(tcb)
+	return TTtoTDB(tt)-_getTCBminusTDB(tt)
 
 
 def _makeLeapSecondTable():
@@ -284,7 +284,7 @@ def getTransformFromScales(fromScale, toScale):
 		toTT = timeConversions[fromScale][0]
 		toTarget = timeConversions[toScale][1]
 	except KeyError, key:
-		raise STCValueError("Unknown timescale for transform: %s"%key)
+		raise common.STCValueError("Unknown timescale for transform: %s"%key)
 
 	def transform(val):
 		return toTarget(toTT(val))

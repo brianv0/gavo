@@ -39,9 +39,9 @@ from gavo.imp.pyparsing import (
 		ParseSyntaxException)
 
 from gavo import utils
+from gavo.stc import common
 from gavo.stc import stcsdefaults
 from gavo.stc import times
-from gavo.stc.common import *
 
 class AComputedDefault(object):
 	"""A sentinel for computed default values.
@@ -68,7 +68,7 @@ spectralUnits = set(["MHz", "GHz", "Hz", "Angstrom", "keV", "MeV",
 
 def _assertGrammar(cond, msg, pos):
 	if not cond:
-		raise STCSParseError(msg, pos)
+		raise common.STCSParseError(msg, pos)
 
 
 def _iterDictNode(node, path):
@@ -105,7 +105,7 @@ def iterNodes(tree):
 	elif isinstance(tree, dict):
 		return _iterDictNode(tree, ())
 	else:
-		raise STCInternalError("Bad node in tree %s"%tree)
+		raise common.STCInternalError("Bad node in tree %s"%tree)
 
 
 def addDefaults(tree):
@@ -259,7 +259,7 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 		eqFrame = eqFrameName + Optional( astroYear("equinox") )
 		frame = eqFrame | noEqFrame
 		plEphemeris = CaselessKeyword("JPL-DE200") | CaselessKeyword("JPL-DE405")
-		refpos = ((Regex(_reFromKeys(stcRefPositions)))("refpos")
+		refpos = ((Regex(_reFromKeys(common.stcRefPositions)))("refpos")
 			+ Optional( plEphemeris("plEphemeris") ))
 		flavor = (Regex(_reFromKeys(stcsFlavors)))("flavor")
 
@@ -279,7 +279,7 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 		_pos = Optional( ZeroOrMore( number )("pos") )
 		if _addGeoReferences: # include references to vectors, for getColrefSymbols
 			complexColRef = Regex('[[][A-Za-z_][A-Za-z_0-9]*[]]').addParseAction(
-				lambda s,p,toks: GeometryColRef(toks[0][1:-1]))
+				lambda s,p,toks: common.GeometryColRef(toks[0][1:-1]))
 			_coos = complexColRef("coos") | _coos
 			_pos = complexColRef("pos") | _pos
 		positionSpec = Suppress( CaselessKeyword("Position") ) + _pos
@@ -304,7 +304,7 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 		_commonRegionItems = Optional( fillfactor ) + _commonSpaceItems
 
 # times and time intervals
-		timescale = (Regex("|".join(stcTimeScales)))("timescale")
+		timescale = (Regex("|".join(common.stcTimeScales)))("timescale")
 		timephrase = Suppress( CaselessKeyword("Time") ) + timeLiteral
 		_commonTimeItems = Optional( timeUnit ) + cooProps
 		_intervalOpener = ( Optional( fillfactor ) + 
@@ -486,7 +486,7 @@ def getColrefSymbols():
 	the SQL sense), though.
 	"""
 	def makeColRef(s, p, toks):
-		return ColRef(toks[0][1:-1])
+		return common.ColRef(toks[0][1:-1])
 	with utils.pyparsingWhitechars("\n\t\r "):
 		atomicColRef = Regex('"[A-Za-z_][A-Za-z_0-9]*"').addParseAction(
 			makeColRef)
@@ -523,7 +523,8 @@ def getCST(literal, grammarFactory=None):
 		tree = makeTree(utils.pyparseString(
 			grammarFactory()["stcsPhrase"], literal))
 	except (ParseException, ParseSyntaxException), ex:
-		raise STCSParseError("Invalid STCS expression (%s at %s)"%(ex.msg, ex.loc),
+		raise common.STCSParseError(
+			"Invalid STCS expression (%s at %s)"%(ex.msg, ex.loc),
 			expr=literal, pos=ex.loc)
 	addDefaults(tree)
 	return tree

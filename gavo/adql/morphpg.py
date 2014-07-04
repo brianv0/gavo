@@ -18,13 +18,14 @@ calls.
 #c COPYING file in the source distribution.
 
 
+from gavo.adql import common
 from gavo.adql import morphhelpers
 from gavo.adql import nodes
 from gavo.adql.nodes import flatten
 from gavo.stc import tapstc
 
 
-class PostgresMorphError(morphhelpers.MorphError):
+class PostgresMorphError(common.MorphError):
 	pass
 
 

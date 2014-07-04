@@ -29,7 +29,7 @@ import itertools
 import math
 
 from gavo.utils import memoized
-from gavo.stc.common import *
+from gavo.stc import common
 
 
 toRad=math.pi/180.
@@ -45,7 +45,7 @@ def makeConverterMaker(label, conversions):
 	"""
 	def getConverter(fromUnit, toUnit, reverse=False):
 		if fromUnit not in conversions or toUnit not in conversions:
-			raise STCUnitError("One of '%s' or '%s' is no valid %s unit"%(
+			raise common.STCUnitError("One of '%s' or '%s' is no valid %s unit"%(
 				fromUnit, toUnit, label))
 		fact = conversions[fromUnit]/conversions[toUnit]
 		if reverse:
@@ -151,7 +151,7 @@ def getBasicConverter(fromUnit, toUnit, reverse=False):
 	for units, factory in systems:
 		if fromUnit in units and toUnit in units:
 			return factory(fromUnit, toUnit, reverse)
-	raise STCUnitError("No known conversion from '%s' to '%s'"%(
+	raise common.STCUnitError("No known conversion from '%s' to '%s'"%(
 		fromUnit, toUnit))
 
 
@@ -167,7 +167,7 @@ def getParallaxConverter(fromUnit, toUnit, reverse=False):
 	if fromUnit not in angleUnits:
 		fromUnit, toUnit, reverse = toUnit, fromUnit, not reverse
 	if fromUnit not in angleUnits:
-		raise STCUnitError("No spatial conversion between %s and %s"%(
+		raise common.STCUnitError("No spatial conversion between %s and %s"%(
 			fromUnit, toUnit))
 	# first convert angular unit to arcsec, then invert, yielding pc,
 	# and convert that to distance unit
@@ -214,8 +214,8 @@ def _expandUnits(fromUnits, toUnits):
 	if isinstance(toUnits, basestring):
 		toUnits = (toUnits,)*len(fromUnits)
 	if len(fromUnits)!=len(toUnits):
-		raise STCUnitError("Values in %s cannot be converted to values in %s"%(
-			fromUnits, toUnits))
+		raise common.STCUnitError(
+			"Values in %s cannot be converted to values in %s"%(fromUnits, toUnits))
 	return toUnits
 
 @memoized
@@ -250,7 +250,7 @@ def getVectorConverter(fromUnits, toUnits, reverse=False):
 	if len(toUnits)>2:
 		try:
 			convs.append(getBasicConverter(fromUnits[2], toUnits[2], reverse))
-		except STCUnitError:  # try parallax for the last unit only
+		except common.STCUnitError:  # try parallax for the last unit only
 			convs.append(getParallaxConverter(fromUnits[2], toUnits[2], reverse))
 
 	def convert(val): #noflake: local function

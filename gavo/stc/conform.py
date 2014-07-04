@@ -16,7 +16,7 @@ space and time for velocities.
 from gavo.stc import sphermath
 from gavo.stc import times
 from gavo.stc import units
-from gavo.stc.common import *
+from gavo.stc import common
 
 
 class SphercLoader(object):
@@ -41,7 +41,7 @@ def _transformAreas(areas, sTrafo, srcFrame, destFrame):
 	newAreas = []
 	for a in areas:
 		if a.frame is not srcFrame:
-			raise STCError("Cannot transform areas in frame different from"
+			raise common.STCError("Cannot transform areas in frame different from"
 				" from the position frame.")
 		newAreas.append(a.getTransformed(sTrafo, destFrame))
 	return newAreas

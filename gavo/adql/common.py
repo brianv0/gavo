@@ -1,7 +1,5 @@
 """
 Exceptions and helper functions for ADQL processing.
-
-This module should be clean for from import *
 """
 
 #c Copyright 2008-2014, the GAVO project
@@ -35,6 +33,12 @@ class TableNotFound(Error, utils.NotFoundError):
 	def __init__(self, tableName, hint=None):
 		utils.NotFoundError.__init__(self, tableName, "table", "table metadata",
 			hint=hint)
+
+
+class MorphError(Error):
+	"""is raised when the expectations of the to-ADQL morphers are violated.
+	"""
+	pass
 
 
 class AmbiguousColumn(Error):

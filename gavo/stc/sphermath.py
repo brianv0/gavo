@@ -12,8 +12,8 @@ import math
 import new
 import numpy
 
+from gavo.stc import common
 from gavo.stc import units
-from gavo.stc.common import *
 
 from gavo.utils.mathtricks import cartToSpher, spherToCart #noflake
 
@@ -108,7 +108,7 @@ def computeTransMatrixFromPole(poleCoo, longZeroCoo, changeHands=False):
 	x = spherToCart(*longZeroCoo)
 	z = spherToCart(*poleCoo)
 	if abs(numpy.dot(x, z))>1e-5:
-		raise STCValueError("%s and %s are not valid pole/zero points for"
+		raise common.STCValueError("%s and %s are not valid pole/zero points for"
 			" a rotated coordinate system"%(poleCoo, longZeroCoo))
 	y = (z[1]*x[2]-z[2]*x[1], z[2]*x[0]-z[0]*x[2], z[0]*x[1]-z[1]*x[0])
 	if changeHands:
@@ -126,7 +126,7 @@ def _ensureSphericalFrame(coo):
 	XXX TODO: assert spatial and vel coos have the same frame, etc.
 	"""
 	if not coo.frame.isSpherical():
-		raise STCValueError("%s is not a valid frame for transformable"
+		raise common.STCValueError("%s is not a valid frame for transformable"
 			" spherical coordinates."%(coo.frame))
 
 
@@ -169,7 +169,7 @@ def _solveStumpffEquation(betaR, betaT, maxIter=100):
 	raises an STCError.
 	"""
 	curEstR, curEstT = betaR, betaT
-	odd, oddel = 0, 0
+	od, odel, odd, oddel = 0, 0, 0, 0
 	for i in range(maxIter):
 		d = 1.+curEstT
 		delta = math.sqrt(1.-curEstR**2-curEstT**2)-1.0
@@ -182,8 +182,11 @@ def _solveStumpffEquation(betaR, betaT, maxIter=100):
 				break
 			odd = dd
 			oddel = ddel
+		od = d
+		odel = delta
 	else:
-		raise STCError("6-vector relativistic correction failed to converge")
+		raise common.STCError(
+			"6-vector relativistic correction failed to converge")
 	return curEstR, curEstT, d, delta
 
 

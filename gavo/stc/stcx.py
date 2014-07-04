@@ -8,7 +8,7 @@ Building STC-X documents, xmlstan-style.
 #c COPYING file in the source distribution.
 
 
-from gavo.stc.common import *
+from gavo.stc import common
 from gavo.utils.stanxml import Element
 
 
@@ -336,11 +336,6 @@ STC._addSubsGroup(STC.T_matrix,["Error2Matrix", "Error3Matrix",
 	"Size2Matrix", "Size3Matrix", "PixSize2Matrix", "PixSize3Matrix", 
 	"Resolution2Matrix", "Resolution3Matrix",])
 
-STC._addSubsGroup(STC.T_SpaceRefFrame, stcSpaceRefFrames)
-STC._addSubsGroup(STC.T_ReferencePosition,stcRefPositions)
-STC._addSubsGroup(STC.T_CoordFlavor, stcCoordFlavors)
-
-
-
-if __name__=="__main__":
-	print ex3().render()
+STC._addSubsGroup(STC.T_SpaceRefFrame, common.stcSpaceRefFrames)
+STC._addSubsGroup(STC.T_ReferencePosition, common.stcRefPositions)
+STC._addSubsGroup(STC.T_CoordFlavor, common.stcCoordFlavors)

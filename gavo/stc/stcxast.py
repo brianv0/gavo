@@ -23,11 +23,11 @@ not allowed.
 
 
 from gavo import utils
+from gavo.stc import common
 from gavo.stc import dm
 from gavo.stc import syslib
 from gavo.stc import times
 from gavo.stc import units
-from gavo.stc.common import *
 
 
 WIGGLE_TYPES = ["error", "resolution", "size", "pixSize"]
@@ -41,7 +41,7 @@ class SIBLING_ASTRO_SYSTEM(object):
 ####################### Helpers
 
 def STCElement(name):
-	return ElementTree.QName(STCNamespace, name)
+	return utils.ElementTree.QName(common.STCNamespace, name)
 _n = STCElement
 
 
@@ -137,14 +137,14 @@ def _makeKwFloatBuilder(kwName, multiple=True, units=_noIter):
 	"""
 	if multiple:
 		def buildNode(node, buildArgs, context):
-			if isinstance(node.text, ColRef):
+			if isinstance(node.text, common.ColRef):
 				yield kwName, (node.text,)
 			elif node.text and node.text.strip():
 				yield kwName, (float(node.text),)
 			for res in units(node, buildArgs): yield res
 	else:
 		def buildNode(node, buildArgs, context): #noflake: previous def conditional
-			if isinstance(node.text, ColRef):
+			if isinstance(node.text, common.ColRef):
 				yield kwName, node.text
 			elif node.text and node.text.strip():
 				yield kwName, float(node.text)
@@ -217,7 +217,7 @@ def _makeSpatialUnits(nDim, *unitSources):
 			elif len(unit)==nDim:
 				return tuple(unit)
 			else:
-				raise STCValueError("Cannot construct %d-dimensional units from"
+				raise common.STCValueError("Cannot construct %d-dimensional units from"
 					" %s."%(nDim, repr(unit)))
 		else: # a string or something similar
 			return (unit,)*nDim
@@ -374,7 +374,7 @@ def _fixWiggles(buildArgs):
 			wigClass = dm.RadiusWiggle
 			localArgs["radii"] = buildArgs.pop(wiggleType+"Radius")
 		elif wiggleType+"Matrix" in buildArgs:
-			localArgs[matrices] = buildArgs.pop(wiggleType+"Matrix")
+			localArgs["matrices"] = buildArgs.pop(wiggleType+"Matrix")
 			wigClass = dm.MatrixWiggle
 		if wigClass is not None:
 			buildArgs[wiggleType] = wigClass(**localArgs)
@@ -415,7 +415,7 @@ class ContextActions(object):
 
 ################ Coordinate systems
 
-_xlinkHref = utils.ElementTree.QName(XlinkNamespace, "href")
+_xlinkHref = utils.ElementTree.QName(common.XlinkNamespace, "href")
 
 def _buildAstroCoordSystem(node, buildArgs, context):
 	buildArgs["id"] = node.get("id", None)
@@ -510,7 +510,7 @@ def _buildTime(node, buildArgs, context):
 	node gets introspected to figure out what kind of time we're talking
 	about.  The value always is a datetime instance.
 	"""
-	if isinstance(node.text, ColRef):
+	if isinstance(node.text, common.ColRef):
 		yield "vals", (node.text,)
 	else:
 		parser = {
@@ -609,8 +609,8 @@ def _makeGeometryBuilder(astClass, adaptDepUnits=None):
 			adaptDepUnits(buildArgs)
 		buildArgs["origUnit"] = (buildArgs.pop("unit", None), None)
 		context.popDim()
-		if isinstance(node.text, ColRef):
-			buildArgs["geoColRef"] = GeometryColRef(str(node.text))
+		if isinstance(node.text, common.ColRef):
+			buildArgs["geoColRef"] = common.GeometryColRef(str(node.text))
 		yield 'areas', (astClass(**buildArgs),)
 	return buildGeo
 
@@ -630,12 +630,12 @@ def _validateCompoundChildren(buildArgs):
 			c.origUnit = None
 
 	if len(set(cUnits))>1:
-		raise STCNotImplementedError(
+		raise common.STCNotImplementedError(
 			"Different units within compound children are not supported")
 	elif len(set(cUnits))==1:
 		ou = (selfUnit, None)
 		if selfUnit is not None and ou!=cUnits[0]:
-			raise STCNotImplementedError(
+			raise common.STCNotImplementedError(
 				"Different units on compound and compound children are not supported")
 		buildArgs["origUnit"] = cUnits[0]
 	else:
@@ -714,7 +714,7 @@ def _buildToplevel(node, buildArgs, context):
 	yield 'stcSpec', ((node.tag, dm.STCSpec(**buildArgs)),)
 
 
-class IdProxy(ASTNode):
+class IdProxy(common.ASTNode):
 	"""A stand-in for a coordinate system during parsing.
 
 	We do this to not depend on ids being located before positions.  STC
@@ -798,9 +798,9 @@ _stcBuilders = [
 	(_buildFloat, ["C1", "C2", "C3"]),
 	(_buildTime, ["ISOTime", "JDTime", "MJDTime"]),
 	(_buildVector, ["Value2", "Value3"]),
-	(_buildRefpos, stcRefPositions),
-	(_buildFlavor, stcCoordFlavors),
-	(_buildRefFrame, stcSpaceRefFrames),
+	(_buildRefpos, common.stcRefPositions),
+	(_buildFlavor, common.stcCoordFlavors),
+	(_buildRefFrame, common.stcSpaceRefFrames),
 
 	(_makePositionBuilder('place', dm.SpaceCoo, "spaceFrame", tuplify=True), 
 		["Position1D", "Position3D", "Position2D"]),
@@ -972,7 +972,7 @@ def buildTree(csNode, context):
 				resDict[k] = resDict.get(k, ())+v
 			else:
 				if k in resDict:
-					raise STCInternalError("Attempt to overwrite key '%s', old"
+					raise common.STCInternalError("Attempt to overwrite key '%s', old"
 						" value %s, new value %s (this should probably have been"
 						" a tuple)"%(k, resDict[k], v))
 				resDict[k] = v
@@ -993,7 +993,7 @@ def parseFromETree(eTree):
 		activeTags=getActiveTags())
 	parsed = dict(buildTree(eTree, context))
 	if "stcSpec" not in parsed:
-		raise STCXBadError("No STC-X found in or below %r"%eTree)
+		raise common.STCXBadError("No STC-X found in or below %r"%eTree)
 	forest = parsed["stcSpec"]
 	resolveProxies(forest)
 	return [(rootTag, ast.polish()) for rootTag, ast in forest]
@@ -1003,4 +1003,4 @@ def parseSTCX(stcxLiteral):
 	"""returns a sequence of pairs (root element, AST) for the STC-X
 	specifications in stcxLiteral.
 	"""
-	return parseFromETree(ElementTree.fromstring(stcxLiteral))
+	return parseFromETree(utils.ElementTree.fromstring(stcxLiteral))

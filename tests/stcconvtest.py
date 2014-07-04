@@ -64,9 +64,9 @@ class UnitTest(testhelpers.VerboseTest):
 		self.assertAlmostEqual(conv((0,0,3.0856775813e+16/60.))[2], 1.)
 
 	def testRaises(self):
-		self.assertRaisesWithMsg(units.STCUnitError, "One of 'deg' or 'm'"
+		self.assertRaisesWithMsg(stc.STCUnitError, "One of 'deg' or 'm'"
 			" is no valid distance unit", units.getDistConv, ('deg', 'm'))
-		self.assertRaisesWithMsg(units.STCUnitError, "One of 'cy' or 'pc'"
+		self.assertRaisesWithMsg(stc.STCUnitError, "One of 'cy' or 'pc'"
 			" is no valid time unit", units.getTimeConv, ('cy', 'pc'))
 
 
@@ -104,11 +104,11 @@ class GenericConverterTest(testhelpers.VerboseTest):
 			("cy",), "arcsec", "yr")((1,)), (2062.6480624709639,))
 
 	def testRaising(self):
-		self.assertRaises(units.STCUnitError, units.getBasicConverter,
+		self.assertRaises(stc.STCUnitError, units.getBasicConverter,
 			"Mhz", "lyr")
-		self.assertRaises(units.STCUnitError, units.getVectorConverter,
+		self.assertRaises(stc.STCUnitError, units.getVectorConverter,
 			("m", "m"), ("km", "pc", "Mpc"))
-		self.assertRaises(units.STCUnitError, units.getVectorConverter,
+		self.assertRaises(stc.STCUnitError, units.getVectorConverter,
 			("m", "m", "deg"), ("km", "pc", "Hz"))
 
 

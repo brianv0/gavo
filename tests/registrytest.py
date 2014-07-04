@@ -22,12 +22,13 @@ from gavo import utils
 from gavo.base import meta
 from gavo.helpers import testtricks
 from gavo.registry import builders
+from gavo.registry import common
 from gavo.registry import capabilities
 from gavo.registry import nonservice
 from gavo.registry import oaiinter
-from gavo.registry.model import OAI
 from gavo.registry import publication
 from gavo.utils import ElementTree
+from gavo.registry.model import OAI
 
 import tresc
 
@@ -497,7 +498,7 @@ class DataPublicationMetaTest(testhelpers.VerboseTest):
 				{"rdId": _PublishedData.rdId}))), 0, 
 				"registrytest._PublishedData.clean failed?")
 		self.assertEqual(
-			publication.getDependencies("__system__/services", connection=self.conn),
+			common.getDependencies("__system__/services", connection=self.conn),
 			[],
 			"registrytest._PublishedData.clean failed?")
 

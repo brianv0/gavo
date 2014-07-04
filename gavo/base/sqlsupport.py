@@ -13,11 +13,11 @@ support some other database, this would need massive refactoring.
 
 
 import contextlib
+import itertools
 import os
 import random
 import re
 import threading
-from itertools import *
 
 import numpy
 
@@ -636,7 +636,7 @@ def dictifyRowset(descr, rows):
 	the keys of which are taken from descr (a cursor.description).
 	"""
 	keys = [cd[0] for cd in descr]
-	return [dict(izip(keys, row)) for row in rows]
+	return [dict(itertools.izip(keys, row)) for row in rows]
 
 
 class QuerierMixin(PostgresQueryMixin, StandardQueryMixin):
@@ -752,7 +752,7 @@ class QuerierMixin(PostgresQueryMixin, StandardQueryMixin):
 		cursor = self.query(*args, **kwargs)
 		keys = [d[0] for d in cursor.description]
 		for row in cursor:
-			yield dict(izip(keys, row))
+			yield dict(itertools.izip(keys, row))
 
 	def finish(self):
 		self.connection.commit()
