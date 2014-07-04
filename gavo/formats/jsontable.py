@@ -54,6 +54,7 @@ def _getJSONColumns(serManager):
 		res[-1].pop("displayHint", None)
 		res[-1].pop("winningFactory", None)
 		res[-1].pop("nullvalue", None)
+		res[-1].pop("note", None)
 	return res
 
 

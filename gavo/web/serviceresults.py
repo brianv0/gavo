@@ -17,8 +17,10 @@ from twisted.internet import threads
 
 
 from gavo import base
+from gavo import formats
 from gavo import utils
 from gavo.formats import csvtable #noflake: format registration
+from gavo.formats import jsontable #noflake: format registration
 from gavo.formats import fitstable #noflake: format registration
 from gavo.formats import texttable #noflake: format registration
 from gavo.imp.formal import types as formaltypes
@@ -139,6 +141,24 @@ class TextResponse(ServiceResult):
 		request.setHeader("content-length", len(content))
 		request.write(content)
 		return ""
+
+
+class JsonResponse(ServiceResult):
+	code = "JSON"
+	label = "JSON"
+
+	@classmethod
+	def _formatOutput(cls, data, ctx):
+		request = inevow.IRequest(ctx)
+		request.setHeader('content-disposition', 
+			'attachment; filename=table.json')
+		request.setHeader("content-type", "application/json")
+		
+		def produceData(destFile):
+			formats.formatData("json", data.original, 
+				request, acquireSamples=False)
+
+		return streaming.streamOut(produceData, request)
 
 
 class TarResponse(ServiceResult):

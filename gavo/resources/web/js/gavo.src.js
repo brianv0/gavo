@@ -261,7 +261,7 @@ function output_verbSelector(pars) {
 	}
 	root.appendChild(sel);
 	return output_BussedElement(root, "op_verb", ["VOTable", "FITS",
-		"TSV"]);
+		"TSV", "JSON"]);
 }
 
 
