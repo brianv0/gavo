@@ -18,7 +18,6 @@ from gavo import svcs
 from gavo import utils
 from gavo.base import meta
 from gavo.base import typesystems
-from gavo.registry.common import *
 from gavo.registry.model import (VOR, VOG, VS, SIA, SCS, SSAP, TR)
 
 

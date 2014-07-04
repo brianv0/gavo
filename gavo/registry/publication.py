@@ -31,7 +31,7 @@ from gavo import rsc
 from gavo import utils
 
 from gavo.registry import builders
-from gavo.registry.common import *
+from gavo.registry import common
 
 
 def makeBaseRecord(res, keepTimestamp=False):
@@ -207,10 +207,10 @@ def updateServiceList(rds, metaToo=False, connection=None, onlyWarn=True,
 	parseOptions = rsc.getParseOptions(validateRows=True, batchSize=20)
 	if connection is None:
 		connection = base.getDBConnection("admin")
-	dd = getServicesRD().getById("tables")
+	dd = common.getServicesRD().getById("tables")
 	dd.grammar = _rdRscRecGrammar
 	dd.grammar.keepTimestamp = keepTimestamp
-	depDD = getServicesRD().getById("deptable")
+	depDD = common.getServicesRD().getById("deptable")
 	msg = None
 	for rd in rds:
 		if rd.sourceId.startswith("/"):
@@ -330,14 +330,14 @@ def updateRegistryTimestamp():
 	"""edits the dateupdated field for the registry service in servicelist.
 	"""
 	with base.AdhocQuerier(base.getAdminConn) as q:
-		regSrv = getRegistryService()
+		regSrv = common.getRegistryService()
 		q.query("UPDATE services SET dateupdated=%(now)s"
 			" WHERE sourcerd=%(rdId)s AND resId=%(sId)s", {
 			"rdId": regSrv.rd.sourceId,
 			"sId": regSrv.id,
 			"now": datetime.datetime.utcnow(),
 		})
-	getServicesRD().touchTimestamp()
+	common.getServicesRD().touchTimestamp()
 
 
 def tryServiceReload():
@@ -373,7 +373,7 @@ def main():
 	from gavo.user import plainui
 	plainui.SemiStingyPlainUI(base.ui)
 	opts, args = parseCommandLine()
-	getServicesRD().touchTimestamp()
+	common.getServicesRD().touchTimestamp()
 	if opts.all:
 		args = findPublishedRDs()
 	updateServiceList(getRDs(args), metaToo=opts.meta, 
