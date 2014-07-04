@@ -23,11 +23,11 @@ from gavo import base
 from gavo import stc
 from gavo import utils
 from gavo.base import meta
+from gavo.registry import common
 from gavo.registry import capabilities
 from gavo.registry import identifiers
 from gavo.registry import tableset
 from gavo.registry import servicelist
-from gavo.registry.common import *
 from gavo.registry.model import (
 	OAI, VOR, VOG, DC, RI, VS, OAIDC, VSTD, DOC)
 
@@ -250,7 +250,7 @@ def getListMetadataFormatsElement():
 			OAI.metadataPrefix[prefix],
 			OAI.schema[schema],
 			OAI.metadataNamespace[ns],
-		] for prefix, schema, ns in METADATA_PREFIXES]
+		] for prefix, schema, ns in common.METADATA_PREFIXES]
 	]
 
 
@@ -348,7 +348,7 @@ class ResourceMaker(object):
 		service.declareServes.
 		"""
 		if not hasattr(resob.rd, "cached dependencies"):
-			deps = getDependencies(resob.rd.sourceId)
+			deps = common.getDependencies(resob.rd.sourceId)
 			setattr(resob.rd, "cached dependencies", deps)
 		else:
 			deps = getattr(resob.rd, "cached dependencies")
@@ -523,7 +523,7 @@ _getResourceMaker = utils.buildClassResolver(ResourceMaker,
 
 
 def getVORMetadataElement(resob, setNames=_defaultSet):
-	return _getResourceMaker(getResType(resob))(resob, setNames)
+	return _getResourceMaker(common.getResType(resob))(resob, setNames)
 
 
 def getVOResourceElement(resob, setNames=_defaultSet):

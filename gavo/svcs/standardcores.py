@@ -401,6 +401,9 @@ class TableBasedCore(core.Core):
 				" to retrieve more matches.  Note that unsorted truncated queries"
 				" are not reproducible (i.e., might return a different result set"
 				" at a later time).")
+			res.addMeta("_queryStatus", "Overflowed")
+		else:
+			res.addMeta("_queryStatus", "Ok")
 		return res
 	
 	def adaptForRenderer(self, renderer):

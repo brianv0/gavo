@@ -156,7 +156,7 @@ class _JSONTable(testhelpers.TestResource):
 
 
 class JSONOutputTest(testhelpers.VerboseTest):
-	resources = [("tAndD", _JSONTable())]
+	resources = [("tAndD", _JSONTable()), ("testData", _TestDataTable())]
 
 	def testColumns(self):
 		c1, c2, c3, c4, c5 = self.tAndD[1]["columns"]
@@ -176,6 +176,20 @@ class JSONOutputTest(testhelpers.VerboseTest):
 				2453130.5], 
 			[None, None, None, None, None]])
 
+	def testMetaInfo(self):
+		dd = testhelpers.getTestRD().getById("tableMaker")
+		data = rsc.makeData(dd, forceSource=[
+			(1, 2, 3, "ei", '2004-05-05')])
+		table = data.getPrimaryTable()
+		table.addMeta("_warning", "Warning 1")
+		table.addMeta("_warning", "Warning 2")
+		table.addMeta("_queryStatus", "OK")
+		afterRoundtrip = json.loads(
+			formats.getFormatted("json", data))
+		self.assertEqual(afterRoundtrip["warnings"],
+			["Warning 1", "Warning 2"])
+		self.assertEqual(afterRoundtrip["queryStatus"],
+			"OK")
 
 
 class TextOutputTest(unittest.TestCase):
@@ -364,7 +378,7 @@ class NullValueTest(testhelpers.VerboseTest):
 	def testJSON(self):
 		self.assertEqual(
 			json.loads(formats.getFormatted("json", self.nullsTable))["data"],
-			[None, None, None, None, None, None])
+			[[None, None, None, None, None, None]])
 
 
 class _ExplicitNullTestTable(testhelpers.TestResource):

@@ -13,13 +13,13 @@ from gavo import utils
 from gavo import rsc
 from gavo import rscdef
 from gavo import svcs
-from gavo.registry.common import *
+from gavo.registry import common
 
 
 def getSetsForResource(restup):
 	"""returns the list of set names the resource described by restup belongs to.
 	"""
-	tableDef = getServicesRD().getById("sets")
+	tableDef = common.getServicesRD().getById("sets")
 	table = rsc.TableForDef(tableDef)
 	destTableDef = base.makeStruct(rscdef.TableDef,
 		columns=[tableDef.getColumnByName("setName")])
@@ -32,7 +32,7 @@ def getSets():
 	"""returns a sequence of dicts giving setName and and a list of
 	services belonging to that set.
 	"""
-	tableDef = getServicesRD().getById("sets")
+	tableDef = common.getServicesRD().getById("sets")
 	table = rsc.TableForDef(tableDef)
 	setMembers = {}
 	for rec in table:
@@ -49,7 +49,7 @@ def queryServicesList(whereClause="", pars={}, tableName="resources_join"):
 	The table queried is the resources_join view, and you'll get back all
 	fields defined there.
 	"""
-	td = getServicesRD().getById(tableName)
+	td = common.getServicesRD().getById(tableName)
 	otd = svcs.OutputTableDef.fromTableDef(td, None)
 	table = rsc.TableForDef(td)
 	return [r for r in table.iterQuery(otd, whereClause, pars)]
@@ -63,7 +63,7 @@ def querySubjectsList(setName=None):
 	"""
 	setName = setName or 'local'
 	svcsForSubjs = {}
-	td = getServicesRD().getById("subjects_join")
+	td = common.getServicesRD().getById("subjects_join")
 	otd = svcs.OutputTableDef.fromTableDef(td, None)
 	with base.getTableConn() as conn:
 		for row in rsc.TableForDef(td, connection=conn).iterQuery(otd, 
@@ -99,7 +99,7 @@ def cleanServiceTablesFor(rd, connection):
 # this is a bit of a hack: We're running services#tables' newSource
 #	skript without then importing anything new.
 	tables = rsc.Data.create(
-		getServicesRD().getById("tables"),
+		common.getServicesRD().getById("tables"),
 		connection=connection)
 	tables.runScripts("newSource", sourceToken=rd)
 

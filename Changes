@@ -1,3 +1,14 @@
+Version 0.9.2 ()
+
+  * DaCHS can now produce JSON output (with certain not yet VO-standardised
+    conventions) from TAP and other services.
+
+  * TAP_SCHEMA type names are automatically updated to comply to
+  	recently established conventions.  If you have tricked weird type names
+  	into TAP_SCHEMA (you'll know if you have), please ensure DaCHS hasn't 
+  	messed it up.
+
+
 Version 0.9.1 (2014-04-30)
 
 	* New regression testing framework derived from a local hack we've had

@@ -17,9 +17,9 @@ to say, they are all just capabilities on the same record.
 import re
 
 from gavo import base
+from gavo.registry import common
 from gavo.registry import nonservice
 from gavo.registry import servicelist
-from gavo.registry.common import *
 
 
 def computeIdentifierFromRestup(restup):
@@ -40,7 +40,7 @@ def parseIdentifier(identifier):
 	"""
 	mat = _idPattern.match(identifier)
 	if not mat:
-		raise IdDoesNotExist(identifier)
+		raise common.IdDoesNotExist(identifier)
 	return mat.group(1), (mat.group(2) or "")[1:]
 
 
@@ -51,7 +51,7 @@ def getRestupFromIdentifier(identifier):
 		"ivoid=%(identifier)s",
 		locals(), tableName="resources")
 	if len(matches)!=1:
-		raise IdDoesNotExist(identifier)
+		raise common.IdDoesNotExist(identifier)
 	return matches[0]
 
 

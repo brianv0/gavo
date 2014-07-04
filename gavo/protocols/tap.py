@@ -83,6 +83,11 @@ FORMAT_CODES = {
 		("html", "text/html", "HTML table", None),
 	"html": 
 		("html", "text/html", "HTML table", None),
+	"json": 
+		("json", "application/json", "JSON", None),
+	"application/json": 
+		("json", "application/json", "JSON", None),
+
 }
 
 

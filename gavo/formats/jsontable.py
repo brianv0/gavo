@@ -8,6 +8,7 @@ format that essentially looks like this:
 	"contains": "table",
 	"columns": { (column metadata more or less as in VOTable) }
 	"data": { (rows as tuples) }
+	("warnings": [...])
 }
 
 No streaming at all is forseen for this format at this point.
@@ -24,6 +25,24 @@ import json
 from gavo import base
 from gavo import rsc
 from gavo.formats import common
+
+
+class JSONMetaBuilder(base.MetaBuilder):
+	"""A MetaBuilder for mapping table meta information into our standard
+	JSON structure.
+	"""
+	def __init__(self, jsonStructure):
+		self.result = jsonStructure
+		base.MetaBuilder.__init__(self)
+	
+	def getResult(self):
+		return self.result
+	
+	def enterValue(self, value):
+		if self.curAtoms[-1]=="_warning":
+			self.result.setdefault("warnings", []).append(unicode(value))
+		elif self.curAtoms[-1]=="_queryStatus":
+			self.result["queryStatus"] = unicode(value)
 
 
 def _getJSONColumns(serManager):
@@ -45,11 +64,13 @@ def _getJSONStructure(table, acquireSamples=False):
 		table = table.getPrimaryTable()
 	sm = base.SerManager(table, acquireSamples=acquireSamples)
 	
-	return {
+	result = {
 		'contains': "table",
 		'columns': _getJSONColumns(sm),
 		'data': list(sm.getMappedTuples()),
 	}
+	table.traverse(JSONMetaBuilder(result))
+	return result
 
 
 def writeTableAsJSON(table, target, acquireSamples=False):

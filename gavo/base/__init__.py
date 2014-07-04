@@ -46,6 +46,7 @@ from gavo.base.meta import (
 	MetaSyntaxError, MetaError, MetaCardError, NoMetaKey,
 	InfoItem as MetaInfoItem,
 	MetaMixin, ComputedMetaMixin,
+	MetaBuilder,
 	getMetaText, makeMetaValue, makeMetaItem)
 
 from gavo.base.metavalidation import MetaValidationError, validateStructure

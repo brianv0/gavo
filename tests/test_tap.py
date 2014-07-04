@@ -190,6 +190,20 @@ class SyncQueryTest(TAPRenderTest):
 			}, [
 				'2.0\t14.0'])
 
+	def testJSON(self):
+		return self.assertGETHasStrings("/sync", {
+				"REQUEST": "doQuery",
+				"LANG": "ADQL",
+				"QUERY": "SELECT TOP 1 column_name, datatype FROM TAP_SCHEMA.columns"
+					" WHERE table_name='tap_schema.tables' ORDER BY column_name",
+				"FORMAT": "application/json"
+			}, [
+				'"contains": "table"',
+				'"description": "ADQL datatype"',
+				'[["description", "VARCHAR"]]',
+				'"queryStatus": "OVERFLOW"'])
+
+
 	def testBin2Table(self):
 		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery",

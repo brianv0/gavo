@@ -41,6 +41,7 @@ class QueryTable(table.BaseTable, dbtable.DBMethodsMixin):
 		if "rows" in kwargs:
 			raise base.ReportableError("QueryTables cannot be constructed"
 				" with rows.")
+		self.matchLimit = kwargs.pop("matchLimit", None)
 		self.query = query
 		table.BaseTable.__init__(self, tableDef, connection=connection,
 			**kwargs)
@@ -72,6 +73,7 @@ class QueryTable(table.BaseTable, dbtable.DBMethodsMixin):
 		if self.connection is None:
 			raise base.ReportableError("QueryTable already exhausted.")
 
+		nRows = 0
 		cursor = self.connection.cursor("cursor"+hex(id(self)))
 		cursor.execute(self.query)
 		while True:
@@ -79,8 +81,14 @@ class QueryTable(table.BaseTable, dbtable.DBMethodsMixin):
 			if not nextRows:
 				break
 			for row in nextRows:
+				nRows += 1
 				yield self.tableDef.makeRowFromTuple(row)
 		cursor.close()
+
+		if self.matchLimit and self.matchLimit==nRows:
+			self.setMeta("_queryStatus", "OVERFLOW")
+		else:
+			self.setMeta("_queryStatus", "OVERFLOW")
 		self.cleanup()
 
 	def __len__(self):
