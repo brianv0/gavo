@@ -407,8 +407,12 @@ class CatalogServiceResourceMaker(DataServiceResourceMaker):
 	def _makeResource(self, service, setNames):
 		return DataServiceResourceMaker._makeResource(self, service, setNames)[
 			tableset.getTablesetForService(service)]
-			
 
+
+_registryMetaBuilder = meta.ModelBasedBuilder([
+	('managedAuthority', SF(VOG.managedAuthority)),])
+
+	
 class RegistryResourceMaker(ResourceMaker):
 	resourceClass = VOG.Resource
 	resType = "registry"
@@ -423,8 +427,7 @@ class RegistryResourceMaker(ResourceMaker):
 					VOG.maxRecords[base.getMetaText(registry, "maxRecords")],
 				],
 				VOG.full[base.getMetaText(registry, "full", "false")],
-				VOG.managedAuthority[base.getMetaText(registry, "managedAuthority",
-					base.getConfig("ivoa", "authority"))],
+				_registryMetaBuilder.build(registry),
 			]
 
 

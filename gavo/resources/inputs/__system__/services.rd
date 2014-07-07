@@ -250,58 +250,7 @@
 		</outputTable>
 	</service>
 
-	<resRec id="authority"> <!-- ivo id of the authority is overridden in
-			nonservice.NonServiceResource -->
-		<meta>
-			resType: authority
-			creationDate: \metaString{authority.creationDate}{UNCONFIGURED}
-			title: \metaString{authority.title}{UNCONFIGURED}
-			shortName: \metaString{authority.shortName}{UNCONFIGURED}
-			subject: Authority
-			managingOrg: \metaString{authority.managingOrg}{UNCONFIGURED}
-			description: \metaString{authority.description}{UNCONFIGURED}
-			referenceURL: \metaString{authority.referenceURL}{UNCONFIGURED}
-			identifier: ivo://\getConfig{ivoa}{authority}
-			sets: ivo_managed
-		</meta>
-	</resRec>
-
-	<resRec id="manager"> <!-- the organisation running this registry -->
-		<meta>
-			resType: organization
-			creationDate: \metaString{authority.creationDate}{UNCONFIGURED}
-			title: \metaString{organization.title}{UNCONFIGURED}
-			subject: Organization
-			description: \metaString{organization.description}{UNCONFIGURED}
-			referenceURL: \metaString{organization.referenceURL}{UNCONFIGURED}
-			identifier: ivo://\getConfig{ivoa}{authority}/org
-			sets: ivo_managed
-		</meta>
-	</resRec>
-
-	<registryCore id="registrycore"/>
-
-	<service id="registry" core="registrycore" allowed="pubreg.xml">
-		<publish render="pubreg.xml" sets="ivo_managed">
-			<meta name="accessURL"
-				>\getConfig{web}{serverURL}\getConfig{web}{nevowRoot}oai.xml</meta>
-		</publish>
-		<meta name="resType">registry</meta>
-		<meta name="title">\getConfig{web}{sitename} Registry</meta>
-		<meta name="creationDate">2008-05-07T11:33:00</meta>
-		<meta name="description">
-			The publishing registry for the \getConfig{web}{sitename}.
-		</meta>
-		<meta name="subject">Registry</meta>
-		<meta name="shortName">\metaString{authority.shortName} Reg</meta>
-		<meta name="content.type">Archive</meta>
-		<meta name="rights">public</meta>
-		<meta name="harvest.description">The harvesting interface for 
-			the publishing registry of the \getConfig{web}{sitename}</meta>
-		<meta name="maxRecords">10000</meta>
-		<meta name="managedAuthority">\getConfig{ivoa}{authority}</meta>
-		<meta name="publisher">The staff at the \getConfig{web}{sitename}</meta>
-	</service>
+	<FEED source="%#registry-interfacerecords"/>
 
 	<service id="root" allowed="fixed">
 		<!-- this is just a placeholder for render functions the root
