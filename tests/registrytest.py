@@ -831,7 +831,7 @@ class IdResolutionTest(testhelpers.VerboseTest):
 		self.failUnless(isinstance(rec, registry.nonservice.ResRec))
 		self.assertEqual(registry.getResType(rec), "authority")
 		self.failUnless(base.getMetaText(rec, "description").startswith(
-			"\\metaString{authority.description}{UNCONFIGURED}"))
+			" This should be a relatively terse description of"))
 	
 	def testOrganization(self):
 		rec = registry.getResobFromIdentifier("ivo://%s/org"%self.auth)
