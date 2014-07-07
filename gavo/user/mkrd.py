@@ -20,7 +20,6 @@ import datetime
 import os
 import re
 import sys
-from itertools import *
 
 from gavo import base
 from gavo import grammars

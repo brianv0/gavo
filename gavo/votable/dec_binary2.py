@@ -16,7 +16,7 @@ it's family.
 
 from gavo.votable import coding
 from gavo.votable import common
-from gavo.votable.dec_binary import *
+from gavo.votable import dec_binary
 from gavo.votable.model import VOTable
 
 
@@ -51,6 +51,9 @@ def getRowDecoderSource(tableDefinition):
 
 
 def getGlobals(tableDefinition):
-	vars = globals()
+	vars = dict((n, getattr(dec_binary, n)) for n in dir(dec_binary))
 	vars["nullFlags"] = common.NULLFlags(len(tableDefinition.getFields()))
 	return vars
+
+
+getLinesFor = dec_binary.getLinesFor

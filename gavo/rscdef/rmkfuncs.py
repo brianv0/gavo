@@ -29,7 +29,11 @@ from gavo import utils
 from gavo.base import ( #noflake: exported names
 	coords, parseBooleanLiteral, parseInt, sqlmunge,
 	makeSitePath, makeAbsoluteURL)
-from gavo.base.literals import *
+from gavo.base.literals import (identity, #noflake:exported names
+	parseInt, parseFloat, parseBooleanLiteral, parseUnicode,
+	parseDefaultDate, parseDefaultDatetime, parseDefaultTime, parseCooPair,
+	parseSPoint, getDefaultValueParsers)
+	
 from gavo.rscdef.common import ( #noflake: exported names
 	getStandardPubDID, getAccrefFromStandardPubDID,
 	getInputsRelativePath)
@@ -81,7 +85,7 @@ def combinePMs(result, pma, pmd):
 
 	pma and pmd have to be in degs/yr, with cos(delta) applied to pma.
 	"""
-	if pmAlpha is None or pmDelta is None:
+	if pma is None or pmd is None:
 		tpm = pmpa = None
 	else:
 		tpm = math.sqrt(pma**2+pmd**2)
@@ -201,7 +205,7 @@ def parseAngle(literal, format, sepChar=None):
 	elif format=="fracHour":
 		return utils.fracHoursToDeg(literal)
 	else:
-		raise Error("Invalid format: %s"%format)
+		raise base.Error("Invalid format: %s"%format)
 
 
 @utils.document
@@ -238,9 +242,8 @@ def lastSourceElements(path, numElements):
 	"""returns a path made up from the last numElements items in path.
 	"""
 	newPath = []
-	fullPath = self.context.sourceName
 	for i in range(int(numElements)):
-		fullPath, part = os.path.split(fullPath)
+		path, part = os.path.split(path)
 		newPath.append(part)
 	newPath.reverse()
 	return os.path.join(*newPath)

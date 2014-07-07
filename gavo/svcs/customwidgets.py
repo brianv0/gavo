@@ -24,7 +24,10 @@ from gavo.imp.formal import types as formaltypes
 from gavo.imp.formal import widget
 from gavo.imp.formal import widgetFactory #noflake: for customWidget
 from gavo.imp.formal.util import render_cssid
-from gavo.imp.formal.widget import *
+from gavo.imp.formal.widget import ( #noflake: exported names
+	TextInput, Checkbox, Password, TextArea, ChoiceBase, SelectChoice,
+	SelectOtherChoice, RadioChoice, CheckboxMultiChoice, FileUpload,
+	FileUploadWidget, Hidden)
 
 
 class DBOptions(object):
