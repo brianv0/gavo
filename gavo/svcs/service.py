@@ -556,8 +556,10 @@ class Service(base.Structure, base.ComputedMetaMixin,
 			if qt is not None:
 				tables.append(qt)
 
-		# XXX TODO: this type of stuff should probably be done in the
-		# core or the renderer...
+		# XXX TODO: This stinks big time.  It's because we got TAP factorization
+		# wrong.  Sync and async should be renderers, and there should
+		# be a core that then could say this kind of thing.  That's not
+		# yet the case, so:
 		if "tap" in self.allowed:
 			# tap never has "native" tables, so start afresh
 			tables = []

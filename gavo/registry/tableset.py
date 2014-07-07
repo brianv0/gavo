@@ -17,8 +17,7 @@ import itertools
 
 from gavo import base
 from gavo import svcs
-from gavo.base import typesystems
-from gavo.registry.model import VS0, VS
+from gavo.registry.model import VS
 
 
 def getSchemaForRD(rd):
@@ -166,35 +165,3 @@ def getTablesetForService(service):
 		schemas.append((rdForSchema[schemaName], tables))
 	
 	return getTablesetForSchemaCollection(schemas)
-	
-
-def getVS1_0type(col):
-	"""returns a VODataSet 1.0 type for col.
-
-	This should go away with VS1.0 support.
-	"""
-	dt, arrsize = typesystems.sqltypeToVOTable(col.type)
-	if arrsize==1:
-		arrsize = None
-	return VS.dataType(arraysize=arrsize)[dt]
-
-
-def getVS1_0TablesetForService(service):
-	"""returns a sequence of VS.Table elements for tables related to service.
-
-	This is for VODataService 1.0.  It's not used any more and should be
-	removed as soon as we're sure we can really get away with supporting
-	1.1 exclusively.
-	"""
-	return [
-		VS0.table[
-			VS0.name[td.getQName()],
-			VS0.description[base.getMetaText(td, "description")], [
-				VS0.column[
-					VS0.name[col.name],
-					VS0.description[col.description],
-					VS0.unit[col.unit],
-					VS0.ucd[col.ucd],
-					getVS1_0type(col)]
-				for col in td]]
-		for td in service.getTableSet()]
