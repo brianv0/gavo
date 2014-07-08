@@ -717,6 +717,11 @@ class TablePublicationRecordTest(testhelpers.VerboseTest):
 			"//accessURL[.='http://localhost:8080/data/pubtest/moribund/form']")[0].
 			get("use"), "full")
 
+	def testVOSICapabilityCensored(self):
+		self.assertEqual(self.tree.xpath(
+			"//capability[@standardID='ivo://ivoa.net/std/VOSI#availability']"),
+			[])
+
 
 class _DataGetRecordRes(testhelpers.TestResource):
 	def make(self, ignored):

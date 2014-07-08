@@ -231,8 +231,8 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 		try:
 			res = self.idmap[id]
 		except KeyError:
-			raise base.ui.logOldExc(base.NotFoundError(
-				id, "Element with id", "RD %s"%(self.sourceId)))
+			raise base.NotFoundError(
+				id, "Element with id", "RD %s"%(self.sourceId))
 		if forceType:
 			if not isinstance(res, forceType):
 				raise base.StructureError("Element with id '%s' is not a %s"%(

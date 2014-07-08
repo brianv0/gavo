@@ -491,11 +491,16 @@ class DataCollectionResourceMaker(ResourceMaker):
 	def _makeTableset(self, schemas):
 		return tableset.getTablesetForSchemaCollection(schemas)
 
+	# used by _makeCapabilities
+	ignoreForDataCaps = frozenset(["scs.xml", "siap.xml", "ssap.xml",
+		"availability", "capabilities", "tableMetadata"])
+
 	def _makeCapabilities(self, metaCarrier, setNames):
 		"""returns capabilities for the services of published data.
 		
-		This returns the capabilities as they are in the referenced
-		services.
+		We do not return VOSI or S*AP capabilities; for VOSI, the problem is
+		bringing together VOSI and main services, for S*AP, we don't want
+		to poison all-VO-discovery.
 		"""
 		if metaCarrier.registration is None:
 			return
@@ -511,7 +516,8 @@ class DataCollectionResourceMaker(ResourceMaker):
 		
 		for service in services:
 			yield [capabilities.getCapabilityElement(pub)
-				for pub in service.getPublicationsForSet(setNames)]
+				for pub in service.getPublicationsForSet(setNames)
+				if pub.render not in self.ignoreForDataCaps]
 
 	def _makeResourceForSchemas(self, metaCarrier, schemas, setNames):
 		"""returns xmlstan for schemas within metaCarrier.
