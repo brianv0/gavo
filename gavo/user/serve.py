@@ -31,6 +31,7 @@ from gavo import rscdesc #noflake: for cache registration
 from gavo import utils
 from gavo.base import config
 from gavo.base import cron
+from gavo.user import plainui
 from gavo.user.common import exposedFunction, makeParser
 from gavo.web import root
 
@@ -171,6 +172,19 @@ def _configureTwistedLog():
 	rotator()
 
 
+def getLogFile(baseName):
+	"""returns a log file group-writable by gavo.
+	"""
+	fName = os.path.join(base.getConfig("logDir"), baseName)
+	f = open(fName, "a")
+	try:
+		os.chmod(fName, 0664)
+		os.chown(fName, -1, grp.getgrnam(base.getConfig("gavoGroup"))[2])
+	except (KeyError, os.error):  # let someone else worry about it
+		pass
+	return f
+
+
 def _preloadRDs():
 	"""accesses the RDs mentioned in [web]preloadRDs.
 
@@ -243,7 +257,7 @@ def start(args):
 			_stopServer()
 
 	daemonize(
-		open(os.path.join(base.getConfig("logDir"), "server.stderr"), "a"), 
+		getLogFile("server.stderr"),
 		_startServer)
 
 
@@ -267,7 +281,9 @@ def _waitForServerExit(timeout=5):
 def _stopServer():
 	pid = PIDManager.getPID()
 	if pid is None:  # No server running, nothing to do
+		base.ui.notifyWarning("No running DaCHS server found.")
 		return
+
 	try:
 		os.kill(pid, signal.SIGTERM)
 	except os.error, ex:
@@ -320,6 +336,7 @@ def debug(args):
 
 
 def main():
+	plainui.SemiStingyPlainUI(base.ui)
 	base.IS_DACHS_SERVER = True
 	args = makeParser(globals()).parse_args()
 	args.subAction(args)

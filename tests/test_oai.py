@@ -33,6 +33,7 @@ class _OAITest(trialhelpers.RenderTest):
 
 	def setUp(self):
 		self.port = reactor.listenTCP(57707, root.site)
+		self.renderer = root.root
 
 	def tearDown(self):
 		self.port.stopListening()
@@ -157,6 +158,14 @@ class OAIBasicTest(_OAITest):
 
 		return threads.deferToThread(oaiclient.getServerProperties,
 			self.registry).addCallback(assertParsed)
+
+	def testListIdentifiers(self):
+		return self.assertGETHasStrings("/oai.xml", {
+				"verb": "ListIdentifiers", 
+				"metadataPrefix": "oai_dc"}, [ 
+				'oai:ListIdentifiers>',
+				'ivo_managed'])
+
 
 
 class OAIParameterTest(_OAITest):
