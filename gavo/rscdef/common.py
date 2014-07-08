@@ -228,6 +228,21 @@ class Registration(base.Structure):
 			" query that within the data collection; tables with adql=True"
 			" are automatically declared to be servedBy the TAP service.")
 
+	def publishedForADQL(self):
+		"""returns true if at least one table published is available for
+		TAP/ADQL.
+		"""
+		if getattr(self.parent, "adql", False):
+			# single table
+			return True
+
+		for t in getattr(self.parent, "iterTableDefs", lambda: [])():
+			# data item with multiple tables
+			if t.adql:
+				return True
+
+		return False
+
 	def register(self):
 		"""adds servedBy and serviceFrom metadata to data, service pairs
 		in this registration.
@@ -236,13 +251,8 @@ class Registration(base.Structure):
 			srv.declareServes(self.parent)
 
 		# Tables in ADQL are always published via TAP
-		if getattr(self.parent, "adql", False):
+		if self.publishedForADQL():
 			base.caches.getRD("//tap").getById("run").declareServes(self.parent)
-		#...as are data items that contain at least one table
-		for t in getattr(self.parent, "iterTableDefs", lambda: [])():
-			base.caches.getRD("//tap").getById("run").declareServes(self.parent)
-			# but on declaration is enough
-			break
 
 
 class ColumnList(list):

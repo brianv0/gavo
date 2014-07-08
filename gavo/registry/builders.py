@@ -20,6 +20,7 @@ using resob.resType as a fallback.
 
 
 from gavo import base
+from gavo import svcs
 from gavo import stc
 from gavo import utils
 from gavo.base import meta
@@ -31,6 +32,7 @@ from gavo.registry import servicelist
 from gavo.registry.model import (
 	OAI, VOR, VOG, DC, RI, VS, OAIDC, VSTD, DOC)
 
+MS = base.makeStruct
 
 SF = meta.stanFactory
 _defaultSet = set(["ivo_managed"])
@@ -472,17 +474,44 @@ class DeletedResourceMaker(ResourceMaker):
 _dataMetaBuilder = meta.ModelBasedBuilder([
 	('rights', SF(VOR.rights)),
 	# format is a mime type if we're registering a single piece of data
-	('format', SF(VS.format)),  
+# (which we don't do any more as we now push out CatalogServices
+# rather than DataCollections for data collections -- that's the
+# have-capabilities-within-the-record thing.
+#	('format', SF(VS.format)),  
 ])
 
 
 class DataCollectionResourceMaker(ResourceMaker):
 	"""A base class for Table- and DataResourceMaker.
 	"""
-	resourceClass = VS.DataCollection
+	# We don't use CatalogService any more as we want capabilities
+	# and DataService doesn't allow them (yet).
+	resourceClass = VS.CatalogService
 
 	def _makeTableset(self, schemas):
 		return tableset.getTablesetForSchemaCollection(schemas)
+
+	def _makeCapabilities(self, metaCarrier, setNames):
+		"""returns capabilities for the services of published data.
+		
+		This returns the capabilities as they are in the referenced
+		services.
+		"""
+		if metaCarrier.registration is None:
+			return
+
+		services = metaCarrier.registration.services
+		if not services:
+			# empty svcs implies publication via TAP if the underlying table(s)
+			# are accessible via ADQL
+			if metaCarrier.registration.publishedForADQL():
+				yield capabilities.getCapabilityElement(
+					MS(svcs.Publication, render="tap", sets=setNames,
+						service=base.caches.getRD("//tap").getById("run")))
+		
+		for service in services:
+			yield [capabilities.getCapabilityElement(pub)
+				for pub in service.getPublicationsForSet(setNames)]
 
 	def _makeResourceForSchemas(self, metaCarrier, schemas, setNames):
 		"""returns xmlstan for schemas within metaCarrier.
@@ -492,15 +521,18 @@ class DataCollectionResourceMaker(ResourceMaker):
 		VODataService schema, tables is a sequence of TableDefs that 
 		define the tables within that schema.
 		"""
-		return ResourceMaker._makeResource(self, metaCarrier, setNames)[
+		res = ResourceMaker._makeResource(self, metaCarrier, setNames)[
+			self._makeCapabilities(metaCarrier, setNames),
 			_orgMetaBuilder.build(metaCarrier),
 			_dataMetaBuilder.build(metaCarrier),
 			_coverageMetaBuilder.build(metaCarrier),
 			self._makeTableset(schemas)]
+		return res
 
 
 class TableResourceMaker(DataCollectionResourceMaker):
-	"""A ResourceMaker for rscdef.TableDef items (yielding DataCollections)
+	"""A ResourceMaker for rscdef.TableDef items (yielding reformed
+	DataCollections)
 	"""
 	resType = "table"
 
@@ -510,9 +542,10 @@ class TableResourceMaker(DataCollectionResourceMaker):
 
 
 class DataResourceMaker(DataCollectionResourceMaker):
-	"""A ResourceMaker for rscdef.DataDescriptor items (yielding DataCollections)
+	"""A ResourceMaker for rscdef.DataDescriptor items (yielding reformed
+	DataCollections)
 	"""
-	resourceClass = VS.DataCollection
+	resourceClass = VS.CatalogService
 	resType = "data"
 
 	def _makeResource(self, dd, setNames):

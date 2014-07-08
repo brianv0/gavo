@@ -618,7 +618,8 @@ class _TableVORRecord(testhelpers.TestResource):
 			<table id="punk">
 				<column name="oink" utype="noises:animal.pig"/>
 				<column name="where" type="spoint" ucd="pos.eq;source"/>
-				<register sets="ivo_managed,local"/>
+				<register sets="ivo_managed,local" 
+					services="//tap#run,data/pubtest#moribund"/>
 				<meta name="utype">testing.table.name</meta>
 				<meta name="description">Some silly test data</meta>
 				<meta name="subject">testing</meta>
@@ -667,9 +668,6 @@ class TablePublicationRecordTest(testhelpers.VerboseTest):
 	def testAllSubjectsRendered(self):
 		self.assertEqual(len(self.tree.xpath("content/subject")), 2)
 	
-	def testDataMetaRendered(self):
-		self.assertEqual(self.tree.xpath("format")[0].text, "audio/vorbis")
-	
 	def testCoverageProfileRendered(self):
 		self.assertEqual(self.tree.xpath(
 			"coverage/STCResourceProfile/AstroCoordArea/Box/Size/C1")[0].text, 
@@ -708,16 +706,27 @@ class TablePublicationRecordTest(testhelpers.VerboseTest):
 		self.assertEqual(self.tree.xpath("tableset/schema/table/utype")[0].text,
 			"testing.table.name")
 
+	def testTAPCapabilityPresent(self):
+		self.assertEqual(self.tree.xpath(
+			"capability[@standardID='ivo://ivoa.net/std/TAP']"
+			"/interface[@role='std']/accessURL")[0].text,
+			"http://localhost:8080/__system__/tap/run/tap")
+
+	def testWebCapabilityPresent(self):
+		self.assertEqual(self.tree.xpath(
+			"//accessURL[.='http://localhost:8080/data/pubtest/moribund/form']")[0].
+			get("use"), "full")
+
 
 class _DataGetRecordRes(testhelpers.TestResource):
 	def make(self, ignored):
 		rd = base.parseFromString(rscdesc.RD, """<resource schema="data">
 			<meta name="creationDate">2011-03-04T11:00:00</meta>
-			<meta name="title">My first DataCollection</meta>
-			<table id="honk">
+			<meta name="title">My second DataCollection</meta>
+			<table id="honk" onDisk="True" temporary="True" adql="True">
 				<column name="col1" description="column from honk"/>
 			</table>
-			<table id="funk">
+			<table id="funk" onDisk="True" temporary="True" adql="True">
 				<column name="oink" utype="noises:animal.pig"/>
 				<column name="where" type="spoint" ucd="pos.eq;source"/>
 			</table>
@@ -743,6 +752,17 @@ class DataGetRecordTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 
 	def testIsValid(self):
 		self.assertValidates(self.srcAndTree[0])
+
+	def testType(self):
+		self.assertEqual(self.srcAndTree[1].xpath("//Resource")[0].get(
+			"{http://www.w3.org/2001/XMLSchema-instance}type"),
+			"vs:CatalogService")
+
+	def testAutoTAPCapabilityPresent(self):
+		self.assertEqual(self.srcAndTree[1].xpath(
+			"//capability[@standardID='ivo://ivoa.net/std/TAP']"
+			"/interface[@role='std']/accessURL")[0].text,
+			"http://localhost:8080/__system__/tap/run/tap")
 
 
 # minimal meta for successful RR generation without a (working) RD

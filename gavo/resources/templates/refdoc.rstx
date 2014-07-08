@@ -2718,7 +2718,7 @@ system ``//obscore`` RD.  Here's an somewhat more elaborate example::
   <STREAM id="obscore-extraevents">
     <property name="obscoreClause" cumulate="True">
       ,
-      CAST(\\fillFactor AS real) AS fill_factor,
+      CAST(\\\\fillFactor AS real) AS fill_factor,
     </property>
   </STREAM>
 
