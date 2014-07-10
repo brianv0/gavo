@@ -115,7 +115,7 @@
 		</dbCore>
 	</service>
 
-	<service id="dl" allowed="dlget,dlmeta">
+	<service id="dl" allowed="dlget,dlmeta,dlasync">
 		<datalinkCore>
 			<descriptorGenerator procDef="//datalink#fits_genDesc">
 				<code>

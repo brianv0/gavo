@@ -23,6 +23,7 @@ RENDERER_REGISTRY = {
 	'availability': ("web.vosi", "VOSIAvailabilityRenderer"),
 	'capabilities': ("web.vosi", "VOSICapabilityRenderer"),
 	'custom': ("web.customrender", "CustomRenderer"),
+	'dlasync': ("web.vodal", "DatalinkAsyncRenderer"),
 	'dlget': ("web.vodal", "DatalinkGetDataRenderer"),
 	'dlmeta': ("web.vodal", "DatalinkGetMetaRenderer"),
 	'docform': ("web.formrender", "DocFormRenderer"),

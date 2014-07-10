@@ -1,14 +1,21 @@
-# run pyflakes on all in-tree source files, with some basic ignoring
-# capability.
-#
-# This assumes it's being called from the tests subdirectory of
-# a complete checkout.
-#
-# This is essentially a leaned-down version of the pyflakes script
-# with some stuff for which we feel we can crash removed.
-#
-# See docs/develNotes.rstx for extra ignoring features of this
-# script.
+"""
+A program to run pyflakes on all in-tree source files, with some 
+basic ignoring capabilities.
+
+This assumes it's being called from the tests subdirectory of
+a complete DaCHS checkout.
+
+This is essentially a leaned-down version of the pyflakes script
+with some stuff for which we feel we can crash removed.
+
+See docs/develNotes.rstx for extra ignoring features of this
+script.
+"""
+
+#c Copyright 2008-2014, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
 
 
 import _ast

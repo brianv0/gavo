@@ -89,7 +89,7 @@ class JoblistResource(MethodAwareResource, UWSErrorMixin):
 		return res
 	
 	def _doPOST(self, ctx, request):
-		jobId = self.workerSystem.getNewIdFromRequest(request)
+		jobId = self.workerSystem.getNewIdFromRequest(request, self.service)
 		return UWSRedirect(self.service.getURL(
 			self.renderer), str(jobId))
 
@@ -131,4 +131,3 @@ def getAsyncResource(ctx, workerSystem, renderer, service, segments):
 		return JobResource(workerSystem, renderer, service, segments)
 	else:
 		return JoblistResource(workerSystem, renderer, service)
-

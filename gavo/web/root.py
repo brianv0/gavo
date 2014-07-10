@@ -49,6 +49,7 @@ class VanityLineError(Error):
 
 builtinVanity = """
 	__system__/products/p/get getproduct
+	__system__/products/p/dlasync datalinkuws
 	__system__/services/registry/pubreg.xml oai.xml
 	__system__/services/overview/external odoc
 	__system__/dc_tables/show/tablenote tablenote

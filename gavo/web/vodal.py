@@ -439,7 +439,7 @@ class RegistryRenderer(grend.ServiceBasedPage):
 
 
 class _DatalinkRendererBase(grend.ServiceBasedPage):
-	"""the base class of the two datalink renderers.
+	"""the base class of the two datalink sync renderers.
 	"""
 	urlUse = "base"
 
@@ -503,6 +503,34 @@ class DatalinkGetMetaRenderer(_DatalinkRendererBase):
 	"""
 	name = "dlmeta"
 	resultType = "application/x-votable+xml;content=datalink"
+
+
+class DatalinkAsyncRenderer(grend.ServiceBasedPage):
+	"""A renderer for asynchronous datalink.
+	"""
+# TODO: I suspect this should go somewhere else, presumably together
+# with the stripped-down TAP renderer.
+	name = "dlasync"
+
+	def renderHTTP(self, ctx):
+		return self.locateChild(ctx, ())[0]
+
+	def locateChild(self, ctx, segments):
+		from gavo.protocols import dlasync, uwsactions
+		from gavo.web import asyncrender
+
+		# no trailing slashes here, ever (there probably should be central
+		# code for this somewhere, as this is done in taprender, too, and
+		# possibly in other places, too)
+		if segments and not segments[-1]: # trailing slashes are forbidden here
+			newSegments = "/".join(segments[:-1])
+			if newSegments:
+				newSegments = "/"+newSegments
+			raise svcs.WebRedirect(self.service.getURL("dlasync")+newSegments)
+
+		uwsactions.lowercaseProtocolArgs(inevow.IRequest(ctx).args)
+		return asyncrender.getAsyncResource(ctx, dlasync.DL_WORKER,
+			"dlasync", self.service, segments), ()
 
 
 def _test():

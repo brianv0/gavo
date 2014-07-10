@@ -44,8 +44,13 @@ class TAPQueryResource(rend.Page):
 	While not really going through UWS, this does create a UWS job and
 	tears it down later.
 	"""
+	def __init__(self, service, ctx):
+		self.service = service
+		rend.Page.__init__(self)
+
 	def _doRender(self, ctx):
-		jobId = tap.workerSystem.getNewIdFromRequest(inevow.IRequest(ctx))
+		jobId = tap.workerSystem.getNewIdFromRequest(
+			inevow.IRequest(ctx), self.service)
 		try:
 			with tap.workerSystem.changeableJob(jobId) as job:
 				job.change(executionDuration=

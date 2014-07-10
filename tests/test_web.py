@@ -11,28 +11,16 @@ Tests for various parts of the server infrastructure, using trial.
 import atexit
 import os
 
-from gavo.helpers import testhelpers
+import trialhelpers
 
 from gavo import api
 from gavo import base
-from gavo import rsc
 from gavo import svcs
 from gavo import utils
 from gavo.imp import formal
-from gavo.svcs import streaming
-from gavo.web import root
-
-import trialhelpers
 
 
-api.setConfig("web", "enabletests", "True")
-
-
-class ArchiveTest(trialhelpers.RenderTest):
-	renderer = root.ArchiveService()
-
-
-class AdminTest(ArchiveTest):
+class AdminTest(trialhelpers.ArchiveTest):
 	def _makeAdmin(self, req):
 		req.user = "gavoadmin"
 		req.password = api.getConfig("web", "adminpasswd")
@@ -97,7 +85,7 @@ class AdminTest(ArchiveTest):
 		).addCallback(checkBlocked)
 
 
-class CustomizationTest(ArchiveTest):
+class CustomizationTest(trialhelpers.ArchiveTest):
 	def testSidebarRendered(self):
 		return self.assertGETHasStrings("/data/test/basicprod/form", {}, [
 			'<a href="mailto:invalid@whereever.else">site operators</a>',
@@ -120,7 +108,7 @@ class CustomizationTest(ArchiveTest):
 			"<managedAuthority>x-unregistred</managedAuthority>"])
 
 
-class FormTest(ArchiveTest):
+class FormTest(trialhelpers.ArchiveTest):
 	def testSimple(self):
 		return self.assertGETHasStrings("/data/test/basicprod/form", {}, [
 				'<a href="/static/help_vizier.shtml#floats">[?num. expr.]</a>',
@@ -175,7 +163,7 @@ class FormTest(ArchiveTest):
 				['"queryStatus": "Ok"', '"dbtype": "real"'])
 
 
-class StreamingTest(ArchiveTest):
+class StreamingTest(trialhelpers.ArchiveTest):
 	def testStreamingWorks(self):
 		return self.assertGETHasStrings("/test/stream", {"size": 30}, [
 			"123456789012345678901234567890"])
@@ -241,7 +229,7 @@ _TEMPLATE_TEMPLATE = """
 </html>
 """
 
-class TemplatingTest(ArchiveTest):
+class TemplatingTest(trialhelpers.ArchiveTest):
 # These must not run in parallel since they're sharing a file name
 # (and it's hard to change this since the clean up would have
 # to take place in the test callback)
@@ -304,7 +292,7 @@ class TemplatingTest(ArchiveTest):
 			['<div><p>No junky weirdness'])
 	
 
-class PathResoutionTest(ArchiveTest):
+class PathResoutionTest(trialhelpers.ArchiveTest):
 	def testDefaultRenderer(self):
 		return self.assertGETHasStrings("/data/cores/impgrouptest", {},
 			['id="genForm-rV"']) #form rendered
@@ -323,27 +311,27 @@ class PathResoutionTest(ArchiveTest):
 		).addCallback(checkRedirect)
 
 
-class BuiltinResTest(ArchiveTest):
+class BuiltinResTest(trialhelpers.ArchiveTest):
 	def testRobotsTxt(self):
 		return self.assertGETHasStrings("/robots.txt", {},
 			['Disallow: /login'])
 
 
-class ConstantRenderTest(ArchiveTest):
+class ConstantRenderTest(trialhelpers.ArchiveTest):
 	def testVOPlot(self):
 		return self.assertGETHasStrings("/__system__/run/voplot/fixed",
 			{"source": "http%3A%3A%2Ffoo%3Asentinel"}, 
 			['<object archive="http://']) # XXX TODO: votablepath is url-encoded -- that can't be right?
 
 
-class MetaRenderTest(ArchiveTest):
+class MetaRenderTest(trialhelpers.ArchiveTest):
 	def testMacroExpanded(self):
 		return self.assertGETHasStrings("/browse/__system__/tap", {},
 			['<div class="rddesc"><span class="plainmeta"> Unittest'
 				" Suite's Table Access"])
 
 
-class MetaPagesTest(ArchiveTest):
+class MetaPagesTest(trialhelpers.ArchiveTest):
 	def testGetRR404(self):
 		return self.assertGETHasStrings("/getRR/non/existing", {},
 			['The resource non#existing is unknown at this site.'])
@@ -353,47 +341,7 @@ class MetaPagesTest(ArchiveTest):
 			['<identifier>ivo://x-unregistred/data/pubtest/moribund</identifier>'])
 
 
-class DatalinkTest(ArchiveTest):
-	def testErrorDocumentMetaGeneral(self):
-		return self.assertGETHasStrings("/data/cores/dl/dlmeta", 
-			{"ID": "broken"},
-			["<TD>Error: global name 'ddt' is not defined</TD>"])
-
-	def testErrorDocumentMetaNotFound(self):
-		return self.assertGETHasStrings("/data/cores/dl/dlmeta", 
-			{"ID": "ivo://not.here"},
-			["<TD>NotFoundError: Not a pubDID from this site.</TD>"])
-
-	def testErrorDocumentAccess(self):
-		return self.assertGETHasStrings("/data/cores/dl/dlget", 
-			{"ID": "broken"},
-			["global name 'ddt' is not defined"])
-
-	def testErrorStatus(self):
-		return self.assertStatus("/data/cores/dl/dlget", 422)
-
-	def testMetadata(self):
-		return self.assertGETHasStrings("/data/cores/dl/dlmeta", 
-			{"ID": "ivo://x-unregistred/~?data/excube.fits"},
-			['<DESCRIPTION>The latitude coordinate, lower limit</DESCRIPTION>'
-				'<VALUES><MIN value="30.9831815872">',])
-
-	def testMetadataError(self):
-		return self.assertGETHasStrings("/data/cores/dl/dlmeta", 
-			{"ID": "ivo://x-unregistred/~?data/excube.fit"},
-			["TR><TD>ivo://x-unregistred/~?data/excube.fit</TD><TD></TD><TD>"
-				"NotFoundError: accref 'data/excube.fit' could not be located"
-				" in product table</TD>"])
-	
-	def testSpecCutout(self):
-		return self.assertGETHasStrings("/data/cores/dl/dlget", {
-			"ID": "ivo://x-unregistred/~?data/excube.fits",
-			"COO_3_MIN": "3753"}, [
-			"NAXIS3  =                    2",
-			"CRPIX3  =                 -1.0"])
-
-
-class SCSTest(ArchiveTest):
+class SCSTest(trialhelpers.ArchiveTest):
 	def testCasting(self):
 		return self.assertGETHasStrings("/data/cores/scs", 
 			{"RA": [1], "DEC": ["2"], "SR": ["1.5"]},
@@ -408,20 +356,7 @@ class SCSTest(ArchiveTest):
 			'<sr>1</sr>'])
 
 
-# module-level resource management
-
-def provideRDData(rdName, ddId):
-	dd = testhelpers.getTestRD(rdName).getById(ddId)
-	dataCreated = rsc.makeData(dd)
-	# may be gone in atexit
-	nvArg = rsc.parseNonValidating
-
-	def cleanup():
-		dataCreated.dropTables(nvArg)
-	
-	return cleanup
-
-atexit.register(provideRDData("test", "import_fitsprod"))
-atexit.register(provideRDData("cores", "import_conecat"))
+atexit.register(trialhelpers.provideRDData("test", "import_fitsprod"))
+atexit.register(trialhelpers.provideRDData("cores", "import_conecat"))
 
 base.DEBUG = True

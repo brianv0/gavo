@@ -338,7 +338,7 @@ machinery -->
 		<column name="sdec"/>
 	</table>
 
-	<service id="p" core="core" allowed="get, form">
+	<service id="p" core="core" allowed="get,form,dlasync">
 		<meta name="description">The main product deliverer</meta>
 	</service>
 </resource>

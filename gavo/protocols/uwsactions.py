@@ -141,8 +141,7 @@ def getJobList(workerSystem):
 		result[
 			UWS.jobref(id=jobId, href=workerSystem.getURLForId(jobId))[
 				UWS.phase[phase]]]
-	return stanxml.xmlrender(result, "<?xml-stylesheet "
-		"href='/static/xsl/uws-joblist-to-html.xsl' type='text/xsl'?>")
+	return stanxml.xmlrender(result, workerSystem.joblistPreamble)
 
 
 def getErrorSummary(job):
@@ -316,7 +315,6 @@ class PhaseAction(JobAction):
 		raise svcs.WebRedirect(job.jobId)
 	
 	def doGET(self, job, request):
-		job.uws.checkProcessQueue()
 		request.setHeader("content-type", "text/plain")
 		return job.phase
 JobActions.addStandardAction(PhaseAction)
@@ -467,9 +465,8 @@ class RootAction(JobAction):
 			getParametersElement(job),
 			_getResultsElement(job),
 			getErrorSummary(job)])
-		return stanxml.xmlrender(tree,
-			"<?xml-stylesheet href='%s' type='text/xsl'?>"%
-				"/static/xsl/uws-job-to-html.xsl")
+		return stanxml.xmlrender(tree, job.uws.jobdocPreamble)
+				
 
 JobActions.addStandardAction(RootAction)
 

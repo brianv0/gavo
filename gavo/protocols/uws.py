@@ -92,9 +92,26 @@ class UWS(object):
 
 	You must override the getURLForId(jobId) method in your concrete
 	implementation.
+
+	Also, you probably must override the 
+	getParamsFromRequest(wjob, request, service)
+	method that takes a writable job and a nevow-type request object and
+	fills the job parameters from the request.  The default implementation
+	does nothing, and you do not need to upcall.
+
+	You should also override jobdocPreamble and joblistPreamble.  This
+	is raw XML that is prepended to job and list documents.  This is primarily
+	for PIs giving stylesheets, but given we don't use doctypes you could
+	provide internal subsets there, too.  Anyway, see the TAP UWS runner 
+	for examples.
 	"""
 	# how often should we check for jobs that wait for destruction?
 	cleanupInterval = 3600*12
+
+	# raw XML to prepend to joblist documents
+	joblistPreamble = ""
+	# raw XML to prepend to job documents
+	jobdocPreamble = ""
 
 	def __init__(self, jobClass, jobActions):
 		self.jobClass = jobClass
@@ -195,6 +212,27 @@ class UWS(object):
 				job.change(**kws)
 				self._serializeProps(job.getProperties(), conn)
 		return job.jobId
+
+	def getNewIdFromRequest(self, request, service):
+		"""returns the id of a new TAP job created from request.
+
+		Request has to be a newow request or similar, with request arguments in
+		request.args.
+
+		This calls getParamsFromRequest(wjob, request, service) to do the actual
+		work; this latter method is what individual UWSes should override.
+		"""
+		jobId = self.getNewJobId()
+		with self.changeableJob(jobId) as wjob:
+			self.getParamsFromRequest(wjob, request, service)
+		return jobId
+
+	def getParamsFromRequest(self, wjob, request, service):
+		"""should transfer "interesting" arguments from request to wjob.
+
+		The default implementation does nothing; override this in actual UWSes.
+		"""
+		return
 
 	def _getJob(self, jobId, conn, writable=False):
 		"""helps getJob and getNewJob.
@@ -409,17 +447,21 @@ class JobParameter(object):
 	since (get|set)SerializedPar falls back to the base class.
 
 	CAUTION: Do *not* say job.parameters[bla] = "ab" -- your changes
-	will get lost.  Always manipulate the parameters dictionary
-	by using cls.updateParameter(name, value, job)
+	will get lost because serialisation of the parameters dictioanry must
+	be initiated manually.  Always manipulate the parameters dictionary
+	by using cls.updatePar(name, value, job) or a suitable
+	facade (job.setPar, job.setSerializedPar)
 	"""
 	_deserialize, _serialize = str, str
 
 	@classmethod
-	def updateParameter(cls, name, value, job):
+	def updatePar(cls, name, value, job):
 		"""enters name:value into job's parameter dict.
 
 		See the uws.JobParameter's docstring.
 		"""
+		# this is a bit magic because job.parameters is only re-encoded
+		# on demand
 		parameters = job.parameters
 		parameters[name] = value
 		# see our docstring
@@ -432,7 +474,7 @@ class JobParameter(object):
 		if isinstance(value, basestring) and len(value)>50000:
 			base.ui.notifyWarning("UWS Parameter %s discarded as too long; first"
 				" bytes: %s"%(name, repr(value[:20])))
-		cls.updateParameter(name, cls._deserialize(value), job)
+		cls.updatePar(name, cls._deserialize(value), job)
 
 	@classmethod
 	def getPar(cls, name, job):
@@ -462,11 +504,11 @@ class BaseUWSJob(object):
 	"""An abstract UWS job.
 
 	UWS jobs are always instanciated with a row from the associated
-	jobs table (i.e. a dictionary giving all the parameters).  You
+	jobs table (i.e. a dictionary giving all the uws parameters).  You
 	can read the properties as attributes.  UWSJobs also keep
 	a (weak) reference to the UWS that made them.
 
-	To alter parameters, use the change method.  This will fail unless
+	To alter uws parameters, use the change method.  This will fail unless
 	the job was created giving writable=True.
 
 	To make it concrete, you need to define:
@@ -476,7 +518,7 @@ class BaseUWSJob(object):
 	- a _transitions attribute giving a UWSTransitions instance that defines
 	  what to do on transistions
 	- as needed, class methods _default_<parName> if you need to default
-	  parameters in newly created jobs
+	  job parameters in newly created jobs
 	- as needed, methods _decode_<parName> and _encode_<parName>
 	  to bring uws parameters (i.e., everything that has a DB column)
 	  from and to the DB representation from *python* values.
@@ -491,7 +533,7 @@ class BaseUWSJob(object):
 	  something in the file system, you probably don't want to
 	  use that.
 
-	If have have non-string items in the parameters dictionary, define
+	If have have non-string items in the job parameters dictionary, define
 	class attributes _parameters_<parname.lower()> with JobParameter
 	values saying how they are serialized and deserialized.  You
 	do not need to do this for string parameters.
@@ -509,7 +551,7 @@ class BaseUWSJob(object):
 # Thus, the protocol methods (e.g., speaking HTTP) will know about the
 # external representations, and UWSJobs just return python values for them.
 #
-# For parameters, the serialization is something about the job control
+# For job parameters, the serialization is something about the job control
 # language.  Thus, the serialization is better done by the job class
 # rather than the code implementing the underlying protocol.  Hence
 # the JobParameters magic.  See also the TAP job, where that kind of
@@ -627,8 +669,8 @@ class BaseUWSJob(object):
 		return pickle.loads(str(value).decode("base64").decode("zlib"))
 
 	def _getParameterDef(self, parName):
-		"""returns the parameter definition for parName and the name the parameter
-		will actually be stored as.
+		"""returns the job/uws parameter definition for parName and the name 
+		the parameter will actually be stored as.
 
 		All these parameters are forced to be lower case (and thus
 		case-insensitive).  The actual storage name of the parameter is
@@ -643,16 +685,22 @@ class BaseUWSJob(object):
 	def setSerializedPar(self, parName, parValue):
 		"""enters parName:parValue into self.parameters after deserializing it.
 
-		This is for use from a text-base interface.  Workers write to
-		parameters directly.
+		This is when input comes from text; use setPar for values already 
+		parsed.
 		"""
 		parDef, name = self._getParameterDef(parName)
 		parDef.addPar(name, parValue, self)
-	
+
+	def setPar(self, parName, parValue):
+		"""enters parName:parValue into self.parameters.
+		"""
+		parDef, name = self._getParameterDef(parName)
+		parDef.updatePar(name, parValue, self)
+
 	def getSerializedPar(self, parName):
 		"""returns self.parameters[parName] in text form.
 
-		This is for use from a text-base interface.  Workers read from
+		This is for use from a text-based interface.  Workers read from
 		parameters directly.
 		"""
 		parDef, name = self._getParameterDef(parName)
@@ -1037,11 +1085,11 @@ class _UWSBackendProtocol(protocol.ProcessProtocol):
 		self.workerSystem = workerSystem
 
 	def outReceived(self, data):
-		base.ui.notifyInfo("TAP client %s produced output: %s"%(
+		base.ui.notifyInfo("TAP worker %s produced output: %s"%(
 			self.jobId, data))
 	
 	def errReceived(self, data):
-		base.ui.notifyInfo("TAP client %s produced an error message: %s"%(
+		base.ui.notifyInfo("TAP worker %s produced an error message: %s"%(
 			self.jobId, data))
 	
 	def processEnded(self, statusObject):
@@ -1064,6 +1112,10 @@ class ProcessBasedUWSTransitions(SimpleUWSTransitions):
 	Inheriting classes must implement the getCommandLine(wjob) method --
 	it must return a command (suitable for reactor.spawnProcess and
 	os.execlp and a list of arguments suitable for reactor.spawnProcess.
+
+	The must also implement some sort of queue management.  The the simplest
+	case, override queueJob and start the job from there (but set
+	to QUEUED in there anyway).
 	"""
 	def getCommandLine(self, wjob):
 		raise NotImplementedError("%s transitions do not define how"

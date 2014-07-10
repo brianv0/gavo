@@ -31,7 +31,7 @@ def assertType(id, ob, forceType):
 	return ob
 
 
-def resolveCrossId(id, forceType):
+def resolveCrossId(id, forceType=None):
 	"""resolves id, where id is of the form rdId#id.
 	"""
 	try:

@@ -800,7 +800,7 @@
 
 	<!-- ************************************************ async support -->
 
-	<table id="datalinkjobs" system="True">
+	<table id="datalinkjobs" onDisk="True" system="True">
 		<meta name="description">A table managing datalink jobs submitted
 			asynchronously (the dlasync renderer)</meta>
 

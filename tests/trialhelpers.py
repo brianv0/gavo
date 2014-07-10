@@ -20,11 +20,18 @@ from nevow import util
 from nevow import testutil
 from nevow import url
 from twisted.trial.unittest import TestCase as TrialTest
-from twisted.python import failure
+from twisted.python import failure  #noflake: exported name
 from twisted.internet import defer
 
+from gavo.helpers import testhelpers
+
 from gavo import base
+from gavo import rsc
+
+base.setConfig("web", "enabletests", "True")
 from gavo.web import weberrors
+from gavo.web import root
+
 
 def _requestDone(result, request, ctx):
 	if isinstance(result, basestring):
@@ -108,7 +115,8 @@ class FakeRequest(testutil.AccumulatingFakeRequest):
 	def registerProducer(self, producer, isPush):
 		self.producer = producer
 		if not isPush:
-			testutil.AccumulatingFakeRequest.registerProducer(producer, isPush)
+			testutil.AccumulatingFakeRequest.registerProducer(
+				self, producer, isPush)
 
 	def unregisterProducer(self):
 		del self.producer
@@ -213,6 +221,37 @@ class RenderTest(TrialTest):
 		return runQuery(self.renderer, "GET", path, args
 			).addCallback(cb
 			).addErrback(eb)
+
+
+class ArchiveTest(RenderTest):
+	renderer = root.ArchiveService()
+
+
+def provideRDData(rdName, ddId, _imported=set()):
+	"""makes ddId from rdName and returns a cleanup function.
+
+	This is for creating temporary data for tests; it's supposed to be used
+	as in::
+
+		atexit.register(provideRDData("test", "import_fitsprod"))
+	
+	This keeps track of (rdName, ddId) pairs it's already loaded and
+	doesn't import them again.
+	"""
+	if (rdName, ddId) in _imported:
+		return lambda: None
+
+	dd = testhelpers.getTestRD(rdName).getById(ddId)
+	dataCreated = rsc.makeData(dd)
+	_imported.add((rdName, ddId))
+
+	# may be gone in atexit
+	nvArg = rsc.parseNonValidating
+
+	def cleanup():
+		dataCreated.dropTables(nvArg)
+	
+	return cleanup
 
 
 if os.environ.get("GAVO_LOG")!="no":

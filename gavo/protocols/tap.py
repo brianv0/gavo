@@ -275,7 +275,7 @@ class LangParameter(uws.JobParameter):
 		if value not in SUPPORTED_LANGUAGES:
 			raise base.ValidationError("This service does not support the"
 				" query language %s"%value, "LANG")
-		uws.JobParameter.updateParameter(name, value, job)
+		uws.JobParameter.updatePar(name, value, job)
 
 
 class MaxrecParameter(uws.JobParameter):
@@ -331,7 +331,7 @@ class UploadParameter(uws.JobParameter):
 			else:
 				newUploads.append((tableName, upload))
 		newVal = job.parameters.get(name, [])+newUploads
-		uws.JobParameter.updateParameter(name, newVal, job)
+		uws.JobParameter.updatePar(name, newVal, job)
 
 	@classmethod
 	def getPar(cls, name, job):
@@ -455,6 +455,11 @@ class TAPUWS(uws.UWS):
 	# QUEUED jobs could be promoted to executing.
 	_processQueueDirty = False
 	_baseURLCache = None
+
+	joblistPreamble = ("<?xml-stylesheet href='/static"
+		"/xsl/tap-joblist-to-html.xsl' type='text/xsl'?>")
+	jobdocPreamble = ("<?xml-stylesheet href='/static/xsl/"
+		"tap-job-to-html.xsl' type='text/xsl'?>")
 
 	def __init__(self):
 		# processQueue shouldn't need a lock, but it's wasteful to
@@ -582,28 +587,20 @@ class TAPUWS(uws.UWS):
 		uws.UWS.changeToPhase(self, jobId, newPhase, input, timeout)
 		self.checkProcessQueue()
 
-	def getNewIdFromRequest(self, request):
-		"""returns the id of a new TAP job created from request.
-
-		Request has to be a newow request or similar, with request arguments in
-		request.args.
+	def getParamsFromRequest(self, wjob, request, service):
+		"""Feeds parameters from request into wjob.
 
 		We assume uwsactions.lowercaseProtocolArgs has already been applied
 		to request.args.
 
-		getNewIdFromRequest picks out UWS parameters feeds them to the new
-		job.  Everything else is passed as a parameter (for when we get
-		PQL runners).
+		For now everything in args, including protocol arguments, is stuffed 
+		into parameters; the only real UWS parameter we may want to look at 
+		is PHASE for when the job is to be queued immediately.
 		"""
-		# actually, for now everything in args is stuffed into parameters;
-		# the only real UWS parameter we may want to look at is PHASE
-		# for when the job is to be queued immediately.
-		jobId = self.getNewJobId()
-		with self.changeableJob(jobId) as wjob:
-			for key, valueList in request.args.iteritems():
-				for value in valueList:
-					wjob.setSerializedPar(key, valueList[0])
-		return jobId
+		for key, valueList in request.args.iteritems():
+			if valueList:
+				# TODO: deal with possible list-valued parameters.
+				wjob.setSerializedPar(key, valueList[0])
 
 	@property
 	def baseURL(self):
