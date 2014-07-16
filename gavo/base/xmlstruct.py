@@ -133,9 +133,16 @@ def _synthesizeAttributeEvents(evProc, context, attrs):
 	original = attrs.pop("original", None)
 	if original:
 		evProc.feed("value", "original", original)
+	
+	# mixins must be fed last as they might depend on stuff set
+	# in other attributes
+	mixin = attrs.pop("mixin", None)
+
 	for key, val in attrs.iteritems():
 		evProc.feed("value", key, val)
 
+	if mixin:
+		evProc.feed("value", "mixin", mixin)
 
 def feedTo(rootStruct, eventSource, context, feedInto=False):
 	"""feeds events from eventSource to rootStruct.
@@ -175,6 +182,7 @@ def feedTo(rootStruct, eventSource, context, feedInto=False):
 			if type=="start" and payload:  
 				_synthesizeAttributeEvents(evProc, context, payload)
 				payload = None
+
 	except Exception, ex:
 		if (not getattr(ex, "posInMsg", False) 
 				and getattr(ex, "pos", None) is None):

@@ -516,7 +516,7 @@ class MixinTest(testhelpers.VerboseTest):
 
 	def testNotFilledMacro(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			'At [<resource schema="test">\\n\\...], (9, 35):'
+			'At [<resource schema="test">\\n\\...], (9, 27):'
 			" Mixin parameter nd mandatory",
 			base.parseFromString,
 			(rscdesc.RD,
@@ -532,7 +532,7 @@ class MixinTest(testhelpers.VerboseTest):
 	
 	def testUnknownMacroRaises(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			'At [<resource schema="test">\\n\\...], (9, 43):'
+			'At [<resource schema="test">\\n\\...], (9, 35):'
 			' The attribute(s) a is/are not allowed on this mixin',
 			base.parseFromString,
 			(rscdesc.RD,
@@ -611,6 +611,26 @@ class MixinTest(testhelpers.VerboseTest):
 		self.assertEqual(res.tables[1].id, "dest")
 		self.assertEqual(res.tables[1].columns[0].name, "a")
 		self.assertEqual(res.tables[1].columns[1].name, "b")
+
+	def testMaterialOverrideable(self):
+		res = base.parseFromString(rscdesc.RD,
+			"""<resource schema="data">
+				<table id="bla" mixin="//siap#pgs" onDisk="True" temporary="True">
+					<column name="dateObs" description="Don't believe this."/>
+				</table></resource>""")
+		self.assertEqual(
+			res.getById("bla").getColumnByName("dateObs").description,
+			"Don't believe this.")
+
+	def testLateEvents(self):
+		res = base.parseFromString(rscdesc.RD,
+			"""<resource schema="data">
+				<table id="bla" mixin="//scs#q3cindex" onDisk="True" temporary="True">
+					<column name="r" ucd="pos.eq.ra;meta.main"/>
+					<column name="d" ucd="pos.eq.dec;meta.main"/>
+				</table></resource>""")
+		self.assertTrue("q3c_ang2ipix(r, d)" in
+			"".join(res.getById("bla").indices[0].iterCode()))
 
 
 class ReferenceAttributeTest(testhelpers.VerboseTest):

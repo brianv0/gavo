@@ -75,8 +75,10 @@
 		</doc>
 		<events>
 			<FEED source="//scs#positionsFields"/>
-			<FEED source="//scs#q3cIndexDef"/>
 		</events>
+		<lateEvents>
+			<FEED source="//scs#q3cIndexDef"/>
+		</lateEvents>
 	</mixinDef>
 
 	<mixinDef id="q3cindex">
@@ -93,9 +95,9 @@
 
 			This will fail without the q3c extension to postgres.
 		</doc>
-		<events>
+		<lateEvents>
 			<FEED source="//scs#q3cIndexDef"/>
-		</events>
+		</lateEvents>
 	</mixinDef>
 
 

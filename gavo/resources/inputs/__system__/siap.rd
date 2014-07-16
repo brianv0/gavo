@@ -320,7 +320,10 @@
 			<par key="refFrame" late="True" description="reference frame
 				of the coordinates (change at your peril)">'ICRS'</par>
 			<par key="pixflags" late="True" description="processing flags 
-				(see spec)">None</par>
+				(C atlas image or cutout, F resampled, X computed without 
+				interpolation, Z pixel flux
+				calibrated, V unspecified visualisation for presentation only)"
+				>None</par>
 		</setup>
 		<code>
 			result["dateObs"] = toMJD(dateObs)
@@ -341,8 +344,9 @@
 			sets the bandpassId, bandpassUnit, bandpassRefval, bandpassHi,
 			and bandpassLo from a set of standard band Ids.
 
-			The bandpass ids known are contained in a file filters.txt in
-			resources/data; see there for details.
+			The bandpass ids known are contained in a file supplied file
+			that you should consult for supported values.  Run
+			gavo admin dumpDF data/filters.txt for details.
 
 			All values filled in here are in meters.
 

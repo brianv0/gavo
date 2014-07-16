@@ -1006,7 +1006,6 @@
 				fieldnames="ssa_dstitle ssa_creatorDID ssa_cdate ssa_bandpass 
 					ssa_cversion ssa_creator ssa_collection ssa_instrument 
 					ssa_datasource ssa_creationtype"/>
-
 			<!-- units and UCDs are being filled in by processEarly -->
 			<column name="spectral" type="double precision"
 				utype="spec:Spectrum.Data.SpectralAxis.Value"

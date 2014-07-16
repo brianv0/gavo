@@ -73,6 +73,13 @@ class MixinPar(procdef.RDParameter):
 				" they are exposed as macros")
 
 
+class LateEvents(activetags.EmbeddedStream):
+	"""An event stream played back by a mixin when the substrate is being
+	finalised (but before the early processing).
+	"""
+	name_ = "lateEvents"
+
+
 class MixinDef(activetags.ReplayBase):
 	"""A definition for a resource mixin.
 
@@ -111,7 +118,13 @@ class MixinDef(activetags.ReplayBase):
 	_events = base.StructAttribute("events", 
 		childFactory=activetags.EmbeddedStream,
 		description="Events to be played back into the structure mixing"
-		" this in", copyable=True)
+		" this in at mixin time.", copyable=True,
+		default=base.NotGiven)
+	_lateEvents = base.StructAttribute("lateEvents", 
+		childFactory=LateEvents,
+		description="Events to be played back into the structure mixing"
+		" this in at completion time.", copyable=True,
+		default=base.NotGiven)
 	_processEarly = base.StructAttribute("processEarly", 
 		default=None, 
 		childFactory=ProcessEarly,
@@ -131,9 +144,11 @@ class MixinDef(activetags.ReplayBase):
 	def completeElement(self, ctx):
 		# we want to double-expand macros in mixins.  Thus, reset all
 		# value/expanded events to plain values
-		for ind, ev in enumerate(self.events.events_):
-			if ev[0]==activetags._EXPANDED_VALUE:
-				self.events.events_[ind] = ("value",)+ev[1:]
+		if self.events:
+			self.events.unexpandMacros()
+		if self.lateEvents:
+			self.lateEvents.unexpandMacros()
+
 		# This lock protects against multiple uses of applyTo.  This is
 		# necessary because during replay, we have macroExpansions and
 		# macroParent reflect a concrete application's context.
@@ -178,25 +193,33 @@ class MixinDef(activetags.ReplayBase):
 				"No macro \\%s available in this mixin or substrate."%(macName), 
 				macName)
 
-
 	def applyTo(self, destination, ctx, fillers={}):
 		"""replays the stored events on destination and arranges for processEarly
 		and processLate to be run.
 		"""
-		self.applicationLock.acquire()
-		try:
-			self._defineMacros(fillers, destination)
-			self.replay(self.events.events_, destination, ctx)
+		with self.applicationLock:
+			self._defineMacros(fillers.copy(), destination)
+			if self.events:
+				self.replay(self.events.events_, destination, ctx)
+
 			if self.processEarly is not None:
 				self.processEarly.compile(destination)(ctx, destination, 
 					self.macroExpansions)
+
 			if self.processLate is not None:
 				def procLate(rootStruct, parseContext):
 					self.processLate.compile(destination)(
 						destination, rootStruct, parseContext)
 				ctx.addExitFunc(procLate)
-		finally:
-			self.applicationLock.release()
+
+		if self.lateEvents:
+			origComplete = destination.completeElement
+			def newComplete(ctx):
+				with self.applicationLock:
+					self._defineMacros(fillers.copy(), destination)
+					self.replay(self.lateEvents.events_, destination, ctx)
+				origComplete(ctx)
+			destination.completeElement = newComplete
 
 	def applyToFinished(self, destination):
 		"""applies the mixin to an object already parsed.
@@ -213,7 +236,12 @@ class MixinDef(activetags.ReplayBase):
 		if rd is not None:
 			ctx.idmap = destination.rd.idmap
 		self.applyTo(destination, ctx)
-		
+
+		# we don't keep the application lock for this; applyToFinished
+		# is more of a debugging thing, so we don't worry too much.
+		if self.lateEvents:
+			self.replay(self.lateEvents.events_, destination, ctx)
+
 		if rd is not None:
 			ctx.runExitFuncs(rd)
 
@@ -263,7 +291,7 @@ class MixinAttribute(base.SetOfAtomsAttribute):
 	"""An attribute defining a mixin.
 
 	This currently is only offered on tables, though in principle we could
-	have it anywhere now, though we might want some compatibility checking
+	have it anywhere now, but we'd want some compatibility checking
 	then.
 
 	This is never copyable since this would meaning playing the same
@@ -271,7 +299,7 @@ class MixinAttribute(base.SetOfAtomsAttribute):
 
 	This means trouble for magic scripts (in particular processLate); e.g.,
 	if you copy a table mixing in products, the data element for that table
-	will not receive the product table.  Goes to show the whole process
+	will not receive the product table.  Goes to show the whole product
 	mess is ugly and needs a good idea.
 	"""
 	def __init__(self, **kwargs):
@@ -293,14 +321,12 @@ class MixinAttribute(base.SetOfAtomsAttribute):
 		instance.completeElement = mixinCompleter
 
 	def feed(self, ctx, instance, mixinRef, fillers={}):
-		"""schedules the mixin elements to be fed when the element is
-		completed.
+		"""feeds the immediate elements and schedules the rest of
+		actions to be taken in time.
 		"""
 		mixin = ctx.resolveId(mixinRef, instance=instance, forceType=MixinDef)
 		base.SetOfAtomsAttribute.feed(self, ctx, instance, mixinRef)
-		def applyMixin():
-			mixin.applyTo(instance, ctx, fillers)
-		self._insertCompleter(instance, applyMixin)
+		mixin.applyTo(instance, ctx, fillers)
 
 	# no need to override feedObject: On copy and such, replay has already
 	# happened.

@@ -358,7 +358,7 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 
 	def getFeeder(self, **kwargs):
 		if "notify" not in kwargs:
-			kwargs["notify"] = not self.tableDef.system
+			kwargs["notify"] = not self.tableDef.system or not self.tableDef.onDisk
 		return _Feeder(self, self.addCommand, **kwargs)
 
 	def importFinished(self):

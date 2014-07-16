@@ -166,9 +166,18 @@ class RecordingBase(structure.Structure):
 		"""
 		return _PreparedEventSource(self.events_)
 
+	def unexpandMacros(self):
+		"""undoes the marking of expanded values as expanded.
+
+		This is when, as with mixins, duplicate expansion of macros during
+		replay is desired.
+		"""
+		for ind, ev in enumerate(self.events_):
+			if ev[0]==_EXPANDED_VALUE:
+				self.events_[ind] = ("value",)+ev[1:]
+
 	# This lets us feedFrom these
 	iterEvents = getEventSource
-
 
 
 class EventStream(RecordingBase, GhostMixin, ActiveTag):
