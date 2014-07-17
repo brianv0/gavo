@@ -292,11 +292,13 @@ def _bibcodeMapperFactory(colDesc):
 		return
 	def coder(data):
 		if data:
-			return T.a(href=base.getConfig("web", "adsMirror")+
-					"/cgi-bin/nph-bib_query?bibcode="+urllib.quote(data))[
-				data]
+			for item in data.split(","):
+				yield T.a(href=base.getConfig("web", "adsMirror")+
+					"/cgi-bin/nph-bib_query?bibcode="+urllib.quote(item.strip()))[
+					item.strip()]
+				yield ", "
 		else:
-			return ""
+			yield ""
 	return coder
 _registerHTMLMF(_bibcodeMapperFactory)
 

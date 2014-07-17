@@ -417,8 +417,8 @@ _config = Configuration(
 		ListConfigItem("graphicMimes", "image/fits,image/jpeg", "MIME types"
 			" considered as graphics (for SIAP, mostly)"),
 		StringConfigItem("adsMirror", 
-			"http://ads.g-vo.org/",
-			"Root URL of ADS mirror to be used"),
+			"http://ads.g-vo.org",
+			"Root URL of ADS mirror to be used (without a trailing slash)"),
 		IntConfigItem("maxUploadSize",
 			"20000000",
 			"Maximal size of file uploads in bytes."),
