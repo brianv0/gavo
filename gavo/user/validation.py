@@ -224,6 +224,9 @@ def parseCommandLine():
 		action="store_true", dest="verbose")
 	parser.add_argument("-t", "--run-tests", help="Run regression tests"
 		" embedded in the checked RDs", action="store_true", dest="runTests")
+	parser.add_argument("-T", "--timeout", help="When running tests, abort"
+		" and fail requests after inactivity of SECONDS",
+		action="store", dest="timeout", type=int, default=15, metavar="SECONDS")
 	return parser.parse_args()
 
 
@@ -244,7 +247,7 @@ def main():
 		print "\nRunning regression tests\n"
 		from gavo.rscdef import regtest
 		runner = regtest.TestRunner(TestsCollector.testsToRun,
-			verbose=False)
+			verbose=False, timeout=args.timeout)
 		runner.runTests(showDots=True)
 		print runner.stats.getReport()
 		if runner.stats.fails:

@@ -312,7 +312,7 @@ class DataURL(base.Structure):
 				("_charset_", "UTF-8")])
 		return params
 
-	def retrieveResource(self, serverURL, timeout=10):
+	def retrieveResource(self, serverURL, timeout):
 		"""returns a triple of status, headers, and content for retrieving
 		this URL.
 		"""
@@ -438,7 +438,7 @@ class RegTest(procdef.ProcApp, unittest.TestCase):
 			source = " (%s)"%id
 		return self.title+source
 
-	def retrieveData(self, serverURL, timeout=20):
+	def retrieveData(self, serverURL, timeout):
 		"""returns headers and content when retrieving the resource at url.
 
 		Sets	the headers and data attributes of the test instance.
@@ -685,7 +685,7 @@ class TestRunner(object):
 
 	def __init__(self, suites, serverURL=None, 
 			verbose=True, dumpNegative=False, tags=None,
-			timeout=20, failFile=None, nRepeat=1):
+			timeout=10, failFile=None, nRepeat=1):
 		self.verbose, self.dumpNegative = verbose, dumpNegative
 		self.failFile, self.nRepeat = failFile, nRepeat
 		if tags:
@@ -940,6 +940,9 @@ def parseCommandLine(args=None):
 		action="store", dest="tag", default=None, metavar="TAG")
 	parser.add_argument("-R", "--n-repeat", help="Run each test N times",
 		action="store", dest="nRepeat", type=int, default=None, metavar="N")
+	parser.add_argument("-T", "--timeout", help="Abort and fail requests"
+		" after inactivity of SECONDS",
+		action="store", dest="timeout", type=int, default=15, metavar="SECONDS")
 	parser.add_argument("-D", "--dump-to", help="Dump the content of"
 		" last failing test to FILE", metavar="FILE",
 		action="store", type=str, dest="failFile", 
@@ -971,6 +974,7 @@ def main(args=None):
 		"tags": tags,
 		"failFile": args.failFile,
 		"nRepeat": args.nRepeat,
+		"timeout": args.timeout,
 	}
 
 	if args.id=="ALL":
