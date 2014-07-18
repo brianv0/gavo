@@ -356,6 +356,13 @@ class SCSTest(trialhelpers.ArchiveTest):
 			'<sr>1</sr>'])
 
 
+class TestExamples(trialhelpers.ArchiveTest):
+	def testBasic(self):
+		return self.assertGETHasStrings("/data/cores/dl/examples", 
+			{},
+			['quokka'])
+
+
 atexit.register(trialhelpers.provideRDData("test", "import_fitsprod"))
 atexit.register(trialhelpers.provideRDData("cores", "import_conecat"))
 

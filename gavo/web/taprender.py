@@ -187,6 +187,10 @@ class TAPExamples(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 	checkedRenderer = False
 	customTemplate = svcs.loadSystemTemplate("tapexamples.html")
 
+	@classmethod
+	def isCacheable(self, segments, request):
+		return True
+
 	def data_examples(self, ctx, data):
 		"""returns _TAPEx instances from the database.
 		"""

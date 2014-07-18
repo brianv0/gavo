@@ -971,7 +971,32 @@ class VotLinkMeta(MetaValue):
 			val = locals()[key]
 			if val is not None:
 				self._addMeta([key], MetaValue(val))
-	
+
+
+class ExampleMeta(MetaValue):
+	"""A MetaItem to keep VOSI examples in.
+
+	All of these must have a title, which is also used to generate
+	references.
+
+	These also are in reStructuredText by default, and changing
+	that probably makes no sense at all, as these will always need
+	interpreted text roles for proper markup.
+
+	Thus, the usual pattern here is::
+
+		<meta name="_example" title="An example for _example">
+			See docs_
+
+			.. _docs: http://docs.g-vo.org
+		</meta>
+	"""
+	def __init__(self, content, format="rst", title=None):
+		if title is None:
+			raise MetaError("_example meta must always have a title")
+		MetaValue.__init__(self, content, format)
+		self._addMeta(["title"], MetaValue(title))
+
 
 _metaTypeRegistry = {
 	"link": MetaURL,
@@ -982,10 +1007,12 @@ _metaTypeRegistry = {
 	"news": NewsMeta,
 	"note": NoteMeta,
 	"votlink": VotLinkMeta,
+	"example": ExampleMeta,
 }
 
 _typesForKeys = {
 	"_related": "link",
+	"_example": "example",
 	"servedBy": "relResource",
 	"serviceFor": "relResource",
 	"relatedTo": "relResource",

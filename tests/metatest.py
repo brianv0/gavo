@@ -405,6 +405,21 @@ class TestSpecials(testhelpers.VerboseTest):
 			'<span class="newsitem">2010-03-06 (Hopefully someone): Finally ad'
 			'ded a facility to sort news</span></li></ul>')
 
+	def testExample(self):
+		m = parseMetaXML("""<meta name="_example" title="test example">
+			``seriously technical``</meta>""")
+		exMeta = list(m.iterMeta("_example"))[0]
+		self.assertEqual(base.getMetaText(exMeta, "title"), 
+			"test example")
+		self.assertTrue('<tt class="docutils literal">seriously technical</tt>'
+			in exMeta.getContent("html"))
+	
+	def testExampleWithoutTitleFails(self):
+		self.assertRaisesWithMsg(base.MetaError,
+			"_example meta must always have a title",
+			parseMetaXML,
+			("""<meta name="_example">``seriously technical``</meta>""",))
+
 
 def getRadioMeta():
 	m = base.MetaMixin()

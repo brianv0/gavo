@@ -130,6 +130,13 @@
 			<dataFormatter procDef="//datalink#fits_formatHDUs"/>
 		</datalinkCore>
 		
+		<meta name="_example" title="Example 1">
+			This is an example for examples.
+		</meta>
+
+		<meta name="_example" title="Example 2">
+			This is another example for examples.
+		</meta>
 	</service>
 
 	<dbCore id="typescore" queriedTable="data/test#typesTable"/>

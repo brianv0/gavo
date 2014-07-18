@@ -27,6 +27,7 @@ RENDERER_REGISTRY = {
 	'dlget': ("web.vodal", "DatalinkGetDataRenderer"),
 	'dlmeta': ("web.vodal", "DatalinkGetMetaRenderer"),
 	'docform': ("web.formrender", "DocFormRenderer"),
+	'examples': ("web.examplesrender", "Examples"),
 	'external': ("web.metarender", "ExternalRenderer"),
 	'fixed': ("web.constantrender", "FixedPageRenderer"),
 	'form': ("web.formrender", "Form"),
