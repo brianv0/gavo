@@ -9,6 +9,7 @@ import datetime
 
 from .. import base
 from .. import rscdesc #noflake: cache registration
+from . import products
 from . import uws
 from . import uwsactions
 
@@ -119,13 +120,27 @@ def main():
 		args = job.parameters["datalinkargs"]
 		data = service.run("dlget", args).original
 
+		# Unfortunately, datalink cores can in principle return all kinds
+		# of messy things that may not even be representable in plain files
+		# (e.g., nevow resources returning redirects).  We hence only
+		# handle (mime, payload) and (certain) Product instances here
+		# and error out otherwise.
 		if isinstance(data, tuple):
 			mime, payload = data
 			with job.openResult(mime, "result") as destF:
 				destF.write(payload)
 
+		elif isinstance(data, products.ProductBase):
+			# We could run renderHTTP and grab the content-type from there
+			# (which probably would be better all around).  For now, don't
+			# care:
+			with job.openResult("application/octet-stream", "result") as destF:
+				for chunk in data.iterData():
+					destF.write(chunk)
+
 		else:
-			raise NotImplementedError("Cannot handle this service result yet")
+			raise NotImplementedError("Cannot handle a service %s result yet."%
+				repr(data))
 		
 		with job.getWritable() as wjob:
 			wjob.change(phase=uws.COMPLETED)

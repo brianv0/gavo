@@ -276,6 +276,12 @@ class RendExplainer(object):
 			" For special applications, the base URL of this service might"
 			" still come handy: %s"%service.getURL("dlmeta")]
 
+	@classmethod
+	def _explain_dlasync(cls, service):
+		return T.invisible["an asynchronous interface to retrieving"
+			" processed data.  This needs a special client that presumably"
+			" would first look at the dlmeta endpoint to discover what"
+			" processing options are available."]
 
 	@classmethod
 	def _explainEverything(cls, service):

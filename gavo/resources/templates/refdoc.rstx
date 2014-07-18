@@ -1051,7 +1051,17 @@ uncover race conditions.
 On the other hand, if you're testing some sort of interaction across
 requests (e.g., make an upload, see if it's there, remove it again),
 this wouldn't work, and you must set `sequential="True"`.  Keep these
-sequential suites as short as possible.
+sequential suites as short as possible.  In tests within such suites
+(and only there), you can pass information from one test to the
+following one by adding attributes to ``self.followUp`` (which are
+available as attributes of self in the next test).   If you need to
+manipulate the next URL, it's at ``self.followUp.url.content_``.  For the
+common case of a redirect to the url in the location header (or a child
+thereof), there's the ``pointNextToLocation(child="")`` method of
+regression tests.  In the tests that are manipulated like this, the URL
+given in the RD should conventionally be ``overridden in the previous
+test``.  Of course, additional parameters, httpMethods, etc, are still
+applied in the manipulated url element.
 
 Regression suites contain tests, represented in regTest_ elements.
 These are procDefs (just like, e.g., rowmakery ``apply``), so you can
@@ -2097,11 +2107,15 @@ FORMAT).
 
 An alternative is to return something that has a ``renderHTTP(ctx)``
 method that works in nevow.  This is true for the Product instances that
-``//datalink#generateProduct`` generates, for example.  When you write
-that yourself, however, take care that this renderHTTP runs in the main
-server loop.  If it blocks, the server blocks, so take care that this
-doesn't happen.  The conventional way would be to return, from the
-renderHTTP method, some twisted producer.
+``//datalink#generateProduct`` generates, for example.  You can also
+write something yourself by inheriting from
+protocols.products.ProductBase and overriding its iterData method.
+
+If you don't inherit from ProductBase, take care that this renderHTTP
+runs in the main server loop.  If it blocks, the server blocks, so make
+sure that this doesn't happen.  The conventional way would be to return,
+from the renderHTTP method, some twisted producer.  Non-Product nevow
+resources will also not work with asynchronous datalink at this point.
 
 
 Registry Matters

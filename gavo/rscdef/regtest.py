@@ -340,6 +340,7 @@ class DataURL(base.Structure):
 
 			else:
 				payload = urllib.urlencode(self.getParams())
+				hdrs["Content-Type"] = "application/x-www-form-urlencoded"
 
 		scheme, host, path, _, query, _ = urlparse.urlparse(self.httpURL)
 		assert scheme=="http"
@@ -456,6 +457,27 @@ class RegTest(procdef.ProcApp, unittest.TestCase):
 			return "(Unconditional)"
 		else:
 			return self.url.httpURL
+
+	def pointNextToLocation(self, addToPath=""):
+		"""arranges for the value of the location header to become the
+		base URL of the next test.
+
+		addToPath, if given, is appended to the location header.
+
+		If no location header was provided, the test fails.
+
+		All this of course only works for tests in sequential regSuites.
+		"""
+		if not hasattr(self, "followUp"):
+			raise AssertionError("pointNextToLocation only allowed within"
+				" sequential regSuites")
+
+		for key, value in self.headers:
+			if key=='location':
+				self.followUp.url.content_ = value+addToPath
+				break
+		else:
+			raise AssertionError("No location header in redirect")
 
 	@utils.document
 	def assertHasStrings(self, *strings):

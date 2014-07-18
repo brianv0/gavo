@@ -161,6 +161,21 @@ def validateRowmakers(rd, args):
 	return True
 
 
+def validateOtherCode(rd, args):
+	"""tries to compile other pieces of code in an RD and bails out
+	if one is bad.
+	"""
+	for suite in rd.tests:
+		for test in suite.tests:
+			try:
+				test.compile()
+			except Exception, msg:
+				outputError(rd.sourceId, "Bad test '%s': %s"%(test.title,
+					msg))
+				return False
+	return True
+
+
 def validateTables(rd, args):
 	"""does some sanity checks on the (top-level) tables within rd.
 	"""
@@ -192,6 +207,7 @@ def validateOne(rdId, args):
 	validSoFar = validateServices(rd, args)
 	validSoFar = validSoFar and validateRowmakers(rd, args)
 	validSoFar = validSoFar and validateTables(rd, args)
+	validSoFar = validSoFar and validateOtherCode(rd, args)
 	return validSoFar
 
 
