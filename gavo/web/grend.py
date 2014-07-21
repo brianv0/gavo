@@ -82,18 +82,26 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 		# call this to initialize this mixin.
 		base.MetaMixin.__init__(self)
 
-	def _doRenderMeta(self, ctx, raiseOnFail=False, plain=False):
+	def _doRenderMeta(self, ctx, raiseOnFail=False, plain=False, 
+			carrier=None):
+		if carrier is None:
+			carrier = self
+
+		metaKey = "(inaccessible)"
 		try:
+			metaKey = ctx.tag.children[0].strip()
 			htmlBuilder = common.HTMLMetaBuilder(self.macroPackage)
-			metaKey = ctx.tag.children[0]
+
 			if plain:
 				ctx.tag.clear()
-				return ctx.tag[base.getMetaText(self, metaKey, raiseOnFail=True,
+				return ctx.tag[base.getMetaText(carrier, metaKey, raiseOnFail=True,
 					macroPackage=self.macroPackage)]
+
 			else:
 				ctx.tag.clear()
-				return ctx.tag[T.xml(self.buildRepr(metaKey, htmlBuilder,
+				return ctx.tag[T.xml(carrier.buildRepr(metaKey, htmlBuilder,
 					raiseOnFail=True))]
+
 		except base.NoMetaKey:
 			if raiseOnFail:
 				raise
@@ -109,14 +117,28 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 		def get(ctx, data):
 			return self.getMeta(metaKey)
 		return get
-		
+	
 	def render_meta(self, ctx, data):
+		"""replaces a meta key with a plain text rendering of the metadata
+		in the service.
+		"""
 		return self._doRenderMeta(ctx, plain=True)
 	
 	def render_metahtml(self, ctx, data):
+		"""replaces a meta key with an html rendering of the metadata in
+		the serivce.
+		"""
 		return self._doRenderMeta(ctx)
-		
+
+	def render_datameta(self, ctx, data):
+		"""replaces the meta key in the contents with the corresponding
+		meta key's HTML rendering.
+		"""
+		return self._doRenderMeta(ctx, carrier=data)
+	
 	def render_ifmeta(self, metaName, propagate=True):
+		"""renders its children if there is metadata for metaName.
+		"""
 		# accept direct parent as "own" meta as well.
 		if propagate:
 			hasMeta = self.getMeta(metaName) is not None
@@ -129,8 +151,11 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 			return lambda ctx, data: ""
 
 	def render_ifownmeta(self, metaName):
+		"""renders its children if there is metadata for metaName in
+		the service itself.
+		"""
 		return self.render_ifmeta(metaName, propagate=False)
-
+	
 	def render_ifdata(self, ctx, data):
 		if data:
 			return ctx.tag

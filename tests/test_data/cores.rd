@@ -116,6 +116,7 @@
 	</service>
 
 	<service id="dl" allowed="dlget,dlmeta,dlasync">
+		<meta name="title">Hollow Datalink</meta>
 		<datalinkCore>
 			<descriptorGenerator procDef="//datalink#fits_genDesc">
 				<code>
@@ -131,7 +132,9 @@
 		</datalinkCore>
 		
 		<meta name="_example" title="Example 1">
-			This is an example for examples.
+			This is an example for examples, describing
+			:dl-id:`ivo://org.gavo.dc/~?bla/foo/qua` (which, incidentally,
+			does not exist).
 		</meta>
 
 		<meta name="_example" title="Example 2">

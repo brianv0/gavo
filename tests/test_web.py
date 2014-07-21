@@ -359,8 +359,13 @@ class SCSTest(trialhelpers.ArchiveTest):
 class TestExamples(trialhelpers.ArchiveTest):
 	def testBasic(self):
 		return self.assertGETHasStrings("/data/cores/dl/examples", 
-			{},
-			['quokka'])
+			{}, [
+			'<title>Examples for Hollow Datalink</title',
+			'<h2 property="name"><span class="plainmeta">Example 1</span>',
+			'property="dl-id"',
+			'ivo://org.gavo.dc/~?bla/foo/qua</em>',
+			'resource="#Example2"',
+			'<p>This is another example for examples.</p>'])
 
 
 atexit.register(trialhelpers.provideRDData("test", "import_fitsprod"))
