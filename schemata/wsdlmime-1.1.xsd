@@ -1,22 +1,22 @@
 <schema  targetNamespace="http://schemas.xmlsoap.org/wsdl/mime/"
          xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/"
-         xmlns="http://www.w3.org/2000/10/XMLSchema">
+         xmlns="http://www.w3.org/2001/XMLSchema">
    <element name="content" type="mime:contentType"/>
-   <complexType name="contentType" content="empty">
+   <complexType name="contentType">
       <attribute name="type" type="string" use="optional"/>
       <attribute name="part" type="NMTOKEN" use="optional"/>
    </complexType>
    <element name="multipartRelated" type="mime:multipartRelatedType"/>
-   <complexType name="multipartRelatedType" content="elementOnly">
+   <complexType name="multipartRelatedType">
       <element ref="mime:part" minOccurs="0" maxOccurs="unbounded"/>
    </complexType>
    <element name="part" type="mime:partType"/>
-   <complexType name="partType" content="elementOnly">
+   <complexType name="partType">
       <any namespace="targetNamespace" minOccurs="0" maxOccurs="unbounded"/>
       <attribute name="name" type="NMTOKEN" use="required"/>
    </complexType>
    <element name="mimeXml" type="mime:mimeXmlType"/>
-   <complexType name="mimeXmlType" content="empty">
+   <complexType name="mimeXmlType">
       <attribute name="part" type="NMTOKEN" use="optional"/>
    </complexType>
 </schema>

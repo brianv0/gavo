@@ -22,7 +22,7 @@
       schemaLocation="../../../stc/STC/v1.30/XLINK.xsd" />
 -->   
       <xs:import namespace="http://www.w3.org/1999/xlink"
-      schemaLocation="http://www.ivoa.net/xml/Xlink/xlink.xsd"/>
+      schemaLocation="http://vo.ari.uni-heidelberg.de/docs/schemata/xlink.xsd"/>
    
    <xs:complexType name="ShortJobDescription">
       <xs:sequence>

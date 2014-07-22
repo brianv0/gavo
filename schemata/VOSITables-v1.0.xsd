@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xsd:schema targetNamespace="http://www.ivoa.net/xml/VOSICapabilities/v1.0"
-            xmlns:tns="http://www.ivoa.net/xml/VOSICapabilities/v1.0"
+<xsd:schema targetNamespace="http://www.ivoa.net/xml/VOSITables/v1.0"
+            xmlns:tns="http://www.ivoa.net/xml/VOSITables/v1.0"
             xmlns:vr="http://www.ivoa.net/xml/VOResource/v1.0"
+            xmlns:vs="http://www.ivoa.net/xml/VODataService/v1.1"
             xmlns:xsd="http://www.w3.org/2001/XMLSchema"
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
             elementFormDefault="qualified"
@@ -18,7 +19,7 @@
   </xsd:annotation>
 
   <xsd:import namespace="http://www.ivoa.net/xml/VODataService/v1.1"
-              schemaLocation="http://www.ivoa.net/xml/VODataService/v1.1" />
+              schemaLocation="http://vo.ari.uni-heidelberg.de/docs/schemata/VODataService-v1.1.xsd" />
 
   <!--
     -  the root element for a VOSI table metadata (section 2.4)

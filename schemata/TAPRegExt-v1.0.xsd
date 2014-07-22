@@ -19,7 +19,7 @@ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     A description of the capabilities metadata for TAP services.
     </xs:documentation>
   </xs:annotation>
-  <xs:import namespace="http://www.ivoa.net/xml/VOResource/v1.0" schemaLocation="http://www.ivoa.net/xml/VOResource/VOResource-v1.0.xsd"/>
+  <xs:import namespace="http://www.ivoa.net/xml/VOResource/v1.0" schemaLocation="http://vo.ari.uni-heidelberg.de/docs/schemata/VOResource-v1.0.xsd"/>
   <xs:complexType name="TAPCapRestriction" abstract="true">
     <xs:annotation>
       <xs:documentation>
