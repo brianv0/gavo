@@ -512,8 +512,8 @@ class RegTest(procdef.ProcApp, unittest.TestCase):
 		from gavo.helpers import testtricks
 		msgs = testtricks.getXSDErrors(self.data)
 		if msgs:
-			raise AssertionError("Response not XSD valid.  Xerces worries"
-				" start with\n%s"%(msgs[:160]))
+			raise AssertionError("Response not XSD valid.  Validator output"
+				" starts with\n%s"%(msgs[:160]))
 
 	XPATH_NAMESPACE_MAP = {
 		"v": "http://www.ivoa.net/xml/VOTable/v1.2",

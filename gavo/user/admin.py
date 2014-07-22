@@ -293,6 +293,18 @@ def dumpDF(querier, args):
 		sys.stdout.write(f.read())
 
 
+@exposedFunction([Arg(help="XML file", dest="path")],
+	help="Validate a file against built-in VO schemas and with built-in"
+		" schema validator.")
+def xsdValidate(querier, args):
+	from gavo.helpers import testtricks
+	msgs = testtricks.getXSDErrors(open(args.path).read())
+	if not msgs:
+		print "-- valid"
+	else:
+		print msgs
+
+
 def main():
 	with base.AdhocQuerier(base.getWritableAdminConn) as querier:
 		args = makeParser(globals()).parse_args()

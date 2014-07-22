@@ -714,8 +714,8 @@ class RegtestRunTest(_RegtestTest):
 	def testXSDFailing(self):
 		proc, stdout, stderr = testhelpers.captureOutput(regtest.main,
 			args=(["-v", "data/regtest#xsdfail"],))
-		self.assertContains(">>>> Response not XSD valid.  Xerces worries"
-			" start with\n[Fatal Error]",
+		self.assertContains(">>>> Response not XSD valid.  Validator output"
+			" starts with\n",
 			stdout)
 
 	def testXpathFailing(self):

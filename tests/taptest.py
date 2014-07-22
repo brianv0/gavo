@@ -40,6 +40,7 @@ from gavo.protocols import taprunner
 from gavo.protocols import uws
 from gavo.protocols import uwsactions
 from gavo.registry import capabilities
+from gavo.web import vosi
 from gavo.web import taprender
 
 import adqltest
@@ -266,7 +267,7 @@ class UploadSyntaxNotOKTest(testhelpers.VerboseTest):
 class CapabilitiesTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 	def testValid(self):
 		pub = base.caches.getRD("//tap").getById("run").publications[0]
-		res = capabilities.getCapabilityElement(pub)
+		res = vosi.CAP.capabilities[capabilities.getCapabilityElement(pub)]
 		self.assertValidates(res.render(), leaveOffending=True)
 
 

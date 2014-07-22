@@ -118,11 +118,12 @@ VO_SCHEMATA = [
 		"simpledc20021212.xsd",
 		"Characterisation-v1.11.xsd",
 		"ConeSearch-v1.0.xsd",
+		"DocRegExt-v1.0.xsd",
 		"oai_dc.xsd",
 		"OAI-PMH.xsd",
 		"RegistryInterface-v1.0.xsd",
-		"SIA-v1.0.xsd",
-		"SSA-v1.0.xsd",
+		"SIA-v1.1.xsd",
+		"SSA-v1.1.xsd",
 		"StandardsRegExt-1.0.xsd",
 		"stc-v1.30.xsd",
 		"TAPRegExt-v1.0.xsd",
@@ -134,7 +135,6 @@ VO_SCHEMATA = [
 		"VOResource-v1.0.xsd",
 		"VOSIAvailability-v1.0.xsd",
 		"VOSICapabilities-v1.0.xsd",
-		"VOSITables-v1.0.xsd",
 		"VOTable-1.1.xsd",
 		"VOTable-1.2.xsd",
 		"xlink.xsd",
@@ -200,14 +200,15 @@ def _makeLXMLValidator():
 		"""
 		try:
 			with MyParser():
-				VALIDATOR.assertValid(etree.fromstring(data))
-		except AssertionError, msg:
-			import pdb;pdb.set_trace()
-			if leaveOffending:
-				with open("badDocument.xml", "w") as of:
-					of.write(data)
+				if VALIDATOR.validate(etree.fromstring(data)):
+					return None
+				else:
+					if leaveOffending:
+						with open("badDocument.xml", "w") as of:
+							of.write(data)
+					return str(VALIDATOR.error_log)
+		except Exception, msg:
 			return str(msg)
-		return None
 	
 	return getErrors
 

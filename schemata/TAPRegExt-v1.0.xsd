@@ -41,7 +41,7 @@ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
           <xs:element name="interface" type="vr:Interface" 
             minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
-        <xs:attribute name="standardID" type="vr:IdentifierURI" 
+        <xs:attribute name="standardID" type="xs:anyURI" 
           use="required" fixed="ivo://ivoa.net/std/TAP"/>
       </xs:restriction>
     </xs:complexContent>
@@ -157,7 +157,7 @@ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
     <xs:simpleContent>
       <xs:extension base="xs:token"> 
-        <xs:attribute name="ivo-id" type="vr:IdentifierURI" use="required">
+        <xs:attribute name="ivo-id" type="xs:anyURI" use="required">
           <xs:annotation>
             <xs:documentation>
             The IVORN of the data model.

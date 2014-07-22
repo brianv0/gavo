@@ -29,6 +29,7 @@ from gavo.registry import oaiinter
 from gavo.registry import publication
 from gavo.utils import ElementTree
 from gavo.registry.model import OAI
+from gavo.web import vosi
 
 import tresc
 
@@ -173,9 +174,9 @@ class _SSACapabilityElement(testhelpers.TestResource):
 	def make(self, deps):
 		publication = testhelpers.getTestRD("ssatest"
 			).getById("s").publications[0]
-		res = capabilities.getCapabilityElement(publication).render()
-		#os.popen("xmlstarlet fo", "w").write(res)
-		return res, ElementTree.fromstring(res)
+		res = vosi.CAP.capabilities[
+			capabilities.getCapabilityElement(publication)].render()
+		return res, ElementTree.fromstring(res)[0]
 
 
 class SSAPCapabilityTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
