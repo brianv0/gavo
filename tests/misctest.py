@@ -892,5 +892,20 @@ class OSInterTest(testhelpers.VerboseTest):
 			os.rmdir(path)
 
 
+import lxml
+from gavo.helpers import testtricks
+
+VALID_OAI = """<?xml-stylesheet href='/static/xsl/oai.xsl' type='text/xsl'?><oai:OAI-PMH xmlns:oai="http://www.openarchives.org/OAI/2.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/ http://vo.ari.uni-heidelberg.de/docs/schemata/OAI-PMH.xsd"><oai:responseDate>2014-07-21T15:13:09Z</oai:responseDate><oai:request verb="ListSets"/><oai:ListSets><oai:set><oai:setSpec>ivo_managed</oai:setSpec><oai:setName>ivo_managed</oai:setName></oai:set></oai:ListSets></oai:OAI-PMH>"""
+
+class ValidatorTest(testhelpers.VerboseTest):
+	def testSimpleValidator(self):
+		val = testtricks.getJointValidator(["oai_dc.xsd", "OAI-PMH.xsd"])
+		oaiTree = lxml.etree.fromstring(VALID_OAI)
+		val.assertValid(oaiTree)
+
+		lxml.etree.SubElement(oaiTree[2][0], "p")
+		self.assertFalse(val(oaiTree))
+
+
 if __name__=="__main__":
 	testhelpers.main(KVLMakeTest)

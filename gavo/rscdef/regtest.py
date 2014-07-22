@@ -510,7 +510,7 @@ class RegTest(procdef.ProcApp, unittest.TestCase):
 		a JDK as well as some external libraries; see the makeValidator source).
 		"""
 		from gavo.helpers import testtricks
-		msgs = testtricks.getXSDErrorsXerces(self.data)
+		msgs = testtricks.getXSDErrors(self.data)
 		if msgs:
 			raise AssertionError("Response not XSD valid.  Xerces worries"
 				" start with\n%s"%(msgs[:160]))

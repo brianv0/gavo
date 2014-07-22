@@ -21,6 +21,8 @@ import subprocess
 import tempfile
 import unittest
 
+from lxml import etree
+
 from gavo import base
 
 
@@ -61,6 +63,169 @@ def getXSDErrorsXerces(data, leaveOffending=False):
 	return None
 
 
+class XSDResolver(etree.Resolver):
+	"""A resolver for external entities only returning in-tree files only.
+	"""
+	def __init__(self):
+		self.basePath = "/"+os.path.join(
+			*(__file__.split("/")[:-3]+["schemata"]))
+
+	def getPathForName(self, name):
+		xsdName = name.split("/")[-1]
+		return os.path.join(self.basePath, xsdName)
+
+	def resolve(self, url, pubid, context):
+		try:
+			path = self.getPathForName(url)
+			return self.resolve_filename(path, context)
+		except:
+			base.ui.notifyError("Did not find local file for schema %s --"
+				" this will fall back to network resources and thus probably"
+				" be slow"%url)
+
+
+RESOLVER = XSDResolver()
+XSD_PARSER = etree.XMLParser()
+XSD_PARSER.resolvers.add(RESOLVER)
+
+
+@contextlib.contextmanager
+def MyParser():
+	if etree.get_default_parser is XSD_PARSER:
+		yield
+	else:
+		etree.set_default_parser(XSD_PARSER)
+		try:
+			yield
+		finally:
+			etree.set_default_parser()
+
+class QNamer(object):
+	"""A hack that generates QNames through getattr.
+
+	Construct with the desired namespace.
+	"""
+	def __init__(self, ns):
+		self.ns = ns
+	
+	def __getattr__(self, name):
+		return etree.QName(self.ns, name.strip("_"))
+
+XS = QNamer("http://www.w3.org/2001/XMLSchema")
+
+
+VO_SCHEMATA = [
+		"simpledc20021212.xsd",
+		"Characterisation-v1.11.xsd",
+		"ConeSearch-v1.0.xsd",
+		"oai_dc.xsd",
+		"OAI-PMH.xsd",
+		"RegistryInterface-v1.0.xsd",
+		"SIA-v1.0.xsd",
+		"SSA-v1.0.xsd",
+		"StandardsRegExt-1.0.xsd",
+		"stc-v1.30.xsd",
+		"TAPRegExt-v1.0.xsd",
+		"uws-1.0.xsd",
+		"VODataService-v1.0.xsd",
+		"VODataService-v1.1.xsd",
+		"VOEvent-1.0.xsd",
+		"VORegistry-v1.0.xsd",
+		"VOResource-v1.0.xsd",
+		"VOSIAvailability-v1.0.xsd",
+		"VOSICapabilities-v1.0.xsd",
+		"VOSITables-v1.0.xsd",
+		"VOTable-1.1.xsd",
+		"VOTable-1.2.xsd",
+		"xlink.xsd",
+		"XMLSchema.xsd",
+		"xml.xsd",]
+
+
+def getJointValidator(schemaPaths):
+	"""returns an lxml validator containing the schemas in schemaPaths.
+
+	schemaPaths must be actual file paths, absolute or
+	trunk/schema-relative.
+	"""
+	with MyParser():
+		subordinates = []
+		for fName in schemaPaths:
+			fPath = RESOLVER.getPathForName(fName)
+			root = etree.parse(fPath).getroot()
+			subordinates.append((
+				"http://vo.ari.uni-heidelberg.de/docs/schemata/"+fName,
+				root.get("targetNamespace")))
+
+		root = etree.Element(
+			XS.schema, attrib={"targetNamespace": "urn:combiner"})
+		for schemaLocation, tns in subordinates:
+			etree.SubElement(root, XS.import_, attrib={
+				"namespace": tns, "schemaLocation": schemaLocation})
+		
+		doc = etree.ElementTree(root)
+		return etree.XMLSchema(doc)
+
+
+def getDefaultValidator(extraSchemata=[]):
+	"""returns a validator that knows the schemata typically useful within
+	the VO.
+
+	*Note*: This doesn't work right now since libxml2 insists on
+	loading schema files referenced in schema files' schemaLocations.
+	Until there's an improved API, this has to wait.
+
+	This will currently only work if DaCHS is installed from an SVN
+	checkout with setup.py develop.
+
+	What's returned has a method assertValid(et) that raises an exception 
+	if the elementtree et is not valid.  You can simply call it to
+	get back True for valid and False for invalid.
+	"""
+	return getJointValidator(VO_SCHEMATA+extraSchemata)
+
+
+def _makeLXMLValidator():
+	"""returns an lxml-based schema validating function for the VO XSDs
+
+	This is not happening at import time as it is time-consuming, and the server
+	probably doesn't even validate.
+
+	This is used below to build getXSDErrorsLXML.
+	"""
+	VALIDATOR = getDefaultValidator()
+
+	def getErrors(data, leaveOffending=False):
+		"""returns error messages for the XSD validation of the string in data.
+		"""
+		try:
+			with MyParser():
+				VALIDATOR.assertValid(etree.fromstring(data))
+		except AssertionError, msg:
+			import pdb;pdb.set_trace()
+			if leaveOffending:
+				with open("badDocument.xml", "w") as of:
+					of.write(data)
+			return str(msg)
+		return None
+	
+	return getErrors
+
+
+def getXSDErrorsLXML(data, leaveOffending=False):
+	"""returns error messages for the XSD validation of the string in data.
+
+	This is the lxml-based implemenation, much less disruptive than the
+	xerces-based one.
+	"""
+	if not hasattr(getXSDErrorsLXML, "validate"):
+		getXSDErrorsLXML.validate = _makeLXMLValidator()
+	return getXSDErrorsLXML.validate(data, leaveOffending)
+
+
+getXSDErrors = getXSDErrorsLXML
+
+
 class XSDTestMixin(object):
 	"""provides a assertValidates method doing XSD validation.
 
@@ -79,7 +244,7 @@ class XSDTestMixin(object):
 	be necessary to run validation tests.
 	"""
 	def assertValidates(self, xmlSource, leaveOffending=False):
-		xercMsgs = getXSDErrorsXerces(xmlSource, leaveOffending)
+		xercMsgs = getXSDErrors(xmlSource, leaveOffending)
 		if xercMsgs:
 			raise AssertionError(xercMsgs)
 
@@ -118,107 +283,3 @@ def testFile(name, content, writeGz=False, inDir=base.getConfig("tempDir")):
 			os.unlink(destName)
 		except os.error:
 			pass
-
-
-'''
-This could become a python-based XSD validation function only depending
-on lxml.  For now, lxml doesn't realize it already has schemas for a given
-namespace when importing new xsds, with is fatal in a system was complex
-as the VO one.  So, this simply doesn't work yet.
-
-VO_SCHEMATA = [
-"simpledc20021212.xsd",
-"Characterisation-v1.11.xsd",
-"ConeSearch-v1.0.xsd",
-"oai_dc.xsd",
-"OAI-PMH.xsd",
-"RegistryInterface-v1.0.xsd",
-"SIA-v1.0.xsd",
-"soap.xsd",
-"SSA-v1.0.xsd",
-"StandardsRegExt-1.0.xsd",
-"stc-v1.30.xsd",
-"TAPRegExt-v1.0.xsd",
-"uws-1.0.xsd",
-"VODataService-v1.0.xsd",
-"VODataService-v1.1.xsd",
-"VOEvent-1.0.xsd",
-"VORegistry-v1.0.xsd",
-"VOResource-v1.0.xsd",
-"VOSIAvailability-v1.0.xsd",
-"VOSICapabilities-v1.0.xsd",
-"VOSITables-v1.0.xsd",
-"VOTable-1.1.xsd",
-"VOTable-1.2.xsd",
-"wsdl-1.1.xsd",
-"wsdlhttp-1.1.xsd",
-"wsdlmime-1.1.xsd",
-"wsdlsoap-1.1.xsd",
-"xlink.xsd",
-"XMLSchema.xsd",
-"xml.xsd",]
-
-try:
-	# XSD validation only with etree
-	from lxml import etree
-
-	class QNamer(object):
-		"""A hack that generates QNames through getattr.
-
-		Construct with the desired namespace.
-		"""
-		def __init__(self, ns):
-			self.ns = ns
-		
-		def __getattr__(self, name):
-			return etree.QName(self.ns, name.strip("_"))
-
-	XS = QNamer("http://www.w3.org/2001/XMLSchema")
-
-	def getJointValidator(schemaPaths):
-		"""returns an lxml validator containing the schemas in schemaPaths.
-
-		schemaPaths must be actual file names.  http and other URLs will not 
-		work.
-		"""
-		subordinates = []
-		for fName in schemaPaths:
-			with open(fName) as f:
-				root = etree.parse(f).getroot()
-			subordinates.append((
-				"file://"+urllib.quote(os.path.abspath(fName)), 
-					root.get("targetNamespace")))
-
-		root = etree.Element(
-			XS.schema, attrib={"targetNamespace": "urn:combiner"})
-		for schemaLocation, tns in subordinates:
-			etree.SubElement(root, XS.import_, attrib={
-				"namespace": tns, "schemaLocation": schemaLocation})
-		
-		doc = etree.ElementTree(root)
-		return etree.XMLSchema(doc)
-
-	
-	def getDefaultValidator(extraSchemata=[]):
-		"""returns a validator that knows the schemata typically useful within
-		the VO.
-
-		*Note*: This doesn't work right now since libxml2 insists on
-		loading schema files referenced in schema files' schemaLocations.
-		Until there's an improved API, this has to wait.
-
-		This will currently only work if DaCHS is installed from an SVN
-		checkout with setup.py develop.
-
-		What's returned has a method assertValid(et) that raises an exception 
-		if the elementtree et is not valid.  You can simply call it to
-		get back True for valid and False for invalid.
-		"""
-		basePath = "/"+os.path.join(*(__file__.split("/")[:-3]+["schemata"]))
-		return getJointValidator(
-			[os.path.join(basePath, sp) for sp in VO_SCHEMATA]+extraSchemata)
-
-except ImportError:
-	# no lxml
-	pass
-'''
