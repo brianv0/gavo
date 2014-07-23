@@ -121,91 +121,6 @@ def getSyncResource(ctx, service, segments):
 			"hint": "Only doQuery and getCapabilities supported here"})
 
 
-class _TAPEx(rend.DataFactory):
-	"""A TAP example object.
-
-	These get constructed with rowdicts from the tap_schema.examples
-	table and mainly serve as a facade to the nevow rendering system.
-	"""
-	def __init__(self, tableRow):
-		self.original = tableRow
-	
-	def data_id(self, ctx, data):
-		return re.sub("\W", "", self.original["name"])
-
-	def _translateDescription(self):
-		# see the comment on the RST extension below for what's going on here
-		rawHTML = utils.rstxToHTML(self.original["description"])
-		# we should do XML parsing here, but frankly, there's little that
-		# could go wrong when just substituting stuff
-		return re.sub('(class="[^"]*ivo_tap_exampletable[^"]*")',
-			r'\1 property="table"', rawHTML)
-
-	def data_renderedDescription(self, ctx, data):
-		if "renderedDescription" not in self.original:
-			self.original["renderedDescription"] = 	self._translateDescription()
-		return self.original["renderedDescription"]
-	
-
-# To allow for easy inclusion of table references in TAP example
-# descriptions, we add a custom interpreted text role, taptable.
-# Since this module has to be imported before the renderer can
-# be used, this is not a bad place to put it.
-#
-# For RST convenience, this only adds a class attribute.  In HTML,
-# this needs to become a property attribute;  there's code in _TAPEx
-# that does this.
-
-def _registerDocutilsExtension():
-	from docutils.parsers.rst import roles
-	from docutils import nodes
-
-	def _docutils_taptableRuleFunc(name, rawText, text, lineno, inliner,
-			options={}, content=[]):
-		node = nodes.reference(rawText, text,
-			refuri="/tableinfo/%s"%text) 
-		node["classes"] = ["ivo_tap_exampletable"]
-		return [node], []
-
-	roles.register_local_role("taptable", _docutils_taptableRuleFunc)
-
-try:
-	_registerDocutilsExtension()
-except:
-	base.ui.notifyWarning("Could not register taptable RST extension."
-		"  TAP examples might be less pretty.")
-
-
-
-class TAPExamples(grend.CustomTemplateMixin, grend.ServiceBasedPage):
-	"""A page with query examples.
-
-	This will only run on services with the TAP rd (or one that has
-	an examples table structured in the same way).
-	"""
-	name = "tapexamples"
-	checkedRenderer = False
-	customTemplate = svcs.loadSystemTemplate("tapexamples.html")
-
-	@classmethod
-	def isCacheable(self, segments, request):
-		return True
-
-	def data_examples(self, ctx, data):
-		"""returns _TAPEx instances from the database.
-		"""
-		# we cache the query in the RD.  This way, we don't need to do
-		# the querying over and over, but after a reload of the RD,
-		# the example queries still get updated.
-		if not hasattr(self.service.rd, "examplesCache"):
-			with base.getTableConn() as conn:
-				td = self.service.rd.getById("examples")
-				t = rsc.TableForDef(td, connection=conn)
-				self.service.rd.examplesCache = [
-					_TAPEx(r) for r in t.iterQuery(td, "")]
-		return self.service.rd.examplesCache
-
-
 class _FakeUploadedFile(object):
 # File uploads without filenames are args containing a string.
 # This class lets them work as uploaded files in _saveUpload.
@@ -214,7 +129,7 @@ class _FakeUploadedFile(object):
 		self.file = StringIO(content)
 
 # TODO: we should probably define different renderers for sync,
-# async, and examples.  The renderer shouldn't have to dispatch
+# async.  The renderer shouldn't have to dispatch
 # like that.
 
 class TAPRenderer(grend.ServiceBasedPage):
@@ -291,7 +206,8 @@ class TAPRenderer(grend.ServiceBasedPage):
 				elif segments[0]=='tables':
 					res = vosi.VOSITablesetRenderer(ctx, self.service)
 				elif segments[0]=='examples':
-					res = TAPExamples(ctx, self.service)
+					from gavo.web import examplesrender
+					res = examplesrender.Examples(ctx, self.service)
 				else:
 					raise svcs.UnknownURI("Bad TAP path %s"%"/".join(segments))
 				return res, ()

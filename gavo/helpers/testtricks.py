@@ -135,6 +135,7 @@ VO_SCHEMATA = [
 		"VOResource-v1.0.xsd",
 		"VOSIAvailability-v1.0.xsd",
 		"VOSICapabilities-v1.0.xsd",
+		"VOSITables-v1.0.xsd",
 		"VOTable-1.1.xsd",
 		"VOTable-1.2.xsd",
 		"xlink.xsd",

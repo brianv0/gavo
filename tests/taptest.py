@@ -517,5 +517,34 @@ class TAPPublicationTest(testhelpers.VerboseTest):
 					in res)
 
 
+class TAPExampleTest(testhelpers.VerboseTest):
+	def testHTMLRendering(self):
+		from gavo.web import examplesrender
+
+		rd = base.parseFromString(rscdesc.RD,
+			"""<resource schema="test"><meta name="_example"
+				title="Query against boolean columns">
+				Regrettably, ADQL has no notion of boolean values.  Some tables this
+				service exposes to TAP -- e.g., :taptable:`amanda.nucand`, have boolean
+				columns natively, and we dare give boolean as a datatype for those in
+				the table metadata.  To query those, you cannot say ``WHERE boolCol``
+				or somesuch as in SQL dialects having native booleans.  You must
+				compare against something, and at least on this server, it has to be
+				``'True'`` or ``'False'`` as in
+
+				.. tapquery::
+
+					SELECT * 
+					  FROM amanda.nucand 
+					WHERE atmonusubset='True'
+					
+				(nothing else will work).</meta></resource>""")
+		stuff = rd.getMeta("_example").getContent("html")
+		self.assertTrue("ADQL has no notion of boolean values" in stuff)
+		self.assertTrue('<a class="dachs-ex-taptable' in stuff)
+		self.assertTrue(' href="/tableinfo/amanda.nucand"' in stuff)
+		self.assertTrue('SELECT *\n  FROM amanda.nucand\nWHERE' in stuff)
+
+
 if __name__=="__main__":
 	testhelpers.main(JobMetaTest)

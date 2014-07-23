@@ -204,17 +204,6 @@
 			description="Id of the originating rd (local information)"/>
 	</table>
 
-	<table id="examples" onDisk="True" adql="True">
-		<meta name="description">Site-local example queries"</meta>
-		<column name="name" type="text"
-			description="A short name for the query"/>
-		<column name="query" type="text"
-			description="ADQL for the query"/>
-		<column name="description" type="text"
-			description="A concise, human-readable description of what the
-			query does."/>
-	</table>
-
 	<table id="supportedmodels" onDisk="True" primary="dmivorn"
 			forceUnique="True" dupePolicy="overwrite" system="True">
 		<meta name="description">
@@ -452,19 +441,6 @@
 		</make>
 	</data>
 
-	<data id="import_examples">
-		<sources pattern="adqlexamples/*.sample"/>
-		<freeREGrammar 
-			enc="utf-8"
-			rowProduction="(?s).*\.\."
-			stripTokens="True">
-			<parseRE><![CDATA[(?xsm)^name::(?P<name>.*)
-				^query::(?P<query>.*)
-				^description::(?P<description>.*)\.\.\s*$
-			]]></parseRE>
-		</freeREGrammar>
-		<make table="examples"/>
-	</data>
 
 <!--********************* TAP UWS job table ******************-->
 
@@ -561,6 +537,8 @@
 			Tables exposed through this endpoint include: \tablesForTAP.
 		</meta>
 		<publish render="tap" sets="ivo_managed,local"/>
+
+		<FEED source="%#tapexamples"/>
 	</service>
 
 </resource>

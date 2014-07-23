@@ -142,8 +142,8 @@ class TAPInterface(InterfaceMaker):
 	renderer = "tap"
 	interfaceClass = TR.interface
 
-class TAPExamplesInterface(InterfaceMaker):
-	renderer = "tapexamples"
+class ExamplesInterface(InterfaceMaker):
+	renderer = "examples"
 	interfaceClass = VOR.WebBrowser
 
 
@@ -388,7 +388,7 @@ class TAPCapabilityMaker(CapabilityMaker):
 
 
 class TAPExCapabilityMaker(CapabilityMaker):
-	renderer = "tapexamples"
+	renderer = "examples"
 	capabilityClass = VOG.capability
 	def _makeCapability(self, publication):
 		return CapabilityMaker._makeCapability(self, publication)(

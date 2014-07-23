@@ -13,10 +13,6 @@ an external resource package taptest.
 #c COPYING file in the source distribution.
 
 
-# IMPORTANT: If you have deferreds in your tests, *return them* form
-# the tests.  Looks weird, but that's the only way the reactor gets
-# to see them.
-
 from __future__ import with_statement
 
 import datetime
@@ -102,12 +98,11 @@ class SyncMetaTest(TAPRenderTest):
 
 	def testExamples(self):
 		return self.assertGETHasStrings("/examples", {}, [
-			'<div resource="#kamatschhorribundus" typeof="example"'
-				' id="kamatschhorribundus">',
-			'<h2 property="name">kamatsch horribundus</h2>',
-			'<a class="ivo_tap_exampletable reference external"'
-			' property="table" href="/tableinfo/foo.bar">foo.bar',
-			'<pre property="query">select something'])
+			'resource="#tap_schemaexample"',
+			'property="taptable"',
+			'property="tapquery"',
+			"LIKE '%em.ir.K%'\n</pre>",
+			'vocab="ivo://ivoa.net/std/DALI-examples#"'])
 			
 
 class SyncQueryTest(TAPRenderTest):

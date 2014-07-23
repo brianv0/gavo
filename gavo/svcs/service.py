@@ -466,12 +466,6 @@ class Service(base.Structure, base.ComputedMetaMixin,
 				base.makeStruct(Publication, render="tableMetadata", sets=vosiSet,
 					parent_=self),
 			))
-			# Special "automatic" renderer for TAP; if there are more cases
-			# like this, add some attribute to the renderer classes
-			if "tap" in self.allowed:
-				res.append(
-					base.makeStruct(Publication, render="tapexamples", sets=vosiSet,
-						parent_=self))
 		return res
 
 	def getURL(self, rendName, absolute=True, **kwargs):

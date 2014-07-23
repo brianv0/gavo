@@ -1,6 +1,0 @@
-name:: kamatsch horribundus
-query::
-select something from paradise where cost is null
-description:: A fake query only marginally valid.  It won't work on
-:taptable:`foo.bar`.
-..

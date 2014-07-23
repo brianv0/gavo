@@ -48,7 +48,6 @@ RENDERER_REGISTRY = {
 	'tableinfo': ("web.metarender", "TableInfoRenderer"),
 	'tableMetadata': ("web.vosi", "VOSITablesetRenderer"),
 	'tablenote': ("web.metarender", "TableNoteRenderer"),
-	'tapexamples': ("web.taprender", "TAPExamples"),
 	'tap': ("web.taprender", "TAPRenderer"),
 	'upload': ("web.uploadservice", "Uploader"),
 }

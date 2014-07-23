@@ -115,7 +115,7 @@ def getTableForTableDef(tableDef, namesInSet):
 	return res
 
 
-def getTablesetForSchemaCollection(schemas):
+def getTablesetForSchemaCollection(schemas, rootElement=VS.tableset):
 	"""returns a vs:tableset element from a sequence of (rd, tables) pairs.
 	
 	In each pair, rd is used to define a VODataService schema, and tables is 
@@ -127,7 +127,7 @@ def getTablesetForSchemaCollection(schemas):
 	namesInSet = set(getEffectiveTableName(td).lower()
 		for td in itertools.chain(*(tables for rd, tables in schemas)))
 
-	res = VS.tableset()
+	res = rootElement()
 	for rd, tables in schemas:
 		res[VS.schema[
 			VS.name[rd.schema],
@@ -138,7 +138,7 @@ def getTablesetForSchemaCollection(schemas):
 	return res
 
 
-def getTablesetForService(service):
+def getTablesetForService(service, rootElement=VS.tableset):
 	"""returns a VS.tableset for a dbCore-based service.
 
 	This is for VOSI queries.  It uses the service's getTableset
@@ -146,7 +146,7 @@ def getTablesetForService(service):
 	"""
 	tables = service.getTableSet()
 	if not tables:
-		return VS.tableset[
+		return rootElement[
 			VS.schema[
 				VS.name["default"]]]
 
@@ -164,4 +164,4 @@ def getTablesetForService(service):
 	for schemaName, tables in sorted(bySchema.iteritems()):
 		schemas.append((rdForSchema[schemaName], tables))
 	
-	return getTablesetForSchemaCollection(schemas)
+	return getTablesetForSchemaCollection(schemas, rootElement)

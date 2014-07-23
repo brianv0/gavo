@@ -29,6 +29,9 @@ registerPrefix("avl", "http://www.ivoa.net/xml/VOSIAvailability/v1.0",
 	schemaURL("VOSIAvailability-v1.0.xsd"))
 registerPrefix("cap", "http://www.ivoa.net/xml/VOSICapabilities/v1.0",
 	schemaURL("VOSICapabilities-v1.0.xsd"))
+registerPrefix("vtm", "http://www.ivoa.net/xml/VOSITables/v1.0",
+	schemaURL("VOSITables-v1.0.xsd"))
+
 
 
 class VOSIRenderer(grend.ServiceBasedPage):
@@ -90,6 +93,16 @@ class CAP(object):
 		_prefix = "cap"
 	
 	class capabilities(CAPElement):
+		_mayBeEmpty = True
+
+
+class VTM(object):
+	"""The container for element from the VOSI tableset schema.
+	"""
+	class VTMElement(Element):
+		_prefix = "vtm"
+	
+	class tableset(VTMElement):
 		_mayBeEmpty = True
 
 
@@ -155,6 +168,6 @@ class VOSITablesetRenderer(VOSIRenderer):
 	name = "tableMetadata"
 
 	def _getTree(self, request):
-		root = registry.getTablesetForService(self.service)
-		root.addAttribute("xsi:type", "vs:TableSet")
+		root = registry.getTablesetForService(self.service,
+			rootElement=VTM.tableset)
 		return root

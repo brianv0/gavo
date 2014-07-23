@@ -120,4 +120,18 @@
 		</service>
 	</STREAM>
 
+	<STREAM id="tapexamples">
+		<doc>Examples for TAP querying</doc>
+		
+		<meta name="_example" title="tap_schema example">
+			To locate columns "by physics", as it were, use UCD in
+			:taptable:`tap_schema.columns`.  For instance,
+			to find everything talking about the K-band, you would write
+
+			.. tapquery::
+				
+				SELECT * FROM tap_schema.columns 
+				  WHERE description LIKE '%em.ir.K%'
+		</meta>
+	</STREAM>
 </resource>
