@@ -11,7 +11,6 @@ A renderer for TAP, both sync and async.
 from __future__ import with_statement
 
 import os
-import re
 from cStringIO import StringIO
 
 from nevow import inevow
@@ -19,7 +18,6 @@ from nevow import rend
 from twisted.internet import threads
 
 from gavo import base
-from gavo import rsc
 from gavo import svcs
 from gavo import utils
 from gavo.protocols import tap

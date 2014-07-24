@@ -28,11 +28,12 @@ from docutils.parsers import rst
 from docutils.parsers.rst import directives
 from docutils.parsers.rst import roles
 
+from lxml import etree
+
 from nevow import rend
 
 from .. import base
 from .. import svcs
-from .. import utils
 from . import grend
 
 
@@ -118,19 +119,25 @@ class _Example(rend.DataFactory, base.MetaMixin):
 	def data_id(self, ctx, data):
 		return self.htmlId
 
-	def _addToClassAttr(self, mat):
-		for clsName in mat.group(1).split():
-			if clsName in RSTExtensions.classToProperty:
-				return ('%s property=%s'%(
-					mat.group(0),
-					utils.escapeAttrVal(RSTExtensions.classToProperty[clsName])))
-		return mat.group(0)
-
 	def _getTranslatedHTML(self):
 		rawHTML = self.original.getContent("html")
-		# TODO: we should really do XML parsing here
-		return re.sub('class="([^"]*)"',
-			self._addToClassAttr, rawHTML)
+		parsed = etree.fromstring("<container>%s</container>"%rawHTML)
+		actOnClasses = set(RSTExtensions.classToProperty)
+
+		for node in parsed.iterfind(".//*[@class]"):
+			nodeClasses = set(node.attrib["class"].split())
+			properties = " ".join(RSTExtensions.classToProperty[c] 
+				for c in actOnClasses & nodeClasses)
+			if properties:
+				node.set("property", properties)
+
+			# For now, I assume element content always is intended to
+			# be the relation object (rather than a href that might\
+			# be present and would take predence by RDFa
+			if "href" in node.attrib or "src" in node.attrib:
+				node.set("content", node.text)
+		
+		return etree.tostring(parsed, encoding="utf-8").decode("utf-8")
 
 	def data_renderedDescription(self, ctx, data):
 		if not hasattr(self.original, "renderedDescription"):
@@ -166,13 +173,13 @@ class Examples(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 
 	* *dl-id*: An publisher DID a service returns data for (used in 
 	  datalink examples)
-	* *taptable*: A (fully qualified) table name a TAP example query is
+	* *table*: A (fully qualified) table name a TAP example query is
 	  (particularly) relevant for; in HTML, this is also a link
 	  to the table description.
 	
 	These are the custom directives:
 
-	* *tapquery*: The query discussed in a TAP example.
+	* *query*: The query discussed in a TAP example.
 	"""
 	name = "examples"
 	checkedRenderer = False
@@ -203,10 +210,10 @@ def _taptableRoleFunc(name, rawText, text, lineno, inliner,
 		options={}, content=[]):
 	node = nodes.reference(rawText, text,
 		refuri="/tableinfo/%s"%text) 
-	node["classes"] = ["dachs-ex-taptable"]
+	node["classes"] = ["dachs-ex-table"]
 	return [node], []
 
-RSTExtensions.makeTextRole("taptable", _taptableRoleFunc)
+RSTExtensions.makeTextRole("table", _taptableRoleFunc)
 del _taptableRoleFunc
 
 class _TAPQuery(rst.Directive):
@@ -215,10 +222,10 @@ class _TAPQuery(rst.Directive):
 	def run(self):
 		body = "\n".join(self.content)
 		res = nodes.literal_block(body, body)
-		res["classes"] = ["dachs-ex-tapquery"]
+		res["classes"] = ["dachs-ex-query"]
 		return [res]
 
-RSTExtensions.addDirective("tapquery", _TAPQuery)
+RSTExtensions.addDirective("query", _TAPQuery)
 del _TAPQuery
 
 
