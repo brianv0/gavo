@@ -73,6 +73,8 @@ def loadRD(rdId):
 	"""
 	try:
 		rd = base.caches.getRD(rdId)
+		if hasattr(rd, "getRealRD"):
+			rd = rd.getRealRD()
 	except base.RDNotFound:
 		outputError(rdId, "Could not be located")
 	except base.LiteralParseError:

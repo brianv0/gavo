@@ -439,6 +439,10 @@ class _UserConfigFakeRD(object):
 	This is used by the id resolvers in parsecontext; this certainly is
 	of no use as an RD otherwise.
 	"""
+	def getRealRD(self):
+		return base.caches.getRD(
+			os.path.join(base.getConfig("configDir"), "userconfig.rd"))
+
 	def getById(self, id, forceType=None):
 		"""returns an item from userconfig.
 
@@ -451,8 +455,13 @@ class _UserConfigFakeRD(object):
 					os.path.join(base.getConfig("configDir"), "userconfig.rd")
 					).getById(id, forceType=forceType)
 			except base.NotFoundError:
-				return base.caches.getRD("//userconfig"
-						).getById(id, forceType=forceType)
+				pass
+			except Exception, msg:
+				base.ui.notifyError("Bad userconfig: (%s), ignoring it.  Run"
+					" 'gavo val %%' to see actual errors."%repr(msg))
+
+			return base.caches.getRD("//userconfig"
+				).getById(id, forceType=forceType)
 		except base.NotFoundError:
 			raise base.NotFoundError(id, "Element with id", 
 				"etc/userconfig.rd")

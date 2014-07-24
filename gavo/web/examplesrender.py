@@ -139,10 +139,40 @@ class _Example(rend.DataFactory, base.MetaMixin):
 	
 
 class Examples(grend.CustomTemplateMixin, grend.ServiceBasedPage):
-	"""A page with examples for service usage.
+	"""A renderer for examples for service usage.
 
-	This will only run on services with the TAP rd (or one that has
-	an examples table structured in the same way).
+	This renderer formats _example meta items in its service.  Its output
+	is XHTML compliant to VOSI examples; clients can parse it to, 
+	for instance, fill forms for service operation or display examples
+	to users.
+
+	The examples make use of RDFa to convey semantic markup.  To see
+	what kind of semantics is contained, try 
+	http://www.w3.org/2012/pyRdfa/Overview.html and feed it the
+	example URL of your service.
+
+	The default content of _example is ReStructuredText, and really, not much
+	else  makes sense.  An example for such a meta item can be viewed by
+	executing ``gavo admin dumpDF //userconfig``, in the tapexamples STREAM.
+
+	To support annotation of things within the example text, DaCHS
+	defines several RST extensions, both interpreted text roles (used like
+	``:role-name:`content with blanks```) and custom directives (used
+	to mark up blocks introduced by a single line like
+	``.. directive-name ::`` (the blanks before and after the
+	directive name are significant).
+
+	Here's a the custom interpreted text roles:
+
+	* *dl-id*: An publisher DID a service returns data for (used in 
+	  datalink examples)
+	* *taptable*: A (fully qualified) table name a TAP example query is
+	  (particularly) relevant for; in HTML, this is also a link
+	  to the table description.
+	
+	These are the custom directives:
+
+	* *tapquery*: The query discussed in a TAP example.
 	"""
 	name = "examples"
 	checkedRenderer = False
@@ -164,6 +194,8 @@ class Examples(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 
 
 ################## RST extensions
+# When you add anything here, be sure to update the Examples docstring
+# above.
 
 ### ...for TAP
 

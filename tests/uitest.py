@@ -292,5 +292,27 @@ class DropTest(testhelpers.VerboseTest):
 			self.failIf(q.tableExists("test.noautotable"))
 
 
+class ValidationTest(testhelpers.VerboseTest):
+	def testValidUserconfig(self):
+		with testtricks.testFile(
+				os.path.join(base.getConfig("configDir"), "userconfig.rd"),
+				"""<resource schema="test"><STREAM id="foo"><column name="abc"/>
+				</STREAM></resource>"""):
+			self.assertOutput(cli.main, argList=["val", "%"],
+				expectedRetcode=0, expectedStderr='',
+				expectedStdout='% -- OK\n')
+
+	def testInvalidUserconfig(self):
+		with testtricks.testFile(
+				os.path.join(base.getConfig("configDir"), "userconfig.rd"),
+				"""<resource schema="test"><STREAM id="foo"><column name="abc">
+				</STREAM></resource>"""):
+			self.assertOutput(cli.main, argList=["val", "%"],
+				expectedRetcode=0, expectedStderr='',
+				expectedStdout='% -- [ERROR] %: Malformed RD input, message follows\n'
+					"  *** Error: mismatched tag: line 2, column 6\n  \nFail\n")
+
+
+
 if __name__=="__main__":
 	testhelpers.main(DropTest)
