@@ -65,10 +65,16 @@
 		<meta name="title">Only notYou may see this.</meta>
 	</service>
 
-	<service id="dyntemplate" allowed="fixed">
+	<service id="dyntemplate" allowed="fixed,form">
 		<meta name="title">Dynamic Template Test</meta>
-		<nullCore/>
+		<fixedQueryCore query="select table_name from tap_schema.tables limit 1">
+			<outputTable>
+				<param name="aFloat">1.25</param>
+				<column name="table_name" type="text"/>
+			</outputTable>
+		</fixedQueryCore>
 		<template key="fixed">//tpltest.html</template>
+		<template key="form">//tpltest.html</template>
 	</service>
 
 	<regSuite id="dachs">

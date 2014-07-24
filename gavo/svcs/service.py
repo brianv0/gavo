@@ -148,6 +148,14 @@ class SvcResult(object):
 	def data_table(self, ctx=None):
 		return self.original.getPrimaryTable()
 
+	def getParam(self, paramName):
+		"""returns getParam of the core result or that of its primary table.
+		"""
+		try:
+			return self.original.getParam(paramName)
+		except:
+			return self.original.getPrimaryTable().getParam(paramName)
+
 	def child(self, ctx, name):
 		return getattr(self, "data_"+name)(ctx)
 

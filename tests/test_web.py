@@ -243,15 +243,16 @@ class TemplatingTest(trialhelpers.ArchiveTest):
 		except os.error:
 			pass
 
-	def _assertTemplateRendersTo(self, templateBody, args, strings):
+	def _assertTemplateRendersTo(self, templateBody, args, strings,
+			render="fixed"):
 		with open(self.commonTemplatePath, "w") as f:
 			f.write(_TEMPLATE_TEMPLATE%templateBody)
 
 		svc = api.getRD("//tests").getById("dyntemplate")
-		if "fixed" in svc._loadedTemplates:
-			del svc._loadedTemplates["fixed"]
-		svc.templates["fixed"] = self.commonTemplatePath
-		return self.assertGETHasStrings("//tests/dyntemplate/fixed", 
+		svc._loadedTemplates.pop("fixed", None)
+		svc._loadedTemplates.pop("form", None)
+		svc.templates[render] = self.commonTemplatePath
+		return self.assertGETHasStrings("//tests/dyntemplate/"+render, 
 			args, strings)
 
 	def testContentDelivered(self):
@@ -291,6 +292,23 @@ class TemplatingTest(trialhelpers.ArchiveTest):
 			{},
 			['<div><p>No junky weirdness'])
 	
+	def testParamRender(self):
+		return self._assertTemplateRendersTo(
+			'<div n:data="result">'
+			'<p n:render="param a float is equal to %5.2f">aFloat</p>'
+			'</div>',
+			{"__nevow_form__": "genForm",}, [
+				"<p>a float is equal to  1.25</p>"], render="form")
+
+	def testNoParamRender(self):
+		return self._assertTemplateRendersTo(
+			'<div n:data="result">'
+			'<p n:render="param %5.2f">foo</p>'
+			'</div>',
+			{"__nevow_form__": "genForm",}, [
+				"<p>N/A</p>"], render="form")
+
+
 
 class PathResoutionTest(trialhelpers.ArchiveTest):
 	def testDefaultRenderer(self):

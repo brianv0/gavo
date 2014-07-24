@@ -384,6 +384,22 @@ class HTMLResultRenderMixin(object):
 			args = ""
 		return ctx.tag(onclick="openFlotPlot($('table.results')%s)"%args)
 
+	def render_param(self, format):
+		"""returns the value of the data.getParam(content) formatted as a python
+		string.
+
+		Undefined params give N/A.
+		"""
+		def renderer(ctx, data):
+			parName = ctx.tag.children[0].strip()
+			ctx.tag.clear()
+			try:
+				return ctx.tag[format%data.getParam(parName)]
+			except base.NotFoundError:
+				return ctx.tag["N/A"]
+		return renderer
+
+
 
 class CustomTemplateMixin(object):
 	"""is a mixin providing for customized templates.
