@@ -11,6 +11,12 @@ Version 0.9.2 ()
 	* DaCHS does not produce DataCollection registry records any more; they
 	  are all CatalogServices with (TAP) services exposing the data
 	  given as capabilities directly.
+	
+	* The generation of examples (formerly TAP examples) is not done
+	  completely differently.  If you have material in __system/adqlexamples,
+	  you'll have to move it to etc/userconfig.rd (see doc or the tap
+	  renderer).
+
 
 Version 0.9.1 (2014-04-30)
 

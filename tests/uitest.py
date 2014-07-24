@@ -294,6 +294,7 @@ class DropTest(testhelpers.VerboseTest):
 
 class ValidationTest(testhelpers.VerboseTest):
 	def testValidUserconfig(self):
+		base.caches.clearForName("%")
 		with testtricks.testFile(
 				os.path.join(base.getConfig("configDir"), "userconfig.rd"),
 				"""<resource schema="test"><STREAM id="foo"><column name="abc"/>
@@ -303,6 +304,7 @@ class ValidationTest(testhelpers.VerboseTest):
 				expectedStdout='% -- OK\n')
 
 	def testInvalidUserconfig(self):
+		base.caches.clearForName("%")
 		with testtricks.testFile(
 				os.path.join(base.getConfig("configDir"), "userconfig.rd"),
 				"""<resource schema="test"><STREAM id="foo"><column name="abc">
@@ -311,7 +313,6 @@ class ValidationTest(testhelpers.VerboseTest):
 				expectedRetcode=0, expectedStderr='',
 				expectedStdout='% -- [ERROR] %: Malformed RD input, message follows\n'
 					"  *** Error: mismatched tag: line 2, column 6\n  \nFail\n")
-
 
 
 if __name__=="__main__":

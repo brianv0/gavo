@@ -27,7 +27,7 @@ from gavo import rscdesc  #noflake: for cache registration
 from gavo import utils
 
 
-CURRENT_SCHEMAVERSION = 9
+CURRENT_SCHEMAVERSION = 10
 
 
 class AnnotatedString(str):
@@ -272,6 +272,25 @@ class To9Upgrader(Upgrader):
 	u_030_removeArrayMarkInText = AnnotatedString("UPDATE tap_schema.columns"
 		" SET datatype=replace(datatype, '(*)', '') WHERE datatype LIKE '%%(*)'",
 		"Turn VARCHAR(*) into simple VARCHAR (size=NULL already set for those)")
+
+
+class To10Upgrader(Upgrader):
+	version = 9
+
+	@classmethod
+	def u_000_dropADQLExamples(cls, connection):
+		"""drop old TAP examples tables (gone to _examples meta)"""
+		# This is bypassing transaction control.  Well, it's
+		# really not touching anything critical.
+		from gavo.user import dropping
+		dropping._do_dropTable("tap_schema.examples")
+	
+	@classmethod
+	def u_010_createDLAsyncTable(cls, connection):
+		"""import job table for async datalink"""
+		from gavo import rsc
+		rsc.makeData(base.caches.getRD("//datalink").getById("import"),
+			connection=connection, runCommit=False)
 
 
 def iterStatements(startVersion, endVersion=CURRENT_SCHEMAVERSION, 

@@ -83,7 +83,7 @@ class AsyncTest(trialhelpers.ArchiveTest):
 		return self.assertGETHasStrings("/data/cores/dl/dlasync", 
 			{}, [
 			"/static/xsl/dlasync-joblist-to-html.xsl",
-			"</uws:jobs>"])
+			"<uws:jobs"])
 
 	def testBasicCutout(self):
 		# this is a pretty close clone of testLifeCycle in test_tap, and
