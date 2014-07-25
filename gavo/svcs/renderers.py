@@ -20,6 +20,7 @@ from gavo import utils
 
 RENDERER_REGISTRY = {
 	'admin': ("web.adminrender", "AdminRenderer"),
+	'api': ("web.vodal", "APIRenderer"),
 	'availability': ("web.vosi", "VOSIAvailabilityRenderer"),
 	'capabilities': ("web.vosi", "VOSICapabilityRenderer"),
 	'custom': ("web.customrender", "CustomRenderer"),

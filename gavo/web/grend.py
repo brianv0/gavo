@@ -388,13 +388,17 @@ class HTMLResultRenderMixin(object):
 		"""returns the value of the data.getParam(content) formatted as a python
 		string.
 
-		Undefined params give N/A.
+		Undefined params and NULLs give N/A.
 		"""
 		def renderer(ctx, data):
 			parName = ctx.tag.children[0].strip()
 			ctx.tag.clear()
 			try:
-				return ctx.tag[format%data.getParam(parName)]
+				val = data.getParam(parName)
+				if val is None:
+					return ctx.tag["N/A"]
+
+				return ctx.tag[format%val]
 			except base.NotFoundError:
 				return ctx.tag["N/A"]
 		return renderer

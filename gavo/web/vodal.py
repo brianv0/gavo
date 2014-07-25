@@ -94,11 +94,17 @@ class DALRenderer(grend.ServiceBasedPage):
 		return "\n"
 
 	def _formatOutput(self, data, ctx):
-		request = inevow.IRequest(ctx)
-		request.setHeader('content-disposition', 
-			'attachment; filename="votable.xml"')
 		data.original.addMeta("info", base.makeMetaValue(type="info", 
 			infoName="QUERY_STATUS", infoValue="OK"))
+
+		request = inevow.IRequest(ctx)
+		# This is our DALI RESPONSEFORMAT implementation; use this
+		# together with <inputKey original="__computed__/RESPONSEFORMAT"/>
+		if "RESPONSEFORMAT" in data.queryMeta.ctxArgs:
+			raise NotImplementedError("RESPONSEFORMAT selection doesn't work yet")
+
+		request.setHeader('content-disposition', 
+			'attachment; filename="votable.xml"')
 		request.setHeader("content-type", self.resultType)
 		return streaming.streamVOTable(request, data)
 
@@ -185,13 +191,6 @@ class SCSRenderer(DALRenderer):
 			realCasts[idCol.name]["castFunction"] = str
 		table.votCasts = realCasts
 
-		# as an extension, allow people to select different output formats
-		# (this is a bit of a hack and should be revised after a while; this
-		# currently is completely undocumented)
-		if "FORMAT" in data.queryMeta.ctxArgs:
-			from gavo.web import serviceresults
-			return serviceresults.getFormat(
-				data.queryMeta.ctxArgs["FORMAT"])._formatOutput(data, ctx)
 		return DALRenderer._formatOutput(self, data, ctx)
 
 
@@ -303,15 +302,11 @@ class UnifiedDALRenderer(DALRenderer):
 	part of the individual protocol and thus left to the core.
 
 	The error style is that of SSAP (which, hopefully, will be kept
-	for the other DAL2 protocols, too).  This renderer should be used
-	for SSAP (and soon SIAP, too).  The trouble is that then, we'll
-	need to dispatch the registry capabilities in some other way.
+	for the other DAL2 protocols, too).
 
 	To define actual renderers, inherit from this and set the name attribute
-	(plus _outputTableCasts if necessary).
-
-	In the docstring, document what additional meta is used in the 
-	renderer's capability element.
+	(plus _outputTableCasts if necessary).  Also, explain any protocol-specific
+	metadata in the docstring.
 	"""
 	parameterStyle = "pql"
 
@@ -360,6 +355,19 @@ class SSAPRenderer(UnifiedDALRenderer):
 	is for doing cutouts and similar.
 	"""
 	name = "ssap.xml"
+
+
+class APIRenderer(UnifiedDALRenderer):
+	"""A renderer that works like a VO standard renderer but that doesn't
+	actually follow a given protocol.
+
+	Use this for improvised APIs.  The default output format is a VOTable,
+	and the errors come in VOSI VOTables.  The renderer does, however,
+	evaluate the VOSI RESPONSEFORMAT parameter.  You can declare
+	its metadata by including <inputKey original="//procs#RESPONSEFORMAT"/>
+	in your service.
+	"""
+	name = "api"
 
 
 class RegistryRenderer(grend.ServiceBasedPage):

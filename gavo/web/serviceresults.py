@@ -1,5 +1,9 @@
 """
 "Output drivers" for various formats, for the use of form-like renderers.
+
+TODO: Tar and the output format widget should go somewhere else; the
+rest should be done by RESPONSEFORMAT and formats.  Then this module
+should die.
 """
 
 #c Copyright 2008-2014, the GAVO project

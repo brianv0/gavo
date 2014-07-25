@@ -163,7 +163,7 @@
 		<make table="conecat"/>
 	</data>
 
-	<service id="scs" allowed="scs.xml">
+	<service id="scs" allowed="scs.xml, api" defaultRenderer="scs.xml">
 		<meta name="testQuery">
 			<meta name="ra">10</meta>
 			<meta name="dec">20</meta>

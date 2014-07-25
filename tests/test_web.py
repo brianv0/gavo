@@ -359,6 +359,13 @@ class MetaPagesTest(trialhelpers.ArchiveTest):
 			['<identifier>ivo://x-unregistred/data/pubtest/moribund</identifier>'])
 
 
+class VOTableTest(trialhelpers.ArchiveTest):
+	def testSimple(self):
+		return self.assertGETHasStrings("/data/cores/scs/api", 
+			{"mag": ["/10"]},
+			["quokka"])
+
+
 class SCSTest(trialhelpers.ArchiveTest):
 	def testCasting(self):
 		return self.assertGETHasStrings("/data/cores/scs", 

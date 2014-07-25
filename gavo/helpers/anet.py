@@ -19,7 +19,7 @@ indices
     ["index-4203-\*.fits", "index-4202-*.fits"]
   
   for small ones.  You can also give absolute path names for custom
-	indices that live, e.g., in your resource directory.
+  indices that live, e.g., in your resource directory.
 
 total_timelimit
   (defaults to 600) -- number of seconds after which the anet run

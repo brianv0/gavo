@@ -60,14 +60,18 @@ def adaptTable(origTable, newColumns):
 	if hasattr(origTable, "noPostprocess"):
 		colDiffs = None
 		newTd = origTable.tableDef
+
 	else:
 		colDiffs = base.computeColumnConversions(
 			newColumns, origTable.tableDef.columns)
 		newTd = origTable.tableDef.copy(origTable.tableDef.parent)
 		newTd.columns = newColumns
+
 	if not colDiffs:
 		newTable = table.InMemoryTable(newTd, rows=origTable.rows)
 		newTable.meta_ = origTable.meta_
+		newTable._params = origTable._params
+
 	else: # we need to do work
 		rmk = rscdef.RowmakerDef(None)
 		for col in newColumns:
@@ -81,6 +85,8 @@ def adaptTable(origTable, newColumns):
 		mapper = rmk.finishElement(None).compileForTableDef(newTd)
 		for r in origTable:
 			newTable.addRow(mapper(r, newTable))
+		newTable._params = origTable._params
+
 	return rsc.wrapTable(newTable, rdSource=origTable.tableDef)
 
 
@@ -152,9 +158,13 @@ class SvcResult(object):
 		"""returns getParam of the core result or that of its primary table.
 		"""
 		try:
-			return self.original.getParam(paramName)
-		except:
-			return self.original.getPrimaryTable().getParam(paramName)
+			val = self.original.getParam(paramName)
+			if val is not None:
+				return val
+		except (KeyError, base.NotFoundError):
+			pass
+
+		return self.original.getPrimaryTable().getParam(paramName)
 
 	def child(self, ctx, name):
 		return getattr(self, "data_"+name)(ctx)
