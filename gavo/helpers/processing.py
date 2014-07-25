@@ -487,13 +487,17 @@ class AnetHeaderProcessor(HeaderProcessor):
 					" not to run astrometry.net")
 			return oldCards.ascard
 
+	def _shouldRunAnet(self, srcName, hdr):
+		return True
+
 	def _getHeader(self, srcName):
 		hdr = self.getPrimaryHeader(srcName)
-		wcsCards = self._solveAnet(srcName)
-		if not wcsCards:
-			raise CannotComputeHeader("astrometry.net did not"
-				" find a solution")
-		fitstricks.copyFields(hdr, wcsCards, self.noCopyHeaders)
+		if self._shouldRunAnet(srcName, hdr):
+			wcsCards = self._solveAnet(srcName)
+			if not wcsCards:
+				raise CannotComputeHeader("astrometry.net did not"
+					" find a solution")
+			fitstricks.copyFields(hdr, wcsCards, self.noCopyHeaders)
 		return self._mungeHeader(srcName, hdr)
 
 	def commentFilter(self, value):
