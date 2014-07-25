@@ -18,6 +18,7 @@ from twisted.internet import defer
 from zope.interface import implements
 
 from gavo import base
+from gavo import formats
 from gavo import registry
 from gavo import rscdef
 from gavo import rsc
@@ -98,15 +99,28 @@ class DALRenderer(grend.ServiceBasedPage):
 			infoName="QUERY_STATUS", infoValue="OK"))
 
 		request = inevow.IRequest(ctx)
-		# This is our DALI RESPONSEFORMAT implementation; use this
-		# together with <inputKey original="__computed__/RESPONSEFORMAT"/>
-		if "RESPONSEFORMAT" in data.queryMeta.ctxArgs:
-			raise NotImplementedError("RESPONSEFORMAT selection doesn't work yet")
+		if "RESPONSEFORMAT" in request.args:
+			# This is our DALI RESPONSEFORMAT implementation; use this
+			# together with <inputKey original="__computed__/RESPONSEFORMAT"/>
+			# TBD: preserved metadata strings?
+			destFormat = request.args["RESPONSEFORMAT"][0]
+			request.setHeader("content-type", formats.getMIMEFor(destFormat))
+			# TBD: format should know extensions for common formats
+			request.setHeader('content-disposition', 
+				'attachment; filename="result.dat"')
 
-		request.setHeader('content-disposition', 
-			'attachment; filename="votable.xml"')
-		request.setHeader("content-type", self.resultType)
-		return streaming.streamVOTable(request, data)
+			def writeStuff(outputFile):
+				formats.formatData(destFormat,
+					data.original, outputFile, acquireSamples=False)
+
+			return streaming.streamOut(writeStuff, request)
+
+		else:
+			# default behaviour: votable.
+			request.setHeader('content-disposition', 
+				'attachment; filename="votable.xml"')
+			request.setHeader("content-type", self.resultType)
+			return streaming.streamVOTable(request, data)
 
 	def _handleRandomFailure(self, failure, ctx):
 		if not isinstance(failure, base.ValidationError):

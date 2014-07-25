@@ -362,8 +362,8 @@ class MetaPagesTest(trialhelpers.ArchiveTest):
 class VOTableTest(trialhelpers.ArchiveTest):
 	def testSimple(self):
 		return self.assertGETHasStrings("/data/cores/scs/api", 
-			{"mag": ["/10"]},
-			["quokka"])
+			{"ra": ["/1.5"], "RESPONSEFORMAT": "tsv"},
+			["0\t1.25\t2.5\n"])
 
 
 class SCSTest(trialhelpers.ArchiveTest):

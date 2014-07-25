@@ -171,6 +171,7 @@
 		</meta>
 		<dbCore queriedTable="conecat">
     	<condDesc original="//scs#protoInput"/>
+    	<condDesc buildFrom="ra"/>
 		</dbCore>
 	</service>
 </resource>
