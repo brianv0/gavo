@@ -177,7 +177,8 @@ class RenderTest(TrialTest):
 	"""
 	renderer = None # Override with the resource to be tested.
 
-	def assertStringsIn(self, result, strings, inverse=False):
+	def assertStringsIn(self, result, strings, inverse=False, 
+			customTest=None):
 		content = result[0]
 		try:
 			for s in strings:
@@ -185,6 +186,9 @@ class RenderTest(TrialTest):
 					self.failIf(s in content, "'%s' in remote.data"%s)
 				else:
 					self.failIf(s not in content, "'%s' not in remote.data"%s)
+
+			if customTest is not None:
+				customTest(content)
 		except AssertionError:
 			with open("remote.data", "w") as f:
 				f.write(content)
@@ -192,13 +196,15 @@ class RenderTest(TrialTest):
 		return result
 	
 	def assertResultHasStrings(self, method, path, args, strings, 
-			rm=None, inverse=False):
-		return runQuery(self.renderer, method, path, args, rm
-			).addCallback(self.assertStringsIn, strings, inverse=inverse)
+			rm=None, inverse=False, customTest=None):
+		return runQuery(self.renderer, method, path, args, rm,
+			).addCallback(self.assertStringsIn, strings, inverse=inverse,
+			customTest=customTest)
 
-	def assertGETHasStrings(self, path, args, strings, rm=None):
+	def assertGETHasStrings(self, path, args, strings, rm=None,
+			customTest=None):
 		return self.assertResultHasStrings("GET", 
-			path, args, strings, rm)
+			path, args, strings, rm, customTest=customTest)
 
 	def assertGETLacksStrings(self, path, args, strings, rm=None):
 		return self.assertResultHasStrings("GET", 

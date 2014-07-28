@@ -625,4 +625,4 @@ def writeDataAsHTML(data, outputFile, acquireSamples=False):
 	outputFile.write(flat.flatten(fragment))
 
 
-formats.registerDataWriter("html", writeDataAsHTML, "text/html")
+formats.registerDataWriter("html", writeDataAsHTML, "text/html", "HTML")

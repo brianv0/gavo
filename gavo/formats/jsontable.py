@@ -83,4 +83,5 @@ def writeTableAsJSON(table, target, acquireSamples=False):
 
 # NOTE: while json could easily serialize full data elements,
 # right now we're only writing single tables.
-common.registerDataWriter("json", writeTableAsJSON, "application/json")
+common.registerDataWriter("json", writeTableAsJSON, "application/json",
+	"JSON")

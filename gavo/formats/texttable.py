@@ -61,4 +61,5 @@ def readTSV(inFile):
 
 
 # NOTE: This will only serialize the primary table.
-common.registerDataWriter("tsv", renderAsText, "text/tab-separated-values")
+common.registerDataWriter("tsv", renderAsText, "text/tab-separated-values",
+	"Tab separated values", "text/plain")

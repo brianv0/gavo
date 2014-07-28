@@ -514,9 +514,11 @@ def format(data, outputFile, **ctxargs):
 	return writeAsVOTable(data, outputFile, VOTableContext(**ctxargs))
 
 common.registerDataWriter("votable", format, 
-	base.votableType)
+	base.votableType, "Default VOTable")
 common.registerDataWriter("votableb2", functools.partial(
 	format, tablecoding="binary2"),
-	"application/x-votable+xml;serialization=BINARY2")
+	"application/x-votable+xml;serialization=BINARY2",
+	"Binary2 VOTable")
 common.registerDataWriter("votabletd", functools.partial(
-	format, tablecoding="td"), "text/xml")
+	format, tablecoding="td"), "text/xml", "Tabledata VOTable",
+	"text/xml")

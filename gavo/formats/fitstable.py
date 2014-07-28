@@ -179,4 +179,5 @@ def writeDataAsFITS(data, outputFile, acquireSamples=False):
 	finally:
 		os.unlink(fitsName)
 
-common.registerDataWriter("fits", writeDataAsFITS, "application/fits")
+common.registerDataWriter("fits", writeDataAsFITS, "application/fits",
+	"FITS Binary Table")

@@ -212,20 +212,6 @@ def _hangIfMagic(jobId, parameters, timeout):
 		sys.exit()
 
 
-_preservedMIMEs = set([ # Spec, 2.7.1
-	"text/xml", "application/x-votable+xml", "text/plain"])
-
-def _getResultType(formatProduced, formatOrdered):
-	"""returns the mime type for a TAP result.
-
-	All this logic is necessary to pull through VOTable MIME types from
-	the request format as mandated by the spec.
-	"""
-	if formatOrdered in _preservedMIMEs:
-		return formatOrdered
-	return formats.getMIMEFor(formatProduced)
-
-
 def getQTableFromJob(parameters, jobId, queryProfile, timeout):
 	"""returns a QueryTable for a TAP job.
 	"""
@@ -266,7 +252,7 @@ def runTAPJobNoState(parameters, jobId, queryProfile, timeout):
 	try:
 		job = tap.workerSystem.getJob(jobId)
 		destF = job.openResult(
-			_getResultType(format, job.parameters.get("format")), "result")
+			formats.getMIMEFor(format, job.parameters.get("format")), "result")
 		writeResultTo(format, res, destF)
 		destF.close()
 	except Exception:

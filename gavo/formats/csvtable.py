@@ -53,8 +53,10 @@ def writeDataAsHeaderedCSV(table, target, acquireSamples=True):
 		acquireSamples=acquireSamples)
 
 # NOTE: This will only serialize the primary table
-common.registerDataWriter("csv", writeDataAsCSV, "text/csv")
+common.registerDataWriter("csv", writeDataAsCSV, "text/csv", 
+	"CSV without column labels")
 common.registerDataWriter("csv+header", 
 	lambda table, target, **kwargs: 
 		writeDataAsCSV(table, target, headered=True, **kwargs),
-	"text/csv;header=present")
+	"text/csv;header=present",
+	"CSV with column labels")

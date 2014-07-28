@@ -19,6 +19,10 @@ from gavo import svcs
 from gavo import utils
 from gavo.imp import formal
 
+#base.DEBUG = True
+#from gavo.user.logui import LoggingUI
+#LoggingUI(base.ui)
+
 
 class AdminTest(trialhelpers.ArchiveTest):
 	def _makeAdmin(self, req):
@@ -359,17 +363,18 @@ class MetaPagesTest(trialhelpers.ArchiveTest):
 			['<identifier>ivo://x-unregistred/data/pubtest/moribund</identifier>'])
 
 
-class VOTableTest(trialhelpers.ArchiveTest):
+class APIRenderTest(trialhelpers.ArchiveTest):
 	def testSimple(self):
 		return self.assertGETHasStrings("/data/cores/scs/api", 
-			{"ra": ["/1.5"], "RESPONSEFORMAT": "tsv"},
-			["0\t1.25\t2.5\n"])
+			{"id": ["/0"], "RESPONSEFORMAT": "tsv"},
+			["0\t1.25\t2.5\n"],
+			customTest=lambda tx: self.assertFalse("1\t23.0" in tx))
 
 
 class SCSTest(trialhelpers.ArchiveTest):
 	def testCasting(self):
-		return self.assertGETHasStrings("/data/cores/scs", 
-			{"RA": [1], "DEC": ["2"], "SR": ["1.5"]},
+		return self.assertGETHasStrings("/data/cores/scs/scs.xml", 
+			{"RA": ["1"], "DEC": ["2"], "SR": ["1.5"]},
 			['AAAAATA/9AAAAAAAAEAEAAAAAAAA', 'datatype="char"'])
 
 	def testCapability(self):
@@ -396,4 +401,5 @@ class TestExamples(trialhelpers.ArchiveTest):
 atexit.register(trialhelpers.provideRDData("test", "import_fitsprod"))
 atexit.register(trialhelpers.provideRDData("cores", "import_conecat"))
 
-base.DEBUG = True
+
+

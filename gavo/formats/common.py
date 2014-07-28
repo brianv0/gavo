@@ -20,6 +20,12 @@ instance.
 from cStringIO import StringIO
 
 from gavo import base
+from gavo.imp import httpheader
+
+
+PRESERVED_MIMES = set([ # TAP Spec, 2.7.1, similar in DALI
+	"text/xml", "application/x-votable+xml", "text/plain"])
+
 
 _formatDataRegistry = {}
 _formatsMIMERegistry = {}
@@ -31,50 +37,126 @@ class CannotSerializeIn(base.Error):
 		base.Error.__init__(self, format,
 			hint="Either you gave an invalid format id or a known format"
 			" did not get registred for some reason.  Format codes"
-			" known at this point: %s."%", ".join(_formatDataRegistry))
+			" known at this point: %s.  You can also try common MIME types"%(
+				", ".join(FORMATS_REGISTRY.writerRegistry)))
 		self.args = [format]
 	
 	def __str__(self):
 		return "Cannot serialize in '%s'."%self.format
 
 
-def registerDataWriter(key, writer, mime):
-	_formatDataRegistry[key] = writer
-	_formatsMIMERegistry[key] = mime
+def getMimeKey(contentType):
+	"""makes a DaCHS mime key from a content-type string.
 
+	This is used for retrieving matching mime types and is a triple
+	of major and minor mime type and a set of parameter pairs.
 
-def getMIMEFor(formatName):
-	"""returns a MIME type for our internal formatName.
-
-	This will return application/octet-stream for unknown formats.
+	contentType is a string-serialized mime type.
 	"""
-	return _formatsMIMERegistry.get(formatName, "application/octet-stream")
+	parsedMime = httpheader.content_type(contentType)
+	return (parsedMime.major, parsedMime.minor, 
+			frozenset(parsedMime.parmdict.iteritems()))
 
 
-def checkFormatIsValid(formatName):
-	"""raises a CannotSerializeIn exception if formatData would fail with one.
+class FORMATS_REGISTRY(object):
+	"""a registry for data formats that can be produced by DaCHS.
+
+	This works by self-registration of the respective modules on their
+	input; hence, if you want to rely on some entry here, be sure
+	there's an import somewhere.
 	"""
-	if formatName not in _formatDataRegistry:
+	# format key -> writer function
+	writerRegistry = {}
+	# format key -> mime type
+	formatToMIME = {}
+	# format key -> human-readable label
+	formatToLabel = {}
+	# (major, minor, param pair set) -> format key
+	mimeToKey = {}
+
+	@classmethod
+	def registerDataWriter(cls, key, writer, mainMime, label, *aliases):
+		cls.writerRegistry[key] = writer
+		cls.formatToMIME[key] = mainMime
+		cls.formatToLabel[key] = label
+
+		cls.mimeToKey[getMimeKey(mainMime)] = key
+		for mime in aliases:
+			cls.mimeToKey[getMimeKey(mime)] = key
+
+	@classmethod
+	def getMIMEFor(cls, formatName, orderedFormat=None):
+		"""returns a simple MIME type for our formatName (some incoming MIME 
+		or an alias).
+
+		Some magic, reserved mimes that need to be preserved from
+		the input are recognised and returned in orderedFormat.  This
+		is for TAP and related DALI hacks.
+		"""
+		if orderedFormat in PRESERVED_MIMES:
+			return orderedFormat
+
+		if formatName in cls.formatToMIME:
+			return cls.formatToMIME[formatName]
+
+		# if it looks like a mime type, return it, otherwise assume it's
+		# an unimported format and return a generic mime
+		if "/" in formatName:
+			return formatName
+		else:
+			return "application/octet-stream"
+
+	@classmethod
+	def getWriterFor(cls, formatName):
+		"""returns a writer for formatName.
+
+		writers are what's registred via registerDataWriter; formatName is
+		a MIME type or a format alias.  This raises CannotSerializeIn
+		if no writer is available.
+		"""
+		if formatName in cls.writerRegistry:
+			return cls.writerRegistry[formatName]
+
+		try:
+			key = getMimeKey(formatName)
+			if key in cls.mimeToKey:
+				return cls.writerRegistry[key]
+
+			# last resort: strip parameters and hope it's close enough
+			# to what the user wants
+			key = (key[0], key[1], frozenset())
+			if key in cls.mimeToKey:
+				return cls.writerRegistry[key]
+		except httpheader.ParseError:
+			# formatName wasn't a MIME type
+			pass
+
 		raise CannotSerializeIn(formatName)
 
 
-def formatData(key, table, outputFile, acquireSamples=True):
+registerDataWriter = FORMATS_REGISTRY.registerDataWriter
+getMIMEFor = FORMATS_REGISTRY.getMIMEFor
+getWriterFor = FORMATS_REGISTRY.getWriterFor
+
+
+def formatData(formatName, table, outputFile, acquireSamples=True):
 	"""writes a table to outputFile in the format given by key.
 
-	key points into the _formatDataRegistry.  Table may be a table or a
-	Data instance.
+	Table may be a table or a Data instance.   formatName is a format shortcut
+	or a MIME type.
+
+	This raises a CannotSerializeIn exception if formatName is not recognized.
 	"""
-	checkFormatIsValid(key)
-	_formatDataRegistry[key](table, outputFile, acquireSamples=acquireSamples)
+	getWriterFor(formatName)(table, outputFile, acquireSamples=acquireSamples)
 
 
-def getFormatted(key, table, acquireSamples=False):
+def getFormatted(formatName, table, acquireSamples=False):
 	"""returns a string containing a representation of table in the
-	format given by key.
+	format given by formatName.
 
 	This is just wrapping formatData; it might use large amounts of memory
 	for large data.
 	"""
 	buffer = StringIO()
-	formatData(key, table, buffer, acquireSamples)
+	formatData(formatName, table, buffer, acquireSamples)
 	return buffer.getvalue()
