@@ -54,12 +54,12 @@ class DALRenderer(grend.ServiceBasedPage):
 	urlUse = "base"
 
 	def __init__(self, ctx, *args, **kwargs):
-		reqArgs = inevow.IRequest(ctx).args
-		if not "_DBOPTIONS_LIMIT" in reqArgs:
-			reqArgs["_DBOPTIONS_LIMIT"] = [
+		self.reqArgs = inevow.IRequest(ctx).args
+		if not "MAXREC" in self.reqArgs:
+			self.reqArgs["MAXREC"] = [
 				str(base.getConfig("ivoa", "dalDefaultLimit"))]
 		# XXX TODO: Do away with _FORMAT in general, move to RESPONSEFORMAT
-		reqArgs["_FORMAT"] = ["VOTable"]
+		self.reqArgs["_FORMAT"] = ["VOTable"]
 
 		# see _writeErrorTable
 		self.saneResponseCodes = False
@@ -74,12 +74,49 @@ class DALRenderer(grend.ServiceBasedPage):
 		return False
 
 	def renderHTTP(self, ctx):
-		return defer.maybeDeferred(self._runService, ctx
-			).addErrback(self._handleInputErrors, ctx
-			).addErrback(self._handleRandomFailure, ctx)
+		queryMeta = svcs.QueryMeta.fromContext(ctx)
+		if queryMeta["dbLimit"]==0:
+			return self._renderMetadata(ctx, queryMeta)
 
-	def _runService(self, ctx):
-		return self.runService(inevow.IRequest(ctx).args
+		else:
+			return defer.maybeDeferred(self._runService, ctx, queryMeta
+				).addErrback(self._handleInputErrors, ctx
+				).addErrback(self._handleRandomFailure, ctx)
+
+	def _getMetadataData(self, queryMeta):
+		"""returns a SIAP-style metadata data item.
+		"""
+		# XXX TODO: build VOTable directly (rather than from data)
+		inputFields = [
+			svcs.InputKey.fromColumn(f, name=utils.QuotedName("INPUT:"+f.name))
+			for f in self.service.getInputKeysFor(self)]
+		inputTable = MS(rscdef.TableDef, columns=inputFields)
+		outputTable = MS(rscdef.TableDef, columns=
+			self.service.getCurOutputFields(queryMeta), id="result")
+
+		nullRowmaker = MS(rscdef.RowmakerDef)
+		dataDesc = MS(rscdef.DataDescriptor, makes=[
+			MS(rscdef.Make, table=inputTable, role="parameters", 
+				rowmaker=nullRowmaker),
+			MS(rscdef.Make, table=outputTable, rowmaker=nullRowmaker)],
+			parent_=self.service.rd)
+
+		data = rsc.makeData(dataDesc)
+		data.tables["result"].votCasts = self._outputTableCasts
+		data.setMeta("_type", "results")
+		data.addMeta("info", base.makeMetaValue("OK", type="info", 
+			infoName="QUERY_STATUS", infoValue="OK"))
+		
+		return data
+
+	def _renderMetadata(self, ctx, queryMeta):
+		metaData = self._getMetadataData(queryMeta)
+		request = inevow.IRequest(ctx)
+		request.setHeader("content-type", base.votableType)
+		return formats.getFormatted("votabletd", metaData)
+
+	def _runService(self, ctx, queryMeta):
+		return self.runService(inevow.IRequest(ctx).args, queryMeta
 			).addCallback(self._formatOutput, ctx)
 
 	def _writeErrorTable(self, ctx, errmsg, code=200, queryStatus="ERROR"):
@@ -256,7 +293,7 @@ class SIAPRenderer(DALRenderer):
 		except (IndexError, KeyError):
 			metadataQuery = False
 		if metadataQuery:
-			return self._serveMetadata(ctx)
+			return self._renderMetadata(ctx, svcs.QueryMeta.fromContext(ctx))
 
 		return DALRenderer.renderHTTP(self, ctx)
 
@@ -272,34 +309,6 @@ class SIAPRenderer(DALRenderer):
 		"mime": {"ucd": "VOX:Image_Format"},
 		"accref": {"ucd": "VOX:Image_AccessReference"},
 	}
-
-	def _makeMetadataData(self, queryMeta):
-		inputFields = [
-			svcs.InputKey.fromColumn(f, name=utils.QuotedName("INPUT:"+f.name))
-			for f in self.service.getInputKeysFor(self)]
-		inputTable = MS(rscdef.TableDef, columns=inputFields)
-		outputTable = MS(rscdef.TableDef, columns=
-			self.service.getCurOutputFields(queryMeta), id="result")
-
-		nullRowmaker = MS(rscdef.RowmakerDef)
-		dataDesc = MS(rscdef.DataDescriptor, makes=[
-			MS(rscdef.Make, table=inputTable, role="parameters", 
-				rowmaker=nullRowmaker),
-			MS(rscdef.Make, table=outputTable, rowmaker=nullRowmaker)],
-			parent_=self.service.rd)
-
-		data = rsc.makeData(dataDesc)
-		data.tables["result"].votCasts = self._outputTableCasts
-		data.setMeta("_type", "results")
-		data.addMeta("info", base.makeMetaValue("OK", type="info", 
-			infoName="QUERY_STATUS", infoValue="OK"))
-		return svcs.SvcResult(data, {}, queryMeta)
-
-	def _serveMetadata(self, ctx):
-		metaData = self._makeMetadataData(svcs.QueryMeta.fromContext(ctx))
-		request = inevow.IRequest(ctx)
-		request.setHeader("content-type", "text/xml+votable")
-		return streaming.streamVOTable(request, metaData)
 
 	def _formatOutput(self, data, ctx):
 		data.original.setMeta("_type", "results")

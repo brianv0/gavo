@@ -376,6 +376,14 @@ class APIRenderTest(trialhelpers.ArchiveTest):
 				["application/x-votable+xml;serialization=BINARY2"]},
 			["<BINARY2>", "AAAAAAA/oAAAQAQAAAAAAAA="],
 			customTest=lambda tx: self.assertFalse("1\t23.0" in tx))
+	
+	def testMetadataResponse(self):
+		return self.assertGETHasStrings("/data/cores/scs/api", 
+			{"MAXREC": ["0"]}, [
+				'<OPTION name="HTML" value="text/html"/>',
+				'name="INPUT:MAXREC"',
+				'<TABLEDATA></TABLEDATA>'])
+
 
 
 

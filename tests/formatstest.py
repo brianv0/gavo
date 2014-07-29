@@ -76,11 +76,9 @@ class ResolutionTest(testhelpers.VerboseTest):
 			"application/x-votable+xml;serialization=BINARY2")
 
 	def testIterFormats(self):
-		labels = dict(formats.iterFormats())
-		self.assertEqual(
-			labels["application/x-votable+xml"],
-			"Default VOTable")
-
+		labels = list(formats.iterFormats())
+		self.assertTrue("votableb2", labels)
+		self.assertTrue("tsv", labels)
 
 
 class FITSWriterTest(unittest.TestCase):

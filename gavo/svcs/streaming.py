@@ -190,6 +190,7 @@ def streamVOTable(request, data, **contextOpts):
 				True: "td", False: "binary"}[data.queryMeta["tdEnc"]]
 		if "version" not in contextOpts:
 			contextOpts["version"] = data.queryMeta.get("VOTableVersion")
+
 		votablewrite.writeAsVOTable(
 			data.original, outputFile,
 			ctx=votablewrite.VOTableContext(**contextOpts))

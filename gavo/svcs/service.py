@@ -759,8 +759,9 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		This is the main interface for external entities to discover.
 		service metadata.
 		"""
-		return self.getInputDDFor(
+		return (self.getInputDDFor(
 			self.getCoreFor(renderer)).grammar.inputKeys
+			)+self.serviceKeys
 
 	def _hackInputTableFromPreparsed(self, core, args):
 		"""returns an input table from dictionaries as produced by nevow formal.

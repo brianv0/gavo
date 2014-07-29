@@ -148,16 +148,15 @@ class FORMATS_REGISTRY(object):
 
 	@classmethod
 	def iterFormats(cls):
-		"""iterates over (par-val, label) pairs describing output formats.
+		"""iterates over the short names of the available formats.
 		"""
-		items = sorted(cls.formatToMIME.keys()+cls.formatToMIME.values())
-		for key in items:
-			yield (key, cls.getLabelFor(key))
+		return iter(cls.writerRegistry)
 
 
 registerDataWriter = FORMATS_REGISTRY.registerDataWriter
 getMIMEFor = FORMATS_REGISTRY.getMIMEFor
 getWriterFor = FORMATS_REGISTRY.getWriterFor
+getLabelFor = FORMATS_REGISTRY.getLabelFor
 iterFormats = FORMATS_REGISTRY.iterFormats
 
 

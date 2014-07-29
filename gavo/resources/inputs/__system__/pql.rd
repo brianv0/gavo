@@ -120,26 +120,33 @@
 	</procDef>
 
 
-<!-- For lack of a better place: A standard RESPONSEFORMAT for DALI-like
-services; as formats self-register, this could yield different things depending
-on when it is evaluated.  Maybe do this differently? -->
+<!-- For lack of a better place: Descriptors of the standard DALI parameters
+vodal-based services interpret. -->
 
-	<NXSTREAM id="RESPONSEFORMAT">
+	<NXSTREAM id="DALIPars">
 		<inputKey name="RESPONSEFORMAT" type="text"
 			ucd="meta.code.mime"
 			tablehead="Output Format"
 			description="File format requested for output.">
-			<LOOP>
-				<codeItems>
-					from gavo import formats
-					for key, label in formats.iterFormats():
-						yield {"item": key, "title": label}
-				</codeItems>
-				<events>
-					<option title="\title">\item</option>
-				</events>
-			</LOOP>
+			<values>
+				<LOOP>
+					<codeItems>
+						from gavo import formats
+						for key in formats.iterFormats():
+							yield {"item": formats.getMIMEFor(key), 
+								"title": formats.getLabelFor(key)}
+					</codeItems>
+					<events>
+						<option title="\\title">\\item</option>
+					</events>
+				</LOOP>
+			</values>
 		</inputKey>
+
+		<inputKey name="MAXREC" type="integer"
+			tablehead="Match limit"
+			description="Maximum number of records returned.  Pass 0 to
+				 retrieve service parameters."/>
 	</NXSTREAM>
 	
 </resource>

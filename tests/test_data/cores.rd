@@ -174,7 +174,7 @@
     	<condDesc buildFrom="id"/>
 		</dbCore>
 
-		<STREAM source="//pql#RESPONSEFORMAT"/>
+		<FEED source="//pql#DALIPars"/>
 
 	</service>
 </resource>

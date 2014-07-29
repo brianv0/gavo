@@ -421,8 +421,6 @@ class FormMixin(formal.ResourceMixin):
 	def _addMetaFields(self, form, queryMeta):
 		"""adds fields to choose output properties to form.
 		"""
-		for serviceKey in self.service.serviceKeys:
-			self._addInputKey(form, form, serviceKey)
 		try:
 			if self.service.core.wantsTableWidget():
 				form.addField("_DBOPTIONS", svcs.FormalDict,
