@@ -173,5 +173,8 @@
     	<condDesc original="//scs#protoInput"/>
     	<condDesc buildFrom="id"/>
 		</dbCore>
+
+		<STREAM source="//pql#RESPONSEFORMAT"/>
+
 	</service>
 </resource>

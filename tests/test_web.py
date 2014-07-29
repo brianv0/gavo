@@ -364,11 +364,19 @@ class MetaPagesTest(trialhelpers.ArchiveTest):
 
 
 class APIRenderTest(trialhelpers.ArchiveTest):
-	def testSimple(self):
+	def testResonseKey(self):
 		return self.assertGETHasStrings("/data/cores/scs/api", 
 			{"id": ["/0"], "RESPONSEFORMAT": "tsv"},
 			["0\t1.25\t2.5\n"],
 			customTest=lambda tx: self.assertFalse("1\t23.0" in tx))
+
+	def testResponseMIME(self):
+		return self.assertGETHasStrings("/data/cores/scs/api", 
+			{"id": ["/0"], "RESPONSEFORMAT": 
+				["application/x-votable+xml;serialization=BINARY2"]},
+			["<BINARY2>", "AAAAAAA/oAAAQAQAAAAAAAA="],
+			customTest=lambda tx: self.assertFalse("1\t23.0" in tx))
+
 
 
 class SCSTest(trialhelpers.ArchiveTest):

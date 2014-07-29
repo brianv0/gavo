@@ -114,29 +114,51 @@ class FORMATS_REGISTRY(object):
 		a MIME type or a format alias.  This raises CannotSerializeIn
 		if no writer is available.
 		"""
+		return cls.writerRegistry[cls.getKeyFor(formatName)]
+
+	@classmethod
+	def getLabelFor(cls, formatName):
+		"""returns a label for formatName (DaCHS key or MIME type).
+		"""
+		return cls.formatToLabel[cls.getKeyFor(formatName)]
+
+	@classmethod
+	def getKeyFor(cls, formatName):
+		"""returns a DaCHS format key for formatName (DaCHS key or MIME).
+
+		If formatName is a mime type with parameters, we'll also try
+		to get a format with the parameters stripped and silently succeed
+		if that works.
+		"""
 		if formatName in cls.writerRegistry:
-			return cls.writerRegistry[formatName]
+			return formatName
 
 		try:
-			key = getMimeKey(formatName)
-			if key in cls.mimeToKey:
-				return cls.writerRegistry[key]
-
-			# last resort: strip parameters and hope it's close enough
-			# to what the user wants
-			key = (key[0], key[1], frozenset())
-			if key in cls.mimeToKey:
-				return cls.writerRegistry[key]
+			parsed = getMimeKey(formatName)
 		except httpheader.ParseError:
-			# formatName wasn't a MIME type
-			pass
+			raise CannotSerializeIn(formatName)
+
+		if parsed in cls.mimeToKey:
+			return cls.mimeToKey[parsed]
+		parsed = (parsed[0], parsed[1], frozenset())
+		if parsed in cls.mimeToKey:
+			return cls.mimeToKey[parsed]
 
 		raise CannotSerializeIn(formatName)
+
+	@classmethod
+	def iterFormats(cls):
+		"""iterates over (par-val, label) pairs describing output formats.
+		"""
+		items = sorted(cls.formatToMIME.keys()+cls.formatToMIME.values())
+		for key in items:
+			yield (key, cls.getLabelFor(key))
 
 
 registerDataWriter = FORMATS_REGISTRY.registerDataWriter
 getMIMEFor = FORMATS_REGISTRY.getMIMEFor
 getWriterFor = FORMATS_REGISTRY.getWriterFor
+iterFormats = FORMATS_REGISTRY.iterFormats
 
 
 def formatData(formatName, table, outputFile, acquireSamples=True):

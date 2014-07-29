@@ -120,4 +120,26 @@
 	</procDef>
 
 
+<!-- For lack of a better place: A standard RESPONSEFORMAT for DALI-like
+services; as formats self-register, this could yield different things depending
+on when it is evaluated.  Maybe do this differently? -->
+
+	<NXSTREAM id="RESPONSEFORMAT">
+		<inputKey name="RESPONSEFORMAT" type="text"
+			ucd="meta.code.mime"
+			tablehead="Output Format"
+			description="File format requested for output.">
+			<LOOP>
+				<codeItems>
+					from gavo import formats
+					for key, label in formats.iterFormats():
+						yield {"item": key, "title": label}
+				</codeItems>
+				<events>
+					<option title="\title">\item</option>
+				</events>
+			</LOOP>
+		</inputKey>
+	</NXSTREAM>
+	
 </resource>

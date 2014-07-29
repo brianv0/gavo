@@ -1007,4 +1007,5 @@ def main(args=None):
 	runner.runTests(showDots=True)
 	print runner.stats.getReport()
 	if runner.stats.fails:
+		print runner.stats.getFailures()
 		sys.exit(1)

@@ -58,7 +58,9 @@ class DALRenderer(grend.ServiceBasedPage):
 		if not "_DBOPTIONS_LIMIT" in reqArgs:
 			reqArgs["_DBOPTIONS_LIMIT"] = [
 				str(base.getConfig("ivoa", "dalDefaultLimit"))]
+		# XXX TODO: Do away with _FORMAT in general, move to RESPONSEFORMAT
 		reqArgs["_FORMAT"] = ["VOTable"]
+
 		# see _writeErrorTable
 		self.saneResponseCodes = False
 		grend.ServiceBasedPage.__init__(self, ctx, *args, **kwargs)
@@ -100,11 +102,13 @@ class DALRenderer(grend.ServiceBasedPage):
 
 		request = inevow.IRequest(ctx)
 		if "RESPONSEFORMAT" in request.args:
-			# This is our DALI RESPONSEFORMAT implementation; use this
-			# together with <inputKey original="__computed__/RESPONSEFORMAT"/>
-			# TBD: preserved metadata strings?
+			# This is our DALI RESPONSEFORMAT implementation; to declare
+			# this, use <STREAM source="//pql#RESPONSEFORMAT"/>
+			# in the service body.
 			destFormat = request.args["RESPONSEFORMAT"][0]
-			request.setHeader("content-type", formats.getMIMEFor(destFormat))
+			request.setHeader("content-type", formats.getMIMEFor(
+				destFormat, destFormat))
+
 			# TBD: format should know extensions for common formats
 			request.setHeader('content-disposition', 
 				'attachment; filename="result.dat"')

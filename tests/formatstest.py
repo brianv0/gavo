@@ -54,6 +54,35 @@ def _getFields(*args):
 	return [_colDefs[a] for a in args]
 
 
+class ResolutionTest(testhelpers.VerboseTest):
+	def testResolutionUnknownKey(self):
+		self.assertRaisesWithMsg(formats.CannotSerializeIn,
+			"Cannot serialize in 'votable/td'.",
+			formats.getWriterFor,
+			("votable/td",))
+	
+	def testResolutionKey(self):
+		self.assertEqual(formats.getWriterFor("tsv"),
+			texttable.renderAsText)
+
+	def testResolutionMimeWithBlanks(self):
+		self.assertEqual(
+			formats.getWriterFor("text/csv; header = present").func_name,
+			"<lambda>")
+	
+	def testMimeGetting(self):
+		self.assertEqual(
+			formats.getMIMEFor("votableb2"),
+			"application/x-votable+xml;serialization=BINARY2")
+
+	def testIterFormats(self):
+		labels = dict(formats.iterFormats())
+		self.assertEqual(
+			labels["application/x-votable+xml"],
+			"Default VOTable")
+
+
+
 class FITSWriterTest(unittest.TestCase):
 	def _makeRD(self, colNames, rd=None):
 		return base.parseFromString(rscdesc.RD,
