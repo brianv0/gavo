@@ -147,6 +147,7 @@ class FileProcessor(object):
 				except base.SkipThis:
 					continue
 				except Exception, ex:
+					ex.source = srcId
 					if self.opts.bailOnError:
 						traceback.print_exc()
 					outQueue.put(ex)
@@ -200,6 +201,7 @@ class FileProcessor(object):
 					except base.SkipThis:
 						continue
 					except Exception, ex:
+						ex.source = source
 						if self.opts.bailOnError:
 							traceback.print_exc()
 						yield ex
@@ -219,8 +221,8 @@ class FileProcessor(object):
 			except Exception, msg:
 				if self.opts.bailOnError:
 					sys.exit(1)
-				sys.stderr.write("Skipping a source: (%s, %s)\n"%(
-					msg.__class__.__name__, msg))
+				sys.stderr.write("Skipping source %s: (%s, %s)\n"%(
+					getattr(msg, "source", "(unknown)"), msg.__class__.__name__, msg))
 				ignored += 1
 			processed += 1
 			sys.stdout.write("%6d (-%5d)\r"%(processed, ignored))

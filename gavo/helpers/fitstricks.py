@@ -16,8 +16,11 @@ fitstools and probably should be removed completely.
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
 
+DEFAULT_IGNORED_HEADERS = ["simple", "bitpix", "naxis", "imageh", 
+	"imagew", "naxis1", "naxis2", "datamin", "datamax", "date"]
 
-def copyFields(header, cardList, ignoredHeaders):
+def copyFields(header, cardList, 
+		ignoredHeaders=frozenset(DEFAULT_IGNORED_HEADERS)):
 	"""copies over all cards from cardList into header, excluding headers
 	named in ignoredHeaders.
 
