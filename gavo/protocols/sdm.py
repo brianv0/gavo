@@ -265,6 +265,8 @@ def makeBasicSDMHeader(sdmData):
 	standard and image serialization.
 	"""
 	header = pyfits.Header()
+	header.DaCHS_manual_parameters = None
+
 	for par in sdmData.getPrimaryTable().iterParams():
 		if par.value is None or par.utype is None:
 			continue

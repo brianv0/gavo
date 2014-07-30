@@ -111,7 +111,7 @@ class QueryMeta(dict):
 
 	# a set of keys that has sequences as values (needed for construction
 	# from nevow request.args)
-	listKeys = set(["_ADDITEM", "_DBOPTIONS_ORDER"])
+	listKeys = set(["_ADDITEM", "_DBOPTIONS_ORDER", "_SET"])
 
 	def __init__(self, initArgs=None):
 		if initArgs is None:
@@ -197,7 +197,7 @@ class QueryMeta(dict):
 		"""
 		self["columnSet"] = None
 		if "_SET" in args:
-			self["columnSet"] = args["_SET"]
+			self["columnSet"] = set(args["_SET"])
 
 	def _fillDbOptions(self, args):
 		self["dbSortKeys"] = [s.strip() 

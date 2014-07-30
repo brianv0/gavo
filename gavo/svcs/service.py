@@ -653,7 +653,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		# add "normal" output fields
 		if requireSet:
 			res.extend([f for f in self.outputTable
-					if f.sets==self._allSet or requireSet in f.sets])
+					if f.sets==self._allSet or requireSet&f.sets])
 		else:
 			res.extend([f for f in self.outputTable
 				if f.displayHint.get("type")!="suppress"])
