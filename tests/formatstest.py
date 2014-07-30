@@ -26,6 +26,7 @@ from gavo import formats
 from gavo import rsc
 from gavo import rscdef
 from gavo import rscdesc
+from gavo import utils
 from gavo.base import valuemappers
 from gavo.formats import jsontable
 from gavo.formats import fitstable
@@ -260,7 +261,9 @@ class FormatDataTest(testhelpers.VerboseTest):
 
 	def assertOutputContains(self, format, fragments):
 		destF = StringIO()
-		formats.formatData(format, self.data, destF)
+		with utils.silence():
+			formats.formatData(format, self.data, destF)
+
 		result = destF.getvalue()
 		for frag in fragments:
 			if not frag in result:
@@ -287,6 +290,9 @@ class FormatDataTest(testhelpers.VerboseTest):
 			"TTYPE2  = 'afloat  '",
 			"TTYPE3  = 'adouble '",
 			"TFORM3  = 'D       '",
+			"HIERARCH intPar = 42 / test integer parameter",
+			"HIERARCH exactFloatPar = 0.25 / This can be exactly represented"
+				" in two's complemEND",
 			"W\xc3\xa4re es da nic",
 			'\x00\x00\x00\x01',])
 

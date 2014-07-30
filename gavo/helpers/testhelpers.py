@@ -99,15 +99,6 @@ else:
 				" before trying again.\n"%(base.getConfig("rootDir")))
 			sys.exit(1)
 
-		# see if we can build the XSD validator -- this will only work if
-		# we're being called from within the tests subdirectory.
-		try:
-			os.chdir("/".join(TEST_BASE.split("/")[:-1]+["schemata"]))
-			subprocess.call(["python", "makeValidator.py"])
-		finally:
-			os.chdir(TEST_BASE)
-		
-
 	else:
 		# run any pending upgrades (that's a test for them, too... of sorts)
 		from gavo.user import upgrade

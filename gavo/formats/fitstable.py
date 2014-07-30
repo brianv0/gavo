@@ -147,6 +147,28 @@ def _makeExtension(serMan):
 	hdu = pyfits.new_table(pyfits.ColDefs(columns))
 	for colInd, utype in utypes:
 		hdu.header.update("TUTYP%d"%(colInd+1), utype)
+	
+	for param in serMan.table.iterParams():
+		if param.value is None:
+			continue
+	
+		key, value, comment = str(param.name), param.value, param.description
+		if isinstance(value, unicode):
+			value = value.encode('ascii', "xmlcharrefreplace")
+		if isinstance(comment, unicode):
+			comment = comment.encode('ascii', "xmlcharrefreplace")
+		if len(key)>8:
+			key = "hierarch "+key
+
+		try:
+			hdu.header.update(key=key, value=value, comment=comment)
+		except ValueError, ex:
+			# do not fail just because some header couldn't be serialised
+			base.ui.notifyWarning(
+				"Failed to serialise param %s to a FITS header (%s)"%(
+					param.name,
+					utils.safe_str(ex)))
+
 	return hdu
 	
 
@@ -171,6 +193,9 @@ def makeFITSTable(dataSet, acquireSamples=False):
 	This function may block basically forever.  Never call this from
 	the main server, always use threads or separate processes (until
 	pyfits is fixed to be thread-safe).
+
+	This will add table parameters as header cards on the resulting FITS
+	header.
 	"""
 	with exclusiveFits():
 		return _makeFITSTableNOLOCK(dataSet, acquireSamples)
