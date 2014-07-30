@@ -290,7 +290,7 @@ class FormatDataTest(testhelpers.VerboseTest):
 			"TTYPE2  = 'afloat  '",
 			"TTYPE3  = 'adouble '",
 			"TFORM3  = 'D       '",
-			"HIERARCH intPar = 42 / test integer parameter",
+			"INTPAR  =                   42 / test integer parameter",
 			"HIERARCH exactFloatPar = 0.25 / This can be exactly represented"
 				" in two's complemEND",
 			"W\xc3\xa4re es da nic",

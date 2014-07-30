@@ -147,27 +147,28 @@ def _makeExtension(serMan):
 	hdu = pyfits.new_table(pyfits.ColDefs(columns))
 	for colInd, utype in utypes:
 		hdu.header.update("TUTYP%d"%(colInd+1), utype)
-	
-	for param in serMan.table.iterParams():
-		if param.value is None:
-			continue
-	
-		key, value, comment = str(param.name), param.value, param.description
-		if isinstance(value, unicode):
-			value = value.encode('ascii', "xmlcharrefreplace")
-		if isinstance(comment, unicode):
-			comment = comment.encode('ascii', "xmlcharrefreplace")
-		if len(key)>8:
-			key = "hierarch "+key
 
-		try:
-			hdu.header.update(key=key, value=value, comment=comment)
-		except ValueError, ex:
-			# do not fail just because some header couldn't be serialised
-			base.ui.notifyWarning(
-				"Failed to serialise param %s to a FITS header (%s)"%(
-					param.name,
-					utils.safe_str(ex)))
+	if not hasattr(serMan.table, "IgnoreTableParams"):
+		for param in serMan.table.iterParams():
+			if param.value is None:
+				continue
+		
+			key, value, comment = str(param.name), param.value, param.description
+			if isinstance(value, unicode):
+				value = value.encode('ascii', "xmlcharrefreplace")
+			if isinstance(comment, unicode):
+				comment = comment.encode('ascii', "xmlcharrefreplace")
+			if len(key)>8:
+				key = "hierarch "+key
+
+			try:
+				hdu.header.update(key=key, value=value, comment=comment)
+			except ValueError, ex:
+				# do not fail just because some header couldn't be serialised
+				base.ui.notifyWarning(
+					"Failed to serialise param %s to a FITS header (%s)"%(
+						param.name,
+						utils.safe_str(ex)))
 
 	return hdu
 	
@@ -230,6 +231,11 @@ def makeFITSTableFile(dataSet, acquireSamples=True):
 
 def writeDataAsFITS(data, outputFile, acquireSamples=False):
 	"""a formats.common compliant data writer.
+
+	This will write out table params as header cards.  To serialise
+	those yourself (as is required for spectral data model compliant
+	tables), set an attribute IgnoreTableParams (with an arbitrary
+	value) on the table.
 	"""
 	data = rsc.wrapTable(data)
 	fitsName = makeFITSTableFile(data, acquireSamples)

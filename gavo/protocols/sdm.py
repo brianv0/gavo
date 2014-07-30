@@ -265,7 +265,6 @@ def makeBasicSDMHeader(sdmData):
 	standard and image serialization.
 	"""
 	header = pyfits.Header()
-	header.DaCHS_manual_parameters = None
 
 	for par in sdmData.getPrimaryTable().iterParams():
 		if par.value is None or par.utype is None:
@@ -285,7 +284,7 @@ def makeBasicSDMHeader(sdmData):
 			if par.unit:
 				comment = str("[%s]"%par.unit)
 
-			# Use our serializing infrastructure here?
+			# Use our serialising infrastructure here?
 			value = par.value
 			if isinstance(value, unicode):
 				value = value.encode("ascii", "ignore")
@@ -300,6 +299,7 @@ def makeBasicSDMHeader(sdmData):
 def makeSDMFITS(sdmData):
 	"""returns sdmData in an SDM-compliant FITS.
 	"""
+	sdmData.getPrimaryTable().IgnoreTableParams = None
 	hdus = fitstable.makeFITSTable(sdmData)
 	sdmHdr = hdus[1].header
 	for card in makeBasicSDMHeader(sdmData).ascardlist():
