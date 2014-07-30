@@ -399,7 +399,8 @@ def makeTable(ctx, table):
 
 	result = V.TABLE(
 			name=table.tableDef.id,
-			utype=base.getMetaText(table, "utype", macroPackage=table.tableDef))[
+			utype=base.getMetaText(table, "utype", macroPackage=table.tableDef,
+			propagate=False))[
 		# _iterGroups must run before _iterFields and _iterParams since it
 		# may need to add ids to the respective items.  XSD-correct ordering of 
 		# the elements is done by xmlstan.

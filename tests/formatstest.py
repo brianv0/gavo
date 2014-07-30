@@ -37,8 +37,6 @@ from gavo.utils import pyfits
 from gavo.web import htmltable
 
 
-
-
 _colDefs = {
 	"klein": '<column name="klein"  type="smallint">'
 		'<values nullLiteral="-1"/></column>',
@@ -81,7 +79,7 @@ class ResolutionTest(testhelpers.VerboseTest):
 		self.assertTrue("tsv", labels)
 
 
-class FITSWriterTest(unittest.TestCase):
+class FITSWriterTest(testhelpers.VerboseTest):
 	def _makeRD(self, colNames, rd=None):
 		return base.parseFromString(rscdesc.RD,
 			"""<resource resdir="%s" schema="test">
@@ -163,7 +161,7 @@ class _TestDataTable(testhelpers.TestResource):
 	def make(self, deps):
 		dd = testhelpers.getTestRD().getById("tableMaker")
 		data = rsc.makeData(dd, forceSource=[
-			(1, 2, 3, "Wäre es da nicht besser,\n die Regierung setzte das Volk"
+			(1, -2, 3, "Wäre es da nicht besser,\n die Regierung setzte das Volk"
 				" ab\tund wählte ein anderes?", '2004-05-05'),
 			(None, None, None, None, None)])
 		return data
@@ -198,7 +196,7 @@ class JSONOutputTest(testhelpers.VerboseTest):
 	
 	def testData(self):
 		self.assertEqual(self.tAndD[1]["data"], [
-			[1, 2.0, 3.0, u'W\xe4re es da nicht besser,\n'
+			[1, -2.0, 3.0, u'W\xe4re es da nicht besser,\n'
 				u' die Regierung setzte das Volk ab\tund w\xe4hlte ein anderes?', 
 				2453130.5], 
 			[None, None, None, None, None]])
@@ -230,10 +228,10 @@ class TextOutputTest(unittest.TestCase):
 		"""tests for text output with mostly harmless data.
 		"""
 		data = rsc.makeData(self.dd, forceSource=[
-			(1, 2, 3, "testing", '2004-05-05'),
+			(1, -2, 3, "testing", '2004-05-05'),
 			(-30, 3.1415, math.pi, "Four score", '2004-05-05'),])
 		self.assertEqual(texttable.getAsText(data),
-			"1\t2.0\t3.0\ttesting\t2453130.5\n"
+			"1\t-2.0\t3.0\ttesting\t2453130.5\n"
 			"-30\t3.1415\t3.14159265359\tFour score\t2453130.5\n")
 	
 	def testWithNulls(self):
@@ -254,13 +252,7 @@ class TextOutputTest(unittest.TestCase):
 class FormatDataTest(testhelpers.VerboseTest):
 	"""A test trying various formats on a simple data.
 	"""
-	def setUp(self):
-		rd = testhelpers.getTestRD("testdata")
-		self.data = rsc.makeData(rd.getById("twotables"), forceSource=[
-			{"anint": 1, "afloat": 0.5, "atext": "eins", 
-				"adate": datetime.date(2003, 10, 10), "adouble": 1.5},
-			{"anint": 2, "afloat": -0.5, "atext": "zw\xf6i".decode("iso-8859-1"), 
-				"adate": datetime.date(2013, 10, 10), "adouble": 2.5},])
+	resources = [("data", _TestDataTable())]
 
 	def testRaising(self):
 		self.assertRaises(formats.CannotSerializeIn, formats.formatData,
@@ -279,31 +271,50 @@ class FormatDataTest(testhelpers.VerboseTest):
 
 	def testTSV(self):
 		self.assertOutputContains("tsv", [
-			"1\t", "\t-0.5\t", "\teins\t", "\t2452922.5\n", "zw\\xf6i"])
+			"1\t", "\t-2.0\t", "\tW\\xe4re es da", "\t2453130.5\n", "\tNone\tNone\t"])
 
 	def testVOTable(self):
 		self.assertOutputContains("votable", [
 			'<DESCRIPTION>Some test data with a reason',
-			'</TABLE><TABLE name="barsobal">',
-			'<STREAM encoding="base64">AAAAAT/4AAAAAAAAAAAAAkAEAAAA'])
+			'datatype="unicodeChar"',
+			u'Just by a \xb5'.encode("utf-8"),
+			'<STREAM encoding="base64">AAAAAcAAAABACAAAAAAAAAAAAF'])
 
 	def testFITS(self):
 		self.assertOutputContains("fits", [
 			'SIMPLE  =                    T',
 			"XTENSION= 'BINTABLE'",
 			"TTYPE2  = 'afloat  '",
-			"TTYPE2  = 'adouble '",
-			"eins",
-			'zw\xc3\xb6i'])
+			"TTYPE3  = 'adouble '",
+			"TFORM3  = 'D       '",
+			"W\xc3\xa4re es da nic",
+			'\x00\x00\x00\x01',])
 
 	def testHTML(self):
 		self.assertOutputContains("html", [
 			'<table class="results">',
 			'Real</th><th ',
-			'td>-0.5</td><td>zw\xc3\xb6i</td><td>2456575.5</td>'])
+			'<tr class="data"><td>1</td><td>-2.0</td><td>3.0</td><td>'
+			'W\xc3\xa4re es da nicht besser,',
+			'w\xc3\xa4hlte ein anderes?</td><td>2453130.5',
+			'<td>N/A</td><td>N/A</td>'])
 
 	def testCSV(self):
-		self.assertOutputContains("csv", ["2,-0.5,zw\xc3\xb6i,2456575.5"])
+		self.assertOutputContains("csv", [
+			'1,-2.0,3.0,"W\xc3\xa4re es da nicht'
+				' besser, die Regierung setzte das Volk ab und w\xc3\xa4hlte'
+				' ein anderes?",2453130.5',
+ 			',,,,'])
+
+	def testCSVHeader(self):
+		self.assertOutputContains("csv_header", [
+			'1,-2.0,3.0,"W\xc3\xa4re es da nicht'
+				' besser, die Regierung setzte das Volk ab und w\xc3\xa4hlte'
+				' ein anderes?",2453130.5',
+ 			',,,,',
+ 			'# intPar = 42 // test integer parameter',
+ 			'# roughFloatPar = 0.3 // \r\n',
+ 			'# exactFloatPar = 0.25 // This can be '])
 
 
 class _NullTestTable(testhelpers.TestResource):
@@ -331,6 +342,8 @@ _nullTestTable = _NullTestTable()
 
 
 class NullValueTest(testhelpers.VerboseTest):
+# XXX TODO: these are essentially tested with the formats now.
+# see that that covers all we cover here and then remove this.
 	resources = [("nullsTable", _nullTestTable)]
 
 	def _runTestForFormat(self, formatName, assertion):

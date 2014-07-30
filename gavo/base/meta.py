@@ -309,7 +309,8 @@ class MetaMixin(object):
 		return len(self.meta_)==0 and getattr(self, "content", "")==""
 
 	def setMetaParent(self, parent):
-		self.__metaParent = parent
+		if parent is not None:
+			self.__metaParent = parent
 	
 	def getMetaParent(self):
 		if self.__hasMetaParent():

@@ -600,12 +600,24 @@ class ParamBase(ColumnBase):
 
 	@property
 	def value(self):
+		"""returns a typed value for the parameter.
+
+		Unset items give None here.
+		"""
 		if self._valueCache is base.Undefined:
 			if self.content_ is base.NotGiven:
 				self._valueCache = None
 			else:
 				self._valueCache = self._parse(self.content_)
 		return self._valueCache
+	
+	def getStringValue(self):
+		"""returns a string serialisation of the value.
+
+		This is what would reproduce the value if embedded in an XML
+		serialisation of the param.
+		"""
+		return self.content_
 
 	def set(self, val):
 		"""sets this parameter's value.

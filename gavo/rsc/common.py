@@ -33,6 +33,7 @@ class FLUSH(object):
 	enforce dropping of rows dependent on some table.
 	"""
 
+
 class ParamMixin(object):
 	"""A mixin providing param processing.
 

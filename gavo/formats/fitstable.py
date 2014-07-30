@@ -46,6 +46,18 @@ _fitsCodeMap = {
 	"double": "D",
 	"boolean": "L",
 	"char": "A",
+	"unicodeChar": "A",
+}
+
+_typeConstructors = {
+	"short": int,
+	"int": int,
+	"long": int,
+	"float": float,
+	"double": float,
+	"boolean": int,
+	"char": str,
+	"unicodeChar": str,
 }
 
 
@@ -56,14 +68,21 @@ def _makeStringArray(values, colInd, colDesc):
 	try:
 		arr = numpy.array([str(v[colInd]) for v in values], dtype=numpy.str)
 	except UnicodeEncodeError:
-		arr = numpy.array([str(v[colInd].encode("utf-8")) for v in values], 
-			dtype=numpy.str)
+
+		def _(s):
+			if s is None:
+				return None
+			else:
+				return s.encode("utf-8")
+
+		arr = numpy.array([_(v[colInd]) for v in values], dtype=numpy.str)
 	return "%dA"%arr.itemsize, arr
 
 
-def _makeValueArray(values, colInd, colDesc):
-	"""returns a pyfits-capable column array for non-string values
-	stored in the colInd-th column of values.
+def _getNullValue(colDesc):
+	"""returns a null value we consider ok for a column described by colDesc.
+
+	This is supposed to be in the column data type.
 	"""
 	nullValue = colDesc["nullvalue"]
 	if nullValue is None:
@@ -73,6 +92,17 @@ def _makeValueArray(values, colInd, colDesc):
 			nullValue = float("NaN")
 		elif colDesc["datatype"]=="text":
 			nullValue = ""
+	else:
+		nullValue = _typeConstructors[colDesc["datatype"]](nullValue)
+	
+	return nullValue
+
+
+def _makeValueArray(values, colInd, colDesc):
+	"""returns a pyfits-capable column array for non-string values
+	stored in the colInd-th column of values.
+	"""
+	nullValue = _getNullValue(colDesc)
 
 	def mkval(v):
 		if v is None:
@@ -97,14 +127,20 @@ def _makeExtension(serMan):
 	utypes = []
 
 	for colInd, colDesc in enumerate(serMan):
-		if colDesc["datatype"]=="char":
+		if colDesc["datatype"]=="char" or colDesc["datatype"]=="unicodeChar":
 			makeArray = _makeStringArray
 		else:
 			makeArray = _makeValueArray
+		
 		typecode, arr = makeArray(values, colInd, colDesc)
+		if typecode in 'ED':
+			nullValue = None  # (NaN implied)
+		else:
+			nullValue = _getNullValue(colDesc)
+
 		columns.append(pyfits.Column(name=str(colDesc["name"]), 
 			unit=str(colDesc["unit"]), format=typecode, 
-			null=colDesc.nullvalueInType(), array=arr))
+			null=nullValue, array=arr))
 		if colDesc["utype"]:
 			utypes.append((colInd, str(colDesc["utype"].lower())))
 

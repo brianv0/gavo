@@ -143,29 +143,43 @@ def datetimeMapperFactory(colDesc):
 				or colDesc.get("xtype")=="adql:TIMESTAMP"):
 			fun = lambda val: (val and val.isoformat()) or None
 			destType = ("char", "*")
+			colDesc["nullvalue"] = ""
+
 		elif (colDesc["ucd"] and "MJD" in colDesc["ucd"].upper()
 				) or colDesc["xtype"]=="mjd":
 			colDesc["unit"] = "d"
 			fun = lambda val: (val and stc.dateTimeToMJD(val))
 			destType = ("double", '1')
+			colDesc["nullvalue"] = "NaN"
+
 		elif unit=="yr" or unit=="a":
 			fun = lambda val: (val and stc.dateTimeToJYear(val))
 			def fun(val):
 				return (val and stc.dateTimeToJYear(val))
 				return str(val)
 			destType = ("double", '1')
+			colDesc["nullvalue"] = "NaN"
+
 		elif unit=="d":
 			fun = lambda val: (val and stc.dateTimeToJdn(val))
 			destType = ("double", '1')
+			colDesc["nullvalue"] = "NaN"
+
 		elif unit=="s":
 			fun = lambda val: (val and time.mktime(val.timetuple()))
 			destType = ("double", '1')
+			colDesc["nullvalue"] = "NaN"
+
 		elif unit=="iso":
 			fun = lambda val: (val and val.isoformat())
 			destType = ("char", "*")
+			colDesc["nullvalue"] = ""
+
 		else:   # Fishy, but not our fault
 			fun = lambda val: (val and stc.dateTimeToJdn(val))
 			destType = ("double", '1')
+			colDesc["nullvalue"] = "NaN"
+
 		colDesc["datatype"], colDesc["arraysize"] = destType
 		return fun
 _registerDefaultMF(datetimeMapperFactory)
@@ -326,15 +340,6 @@ class AnnotatedColumn(object):
 			# id is managed by SerManager
 			"id": None,
 		}
-
-	def nullvalueInType(self):
-		"""returns the designated null value in a python value of an
-		appropriate type.
-		"""
-		if self.annotations["nullvalue"] is None:
-			return None
-		return typesystems.sqltypeToPython(self.annotations["dbtype"]
-			)(self.annotations["nullvalue"])
 
 	def __getitem__(self, key):
 		return self.annotations[key]

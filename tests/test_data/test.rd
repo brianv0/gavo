@@ -110,12 +110,25 @@
 		<column name="adouble" tablehead="And a Double"
 			type="double precision"/>
 		<column name="atext" type="unicode" description="Just by a µ."
-			tablehead="A string must be in here as well"/>
+			tablehead="A string must be in here as well">
+			<values nullLiteral=""/>
+		</column>
 		<column name="adate" tablehead="When" type="date"/>
 	</table>
 
 	<data id="tableMaker">
-		<table original="typesTable" id="m_typestable" onDisk="False"/>
+		<table original="typesTable" id="m_typestable" onDisk="False">
+			<meta name="description">Some test data with a reason</meta>
+			<param name="intPar" type="integer" 
+				description="test integer parameter">42</param>
+			<param name="stringPar" type="text" description="empty by default"
+				>__NULL__</param>
+			<param name="roughFloatPar">0.3</param>
+			<param name="exactFloatPar" description="This can be exactly
+				represented in two's complement.  Also, it is a fairly long
+				description, and it's going to be interesting to see how the various
+				formats cope">0.25</param>
+		</table>
 		<rowsetGrammar enc="iso8859-1" fieldsFrom="m_typestable"/>
 		<rowmaker id="tm_m_typestable" idmaps="anint,afloat,adouble,atext,adate"/>
 		<make table="m_typestable" rowmaker="tm_m_typestable"/>

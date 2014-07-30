@@ -61,10 +61,10 @@ FORMAT_CODES = {
 			"ivo://ivoa.net/std/TAPRegEXT#output-votable-td"),
 	"text/csv": 
 		("csv", "text/csv", "CSV without column labels", None),
-	"csv": ("csv+header", "text/csv;header=present", 
+	"csv": ("csv_header", "text/csv;header=present", 
 			"CSV with column labels", None),
 	"text/csv;header=present": 
-		("csv+header", "text/csv;header=present",
+		("csv_header", "text/csv;header=present",
 			"CSV with column labels", None),
 	"text/tab-separated-values": 
 		("tsv", "text/tab-separated-values", 
