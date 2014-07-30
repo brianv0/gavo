@@ -432,6 +432,8 @@ def setRDDateTime(rd, inputFile):
 		rd.timestampUpdated)
 
 
+USERCONFIG_RD_PATH = os.path.join(base.getConfig("configDir"), "userconfig")
+
 
 class _UserConfigFakeRD(object):
 	"""A fake object that's in the RD cache as "%".
@@ -439,9 +441,9 @@ class _UserConfigFakeRD(object):
 	This is used by the id resolvers in parsecontext; this certainly is
 	of no use as an RD otherwise.
 	"""
+
 	def getRealRD(self):
-		return base.caches.getRD(
-			os.path.join(base.getConfig("configDir"), "userconfig.rd"))
+		return base.caches.getRD(USERCONFIG_RD_PATH)
 
 	def getById(self, id, forceType=None):
 		"""returns an item from userconfig.

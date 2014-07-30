@@ -283,6 +283,7 @@ def findAllRDs():
 			if file.endswith(".rd"):
 				rds.append(os.path.splitext(
 					utils.getRelativePath(os.path.join(dir, file), inputsDir))[0])
+
 	for name in pkg_resources.resource_listdir('gavo', 
 			"resources/inputs/__system__"):
 		if not name.endswith(".rd"):  # ignore VCS files (and possibly others:-)

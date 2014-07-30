@@ -20,6 +20,7 @@ from gavo.helpers import testhelpers
 from gavo import base
 from gavo import api
 from gavo import rsc
+from gavo import rscdesc
 from gavo.base import events
 from gavo.helpers import testtricks
 from gavo.user import cli
@@ -294,9 +295,8 @@ class DropTest(testhelpers.VerboseTest):
 
 class ValidationTest(testhelpers.VerboseTest):
 	def testValidUserconfig(self):
-		base.caches.clearForName("%")
-		with testtricks.testFile(
-				os.path.join(base.getConfig("configDir"), "userconfig.rd"),
+		base.caches.clearForName(rscdesc.USERCONFIG_RD_PATH)
+		with testtricks.testFile(rscdesc.USERCONFIG_RD_PATH+".rd",
 				"""<resource schema="test"><STREAM id="foo"><column name="abc"/>
 				</STREAM></resource>"""):
 			self.assertOutput(cli.main, argList=["val", "%"],
@@ -304,9 +304,8 @@ class ValidationTest(testhelpers.VerboseTest):
 				expectedStdout='% -- OK\n')
 
 	def testInvalidUserconfig(self):
-		base.caches.clearForName("%")
-		with testtricks.testFile(
-				os.path.join(base.getConfig("configDir"), "userconfig.rd"),
+		base.caches.clearForName(rscdesc.USERCONFIG_RD_PATH)
+		with testtricks.testFile(rscdesc.USERCONFIG_RD_PATH+".rd",
 				"""<resource schema="test"><STREAM id="foo"><column name="abc">
 				</STREAM></resource>"""):
 			self.assertOutput(cli.main, argList=["val", "%"],

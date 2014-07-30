@@ -1,4 +1,9 @@
 Version 0.9.2 ()
+	
+	* !Important!: Internal changes to the way mixins work cause the column
+		sequence to change.  In particular, as a consequence you must re-import all
+		tables with non-trivial mixins.  We are really sorry about that.  Gavo
+		upgrade will warn about tables it finds that need re-importing.
 
   * DaCHS can now produce JSON output (with certain not yet VO-standardised
     conventions) from TAP and other services.

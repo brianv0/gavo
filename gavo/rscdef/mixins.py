@@ -335,7 +335,7 @@ class MixinAttribute(base.SetOfAtomsAttribute):
 		def mixesIn(instance, mixinRef):
 			return mixinRef in instance.mixins
 		yield "mixesIn", mixesIn
-
+	
 	def makeUserDoc(self):
 		return ("A mixin reference, typically to support certain protocol."
 			"  See Mixins_.")

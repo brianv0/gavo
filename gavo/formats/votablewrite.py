@@ -470,7 +470,7 @@ def makeVOTable(data, ctx=None, **kwargs):
 	elif ctx.version==(1,2):
 		vot = V.VOTABLE()
 	else:
-		raise common.VOTableError("No toplevel element for VOTable version %s"%
+		raise votable.VOTableError("No toplevel element for VOTable version %s"%
 			ctx.version)
 	vot[_iterToplevelMeta(ctx, data)]
 	vot[_makeResource(ctx, data)]
@@ -521,5 +521,11 @@ common.registerDataWriter("votableb2", functools.partial(
 	"application/x-votable+xml;serialization=BINARY2",
 	"Binary2 VOTable")
 common.registerDataWriter("votabletd", functools.partial(
-	format, tablecoding="td"), "text/xml", "Tabledata VOTable",
+	format, tablecoding="td"), 
+	"application/x-votable+xml;serialization=TABLEDATA", "Tabledata VOTable",
+	"text/xml")
+common.registerDataWriter("votabletd1.1", functools.partial(
+	format, tablecoding="td", version=(1,1)), 
+	"application/x-votable+xml;serialization=TABLEDATA;version=1.1", 
+	"Tabledata VOTable version 1.1",
 	"text/xml")

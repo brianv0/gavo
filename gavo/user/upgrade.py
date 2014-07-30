@@ -27,7 +27,7 @@ from gavo import rscdesc  #noflake: for cache registration
 from gavo import utils
 
 
-CURRENT_SCHEMAVERSION = 10
+CURRENT_SCHEMAVERSION = 11
 
 
 class AnnotatedString(str):
@@ -291,6 +291,61 @@ class To10Upgrader(Upgrader):
 		from gavo import rsc
 		rsc.makeData(base.caches.getRD("//datalink").getById("import"),
 			connection=connection, runCommit=False)
+
+
+class To11Upgrader(Upgrader):
+	version = 10
+
+	@classmethod
+	def u_000_findMixedinTables(cls, connection):
+		"""inform about tables with non-trivial mixins."""
+		# in reality, the mixins that really give us a headache here
+		# are the ones mixin in products.  Hence, we simply look
+		# for tables that have both accref and embargo; that's
+		# probably a certain indication.
+
+		print ("\n!! Important: column sequences"
+			" of tables with some mixins have changed.")
+		print "!! If this affects you, below commands are shown that will re-import"
+		print "!! the affected tables.  Some services on top of these tables may"
+		print "!! be *broken* until these commands have run."
+		print "!! Sorry for this inconvenience; we hope it won't happen again.\n"
+
+		from gavo import registry
+		for rdId in registry.findAllRDs():
+			if rdId.startswith("__system"):
+				continue
+			
+			try:
+				rd = base.caches.getRD(rdId)
+			except:
+				# ignore broken RDs -- services there are broken anyway
+				continue
+
+			ids = set()
+
+			for td in rd.tables:
+				try:
+					td.getColumnByName("accref") and td.getColumnByName("embargo")
+				except base.NotFoundError:
+					continue   # table not affected
+				else:
+					
+					if not rsc.TableForDef(td, connection=connection, create=False
+							).exists():
+						continue
+
+					# table needs re-importing, see if you can find a correponsing 
+					# data element
+					for dd in rd.dds:
+						for make in dd.makes:
+							if make.table==td:
+								ids.add(dd.id)
+			if ids:
+				print "gavo imp '%s' %s"%(rd.sourceId,
+					" ".join("'%s'"%id for id in ids))
+
+		sys.stderr.write("\nEnd of scan of mixin-affected tables...")
 
 
 def iterStatements(startVersion, endVersion=CURRENT_SCHEMAVERSION, 

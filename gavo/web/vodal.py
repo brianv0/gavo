@@ -113,7 +113,7 @@ class DALRenderer(grend.ServiceBasedPage):
 		metaData = self._getMetadataData(queryMeta)
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", base.votableType)
-		return formats.getFormatted("votabletd", metaData)
+		return formats.getFormatted("votabletd1.1", metaData)
 
 	def _runService(self, ctx, queryMeta):
 		return self.runService(inevow.IRequest(ctx).args, queryMeta
