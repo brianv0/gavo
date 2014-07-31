@@ -112,8 +112,13 @@ class DALRenderer(grend.ServiceBasedPage):
 	def _renderMetadata(self, ctx, queryMeta):
 		metaData = self._getMetadataData(queryMeta)
 		request = inevow.IRequest(ctx)
-		request.setHeader("content-type", base.votableType)
-		return formats.getFormatted("votabletd1.1", metaData)
+		request.setHeader("content-type", "text/xml")
+		votLit = formats.getFormatted("votabletd1.1", metaData)
+		# maybe provide a better way to attach stylesheet info?
+		splitPos = votLit.find("?>")+2
+		return votLit[:splitPos]+("<?xml-stylesheet href='/static"
+				"/xsl/meta-votable-to-html.xsl' type='text/xsl'?>"
+			)+votLit[splitPos:]
 
 	def _runService(self, ctx, queryMeta):
 		return self.runService(inevow.IRequest(ctx).args, queryMeta

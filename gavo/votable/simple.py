@@ -11,6 +11,7 @@ where table is a numpy array.
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
 
+from cStringIO import StringIO
 
 try:
 	import numpy
@@ -121,6 +122,12 @@ def load(source):
 	if rows is None: # No table included
 		return None, None
 	return rows, fields
+
+
+def loads(stuff):
+	"""returns data,metadata for a VOTable literal in stuff.
+	"""
+	return load(StringIO(stuff))
 
 
 def save(data, tableDef, destF):

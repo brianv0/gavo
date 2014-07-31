@@ -27,6 +27,7 @@ from gavo import rsc
 from gavo import rscdef
 from gavo import rscdesc
 from gavo import utils
+from gavo import votable
 from gavo.base import valuemappers
 from gavo.formats import jsontable
 from gavo.formats import fitstable
@@ -34,6 +35,7 @@ from gavo.formats import texttable
 from gavo.formats import csvtable
 from gavo.formats import votablewrite
 from gavo.svcs import outputdef
+from gavo.utils import pgsphere
 from gavo.utils import pyfits
 from gavo.web import htmltable
 
@@ -163,9 +165,48 @@ class _TestDataTable(testhelpers.TestResource):
 		dd = testhelpers.getTestRD().getById("tableMaker")
 		data = rsc.makeData(dd, forceSource=[
 			(1, -2, 3, "Wäre es da nicht besser,\n die Regierung setzte das Volk"
-				" ab\tund wählte ein anderes?", '2004-05-05'),
-			(None, None, None, None, None)])
+				" ab\tund wählte ein anderes?", '2004-05-05', 
+				pgsphere.SPoint.fromDegrees(124, -30)),
+			(None, None, None, None, None, None)])
 		return data
+
+_testDataTable = _TestDataTable()
+
+
+class _FormattedData(testhelpers.TestResource):
+	"""_testDataTable after being pushed through formats.getFormatted.
+	"""
+	resources = [("data", _testDataTable)]
+
+	def __init__(self, destFormat, debug=False):
+		self.destFormat = destFormat
+		self.debug = debug
+		testhelpers.TestResource.__init__(self)
+
+	def make(self, dependencies):
+		with utils.silence():
+			output = formats.getFormatted(self.destFormat, dependencies["data"])
+		if self.debug:
+			print output
+		return output
+
+
+class _FormattedAndParsedData(testhelpers.TestResource):
+	"""_testDataTable serialised and deserialized again through loads.
+
+	What's coming back is (result-string, result-data).
+	"""
+	resources = [("data", _testDataTable)]
+
+	def __init__(self, destFormat, loads, debug=False):
+		self.destFormat = destFormat
+		self.debug = debug
+		self.loads = loads
+		testhelpers.TestResource.__init__(self)
+
+	def make(self, dependencies):
+		data = _FormattedData(self.destFormat, self.debug).make(dependencies)
+		return data, self.loads(data)
 
 
 class _JSONTable(testhelpers.TestResource):
@@ -173,7 +214,7 @@ class _JSONTable(testhelpers.TestResource):
 
 	The resource is (json-text, decoded-json).
 	"""
-	resources = [("data", _TestDataTable())]
+	resources = [("data", _testDataTable)]
 
 	def make(self, deps):
 		jsText = formats.getFormatted("json", deps["data"])
@@ -182,15 +223,16 @@ class _JSONTable(testhelpers.TestResource):
 
 
 class JSONOutputTest(testhelpers.VerboseTest):
-	resources = [("tAndD", _JSONTable()), ("testData", _TestDataTable())]
+	resources = [("tAndD", _FormattedAndParsedData('json', json.loads))]
 
 	def testColumns(self):
-		c1, c2, c3, c4, c5 = self.tAndD[1]["columns"]
+		c1, c2, c3, c4, c5, c6 = self.tAndD[1]["columns"]
 		self.assertEqual(c1["datatype"], "int")
 		self.assertEqual(c2["name"], "afloat")
 		self.assertEqual(c3["arraysize"], "1")
 		self.assertEqual(c4["description"], u'Just by a \xb5.')
 		self.assertEqual(c5["datatype"], "double")
+		self.assertEqual(c6["datatype"], "char")
 
 	def testContains(self):
 		self.assertEqual(self.tAndD[1]["contains"], "table")
@@ -199,8 +241,8 @@ class JSONOutputTest(testhelpers.VerboseTest):
 		self.assertEqual(self.tAndD[1]["data"], [
 			[1, -2.0, 3.0, u'W\xe4re es da nicht besser,\n'
 				u' die Regierung setzte das Volk ab\tund w\xe4hlte ein anderes?', 
-				2453130.5], 
-			[None, None, None, None, None]])
+				2453130.5, u'Position UNKNOWN 124. -30.'], 
+			[None, None, None, None, None, None]])
 
 	def testParameterDescription(self):
 		intPar = self.tAndD[1]["params"]["intPar"]
@@ -227,215 +269,208 @@ class JSONOutputTest(testhelpers.VerboseTest):
 			["Warning 1", "Warning 2"])
 		self.assertEqual(afterRoundtrip["queryStatus"],
 			"OK")
-	
 
-class TextOutputTest(unittest.TestCase):
-	"""tests for the text table output of data sets.
+
+class FormatOutputTest(testhelpers.VerboseTest):
+	"""a base class for tests against formatted output.
 	"""
-	def setUp(self):
-		self.rd = testhelpers.getTestRD()
-		self.dd = self.rd.getById("tableMaker")
-	
-	def testWithHarmlessData(self):
-		"""tests for text output with mostly harmless data.
-		"""
-		data = rsc.makeData(self.dd, forceSource=[
-			(1, -2, 3, "testing", '2004-05-05'),
-			(-30, 3.1415, math.pi, "Four score", '2004-05-05'),])
-		self.assertEqual(texttable.getAsText(data),
-			"1\t-2.0\t3.0\ttesting\t2453130.5\n"
-			"-30\t3.1415\t3.14159265359\tFour score\t2453130.5\n")
-	
-	def testWithNulls(self):
-		data = rsc.makeData(self.dd, forceSource=[
-			(None, None, None, None, None)])
-		self.assertEqual(texttable.getAsText(data),
-			'None\tNone\tNone\tNone\tNone\n')
-	
-	def testWithNastyString(self):
-		data = rsc.makeData(self.dd, forceSource=[
-			(1, 2, 3, "Wäre es da nicht besser,\n die Regierung setzte das Volk"
-				" ab\tund wählte ein anderes?", '2004-05-05'),])
-		self.assertEqual(texttable.getAsText(data),
-			"1\t2.0\t3.0\tW\\xe4re es da nicht besser,\\n die Regierung setzte"
-				" das Volk ab\\tund w\\xe4hlte ein anderes?\t2453130.5\n")
+	# extra pain to allow both _FormattedData and _FormattedAndPardData
+	# in output
+	def _getOutput(self):
+		if isinstance(self.output, tuple):
+			return self.output[0]
+		else:
+			return self.output
+
+	def assertOutputHas(self, fragment):
+		self.assertTrue(fragment in self._getOutput(),
+			"'%s' not found in output"%fragment)
+
+	def assertOutputHasNot(self, fragment):
+		self.assertFalse(fragment in self._getOutput(),
+			"Forbidded string '%s' found in output"%fragment)
 
 
+class TextOutputTest(FormatOutputTest):
+	resources = [("output", _FormattedData("tsv"))]
+	
+	def testNullSerialization(self):
+		self.assertEqual(self.output.split('\n')[1],
+			'None\tNone\tNone\tNone\tNone\tNone')
+	
+	def testValues(self):
+		self.assertEqual(self.output.split("\n")[0],
+			"1\t-2.0\t3.0\tW\\xe4re es da nicht besser,\\n die Regierung setzte"
+				" das Volk ab\\tund w\\xe4hlte ein anderes?\t2453130.5\t"
+				"Position UNKNOWN 124. -30.")
+
+
+class CSVOutputTest(FormatOutputTest):
+	resources = [("output", _FormattedData("csv"))]
+
+	def testNumerics(self):
+		self.assertTrue(self.output.startswith('1,-2.0,3.0,'))
+		
+	def testStringDefusion(self):
+		self.assertOutputHas(',"W\xc3\xa4re es da nicht'
+			' besser, die Regierung setzte das Volk ab und w\xc3\xa4hlte'
+			' ein anderes?",')
+	
+	def testNULLs(self):
+		self.assertEqual(self.output.split("\r\n")[1], ',,,,,')
+	
+	def testWeirdTypes(self):
+		self.assertOutputHas("2453130.5,Position UNKNOWN 124. -30.")
+
+
+class CSVHeaderOutputTest(FormatOutputTest):
+	resources = [("output", _FormattedData("csv_header", False))]
+
+	def testWeirdTypes(self):
+		self.assertOutputHas("2453130.5,Position UNKNOWN 124. -30.")
+
+	def testParamCommentWritten(self):
+		self.assertOutputHas('# intPar = 42 // test integer parameter')
+
+ 	def testParamStringValueUsed(self):
+ 		self.assertOutputHas('# roughFloatPar = 0.3 // \r\n')
+
+ 	def testNullParamNotWritten(self):
+ 		self.assertOutputHasNot('stringPar')
+
+	def testHeaderPresent(self):
+		self.assertEqual(self.output.split("\r\n")[3], 
+			"anint,afloat,adouble,atext,adate,apos")
+
+
+class DefaultVOTableOutputTest(FormatOutputTest):
+	resources = [("output", _FormattedData("votable", False))]
+
+	def testTableDescriptionPickedUp(self):
+		self.assertOutputHas('<DESCRIPTION>Some test data with a reason')
+	
+	def testUnicodeDeclared(self):
+		self.assertOutputHas('datatype="unicodeChar"')
+	
+	def testEncodingInDescription(self):
+		self.assertOutputHas(u'Just by a \xb5'.encode("utf-8"))
+
+	def testDataEncoded(self):
+		self.assertOutputHas(
+			'<STREAM encoding="base64">AAAAAcAAAABACAAAAAAAAAAAAF')
+
+	def testParam(self):
+		self.assertOutputHas("<PARAM")
+		self.assertOutputHas('name="roughFloatPar"')
+		self.assertOutputHas('value="0.3"')
+		self.assertOutputHas(' ucd="phys.width"')
+
+
+class TDVOTableOutputTest(DefaultVOTableOutputTest):
+	resources = [("output", _FormattedData("votabletd", False))]
+
+	def testDataEncoded(self):
+		self.assertOutputHas("<DATA><TABLEDATA>")
+		self.assertOutputHas("<TD>W\xc3\xa4re es da nicht besser,")
+	
+	def testNullSerialization(self):
+		self.assertOutputHas("<TR><TD>-8888</TD><TD>NaN</TD><TD>NaN</TD>"
+			"<TD></TD><TD>NaN</TD><TD></TD></TR>")
+		self.assertOutputHas('null="-8888"')
+
+
+class B2VOTableOutputTest(DefaultVOTableOutputTest):
+	resources = [("output", _FormattedAndParsedData(
+		"votableb2", votable.loads))]
+
+	def testDataEncoded(self):
+		self.assertOutputHas("<DATA><BINARY2>")
+		self.assertOutputHas('<STREAM encoding="base64">AAAAAAHAAAAAQAg'
+			'AAAAAAAAAAABSAFcA5AByAGUA')
+	
+	def testNULLsDecoded(self):
+		data, metadata = self.output[1]
+		self.assertEqual(data[1], [None, None, None, None, None, None])
+	
+	def testGeometry(self):
+		# XXX TODO: actually parse this
+		data, metadata = self.output[1]
+		self.assertEqual(data[0][5], 'Position UNKNOWN 124. -30.')
+
+	def testRegionDeclared(self):
+		data, metadata = self.output[1]
+		self.assertEqual(metadata[5].xtype, "adql:POINT")
+
+
+class V11VOTableOutputTest(DefaultVOTableOutputTest):
+	resources = [("output", _FormattedData("votabletd1.1"))]
+
+	def testDataEncoded(self):
+		self.assertOutputHas("<DATA><TABLEDATA>")
+		self.assertOutputHas("<TD>W\xc3\xa4re es da nicht besser,")
+
+	def testNamespace(self):
+		self.assertOutputHas('version="1.1"')
+		self.assertOutputHas('xmlns="http://www.ivoa.net/xml/VOTable/v1.1"')
+	
+
+class FITSOutputTest(FormatOutputTest):
+	resources = [("output", _FormattedData("fits"))]
+
+	def testIsFITS(self):
+		self.assertOutputHas('SIMPLE  =                    T')
+	
+	def testBintablePresent(self):
+		self.assertOutputHas("XTENSION= 'BINTABLE'")
+	
+	def testColumnMapping(self):
+		self.assertOutputHas("TTYPE2  = 'afloat  '")
+		self.assertOutputHas("TTYPE3  = 'adouble '")
+		self.assertOutputHas("TFORM3  = 'D       '")
+	
+	def testSimplePar(self):
+		self.assertOutputHas(
+			"INTPAR  =                   42 / test integer parameter")
+	
+	def testHierarchPar(self):
+		self.assertOutputHas(
+			"HIERARCH exactFloatPar = 0.25 / This can be exactly represented"
+				" in two's complemEND")
+	
+	def testDataEncoded(self):
+		self.assertOutputHas("W\xc3\xa4re es da nic")
+		self.assertOutputHas('\x00\x00\x00\x01')
+
+	def testNULLsEncoded(self):
+		self.assertEqual(self.output[5894:5914],
+			'\xff\xff\xddH\x7f\xc0\x00\x00\x7f\xf8\x00\x00\x00\x00\x00\x00None')
+
+
+class HTMLOutputTest(FormatOutputTest):
+	resources = [("output", _FormattedData("html"))]
+
+	def testTableDeclared(self):
+		self.assertOutputHas('<table class="results">')
+	
+	def testMetadataWritten(self):
+		self.assertOutputHas('Real</th><th ')
+	
+	def testNormalData(self):
+		self.assertOutputHas(
+			'<tr class="data"><td>1</td><td>-2.0</td><td>3.0</td><td>')
+		self.assertOutputHas('W\xc3\xa4re es da nicht besser,')
+		self.assertOutputHas('w\xc3\xa4hlte ein anderes?</td><td>2453130.5')
+	
+	def testNULLs(self):
+		self.assertOutputHas('<td>N/A</td><td>N/A</td>')
+
+	
 class FormatDataTest(testhelpers.VerboseTest):
-	"""A test trying various formats on a simple data.
-	"""
-	resources = [("data", _TestDataTable())]
+	resources = [("data", _testDataTable)]
 
 	def testRaising(self):
 		self.assertRaises(formats.CannotSerializeIn, formats.formatData,
 			"wabbadubba", self.data, open("/dev/null"))
-
-	def assertOutputContains(self, format, fragments):
-		destF = StringIO()
-		with utils.silence():
-			formats.formatData(format, self.data, destF)
-
-		result = destF.getvalue()
-		for frag in fragments:
-			if not frag in result:
-				with open("res.data", "w") as f:
-					f.write(result)
-				raise AssertionError("Format %s: fragment '%s' not in result"
-					" (res.data)"%(format, frag))
-
-	def testTSV(self):
-		self.assertOutputContains("tsv", [
-			"1\t", "\t-2.0\t", "\tW\\xe4re es da", "\t2453130.5\n", "\tNone\tNone\t"])
-
-	def testVOTable(self):
-		self.assertOutputContains("votable", [
-			'<DESCRIPTION>Some test data with a reason',
-			'datatype="unicodeChar"',
-			u'Just by a \xb5'.encode("utf-8"),
-			'<STREAM encoding="base64">AAAAAcAAAABACAAAAAAAAAAAAF'])
-
-	def testFITS(self):
-		self.assertOutputContains("fits", [
-			'SIMPLE  =                    T',
-			"XTENSION= 'BINTABLE'",
-			"TTYPE2  = 'afloat  '",
-			"TTYPE3  = 'adouble '",
-			"TFORM3  = 'D       '",
-			"INTPAR  =                   42 / test integer parameter",
-			"HIERARCH exactFloatPar = 0.25 / This can be exactly represented"
-				" in two's complemEND",
-			"W\xc3\xa4re es da nic",
-			'\x00\x00\x00\x01',])
-
-	def testHTML(self):
-		self.assertOutputContains("html", [
-			'<table class="results">',
-			'Real</th><th ',
-			'<tr class="data"><td>1</td><td>-2.0</td><td>3.0</td><td>'
-			'W\xc3\xa4re es da nicht besser,',
-			'w\xc3\xa4hlte ein anderes?</td><td>2453130.5',
-			'<td>N/A</td><td>N/A</td>'])
-
-	def testCSV(self):
-		self.assertOutputContains("csv", [
-			'1,-2.0,3.0,"W\xc3\xa4re es da nicht'
-				' besser, die Regierung setzte das Volk ab und w\xc3\xa4hlte'
-				' ein anderes?",2453130.5',
- 			',,,,'])
-
-	def testCSVHeader(self):
-		self.assertOutputContains("csv_header", [
-			'1,-2.0,3.0,"W\xc3\xa4re es da nicht'
-				' besser, die Regierung setzte das Volk ab und w\xc3\xa4hlte'
-				' ein anderes?",2453130.5',
- 			',,,,',
- 			'# intPar = 42 // test integer parameter',
- 			'# roughFloatPar = 0.3 // \r\n',
- 			'# exactFloatPar = 0.25 // This can be '])
-
-
-class _NullTestTable(testhelpers.TestResource):
-	"""A table having some types and an all-null row.
-	"""
-	def make(self, deps):
-		td = base.parseFromString(rscdef.TableDef,
-			"""
-			<table id="nulls">
-				<column name="anint" type="integer">
-					<values nullLiteral="-2147483648"/>
-				</column>
-				<column name="afloat"/>
-				<column name="adouble" type="double precision"/>
-				<column name="atext" type="text"/>
-				<column name="adate" type="date" displayHint="format=humanDate"/>
-				<column name="aPos" type="spoint"/>
-			</table>
-			""")
-		return rsc.TableForDef(td,
-			rows=[dict((col.name, None) for col in td)])
-
-
-_nullTestTable = _NullTestTable()
-
-
-class NullValueTest(testhelpers.VerboseTest):
-# XXX TODO: these are essentially tested with the formats now.
-# see that that covers all we cover here and then remove this.
-	resources = [("nullsTable", _nullTestTable)]
-
-	def _runTestForFormat(self, formatName, assertion):
-		destF = StringIO()
-		formats.formatData(formatName, self.nullsTable, destF)
-		assertion(destF.getvalue())
-
-	def testHTML(self):
-		def assertion(data):
-			self.assertEqual(
-				re.search('<tr class="data">(<td>.*)</tr>', data).group(0),
-				'<tr class="data"><td>N/A</td><td>N/A</td><td>N/A</td>'
-					"<td>N/A</td><td>N/A</td><td>N/A</td></tr>")
-		self._runTestForFormat("html", assertion)
-	
-	def testTDVOTable(self):  
-		# there's votabletest exercising this more thoroughly, but while we
-		# are at it...
-		def assertion(data):
-			self.failUnless('<VALUES null="-2147483648"' in data)
-			self.failUnless('<TR><TD>-2147483648</TD><TD>NaN</TD><TD>'
-				'NaN</TD><TD></TD><TD></TD><TD></TD></TR>' in data)
-		self._runTestForFormat("votabletd", assertion)
-
-	def testBinVOTable(self):
-		def assertion(data):
-			self.failUnless('<VALUES null="-2147483648"' in data)
-			decoded = re.search(
-				'(?s)<STREAM encoding="base64">(.*)</STREAM>',
-				data).group(1).decode("base64")
-			self.assertEqual(decoded, "".join([
-				'\x80\x00\x00\x00', 
-				'\x7f\xc0\x00\x00', 
-				'\x7f\xf8\x00\x00\x00\x00\x00\x00', 
-				'\x00\x00\x00\x00', 
-				'\x00\x00\x00\x00', 
-				'\x00\x00\x00\x00']))
-		self._runTestForFormat("votable", assertion)
-
-	def testBin2VOTable(self):
-		def assertion(data):
-			self.failUnless('<VALUES null="-2147483648"' in data)
-			decoded = re.search(
-				'(?s)<STREAM encoding="base64">(.*)</STREAM>',
-				data).group(1).decode("base64")
-			self.assertEqual(decoded, "".join([
-				'\xfc\x00\x00\x00\x00', 
-				'\x7f\xc0\x00\x00', 
-				'\x7f\xf8\x00\x00\x00\x00\x00\x00', 
-				'\x00\x00\x00\x00', 
-				'\x00\x00\x00\x00', 
-				'\x00\x00\x00\x00']))
-		self._runTestForFormat("votableb2", assertion)
-
-	def testCSV(self):
-		def assertion(data):
-			self.assertEqual(",,,,,", data.strip())
-		self._runTestForFormat("csv", assertion)
-
-	def testTSV(self):
-		def assertion(data):
-			self.assertEqual('None\tNone\tNone\tNone\tNone\tNone', data.strip())
-		self._runTestForFormat("tsv", assertion)
-
-	def testFITS(self):
-		def assertion(data):
-			self.assertEqual(data[5760:5788], 
-				'\x80\x00\x00\x00\x7f\xc0\x00\x00\x7f\xf8\x00\x00\x00\x00\x00\x00'
-				'NoneNoneNone')
-		self._runTestForFormat("fits", assertion)
-
-	def testJSON(self):
-		self.assertEqual(
-			json.loads(formats.getFormatted("json", self.nullsTable))["data"],
-			[[None, None, None, None, None, None]])
 
 
 class _ExplicitNullTestTable(testhelpers.TestResource):

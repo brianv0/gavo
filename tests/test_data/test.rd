@@ -129,10 +129,10 @@
 				represented in two's complement.  Also, it is a fairly long
 				description, and it's going to be interesting to see how the various
 				formats cope">0.25</param>
+			<column name="apos" type="spoint"/>
 		</table>
 		<rowsetGrammar enc="iso8859-1" fieldsFrom="m_typestable"/>
-		<rowmaker id="tm_m_typestable" idmaps="anint,afloat,adouble,atext,adate"/>
-		<make table="m_typestable" rowmaker="tm_m_typestable"/>
+		<make table="m_typestable"/>
 	</data>
 
 

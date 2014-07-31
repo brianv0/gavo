@@ -85,7 +85,6 @@ class FromSQLConverter(object):
 
 
 class ToVOTableConverter(FromSQLConverter):
-
 	typeSystem = "VOTable"
 
 	simpleMap = {
@@ -105,6 +104,7 @@ class ToVOTableConverter(FromSQLConverter):
 		"vexpr-string": ("char", "*"),
 		"vexpr-date": ("char", "*"),
 		"vexpr-float": ("double", "1"),
+		"file": ("bytea", "*"),  # this is for (lame) metadata generation
 		"pql-float": ("double", "1"),
 		"pql-string": ("char", "*"),
 		"pql-date": ("char", "*"),

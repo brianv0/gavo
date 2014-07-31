@@ -284,6 +284,17 @@ class RendExplainer(object):
 			" processing options are available."]
 
 	@classmethod
+	def _explain_api(cls, service):
+		return T.invisible["an interface for operation with curl and"
+			" similar low-level-tools.  The endpoint is at ",
+			T.a(href=service.getURL("api"))[service.getURL("api")],
+			"; as usual for DALI-conforming services, parameters"
+			" an response structure is available by ",
+			T.a(href=service.getURL("api")+"MAXREC=0")["querying with"
+				" MAXREC=0"],
+			"."]
+			
+	@classmethod
 	def _explainEverything(cls, service):
 		return T.invisible["a renderer with some custom access method that"
 			" should be mentioned in the service description"]
