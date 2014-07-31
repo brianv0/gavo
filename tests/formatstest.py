@@ -202,6 +202,17 @@ class JSONOutputTest(testhelpers.VerboseTest):
 				2453130.5], 
 			[None, None, None, None, None]])
 
+	def testParameterDescription(self):
+		intPar = self.tAndD[1]["params"]["intPar"]
+		self.assertEqual(intPar["value"], 42)
+		self.assertEqual(intPar["description"], "test integer parameter")
+	
+	def testParameterMetadata(self):
+		floatPar = self.tAndD[1]["params"]["exactFloatPar"]
+		self.assertEqual(floatPar["value"], 0.25)
+		self.assertEqual(floatPar["unit"], "m")
+		self.assertEqual(floatPar["ucd"], "phys.width")
+
 	def testMetaInfo(self):
 		dd = testhelpers.getTestRD().getById("tableMaker")
 		data = rsc.makeData(dd, forceSource=[
@@ -216,7 +227,7 @@ class JSONOutputTest(testhelpers.VerboseTest):
 			["Warning 1", "Warning 2"])
 		self.assertEqual(afterRoundtrip["queryStatus"],
 			"OK")
-
+	
 
 class TextOutputTest(unittest.TestCase):
 	"""tests for the text table output of data sets.

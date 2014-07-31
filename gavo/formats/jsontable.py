@@ -58,6 +58,22 @@ def _getJSONColumns(serManager):
 	return res
 
 
+def _getJSONParams(serManager):
+	"""returns a dict of param dicts.
+	"""
+	result = {
+		'contains': "params",
+	}
+	for param in serManager.table.iterParams():
+		if param.value is not None:
+			result[param.name] = {
+				'value': param.value,
+				'unit': param.unit,
+				'ucd': param.ucd,
+				'description': param.description,}
+	return result
+
+
 def _getJSONStructure(table, acquireSamples=False):
 	"""returns a dictionary representing table for JSON serialisation.
 	"""
@@ -67,6 +83,7 @@ def _getJSONStructure(table, acquireSamples=False):
 	
 	result = {
 		'contains': "table",
+		'params': _getJSONParams(sm),
 		'columns': _getJSONColumns(sm),
 		'data': list(sm.getMappedTuples()),
 	}

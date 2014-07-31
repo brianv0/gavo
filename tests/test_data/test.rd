@@ -124,7 +124,8 @@
 			<param name="stringPar" type="text" description="empty by default"
 				>__NULL__</param>
 			<param name="roughFloatPar">0.3</param>
-			<param name="exactFloatPar" description="This can be exactly
+			<param name="exactFloatPar" unit="m" ucd="phys.width"
+				description="This can be exactly
 				represented in two's complement.  Also, it is a fairly long
 				description, and it's going to be interesting to see how the various
 				formats cope">0.25</param>
