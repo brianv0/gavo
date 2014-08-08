@@ -228,7 +228,8 @@ class _ServiceDescriptor(object):
 			colRef.toParam = True
 			return ctx.makeIdFor(paramsByName[colRef.dest])
 
-		res = V.RESOURCE(ID=ctx.getOrMakeIdFor(self), type="service")[
+		res = V.RESOURCE(ID=ctx.getOrMakeIdFor(self), type="meta",
+			utype="adhoc:service")[
 			[modelgroups.marshal_STC(ast, getIdFor)
 				for ast in stcSpecs],
 			V.PARAM(arraysize="*", datatype="char", 

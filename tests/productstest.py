@@ -701,7 +701,8 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 				break
 		else:
 			self.fail("Processing service not in datalink links")
-		self.assertEqual(res.attrib.get("type"), "service")
+		self.assertEqual(res.attrib.get("type"), "meta")
+		self.assertEqual(res.attrib.get("utype"), "adhoc:service")
 
 	def testSelfMeta(self):
 		selfRow = self.rows[('ivo://x-unregistred/~?data/b.imp', 'self')][0]

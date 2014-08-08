@@ -67,6 +67,13 @@ class ErrorPage(rend.Page, common.CommonRenderers):
 	def render_message(self, ctx, data):
 		return ctx.tag(class_="errmsg")[self.failure.getErrorMessage()]
 
+	def render_hint(self, ctx, data):
+		if (hasattr(self.failure.value, "hint"),
+				self.failure.value.hint):
+			return ctx.tag[T.strong["Hint: "], 
+				self.failure.value.hint]
+		return ""
+
 	def render_rdlink(self, ctx, data):
 		if hasattr(self.failure.value, "rd") and self.failure.value.rd:
 			rdURL = base.makeAbsoluteURL("/browse/%s"%
@@ -270,6 +277,7 @@ class ErrorDisplay(ErrorPage):
 				" telling whether we've realized that already.  So, chances are"
 				" we'd be grateful if you told us at the address given below."
 				" Thanks."],
+			T.p(render=T.directive("hint")),
 			ErrorPage._footer,
 		]])
 # HTML mess for last-resort type error handling.
