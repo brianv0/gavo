@@ -380,8 +380,8 @@ class _SDMDatalinkMetaData(testhelpers.TestResource):
 		res = getRD().getById("c").run("ssap.xml", 
 			{"REQUEST": "queryData"})
 		tree = testhelpers.getXMLTree(res.original[1], debug=False)
-		return (tree.xpath('//RESOURCE[@type="service"]')[0],
-			tree.xpath('//RESOURCE[@type="service"]')[1], tree)
+		return (tree.xpath('//RESOURCE[@type="meta"]')[0],
+			tree.xpath('//RESOURCE[@type="meta"]')[1], tree)
 
 
 class SDMDatalinkMetaTest(testhelpers.VerboseTest):
@@ -720,7 +720,7 @@ class SSATableTest(testhelpers.VerboseTest):
 	def testDatalinkResourcePresent(self):
 		_, tree = self.docAndTree
 		self.assertEqual(len(tree.xpath(
-			"//RESOURCE[@type='service']")), 2)
+			"//RESOURCE[@utype='adhoc:service']")), 2)
 		# TODO: if the datalink meta link is what we want, add a few tests
 		# for that here.
 

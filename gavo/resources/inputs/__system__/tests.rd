@@ -171,7 +171,7 @@
 				REQUEST="doQuery" FORMAT="votable/td"
 				>/__system__/tap/run/tap/sync</url>
 			<code><![CDATA[
-				self.assertHasStrings("/getproduct?key=",
+				self.assertHasStrings("TD>http://",
 					'utype="obscore:access.reference"',
 					'<INFO name="QUERY_STATUS" value="OVERFLOW"')
 			]]></code>

@@ -302,8 +302,8 @@ class SSAPCore(svcs.DBCore):
 			vot[dlCore.datalinkServices[0].asVOT(
 				votCtx, dlService.getURL("dlget"), linkIdTo=pubDIDId)]
 
-			# odd and crooked, almost WD-method of pointing to dl metadata service
-			vot[V.RESOURCE(type="service")[
+			# Also point to the dl metadata service
+			vot[V.RESOURCE(type="meta", utype="adhoc:service")[
 				V.PARAM(name="standardID", datatype="char", arraysize="*",
 					value="ivo://ivoa.net/std/DataLink#links"),
 				V.PARAM(name="accessURL", datatype="char", arraysize="*",
