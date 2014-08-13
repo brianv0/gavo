@@ -512,10 +512,12 @@ class DataCollectionResourceMaker(ResourceMaker):
 			if metaCarrier.registration.publishedForADQL():
 				yield capabilities.getCapabilityElement(
 					MS(svcs.Publication, render="tap", sets=setNames,
+						parent_=metaCarrier,
 						service=base.caches.getRD("//tap").getById("run")))
 		
 		for service in services:
-			yield [capabilities.getCapabilityElement(pub)
+			yield [capabilities.getCapabilityElement(
+					pub.change(parent_=metaCarrier))
 				for pub in service.getPublicationsForSet(setNames)
 				if pub.render not in self.ignoreForDataCaps]
 

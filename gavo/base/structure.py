@@ -437,6 +437,8 @@ class RestrictionMixin(object):
 def makeStruct(structClass, **kwargs):
 	"""creates a parentless instance of structClass with **kwargs, going
 	through all finishing actions.
+
+	You can pass in a parent_ kwarg to force a parent.
 	"""
 	parent = None
 	if "parent_" in kwargs:

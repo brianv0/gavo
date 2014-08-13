@@ -156,18 +156,56 @@ class DeletedTest(testhelpers.VerboseTest):
 		self._assertCanBuildResob()
 
 
-class CapabilityTest(testhelpers.VerboseTest):
-	def testTAP(self):
-		capabilities._TMP_TAPREGEXT_HACK = True
-		publication = api.getRD("//tap").getById("run").publications[0]
-		publication.parent.addMeta("supportsModel", "Sample Model 1")
-		publication.parent.addMeta("supportsModel.ivoId", "ivo://models/mod1")
-		publication.parent.addMeta("supportsModel", "Sample Model 2")
-		publication.parent.addMeta("supportsModel.ivoId", "ivo://models/mod2")
-		res = capabilities.getCapabilityElement(publication).render()
-		# XXX TODO: think of better assertions
-		self.failUnless('<dataModel' in res)
-		capabilities._TMP_TAPREGEXT_HACK = False
+class _TAPCapabilityElement(testhelpers.TestResource):
+	def make(self, deps):
+		publication = base.caches.getRD("//tap"
+			).getById("run").publications[0]
+		res = vosi.CAP.capabilities[
+			capabilities.getCapabilityElement(publication)].render()
+		return res, testhelpers.getXMLTree(res, debug=False)
+
+
+class TAPCapabilityTest(testhelpers.VerboseTest):
+	resources = [("cap", _TAPCapabilityElement())]
+
+	def testObscoreDeclared(self):
+		el = self.cap[1].findall("capability/dataModel")[0]
+		self.assertEqual(el.get("ivo-id"), "ivo://ivoa.net/std/ObsCore/v1.0")
+		self.assertEqual(el.text, "Obscore-1.0")
+	
+	def testADQLAvailable(self):
+		el = self.cap[1].find("capability/language[name='ADQL']")
+		self.assertEqual(
+			el.find("version").get("ivo-id"),
+			"ivo://ivoa.net/std/ADQL#v2.0")
+
+	def testUDFDefined(self):
+		parent = self.cap[1].find("capability/language/languageFeatures["
+			"@type='ivo://ivoa.net/std/TAPRegExt#features-udf']")
+		for feature in parent.findall("feature"):
+			if feature.find("form").text.startswith("gavo_match(pattern"):
+				self.assertTrue(feature.find("description").text.startswith(
+					"gavo_match returns 1 if the POSIX regular"))
+				break
+		else:
+			raise AssertionError("No gavo_match UDF declared")
+
+	def testGeometryDefined(self):
+		parent = self.cap[1].find("capability/language/languageFeatures["
+			"@type='ivo://ivoa.net/std/TAPRegExt#features-adqlgeo']")
+		for feature in parent.findall("feature"):
+			if feature.find("form").text=='CIRCLE':
+				break
+		else:
+			raise AssertionError("No CIRCLE ADQL geometry found")
+	
+	def testBinary2Defined(self):
+		el = self.cap[1].find("capability/outputFormat"
+			"[@ivo-id='ivo://ivoa.net/std/TAPRegExt#output-votable-binary2']")
+		self.assertEqual(el.find("mime").text,
+			"application/x-votable+xml;serialization=binary2")
+		self.assertEqual(el.find("alias").text,
+			"votable/b2")
 
 
 class _SSACapabilityElement(testhelpers.TestResource):
@@ -723,6 +761,11 @@ class TablePublicationRecordTest(testhelpers.VerboseTest):
 			"//capability[@standardID='ivo://ivoa.net/std/VOSI#availability']"),
 			[])
 
+	def testDataModelCensored(self):
+		self.assertEqual(self.tree.xpath(
+			"//capability/dataModel"),
+			[])
+
 
 class _DataGetRecordRes(testhelpers.TestResource):
 	def make(self, ignored):
@@ -769,6 +812,11 @@ class DataGetRecordTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 			"//capability[@standardID='ivo://ivoa.net/std/TAP']"
 			"/interface[@role='std']/accessURL")[0].text,
 			"http://localhost:8080/__system__/tap/run/tap")
+
+	def testDataModelCensored(self):
+		self.assertEqual(self.srcAndTree[1].xpath(
+			"//capability/dataModel"),
+			[])
 
 
 # minimal meta for successful RR generation without a (working) RD

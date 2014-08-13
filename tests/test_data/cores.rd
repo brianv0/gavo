@@ -177,4 +177,14 @@
 		<FEED source="//pql#DALIPars"/>
 
 	</service>
+
+	<service id="uploadtest" allowed="api,form">
+		<nullCore>
+			<inputTable>
+				<inputKey name="nothing" type="file" 
+					description="An example upload containing nothing in particular" 
+					ucd="par.upload"/>
+			</inputTable>
+		</nullCore>
+	</service>
 </resource>

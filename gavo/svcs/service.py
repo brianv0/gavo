@@ -180,18 +180,21 @@ class Publication(base.Structure, base.ComputedMetaMixin):
 
 	_rd = rscdef.RDAttribute()
 	_render = base.UnicodeAttribute("render", default=base.Undefined,
-		description="The renderer the publication will point at.")
+		description="The renderer the publication will point at.",
+		copyable=True)
 	_sets = base.StringSetAttribute("sets", 
 		description="Comma-separated list of sets this service will be"
 			" published in.  Predefined are: local=publish on front page,"
 			" ivo_managed=register with the VO registry.  If you leave it"
-			" empty, 'local' publication is assumed.")
+			" empty, 'local' publication is assumed.",
+			copyable="True")
 	_service = base.ReferenceAttribute("service", default=base.NotGiven,
 		description="Reference for a service actually implementing the"
 			" capability corresponding to this publication.  This is"
 			" mainly when there is a vs:WebBrowser service accompanying a VO"
 			" protocol service, and this other service should be published"
-			" in the same resource record.  See also the operator's guite.")
+			" in the same resource record.  See also the operator's guite.",
+			copyable="True")
 
 	def completeElement(self, ctx):
 		if self.render is base.Undefined:

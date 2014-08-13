@@ -109,6 +109,7 @@ class ToVOTableConverter(FromSQLConverter):
 		"pql-string": ("char", "*"),
 		"pql-date": ("char", "*"),
 		"pql-int": ("int", "1"),
+		"pql-upload": ("char", "*"),  # (the upload parameter)
 		"raw": ("unsignedByte", "*"),
 		"bytea": ("unsignedByte", "1"),
 		"spoint": ("char", "*"),  # client code would need to deal with xtype.
@@ -301,6 +302,7 @@ class ToPythonBase(FromSQLConverter):
 		"pql-float": "identity",
 		"pql-int": "identity",
 		"pql-date": "identity",
+		"pql-upload": "identity",
 
 	}
 

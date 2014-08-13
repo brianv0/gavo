@@ -464,6 +464,7 @@
 		<meta name="shortName">\metaString{authority.shortName} TAP</meta>
 		<meta name="title">\getConfig{web}{sitename} TAP service</meta>
 
+
 		<meta name="_longdoc" format="rst"><![CDATA[
 		This service speaks TAP, a protocol designed to allow the exchange of
 		queries and data between clients (that's normally something running on your
@@ -536,7 +537,10 @@
 
 			Tables exposed through this endpoint include: \tablesForTAP.
 		</meta>
-		<publish render="tap" sets="ivo_managed,local"/>
+		<meta name="identifier">ivo://\getConfig{ivoa}{authority}/tap</meta>
+		<publish render="tap" sets="ivo_managed,local">
+			<meta name="accessURL">\internallink{tap}</meta>
+		</publish>
 
 		<FEED source="%#tapexamples"/>
 	</service>

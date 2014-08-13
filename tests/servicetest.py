@@ -624,5 +624,17 @@ class TableSetTest(testhelpers.VerboseTest):
 		self.failUnless("tap_schema.tables" in [t.getQName() for t in ts])
 
 
+class DALIUploadTest(testhelpers.VerboseTest):
+	def _testAdaption(self):
+		key = testhelpers.getTestRD("cores").getById("uploadtest"
+			).getInputKeysFor("api")[0]
+		self.assertEqual(key.type, "pql-upload")
+		self.assertTrue("An upload of the form 'nothing,URL'"
+			in key.description)
+		self.assertTrue("Purpose of the upload: An example upload" 
+			in key.description)
+		self.assertEqual(key.name, "UPLOAD")
+
+
 if __name__=="__main__":
 	testhelpers.main(ComputedServiceTest)

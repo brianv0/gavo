@@ -71,7 +71,8 @@ class InterfaceMaker(object):
 	def _makeInterface(self, publication):
 		return self.interfaceClass[
 			VOR.accessURL(use=base.getMetaText(publication, "urlUse"))[
-				base.getMetaText(publication, "accessURL")],
+				base.getMetaText(publication, "accessURL",
+					macroPackage=publication.parent)],
 			VOR.securityMethod(
 				standardId=base.getMetaText(publication, "securityId")),
 		]
@@ -337,10 +338,18 @@ class TAPCapabilityMaker(CapabilityMaker):
 		with base.getTableConn() as conn:
 			from gavo.protocols import tap
 			from gavo.adql import ufunctions
-			res[[
+
+			# do not declare data models unless parent actually is the
+			# the central TAP service (as opposed to some data collections);
+			# this is so all-VO obscore queries don't hit us multiple
+			# times.
+			if publication.parent.rd.sourceId=='__system__/tap':
+				res[[
 					TR.dataModel(ivoId=dmivorn)[dmname]
-					for dmname, dmivorn in conn.query(
-						"select dmname, dmivorn from tap_schema.supportedmodels")],
+						for dmname, dmivorn in conn.query(
+							"select dmname, dmivorn from tap_schema.supportedmodels")]]
+
+			res[
 				# Once we support more than one language, we'll have to
 				# revisit this -- the optional features must then become
 				# a property of the language.
