@@ -280,10 +280,8 @@ class To10Upgrader(Upgrader):
 	@classmethod
 	def u_000_dropADQLExamples(cls, connection):
 		"""drop old TAP examples tables (gone to _examples meta)"""
-		# This is bypassing transaction control.  Well, it's
-		# really not touching anything critical.
 		from gavo.user import dropping
-		dropping._do_dropTable("tap_schema.examples")
+		dropping._do_dropTable("tap_schema.examples", connection)
 	
 	@classmethod
 	def u_010_createDLAsyncTable(cls, connection):

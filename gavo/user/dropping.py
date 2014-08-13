@@ -16,29 +16,28 @@ from gavo.protocols import tap
 from gavo.user import common
 
 
-def _do_dropTable(tableName):
+def _do_dropTable(tableName, conn):
 	"""deletes rows generated from tableName from the DC's metadata
 	(and tableName itself).
 	"""
-	with base.AdhocQuerier(base.getWritableAdminConn) as q:
-		for metaTableName, columnName in [
-				("dc.tablemeta", "tableName"),
-				("ivoa._obscoresources", "tableName"),
-				("tap_schema.tables", "table_name"),
-				("tap_schema.columns", "table_name")]:
-			if q.tableExists(metaTableName):
-				q.query("delete from %s where %s=%%(tableName)s"%(
-					metaTableName, columnName),
-					{"tableName": tableName})
+	q = base.UnmanagedQuerier(conn)
+	for metaTableName, columnName in [
+			("dc.tablemeta", "tableName"),
+			("ivoa._obscoresources", "tableName"),
+			("tap_schema.tables", "table_name")]:
+		if q.tableExists(metaTableName):
+			q.query("delete from %s where %s=%%(tableName)s"%(
+				metaTableName, columnName),
+				{"tableName": tableName})
 
-		#	POSSIBLE SQL INJECTION when tableName is a suitably wicked
-		# quoted name; right now, this is mitigated by the fact that
-		# people that can call this don't need SQL injection since
-		# they can execute anything gavoadmin can anyway.
-		if q.viewExists(tableName):
-			q.query("drop view "+tableName)
-		elif q.tableExists(tableName):
-			q.query("drop table "+tableName)
+	#	POSSIBLE SQL INJECTION when tableName is a suitably wicked
+	# quoted name; right now, this is mitigated by the fact that
+	# people that can call this don't need SQL injection since
+	# they can execute anything gavoadmin can anyway.
+	if q.viewExists(tableName):
+		q.query("drop view "+tableName)
+	elif q.tableExists(tableName):
+		q.query("drop table "+tableName)
 
 
 def dropTable():
@@ -55,10 +54,10 @@ def dropTable():
 		return parser.parse_args()
 	
 	opts = parseCmdline()
-	for tableName in opts.tablename:
-		_do_dropTable(tableName)
 	
 	with base.getWritableAdminConn() as conn:
+		for tableName in opts.tablename:
+			_do_dropTable(tableName, conn)
 		conn.execute("DELETE FROM dc.products WHERE sourcetable=%(t)s",
 			{'t': tableName})
 
