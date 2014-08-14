@@ -139,7 +139,7 @@ feeding the tables mixing in a given mixin.
   "//products#table", "//scs#positions", "//scs#q3cindex",
   "//siap#bbox", "//siap#pgs", "//ssap#hcd", "//obscore#publish",
   "//obscore#publishSIAP", "//ssap#sdm-instance", "//ssap#mixc",
-  "//obscore#publishSSAPHCD"])
+  "//obscore#publishSSAPHCD", "//epntap#table"])
 
 
 Triggers
@@ -191,6 +191,7 @@ Procedures available for rowmaker apply
     "//siap#computePGS",
     "//siap#computeBbox", "//siap#setMeta", "//ssap#setMeta",
     "//siap#getBandFromFilter", "//ssap#setMixcMeta",
+    "//epntap#populate",
     ])(docStructure)
 
 

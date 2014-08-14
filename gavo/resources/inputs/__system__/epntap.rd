@@ -19,10 +19,13 @@
 	</STREAM>
 
 	<mixinDef id="table">
-		<doc>
+		<doc><![CDATA[
 			This mixin defines a table suitable for publication via the
 			EPN-TAP protocol.
-		</doc>
+
+			Use the `//epntap#populate`_ mixin in rowmakers
+			feeding tables mixing this in.
+		]]></doc>
 		<mixinPar key="c1unit" description="Unit of the first spatial
 			coordinate">deg</mixinPar>
 		<mixinPar key="c2unit" description="Unit of the second spatial
@@ -197,34 +200,64 @@
 				<property key="std">1</property>
 			</column>
 
-			<column name="access_url"	type="text" 
-				ucd="meta.ref.url" 
-				description="URL to retrieve the data described."/>
-			<column name="access_format"	type="text"
-				ucd="meta.id;class" 
-				description="Format of the file containing the data."/>
-			<column name="access_estsize"	type="integer" required="True"
-				ucd="phys.size;meta.file"
-				description="estimate file size in kB."/>
-			<column name="processing_level"	type="integer" required="True"
-				ucd="meta.class.qual" 
-				description="type of calibration from CODMAC."/>
 			<column name="publisher"	type="text" 
-				ucd="meta.name" 
-				description="publiher of the ressource"/>
-			<column name="reference"	type="text" 
 				ucd="meta.ref" 
-				description="publication of reference"/>
+				description="A short string identifying the entity running
+					the data service used.">
+				<property key="std">1</property>
+			</column>
+			<column name="reference"	type="text" 
+				ucd="meta.bib" 
+				description="A bibcode or URL of a publication about the data.">
+				<property key="std">1</property>
+			</column>
 			<column name="service_title"	type="text" 
-				ucd="meta.note" 
-				description="Title of the ressourcee"/>
+				ucd="meta.ref" 
+				description="The title of the data service producing this row.">
+				<property key="std">1</property>
+			</column>
+			<column name="collection_id" type="text"
+				ucd="meta.id"
+				description="Identifier of the collection this piece of data
+					belongs to">
+				<property key="std">1</property>
+			</column>
+			<column name="processing_level"	type="integer" required="True"
+				utype="PSR:processingLevel"
+				ucd="meta.class.qual" 
+				description="Calibration level with coded according to CODMAC."
+				note="et_cal">
+				<property key="std">1</property>
+			</column>
+
+			<column name="access_url"	type="text" 
+				ucd="meta.ref.url" utype="Obs.Access.Reference"
+				description="URL to retrieve the data product described.">
+				<property key="std">1</property>
+			</column>
+			<column name="access_format"	type="text"
+				ucd="meta.id;class" utype="Obs.Access.Format"
+				description="Format of the file containing the data.">
+				<property key="std">1</property>
+			</column>
+			<column name="access_estsize"	type="integer" required="True"
+				ucd="phys.size;meta.file" unit="kByte"
+				utype="Obs.Access.Size"
+				description="Estimated size of the data product.">
+				<property key="std">1</property>
+			</column>
+
+			<!-- todo: 5.1.5 left out; seems a bit unfinished in 0.26 -->
+
 			<column name="target_region"	type="text" 
 				ucd="meta.id;class" 
-				description="region of interest from a predifine list"/>
-			<column name="element_name" type="text" 
-				ucd="meta.id"
-				description="Supplementary name to designate a specific target 
-					within target_name"/>
+				description="The part of the target object that was being observed">
+				<property key="std">1</property>
+			</column>
+
+			<!-- todo: 5.1.7, 5.1.8 - what are the column names there? 
+			  UCDs?  utypes? -->
+
 			<meta name="note" tag="et_prod">
 				The following values are defined for this field:
 
@@ -269,6 +302,22 @@
 					list of summit coordinates defining a vector, e.g., vector
 					information from a GIS, spatial footprints...
 			</meta>
+
+			<meta name="note" tap="et_cal">
+				CODMAC levels are:
+
+				1 -- Raw (UDR in PDS)
+
+				2 -- Edited (EDR in PDS, NASA level 0)
+
+				3 -- Calibrated (RDR in PDS, NASA Level 1A)
+
+				4 -- Resampled (REFDR in PDS, NASA Level 1B)
+
+				5 -- Derived (DDR in PDS, NASA Level 3)
+
+				6 -- Ancillary (ANCDR in PDS)
+			</meta>
 		</events>
 
 	</mixinDef>
@@ -290,7 +339,7 @@
 				samples at http://curator.jsc.nasa.gov/stardust/catalog/"/>
 			<par key="time_scale" description="Time scale used for the
 				various times, as given by IVOA's STC data model.  Choose
-				from TT, TDB, TOG, TOB, TAI, UTC, GPS, UNKNOWN"/>
+				from TT, TDB, TOG, TOB, TAI, UTC, GPS, UNKNOWN">"UNKNOWN"</par>
 			<par key="spatial_frame_type" description="Flavor of the
 				coordinate system (this also fixes the meanings of c1, c2, and
 				c3).  Values defined by EPN-TAP include celestial, body,
@@ -305,7 +354,40 @@
 				invited to include multiple values for instrumentname, e.g.,
 				complete name + usual acronym. This will allow queries on either
 				'VISIBLE AND INFRARED THERMAL IMAGING SPECTROMETER' or VIRTIS to
-				produce the same reply."/>
+				produce the same reply.">None</par>
+			<par key="access_format" description="The standard text proposes
+				the standard names VOTable, Fits, CSV, ASCII, PDS, as well as
+				image formats."/>
+			<par key="target_region" description="This is a complement to the
+				target name to identify a substructure of the target that was
+				being observed (e.g., Atmosphere, Surface).  Take terms from
+				them Spase dictionary at http://www.spase-group.org or the
+				IVOA thesaurus.">None</par>
+			<!-- if you add more manual parameters, make sure you list them
+			in overridden below -->
+
+			<LOOP>
+				<codeItems>
+					# overridden is a set of column names for which the parameters
+					# are manually defined above
+					overridden = set(["target_name", "time_scale",
+						"spatial_frame_type", "instrument_host", "instrument_name",
+						"access_format", "target_region"])
+
+					mixin = context.getById("table")
+					colDict = {}
+					for type, name, content, pos in mixin.events.events_:
+						if type=="value":
+							colDict[name] = content
+						elif type=="end":
+							if name=="column":
+								yield colDict
+								colDict = {}
+				</codeItems>
+				<events>
+					<par key="\name" description="\description">None</par>
+				</events>
+			</LOOP>
 		</setup>
 	</procDef>
 
