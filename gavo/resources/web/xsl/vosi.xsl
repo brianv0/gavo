@@ -6,6 +6,7 @@
     xmlns:ri="http://www.ivoa.net/xml/RegistryInterface/v1.0"
     xmlns:cap="http://www.ivoa.net/xml/VOSICapabilities/v1.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:vtm="http://www.ivoa.net/xml/VOSITables/v1.0"
     xmlns="http://www.w3.org/1999/xhtml"
     version="1.0">
    
@@ -305,7 +306,7 @@
         </table>
     </xsl:template>
 
-    <xsl:template match="tableset">
+    <xsl:template match="vtm:tableset">
         <html>
             <head>
               <title>VOSI Table Set</title>
