@@ -49,3 +49,27 @@ def colorJpegFromNumpyArrays(rPix, gPix, bPix, gamma=0.25):
 	Image.fromarray(pixels, mode="RGB").save(f, format="jpeg")
 	return f.getvalue()
 
+
+def scaleNumpyArray(arr, destSize):
+	"""returns the numpy array arr scaled down to approximately destSize.
+	"""
+	origWidth, origHeight = arr.shape
+	size = max(origWidth, origHeight)
+	scale = max(1, size//destSize+1)
+	destWidth, destHeight = origWidth//scale, origHeight//scale
+
+	# There's very similar code in fitstools.iterScaledRows
+	# -- it would be nice to refactor things so this can be shared.
+	img = numpy.zeros((destWidth, destHeight), 'float32')
+
+	for rowInd in range(destHeight):
+		wideRow = (numpy.sum(
+			arr[:,rowInd*scale:(rowInd+1)*scale], 1, 'float32'
+			)/scale)[:destWidth*scale]
+		# horizontal scaling via reshaping to a matrix and then summing over
+		# its columns.
+		newRow = numpy.sum(
+			numpy.transpose(wideRow.reshape((destWidth, scale))), 0)/scale
+		img[:,rowInd] = newRow
+
+	return img

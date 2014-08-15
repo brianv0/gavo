@@ -644,26 +644,7 @@ class CutoutProduct(ProductBase):
 		return streaming.streamOut(self._writeStuffTo, request)
 	
 	def makePreview(self):
-		inData = self._getCutoutHDU().data
-		origWidth, origHeight = inData.shape
-		size = max(origWidth, origHeight)
-		scale = max(1, size//PREVIEW_SIZE+1)
-		destWidth, destHeight = origWidth//scale, origHeight//scale
-
-		# There's very similar code in fitstools.iterScaledRows
-		# -- it would be nice to refactor things so this can be shared.
-		img = numpy.zeros((destWidth, destHeight), 'float32')
-
-		for rowInd in range(destHeight):
-			wideRow = (numpy.sum(
-				inData[:,rowInd*scale:(rowInd+1)*scale], 1, 'float32'
-				)/scale)[:destWidth*scale]
-			# horizontal scaling via reshaping to a matrix and then summing over
-			# its columns.
-			newRow = numpy.sum(
-				numpy.transpose(wideRow.reshape((destWidth, scale))), 0)/scale
-			img[:,rowInd] = newRow
-
+		img = imgtools.scaleNumpyArray(self._getCutoutHDU().data, PREVIEW_SIZE)
 		return imgtools.jpegFromNumpyArray(img)
 
 
