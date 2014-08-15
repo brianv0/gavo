@@ -30,6 +30,7 @@ GRAMMAR_REGISTRY = {
 	"freeREGrammar": ("grammars.freeregrammar", "FreeREGrammar"),
 	"keyValueGrammar": ("grammars.kvgrammar", "KeyValueGrammar"),
 	"nullGrammar": ("grammars.common", "NullGrammar"),
+	"pdsGrammar": ("grammars.pdsgrammar", "PDSGrammar"),
 	"reGrammar": ("grammars.regrammar", "REGrammar"),
 	"rowsetGrammar": ("grammars.rowsetgrammar", "RowsetGrammar"),
 	"voTableGrammar": ("grammars.votablegrammar", "VOTableGrammar"),

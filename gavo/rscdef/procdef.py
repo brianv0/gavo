@@ -293,6 +293,7 @@ class ProcApp(ProcDef):
 						" %s and thus must be bound."%(p.key, self.name))
 			if p.key in bindNames:
 				bindNames.remove(p.key)
+
 		if bindNames:
 			raise base.StructureError("May not bind non-existing parameter(s)"
 				" %s."%(", ".join(bindNames)))

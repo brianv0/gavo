@@ -23,9 +23,22 @@
 			This mixin defines a table suitable for publication via the
 			EPN-TAP protocol.
 
+			According to the standard definition, tables mixing this in
+			should be called ``epn_core``.  The mixin already arranges
+			for the table to be accessible by ADQL and be on disk.
+
+			This also mixes causes the product table to be populated.
+			This means that grammars feeding such tables need a 
+			`//products#define`_ row filter.  At the very least, you need to say::
+
+				<rowfilter procDef="//products#define">
+					<bind name="table">"\schema.epn_core"</bind>
+				</rowfilter>
+
 			Use the `//epntap#populate`_ mixin in rowmakers
 			feeding tables mixing this in.
 		]]></doc>
+
 		<mixinPar key="c1unit" description="Unit of the first spatial
 			coordinate">deg</mixinPar>
 		<mixinPar key="c2unit" description="Unit of the second spatial
@@ -37,8 +50,13 @@
 			radiation) or phys.energy;phys.part (for particles)"
 			>em.freq</mixinPar>
 		<events>
+			<adql>True</adql>
+			<onDisk>True</onDisk>
+
 			<meta name="info" infoName="SERVICE_PROTOCOL" 
 				infoValue="0.26">EPN-TAP</meta>
+
+			<column name="accref" original="//products#products.accref"/>
 
 			<column name="resource_type" type="text" 
 				utype="Epn.ResourceType" ucd="meta.id;class" 
@@ -132,11 +150,11 @@
 				basename="sampling_step"
 				baseucd="spect" unit="Hz"
 				basedescr="Separation between the centers of two adjacent
-					filters or channels."/>
+					filters or channels"/>
 			<FEED source="_minmax"
 				basename="spectral_resolution"
 				baseucd="spec.resolution" unit="Hz"
-				basedescr="FWHM of the instrument profile."/>
+				basedescr="FWHM of the instrument profile"/>
 			<FEED source="_minmax"
 				basename="c1"
 				baseucd="obs.field" unit="\c1unit"
@@ -232,7 +250,8 @@
 
 			<column name="access_url"	type="text" 
 				ucd="meta.ref.url" utype="Obs.Access.Reference"
-				description="URL to retrieve the data product described.">
+				description="URL to retrieve the data product described."
+				displayHint="type=url">
 				<property key="std">1</property>
 			</column>
 			<column name="access_format"	type="text"
@@ -240,11 +259,12 @@
 				description="Format of the file containing the data.">
 				<property key="std">1</property>
 			</column>
-			<column name="access_estsize"	type="integer" required="True"
+			<column name="access_estsize"	type="integer"
 				ucd="phys.size;meta.file" unit="kByte"
 				utype="Obs.Access.Size"
 				description="Estimated size of the data product.">
 				<property key="std">1</property>
+				<values nullLiteral="-1"/>
 			</column>
 
 			<!-- todo: 5.1.5 left out; seems a bit unfinished in 0.26 -->
@@ -303,7 +323,7 @@
 					information from a GIS, spatial footprints...
 			</meta>
 
-			<meta name="note" tap="et_cal">
+			<meta name="note" tag="et_cal">
 				CODMAC levels are:
 
 				1 -- Raw (UDR in PDS)
@@ -320,6 +340,7 @@
 			</meta>
 		</events>
 
+		<FEED source="//products#hackProductsData"/>
 	</mixinDef>
 
 	<procDef type="apply" id="populate">
@@ -336,33 +357,48 @@
 				As appropriate, take these from the exoplanet encyclopedia
 				http://exoplanet.eu, the meteor catalog at 
 				http://www.lpi.usra.edu/meteor/, the catalog of stardust
-				samples at http://curator.jsc.nasa.gov/stardust/catalog/"/>
+				samples at http://curator.jsc.nasa.gov/stardust/catalog/" 
+				late="True"/>
 			<par key="time_scale" description="Time scale used for the
 				various times, as given by IVOA's STC data model.  Choose
-				from TT, TDB, TOG, TOB, TAI, UTC, GPS, UNKNOWN">"UNKNOWN"</par>
+				from TT, TDB, TOG, TOB, TAI, UTC, GPS, UNKNOWN" 
+				late="True">"UNKNOWN"</par>
 			<par key="spatial_frame_type" description="Flavor of the
 				coordinate system (this also fixes the meanings of c1, c2, and
 				c3).  Values defined by EPN-TAP include celestial, body,
-				cartesian, cylindrical, and spherical."/>
-			<par key="instrument_host" description="Name of the observatory
+				cartesian, cylindrical, and spherical." late="True"/>
+			<par key="instrument_host_name" description="Name of the observatory
 				or spacecraft that the observation originated from; for
 				ground-based data, use IAU observatory codes, 
 				http://www.minorplanetcenter.net/iau/lists/ObsCodesF.html,
 				for space-borne instruments use
-				http://nssdc.gsfc.nasa.gov/nmc/"/>
+				http://nssdc.gsfc.nasa.gov/nmc/" late="True"/>
 			<par key="instrument_name" description="Service providers are
 				invited to include multiple values for instrumentname, e.g.,
 				complete name + usual acronym. This will allow queries on either
 				'VISIBLE AND INFRARED THERMAL IMAGING SPECTROMETER' or VIRTIS to
-				produce the same reply.">None</par>
+				produce the same reply." late="True">None</par>
 			<par key="access_format" description="The standard text proposes
 				the standard names VOTable, Fits, CSV, ASCII, PDS, as well as
-				image formats."/>
+				image formats." late="True"/>
 			<par key="target_region" description="This is a complement to the
 				target name to identify a substructure of the target that was
 				being observed (e.g., Atmosphere, Surface).  Take terms from
 				them Spase dictionary at http://www.spase-group.org or the
-				IVOA thesaurus.">None</par>
+				IVOA thesaurus." late="True">None</par>
+			<par key="processing_level" description="How processed is the
+				data?  This is a numerical code explained in the corresponding
+				table footnote.  In short: 1 -- Raw; 2 -- Edited; 3 -- Calibrated;
+				4 -- Resampled; 5 -- Derived; 6 -- Ancillary" late="True"/>
+			<par key="target_class" description="The type of the target;
+				choose from asteroid, dwarf_planet, planet, satellite, comet, 
+				exoplanet, interplanetary_medium, ring, sample, sky, spacecraft, 
+				spacejunk, star" late="True">"UNKNOWN"</par>
+
+			<!-- Note: only late parameters allowed in here.  Also, don't
+			define anything here unless you have to; we pick up the
+			columns from the mixin's stream automatically. -->
+
 			<!-- if you add more manual parameters, make sure you list them
 			in overridden below -->
 
@@ -371,8 +407,11 @@
 					# overridden is a set of column names for which the parameters
 					# are manually defined above
 					overridden = set(["target_name", "time_scale",
-						"spatial_frame_type", "instrument_host", "instrument_name",
-						"access_format", "target_region"])
+						"spatial_frame_type", "instrument_host_name", "instrument_name",
+						"access_format", "target_region", "processing_level",
+						"target_class",
+						# the following are set via products#define
+						"access_estsize", "access_url", "accref"])
 
 					mixin = context.getById("table")
 					colDict = {}
@@ -381,21 +420,37 @@
 							colDict[name] = content
 						elif type=="end":
 							if name=="column":
-								yield colDict
+								if colDict.get("name") not in overridden:
+									yield colDict
 								colDict = {}
 				</codeItems>
 				<events>
-					<par key="\name" description="\description">None</par>
+					<par key="\name" description="\description"
+						late="True">None</par>
 				</events>
 			</LOOP>
+			<code>
+				# find myself to get the list of my parameters
+				for app in parent.apps:
+					if app.procDef and app.procDef.id=='populate':
+						break
+				else:
+					raise base.Error("Internal: epntap#populate cannot find itself")
+
+				EPNTAP_KEYS = [p.key for p in app.procDef.setups[0].pars]
+				del app
+				del p
+			</code>
 		</setup>
+		<code>
+			l = locals()
+			for key in EPNTAP_KEYS:
+				vars[key] = l[key]
+			
+			# map things from products#define
+			vars["access_estsize"] = vars["prodtblFsize"]/1024
+			vars["access_url"] = makeProductLink(vars["prodtblAccref"])
+			vars["accref"] = vars["prodtblAccref"]
+		</code>
 	</procDef>
-
 </resource>
-
-<!--
-
-To resolve:
-
-Slip in cX units and spectral range utypes via mixin parameters?
--->

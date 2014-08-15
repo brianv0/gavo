@@ -58,7 +58,7 @@ machinery -->
 	</data>
 
 	<rowmaker id="productsMaker">
-		<!-- the row make for the products table itself -->
+		<!-- the row maker for the products table itself -->
 		<map dest="accref" src="prodtblAccref"/>
 		<map dest="owner" src="prodtblOwner"/>
 		<map dest="embargo" src="prodtblEmbargo"/>
@@ -154,6 +154,7 @@ machinery -->
 	</procDef>
 
 	<STREAM id="prodcolMaps">
+		<!-- this was an idiotic thing to do.  Can I get rid of it again? -->
 		<doc>
 			Fragment for mapping the result of the define proc into a user table;
 			this is replayed into every rowmaker making a table mixing in
@@ -217,13 +218,20 @@ machinery -->
 								table=prodRD.getTableDefById("products"),
 								rowmaker=prodRD.getById("productsMaker"),
 								role="products"))
+
 							# ...add some rules to ensure prodcut table cleanup,
 							# and add mappings for the embedding table.
 							for make in dd.makes:
 								if make.table.id==substrate.id:
-									base.feedTo(make.rowmaker,
-										prodRD.getById("prodcolMaps").getEventSource(), context,
-										True)
+									# it was stupid to hack the host rowmaker from the mixin.
+									# I need some exit strategy here.
+									# Meanwhile: we're suppressing the hack if it'd fail
+									# anyway.
+									if "owner" in make.table.columns.nameIndex:
+										base.feedTo(make.rowmaker,
+											prodRD.getById("prodcolMaps").getEventSource(), context,
+											True)
+
 									base.feedTo(make,
 										prodRD.getById("hostTableMakerItems").getEventSource(), 
 										context, True)

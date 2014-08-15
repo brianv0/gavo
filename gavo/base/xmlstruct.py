@@ -188,7 +188,6 @@ def feedTo(rootStruct, eventSource, context, feedInto=False):
 				and getattr(ex, "pos", None) is None):
 			# only add pos when the message string does not already have it.
 			ex.pos = eventSource.pos
-			ex.posInMsg = True
 		raise
 	return evProc.result
 

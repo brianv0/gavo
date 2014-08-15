@@ -17,6 +17,22 @@ should look if you just want to use this.</meta>
 </procDef>
 
 
+<procDef type="apply" id="debug">
+	<doc>
+		Give a python debugger prompt.
+
+		This drops you in the python debugger.  See vars for what's coming
+		from the grammar, result for what's been mapped at this point.
+
+		Type cont to continue.
+	</doc>
+	<code>
+		import pdb; pdb.set_trace()
+	</code>
+</procDef>
+
+
+
 <procDef type="apply" id="simpleSelect">
 	<doc>
 		Fill variables from a simple  database query.

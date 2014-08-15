@@ -25,6 +25,7 @@ from gavo.grammars import columngrammar
 from gavo.grammars import common
 from gavo.grammars import directgrammar
 from gavo.grammars import fitsprodgrammar
+from gavo.grammars import pdsgrammar
 from gavo.grammars import regrammar
 from gavo.helpers import testtricks
 
@@ -638,7 +639,23 @@ class FITSDirectGrammarTest(testhelpers.VerboseTest):
 
 	def testUnknownNULL(self):
 		self.assertEqual(self.imped[0][0]["artificial"], None)
-			
+
+
+class PDSGrammarTest(testhelpers.VerboseTest):
+	def testLabelTypes(self):
+		grammar = base.parseFromString(pdsgrammar.PDSGrammar, "<pdsGrammar/>")
+		try:
+			recs = list(grammar.parse(StringIO(
+				'PDS_VERSION_ID = PDS3\r\nLABEL_REVISION_NOTE = '
+				'"SE-MTC,09/07/2010"\r\n\r\n /* File format and length */'
+				'\r\nPRODUCT_ID = "S1_00237390711"\r\nORIGINAL_PRODUCT_ID ='
+				' "PSA7AD50"\r\nEND\r\n')))
+		except base.ReportableError:
+			# PyPDS probably missing, skip this test
+			return
+
+		self.assertEqual(len(recs), 1)
+		self.assertEqual(recs[0]["PRODUCT_ID"], '"S1_00237390711"')
 
 
 if __name__=="__main__":

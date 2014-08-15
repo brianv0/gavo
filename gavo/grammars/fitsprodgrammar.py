@@ -106,7 +106,7 @@ class FITSProdGrammar(Grammar):
 		default=40, copyable=True, description="Stop looking for"
 		" FITS END cards and raise an error after this many blocks."
 		" You may need to raise this for people dumping obscene amounts"
-		" of data of history into headers.")
+		" of data or history into headers.")
 
 	rowIterator = FITSProdIterator
 
