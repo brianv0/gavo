@@ -429,6 +429,11 @@ class ColCodeGenerator(_LineBasedCodeGenerator):
 			func = "parseWhatever"
 		return ["%s(inputLine, F(%s), start, len);"%(func, getNameForItem(item))]
 
+	def getPrototype(self):
+		"""returns the prototype of the getTuple function.
+		"""
+		return "Field *getTuple(char *inputLine, int recNo)"
+
 
 class SplitCodeGenerator(_LineBasedCodeGenerator):
 	"""a code generator for parsing files with lineas and separators.

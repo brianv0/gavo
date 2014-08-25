@@ -1437,7 +1437,7 @@ If you still run SOAP services, here's one way to test them::
     </regTest>
 
 – here, ``res/soapRequest.regtest`` would contain the request body that
-you could, for example, snarf from a tcpdump log.
+you could, for example, extract from a tcpdump log.
 
 .. _regSuite: #element-regsuite
 .. _regTest: #element-regtest

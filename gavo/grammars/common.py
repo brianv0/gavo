@@ -312,6 +312,11 @@ class RowIterator(object):
 		self.sourceRow = sourceRow
 		self.recNo = 0
 
+	@property
+	def recordNumber(self):
+		# compatibility alias
+		return self.recNo
+
 	def __iter__(self):
 		if self.notify:
 			base.ui.notifyNewSource(self.sourceToken)

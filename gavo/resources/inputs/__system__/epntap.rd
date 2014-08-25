@@ -8,12 +8,14 @@
 		</doc>
 		<column name="\basename\+_min"
 			ucd="\baseucd;stat.min" unit="\unit"
-			description="\basedescr, lower limit.">
+			description="\basedescr, lower limit."
+			utype="\baseutype\+_min">
 			<property key="std">1</property>
 		</column>
 		<column name="\basename\+_max"
 			ucd="\baseucd;stat.max" unit="\unit"
-			description="\basedescr, upper limit">
+			description="\basedescr, upper limit"
+			utype="\baseutype\+_max">
 			<property key="std">1</property>
 		</column>
 	</STREAM>
@@ -49,19 +51,32 @@
 			axis; this must be one of em.freq (for electromagnetic
 			radiation) or phys.energy;phys.part (for particles)"
 			>em.freq</mixinPar>
+		<mixinPar key="processing_level" description="How processed is the
+			data?  This is a numerical code explained in the corresponding
+			table footnote.  In short: 1 -- Raw; 2 -- Edited; 3 -- Calibrated;
+			4 -- Resampled; 5 -- Derived; 6 -- Ancillary"/>
+
 		<events>
 			<adql>True</adql>
 			<onDisk>True</onDisk>
 
 			<meta name="info" infoName="SERVICE_PROTOCOL" 
-				infoValue="0.26">EPN-TAP</meta>
+				infoValue="0.37">EPN-TAP</meta>
 
+			<column name="index_" type="bigint" required="True"
+				ucd="meta.id"
+				description="Numeric identifier (like a record number) of this
+				row.">
+				<property key="std">1</property>
+			</column>
+				
 			<column name="accref" original="//products#products.accref"/>
 
 			<column name="resource_type" type="text" 
 				utype="Epn.ResourceType" ucd="meta.id;class" 
-				description="This can be 'granule' the smallest element reachable
-					in a service (e.g., a file), or 'dataset', which is an aggregate
+				description="'granule' if the row describes a smallest 
+					element reachable
+					in a service (e.g., a file), or 'dataset' for an aggregate
 					of granules.">
 				<property key="std">1</property>
 				<values>
@@ -77,18 +92,24 @@
 				note="et_prod">
 				<property key="std">1</property>
 				<values>
-					<option>image</option>
-					<option>spectrum</option>
-					<option>dynamic_spectrum</option>
-					<option>spectral_cube</option>
-					<option>profile</option>
-					<option>volume</option>
-					<option>movie</option>
-					<option>cube</option>
-					<option>time_series</option>
-					<option>catalog</option>
-					<option>spatial_vector</option>
+					<option>im</option>
+					<option>sp</option>
+					<option>ds</option>
+					<option>sc</option>
+					<option>pr</option>
+					<option>vo</option>
+					<option>mo</option>
+					<option>cu</option>
+					<option>ts</option>
+					<option>ca</option>
+					<option>sv</option>
 				</values>
+			</column>
+
+			<column name="dataset_id" type="text"
+				ucd="meta.id;meta.dataset"
+				description="An identifier for the dataset this granule belongs to.">
+				<property key="std">1</property>
 			</column>
 
 			<column name="target_name"	type="text" 
@@ -136,48 +157,59 @@
 			<FEED source="_minmax"
 				basename="t_sampling_step"
 				baseucd="time.interval" unit="s"
+				baseutype="Epn.Time.Time_sampling_step"
 				basedescr="Sampling time for measurements of dynamical
 					phenomena"/>
 			<FEED source="_minmax"
 				basename="t_exp"
 				baseucd="time.duration;obs.exposure" unit="s"
+				baseutype="Epn.Time.Time_exp"
 				basedescr="Integration time of the measurement"/>
 			<FEED source="_minmax"
 				basename="spectral_range"
 				baseucd="\spectralUCD" unit="Hz"
+				baseutype="Epn.Spectral.Spectral_range"
 				basedescr="Spectral domain of the data"/>
 			<FEED source="_minmax"
 				basename="sampling_step"
 				baseucd="spect" unit="Hz"
+				baseutype="Epn.Spectral.Spectral_sampling_step"
 				basedescr="Separation between the centers of two adjacent
 					filters or channels"/>
 			<FEED source="_minmax"
 				basename="spectral_resolution"
 				baseucd="spec.resolution" unit="Hz"
+				baseutype="Epn.Spectral.Spectral_resolution"
 				basedescr="FWHM of the instrument profile"/>
 			<FEED source="_minmax"
 				basename="c1"
 				baseucd="obs.field" unit="\c1unit"
+				baseutype="Epn.Spatial.Spatial_range.c1"
 				basedescr="First coordinate (e.g., longitude, 'x')"/>
 			<FEED source="_minmax"
 				basename="c2"
 				baseucd="obs.field" unit="\c2unit"
+				baseutype="Epn.Spatial.Spatial_range.c2"
 				basedescr="Second coordinate (e.g., latitude, 'y')"/>
 			<FEED source="_minmax"
 				basename="c3"
 				baseucd="obs.field" unit="\c3unit"
+				baseutype="Epn.Spatial.Spatial_range.c3"
 				basedescr="Third coordinate (e.g., height, 'z')"/>
 			<FEED source="_minmax"
 				basename="c1_resol"
 				baseucd="pos.resolution" unit="\c1unit"
+				baseutype="Epn.Spatial.Spatial_resolution.c1_resol"
 				basedescr="Resolution in the first coordinate"/>
 			<FEED source="_minmax"
 				basename="c2_resol"
 				baseucd="pos.resolution" unit="\c2unit"
+				baseutype="Epn.Spatial.Spatial_resolution.c2_resol"
 				basedescr="Resolution in the second coordinate"/>
 			<FEED source="_minmax"
 				basename="c3_resol"
 				baseucd="pos.resolution" unit="\c3unit"
+				baseutype="Epn.Spatial.Spatial_resolution.c3_resol"
 				basedescr="Resolution in the third coordinate"/>
 
 			<column name="spatial_frame_type"	type="text" 
@@ -188,15 +220,18 @@
 			<FEED source="_minmax"
 				basename="incidence"
 				baseucd="pos.incidenceAng" unit="deg"
+				baseutype="Epn.View_angle.Incidence_angle"
 				basedescr="Incidence angle (solar zenithal angle) during
 					data acquisition"/>
 			<FEED source="_minmax"
 				basename="emergence"
 				baseucd="pos.emergenceAng" unit="deg"
+				baseutype="Epn.View_angle.Emergence_angle"
 				basedescr="Emergence angle during data acquisition"/>
 			<FEED source="_minmax"
 				basename="phase"
 				baseucd="pos.posang" unit="deg"
+				baseutype="Epn.View_angle.Phase_angle"
 				basedescr="Phase angle during data acquisition"/>
 
 			<column name="instrument_host_name"	type="text" 
@@ -214,7 +249,15 @@
 			</column>
 			<column name="measurement_type"	type="text" 
 				ucd="meta.ucd" 
-				description="UCD(s) defining the data">
+				utype="Epn.Measurement_type"
+				description="UCD(s) defining the data, with multiple entries
+					separated by space characters.">
+				<property key="std">1</property>
+			</column>
+
+			<column name="reference"	type="text" 
+				ucd="meta.bib" 
+				description="A bibcode or URL of a publication about the data.">
 				<property key="std">1</property>
 			</column>
 
@@ -222,11 +265,6 @@
 				ucd="meta.ref" 
 				description="A short string identifying the entity running
 					the data service used.">
-				<property key="std">1</property>
-			</column>
-			<column name="reference"	type="text" 
-				ucd="meta.bib" 
-				description="A bibcode or URL of a publication about the data.">
 				<property key="std">1</property>
 			</column>
 			<column name="service_title"	type="text" 
@@ -238,13 +276,6 @@
 				ucd="meta.id"
 				description="Identifier of the collection this piece of data
 					belongs to">
-				<property key="std">1</property>
-			</column>
-			<column name="processing_level"	type="integer" required="True"
-				utype="PSR:processingLevel"
-				ucd="meta.class.qual" 
-				description="Calibration level with coded according to CODMAC."
-				note="et_cal">
 				<property key="std">1</property>
 			</column>
 
@@ -266,17 +297,26 @@
 				<property key="std">1</property>
 				<values nullLiteral="-1"/>
 			</column>
-
-			<!-- todo: 5.1.5 left out; seems a bit unfinished in 0.26 -->
+			<column name="preview_url" type="text" 
+				ucd="meta.ref.url"
+				description="URL to retrieve a preview of the data"
+				displayHint="type=url">
+				<property key="std">1</property>
+			</column>
 
 			<column name="target_region"	type="text" 
-				ucd="meta.id;class" 
+				ucd="src.class" 
 				description="The part of the target object that was being observed">
 				<property key="std">1</property>
 			</column>
 
-			<!-- todo: 5.1.7, 5.1.8 - what are the column names there? 
-			  UCDs?  utypes? -->
+
+			<param name="processing_level" type="integer"
+				utype="PSR:processingLevel"
+				ucd="meta.class.qual" 
+				description="Calibration level with coded according to CODMAC."
+				note="et_cal">
+				<property key="std">1</property>\processing_level</param>
 
 			<meta name="note" tag="et_prod">
 				The following values are defined for this field:
@@ -352,6 +392,16 @@
 		</doc>
 
 		<setup>
+			<par key="index_" description="A numeric reference for the
+				item.  By default, this is just the row number.  As this will
+				(usually) change when new data is added, you should override it
+				with some unique integer number specific to the data product 
+				when there is such a thing." late="True">\rowsProcessed</par>
+			<par key="dataset_id" description="Unless you understand the
+				implications, leave this at the default.  In particular, note
+				that this is *not* a dataset id in the VO sense, so this should
+				normally not be whatever standardPubDID generates."
+				late="True">"1"</par>
 			<par key="target_name" description="Name of the target object,
 				preferably according to the official IAU nomenclature.
 				As appropriate, take these from the exoplanet encyclopedia
@@ -366,7 +416,7 @@
 			<par key="spatial_frame_type" description="Flavor of the
 				coordinate system (this also fixes the meanings of c1, c2, and
 				c3).  Values defined by EPN-TAP include celestial, body,
-				cartesian, cylindrical, and spherical." late="True"/>
+				cartesian, cylindrical, spherical, healpix." late="True"/>
 			<par key="instrument_host_name" description="Name of the observatory
 				or spacecraft that the observation originated from; for
 				ground-based data, use IAU observatory codes, 
@@ -386,10 +436,6 @@
 				being observed (e.g., Atmosphere, Surface).  Take terms from
 				them Spase dictionary at http://www.spase-group.org or the
 				IVOA thesaurus." late="True">None</par>
-			<par key="processing_level" description="How processed is the
-				data?  This is a numerical code explained in the corresponding
-				table footnote.  In short: 1 -- Raw; 2 -- Edited; 3 -- Calibrated;
-				4 -- Resampled; 5 -- Derived; 6 -- Ancillary" late="True"/>
 			<par key="target_class" description="The type of the target;
 				choose from asteroid, dwarf_planet, planet, satellite, comet, 
 				exoplanet, interplanetary_medium, ring, sample, sky, spacecraft, 
@@ -409,9 +455,10 @@
 					overridden = set(["target_name", "time_scale",
 						"spatial_frame_type", "instrument_host_name", "instrument_name",
 						"access_format", "target_region", "processing_level",
-						"target_class",
+						"target_class", "index_", "dataset_id", 
 						# the following are set via products#define
-						"access_estsize", "access_url", "accref"])
+						"access_estsize", "access_url", "accref",
+						"preview_url",])
 
 					mixin = context.getById("table")
 					colDict = {}
@@ -450,6 +497,8 @@
 			# map things from products#define
 			vars["access_estsize"] = vars["prodtblFsize"]/1024
 			vars["access_url"] = makeProductLink(vars["prodtblAccref"])
+			if @prodtblPreview:
+				vars["preview_url"] = vars["access_url"]+"?preview=True"
 			vars["accref"] = vars["prodtblAccref"]
 		</code>
 	</procDef>

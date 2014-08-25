@@ -249,7 +249,7 @@ class RowmakerMacroMixin(base.StandardMacroMixin):
 		"""returns an expression giving the number of records already 
 		ingested for this source.
 		"""
-		return 'vars["parser_"].recordNumber'
+		return 'vars["parser_"].recNo'
 
 	def macro_property(self, property):
 		"""returns an expression giving the property on the current DD.

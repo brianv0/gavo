@@ -20,10 +20,8 @@ class FITSTableIterator(common.RowIterator):
 		hdus = pyfits.open(self.sourceToken)
 		fitsTable = hdus[self.grammar.hdu].data
 		names = [n for n in fitsTable.dtype.names]
-		self.recordNumber = 0
 		for row in fitsTable:
 			res = dict(zip(names, row))
-			self.recordNumber += 1
 			yield res
 
 
