@@ -24,8 +24,6 @@ from gavo.base import sqlsupport
 from gavo.svcs import core
 from gavo.svcs import inputdef
 from gavo.svcs import outputdef
-from gavo.svcs import pql
-from gavo.svcs import vizierexprs
 
 
 class Error(base.Error):
@@ -33,20 +31,6 @@ class Error(base.Error):
 
 
 MS = base.makeStruct
-
-
-_RENDERER_ADAPTORS = {
-	'form': vizierexprs.adaptInputKey,
-	'pql': pql.adaptInputKey,
-}
-
-def getRendererAdaptor(renderer):
-	"""returns a function that returns input keys adapted for renderer.
-
-	The function returns None if no adapter is necessary.  This
-	only takes place for inputKeys within a buildFrom condDesc.
-	"""
-	return _RENDERER_ADAPTORS.get(renderer.parameterStyle)
 
 
 class PhraseMaker(rscdef.ProcApp):
@@ -280,7 +264,7 @@ class CondDesc(base.Structure):
 		"""
 		if not self.buildFrom:
 			return self
-		adaptor = getRendererAdaptor(renderer)
+		adaptor = inputdef.getRendererAdaptor(renderer)
 		if adaptor is None:
 			return self
 

@@ -21,8 +21,25 @@ from gavo import grammars
 from gavo import rscdef
 from gavo import utils
 from gavo.rscdef import column
+from gavo.svcs import pql
+from gavo.svcs import vizierexprs
 
 MS = base.makeStruct
+
+
+_RENDERER_ADAPTORS = {
+	'form': vizierexprs.adaptInputKey,
+	'pql': pql.adaptInputKey,
+}
+
+def getRendererAdaptor(renderer):
+	"""returns a function that returns input keys adapted for renderer.
+
+	The function returns None if no adapter is necessary.  This
+	only takes place for inputKeys within a buildFrom condDesc.
+	"""
+	return _RENDERER_ADAPTORS.get(renderer.parameterStyle)
+
 
 
 class InputKey(column.ParamBase):
@@ -44,6 +61,12 @@ class InputKey(column.ParamBase):
 	  (be stingy with those; while it's nice to not have to set things
 	  presumably right for almost everyone, having to delete stuff
 	  you don't want over and over is really annoying).
+	* adaptToRenderer -- any non-empty value here causes the param
+	  to be adapted for the renderer (e.g., float becomes vizierexpr-float).
+		You'll usually not want this, because the expressions are 
+		generally evaluated by the database, and the condDescs do the
+		adaptation themselves.  This is mainly for rare situations like
+		file uploads in custom cores.
 	"""
 	name_ = "inputKey"
 
@@ -156,6 +179,8 @@ class InputTable(rscdef.TableDef):
 		"""
 		newParams, changed = [], False
 		rendName = renderer.name
+		adaptor = getRendererAdaptor(renderer)
+
 		for param in self.params:
 			if param.getProperty("onlyForRenderer", None) is not None:
 				if param.getProperty("onlyForRenderer")!=rendName:
@@ -165,6 +190,10 @@ class InputTable(rscdef.TableDef):
 				if param.getProperty("notForRenderer")==rendName:
 					changed = True
 					continue
+
+			if param.getProperty("adaptToRenderer", None) and adaptor:
+				param = adaptor(param)
+
 			newParams.append(param)
 		if changed:
 			return self.change(params=newParams)
