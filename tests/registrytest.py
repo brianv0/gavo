@@ -745,13 +745,15 @@ class TablePublicationRecordTest(testhelpers.VerboseTest):
 		self.assertEqual(self.tree.xpath("tableset/schema/table/utype")[0].text,
 			"testing.table.name")
 
-	def testTAPCapabilityPresent(self):
+	def _testTAPCapabilityPresent(self):
+# test disabled -- see DataCollection comment in registry.builders
 		self.assertEqual(self.tree.xpath(
 			"capability[@standardID='ivo://ivoa.net/std/TAP']"
 			"/interface[@role='std']/accessURL")[0].text,
 			"http://localhost:8080/__system__/tap/run/tap")
 
-	def testWebCapabilityPresent(self):
+	def _testWebCapabilityPresent(self):
+# test disabled -- see DataCollection comment in registry.builders
 		self.assertEqual(self.tree.xpath(
 			"//accessURL[.='http://localhost:8080/data/pubtest/moribund/form']")[0].
 			get("use"), "full")
@@ -805,9 +807,10 @@ class DataGetRecordTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 	def testType(self):
 		self.assertEqual(self.srcAndTree[1].xpath("//Resource")[0].get(
 			"{http://www.w3.org/2001/XMLSchema-instance}type"),
-			"vs:CatalogService")
+			"vs:DataCollection")
 
-	def testAutoTAPCapabilityPresent(self):
+	def _testAutoTAPCapabilityPresent(self):
+# test disabled -- see DataCollection comment in registry.builders
 		self.assertEqual(self.srcAndTree[1].xpath(
 			"//capability[@standardID='ivo://ivoa.net/std/TAP']"
 			"/interface[@role='std']/accessURL")[0].text,

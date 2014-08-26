@@ -334,7 +334,7 @@ class TAPCapabilityMaker(CapabilityMaker):
 
 	def _makeCapability(self, publication):
 		res = CapabilityMaker._makeCapability(self, publication)
-		
+	
 		with base.getTableConn() as conn:
 			from gavo.protocols import tap
 			from gavo.adql import ufunctions

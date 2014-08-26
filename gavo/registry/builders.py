@@ -19,6 +19,14 @@ using resob.resType as a fallback.
 #c COPYING file in the source distribution.
 
 
+# DataCollection mess: In rev 3769, we experimentally pushed out
+# DataService records instead of DataCollections, trying to have
+# capabilities for them.  That didn't turn out well even though
+# we didn't do that for SIA and frieds: All-VO discovery of a 
+# given service type is a very typcial use case.  So, we backed
+# that out again in rev. 3883, though the support code remains.
+# There's consulatations on how to do something like that going on.
+
 from gavo import base
 from gavo import svcs
 from gavo import stc
@@ -474,19 +482,14 @@ class DeletedResourceMaker(ResourceMaker):
 _dataMetaBuilder = meta.ModelBasedBuilder([
 	('rights', SF(VOR.rights)),
 	# format is a mime type if we're registering a single piece of data
-# (which we don't do any more as we now push out CatalogServices
-# rather than DataCollections for data collections -- that's the
-# have-capabilities-within-the-record thing.
-#	('format', SF(VS.format)),  
+	('format', SF(VS.format)),  
 ])
 
 
 class DataCollectionResourceMaker(ResourceMaker):
 	"""A base class for Table- and DataResourceMaker.
 	"""
-	# We don't use CatalogService any more as we want capabilities
-	# and DataService doesn't allow them (yet).
-	resourceClass = VS.CatalogService
+	resourceClass = VS.DataCollection
 
 	def _makeTableset(self, schemas):
 		return tableset.getTablesetForSchemaCollection(schemas)
@@ -502,6 +505,9 @@ class DataCollectionResourceMaker(ResourceMaker):
 		bringing together VOSI and main services, for S*AP, we don't want
 		to poison all-VO-discovery.
 		"""
+# See comment on DataCollections at the top.
+		return
+
 		if metaCarrier.registration is None:
 			return
 
@@ -553,7 +559,6 @@ class DataResourceMaker(DataCollectionResourceMaker):
 	"""A ResourceMaker for rscdef.DataDescriptor items (yielding reformed
 	DataCollections)
 	"""
-	resourceClass = VS.CatalogService
 	resType = "data"
 
 	def _makeResource(self, dd, setNames):
