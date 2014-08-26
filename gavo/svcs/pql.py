@@ -685,37 +685,8 @@ class ToPQLTypeConverter(typesystems.FromSQLConverter):
 		if sqlType=="varchar":
 			return "pql-string"
 
+
 getPQLTypeFor = ToPQLTypeConverter().convert
-
-
-def getUploadKeyFor(inputKey):
-	"""returns an input key for file items in "PQL".
-
-	This is actually specified by DALI.  In that scheme, the parameter
-	is always called UPLOAD (there can thus only be one such parameter,
-	but it can be present multiple times if necessary, except we've
-	not figured out how to do the description right in that case).
-
-	It contains a comma-separated pair of (key,source) pairs, where
-	source is a URL; there's a special scheme param: for referring to 
-	inline uploads by their name.
-
-	Upload input keys never produce SQL.  Instead, the produce a 
-	(key,[file,...]) pair in the arguments, where file is an instance
-	of UploadFile (with type, file, and filename attributes).
-	"""
-	return inputKey.change(
-		name="UPLOAD",
-		type="pql-upload",
-		description="An upload of the form '%s,URL'; the input for this"
-			" parameter is then taken from URL, which may be param:name"
-			" for pulling the content from the inline upload name.  Purpose"
-			" of the upload: %s"%(inputKey.name, inputKey.description),
-		values=None)
-
-
-# pql-uploads never contribute to SQL queries
-sqlmunge.registerSQLFactory("pql-upload", lambda field, val, sqlPars: None)
 
 
 def adaptInputKey(inputKey):
@@ -724,10 +695,6 @@ def adaptInputKey(inputKey):
 	This is used for buildFrom on CondDescs and renderers having
 	parameterStyle pql.
 	"""
-	# uploads need a dramatic change
-	if inputKey.type=="file":
-		return getUploadKeyFor(inputKey)
-
 	try:
 		return inputKey.change(
 			type=getPQLTypeFor(inputKey.type),

@@ -20,6 +20,7 @@ from gavo import base
 from gavo import grammars
 from gavo import rscdef
 from gavo import utils
+from gavo.protocols import dali
 from gavo.rscdef import column
 from gavo.svcs import pql
 from gavo.svcs import vizierexprs
@@ -39,7 +40,6 @@ def getRendererAdaptor(renderer):
 	only takes place for inputKeys within a buildFrom condDesc.
 	"""
 	return _RENDERER_ADAPTORS.get(renderer.parameterStyle)
-
 
 
 class InputKey(column.ParamBase):
@@ -192,6 +192,7 @@ class InputTable(rscdef.TableDef):
 					continue
 
 			if param.getProperty("adaptToRenderer", None) and adaptor:
+				changed = True
 				param = adaptor(param)
 
 			newParams.append(param)
@@ -210,6 +211,8 @@ class ContextRowIterator(grammars.RowIterator):
 			**kwargs)
 
 	def _completeRow(self, rawRow):
+		dali.mangleUploads(rawRow)
+
 		caseNormalized = dict((k.lower(),v) for k, v in rawRow.iteritems())
 		procRow = {}
 

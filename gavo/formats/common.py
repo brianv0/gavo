@@ -16,11 +16,10 @@ instance.
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
 
-
+import cgi
 from cStringIO import StringIO
 
 from gavo import base
-from gavo.imp import httpheader
 
 
 PRESERVED_MIMES = set([ # TAP Spec, 2.7.1, similar in DALI
@@ -45,7 +44,7 @@ class CannotSerializeIn(base.Error):
 		return "Cannot serialize in '%s'."%self.format
 
 
-def getMimeKey(contentType):
+def getMIMEKey(contentType):
 	"""makes a DaCHS mime key from a content-type string.
 
 	This is used for retrieving matching mime types and is a triple
@@ -53,9 +52,13 @@ def getMimeKey(contentType):
 
 	contentType is a string-serialized mime type.
 	"""
-	parsedMime = httpheader.content_type(contentType)
-	return (parsedMime.major, parsedMime.minor, 
-			frozenset(parsedMime.parmdict.iteritems()))
+	media_type, paramdict = cgi.parse_header(contentType)
+	try:
+		major, minor = media_type.split("/")
+	except (ValueError, TypeError):
+		raise CannotSerializeIn(contentType)
+	return (major, minor, 
+			frozenset(paramdict.iteritems()))
 
 
 class FORMATS_REGISTRY(object):
@@ -80,9 +83,9 @@ class FORMATS_REGISTRY(object):
 		cls.formatToMIME[key] = mainMime
 		cls.formatToLabel[key] = label
 
-		cls.mimeToKey[getMimeKey(mainMime)] = key
+		cls.mimeToKey[getMIMEKey(mainMime)] = key
 		for mime in aliases:
-			cls.mimeToKey[getMimeKey(mime)] = key
+			cls.mimeToKey[getMIMEKey(mime)] = key
 
 	@classmethod
 	def getMIMEFor(cls, formatName, orderedFormat=None):
@@ -133,11 +136,7 @@ class FORMATS_REGISTRY(object):
 		if formatName in cls.writerRegistry:
 			return formatName
 
-		try:
-			parsed = getMimeKey(formatName)
-		except httpheader.ParseError:
-			raise CannotSerializeIn(formatName)
-
+		parsed = getMIMEKey(formatName)
 		if parsed in cls.mimeToKey:
 			return cls.mimeToKey[parsed]
 		parsed = (parsed[0], parsed[1], frozenset())

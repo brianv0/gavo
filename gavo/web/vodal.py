@@ -25,6 +25,7 @@ from gavo import rsc
 from gavo import svcs
 from gavo import utils
 from gavo import votable
+from gavo.protocols import dali
 from gavo.svcs import streaming
 from gavo.votable import V
 from gavo.web import common
@@ -87,9 +88,12 @@ class DALRenderer(grend.ServiceBasedPage):
 		"""returns a SIAP-style metadata data item.
 		"""
 		# XXX TODO: build VOTable directly (rather than from data)
-		inputFields = [
-			svcs.InputKey.fromColumn(f, name=utils.QuotedName("INPUT:"+f.name))
-			for f in self.service.getInputKeysFor(self)]
+		inputFields = []
+		for param in self.service.getInputKeysFor(self):
+			if param.type=="file":
+				inputFields.append(dali.getUploadKeyFor(param))
+			else:
+				inputFields.append(param.change(name="INPUT:"+param.name))
 		inputTable = MS(rscdef.TableDef, columns=inputFields)
 		outputTable = MS(rscdef.TableDef, columns=
 			self.service.getCurOutputFields(queryMeta), id="result")
@@ -121,6 +125,7 @@ class DALRenderer(grend.ServiceBasedPage):
 			)+votLit[splitPos:]
 
 	def _runService(self, ctx, queryMeta):
+		dali.mangleUploads(self.reqArgs)
 		return self.runService(inevow.IRequest(ctx).args, queryMeta
 			).addCallback(self._formatOutput, ctx)
 

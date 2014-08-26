@@ -13,11 +13,14 @@ doing regular work.  testtricks is the module for that kind for stuff.
 
 from __future__ import with_statement
 
+import BaseHTTPServer
+import contextlib
 import gc
 import os
 import re
 import subprocess
 import sys
+import threading
 import traceback
 import unittest
 import warnings
@@ -462,7 +465,49 @@ def trialMain(testClass):
 		config.parseOptions()
 		suite = script._getSuite(config)
 	trialRunner.run(suite)
+
+
+def getServerInThread(data, onlyOnce=False):
+	"""runs a server in a thread and returns  thread and base url.
+
+	onlyOnce will configure the server such that it destroys itself
+	after having handled one request.  The thread would still need
+	to be joined.
+
+	So, better use the DataServer context manager.
+	"""
+	class Handler(BaseHTTPServer.BaseHTTPRequestHandler):
+		def do_GET(self):
+			self.wfile.write(data)
+		do_POST = do_GET
 	
+	port = 34000
+	httpd = BaseHTTPServer.HTTPServer(('', port), Handler)
+
+	if onlyOnce:
+		serve = httpd.handle_request
+	else:
+		serve = httpd.serve_forever
+
+	t = threading.Thread(target=serve)
+	t.setDaemon(True)
+	t.start()
+	return httpd, t, "http://localhost:%s"%port
+
+
+@contextlib.contextmanager
+def DataServer(data):
+	"""a context manager for briefly running a web server returning data.
+
+	This yields the base URL the server is listening on.
+	"""
+	httpd, t, baseURL = getServerInThread(data)
+
+	yield baseURL
+
+	httpd.shutdown()
+	t.join(10)
+
 
 def main(testClass, methodPrefix=None):
 	from gavo import base

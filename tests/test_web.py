@@ -8,6 +8,7 @@ Tests for various parts of the server infrastructure, using trial.
 #c COPYING file in the source distribution.
 
 
+from cStringIO import StringIO
 import atexit
 import os
 
@@ -19,9 +20,9 @@ from gavo import svcs
 from gavo import utils
 from gavo.imp import formal
 
-#base.DEBUG = True
-#from gavo.user.logui import LoggingUI
-#LoggingUI(base.ui)
+base.DEBUG = True
+from gavo.user.logui import LoggingUI
+LoggingUI(base.ui)
 
 
 class AdminTest(trialhelpers.ArchiveTest):
@@ -363,6 +364,12 @@ class MetaPagesTest(trialhelpers.ArchiveTest):
 			['<identifier>ivo://x-unregistred/data/pubtest/moribund</identifier>'])
 
 
+class _FakeUpload():
+	value = "abc, die Katze lief im Schnee.\n"
+	file = StringIO(value)
+	filename = "test.txt"
+	
+
 class APIRenderTest(trialhelpers.ArchiveTest):
 	def testResonseKey(self):
 		return self.assertGETHasStrings("/data/cores/scs/api", 
@@ -384,7 +391,38 @@ class APIRenderTest(trialhelpers.ArchiveTest):
 				'name="INPUT:MAXREC"',
 				'<TABLEDATA></TABLEDATA>'])
 
+	def testUploadMetadata(self):
+		return self.assertGETHasStrings("/data/cores/uploadtest/api",
+			{"MAXREC": ["0"]}, [
+				'name="INPUT:UPLOAD"',
+				'ucd="par.upload"',
+				"of the form 'notarbitrary,URL'",
+				"An example upload containing nothing in particular"])
+	
+	def testUploadInlineBadPar(self):
+		return self.assertGETHasStrings("/data/cores/uploadtest/api",
+			{"UPLOAD": ["notarbitrary,param:notexisting"]}, [
+				'value="ERROR"',
+				'Field UPLOAD: param:notexisting references a non-existing parameter.'])
 
+	def testUploadInlineGoodPar(self):
+		return self.assertGETHasStrings("/data/cores/uploadtest/api", {
+			"UPLOAD": ["notarbitrary,param:hello"],
+			"RESPONSEFORMAT": "votabletd",
+			"hello": [_FakeUpload()],
+			}, [
+				'<TR><TD>notarbitrary</TD><TD>abc, die Katze lief im'
+				' Schnee.\n</TD></TR>'])
+
+	def testUploadURL(self):
+		_, _, baseURL = trialhelpers.testhelpers.getServerInThread(
+			"def, ich bin der Chef.\n", onlyOnce=True)
+		return self.assertGETHasStrings("/data/cores/uploadtest/api", {
+			"UPLOAD": ["notarbitrary,%s"%baseURL],
+			"RESPONSEFORMAT": "votabletd",
+			"hello": [_FakeUpload()],
+			}, [
+				'<TR><TD>notarbitrary</TD><TD>def, ich bin der Chef.\n</TD></TR>'])
 
 
 class SCSTest(trialhelpers.ArchiveTest):

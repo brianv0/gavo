@@ -179,12 +179,15 @@
 	</service>
 
 	<service id="uploadtest" allowed="api,form">
-		<nullCore>
+		<debugCore>
 			<inputTable>
-				<inputKey name="nothing" type="file" 
+				<inputKey name="notarbitrary" type="file" 
 					description="An example upload containing nothing in particular" 
-					ucd="par.upload"/>
+					ucd="par.upload">
+					<property name="adaptToRenderer">True</property>
+				</inputKey>
 			</inputTable>
-		</nullCore>
+		</debugCore>
+		<FEED source="//pql#DALIPars"/>
 	</service>
 </resource>

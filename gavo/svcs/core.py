@@ -47,6 +47,7 @@ adaptForRenderer method.
 
 
 from gavo import base
+from gavo import rsc
 from gavo import rscdef
 from gavo import utils
 from gavo.svcs import inputdef
@@ -60,6 +61,7 @@ CORE_REGISTRY = {
 	"customCore": ("svcs.customcore", "CustomCore"),
 	"datalinkCore": ("protocols.datalink", "DatalinkCore"),
 	"dbCore": ("svcs.standardcores", "DBCore"),
+	"debugCore": ("svcs.core", "DebugCore"),
 	"editCore": ("svcs.uploadcores", "EditCore"),
 	"fancyQueryCore": ("svcs.standardcores", "FancyQueryCore"),
 	"fixedQueryCore": ("svcs.standardcores", "FixedQueryCore"),
@@ -148,11 +150,9 @@ class Core(base.Structure):
 
 	def __init__(self, parent, **kwargs):
 		if self.inputTableXML is not None:
-			g = base.parseFromString(inputdef.InputTable, self.inputTableXML)
-			if "inputTable" in kwargs:
-				raise base.StructureError(
-					"Cannot give an inputTable for cores embedding one")
-			kwargs["inputTable"] = g
+			if "inputTable" not in kwargs:
+				kwargs["inputTable"] = base.parseFromString(
+					inputdef.InputTable, self.inputTableXML)
 
 		base.Structure.__init__(self, parent, **kwargs)
 
@@ -185,3 +185,29 @@ class Core(base.Structure):
 	def makeUserDoc(self):
 		return ("Polymorphous core element.  May contain any of the cores"
 			" mentioned in `Cores Available`_ .")
+
+
+class DebugCore(Core):
+	"""a core that returns its arguments stringified in a table.
+
+	You need to provide an external input tables for these.
+	"""
+	name_ = "debugCore"
+
+	outputTableXML = """
+		<outputTable>
+			<outputField name="key" type="text"/>
+			<outputField name="value" type="text"/>
+		</outputTable>"""
+	
+	def run(self, service, inputData, queryMeta):
+		rows = []
+		for par in inputData.iterParams():
+			if hasattr(par.value, "filename"):
+				value = par.value.file.read()
+			else:
+				value = par.value
+			rows.append({"key": par.name, "value": utils.safe_str(value)})
+		return rsc.TableForDef(self.outputTable, rows=rows)
+
+

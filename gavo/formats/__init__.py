@@ -11,4 +11,4 @@ Output formats.
 
 from gavo.formats.common import (formatData, getFormatted, getMIMEFor,
 	registerDataWriter, CannotSerializeIn, iterFormats, getWriterFor,
-	getLabelFor)
+	getLabelFor, getMIMEKey)
