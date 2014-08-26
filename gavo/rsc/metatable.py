@@ -80,7 +80,7 @@ class MetaTableHandler(object):
 			break
 		else:
 			raise base.ui.logOldExc(
-				base.NotFoundError(tableName, "Table", "dc_tables"))
+				base.NotFoundError(tableName, "table", "dc_tables"))
 
 		return base.caches.getRD(row["sourcerd"]
 			).getById(row["tablename"].split(".")[-1])

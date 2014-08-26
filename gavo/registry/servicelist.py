@@ -120,7 +120,7 @@ def getTableDef(tableName):
 		res = list(q.query("SELECT tableName, sourceRD FROM dc.tablemeta WHERE"
 				" LOWER(tableName)=LOWER(%(tableName)s)", {"tableName": tableName}))
 	if len(res)!=1:
-		raise base.NotFoundError(tableName, what="Table",
+		raise base.NotFoundError(tableName, what="table",
 			within="data center table listing.", hint="The table is missing from"
 			" the dc.tablemeta table.  This gets filled at gavoimp time.")
 	tableName, rdId = res[0]

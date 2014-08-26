@@ -177,15 +177,17 @@ def getFieldInfoGetter(accessProfile=None, tdsForUploads=[]):
 	tap_uploadSchema = dict((td.id, td) for td in tdsForUploads)
 	@utils.memoized
 	def getFieldInfos(tableName):
-		if _getSchema(tableName).upper()=="TAP_UPLOAD":
+		td = None
+		if _getSchema(tableName).upper()=="":  
+			# in the public schema, try TAP uploads first
 			try:
 				td = tap_uploadSchema[tableName.name]
 			except KeyError:
-				raise base.ui.logOldExc(adql.TableNotFound(tableName.qName))
-		else:
+				pass # maybe really a table in the public schema.
+
+		if td is None:
 			td = mth.getTableDefForTable(adql.flatten(tableName))
-		res = [(f.name, makeFieldInfo(f)) for f in td]
-		return res
+		return [(f.name, makeFieldInfo(f)) for f in td]
 	return getFieldInfos
 
 

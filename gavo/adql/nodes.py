@@ -420,6 +420,13 @@ class TableName(ADQLNode):
 		return "TableName(%s)"%self.qName
 
 	def _polish(self):
+		# Implementation detail: We map tap_upload to temporary tables
+		# here; therefore, we can just nil out anything called tap_upload.
+		# If we need more flexibility, this probably is the place to implement
+		# the mapping.
+		if self.schema and self.schema.lower()=="tap_upload":
+			self.schema = None
+
 		self.qName = ".".join(flatten(n) 
 			for n in (self.cat, self.schema, self.name) if n) 
 
@@ -816,7 +823,9 @@ class ColumnReference(FieldInfoedNode):
 	def _getInitKWs(cls, _parseResult):
 		names = [_c for _c in _parseResult if _c!="."]
 		names = [None]*(4-len(names))+names
-		refName = TableName(cat=names[0], schema=names[1], name=names[2])
+		refName = TableName(cat=names[0], 
+			schema=names[1], 
+			name=names[2])
 		if not refName:
 			refName = None
 		return {

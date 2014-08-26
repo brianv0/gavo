@@ -127,7 +127,7 @@
 		<regTest title="Table info on non-existing table yields useful error">
 			<url>/tableinfo/thistable.doesnotexist</url>
 			<code>
-				self.assertHasStrings("Table 'thistable.doesnotexist' could not be"
+				self.assertHasStrings("table 'thistable.doesnotexist' could not be"
 					" located in data center table listing.")
 			</code>
 		</regTest>
@@ -152,7 +152,7 @@
 			<url parSet="form" query="select * from dc.users"
 				>/__system__/adql/query/form</url>
 			<code>
-				self.assertHasStrings("Could not locate Table", "Result link")
+				self.assertHasStrings("Could not locate table", "Result link")
 			</code>
 		</regTest>
 

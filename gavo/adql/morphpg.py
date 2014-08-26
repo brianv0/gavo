@@ -38,8 +38,7 @@ class PostgresMorphError(common.MorphError):
 def _flatAndMorph(node):
 # This helper flattens a node after applying standard morphs on it.
 # I need this for the arguments of q3c stuff, since there may
-# be ADQL specifics in there (like, say, TAP_UPLOAD references, or
-# weird functions).
+# be ADQL specifics in there.
 	return nodes.flatten(morphPG(node)[1])
 
 
@@ -297,23 +296,8 @@ def _adqlFunctionToPG(node, state):
 	return node
 
 
-def _removeUploadSchema(node, state):
-	"""removes TAP_UPLOAD schema specs.
-
-	This assumes TAP_UPLOADs are handled via temporary tables.  If that
-	is not true any more, this needs to be exposed to client code.
-
-	node is a TableName.
-	"""
-	if node.schema and node.schema.upper()=="TAP_UPLOAD":
-		return node.name
-	else:
-		return node
-
-
 _miscMorphers = {
 	"numericValueFunction": _adqlFunctionToPG,
-	"tableName": _removeUploadSchema,
 }
 
 def morphMiscFunctions(tree):
