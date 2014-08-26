@@ -15,16 +15,12 @@ class State(object):
 	"""is a scratchpad for morphers to communicate state among
 	themselves.
 
-	In general, add of delete attributes here, since it's just
-	communication between children and ancestors.  
-	
-	We might need stacks at some point, too...
-
-	Right now, we just keep warnings here.  Maybe we should do away
-	with this after all?
+	Append to warnings a necessary.  Also, traverse keeps an attribute
+	nodeStack in here letting elements look up its parent chain.
 	"""
 	def __init__(self):
 		self.warnings = []
+		self.nodeStack = []
 
 
 _BOOLEANIZER_TABLE = {
@@ -164,6 +160,7 @@ class Morpher(object):
 			if res is not None:
 				return res
 
+		state.nodeStack.append(node)
 		changes = []
 		for name, value in node.iterAttributes():
 			changes.extend(self._getChanges(name, value, state))
@@ -171,6 +168,8 @@ class Morpher(object):
 			newNode = node.change(**dict(changes))
 		else:
 			newNode = node
+		popped = state.nodeStack.pop()
+		assert popped==node, "ADQL morphing node stack corruption"
 
 		if node.type in self.morphers:
 			handlerResult = self.morphers[node.type](newNode, state)

@@ -1431,7 +1431,7 @@ class Q3CMorphTest(unittest.TestCase):
 			" WHERE 1=CONTAINS(POINT('ICRS', ra1, ra2),"
 			"  CIRCLE('ICRS', 10, 10, 0.5))"))
 		self.assertEqual(adql.flatten(t),
-			"SELECT * FROM spatial WHERE q3c_join(10, 10, ra1, ra2, 0.5) LIMIT 10")
+			"SELECT spatial.dist, spatial.width, spatial.height, spatial.ra1, spatial.ra2 FROM spatial WHERE q3c_join(10, 10, ra1, ra2, 0.5) LIMIT 10")
 
 	def testMogrifiedIntersect(self):
 		s, t = morphpg.morphPG(
@@ -1439,14 +1439,16 @@ class Q3CMorphTest(unittest.TestCase):
 			" WHERE 1=INTERSECTS(CIRCLE('ICRS', 10, 10, 0.5),"
 				"POINT('ICRS', ra1, ra2))"))
 		self.assertEqual(adql.flatten(t),
-			"SELECT * FROM spatial WHERE q3c_join(10, 10, ra1, ra2, 0.5) LIMIT 10")
+			"SELECT spatial.dist, spatial.width, spatial.height, spatial.ra1, spatial.ra2 FROM spatial WHERE q3c_join(10, 10, ra1, ra2, 0.5) LIMIT 10")
 
 
 class PQMorphTest(unittest.TestCase):
 	"""tests for morphing to non-geometry ADQL syntax to postgres.
 	"""
-	def _testMorph(self, stIn, stOut):
+	def _testMorph(self, stIn, stOut, fieldInfoGetter=None):
 		tree = adql.parseToTree(stIn)
+		if fieldInfoGetter:
+			ctx = adql.annotate(tree, fieldInfoGetter)
 		status, t = adql.morphPG(tree)
 		self.assertEqual(nodes.flatten(t), stOut)
 
@@ -1504,9 +1506,10 @@ class PQMorphTest(unittest.TestCase):
 			'SELECT x FROM something WHERE y NOT IN ( 1 , 2 )')
 
 	def testOrder(self):
-		self._testMorph("select top 100 * from ppmx.data where cmag>10"
-			" order by cmag", 'SELECT * FROM ppmx.data WHERE cmag > 10'
-			' ORDER BY cmag LIMIT 100')
+		self._testMorph("select top 100 * from spatial where dist>10"
+			" order by dist, height", 
+			'SELECT spatial.dist, spatial.width, spatial.height, spatial.ra1, spatial.ra2 FROM spatial WHERE dist > 10 ORDER BY dist , height LIMIT 100',
+			_sampleFieldInfoGetter)
 
 	def testUploadKilled(self):
 		self._testMorph("select * from TAP_UPLOAD.abc",
@@ -1563,6 +1566,24 @@ class PQMorphTest(unittest.TestCase):
 		self._testMorph(
 			"select * from foo where x is null",
 			"SELECT * FROM foo WHERE x IS NULL")
+
+	def testMultiJoin(self):
+		self._testMorph(
+			"select * from spatial natural join spatial2 join misc on (dist=speed)",
+			"SELECT dist, width, height, ra1, ra2, dec, mass, mag, speed FROM spatial NATURAL JOIN spatial2  JOIN misc ON ( dist = speed )",
+			_sampleFieldInfoGetter)
+
+	def testQualifiedStar(self):
+		self._testMorph(
+			"select spatial.*, misc.* from spatial natural join spatial2"
+				" join misc on (dist=speed)",
+			"SELECT spatial.dist, spatial.width, spatial.height, spatial.ra1, spatial.ra2, misc.mass, misc.mag, misc.speed FROM spatial NATURAL JOIN spatial2  JOIN misc ON ( dist = speed )",
+			_sampleFieldInfoGetter)
+	
+	def testStarWithAlias(self):
+		self._testMorph("select * from spatial as b",
+			"SELECT b.dist, b.width, b.height, b.ra1, b.ra2 FROM spatial AS b",
+			_sampleFieldInfoGetter)
 
 
 class PGSMorphTest(testhelpers.VerboseTest):

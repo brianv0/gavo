@@ -297,7 +297,6 @@ def _adqlFunctionToPG(node, state):
 	return node
 
 
-
 def _removeUploadSchema(node, state):
 	"""removes TAP_UPLOAD schema specs.
 
@@ -359,9 +358,35 @@ def _insertPGQS(node, state):
 	return res
 
 
+def _expandStars(node, state):
+	"""tries to replace all expressions with * in a select list.
+
+	I'm forcing this because that seems easier than figuring out how
+	to apply the sequencing rules from sql1992, 7.5, to joins with more
+	than two operands.
+	"""
+	# only work if annotation has taken place (else it's probably a test
+	# run anyway)
+	if state.nodeStack[-1].fieldInfos:
+		if node.allFieldsQuery:
+			return nodes.SelectList(
+				selectFields=state.nodeStack[-1].getSelectFields())
+		else:
+			newCols = []
+			for col in node.selectFields:
+				if isinstance(col, nodes.QualifiedStar):
+					newCols.extend(state.nodeStack[-1].fromClause.getFieldsForTable(
+						col.sourceTable))
+				else:
+					newCols.append(col)
+			return node.change(selectFields=tuple(newCols))
+
+	return node
+
 _syntaxMorphers = {
 	"querySpecification": _insertPGQS,
 	'comparisonPredicate': morphhelpers.booleanizeComparisons,
+	'selectList': _expandStars,
 }
 
 # Warning: if ever there are two Morphers for the same type, this will

@@ -5,7 +5,7 @@ When we want to generate VOTables from ADQL queries, we must know types,
 units, ucds, and the like, and we need to know STC information for
 all columns in a query.
 
-To to that, we traverse the parse tree postorder looking for nodes that have
+To do that, we traverse the parse tree postorder looking for nodes that have
 an addFieldInfos method (note the plural).  These then get called,
 which causes one of the classes in adql.fieldinfos to be constructed
 and assigned to the node's fieldInfos attribute.  The source for
