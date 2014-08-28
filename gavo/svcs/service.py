@@ -827,8 +827,18 @@ class Service(base.Structure, base.ComputedMetaMixin,
 # XXX TODO: have this ask the core
 		return "true"
 
-	def macro_tablesForTAP(self):  
+	def macro_tablesForTAP(self):
 		# this is only used by tap.rd -- maybe it
 		# should go there?
 		from gavo.protocols import tap
-		return ", ".join(tap.getAccessibleTables())
+		
+		schemas = {}
+		for qname in tap.getAccessibleTables():
+			try:
+				schema, name = qname.split(".")
+			except: # weird name
+				continue
+			schemas.setdefault(schema, []).append(name)
+
+		return ", ".join("%s from the %s schema"%(", ".join(tables), schema)
+			for schema, tables in schemas.iteritems())
