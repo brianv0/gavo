@@ -4,6 +4,7 @@ GAVO DC Software Reference Documentation
 
 :Author: Markus Demleitner
 :Email: gavo@ari.uni-heidelberg.de
+:Date: |date|
 
 .. contents:: 
   :depth: 2
@@ -3046,3 +3047,4 @@ Bibliography
    "Referencing STC in VOTable", Version 2.0,
    http://www.ivoa.net/Documents/Notes/VOTableSTC/20100618/NOTE-VOTableSTC-2.0-20100618.pdf
 .. _the DaCHS tutorial: http://docs.g-vo.org/DaCHS/tutorial.html
+.. |date| date::

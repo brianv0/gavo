@@ -20,12 +20,15 @@ using resob.resType as a fallback.
 
 
 # DataCollection mess: In rev 3769, we experimentally pushed out
-# DataService records instead of DataCollections, trying to have
+# CatalogService records instead of DataCollections, trying to have
 # capabilities for them.  That didn't turn out well even though
 # we didn't do that for SIA and frieds: All-VO discovery of a 
 # given service type is a very typcial use case.  So, we backed
 # that out again in rev. 3883, though the support code remains.
-# There's consulatations on how to do something like that going on.
+# 
+# Then, in rev. 3891, we went back to CatalogService records, only
+# this time we only pushed out capabilities with "auxiliary" standard ids.
+
 
 from gavo import base
 from gavo import svcs
@@ -482,32 +485,29 @@ class DeletedResourceMaker(ResourceMaker):
 _dataMetaBuilder = meta.ModelBasedBuilder([
 	('rights', SF(VOR.rights)),
 	# format is a mime type if we're registering a single piece of data
-	('format', SF(VS.format)),  
+# format's not in any more due to DataCollection experiment described above.
+#	('format', SF(VS.format)),  
 ])
 
 
 class DataCollectionResourceMaker(ResourceMaker):
 	"""A base class for Table- and DataResourceMaker.
 	"""
-	resourceClass = VS.DataCollection
+	# experimental feature: Return "auxiliary capabilities" with
+	# DataCollections.  In order to make the schema let us do that, 
+	# produce CatalogServices here.
+	resourceClass = VS.CatalogService
 
 	def _makeTableset(self, schemas):
 		return tableset.getTablesetForSchemaCollection(schemas)
 
-	# used by _makeCapabilities
-	ignoreForDataCaps = frozenset(["scs.xml", "siap.xml", "ssap.xml",
-		"availability", "capabilities", "tableMetadata"])
-
 	def _makeCapabilities(self, metaCarrier, setNames):
 		"""returns capabilities for the services of published data.
 		
-		We do not return VOSI or S*AP capabilities; for VOSI, the problem is
-		bringing together VOSI and main services, for S*AP, we don't want
-		to poison all-VO-discovery.
+		These return "auxiliary" capabilities, i.e., those with a
+		standardID telling clients to disregard this service in
+		enumerations.
 		"""
-# See comment on DataCollections at the top.
-		return
-
 		if metaCarrier.registration is None:
 			return
 
@@ -518,14 +518,14 @@ class DataCollectionResourceMaker(ResourceMaker):
 			if metaCarrier.registration.publishedForADQL():
 				yield capabilities.getCapabilityElement(
 					MS(svcs.Publication, render="tap", sets=setNames,
+						auxiliary=True,
 						parent_=metaCarrier,
 						service=base.caches.getRD("//tap").getById("run")))
 		
 		for service in services:
 			yield [capabilities.getCapabilityElement(
-					pub.change(parent_=metaCarrier))
-				for pub in service.getPublicationsForSet(setNames)
-				if pub.render not in self.ignoreForDataCaps]
+					pub.change(parent_=metaCarrier, auxiliary=True))
+				for pub in service.getPublicationsForSet(setNames)]
 
 	def _makeResourceForSchemas(self, metaCarrier, schemas, setNames):
 		"""returns xmlstan for schemas within metaCarrier.

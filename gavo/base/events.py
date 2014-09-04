@@ -234,7 +234,7 @@ class EventDispatcher(object):
 		return message
 
 	def notifyInfo(self, message):
-		"""is called when something tries to emit auxillary information.
+		"""is called when something tries to emit auxiliary information.
 
 		The handlers receive the message as-is
 		"""

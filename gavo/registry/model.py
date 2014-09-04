@@ -563,7 +563,7 @@ class SIA(object):
 		_a_standardID = 	"ivo://ivoa.net/std/SIA"
 		_a_xsi_type = "sia:SimpleImageAccess"
 		_additionalPrefixes = frozenset(["sia", "xsi"])
-	
+
 	class imageServiceType(SIAElement): pass
 	
 	class maxQueryRegionSize(SIAElement): pass

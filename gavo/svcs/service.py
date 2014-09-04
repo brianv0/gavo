@@ -195,6 +195,13 @@ class Publication(base.Structure, base.ComputedMetaMixin):
 			" protocol service, and this other service should be published"
 			" in the same resource record.  See also the operator's guite.",
 			copyable="True")
+	_auxiliary = base.BooleanAttribute("auxiliary", default=False,
+		description="Auxiliary publications are for capabilities"
+			" not intended to be picked up for all-VO queries, typically"
+			" because they are already registered with other services."
+			" This is mostly used internally; you probably have no reason"
+			" to touch it.")
+
 
 	def completeElement(self, ctx):
 		if self.render is base.Undefined:

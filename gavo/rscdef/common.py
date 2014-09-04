@@ -228,6 +228,11 @@ class Registration(base.Structure):
 			" query that within the data collection; tables with adql=True"
 			" are automatically declared to be servedBy the TAP service.")
 
+	# the following attribute is for compatibility with service.Publication
+	# in case someone manages to pass such a publication to the capability
+	# builder.
+	auxiliary = True
+
 	def publishedForADQL(self):
 		"""returns true if at least one table published is available for
 		TAP/ADQL.

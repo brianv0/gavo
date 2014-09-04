@@ -78,7 +78,9 @@
 		<column name="obs_title" type="text"
 			utype="obscore:dataid.title" ucd="meta.title;obs"
 			description="Free-from title of the data set"
-			verbLevel="5"/>
+			verbLevel="5">
+			<property name="std">1</property>
+		</column>
 
 		<column name="obs_publisher_did" type="text"
 			utype="obscore:curation.publisherdid" ucd="meta.ref.url;meta.curation"
@@ -90,7 +92,9 @@
 		<column name="obs_creator_did" type="text"
 			utype="obscore:dataid.creatordid" ucd="meta.id"
 			description="Dataset identifier assigned by the creator."
-			verbLevel="15"/>
+			verbLevel="15">
+			<property name="std">1</property>
+		</column>
 
 		<column name="access_url" type="text"
 			utype="obscore:access.reference" ucd="meta.ref.url"

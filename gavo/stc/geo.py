@@ -24,7 +24,7 @@ class WGS84(object):
 
 
 def _getC_S(phi, refSys):
-	"""returns the values of the auxillary functions C and S.
+	"""returns the values of the auxiliary functions C and S.
 
 	phi must be in rad.
 

@@ -218,13 +218,23 @@ class CapabilityMaker(object):
 
 	Each capability (currently) corresponds to a renderer.
 
-	This class is abstract.  You will want to override (some of) the
-	class variables at the top, plus the _makeCapability method.
+	You will want to override (some of) the class variables at the top, plus the
+	_makeCapability method (that you'll probably still want to upcall for the
+	basic functionality).
+
+	In particular, you will typically want to override capabilityClass
+	with a stanxml element spitting out the right standardIds.  
+		
+	Additionally, if the capability should also appear in data collections 
+	served by a service with the capability, also define auxiliaryId (that's
+	an IVORN like ivo://ivoa.net/std/TAP#aux).  These are used in 
+	getCapabilityElement.
 
 	CapabilityMakers are used by calling them.
 	"""
 	renderer = None
 	capabilityClass = VOR.capability
+	auxiliaryId = None
 
 	def _makeCapability(self, publication):
 		return self.capabilityClass[
@@ -239,6 +249,7 @@ class CapabilityMaker(object):
 class SIACapabilityMaker(CapabilityMaker):
 	renderer = "siap.xml"
 	capabilityClass = SIA.capability
+	auxiliaryId = "ivo://ivoa.net/std/SIA#aux"
 
 	def _makeCapability(self, publication):
 		service = publication.parent
@@ -331,6 +342,7 @@ _tapModelBuilder = meta.ModelBasedBuilder([
 class TAPCapabilityMaker(CapabilityMaker):
 	renderer = "tap"
 	capabilityClass = TR.capability
+	auxiliaryId = "ivo://ivoa.net/std/TAP#aux"
 
 	def _makeCapability(self, publication):
 		res = CapabilityMaker._makeCapability(self, publication)
@@ -339,15 +351,10 @@ class TAPCapabilityMaker(CapabilityMaker):
 			from gavo.protocols import tap
 			from gavo.adql import ufunctions
 
-			# do not declare data models unless parent actually is the
-			# the central TAP service (as opposed to some data collections);
-			# this is so all-VO obscore queries don't hit us multiple
-			# times.
-			if publication.parent.rd.sourceId=='__system__/tap':
-				res[[
-					TR.dataModel(ivoId=dmivorn)[dmname]
-						for dmname, dmivorn in conn.query(
-							"select dmname, dmivorn from tap_schema.supportedmodels")]]
+			res[[
+				TR.dataModel(ivoId=dmivorn)[dmname]
+					for dmname, dmivorn in conn.query(
+						"select dmname, dmivorn from tap_schema.supportedmodels")]]
 
 			res[
 				# Once we support more than one language, we'll have to
@@ -464,8 +471,25 @@ _getCapabilityMaker = utils.buildClassResolver(CapabilityMaker,
 	key=lambda obj: obj.renderer)
 
 
+def getAuxiliaryCapability(publication):
+	"""returns a VR.capability element for an auxiliary publication.
+
+	That's a plain capability with essentially the interface and a
+	standardId obtained from the auxiliaryId attribute of the
+	capability's normal maker.
+
+	If no auxiliaryId is defined, None is returned (which means no
+	capability will be generated).
+	"""
+	capMaker = _getCapabilityMaker(publication.render)
+	if capMaker.auxiliaryId:
+		return CapabilityMaker()(publication)(standardID=capMaker.auxiliaryId)
+
+
 def getCapabilityElement(publication):
 	"""returns the appropriate capability definition for a publication object.
 	"""
-	res = _getCapabilityMaker(publication.render)(publication)
-	return res
+	if publication.auxiliary:
+		return getAuxiliaryCapability(publication)
+	else:
+		return _getCapabilityMaker(publication.render)(publication)

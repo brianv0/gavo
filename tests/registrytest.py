@@ -745,15 +745,15 @@ class TablePublicationRecordTest(testhelpers.VerboseTest):
 		self.assertEqual(self.tree.xpath("tableset/schema/table/utype")[0].text,
 			"testing.table.name")
 
-	def _testTAPCapabilityPresent(self):
-# test disabled -- see DataCollection comment in registry.builders
+	def testTAPCapabilityPresent(self):
 		self.assertEqual(self.tree.xpath(
-			"capability[@standardID='ivo://ivoa.net/std/TAP']"
+			"capability[@standardID='ivo://ivoa.net/std/TAP#aux']"
 			"/interface[@role='std']/accessURL")[0].text,
 			"http://localhost:8080/__system__/tap/run/tap")
 
 	def _testWebCapabilityPresent(self):
-# test disabled -- see DataCollection comment in registry.builders
+		# that's currently not happening, as we don't create anonymous
+		# capabilites for data sets.  Solution?
 		self.assertEqual(self.tree.xpath(
 			"//accessURL[.='http://localhost:8080/data/pubtest/moribund/form']")[0].
 			get("use"), "full")
@@ -761,11 +761,6 @@ class TablePublicationRecordTest(testhelpers.VerboseTest):
 	def testVOSICapabilityCensored(self):
 		self.assertEqual(self.tree.xpath(
 			"//capability[@standardID='ivo://ivoa.net/std/VOSI#availability']"),
-			[])
-
-	def testDataModelCensored(self):
-		self.assertEqual(self.tree.xpath(
-			"//capability/dataModel"),
 			[])
 
 
@@ -807,19 +802,17 @@ class DataGetRecordTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 	def testType(self):
 		self.assertEqual(self.srcAndTree[1].xpath("//Resource")[0].get(
 			"{http://www.w3.org/2001/XMLSchema-instance}type"),
-			"vs:DataCollection")
+			"vs:CatalogService")
 
-	def _testAutoTAPCapabilityPresent(self):
-# test disabled -- see DataCollection comment in registry.builders
+	def testAutoTAPCapabilityPresent(self):
 		self.assertEqual(self.srcAndTree[1].xpath(
-			"//capability[@standardID='ivo://ivoa.net/std/TAP']"
+			"//capability[@standardID='ivo://ivoa.net/std/TAP#aux']"
 			"/interface[@role='std']/accessURL")[0].text,
 			"http://localhost:8080/__system__/tap/run/tap")
 
-	def testDataModelCensored(self):
-		self.assertEqual(self.srcAndTree[1].xpath(
-			"//capability/dataModel"),
-			[])
+	def testReducedCapabilityElement(self):
+		capChildren = self.srcAndTree[1].xpath("//capability/*")
+		self.assertEqual(len(capChildren), 1)
 
 
 # minimal meta for successful RR generation without a (working) RD

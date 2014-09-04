@@ -170,7 +170,7 @@ class LinkDef(object):
 	//datalink#dlresponse as keyword arguments.
 	
 	For semantics, try to user one of science, calibration, preview, info,
-	auxillary, and processed.
+	auxiliary, and processed.
 	"""
 	def __init__(self, pubDID, accessURL, 
 			serviceType=None, 

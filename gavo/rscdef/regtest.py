@@ -654,7 +654,11 @@ class TestStatistics(object):
 			self.fails += 1
 		self.total += 1
 		self.timeSum += runTime
-		self.runs.append((runTime, status, title, str(payload), srcRD))
+#XXX TODO: Payload can use a lot of memory -- I'm nuking it for now
+# -- maybe use an on-disk database to store this and allow later debugging?
+		self.runs.append((runTime, status, title, 
+			None, #str(payload), 
+			srcRD))
 		self.lastTimestamp = time.time()
 
 	def getReport(self):
