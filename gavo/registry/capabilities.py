@@ -250,7 +250,7 @@ class CapabilityMaker(object):
 class SIACapabilityMaker(CapabilityMaker):
 	renderer = "siap.xml"
 	capabilityClass = SIA.capability
-	auxiliaryId = "ivo://ivoa.net/std/SIA-aux"
+	auxiliaryId = "ivo://ivoa.net/std/SIA#aux"
 
 	def _makeCapability(self, publication):
 		service = publication.parent
@@ -343,7 +343,7 @@ _tapModelBuilder = meta.ModelBasedBuilder([
 class TAPCapabilityMaker(CapabilityMaker):
 	renderer = "tap"
 	capabilityClass = TR.capability
-	auxiliaryId = "ivo://ivoa.net/std/TAP-aux"
+	auxiliaryId = "ivo://ivoa.net/std/TAP#aux"
 
 	def _makeCapability(self, publication):
 		res = CapabilityMaker._makeCapability(self, publication)
