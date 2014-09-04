@@ -46,8 +46,9 @@ def getInputParamFromColumn(column, rootElement=VS.param):
 def getInputParams(publication, service):
 	"""returns a sequence of vs:param elements for the input of service.
 	"""
-	return [getInputParamFromColumn(f) 
-		for f in service.getInputKeysFor(svcs.getRenderer(publication.render))]
+	if hasattr(service, "getInputKeysFor"): # no params on published tables
+		return [getInputParamFromColumn(f) 
+			for f in service.getInputKeysFor(svcs.getRenderer(publication.render))]
 
 
 ####################### Interfaces

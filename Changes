@@ -1,3 +1,27 @@
+Note: Of course, in each version, many minor improvements and bug fixes 
+go in.  To see the full history, use  
+
+svn log http://svn.ari.uni-heidelberg.de/svn/gavo/python/trunk/ | less
+
+to see the gory details.  If anything not mentioned here breaks something
+for you, we'd consider it a severe bug, though.
+
+
+Version 0.9.3 (2014-09-04)
+
+	* Improved EPN-TAP support such that it actually works (this release is
+	  mainly for visitors of EPSC); this includes a simple interface to
+	  pyPDS.
+
+	* New "api" renderer that mimics DAL parameter style (including UPLOAD
+		and metadata VOTable) but doesn't assume particular data semantics.
+	
+	* The registry entry for the built-in TAP service now uses the vanity
+	  name; if you have published your TAP service to the Registry, run 
+	  gavo pub //tap to have a less ugly IVORN and access URL (nothing will
+	  break if you don't).
+
+
 Version 0.9.2 (2014-08-14)
 	
 	* !Important!: Internal changes to the way mixins work cause some column
