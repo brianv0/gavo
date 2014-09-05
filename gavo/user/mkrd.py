@@ -27,6 +27,7 @@ from gavo import rscdef
 from gavo import votable
 from gavo import utils
 from gavo.grammars import fitsprodgrammar
+from gavo.grammars import fitstablegrammar
 from gavo.formats import votableread
 from gavo.utils import ElementTree
 from gavo.utils import fitstools
@@ -81,6 +82,72 @@ def structToETree(aStruct):
 				" value %s\n"%(elName, evType, value))
 			raise
 	return nodeStack[-1]
+
+
+FT_TYPE_MAP = {
+	"B": "bytea",
+	"A": "text",
+	"I": "smallint",
+	"J": "integer",
+	"K": "bigint",
+	"E": "real",
+	"D": "double precision",
+}
+
+def getTypeForFTColumn(fitsCol):
+	"""returns a DaCHS type for FITS table column.
+
+	This currently ignores array sizes and such.  Well, people can always
+	fix things manually.
+	"""
+	mat = re.match("(\d*)(.)$", fitsCol.format)
+	if not mat or not mat.group(2) in FT_TYPE_MAP:
+		raise base.ReportableError("FITS type code '%s' of %s not handled"
+			" by gavo mkrd; add handling if you can."%(fitsCol.format, fitsCol.name))
+	return FT_TYPE_MAP[mat.group(2)]
+
+
+def makeTableFromFT(rd, srcName, opts):
+	from gavo.utils import pyfits
+	cols, nameMaps = [], {}
+	nameMaker = base.VOTNameMaker()
+
+	for fitsCol in pyfits.open(srcName)[1].columns:
+		destName = nameMaker.makeName(fitsCol)
+		if destName!=fitsCol.name:
+			nameMaps[destName] = fitsCol.name
+		cols.append(MS(rscdef.Column,
+			type=getTypeForFTColumn(fitsCol),
+			name=destName,
+			unit=fitsCol.unit,
+			ucd="",
+			description="FILL IN"))
+	table = rscdef.TableDef(rd, id=opts.tableName, onDisk=True,
+		columns=cols)
+	table.nameMaps = nameMaps
+	return table
+
+
+def makeDataForFT(rd, srcName, opts):
+	targetTable = rd.tables[0]
+	# nameMaps left by makeTableFromFT
+	rmkMaps =[MS(rscdef.MapRule, key=key, content_="vars['%s']"%src) 
+		for key, src in targetTable.nameMaps.iteritems()]
+
+	grammar = MS(fitstablegrammar.FITSTableGrammar)
+	sources = MS(rscdef.SourceSpec, 
+		pattern=["*.fits"], recurse=True)
+	rowmaker = MS(rscdef.RowmakerDef, id="gen_rmk", idmaps="*", maps=[rmkMaps])
+	make = MS(rscdef.Make, 
+		table=targetTable,
+		rowmaker=rowmaker)
+
+	return MS(rscdef.DataDescriptor,
+		id="import",
+		sources=sources,
+		grammar=grammar,
+		rowmakers=[rowmaker],
+		make=make)
 
 
 def makeTableFromFITS(rd, srcName, opts):
@@ -159,13 +226,14 @@ def makeDataForVOTable(rd, srcName, opts):
 tableMakers = {
 	"FITS": makeTableFromFITS,
 	"VOT": makeTableFromVOTable,
+	"FT": makeTableFromFT,
 }
 
 dataMakers = {
 	"FITS": makeDataForFITS,
 	"VOT": makeDataForVOTable,
+	"FT": makeDataForFT,
 }
-
 
 
 def makeRD(args, opts):
@@ -211,6 +279,7 @@ def indent(elem, level=0):
 		if level and (not elem.tail or not elem.tail.strip()):
 			elem.tail = i
 
+
 def writePrettyPrintedXML(root):
 	indent(root)
 	ElementTree.ElementTree(root).write(sys.stdout, encoding="utf-8")
@@ -219,7 +288,8 @@ def writePrettyPrintedXML(root):
 def parseCommandLine():
 	from optparse import OptionParser
 	parser = OptionParser(usage = "%prog [options] <sample>")
-	parser.add_option("-f", "--format", help="FITS or VOT, source format."
+	parser.add_option("-f", "--format", help="Input file format: "
+		" FITS, VOT or FT (FITS table)"
 		"  Default: Detect from file name", dest="srcForm", default=None,
 		action="store", type="str")
 	parser.add_option("-t", "--table-name", help="Name of the generated table",
