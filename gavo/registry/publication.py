@@ -270,6 +270,37 @@ def _purgeFromServiceTables(rdId, conn):
 	cursor.close()
 
 
+def makeDeletedRecord(ivoid, conn):
+	"""enters records into the internal service tables to mark ivoid
+	as deleted.
+	"""
+	fakeId = utils.getRandomString(20)
+	svcRD = base.caches.getRD("//services")
+	rscTable = rsc.TableForDef(svcRD.getById("resources"),
+		connection=conn)
+	rscTable.addRow({
+		"sourceRD": "deleted",
+		"resId": fakeId,
+		"shortName": "deleted",
+		"title": "Anonymous Deleted Record",
+		"description": "This is a sentinel for a record once published"
+			" by this registry but now dropped.",
+		"owner": None,
+		"dateUpdated": datetime.datetime.utcnow(),
+		"recTimestamp": datetime.datetime.utcnow(),
+		"deleted": True,
+		"ivoid": ivoid,
+		"authors": ""})
+
+	setTable = rsc.TableForDef(svcRD.getById("sets"),
+		connection=conn)
+	setTable.addRow({
+		"sourceRD": "deleted",
+		"resId": fakeId,
+		"setName": "ivo_managed",
+		"renderer": "custom",
+		"deleted": True})
+
 
 ################ UI stuff
 

@@ -305,6 +305,16 @@ def xsdValidate(querier, args):
 		print msgs
 
 
+@exposedFunction([Arg(help="IVORN to mark as deleted", dest="ivoid")],
+	help="Add a registry entry for a deleted record with IVORN.  You should"
+		" not usually have to do this, except when you added an identifier"
+		" meta item to a service that was already published without also"
+		" changing its XML id.")
+def makeDeletedRecord(querier, args):
+	from gavo.registry import publication
+	publication.makeDeletedRecord(args.ivoid, querier.connection)
+
+
 def main():
 	with base.AdhocQuerier(base.getWritableAdminConn) as querier:
 		args = makeParser(globals()).parse_args()
