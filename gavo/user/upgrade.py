@@ -27,7 +27,7 @@ from gavo import rscdesc  #noflake: for cache registration
 from gavo import utils
 
 
-CURRENT_SCHEMAVERSION = 11
+CURRENT_SCHEMAVERSION = 12
 
 
 class AnnotatedString(str):
@@ -344,6 +344,21 @@ class To11Upgrader(Upgrader):
 					" ".join("'%s'"%id for id in ids))
 
 		sys.stderr.write("\nEnd of scan of mixin-affected tables...")
+
+
+class To12Upgrader(Upgrader):
+	version = 11
+
+	@classmethod
+	def u_010_updateTAPRecord(cls, connection):
+		"""prettify the TAP record's IVORN"""
+		from gavo.registry import publication
+		publication.updateServiceList([base.caches.getRD("//services")],
+			connection=connection)
+		publication.makeDeletedRecord(
+			base.getMetaText(
+				base.caches.getRD("//tap").getById("run"), "identifier"),
+			connection)
 
 
 def iterStatements(startVersion, endVersion=CURRENT_SCHEMAVERSION, 
