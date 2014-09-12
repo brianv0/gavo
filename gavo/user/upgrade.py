@@ -356,8 +356,7 @@ class To12Upgrader(Upgrader):
 		publication.updateServiceList([base.caches.getRD("//services")],
 			connection=connection)
 		publication.makeDeletedRecord(
-			base.getMetaText(
-				base.caches.getRD("//tap").getById("run"), "identifier"),
+			"ivo://"+base.getConfig("ivoa", "authority")+"/__system__/tap/run",
 			connection)
 
 
