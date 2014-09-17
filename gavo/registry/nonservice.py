@@ -80,6 +80,9 @@ class DeletedResource(common.DateUpdatedMixin, NonServiceResource):
 	def _meta_recTimestamp(self):
 		return utils.formatISODT(self.resTuple["recTimestamp"])
 
+	def _meta_identifier(self):
+		return self.resTuple["ivoid"]
+
 	def completeElement(self, ctx):
 		self._completeElementNext(DeletedResource, ctx)
 		self.rd = _FakeRD(self.resTuple["sourceRD"])
