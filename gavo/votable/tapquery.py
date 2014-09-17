@@ -128,13 +128,25 @@ class _FormData(MIMEMultipart):
 		msg.set_payload(paramVal)
 		self.attach(msg)
 
+	def forHTTPUpload(self):
+		"""returns a string serialisation of this message suitable for HTTP
+		upload.
+
+		This is as_string, except we're introducing crlfs when it seems
+		the line separator is just an lf.
+		"""
+		data = self.as_string()
+		if not "\r\n" in data:
+			data = data.replace("\n", "\r\n")
+		return data
+
 	@classmethod
 	def fromDict(cls, dict):
 		self = cls()
 		for key, value in dict.iteritems():
 			self.addParam(key, value)
 		return self
-
+		
 
 def _getErrorInfo(votString):
 	"""returns the message from a TAP error VOTable.
@@ -446,15 +458,18 @@ def request(host, path, data="", customHeaders={}, method="GET",
 	"""
 	headers = {"connection": "close",
 		"user-agent": "Python TAP library http://soft.g-vo.org/subpkgs"}
+
 	if not isinstance(data, basestring):
 		if _canUseFormEncoding(data):
 			data = urllib.urlencode(data)
 			headers["Content-Type"] = "application/x-www-form-urlencoded"
+
 		else:
 			form = _FormData.fromDict(data)
-			data = form.as_string()
+			data = form.forHTTPUpload()
 			headers["Content-Type"] = form.get_content_type()+'; boundary="%s"'%(
 					form.get_boundary())
+	headers["Content-Length"] = len(data)
 	headers.update(customHeaders)
 
 	try:
@@ -746,13 +761,15 @@ class ADQLTAPJob(_WithEndpoint):
 			assert ',' not in data
 			assert ';' not in data
 			uploadFragments.append("%s,%s"%(name, data))
+
 		else: # Inline upload, data is a file
 			uploadKey = utils.intToFunnyWord(id(data))
 			form.addFile(uploadKey, uploadKey, data.read())
 			uploadFragments.append("%s,param:%s"%(name, uploadKey))
+
 		form.addParam("UPLOAD", ";".join(uploadFragments))
 		request(self.destHost, self.jobPath+"/parameters", method="POST",
-			data=form.as_string(), expectedStatus=303, 
+			data=form.forHTTPUpload(), expectedStatus=303, 
 			customHeaders={"content-type": 
 				form.get_content_type()+'; boundary="%s"'%(form.get_boundary())})
 

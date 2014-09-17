@@ -37,7 +37,7 @@
 					<bind name="table">"\schema.epn_core"</bind>
 				</rowfilter>
 
-			Use the `//epntap#populate`_ mixin in rowmakers
+			Use the `//epntap#populate`_ apply in rowmakers
 			feeding tables mixing this in.
 		]]></doc>
 
