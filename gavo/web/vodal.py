@@ -55,12 +55,12 @@ class DALRenderer(grend.ServiceBasedPage):
 	urlUse = "base"
 
 	def __init__(self, ctx, *args, **kwargs):
-		self.reqArgs = inevow.IRequest(ctx).args
-		if not "MAXREC" in self.reqArgs:
-			self.reqArgs["MAXREC"] = [
+		reqArgs = inevow.IRequest(ctx).args
+		if not "MAXREC" in reqArgs:
+			reqArgs["MAXREC"] = [
 				str(base.getConfig("ivoa", "dalDefaultLimit"))]
 		# XXX TODO: Do away with _FORMAT in general, move to RESPONSEFORMAT
-		self.reqArgs["_FORMAT"] = ["VOTable"]
+		reqArgs["_FORMAT"] = ["VOTable"]
 
 		# see _writeErrorTable
 		self.saneResponseCodes = False
@@ -125,8 +125,9 @@ class DALRenderer(grend.ServiceBasedPage):
 			)+votLit[splitPos:]
 
 	def _runService(self, ctx, queryMeta):
-		dali.mangleUploads(self.reqArgs)
-		return self.runService(inevow.IRequest(ctx).args, queryMeta
+		request = inevow.IRequest(ctx)
+		dali.mangleUploads(request)
+		return self.runService(request.args, queryMeta
 			).addCallback(self._formatOutput, ctx)
 
 	def _writeErrorTable(self, ctx, errmsg, code=200, queryStatus="ERROR"):
@@ -187,6 +188,8 @@ class DALRenderer(grend.ServiceBasedPage):
 			inevow.IRequest(ctx).setResponseCode(400)
 			queryStatus = "EMPTY"
 
+		if base.DEBUG:
+			base.ui.notifyFailure(failure)
 		return self._writeErrorTable(ctx, failure.getErrorMessage(),
 			queryStatus=queryStatus)
 

@@ -203,8 +203,8 @@ class DebugCore(Core):
 	def run(self, service, inputData, queryMeta):
 		rows = []
 		for par in inputData.iterParams():
-			if hasattr(par.value, "filename"):
-				value = par.value.file.read()
+			if isinstance(par.value, tuple): # formal-style file upload
+				value = par.value[1].read()
 			else:
 				value = par.value
 			rows.append({"key": par.name, "value": utils.safe_str(value)})

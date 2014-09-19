@@ -86,29 +86,37 @@ class URLUpload(object):
 			f.close()
 
 
-def mangleUploads(argDict):
-	"""manipulates argDict to turn DALI UPLOADs into DaCHS input files.
+def mangleUploads(request):
+	"""manipulates request to turn DALI UPLOADs into what nevow formal
+	produces for file uploads.
 
 	These are as in normal CGI: uploads are under "their names" (with
-	DALI uploads, the resource names), with values being
-	FieldStorage-compatible things having name, filename, value, file, type,
-	type_options, and headers.
+	DALI uploads, the resource names), with values being pairs of
+	some name and a FieldStorage-compatible thing having name, filename, value,
+	file, type, type_options, and headers.
 
 	ArgDict is manipulated in place.
 	"""
-	uploads = argDict.pop("UPLOAD", [])
+	uploads = request.args.pop("UPLOAD", [])
 	if not uploads:
 		return
 		
 	for uploadString in uploads:
 		destName, uploadSource = parseUploadString(uploadString)
-		if uploadSource.startswith("param:"):
-			try:
-				argDict[destName] = argDict.pop(uploadSource[6:])[0]
-			except (KeyError, IndexError):
-				raise base.ValidationError("%s references a non-existing"
-					" parameter."%uploadSource, "UPLOAD", 
-					hint="If you pass UPLOAD=foo,param:x,"
-					" you must pass a file upload under the key x.")
-		else:
-			argDict[destName] = URLUpload(uploadSource, destName)
+		try:
+			if uploadSource.startswith("param:"):
+				fileKey = uploadSource[6:]
+				upload = request.fields[fileKey]
+				# remove upload in string form from args to remove clutter
+				request.args.pop(fileKey, None) 
+			else:
+				upload = URLUpload(uploadSource, destName)
+
+			request.args[destName] = (upload.filename, upload.file)
+		except (KeyError, AttributeError):
+			raise base.ui.logOldExc(base.ValidationError(
+				"%s references a non-existing"
+				" file upload."%uploadSource, "UPLOAD", 
+				hint="If you pass UPLOAD=foo,param:x,"
+				" you must pass a file upload under the key x."))
+

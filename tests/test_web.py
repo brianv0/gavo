@@ -403,7 +403,8 @@ class APIRenderTest(trialhelpers.ArchiveTest):
 		return self.assertGETHasStrings("/data/cores/uploadtest/api",
 			{"UPLOAD": ["notarbitrary,param:notexisting"]}, [
 				'value="ERROR"',
-				'Field UPLOAD: param:notexisting references a non-existing parameter.'])
+				'Field UPLOAD: param:notexisting references a'
+				' non-existing file upload.'])
 
 	def testUploadInlineGoodPar(self):
 		return self.assertGETHasStrings("/data/cores/uploadtest/api", {
@@ -417,7 +418,7 @@ class APIRenderTest(trialhelpers.ArchiveTest):
 	def testUploadURL(self):
 		_, _, baseURL = trialhelpers.testhelpers.getServerInThread(
 			"def, ich bin der Chef.\n", onlyOnce=True)
-		return self.assertGETHasStrings("/data/cores/uploadtest/api", {
+		return self.assertPOSTHasStrings("/data/cores/uploadtest/api", {
 			"UPLOAD": ["notarbitrary,%s"%baseURL],
 			"RESPONSEFORMAT": "votabletd",
 			"hello": [_FakeUpload()],

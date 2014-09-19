@@ -13,6 +13,7 @@ from __future__ import with_statement
 import os
 import urlparse
 import warnings
+from cStringIO import StringIO
 
 from nevow import context
 from nevow import inevow
@@ -95,10 +96,14 @@ class FakeFieldStorage(object):
 		return self.args[key][0]
 	
 	def __getitem__(self, key):
-		return FakeFieldStorage  # just so filename is None
+		return self.args[key][0]
 
 	def keys(self):
 		return self.args.keys()
+
+	@property
+	def file(self):
+		return StringIO(self.args[0])
 
 
 class FakeRequest(testutil.AccumulatingFakeRequest):

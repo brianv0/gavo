@@ -211,8 +211,6 @@ class ContextRowIterator(grammars.RowIterator):
 			**kwargs)
 
 	def _completeRow(self, rawRow):
-		dali.mangleUploads(rawRow)
-
 		caseNormalized = dict((k.lower(),v) for k, v in rawRow.iteritems())
 		procRow = {}
 

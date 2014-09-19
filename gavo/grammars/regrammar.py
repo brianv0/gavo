@@ -41,12 +41,17 @@ class REIterator(FileRowIterator):
 					buffer = self.grammar.commentPat.sub("", buffer)
 				continue
 			res = buffer[curPos:mat.start()]
+
+			if self.grammar.stopPat and self.grammar.stopPat.match(res):
+				return
+
 			yield res.strip()
 			curPos = mat.end()
 			self.curLine += res.count("\n")
 		# yield stuff left if there's something left
 		res = buffer[curPos:].strip()
-		if res:
+		if res and not (
+				self.grammar.stopPat and self.grammar.stopPat.match(res)):
 			yield res
 
 	def _iterRows(self):
@@ -99,6 +104,9 @@ class REGrammar(Grammar, FileRowAttributes):
 
 	_til = base.IntAttribute("topIgnoredLines", default=0, description=
 		"Skip this many lines at the top of each source file.")
+	_stopPat = REAttribute("stopPat", default=None,
+		description="Stop parsing when a record *matches* this RE (this"
+		" is for skipping non-data footers")
 	_recordSep = REAttribute("recordSep", default=re.compile("\n"), 
 		description="RE for separating two records in the source.")
 	_fieldSep = REAttribute("fieldSep", default=re.compile(r"\s+"), 
