@@ -367,10 +367,30 @@ def _expandStars(node, state):
 
 	return node
 
+
+def _forceAlias(node, state):
+	"""forces anonymous expressions to have an alias.
+
+	We need this as we expand stars here, and with these we need some
+	way to refer to the items.
+	"""
+	if isinstance(node.expr, basestring):
+		# this can happen if node.expr has been morphed.  Though it may be
+		# silly, unconditionally add an alias (unless there already is one)
+		if node.alias is None:
+			node.alias = node.name
+		return node
+
+	if node.expr.type!="columnReference" and node.alias is None:
+		node.alias = node.name
+	return node
+
+
 _syntaxMorphers = {
 	"querySpecification": _insertPGQS,
 	'comparisonPredicate': morphhelpers.booleanizeComparisons,
 	'selectList': _expandStars,
+	'derivedColumn': _forceAlias,
 }
 
 # Warning: if ever there are two Morphers for the same type, this will

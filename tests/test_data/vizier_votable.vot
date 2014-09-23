@@ -51,7 +51,7 @@ Execution Reports
     <FIELD name="pmDE" ucd="pos.pm;pos.eq.dec" ref="J2000_2000.000" datatype="float" width="7" precision="2" unit="10mas/yr"><!-- ucd="POS_EQ_PMDEC" -->
       <DESCRIPTION>Proper motion in Decl., arcsec/century</DESCRIPTION>
     </FIELD>
-    <FIELD name="Vmag" ucd="phot.mag;em.opt.V" datatype="float" width="6" precision="3" unit="mag"><!-- ucd="PHOT_MAG_V" -->
+    <FIELD name="mag" ucd="phot.mag;em.opt.V" datatype="float" width="6" precision="3" unit="mag"><!-- ucd="PHOT_MAG_V" -->
       <DESCRIPTION>?Observed V magnitude</DESCRIPTION>
       <VALUES null="" />
     </FIELD>

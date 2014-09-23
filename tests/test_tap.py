@@ -55,7 +55,7 @@ def _importADQLTable():
 	from gavo import api
 	dd = api.getRD("data/test").getById("ADQLTest")
 	api.makeData(dd, forceSource=[
-		{"alpha": 2, "delta": 14, "mag": 10.25, "rv": -23.75, "tinyflag": "\x00"},
+		{"alpha": 2, "delta": 14, "mag": 10.25, "rv": -23.75, "tinyflag": "\x03"},
 		{"alpha": 25, "delta": -14, "mag": 1.25, "rv": 0, "tinyflag": "\x01"},
 		{"alpha": 290.125, "delta": 89, "mag": -1, "rv": 28, "tinyflag": "\x02"}])
 _importADQLTable()
@@ -263,7 +263,8 @@ class SyncQueryTest(TAPRenderTest):
 				"REQUEST": "doQuery",
 				"UPLOAD": "bar,param:HoNk",
 				"LANG": "ADQL",
-				"QUERY": 'SELECT * FROM tap_upload.bar',
+				"QUERY": 'SELECT * FROM tap_upload.bar join test.adql on'
+					" (alpha-_raj2000<0)",
 				"HoNk": open(self.aVOTable).read(),
 			}, [
 				'xmlns="http://www.ivoa.net/xml/VOTable/',

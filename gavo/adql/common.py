@@ -106,3 +106,25 @@ def getUniqueMatch(matches, colName):
 			raise AmbiguousColumn(colName)
 		else:
 			return matches.pop()
+
+
+def computeCommonColumns(tableNode):
+	"""returns a set of column names that only occur once in the result
+	table.
+
+	For a natural join, that's all column names occurring in all tables,
+	for a USING join, that's all names occurring in USING, else it's 
+	an empty set.
+
+	"""
+	joinType = getattr(tableNode, "getJoinType", lambda: "CROSS")()
+	if joinType=="NATURAL":
+		# NATURAL JOIN, collect common names
+		return reduce(lambda a,b: a&b, 
+			[set(t.fieldInfos.columns) for t in tableNode.joinedTables])
+	elif joinType=="USING":
+		return set(tableNode.joinSpecification.usingColumns)
+	else: # CROSS join, comma, etc.
+		return set()
+
+

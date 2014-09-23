@@ -393,8 +393,9 @@ class VOTableMetaTest(testhelpers.VerboseTest):
 	resources = [("tree", _TAPResultTable())]
 
 	def testQueryPresent(self):
-		self.assertEqual(self.tree.xpath("//INFO[@name='query']")[0].get("value"),
-			"SELECT rv, PI() FROM test.adql LIMIT 2000")
+		self.assertEqualIgnoringAliases(
+			self.tree.xpath("//INFO[@name='query']")[0].get("value"),
+			"SELECT rv, PI() ASWHATEVER FROM test.adql LIMIT 2000")
 	
 	def testJoinedTablesMentioned(self):
 		self.assertEqual(self.tree.xpath("//INFO[@name='src_res']")[0].get("value"),

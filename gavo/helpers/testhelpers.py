@@ -351,6 +351,12 @@ class VerboseTest(testresources.ResourcedTestCase):
 				f.write(out)
 			raise
 
+	def assertEqualIgnoringAliases(self, result, expectation):
+		pat = re.escape(expectation).replace("ASWHATEVER", "AS [a-z]+")+"$"
+		if not re.match(pat, result):
+			raise AssertionError("%s != %s"%(result, expectation))
+
+
 
 _xmlJunkPat = re.compile("|".join([
 	'(xmlns(:[a-z0-9]+)?="[^"]*"\s*)',

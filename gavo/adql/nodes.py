@@ -873,12 +873,27 @@ class FromClause(ADQLNode):
 	def getAllFields(self):
 		"""returns all fields from all tables in this FROM.
 
-		On an unannotated tree, this will return the empty list.
+		These will be qualified names.  Columns taking part in joins are
+		resolved here.
+
+		This will only work for annotated tables.
 		"""
 		res = []
-		for column in self.tableReference.fieldInfos.seq:
-			res.append(self._makeColumnReference(
-				self.tableReference.tableName, column))
+		commonColumns = common.computeCommonColumns(self.tableReference)
+		commonColumnsMade = set()
+
+		for table in self.getAllTables():
+			for label, fi in table.fieldInfos.seq:
+				if label in commonColumns:
+					if label not in commonColumnsMade:
+						res.append(self._makeColumnReference(
+							None, (label, fi)))
+						commonColumnsMade.add(label)
+
+				else:
+					res.append(self._makeColumnReference(
+						table.tableName, (label, fi)))
+
 		return res
 
 	def getFieldsForTable(self, srcTableName):

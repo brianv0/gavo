@@ -124,20 +124,20 @@ class TableFieldInfos(FieldInfos):
 
 		context is an AnnotationContext.
 
-		Whatever tableNode actually is, it The needs an originalTable
+		Whatever tableNode actually is, it needs an originalTable
 		attribute which is used to retrieve the column info.
 		"""
 		result = cls(tableNode, context)
 		
-		# add infos for the table itself.
 		if tableNode.originalTable:
+			# add infos for a host table if that's what this is
 			for colName, fieldInfo in context.retrieveFieldInfos(
 					tableNode.originalTable):
 				result.addColumn(colName, fieldInfo)
-		
+	
 		# add infos for joined tables as necessary; since we to a postorder
 		# traversal, those have already been annotated.
-		commonColumns = cls._computeCommonColumns(tableNode)
+		commonColumns = common.computeCommonColumns(tableNode)
 		emittedCommonColumns = set()
 		for jt in getattr(tableNode, "joinedTables", ()):
 				for label, info in jt.fieldInfos.seq:
@@ -155,27 +155,6 @@ class TableFieldInfos(FieldInfos):
 
 	def _collectSubTables(self, node, context):
 		self.subTables = list(node.getAllTables())
-
-	@staticmethod
-	def _computeCommonColumns(tableNode):
-		"""returns a set of column names that only occur once in the result
-		table.
-
-		For a natural join, that's all column names occurring in all tables,
-		for a USING join, that's all names occurring in USING, else it's 
-		an empty set.
-
-		This is a helper for makeFieldInfosForTable.
-		"""
-		joinType = getattr(tableNode, "getJoinType", lambda: "CROSS")()
-		if joinType=="NATURAL":
-			# NATURAL JOIN, collect common names
-			return reduce(lambda a,b: a&b, 
-				[set(t.fieldInfos.columns) for t in tableNode.joinedTables])
-		elif joinType=="USING":
-			return set(tableNode.joinSpecification.usingColumns)
-		else: # CROSS join, comma, etc.
-			return set()
 
 
 def _annotateNodeRecurse(node, context):
@@ -279,7 +258,7 @@ class QueryFieldInfos(FieldInfos):
 			if colName in subCols and subCols[colName]:
 				matched.append(subCols[colName])
 
-		# XXX TODO: build a qualified colName here if necessary
+		# XXX TODO: make qualified names here and use them in JoindTable.getAllFields
 		return common.getUniqueMatch(matched, colName)
 
 	def getFieldInfo(self, colName, refName=None):

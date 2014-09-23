@@ -208,7 +208,7 @@ class RRFunctionsTest(testhelpers.VerboseTest):
 	resources = [("ufuncTestTable", _ufuncTestbed)]
 	def _runTest(self, sample):
 		query, expected = sample
-		self.assertEqual(getMorphed(query), expected)
+		self.assertEqualIgnoringAliases(getMorphed(query), expected)
 	
 	samples = [
 		("select testgroup from test.ufuncex where 1=ivo_hasword(testgroup, 'abc')",
@@ -216,7 +216,7 @@ class RRFunctionsTest(testhelpers.VerboseTest):
 			"to_tsvector('english', testgroup)"
 				" @@ plainto_tsquery('english', 'abc'))"),
  		("select ivo_hasword(testgroup, 'abc') from test.ufuncex",
- 			"SELECT IVO_HASWORD(testgroup, 'abc') FROM test.ufuncex"),
+ 			"SELECT IVO_HASWORD(testgroup, 'abc') ASWHATEVER FROM test.ufuncex"),
 		("select testgroup from test.ufuncex where"
 			" 1=ivo_hashlist_has('a#b#c', testgroup)",
 			"SELECT testgroup FROM test.ufuncex WHERE lower(testgroup) ="
@@ -233,10 +233,10 @@ class AggFunctionsTest(testhelpers.VerboseTest):
 		("querier", adqltest.adqlQuerier)]
 
 	def testStringAggMorph(self):
-		self.assertEqual(
+		self.assertEqualIgnoringAliases(
 			getMorphed("select ivoid, ivo_string_agg(res_subject, ',')"
 				" from rr.res_subject group by ivoid"),
-			"SELECT ivoid, string_agg(res_subject, ',')"
+			"SELECT ivoid, string_agg(res_subject, ',') ASWHATEVER"
 			" FROM rr.res_subject GROUP BY ivoid")
 
 	def testStringAddExec(self):

@@ -9,6 +9,7 @@ Tests for ADQL parsing and reasoning about query results.
 
 
 import os
+import re
 import unittest
 from pprint import pprint
 
@@ -34,7 +35,6 @@ MS = base.makeStruct
 
 class Error(Exception):
 	pass
-
 
 
 # The resources below are used elsewhere (e.g., taptest).
@@ -1442,7 +1442,7 @@ class Q3CMorphTest(unittest.TestCase):
 			"SELECT spatial.dist, spatial.width, spatial.height, spatial.ra1, spatial.ra2 FROM spatial WHERE q3c_join(10, 10, ra1, ra2, 0.5) LIMIT 10")
 
 
-class PQMorphTest(unittest.TestCase):
+class PQMorphTest(testhelpers.VerboseTest):
 	"""tests for morphing to non-geometry ADQL syntax to postgres.
 	"""
 	def _testMorph(self, stIn, stOut, fieldInfoGetter=None):
@@ -1450,7 +1450,8 @@ class PQMorphTest(unittest.TestCase):
 		if fieldInfoGetter:
 			ctx = adql.annotate(tree, fieldInfoGetter)
 		status, t = adql.morphPG(tree)
-		self.assertEqual(nodes.flatten(t), stOut)
+		flattened = nodes.flatten(t)
+		self.assertEqualIgnoringAliases(nodes.flatten(t), stOut)
 
 	def testSyntax(self):
 		self._testMorph("select distinct top 10 x, y from foo", 
@@ -1463,7 +1464,7 @@ class PQMorphTest(unittest.TestCase):
 	def testGroupby(self):
 		self._testMorph("select count(*), inc from ("
 			" select round(x) as inc from foo) as q group by inc",
-			"SELECT COUNT ( * ), inc FROM"
+			"SELECT COUNT ( * ) ASWHATEVER, inc FROM"
 			" (SELECT ROUND(x) AS inc FROM foo) AS q"
 			" GROUP BY inc")
 
@@ -1476,7 +1477,7 @@ class PQMorphTest(unittest.TestCase):
 	def testExprArgs(self):
 		self._testMorph(
 			"select truncate(round((x*2)+y, 4)) from foo",
-			'SELECT TRUNC(ROUND((( x * 2 ) + y)*10^(4)) / 10^(4)) FROM foo')
+			'SELECT TRUNC(ROUND((( x * 2 ) + y)*10^(4)) / 10^(4)) ASWHATEVER FROM foo')
 
 	def testPointFunctionWithFieldInfo(self):
 		t = adql.parseToTree("select coordsys(q.p) from "
@@ -1485,20 +1486,25 @@ class PQMorphTest(unittest.TestCase):
 		self.assertEqual(ctx.errors[0], 
 			'When constructing point: Argument 2 has incompatible STC')
 		status, t = adql.morphPG(t)
-		self.assertEqual(nodes.flatten(t), "SELECT 'ICRS' FROM (SELECT spoint"
+		self.assertEqualIgnoringAliases(nodes.flatten(t), 
+			"SELECT 'ICRS' ASWHATEVER FROM (SELECT spoint"
 			"(RADIANS(ra1), RADIANS(ra2)) AS p FROM spatial) AS q")
 
+	def testStringReplacedNumerics(self):
+		self._testMorph("select square(x+x) from foo",
+			"SELECT (x + x)^2 ASWHATEVER FROM foo")
+
 	def testNumerics(self):
-		self._testMorph("select log10(x), log(x), rand(), rand(5), square(x+x),"
+		self._testMorph("select log10(x), log(x), rand(), rand(5), "
 			" TRUNCATE(x), TRUNCATE(x,3) from foo", 
-			'SELECT LOG(x), LN(x), random(),'
-				' setseed(5)-setseed(5)+random(), (x + x)^2, TRUNC('
-				'x), TRUNC((x)*10^(3)) / 10^(3) FROM foo')
+			'SELECT LOG(x) ASWHATEVER, LN(x) ASWHATEVER, random() ASWHATEVER,'
+				' setseed(5)-setseed(5)+random() ASWHATEVER, TRUNC('
+				'x) ASWHATEVER, TRUNC((x)*10^(3)) / 10^(3) ASWHATEVER FROM foo')
 
 	def testHarmless(self):
 		self._testMorph("select delta*2, alpha*mag, alpha+delta"
 			" from something where mag<-10",
-			'SELECT delta * 2, alpha * mag, alpha + delta FROM something'
+			'SELECT delta * 2 ASWHATEVER, alpha * mag ASWHATEVER, alpha + delta ASWHATEVER FROM something'
 			' WHERE mag < - 10')
 
 	def testUnaryLogic(self):
@@ -1526,7 +1532,7 @@ class PQMorphTest(unittest.TestCase):
 	def testUploadColRefInGeom(self):
 		self._testMorph("select POINT('', TAP_UPLOAD.abc.b, TAP_UPLOAD.abc.c)"
 			" from TAP_UPLOAD.abc",
-			"SELECT spoint(RADIANS(abc.b), RADIANS(abc.c)) FROM abc")
+			"SELECT spoint(RADIANS(abc.b), RADIANS(abc.c)) ASWHATEVER FROM abc")
 
 	def testUploadColRefInGeomContains(self):
 		self._testMorph("SELECT TAP_UPLOAD.user_table.ra FROM"
@@ -1570,7 +1576,7 @@ class PQMorphTest(unittest.TestCase):
 	def testMultiJoin(self):
 		self._testMorph(
 			"select * from spatial natural join spatial2 join misc on (dist=speed)",
-			"SELECT dist, width, height, ra1, ra2, dec, mass, mag, speed FROM spatial NATURAL JOIN spatial2  JOIN misc ON ( dist = speed )",
+			"SELECT spatial.dist, spatial.width, spatial.height, spatial.ra1, spatial.ra2, spatial2.ra1, spatial2.dec, spatial2.dist, misc.mass, misc.mag, misc.speed FROM spatial NATURAL JOIN spatial2  JOIN misc ON ( dist = speed )",
 			_sampleFieldInfoGetter)
 
 	def testQualifiedStar(self):
@@ -1585,6 +1591,22 @@ class PQMorphTest(unittest.TestCase):
 			"SELECT b.dist, b.width, b.height, b.ra1, b.ra2 FROM spatial AS b",
 			_sampleFieldInfoGetter)
 
+	def testStarWithJoin(self):
+		self._testMorph("select * from spatial join spatial2 on (width=dec)",
+			"SELECT spatial.dist, spatial.width, spatial.height,"
+			" spatial.ra1, spatial.ra2, spatial2.ra1, spatial2.dec,"
+			" spatial2.dist FROM spatial JOIN spatial2 ON ( width = dec )",
+			_sampleFieldInfoGetter)
+
+	def testStarWithSubquery(self):
+		tree = adql.parseToTree("select * from spatial join "
+			" (select ra1+dec, dist-2 as foo, dec from spatial2) as q"
+			" ON ( width = dec )")
+		adql.annotate(tree, _sampleFieldInfoGetter)
+		status, t = adql.morphPG(tree)
+		flattened = nodes.flatten(t)
+		self.assertTrue(re.match(r'SELECT spatial.dist, spatial.width, spatial.height, spatial.ra1, spatial.ra2, q.([a-z]*), q.foo, q.dec FROM spatial JOIN \(SELECT ra1 \+ dec AS \1, dist - 2 AS foo, dec FROM spatial2\) AS q ON \( width = dec \)$', flattened))
+
 
 class PGSMorphTest(testhelpers.VerboseTest):
 	"""tests for some pgSphere morphing.
@@ -1596,26 +1618,27 @@ class PGSMorphTest(testhelpers.VerboseTest):
 		tree = adql.parseToTree(query)
 		#pprint(tree.asTree())
 		status, t = adql.morphPG(tree)
-		self.assertEqual(nodes.flatten(t), morphed)
+		self.assertEqualIgnoringAliases(nodes.flatten(t), morphed)
 
 	samples = [
 		("select AREA(circle('ICRS', COORD1(p1), coord2(p1), 2)),"
 				" DISTANCE(p1,p2), centroid(box('ICRS', coord1(p1), coord2(p1),"
 				" coord1(p2), coord2(p2))) from (select point('ICRS', ra1, dec1) as p1,"
 				"   point('ICRS', ra2, dec2) as p2 from foo) as q", 
-			'SELECT AREA(scircle(spoint(RADIANS(long(p1)), RADIANS(lat(p1))), RADIANS(2))), DEGREES((p1) <-> (p2)), @@((SELECT spoly(q.p) FROM (VALUES (0, spoint(RADIANS(long(p1))-RADIANS(long(p2))/2, RADIANS(lat(p1))-RADIANS(lat(p2))/2)), (1, spoint(RADIANS(long(p1))-RADIANS(long(p2))/2, RADIANS(lat(p1))+RADIANS(lat(p2))/2)), (2, spoint(RADIANS(long(p1))+RADIANS(long(p2))/2, RADIANS(lat(p1))+RADIANS(lat(p2))/2)), (3, spoint(RADIANS(long(p1))+RADIANS(long(p2))/2, RADIANS(lat(p1))-RADIANS(lat(p2))/2)) ORDER BY column1) as q(ind,p))) FROM (SELECT spoint(RADIANS(ra1), RADIANS(dec1)) AS p1, spoint(RADIANS(ra2), RADIANS(dec2)) AS p2 FROM foo) AS q'),
-		("select coord1(p) from foo", 'SELECT long(p) FROM foo'),
-		("select coord2(p) from foo", 'SELECT lat(p) FROM foo'),
+			'SELECT AREA(scircle(spoint(RADIANS(long(p1)), RADIANS(lat(p1))), RADIANS(2))) ASWHATEVER, DEGREES((p1) <-> (p2)) ASWHATEVER, @@((SELECT spoly(q.p) FROM (VALUES (0, spoint(RADIANS(long(p1))-RADIANS(long(p2))/2, RADIANS(lat(p1))-RADIANS(lat(p2))/2)), (1, spoint(RADIANS(long(p1))-RADIANS(long(p2))/2, RADIANS(lat(p1))+RADIANS(lat(p2))/2)), (2, spoint(RADIANS(long(p1))+RADIANS(long(p2))/2, RADIANS(lat(p1))+RADIANS(lat(p2))/2)), (3, spoint(RADIANS(long(p1))+RADIANS(long(p2))/2, RADIANS(lat(p1))-RADIANS(lat(p2))/2)) ORDER BY column1) as q(ind,p))) ASWHATEVER FROM (SELECT spoint(RADIANS(ra1), RADIANS(dec1)) AS p1, spoint(RADIANS(ra2), RADIANS(dec2)) AS p2 FROM foo) AS q'),
+		("select coord1(p) from foo", 'SELECT long(p) ASWHATEVER FROM foo'),
+		("select coord2(p) from foo", 'SELECT lat(p) ASWHATEVER FROM foo'),
 		# Ahem -- the following could resolve the coordsys, but intra-query 
 		# communication is through field infos; the trees here are not annotated,
 		# though.  See above, testPointFunctinWithFieldInfo
 		("select coordsys(q.p) from (select point('ICRS', x, y)"
 			" as p from foo) as q", 
-			"SELECT 'UNKNOWN' FROM (SELECT spoint(RADIANS(x), RADIANS(y)) AS p FROM foo) AS q"),
+			"SELECT 'UNKNOWN' ASWHATEVER FROM (SELECT spoint(RADIANS(x), RADIANS(y)) AS p FROM foo) AS q"),
 		("select alpha from foo where"
 				" Intersects(circle('ICRS', alpha, delta,"
 				" margin*margin), polygon('ICRS', 1, 12, 3, 4, 5, 6, 7, 8))=0",
 				"SELECT alpha FROM foo WHERE NOT ((scircle(spoint(RADIANS(alpha), RADIANS(delta)), RADIANS(margin * margin))) && ((SELECT spoly(q.p) FROM (VALUES (0, spoint(RADIANS(1), RADIANS(12))), (1, spoint(RADIANS(3), RADIANS(4))), (2, spoint(RADIANS(5), RADIANS(6))), (3, spoint(RADIANS(7), RADIANS(8))) ORDER BY column1) as q(ind,p))))"),
+
 # 5
 		("select alpha from foo where"
 				" contains(circle('ICRS', alpha, delta,"
@@ -1623,17 +1646,17 @@ class PGSMorphTest(testhelpers.VerboseTest):
 			"SELECT alpha FROM foo WHERE NOT ((scircle(spoint(RADIANS(alpha), RADIANS(delta)), RADIANS(margin * margin))) @ ((SELECT spoly(q.p) FROM (VALUES (0, spoint(RADIANS(lf)-RADIANS(ri)/2, RADIANS(up)-RADIANS(lo)/2)), (1, spoint(RADIANS(lf)-RADIANS(ri)/2, RADIANS(up)+RADIANS(lo)/2)), (2, spoint(RADIANS(lf)+RADIANS(ri)/2, RADIANS(up)+RADIANS(lo)/2)), (3, spoint(RADIANS(lf)+RADIANS(ri)/2, RADIANS(up)-RADIANS(lo)/2)) ORDER BY column1) as q(ind,p))))"),
 		("select point('ICRS', cos(a)*sin(b), cos(a)*sin(b)),"
 				" circle('ICRS', raj2000, dej2000, 25-mag*mag) from foo",
-			'SELECT spoint(RADIANS(COS(a) * SIN(b)), RADIANS(COS(a) * SIN(b))), scircle(spoint(RADIANS(raj2000), RADIANS(dej2000)), RADIANS(25 - mag * mag)) FROM foo'),
+			'SELECT spoint(RADIANS(COS(a) * SIN(b)), RADIANS(COS(a) * SIN(b))) ASWHATEVER, scircle(spoint(RADIANS(raj2000), RADIANS(dej2000)), RADIANS(25 - mag * mag)) ASWHATEVER FROM foo'),
 		("select POiNT('ICRS', 1, 2), CIRCLE('ICRS', 2, 3, 4),"
 				" bOx('ICRS', 2 ,3, 4, 5), polygon('ICRS', 2, 3, 4, 5, 6, 7)"
 				" from foo",
-			'SELECT spoint(RADIANS(1), RADIANS(2)),'
-			' scircle(spoint(RADIANS(2), RADIANS(3)), RADIANS(4)),'
-			' (SELECT spoly(q.p) FROM (VALUES (0, spoint(RADIANS(2)-RADIANS(4)/2, RADIANS(3)-RADIANS(5)/2)), (1, spoint(RADIANS(2)-RADIANS(4)/2, RADIANS(3)+RADIANS(5)/2)), (2, spoint(RADIANS(2)+RADIANS(4)/2, RADIANS(3)+RADIANS(5)/2)), (3, spoint(RADIANS(2)+RADIANS(4)/2, RADIANS(3)-RADIANS(5)/2)) ORDER BY column1) as q(ind,p)),'
-			' (SELECT spoly(q.p) FROM (VALUES (0, spoint(RADIANS(2), RADIANS(3))), (1, spoint(RADIANS(4), RADIANS(5))), (2, spoint(RADIANS(6), RADIANS(7))) ORDER BY column1) as q(ind,p)) FROM foo'),
+			'SELECT spoint(RADIANS(1), RADIANS(2)) ASWHATEVER,'
+			' scircle(spoint(RADIANS(2), RADIANS(3)), RADIANS(4)) ASWHATEVER,'
+			' (SELECT spoly(q.p) FROM (VALUES (0, spoint(RADIANS(2)-RADIANS(4)/2, RADIANS(3)-RADIANS(5)/2)), (1, spoint(RADIANS(2)-RADIANS(4)/2, RADIANS(3)+RADIANS(5)/2)), (2, spoint(RADIANS(2)+RADIANS(4)/2, RADIANS(3)+RADIANS(5)/2)), (3, spoint(RADIANS(2)+RADIANS(4)/2, RADIANS(3)-RADIANS(5)/2)) ORDER BY column1) as q(ind,p)) ASWHATEVER,'
+			' (SELECT spoly(q.p) FROM (VALUES (0, spoint(RADIANS(2), RADIANS(3))), (1, spoint(RADIANS(4), RADIANS(5))), (2, spoint(RADIANS(6), RADIANS(7))) ORDER BY column1) as q(ind,p)) ASWHATEVER FROM foo'),
 		("select Box('ICRS',alphaFloat,deltaFloat,pmra*100,pmde*100)"
 			"	from ppmx.data where pmra!=0 and pmde!=0", 
-			"SELECT (SELECT spoly(q.p) FROM (VALUES (0, spoint(RADIANS(alphaFloat)-RADIANS(pmra * 100)/2, RADIANS(deltaFloat)-RADIANS(pmde * 100)/2)), (1, spoint(RADIANS(alphaFloat)-RADIANS(pmra * 100)/2, RADIANS(deltaFloat)+RADIANS(pmde * 100)/2)), (2, spoint(RADIANS(alphaFloat)+RADIANS(pmra * 100)/2, RADIANS(deltaFloat)+RADIANS(pmde * 100)/2)), (3, spoint(RADIANS(alphaFloat)+RADIANS(pmra * 100)/2, RADIANS(deltaFloat)-RADIANS(pmde * 100)/2)) ORDER BY column1) as q(ind,p)) FROM ppmx.data WHERE pmra != 0 AND pmde != 0"),
+			"SELECT (SELECT spoly(q.p) FROM (VALUES (0, spoint(RADIANS(alphaFloat)-RADIANS(pmra * 100)/2, RADIANS(deltaFloat)-RADIANS(pmde * 100)/2)), (1, spoint(RADIANS(alphaFloat)-RADIANS(pmra * 100)/2, RADIANS(deltaFloat)+RADIANS(pmde * 100)/2)), (2, spoint(RADIANS(alphaFloat)+RADIANS(pmra * 100)/2, RADIANS(deltaFloat)+RADIANS(pmde * 100)/2)), (3, spoint(RADIANS(alphaFloat)+RADIANS(pmra * 100)/2, RADIANS(deltaFloat)-RADIANS(pmde * 100)/2)) ORDER BY column1) as q(ind,p)) ASWHATEVER FROM ppmx.data WHERE pmra != 0 AND pmde != 0"),
 		("select * from data where 1=contains(point('fk4', 1,2),"
 			" circle('Galactic',2,3,4))",
 			'SELECT * FROM data WHERE (((spoint(RADIANS(1), RADIANS(2)))-strans(1.565186,-0.004859,-1.576368)+strans(1.346356,-1.097319,0.574771)) @ (scircle(spoint(RADIANS(2), RADIANS(3)), RADIANS(4))))'),	
@@ -1648,7 +1671,7 @@ class PGSMorphTest(testhelpers.VerboseTest):
 			"circle('icrs', 10, 10, 1))",
 			"SELECT * FROM data WHERE ((\"coVerage\") && (scircle(spoint(RADIANS(10), RADIANS(10)), RADIANS(1))))"),
 		("select contains(coverage, circle('', 10, 10, 1)) from data",
-			"SELECT CONTAINS(coverage, scircle(spoint(RADIANS(10), RADIANS(10)), RADIANS(1))) FROM data"),
+			"SELECT CONTAINS(coverage, scircle(spoint(RADIANS(10), RADIANS(10)), RADIANS(1))) ASWHATEVER FROM data"),
 			]
 
 
