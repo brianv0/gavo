@@ -214,7 +214,7 @@ class Values(base.Structure):
 		"An appropriate value representing a NULL for this column in VOTables"
 		" and similar places.  You usually should only set it for integer"
 		" types and chars.  Note that rowmakers make no use of this nullLiteral,"
-		" i.e., you can and should choose null values independently of your"
+		" i.e., you can and should choose null values independently of"
 		" your source.  Again, for reals, floats and (mostly) text you probably"
 		" do not want to do this.", copyable=True)
 	_multiOk = base.BooleanAttribute("multiOk", False, "Deprecated, use"
@@ -693,7 +693,7 @@ class Param(ParamBase):
 	it is the empty string (as is, by the way, everything that contains
 	whitespace exclusively).
 	
-	params also suppoert explicit null values via values, as in::
+	params also support explicit null values via values, as in::
 
 		<param name="x" type="integer"><values nullLiteral="-1"/>-1</params>
 	
