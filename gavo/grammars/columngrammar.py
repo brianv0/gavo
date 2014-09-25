@@ -97,7 +97,7 @@ class ColumnGrammar(Grammar, FileRowAttributes):
 	line to build the input column mag.
 
 	As a shortcut, you can also use the colDefs attribute; it contains
-	a string with of the form {<key>:<range>}, i.e.,
+	a string of the form {<key>:<range>}, i.e.,
 	a whitespace-separated list of colon-separated items of key and range
 	as accepted by cols, e.g.::
 		
