@@ -213,7 +213,7 @@ class Values(base.Structure):
 		description=
 		"An appropriate value representing a NULL for this column in VOTables"
 		" and similar places.  You usually should only set it for integer"
-		" types and chars.  Note that rowmakers mak no use of this nullLiteral,"
+		" types and chars.  Note that rowmakers make no use of this nullLiteral,"
 		" i.e., you can and should choose null values independently of your"
 		" your source.  Again, for reals, floats and (mostly) text you probably"
 		" do not want to do this.", copyable=True)
