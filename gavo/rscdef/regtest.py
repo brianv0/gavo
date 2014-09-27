@@ -96,6 +96,36 @@ class EqualingRE(object):
 		return "<Pattern %s>"%self.pat.pattern
 
 
+def doHTTPRequest(method, host, path, query, 
+		payload, headers, timeout):
+	"""creates the HTTP request and retrieves the result.
+	"""
+	conn = httplib.HTTPConnection(host, timeout=timeout)
+	conn.connect()
+	try:
+		if query:
+			path = path+"?"+query
+		conn.request(method, path, payload, headers)
+		resp = conn.getresponse()
+		respHeaders = resp.getheaders()
+		content = resp.read()
+	finally:
+		conn.close()
+	return resp.status, respHeaders, content
+
+
+def getHeaderValue(headers, key):
+	"""returns the value for key in the httplib headers.
+
+	Matching is case-insensitive as required by HTTP.  Missing keys
+	raise KeyErrors.
+	"""
+	for hKey, hValue in headers:
+		if hKey.lower()==key.lower():
+			return hValue
+	raise KeyError(key)
+
+
 ################## RD elements
 
 class DynamicOpenVocAttribute(base.AttributeDef):
@@ -280,6 +310,12 @@ class DataURL(base.Structure):
 		description='HTTP uploads to add to request (must have httpMethod="POST")',
 		copyable=True)
 
+	_httpHonorRedirects = base.BooleanAttribute("httpHonorRedirects",
+		default=False,
+		description="Follow 30x redirects instead of just using"
+			" status, headers, and payload of the initial request.",
+		copyable="True")
+
 	_rd = common.RDAttribute()
 
 	_open = DynamicOpenVocAttribute("open")
@@ -312,14 +348,15 @@ class DataURL(base.Structure):
 				("_charset_", "UTF-8")])
 		return params
 
+
 	def retrieveResource(self, serverURL, timeout):
 		"""returns a triple of status, headers, and content for retrieving
 		this URL.
 		"""
 		self.httpURL, payload = self.getValue(serverURL), None
-		hdrs = {
+		headers = {
 			"user-agent": "DaCHS regression tester"}
-		hdrs.update(self.httpHeader)
+		headers.update(self.httpHeader)
 
 		if self.httpMethod=="POST":
 			if self.postPayload:
@@ -334,32 +371,29 @@ class DataURL(base.Structure):
 					upload.addToForm(form)
 				boundary = "========== roughtest deadbeef"
 				form.set_param("boundary", boundary)
-				hdrs["Content-Type"] = form.get_content_type(
+				headers["Content-Type"] = form.get_content_type(
 					)+'; boundary="%s"'%boundary
 				payload = form.as_string()
 
 			else:
 				payload = urllib.urlencode(self.getParams())
-				hdrs["Content-Type"] = "application/x-www-form-urlencoded"
+				headers["Content-Type"] = "application/x-www-form-urlencoded"
 
 		scheme, host, path, _, query, _ = urlparse.urlparse(self.httpURL)
 		assert scheme=="http"
 
-
 		if self.httpAuthKey is not base.NotGiven:
-			hdrs.update(getAuthFor(self.httpAuthKey))
-		conn = httplib.HTTPConnection(host, timeout=timeout)
-		conn.connect()
-		try:
-			if query:
-				path = path+"?"+query
-			conn.request(self.httpMethod, path, payload, hdrs)
-			resp = conn.getresponse()
-			headers = resp.getheaders()
-			content = resp.read()
-		finally:
-			conn.close()
-		return resp.status, headers, content
+			headers.update(getAuthFor(self.httpAuthKey))
+		status, respHeaders, content = doHTTPRequest(self.httpMethod,
+			host, path, query, payload, headers, timeout)
+		
+		while self.httpHonorRedirects and status in [301, 302, 303]:
+			scheme, host, path, _, query, _ = urlparse.urlparse(
+				getHeaderValue(respHeaders, "location"))
+			status, respHeaders, content = doHTTPRequest("GET",
+				host, path, query, None, {}, timeout)
+
+		return status, respHeaders, content
 
 	def _addParams(self, urlBase, params):
 		"""a brief hack to add query parameters to GET-style URLs.
@@ -573,17 +607,21 @@ class RegTest(procdef.ProcApp, unittest.TestCase):
 
 		keys are compared case-insensitively, values are compared literally.
 		"""
-		for hKey, hValue in self.headers:
-			if hKey.lower()==key.lower():
-				if value==hValue:
-					break
-		else:
+		try:
+			foundValue = getHeaderValue(self.headers, key)
+			self.assertEqual(foundValue, value)
+		except (KeyError, AssertionError):
 			raise AssertionError("Header %s=%s not found in %s"%(
 				key, value, self.headers))
 
 	@utils.document
 	def getFirstVOTableRow(self):
 		"""interprets data as a VOTable and returns the first row as a dictionary
+
+		In test use, make sure the VOTable returned is sorted, or you will get
+		randomly failing tests.  Ideally, you'll constrain the results to just
+		one match; database-querying cores (which is where order is an
+		issue) also honor _DBOPTIONS_ORDER).
 		"""
 		data, metadata = votable.load(StringIO(self.data))
 		for row in metadata.iterDicts(data):

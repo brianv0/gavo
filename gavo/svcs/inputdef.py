@@ -20,7 +20,6 @@ from gavo import base
 from gavo import grammars
 from gavo import rscdef
 from gavo import utils
-from gavo.protocols import dali
 from gavo.rscdef import column
 from gavo.svcs import pql
 from gavo.svcs import vizierexprs

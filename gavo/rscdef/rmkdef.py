@@ -226,16 +226,18 @@ class RowmakerMacroMixin(base.StandardMacroMixin):
 	or they will mess up the calculation of what constructs caused errors.
 	"""
 	def macro_standardPubDID(self):
-		"""returns the "standard publisher DID" for the current product.
+		r"""returns the "standard publisher DID" for the current product.
 
 		The publisher dataset identifier (PubDID) is important in protocols like
 		SSAP and obscore.  If you use this macro, the PubDID will be your
-		authority, the path compontent ~, and the inputs-relative path of 
-		the input file as the parameter.
+		authority, the path compontent ~, and the current value of @prodtblAccref.
+		It thus will only work where products#define (or a replacement) is in
+		action.  If it isn't, a normal function call
+		getStandardPubDID(\\inputRelativePath) would be an obvious alternative.
 
 		You *can* of course define your PubDIDs in a different way.
 		"""
-		return ('getStandardPubDID(vars["parser_"].sourceToken)')
+		return ('getStandardPubDID(vars["prodtblAccref"])')
 
 	def macro_inputRelativePath(self, liberalChars="True"):
 		"""returns an expression giving the current source's path 
