@@ -79,7 +79,7 @@ def _booleanizeContainsQ3C(node, operator, operand):
 		else:
 			expr = ("q3c_join(%s, %s, %s, %s, %s)"%tuple(map(_flatAndMorph, 
 				(p.x, p.y, shape.x, shape.y, shape.radius))))
-	elif shape=="polygon":
+	elif shape.type=="polygon":
 		expr = "q3c_poly_query(%s, %s, ARRAY[%s])"%(
 			_flatAndMorph(p.x), _flatAndMorph(p.y), ",".join([
 				"%s,%s"%(_flatAndMorph(x), _flatAndMorph(y)) for x,y in shape.coos]))

@@ -15,7 +15,7 @@
 			doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"/>
 
 		<xsl:template match="v:DESCRIPTION">
-			<p class="description">
+			<p class="parbody">
 				<xsl:apply-templates/>
 			</p>
 		</xsl:template>
@@ -58,6 +58,13 @@
 					<title>Service Interface Documentation</title>
 					<meta name="robots" content="nofollow"/>
           <xsl:call-template name="localCompleteHead"/>
+					<style type="text/css">
+						.parbody {
+							background-color: white;
+							color: #777777;
+							font-size: 80%;
+						}
+					</style>
         </head>
 				<body>
 					<h1>Service Interface Documentation</h1>
