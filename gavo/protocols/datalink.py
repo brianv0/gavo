@@ -218,6 +218,11 @@ class _ServiceDescriptor(object):
 		the identifiers.  SSA can already provide this.  It ends up
 		in a LINK child of the ID parameter.
 		"""
+		if accessURL.endswith("dlasync"):
+			standardId = "ivo://ivoa.net/std/SSDP#async"
+		else:
+			standardId = "ivo://ivoa.net/std/SSDP#sync"
+
 		paramsByName, stcSpecs = {}, set()
 		for param in self.inputKeys:
 			paramsByName[param.name] = param
@@ -234,7 +239,9 @@ class _ServiceDescriptor(object):
 				for ast in stcSpecs],
 			V.PARAM(arraysize="*", datatype="char", 
 				name="accessURL", ucd="meta.ref.url",
-				value=accessURL)]
+				value=accessURL),
+			V.PARAM(arraysize="*", datatype="char",
+				name="standardID", value=standardId)]
 
 		inputParams = V.GROUP(name="input")
 		res = res[inputParams]
@@ -487,30 +494,45 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 		"""
 		internalLinks = []
 
-		if "dlget" in service.allowed:
-			internalLinks = [LinkDef(s.pubDID, service.getURL("dlget"),
+		# If there's an access service, add metadata and make note of this for
+		# futher down in the function.  Prefer the sync service if
+		# both sync and async are available.
+		accessRenderer = None
+		if "dlasync" in service.allowed:
+			accessRenderer = "dlasync"
+			internalLinks.extend(LinkDef(s.pubDID, service.getURL("dlasync"),
 					serviceType=ctx.getOrMakeIdFor(s), semantics="access")
-				for s in self.datalinkServices]
-			for d in self.descriptors:
-				if not isinstance(d, ProductDescriptor):
-					continue
-				internalLinks.append(LinkDef(d.pubDID, 
-						service.getURL("dlget")+"?ID="+urllib.quote_plus(d.pubDID),
-						description="The full dataset.",
-						contentType=d.mime,
-						contentLength=d.estimateSize(),
-						semantics="self"))
+				for s in self.datalinkServices)
 
-				if d.preview:
-					if d.preview.startswith("http"):
-						previewLink = d.preview
-					else:
-						previewLink = products.makeProductLink(
-							products.RAccref(d.accref, 
-								inputDict={"preview": True}))
-					internalLinks.append(LinkDef(d.pubDID,
-						previewLink, description="A preview.",
-						contentType=d.preview_mime, semantics="preview"))
+		if "dlget" in service.allowed:
+			accessRenderer = "dlget"
+			internalLinks.extend(LinkDef(s.pubDID, service.getURL("dlget"),
+					serviceType=ctx.getOrMakeIdFor(s), semantics="access")
+				for s in self.datalinkServices)
+
+		for d in self.descriptors:
+			# for all descriptors that are products, make a full dataset
+			# available through the data access, possibly also adding a preview.
+			if not isinstance(d, ProductDescriptor):
+				continue
+			if accessRenderer:
+				internalLinks.append(LinkDef(d.pubDID, 
+					service.getURL(accessRenderer)+"?ID="+urllib.quote_plus(d.pubDID),
+					description="The full dataset.",
+					contentType=d.mime,
+					contentLength=d.estimateSize(),
+					semantics="self"))
+
+			if getattr(d, "preview", None):
+				if d.preview.startswith("http"):
+					previewLink = d.preview
+				else:
+					previewLink = products.makeProductLink(
+						products.RAccref(d.accref, 
+							inputDict={"preview": True}))
+				internalLinks.append(LinkDef(d.pubDID,
+					previewLink, description="A preview.",
+					contentType=d.preview_mime, semantics="preview"))
 
 		data = rsc.makeData(
 			base.caches.getRD("//datalink").getById("make_response"),
@@ -576,8 +598,6 @@ class DatalinkCore(DatalinkCoreBase):
 		if services:
 			inputKeys.extend(services[-1].inputKeys)
 
-		# The queriedTable hack here is to get our table into the VOSI
-		# endpoint; we should fix this when we fix this for TAP.
 		if renderer.name=="dlmeta":
 			inputKeys.append(MS(svcs.InputKey, name="REQUEST", 
 				type="text", 
@@ -623,7 +643,7 @@ class DatalinkCore(DatalinkCoreBase):
 	
 		The ugly thing about datalink in DaCHS' architecture is that its
 		interface (in terms of, e.g., inputKeys' values children) depends
-		on the arguments themselves, specifically the pubdid.
+		on the arguments themselves, specifically the pubDID.
 
 		The workaround is to abuse the renderer-specific getCoreFor,
 		ignore the renderer and instead steal an "args" variable from
@@ -669,16 +689,25 @@ class DatalinkCore(DatalinkCoreBase):
 
 		return self.adaptForDescriptors(renderer, descriptors)
 
+	
+	def _iterAccessResources(self, ctx, service):
+		"""iterates over the VOTable RESOURCE elements necessary for
+		the datalink rows produced by service.
+		"""
+		renderers = set(["dlget", "dlasync"]) & set(service.allowed)
+		if not renderers:
+			return
+		for dlSvc in self.datalinkServices:
+			for rend in renderers:
+				yield dlSvc.asVOT(ctx, service.getURL(rend))
 
 	def runForMeta(self, service, inputTable, queryMeta):
 		"""returns a rendered VOTable containing the datalinks.
 		"""
 		ctx = votablewrite.VOTableContext(tablecoding="td")
 		vot = V.VOTABLE[
-				self.getDatalinksResource(ctx, service), [
-					dlSvc.asVOT(ctx, service.getURL("dlget")) 
-						for dlSvc in self.datalinkServices]
-				]
+				self.getDatalinksResource(ctx, service), 
+				self._iterAccessResources(ctx, service)]
 		return ("application/x-votable+xml;content=datalink", vot.render())
 
 	def runForData(self, service, inputTable, queryMeta):

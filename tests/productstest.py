@@ -629,6 +629,38 @@ class DatalinkMetaMakerTest(testhelpers.VerboseTest):
 			else:
 				raise AssertionError("Unexpected Parameter %s"%parName)
 
+	def testAsyncDeclared(self):
+		svc = base.parseFromString(svcs.Service, """
+		<service id="foo" allowed="dlget,dlasync,dlmeta">
+			<datalinkCore>
+				<metaMaker>
+					<code>
+						yield MS(InputKey, name="PAR", type="text")
+					</code>
+				</metaMaker>
+				<dataFunction procDef="//datalink#generateProduct"/>
+			</datalinkCore>
+			</service>""")
+		svc.parent = testhelpers.getTestRD()
+
+		mime, data = svc.run("dlmeta", {
+			"ID": [
+				rscdef.getStandardPubDID("data/a.imp"),
+				]}).original
+
+		tree = testhelpers.getXMLTree(data, debug=False)
+
+		self.assertEqual(len(tree.xpath("//TR")), 4)
+		self.assertEqual(
+			set(['http://localhost:8080/data/test/foo/dlget', 
+				'http://localhost:8080/data/test/foo/dlasync']),
+			set([p.get("value") for p in tree.xpath("//PARAM[@name='accessURL']")]))
+		self.assertEqual(
+			set(['ivo://ivoa.net/std/SSDP#async','ivo://ivoa.net/std/SSDP#sync']),
+			set([p.get("value") 
+				for p in tree.xpath("//PARAM[@name='standardID']")]))
+
+
 
 class _MetaMakerTestRows(testhelpers.TestResource):
 	resources = [
@@ -733,7 +765,8 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 	resources = [("fitsTable", _fitsTable)]
 
 	def testNotFound(self):
-		svc = base.parseFromString(svcs.Service, """<service id="foo">
+		svc = base.parseFromString(svcs.Service, """<service id="foo"
+				allowed="dlmeta, dlget">
 			<datalinkCore>
 				<descriptorGenerator procDef="//datalink#fits_genDesc">
 					<bind key="accrefStart">"data/"</bind>
@@ -748,7 +781,8 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 			"<TD></TD><TD>NotFoundError: Not a pubDID from this site.</TD>" in data)
 
 	def testMakeDescriptor(self):
-		svc = base.parseFromString(svcs.Service, """<service id="foo">
+		svc = base.parseFromString(svcs.Service, """<service id="foo"
+				allowed="dlmeta,dlget">
 			<datalinkCore>
 				<descriptorGenerator procDef="//datalink#fits_genDesc">
 					<bind key="accrefStart">"data/"</bind>
@@ -777,7 +811,8 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 			)[0].text, "The latitude coordinate, upper limit")
 
 	def testMakeCubeDescriptor(self):
-		svc = base.parseFromString(svcs.Service, """<service id="foo">
+		svc = base.parseFromString(svcs.Service, """<service id="foo"
+				allowed="dlmeta,dlget">
 			<datalinkCore>
 				<descriptorGenerator procDef="//datalink#fits_genDesc"/>
 				<metaMaker procDef="//datalink#fits_makeWCSParams">
@@ -812,7 +847,8 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 			"3.755e-07")
 
 	def testCutoutNoSpatialCube(self):
-		svc = base.parseFromString(svcs.Service, """<service id="foo">
+		svc = base.parseFromString(svcs.Service, """<service id="foo"
+				allowed="dlmeta,dlget">
 			<datalinkCore>
 				<descriptorGenerator procDef="//datalink#fits_genDesc"/>
 				<metaMaker procDef="//datalink#fits_makeWCSParams"/>
@@ -834,7 +870,8 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 		self.assertEqual(hdr["NAXIS3"], 2)
 
 	def testCutoutLAMBDACube(self):
-		svc = base.parseFromString(svcs.Service, """<service id="foo">
+		svc = base.parseFromString(svcs.Service, """<service id="foo"
+				allowed="dlmeta,dlget">
 			<datalinkCore>
 				<descriptorGenerator procDef="//datalink#fits_genDesc"/>
 				<metaMaker procDef="//datalink#fits_makeWCSParams"/>
@@ -860,7 +897,8 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 		self.assertEqual(hdr["NAXIS3"], 2)
 
 	def testCutoutCube(self):
-		svc = base.parseFromString(svcs.Service, """<service id="foo">
+		svc = base.parseFromString(svcs.Service, """<service id="foo"
+				allowed="dlmeta,dlget">
 			<datalinkCore>
 				<descriptorGenerator procDef="//datalink#fits_genDesc"/>
 				<metaMaker procDef="//datalink#fits_makeWCSParams"/>
@@ -886,7 +924,8 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 		self.assertEqual(hdr["NAXIS3"], 2)
 
 	def testKindPar(self):
-		svc = base.parseFromString(svcs.Service, """<service id="foo">
+		svc = base.parseFromString(svcs.Service, """<service id="foo"
+				allowed="dlmeta,dlget">
 			<datalinkCore>
 				<descriptorGenerator procDef="//datalink#fits_genDesc"/>
 				<dataFunction procDef="//datalink#fits_makeHDUList"/>
@@ -899,7 +938,8 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 		self.assertEqual(len(data), 2880)
 
 	def testCutoutHeader(self):
-		svc = base.parseFromString(svcs.Service, """<service id="foo">
+		svc = base.parseFromString(svcs.Service, """<service id="foo"
+				allowed="dlmeta,dlget">
 			<datalinkCore>
 				<descriptorGenerator procDef="//datalink#fits_genDesc"/>
 				<metaMaker procDef="//datalink#fits_makeWCSParams"/>
@@ -915,7 +955,8 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 		self.failUnless("NAXIS3  =                    2" in data)
 
 	def testFITSNoSTC(self):
-		svc = base.parseFromString(svcs.Service, """<service id="foo">
+		svc = base.parseFromString(svcs.Service, """<service id="foo"
+				allowed="dlmeta,dlget">
 			<datalinkCore>
 				<FEED source="//datalink#fits_standardDLFuncs"
 					accrefStart="" stcs=""/>
@@ -926,7 +967,8 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 		self.failUnless("<DATA><TABLEDATA>" in data)
 
 	def testPixelMeta(self):
-		svc = base.parseFromString(svcs.Service, """<service id="foo">
+		svc = base.parseFromString(svcs.Service, """<service id="foo"
+				allowed="dlmeta,dlget">
 			<datalinkCore>
 				<descriptorGenerator procDef="//datalink#fits_genDesc"/>
 				<FEED source="//datalink#fits_genPixelPar"/>
@@ -941,7 +983,8 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 			)[0].get("datatype"), "int")
 
 	def testPixelCutout(self):
-		svc = base.parseFromString(svcs.Service, """<service id="foo">
+		svc = base.parseFromString(svcs.Service, """<service id="foo"
+				allowed="dlmeta,dlget">
 			<datalinkCore>
 				<FEED source="//datalink#fits_standardDLFuncs"
 					stcs="" accrefStart=""/>
@@ -961,7 +1004,8 @@ class DatalinkSTCTest(testhelpers.VerboseTest):
 	resources = [("fitsTable", _fitsTable)]
 
 	def testSTCDefsPresent(self):
-		svc = base.parseFromString(svcs.Service, """<service id="foo">
+		svc = base.parseFromString(svcs.Service, """<service id="foo"
+				allowed="dlmeta,dlget">
 			<datalinkCore>
 				<descriptorGenerator procDef="//datalink#fits_genDesc"/>
 				<metaMaker>
@@ -997,7 +1041,8 @@ class DatalinkSTCTest(testhelpers.VerboseTest):
 			"DEC_MAX")
 
 	def testTwoSystems(self):
-		svc = base.parseFromString(svcs.Service, """<service id="foo">
+		svc = base.parseFromString(svcs.Service, """<service id="foo"
+				allowed="dlmeta, dlget">
 			<datalinkCore>
 				<descriptorGenerator procDef="//datalink#fits_genDesc"/>
 				<metaMaker>
@@ -1041,6 +1086,8 @@ class DatalinkSTCTest(testhelpers.VerboseTest):
 		names = set(tree.xpath("//PARAM[@ID='%s']"%id)[0].get("name")
 			for id in ids)
 		self.assertEqual(names, set(["DEC_MAX", "BET_MAX"]))
+
+
 
 
 class _FakeProduct(products.ProductBase):

@@ -167,7 +167,7 @@
   	</make>
 	</data>
 
-	<service id="dl" allowed="datalink">
+	<service id="dl" allowed="dlget,dlmeta">
 		<datalinkCore>
 			<descriptorGenerator procDef="//datalink#sdm_genDesc">
 				<bind name="ssaTD">"\rdId#hcdtest"</bind>
