@@ -49,6 +49,9 @@ def getExtForMime(mime):
 
 	If no extension matches, ".bin" is returned.
 	"""
+	if mime==base.votableType:
+		return ".vot"
+
 	for ext, type in static.File.contentTypes.iteritems():
 		if mime==type:
 			return ext

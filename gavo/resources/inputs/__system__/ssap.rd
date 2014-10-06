@@ -838,8 +838,6 @@
 				REDSHIFT,     ssa_redshift,  //pql#floatParameter
 				TARGETNAME,   ssa_targname,  //pql#irStringParameter
 				TARGETCLASS,  ssa_targclass, //pql#stringParameter
-				PUBDID,       ssa_pubDID,    //pql#stringParameter
-				CREATORDID,   ssa_creatorDID,//pql#stringParameter
 				MTIME,        ssa_pdate,     //pql#dateParameter
 			</csvItems>
 			<events>
@@ -871,6 +869,26 @@
 					<phraseMaker procDef="//ssap#parablePQLPar">
 						<bind name="consCol">"\matchCol"</bind>
 						<bind name="parClass">\parClass</bind>
+					</phraseMaker>
+				</condDesc>
+			</events>
+		</LOOP>
+
+		<LOOP>
+			<csvItems>
+				keyName,      matchCol
+				PUBDID,       ssa_pubDID
+				CREATORDID,   ssa_creatorDID
+			</csvItems>
+			<events>
+				<condDesc>
+					<inputKey original="//ssap#instance.\matchCol" name="\keyName"
+						std="True" multiplicity="single"/>
+					<phraseMaker>
+						<code>
+							yield "\matchCol=%%(%s)s"%base.getSQLKey("\keyName",
+								inPars["\keyName"], outPars)
+						</code>
 					</phraseMaker>
 				</condDesc>
 			</events>

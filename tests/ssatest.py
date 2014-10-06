@@ -189,7 +189,7 @@ class CoreQueriesTest(_WithSSATableTest):
 			["test1", "test2", "test3"]),
 		({"TARGETNAME": "booger star,rat hole in the yard"},
 			["test2", "test3"]),
-		({"PUBDID": "ivo:%2f%2ftest.inv%2ftest2"},
+		({"PUBDID": "ivo://test.inv/test2"},
 			["test2"]),
 #15
 		({"excellence": "/100"},
