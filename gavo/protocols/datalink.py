@@ -205,8 +205,9 @@ class _ServiceDescriptor(object):
 	Basically, these collect input keys, a pubDID, as well as any other
 	data we might need in service definitioin.
 	"""
-	def __init__(self, pubDID, inputKeys):
+	def __init__(self, pubDID, inputKeys, rendName):
 		self.pubDID, self.inputKeys = pubDID, inputKeys
+		self.rendName = rendName
 
 	def asVOT(self, ctx, accessURL, linkIdTo=None):
 		"""returns VOTable stanxml for a description of this service.
@@ -218,11 +219,6 @@ class _ServiceDescriptor(object):
 		the identifiers.  SSA can already provide this.  It ends up
 		in a LINK child of the ID parameter.
 		"""
-		if accessURL.endswith("dlasync"):
-			standardId = "ivo://ivoa.net/std/SSDP#async"
-		else:
-			standardId = "ivo://ivoa.net/std/SSDP#sync"
-
 		paramsByName, stcSpecs = {}, set()
 		for param in self.inputKeys:
 			paramsByName[param.name] = param
@@ -239,9 +235,15 @@ class _ServiceDescriptor(object):
 				for ast in stcSpecs],
 			V.PARAM(arraysize="*", datatype="char", 
 				name="accessURL", ucd="meta.ref.url",
-				value=accessURL),
-			V.PARAM(arraysize="*", datatype="char",
-				name="standardID", value=standardId)]
+				value=accessURL)]
+
+		standardId = {
+			"dlasync": "ivo://ivoa.net/std/SSDP#async",
+			"dlget": "ivo://ivoa.net/std/SSDP#sync"}.get(self.rendName)
+		if standardId:
+			res[
+				V.PARAM(arraysize="*", datatype="char",
+					name="standardID", value=standardId)]
 
 		inputParams = V.GROUP(name="input")
 		res = res[inputParams]
@@ -494,21 +496,16 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 		"""
 		internalLinks = []
 
-		# If there's an access service, add metadata and make note of this for
-		# futher down in the function.  Prefer the sync service if
-		# both sync and async are available.
+		internalLinks.extend(LinkDef(s.pubDID, service.getURL(s.rendName),
+				serviceType=ctx.getOrMakeIdFor(s), semantics="access")
+			for s in self.datalinkEndpoints)
+
+		# for accessing the dataset itself, prefer sync dlget
 		accessRenderer = None
 		if "dlasync" in service.allowed:
 			accessRenderer = "dlasync"
-			internalLinks.extend(LinkDef(s.pubDID, service.getURL("dlasync"),
-					serviceType=ctx.getOrMakeIdFor(s), semantics="access")
-				for s in self.datalinkServices)
-
 		if "dlget" in service.allowed:
 			accessRenderer = "dlget"
-			internalLinks.extend(LinkDef(s.pubDID, service.getURL("dlget"),
-					serviceType=ctx.getOrMakeIdFor(s), semantics="access")
-				for s in self.datalinkServices)
 
 		for d in self.descriptors:
 			# for all descriptors that are products, make a full dataset
@@ -583,7 +580,12 @@ class DatalinkCore(DatalinkCoreBase):
 		This method is mainly for helping adaptForRenderer.  Do read the
 		docstring there.
 		"""
-		linkDefs, services, errors = [], [], []
+		try:
+			allowedForSvc = set(utils.stealVar("allowedRendsForStealing"))
+		except ValueError:
+			allowedForSvc = []
+
+		linkDefs, endpoints, errors = [], [], []
 		for descriptor in descriptors:
 			if isinstance(descriptor, DatalinkError):
 				errors.append(descriptor)
@@ -592,12 +594,17 @@ class DatalinkCore(DatalinkCoreBase):
 				lds, inputKeys, lerrs = self.getMetaForDescriptor(descriptor)
 				linkDefs.extend(lds)
 				errors.extend(lerrs)
-				services.append(_ServiceDescriptor(descriptor.pubDID, inputKeys))
+	
+				# ssap expects the first renderer here to be dlget, so don't
+				# remove it or move it back.
+				for rendName in ["dlget", "dlasync"]:
+					if rendName in allowedForSvc:
+						endpoints.append(
+							_ServiceDescriptor(descriptor.pubDID, inputKeys, rendName))
 
+		# dispatch on whether we're making metadata (case 1) or actual
+		# data (case 2)
 		inputKeys = self.inputKeys[:]
-		if services:
-			inputKeys.extend(services[-1].inputKeys)
-
 		if renderer.name=="dlmeta":
 			inputKeys.append(MS(svcs.InputKey, name="REQUEST", 
 				type="text", 
@@ -618,22 +625,31 @@ class DatalinkCore(DatalinkCoreBase):
 				values=rscdef.Values.fromOptions(
 					["application/x-votable+xml;content=datalink"])))
 
+		else:
+			# we're a data generating core;  inputKeys are the core's plus 
+			# possibly those of actual processors.  Right now, we assume they're
+			# all the same, so we take the last one as representative
+			#
+			# TODO: this restricts the use of the core to dlget and dlasync
+			# (see endpoint creation above).  It's not clear that's what we
+			# want, as e.g. form may work fine as well.
+			if endpoints:
+				inputKeys.extend(endpoints[-1].inputKeys)
+			if isinstance(descriptors[-1], DatalinkError):
+				descriptors[-1].raiseException()
+
 		res = self.change(inputTable=MS(svcs.InputTable, 
 			params=inputKeys))
 
-		# this is a bit of a hack: dlmeta should return the metadata,
-		# all other renderers are supposed to want to do the processing
-		# (in particular dlget, but form should do, too)
+		# again dispatch on meta or data, this time as regards what to run.
 		if renderer.name=="dlmeta":
 			res.run = res.runForMeta
 		else:
-			if isinstance(descriptors[-1], DatalinkError):
-				descriptors[-1].raiseException()
 			res.run = res.runForData
 
 		res.nocache = True
 		res.datalinkLinks = linkDefs
-		res.datalinkServices = services
+		res.datalinkEndpoints = endpoints
 		res.descriptors = descriptors
 		res.errors = errors
 		return res
@@ -654,7 +670,7 @@ class DatalinkCore(DatalinkCoreBase):
 
 		This tries to generate all datalink-relevant metadata in one go 
 		and avoid calling the descriptorGenerator(s) more than once per
-		pubDID.  It therefore adds datalinkLinks, datalinkServices,
+		pubDID.  It therefore adds datalinkLinks, datalinkEndpoints,
 		and datalinkDescriptors attributes.  These are used later
 		in either metadata generation or data processing.
 
@@ -694,12 +710,8 @@ class DatalinkCore(DatalinkCoreBase):
 		"""iterates over the VOTable RESOURCE elements necessary for
 		the datalink rows produced by service.
 		"""
-		renderers = set(["dlget", "dlasync"]) & set(service.allowed)
-		if not renderers:
-			return
-		for dlSvc in self.datalinkServices:
-			for rend in renderers:
-				yield dlSvc.asVOT(ctx, service.getURL(rend))
+		for dlSvc in self.datalinkEndpoints:
+			yield dlSvc.asVOT(ctx, service.getURL(dlSvc.rendName))
 
 	def runForMeta(self, service, inputTable, queryMeta):
 		"""returns a rendered VOTable containing the datalinks.

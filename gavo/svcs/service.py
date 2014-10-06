@@ -729,9 +729,13 @@ class Service(base.Structure, base.ComputedMetaMixin,
 			return self.core
 
 		if renderer.name not in self._coresCache:
+			# Bad Hack: Tell datalink core what renderers are allowed on
+			# this service
+			allowedRendsForStealing = self.allowed #noflake: for stealVar downstack
+
 			res = self.core.adaptForRenderer(renderer)
 
-			# this is a hack for the highly polymorpous datalink core
+			# Hack: let the polymorphous datalink core suppress caching
 			if getattr(res, "nocache", False):
 				return res
 

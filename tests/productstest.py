@@ -372,7 +372,8 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 		self.assertEqual(res.accessPath, "data/a.imp")
 
 	def testProductsGenerator(self):
-		svc = base.parseFromString(svcs.Service, """<service id="foo">
+		svc = base.parseFromString(svcs.Service, """<service id="foo"
+				allowed="dlget">
 			<datalinkCore>
 				<dataFunction procDef="//datalink#generateProduct"/>
 				<metaMaker><code>yield MS(InputKey, name="ignored")</code></metaMaker>
@@ -384,7 +385,8 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 			'\ndelta: 42 34 59.7\nobject: michael\nembargo: 2003-12-31\n')
 
 	def testProductsGeneratorMimecheck(self):
-		svc = base.parseFromString(svcs.Service, """<service id="foo">
+		svc = base.parseFromString(svcs.Service, """<service id="foo" 
+				allowed="dlget">
 			<datalinkCore>
 				<dataFunction procDef="//datalink#generateProduct">
 					<bind name="requireMimes">["image/fits"]</bind></dataFunction>
@@ -398,7 +400,8 @@ class DatalinkElementTest(testhelpers.VerboseTest):
 				"ignored": 0.5}))
 
 	def testProductsGeneratorFailure(self):
-		svc = base.parseFromString(svcs.Service, """<service id="foo">
+		svc = base.parseFromString(svcs.Service, """<service id="foo"
+				allowed="dlget">
 			<datalinkCore>
 				<dataFunction procDef="//datalink#generateProduct">
 					<code>descriptor.data = None
@@ -1086,8 +1089,6 @@ class DatalinkSTCTest(testhelpers.VerboseTest):
 		names = set(tree.xpath("//PARAM[@ID='%s']"%id)[0].get("name")
 			for id in ids)
 		self.assertEqual(names, set(["DEC_MAX", "BET_MAX"]))
-
-
 
 
 class _FakeProduct(products.ProductBase):

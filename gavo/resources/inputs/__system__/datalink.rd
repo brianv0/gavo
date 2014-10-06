@@ -18,7 +18,7 @@
 		<column name="error_message" type="text"
 			ucd="meta.code.error"
 			tablehead="Why not?"
-			description="If accessURL is empty, this column give the reason why."
+			description="If accessURL is empty, this column gives the reason why."
 			verbLevel="20"/>
 		<column name="service_def" type="text"
 			ucd="meta.code"

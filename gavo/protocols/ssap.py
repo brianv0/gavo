@@ -81,9 +81,10 @@ def getDatalinkCore(dlSvc, ssaTable):
 
 	dlSvc is the datalink service, ssaTable a non-empty SSA result table.
 	"""
+	allowedRendsForStealing = ["dlget"] #noflake: for stealVar downstack
 	totalRow = _combineRowIntoOne(ssaTable.rows)
 	desc = SSADescriptor.fromSSARow(totalRow, ssaTable.getParamDict())
-	return dlSvc.core.adaptForDescriptors(svcs.getRenderer("dlmeta"), [desc])
+	return dlSvc.core.adaptForDescriptors(svcs.getRenderer("dlget"), [desc])
 
 
 class SSAPCore(svcs.DBCore):
@@ -299,8 +300,11 @@ class SSAPCore(svcs.DBCore):
 			self._declareGenerationParameters(vot, dlCore)
 
 			# new and shiny datalink (keep)
-			vot[dlCore.datalinkServices[0].asVOT(
-				votCtx, dlService.getURL("dlget"), linkIdTo=pubDIDId)]
+			# (we're just using endpoint 0; it should a the sync service)
+			dlEndpoint = dlCore.datalinkEndpoints[0]
+			vot[dlEndpoint.asVOT(
+				votCtx, dlService.getURL(dlEndpoint.rendName), 
+				linkIdTo=pubDIDId)]
 
 			# Also point to the dl metadata service
 			vot[V.RESOURCE(type="meta", utype="adhoc:service")[

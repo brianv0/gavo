@@ -248,7 +248,7 @@ class GetDataTest(_WithSSATableTest):
 	def testGetdataDeclared(self):
 		res = self.runService("c",
 			{"REQUEST": "queryData"})
-		tree = testhelpers.getXMLTree(res.original[1])
+		tree = testhelpers.getXMLTree(res.original[1], debug=False)
 		gpTable = tree.xpath('//TABLE[@name="generationParameters"]')[0]
 
 		formats = [el.get("value")
