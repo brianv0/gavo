@@ -105,7 +105,7 @@
 		</column>
 		<column name="size" type="integer" 
 				description="Length of variable length datatypes">
-			<values nullLiteral="1"/>
+			<values nullLiteral="-1"/>
 			<property name="std">1</property>
 		</column>
 		<column name="principal" type="integer" required="True"

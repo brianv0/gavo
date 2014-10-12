@@ -20,6 +20,7 @@ from gavo import utils
 GRAMMAR_REGISTRY = {
 # elementName -> (module (without gavo.), class name)
 	"binaryGrammar": ("grammars.binarygrammar", "BinaryGrammar"),
+	"cdfHeaderGrammar": ("grammars.cdfgrammar", "CDFHeaderGrammar"),
 	"columnGrammar": ("grammars.columngrammar", "ColumnGrammar"),
 	"contextGrammar": ("svcs.inputdef", "ContextGrammar"),
 	"customGrammar": ("grammars.customgrammar", "CustomGrammar"),
