@@ -16,6 +16,7 @@ import re
 from gavo import base
 from gavo.grammars.common import Grammar, RowIterator, MapKeys
 from gavo.utils import fitstools
+from gavo.utils import pyfits
 
 
 class FITSProdIterator(RowIterator):
@@ -62,7 +63,17 @@ class FITSProdIterator(RowIterator):
 	def _parseSlow(self):
 		fName = self.sourceToken
 		hdus = fitstools.openFits(fName)
-		header = hdus[int(self.grammar.hdu)].header
+		hduIndex = int(self.grammar.hdu)
+
+		# handle compressed FITSes transparently in hdu=0 case
+		# TODO: similar code in utils.fitstools -- is there a smart
+		# refactoring for this?
+		if (hduIndex==0 
+				and len(hdus)>1 
+				and isinstance(hdus[1], pyfits.CompImageHDU)):
+			hduIndex = 1
+			
+		header = hdus[hduIndex].header
 		hdus.close()
 		yield self._buildDictFromHeader(header)
 	
@@ -80,6 +91,10 @@ class FITSProdGrammar(Grammar):
 	header (or some other hdu using the same-named attribute).  "-" in
 	keywords is replaced with an underscore for easier @-referencing.
 	You can use a mapKeys element to effect further name cosmetics.
+
+	This grammar should handle compressed FITS images transparently if
+	set qnd="False".  This means that you will essentially get the readers
+	from the second extension for those even if you left hdu="0".
 
 	The original header is preserved as the value of the header\_ key.  This
 	is mainly intended for use WCS use, as in ``pywcs.WCS(@header_)``.

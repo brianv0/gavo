@@ -79,7 +79,8 @@ class DeletedTest(testhelpers.VerboseTest):
 	def _makeDeletedRecord(self):
 		return base.makeStruct(nonservice.DeletedResource,
 			resTuple={"sourceRD": "foo", "resId": "bar", "recTimestamp":
-				datetime.datetime(2010, 10, 10, 10, 10, 10)})
+				datetime.datetime(2010, 10, 10, 10, 10, 10),
+				"ivoid": "ivo://%s/foo/bar"%base.getConfig("ivoa", "authority")})
 
 	def testResob(self):
 		dr = self._makeDeletedRecord()

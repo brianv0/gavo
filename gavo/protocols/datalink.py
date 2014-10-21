@@ -518,7 +518,7 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 					description="The full dataset.",
 					contentType=d.mime,
 					contentLength=d.estimateSize(),
-					semantics="self"))
+					semantics="#self"))
 
 			if getattr(d, "preview", None):
 				if d.preview.startswith("http"):
@@ -527,9 +527,11 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 					previewLink = products.makeProductLink(
 						products.RAccref(d.accref, 
 							inputDict={"preview": True}))
+				# TODO: preview mime is None for AUTO previews, and there's
+				# not much we can do about it.  Or is there?
 				internalLinks.append(LinkDef(d.pubDID,
-					previewLink, description="A preview.",
-					contentType=d.preview_mime, semantics="preview"))
+					previewLink, description="A preview for the dataset.",
+					contentType=d.preview_mime, semantics="#preview"))
 
 		data = rsc.makeData(
 			base.caches.getRD("//datalink").getById("make_response"),
