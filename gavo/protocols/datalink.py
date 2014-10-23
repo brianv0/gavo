@@ -245,7 +245,7 @@ class _ServiceDescriptor(object):
 				V.PARAM(arraysize="*", datatype="char",
 					name="standardID", value=standardId)]
 
-		inputParams = V.GROUP(name="inputParms")
+		inputParams = V.GROUP(name="inputParams")
 		res = res[inputParams]
 
 		for ik in self.inputKeys:
