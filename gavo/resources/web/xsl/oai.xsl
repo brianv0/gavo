@@ -39,6 +39,18 @@
                     .deleted a {
                         text-decoration: line-through;
                     }
+                    
+                    p.attrpair {
+                        text-align: right;
+                        margin: 0pt;
+                        padding: 0pt;
+                        font-size: 80%;
+                        max-width: 2000pt;
+                    }
+                    span.value {
+                        display: inline-block;
+                        min-width: 11em;
+                    }
                 ]]></style>
             </head>
             <body>
@@ -93,14 +105,27 @@
     <xsl:template match="*" mode="dumpall">
         <div class="nestbox">
             <p class="boxtitle"><xsl:value-of select="name(.)"/></p>
-            <xsl:if test="@ivo-id">
-                <a>
-                    <xsl:attribute name="href"
-                        >/oai.xml?verb=GetRecord&amp;metadataPrefix=ivo_vor&amp;identifier=<xsl:value-of select="@ivo-id"/>
-                    </xsl:attribute>&#8594;</a>
-            </xsl:if>
+            <xsl:apply-templates select="@*"/>
             <xsl:apply-templates mode="dumpall"/>
         </div>
+    </xsl:template>
+
+    <xsl:template match="@*" priority="1">
+        <xsl:choose>
+            <xsl:when test="name()='ivo-id'">
+                <p class="attrpair"><span class="key">&#8594;</span>
+                    <span class="value"><a>
+                    <xsl:attribute name="href"
+                   >/oai.xml?verb=GetRecord&amp;metadataPrefix=ivo_vor&amp;identifier=<xsl:value-of select="."/>
+               </xsl:attribute><xsl:value-of select="."/></a></span></p>
+            </xsl:when>
+            <xsl:otherwise>
+                <p class="attrpair">
+                    <span class="key"><xsl:value-of select="name()"/></span>:
+                    <span class="value"><xsl:value-of select="."/></span>
+                </p>
+            </xsl:otherwise>
+        </xsl:choose>
     </xsl:template>
 
     <xsl:template match="/ri:Resource">

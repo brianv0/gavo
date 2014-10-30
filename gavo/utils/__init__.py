@@ -38,7 +38,8 @@ from gavo.utils.excs import *
 # "master import" is in fitstools, and we get pyfits from there.
 
 from gavo.utils.fitstools import (readPrimaryHeaderQuick, pyfits,
-	parseESODescriptors, shrinkWCSHeader, cutoutFITS, iterScaledRows)
+	parseESODescriptors, shrinkWCSHeader, cutoutFITS, iterScaledRows,
+	fitsLock)
 
 from gavo.utils.mathtricks import *
 

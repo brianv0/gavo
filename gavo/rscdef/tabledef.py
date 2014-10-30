@@ -28,7 +28,21 @@ MS = base.makeStruct
 class DBIndex(base.Structure):
 	"""A description of an index in the database.
 
-	The corresponding index will be created after the table is imported.
+	In real databases, indices may be fairly complex things; still, the
+	most common usage here will be to just index a single column::
+
+		<index columns="my_col"/>
+	
+	To index over functions, use  the character content; parentheses are added
+	by DaCHS, so don't have them in the content.  An explicit specification
+	of the index expression is also necessary to allow RE pattern matches using
+	indices in character columns (outside of the C locale).  That would be::
+
+		<index columns="uri">uri text_pattern_ops</index>
+
+	(you still want to give columns so the metadata engine is aware of the 
+	index).  See section "Operator Classes and Operator Families" in
+	the Postgres documentation for details.
 	"""
 	name_ = "index"
 

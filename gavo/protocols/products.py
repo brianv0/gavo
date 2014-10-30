@@ -101,9 +101,10 @@ def makePreviewFromFITS(product):
 		else:
 			inFile = product.getFile()
 
-		pixels = numpy.array([row 
-			for row in fitstools.iterScaledRows(inFile, 
-				destSize=PREVIEW_SIZE)])
+		with utils.fitsLock():
+			pixels = numpy.array([row 
+				for row in fitstools.iterScaledRows(inFile, 
+					destSize=PREVIEW_SIZE)])
 	else:
 		raise NotImplementedError("TODO: Fix fitstools.iterScaledRows"
 			" to be more accomodating to weird things")
@@ -611,18 +612,20 @@ class CutoutProduct(ProductBase):
 
 	def _getCutoutHDU(self):
 		ra, dec, sra, sdec = [self.rAccref.params[k] for k in self._myKeys]
-		hdus = pyfits.open(self.rAccref.localpath, do_not_scale_image_data=True)
-		try:
-			skyWCS = coords.getWCS(hdus[0].header)
-			pixelFootprint = numpy.asarray(
-				numpy.round(skyWCS.wcs_sky2pix([
-					(ra-sra/2., dec-sdec/2.),
-					(ra+sra/2., dec+sdec/2.)], 1)), numpy.int32)
-			res = fitstools.cutoutFITS(hdus[0], 
-				(skyWCS.longAxis, min(pixelFootprint[:,0]), max(pixelFootprint[:,0])),
-				(skyWCS.latAxis, min(pixelFootprint[:,1]), max(pixelFootprint[:,1])))
-		finally:
-			hdus.close()
+		with utils.fitsLock():
+			hdus = pyfits.open(self.rAccref.localpath, do_not_scale_image_data=True)
+			try:
+				skyWCS = coords.getWCS(hdus[0].header)
+				pixelFootprint = numpy.asarray(
+					numpy.round(skyWCS.wcs_sky2pix([
+						(ra-sra/2., dec-sdec/2.),
+						(ra+sra/2., dec+sdec/2.)], 1)), numpy.int32)
+				res = fitstools.cutoutFITS(hdus[0], 
+					(skyWCS.longAxis, min(pixelFootprint[:,0]), max(pixelFootprint[:,0])),
+					(skyWCS.latAxis, min(pixelFootprint[:,1]), max(pixelFootprint[:,1])))
+			finally:
+				hdus.close()
+				del hdus
 
 		return res
 
@@ -675,19 +678,20 @@ class ScaledFITSProduct(ProductBase):
 		scale = int(self.scale)
 		if scale<2:
 			scale = 2
-		
-		with open(self.rAccref.localpath) as f:
-			oldHdr = fitstools.readPrimaryHeaderQuick(f)
-			newHdr = fitstools.shrinkWCSHeader(oldHdr, scale)
-			newHdr.update("FULLURL", str(makeProductLink(self.baseAccref)))
-			yield fitstools.serializeHeader(newHdr)
+	
+		with utils.fitsLock():
+			with open(self.rAccref.localpath) as f:
+				oldHdr = fitstools.readPrimaryHeaderQuick(f)
+				newHdr = fitstools.shrinkWCSHeader(oldHdr, scale)
+				newHdr.update("FULLURL", str(makeProductLink(self.baseAccref)))
+				yield fitstools.serializeHeader(newHdr)
 
-			for row in fitstools.iterScaledRows(f, scale, hdr=oldHdr):
-				# Unfortunately, numpy's byte swapping for floats is broken in
-				# many wide-spread revisions.  So, we cannot do the fast
-				#	yield row.newbyteorder(">").tostring()
-				# but rather, for now, have to try the slow:
-				yield struct.pack("!%df"%len(row), *row)
+				for row in fitstools.iterScaledRows(f, scale, hdr=oldHdr):
+					# Unfortunately, numpy's byte swapping for floats is broken in
+					# many wide-spread revisions.  So, we cannot do the fast
+					#	yield row.newbyteorder(">").tostring()
+					# but rather, for now, have to try the slow:
+					yield struct.pack("!%df"%len(row), *row)
 			
 	def _writeStuffTo(self, destF):
 		for chunk in self.iterData():

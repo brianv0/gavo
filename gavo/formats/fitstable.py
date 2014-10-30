@@ -14,7 +14,6 @@ import os
 import tempfile
 import threading
 import time
-from contextlib import contextmanager
 
 import numpy
 
@@ -23,19 +22,6 @@ from gavo import rsc
 from gavo import utils
 from gavo.formats import common
 from gavo.utils import pyfits
-
-
-# pyfits obviously is not thread-safe.  We put a lock around table generation
-# and hope we'll be fine.
-_FITS_TABLE_LOCK = threading.Lock()
-
-@contextmanager
-def exclusiveFits():
-	_FITS_TABLE_LOCK.acquire()
-	try:
-		yield
-	finally:
-		_FITS_TABLE_LOCK.release()
 
 
 _fitsCodeMap = {
@@ -198,7 +184,7 @@ def makeFITSTable(dataSet, acquireSamples=False):
 	This will add table parameters as header cards on the resulting FITS
 	header.
 	"""
-	with exclusiveFits():
+	with utils.fitsLock():
 		return _makeFITSTableNOLOCK(dataSet, acquireSamples)
 
 

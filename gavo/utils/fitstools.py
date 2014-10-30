@@ -1,5 +1,9 @@
 """
 Some utility functions to deal with FITS files.
+
+Note: pyfits is not thread-safe at least up to version 3.0.8.  We therefore
+provide the fitsLock context manager here that you should use to protect
+places where you use pyfits in a core (or a similar spot).
 """
 
 #c Copyright 2008-2014, the GAVO project
@@ -20,7 +24,9 @@ import gzip
 import os
 import re
 import tempfile
+import threading
 import warnings
+from contextlib import contextmanager
 
 from . import codetricks
 from . import excs
@@ -72,6 +78,17 @@ else:
 	except (ImportError, AttributeError), ex:
 		# let's hope we have a non-affected version
 		pass
+
+
+_FITS_TABLE_LOCK = threading.RLock()
+
+@contextmanager
+def fitsLock():
+	_FITS_TABLE_LOCK.acquire()
+	try:
+		yield
+	finally:
+		_FITS_TABLE_LOCK.release()
 
 
 CARD_SIZE = 80
