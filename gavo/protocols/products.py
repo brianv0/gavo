@@ -625,7 +625,6 @@ class CutoutProduct(ProductBase):
 					(skyWCS.latAxis, min(pixelFootprint[:,1]), max(pixelFootprint[:,1])))
 			finally:
 				hdus.close()
-				del hdus
 
 		return res
 
@@ -633,7 +632,6 @@ class CutoutProduct(ProductBase):
 		res = self._getCutoutHDU()
 		bytes = StringIO()
 		res.writeto(bytes)
-		del res
 
 		yield bytes.getvalue()
 

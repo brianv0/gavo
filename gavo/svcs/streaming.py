@@ -86,11 +86,11 @@ class DataStreamer(threading.Thread):
 		This must be called at least once after buffer.doneWriting()
 		as been called.
 		"""
-		while self.connectionLive:
+		while self.connectionLive and not self.exceptionToRaise:
 			data = self.buffer.get()
 			if data is None: # nothing to write yet/any more
 				return
-			while self.paused:
+			while self.paused and not self.exceptionToRaise:
 				# consumer has requested a pause; let's busy-loop;
 				# doesn't cost much and is easier than semaphores.
 				time.sleep(0.1)
