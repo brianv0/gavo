@@ -269,8 +269,10 @@ class ProductsCoreTest(_TestWithProductsTable):
 				res.renderHTTP,
 				None)
 
+# TODO: have test scaffolding (ex.fits?) to actually make these work
 	def testScaledProduct(self):
 		prod = self._getProductFor("data/b.imp?scale=3")
+		self.assertEqual(str(prod), "<Invalid product data/b.imp?scale=3>")
 	
 	def testCutoutProduct(self):
 		res = self._getProductFor("data/b.imp?ra=3&dec=4&sra=2&sdec=4")

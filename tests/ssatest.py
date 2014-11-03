@@ -390,7 +390,7 @@ class SDMDatalinkMetaTest(testhelpers.VerboseTest):
 	def testEnumeration(self):
 		formats = [el.get("value")
 			for el in self.data[0].xpath(
-				"GROUP[@name='input']/PARAM[@name='FORMAT']/VALUES/OPTION")]
+				"GROUP[@name='inputParams']/PARAM[@name='FORMAT']/VALUES/OPTION")]
 		self.failUnless("application/fits" in formats)
 
 	def testLimits(self):
