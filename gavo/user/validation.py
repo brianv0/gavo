@@ -136,7 +136,7 @@ def validateServices(rd, args):
 			outputWarning(rd.sourceId, "Error when producing registry record"
 				" of service %s:"%svc.id, True)
 
-		if args.doXSD and registryRecord and base.getConfig("xsdclasspath"):
+		if args.doXSD and registryRecord:
 			try:
 				_XSD_VALIDATOR.assertValidates(
 					registryRecord.render(), leaveOffending=True)

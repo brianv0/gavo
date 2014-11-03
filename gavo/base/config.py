@@ -362,7 +362,8 @@ _config = Configuration(
 			" into the log directory", default="gavo"),
 		PathConfigItem("xsdclasspath", description="Classpath necessary"
 			" to validate XSD using an xsdval java class.  You want GAVO's"
-			" VO schemata collection for this.", default="None"),
+			" VO schemata collection for this.  Deprecated, we're now using"
+			" libxml2 for validation.", default="None"),
 		StringConfigItem("sendmail", default="sendmail -t",
 			description="Command that reads a mail from stdin, taking the"
 				"recipient address from the mail header, and transfers the"

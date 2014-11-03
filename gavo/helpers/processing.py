@@ -49,7 +49,7 @@ class FileProcessor(object):
 	You then need to define a process method receiving a source as
 	returned by the dd (i.e., usually a file name).
 
-	You can override the method _createAuxillaries(dataDesc) to compute
+	You can override the method _createAuxiliaries(dataDesc) to compute
 	things like source catalogues, etc.  Thus, you should not need to
 	override the constructor.
 	"""
@@ -57,10 +57,15 @@ class FileProcessor(object):
 
 	def __init__(self, opts, dd):
 		self.opts, self.dd = opts, dd
-		self._createAuxillaries(dd)
+		self._createAuxiliaries(dd)
 
-	def _createAuxillaries(self, dd):
-		pass
+	def _createAuxiliaries(self, dd):
+		# There's been a type here in previous DaCHS versions; try
+		# to call old methods if they are still there
+		try:
+			self._createAuxillaries(dd)
+		except AttributeError: # no old method in the processor
+			pass
 
 	def classify(self, fName):
 		return "unknown"
@@ -518,11 +523,12 @@ class AnetHeaderProcessor(HeaderProcessor):
 
 
 class PreviewMaker(FileProcessor):
-	def _createAuxillaries(self, dd):
+	def _createAuxiliaries(self, dd):
 		self.previewDir = dd.rd.getAbsPath(
 			dd.getProperty("previewDir"))
 		if not os.path.isdir(self.previewDir):
 			os.makedirs(self.previewDir)
+		FileProcessor._createAuxiliaries(dd)
 
 	def getPreviewPath(self, accref):
 		return os.path.join(self.previewDir,
@@ -544,8 +550,8 @@ class PreviewMaker(FileProcessor):
 class SpectralPreviewMaker(PreviewMaker):
 	linearFluxes = False
 
-	def _createAuxillaries(self, dd):
-		PreviewMaker._createAuxillaries(self, dd)
+	def _createAuxiliaries(self, dd):
+		PreviewMaker._createAuxiliaries(self, dd)
 		self.sdmDD = self.dd.rd.getById(self.sdmId)
 
 	def iterIdentifiers(self):

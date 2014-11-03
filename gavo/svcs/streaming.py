@@ -34,7 +34,7 @@ class DataStreamer(threading.Thread):
 	"""is a twisted-enabled Thread to stream out large files produced
 	on the fly.
 
-	It is basically a pull producer.  To use it, construct it with
+	It is basically a push producer.  To use it, construct it with
 	a data source and a twisted request (or any IFinishableConsumer)
 	If in a nevow resource, you should then return request.deferred.
 
