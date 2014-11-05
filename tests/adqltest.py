@@ -1813,7 +1813,8 @@ class QueryTest(testhelpers.VerboseTest):
 			" contains(point('', alpha, delta), circle('', 22, 23, 1.1)) as c1,"
 			" intersects(point('', alpha, delta), circle('', 22, 23, 1.1)) as i1,"
 			" intersects(circle('', alpha, delta, 1.5), circle('', 22, 25, 1.1)) as i2,"
-			" intersects(circle('', alpha, delta, 1), circle('', 22, 26, 1.1)) as i3"
+			" intersects(circle('', alpha, delta, 1), circle('', 22, 26, 1.1)) as i3,"
+			" circle('icrs', alpha, delta, 10) as ci"
 			" from %s"%self.tableName)
 		rows = list(res)
 
@@ -1825,8 +1826,12 @@ class QueryTest(testhelpers.VerboseTest):
 		self.assertEqual(rows[0]["i1"], 1)
 		self.assertEqual(rows[0]["i2"], 1)
 		self.assertEqual(rows[0]["i3"], 0)
+		self.assertEqual(rows[0]["ci"], 
+			'Circle ICRS 22. 23. 10.')
 		self.assertEqual(res.tableDef.getColumnByName("p").xtype,
 			"adql:POINT")
+		self.assertEqual(res.tableDef.getColumnByName("ci").xtype,
+			"adql:REGION")
 
 	def testQuotedIdentifier(self):
 		res = self.runQuery(

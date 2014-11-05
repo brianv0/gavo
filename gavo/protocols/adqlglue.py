@@ -98,7 +98,6 @@ def _makeColumnFromFieldInfo(ctx, colName, fi):
 	# to transform to STC-S strings.
 	if "xtype" in fi.properties:
 		res.xtype = fi.properties["xtype"]
-		res.type = "text"
 		res.needMunging = True
 	
 	# dates and timestamps should be ISO format for TAP or consistency with it

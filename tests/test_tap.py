@@ -164,10 +164,11 @@ class SyncQueryTest(TAPRenderTest):
 		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery",
 				"LANG": "ADQL",
-				"QUERY": 'SELECT alpha, delta FROM test.adql WHERE alpha<3',
+				"QUERY": 'SELECT CIRCLE(\'ICRS\', alpha, delta, 10)'
+					' FROM test.adql WHERE alpha<3',
 				"FORMAT": "votable/td"
 			}, [
-				'<DATA><TABLEDATA><TR><TD>2.0</TD><TD>14.0</TD>'])
+				'<TABLEDATA><TR><TD>Circle ICRS 2. 14. 10.</TD></TR></TABLEDATA>'])
 
 	def testCSV(self):
 		return self.assertGETHasStrings("/sync", {
