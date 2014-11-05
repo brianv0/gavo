@@ -241,7 +241,7 @@ class JSONOutputTest(testhelpers.VerboseTest):
 		self.assertEqual(self.tAndD[1]["data"], [
 			[1, -2.0, 3.0, u'W\xe4re es da nicht besser,\n'
 				u' die Regierung setzte das Volk ab\tund w\xe4hlte ein anderes?', 
-				2453130.5, u'Position UNKNOWN 124. -30.'], 
+				2453130.5, u'Position UNKNOWNFrame 124. -30.'], 
 			[None, None, None, None, None, None]])
 
 	def testParameterDescription(self):
@@ -302,7 +302,7 @@ class TextOutputTest(FormatOutputTest):
 		self.assertEqual(self.output.split("\n")[0],
 			"1\t-2.0\t3.0\tW\\xe4re es da nicht besser,\\n die Regierung setzte"
 				" das Volk ab\\tund w\\xe4hlte ein anderes?\t2453130.5\t"
-				"Position UNKNOWN 124. -30.")
+				"Position UNKNOWNFrame 124. -30.")
 
 
 class CSVOutputTest(FormatOutputTest):
@@ -320,14 +320,14 @@ class CSVOutputTest(FormatOutputTest):
 		self.assertEqual(self.output.split("\r\n")[1], ',,,,,')
 	
 	def testWeirdTypes(self):
-		self.assertOutputHas("2453130.5,Position UNKNOWN 124. -30.")
+		self.assertOutputHas("2453130.5,Position UNKNOWNFrame 124. -30.")
 
 
 class CSVHeaderOutputTest(FormatOutputTest):
 	resources = [("output", _FormattedData("csv_header", False))]
 
 	def testWeirdTypes(self):
-		self.assertOutputHas("2453130.5,Position UNKNOWN 124. -30.")
+		self.assertOutputHas("2453130.5,Position UNKNOWNFrame 124. -30.")
 
 	def testParamCommentWritten(self):
 		self.assertOutputHas('# intPar = 42 // test integer parameter')
@@ -395,7 +395,7 @@ class B2VOTableOutputTest(DefaultVOTableOutputTest):
 	def testGeometry(self):
 		# XXX TODO: actually parse this
 		data, metadata = self.output[1]
-		self.assertEqual(data[0][5], 'Position UNKNOWN 124. -30.')
+		self.assertEqual(data[0][5], 'Position UNKNOWNFrame 124. -30.')
 
 	def testRegionDeclared(self):
 		data, metadata = self.output[1]
@@ -442,7 +442,7 @@ class FITSOutputTest(FormatOutputTest):
 		self.assertOutputHas('\x00\x00\x00\x01')
 
 	def testNULLsEncoded(self):
-		self.assertEqual(self.output[5894:5914],
+		self.assertEqual(self.output[5899:5919],
 			'\xff\xff\xddH\x7f\xc0\x00\x00\x7f\xf8\x00\x00\x00\x00\x00\x00None')
 
 

@@ -195,10 +195,11 @@ def _pgSphereMapperFactory(colDesc):
 			or colDesc["xtype"]=="adql:POINT"):
 		return
 
+	systemString = None
 	if colDesc.original.stc:
-		systemString = stc.getSpatialSystem(colDesc.original.stc)
-	else:
-		systemString = "UNKNOWN"
+		systemString = colDesc.original.stc.astroSystem.spaceFrame.refFrame
+	if systemString is None:
+		systemString = "UNKNOWNFrame"
 
 	def mapper(val):
 		if val is None:
