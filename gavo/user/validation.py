@@ -25,6 +25,7 @@ from gavo.imp import argparse
 from gavo.registry import builders
 from gavo.registry import publication
 from gavo.user import errhandle
+from gavo.web import htmltable
 
 
 builders.VALIDATING = True
@@ -167,6 +168,8 @@ def validateOtherCode(rd, args):
 	"""tries to compile other pieces of code in an RD and bails out
 	if one is bad.
 	"""
+	retval = True
+
 	for suite in rd.tests:
 		for test in suite.tests:
 			try:
@@ -174,8 +177,33 @@ def validateOtherCode(rd, args):
 			except Exception, msg:
 				outputError(rd.sourceId, "Bad test '%s': %s"%(test.title,
 					msg))
-				return False
-	return True
+				retval = False
+	
+	for svc in rd.services:
+		for outputField in svc.getCurOutputFields():
+			if outputField.formatter:
+				try:
+					htmltable._compileRenderer(outputField.formatter, None)
+				except Exception, msg:
+					outputError(rd.sourceId, "Bad formatter on output field '%s': %s"%(
+						outputField.name, msg))
+					retval = False
+
+	for job in rd.jobs:
+		try:
+			job.compileForParent(rd)
+		except Exception, msg:
+			outputError(rd.sourceId, "Bad code in job  '%s': %s"%(
+				job.title, msg))
+			retval = False
+
+	# TODO: iterate over service/cores and standalone cores and
+	# fiddle out condDescs
+	# TODO: Iterate over scripts and data/make/scripts, see which
+	# are python and try to compile them
+	# TODO: Iterate over grammars and validate rowfilters
+
+	return retval
 
 
 def validateTables(rd, args):

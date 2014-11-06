@@ -409,6 +409,19 @@ class HeadCells(rend.Page, HeadCellsMixin):
 _htmlMetaBuilder = common.HTMLMetaBuilder()
 
 
+def _compileRenderer(source, queryMeta):
+	"""returns a function object from source.
+
+	Source must be the function body of a renderer.  The variable data
+	contains the entire row, and the thing must return a string or at
+	least stan (it can use T.tag).
+	"""
+	code = ("def format(data):\n"+
+		utils.fixIndentation(source, "  ")+"\n")
+	return rmkfuncs.makeProc("format", code, "", None, 
+		queryMeta=queryMeta, source=source, T=T)
+
+
 class HTMLDataRenderer(rend.Fragment):
 	"""A base class for rendering tables and table lines.
 
@@ -420,18 +433,6 @@ class HTMLDataRenderer(rend.Fragment):
 		super(HTMLDataRenderer, self).__init__()
 		self._computeDefaultTds()
 		self._computeHeadCellsStan()
-
-	def _compileRenderer(self, source):
-		"""returns a function object from source.
-
-		Source must be the function body of a renderer.  The variable data
-		contains the entire row, and the thing must return a string or at
-		least stan (it can use T.tag).
-		"""
-		code = ("def format(data):\n"+
-			utils.fixIndentation(source, "  ")+"\n")
-		return rmkfuncs.makeProc("format", code, "", None, 
-			queryMeta=self.queryMeta, source=source, T=T)
 
 	def _computeSerializationRules(self):
 		"""creates the serialization manager and the formatter sequence.
@@ -451,7 +452,7 @@ class HTMLDataRenderer(rend.Fragment):
 				if field.wantsRow:
 					desc["wantsRow"] = True
 				if field.formatter:
-					formatter = self._compileRenderer(field.formatter)
+					formatter = _compileRenderer(field.formatter, self.queryMeta)
 			self.formatterSeq.append(
 				(desc["name"], formatter, desc.get("wantsRow", False)))
 

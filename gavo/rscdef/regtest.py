@@ -749,7 +749,7 @@ class TestRunner(object):
 
 	def __init__(self, suites, serverURL=None, 
 			verbose=True, dumpNegative=False, tags=None,
-			timeout=10, failFile=None, nRepeat=1):
+			timeout=45, failFile=None, nRepeat=1):
 		self.verbose, self.dumpNegative = verbose, dumpNegative
 		self.failFile, self.nRepeat = failFile, nRepeat
 		if tags:

@@ -487,7 +487,7 @@ def makeDependentsFor(dds, parseOptions, connection):
 		buildSequence = utils.topoSort(edges)
 	except ValueError, ex:
 		raise utils.logOldExc(base.ReportableError("Could not sort"
-			" dependent DDs topologically (use  --hints to learn more)", 
+			" dependent DDs topologically (use  --hints to learn more).", 
 			hint="This is most likely because there's a cyclic dependency."
 			" Please check your dependency structure.  The original message"
 			" is: %s"%utils.safe_str(ex)))
@@ -495,6 +495,7 @@ def makeDependentsFor(dds, parseOptions, connection):
 	# note that the original DD is the first item in the build sequence,
 	# and we don't want to re-make it here
 	for dd in buildSequence[1:]:
+		base.ui.notifyInfo("Making dependent %s"%dd.id)
 		makeData(dd, parseOptions=parseOptions, connection=connection)
 
 

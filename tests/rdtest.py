@@ -499,7 +499,7 @@ class DependentsTest(testhelpers.VerboseTest):
 			""")
 		rd.dataMade = []
 		self.assertRaisesWithMsg(base.ReportableError,
-			"Could not sort dependent DDs topologically (use  --hints to learn more)",
+			"Could not sort dependent DDs topologically (use  --hints to learn more).",
 			rsc.makeDependentsFor,
 			([rd.getById("stuff0")], rsc.parseNonValidating, self.conn))
 
