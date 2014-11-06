@@ -130,6 +130,12 @@ class InputKey(column.ParamBase):
 		if self.value:
 			self.required = False
 
+	def validateValue(self, literal):
+		"""raises a ValidationError if literal cannot be deserialised into
+		an acceptable value for self.
+		"""
+		self._parse(literal)
+
 	@classmethod
 	def fromColumn(cls, column, **kwargs):
 		"""returns an InputKey for query input to column.

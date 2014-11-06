@@ -424,6 +424,12 @@ class APIRenderTest(trialhelpers.ArchiveTest):
 			"hello": [_FakeUpload()],
 			}, [
 				'<TR><TD>notarbitrary</TD><TD>def, ich bin der Chef.\n</TD></TR>'])
+	
+	def testServiceParametersValidated(self):
+		return self.assertGETHasStrings("/data/cores/scs/api", 
+			{"RESPONSEFORMAT": "fantastic junk"}, 
+				["Field RESPONSEFORMAT: 'fantastic junk' is not a valid value for"
+					" RESPONSEFORMAT</INFO>"])
 
 
 class SCSTest(trialhelpers.ArchiveTest):

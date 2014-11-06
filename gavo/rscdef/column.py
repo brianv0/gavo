@@ -635,10 +635,7 @@ class ParamBase(ColumnBase):
 			self._valueCache = base.Undefined
 			val = self._unparse(val)
 
-		if not self.values.validateOptions(self._parse(val)):
-			raise base.ValidationError("%s is not a valid value for %s"%(
-				repr(val), self.name), self.name)
-
+		self._valueCache = self._parse(val)
 		self.content_ = val
 
 	def _parse(self, literal):
@@ -646,16 +643,27 @@ class ParamBase(ColumnBase):
 		type.
 
 		If literal is not a string, it will be returned unchanged.
+
+		The method also makes sure literal matches any constraints
+		set by a values child and raises a ValidationError if not.
 		"""
 		if not isinstance(literal, basestring):
-			return literal
-		try:
-			if literal==self.values.nullLiteral:
-				return None
-			return base.sqltypeToPython(self.type)(literal)
-		except ValueError:
-			raise base.ValidationError("%s is not a valid literal for %s"%(
+			value = literal
+
+		else:
+			try:
+				if literal==self.values.nullLiteral:
+					return None
+
+				value = base.sqltypeToPython(self.type)(literal)
+			except ValueError:
+				raise base.ValidationError("%s is not a valid literal for %s"%(
+					repr(literal), self.name), self.name)
+
+		if not self.values.validateOptions(value):
+			raise base.ValidationError("%s is not a valid value for %s"%(
 				repr(literal), self.name), self.name)
+		return value
 
 	def _unparse(self, value):
 		"""returns a string representation of value appropriate for this

@@ -105,7 +105,7 @@ class AsyncTest(trialhelpers.ArchiveTest):
 			return deleteJob(jobURL)
 		
 		def waitForResult(result, jobURL, retry):
-			if retry>100:
+			if retry>300:
 				raise AssertionError("Datalink job at jobURL %s didn't finish."
 					"  Leaving it for inspection."%jobURL)
 			if result[0].startswith("COMPLETED"):

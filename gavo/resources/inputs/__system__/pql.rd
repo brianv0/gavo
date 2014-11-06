@@ -135,6 +135,8 @@ vodal-based services interpret. -->
 						for key in formats.iterFormats():
 							yield {"item": formats.getMIMEFor(key), 
 								"title": formats.getLabelFor(key)}
+							yield {"item": key, 
+								"title": "Shortcut for %s"%formats.getLabelFor(key)}
 					</codeItems>
 					<events>
 						<option title="\\title">\\item</option>

@@ -530,9 +530,8 @@ class CachedException(object):
 		try:
 			self.timestamp = os.path.getmtime(self.sourcePath)
 		except (TypeError, os.error):
-			# If there's no file at all, or the file doesn't exist, never
-			# dirty the exception
-			self.sourcePath = None
+			# If the file doesn't exist, that state is "as of now"
+			self.timestamp = time.time()
 	
 	def isDirty(self):
 		if self.sourcePath is None:
