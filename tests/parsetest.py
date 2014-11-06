@@ -23,6 +23,7 @@ from gavo import grammars
 from gavo import rsc
 from gavo import rscdef
 from gavo import rscdesc
+from gavo import utils
 from gavo.base import sqlsupport
 from gavo.web import formrender
 
@@ -284,6 +285,61 @@ class DispatchedGrammarTest(testhelpers.VerboseTest):
 		self.assertRaisesWithMsg(base.ReportableError,
 			"Grammar tries to feed to role 'one', but there is no corresponding make",
 			rsc.makeData, (dd,))
+
+
+class CrossResolutionTest(testhelpers.VerboseTest):
+# NOTE: DaCHS-internal code should use base.resolveCrossId instead of
+# of the getReferencedElement exercised here.
+	def testItemAbsolute(self):
+		res = rscdef.getReferencedElement("data/test#ADQLTest")
+		self.assertEqual(res.id, "ADQLTest")
+	
+	def testRDAbsolute(self):
+		res = rscdef.getReferencedElement("data/test")
+		self.assertEqual(res.sourceId, "data/test")
+
+	def testRDTypecheck(self):
+		self.assertRaisesWithMsg(base.StructureError,
+			"Reference to 'data/test' yielded object of type RD, expected TableDef",
+			rscdef.getReferencedElement,
+			("data/test", rscdef.TableDef))
+
+	def testItemError(self):
+		self.assertRaisesWithMsg(base.NotFoundError,
+			"Element with id 'nonexisting' could not be located in RD data/test",
+			rscdef.getReferencedElement,
+			("data/test#nonexisting",))
+
+	def testRDError(self):
+		self.assertRaisesWithMsg(base.NotFoundError,
+			"RD 'nonexisting' could not be located in file system",
+			rscdef.getReferencedElement,
+			("nonexisting",))
+
+	def testItemRelative(self):
+		wd = os.path.join(base.getConfig("inputsDir"), "test")
+		with testhelpers.testFile(os.path.join(wd, "rel.rd"), 
+				"""<resource schema="foo"><table id="bar"/></resource>"""):
+			with utils.in_dir(wd):
+				res = rscdef.getReferencedElement("rel#bar", rscdef.TableDef)
+				self.assertEqual(res.id, "bar")
+
+	def testRelativeMessage(self):
+		wd = os.path.join(base.getConfig("inputsDir"), "test")
+		with utils.in_dir(wd):
+			self.assertRaisesWithMsg(base.NotFoundError,
+				"RD 'foo' could not be located in file system",
+				rscdef.getReferencedElement,
+				("foo#bar", rscdef.TableDef))
+
+	def testRDRelative(self):
+		wd = os.path.join(base.getConfig("inputsDir"), "test")
+		with testhelpers.testFile(os.path.join(wd, "rel.rd"), 
+				"""<resource schema="foo"><table id="bar"/></resource>"""):
+			with utils.in_dir(wd):
+				res = rscdef.getReferencedElement("rel")
+				self.assertEqual(res.sourceId, "test/rel")
+
 
 
 if __name__=="__main__":

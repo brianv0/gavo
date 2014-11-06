@@ -973,7 +973,7 @@ def _getRunnerForSingle(testId, runnerArgs):
 	from gavo import api
 
 	if '#' in testId:
-		testElement = base.resolveId(None, testId)
+		testElement = base.resolveCrossId(testId)
 	else:
 		testElement = base.caches.getRD(testId)
 	

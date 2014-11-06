@@ -33,20 +33,33 @@ def assertType(id, ob, forceType):
 
 def resolveCrossId(id, forceType=None):
 	"""resolves id, where id is of the form rdId#id.
+
+	id can also be a simple rdID.
+
+	See resolveId for forceType.
 	"""
 	try:
 		rdId, rest = id.split("#")
 	except ValueError:
-		raise common.LiteralParseError("id", id, hint="There must be exactly"
-			" one hash sign ('#') in cross ids, separating the rd identifier"
-			" from the rd-internal id")
+		if "#" in id:
+			raise common.LiteralParseError("id", id, hint="There must be at most"
+				" one hash sign ('#') in cross ids, separating the rd identifier"
+				" from the rd-internal id")
+		rdId, rest = id, None
 
 	try:
 		srcRd = caches.getRD(rdId)
 	except common.RDNotFound:
-		raise common.NotFoundError(id, "Element with id", "RD "+rdId,
-			hint="The RD referenced cannot be opened")
-	return resolveId(srcRd, rest, forceType=forceType)
+		raise common.NotFoundError(rdId, "RD", "file system",
+			hint="I was trying to resolve the reference %s; note that DaCHS only"
+				" uses RDs residing below inputsDir and ignores all others."
+				"  If there's an RD that DaCHS insists isn't there, that's"
+				" probably the reason."%id)
+	
+	if rest is None:
+		return assertType(id, srcRd, forceType)
+	else:	
+		return resolveId(srcRd, rest, forceType=forceType)
 
 
 def resolveNameBased(container, id, forceType=None):

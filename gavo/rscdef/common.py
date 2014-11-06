@@ -480,6 +480,41 @@ def replaceProcDefAt(src, dictName="vars"):
 	return _atPattern.sub(r'%s["\1"]'%dictName, src)
 
 
+# this is mainly here for lack of a better place.  I don't want it in
+# base.parsecontext as it needs config, and I don't want it
+# in user.common as it might be useful for non-UI stuff.
+def getReferencedElement(refString, forceType=None):
+	"""returns the element for the DaCHS reference refString.
+
+	refString would be rdId[#subRef]; rdId can be filesystem-relative,
+	but the RD referenced must be below inputsDir anyway.
+
+	You can pass a structure class into forceType, and a StructureError
+	will be raised if what's pointed to by the id isn't of that type.
+
+	You should usually use base.resolveCrossId instead of this from *within*
+	DaCHS.  This is intended for code handling RD ids from users.
+	"""
+	# get the inputs postfix now so we don't pollute the current exception later
+	try:
+		inputsPostfix = utils.getRelativePath(os.getcwd(),
+			base.getConfig("inputsDir"), liberalChars=True)
+	except ValueError:
+		# not in inputs
+		inputsPostfix = None
+
+	try:
+		return base.resolveCrossId(refString, forceType=forceType)
+	except base.NotFoundError, ex:
+		if inputsPostfix:
+			try:
+				return base.resolveCrossId("%s/%s"%(inputsPostfix, refString),
+					forceType=forceType)
+			except base.NotFoundError:
+				pass
+		raise ex
+
+
 @utils.document
 def getStandardPubDID(path):
 	"""returns the standard DaCHS PubDID for path.
