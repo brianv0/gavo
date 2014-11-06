@@ -102,7 +102,7 @@ class StandardMapperTest(_EnumeratedMapperTest):
 			None, None),
 		('name= "b" type= "sbox">', pgsphere.SBox(
 			pgsphere.SPoint(0.2, -0.1), pgsphere.SPoint(0.5, 0.2)),
-			"PositionInterval UNKNOWN 11.4591559026 -5.7295779513"
+			"PositionInterval UNKNOWNFrame 11.4591559026 -5.7295779513"
 			" 28.6478897565 11.4591559026"),
 		('name="d" unit="d" type="timestamp">', 
 			datetime.datetime(2005, 6, 4, 23, 12, 21),
@@ -204,11 +204,11 @@ class ProductMapperTest(_MapperTestBase):
 class STCMappingTest(_MapperTestBase):
 	def testSimple(self):
 		td = base.parseFromString(rscdef.TableDef, """<table>
-			<stc>Position FK5 TOPOCENTER [pos]</stc>
+			<stc>Position FK5 [pos]</stc>
 			<column name="pos" type="spoint"/></table>""")
 		table = rsc.TableForDef(td, rows=[{"pos": pgsphere.SPoint(0.2, 0.6)}])
 		res = list(valuemappers.SerManager(table).getMappedValues())[0]
-		self.failUnless(res["pos"].startswith("Position FK5 TOPOCENTER"))
+		self.failUnless(res["pos"].startswith("Position FK5"))
 
 
 if __name__=="__main__":

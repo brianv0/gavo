@@ -397,7 +397,7 @@
 				item.  By default, this is just the row number.  As this will
 				(usually) change when new data is added, you should override it
 				with some unique integer number specific to the data product 
-				when there is such a thing." late="True">\rowsProcessed</par>
+				when there is such a thing." late="True">\rowsMade</par>
 			<par key="dataset_id" description="Unless you understand the
 				implications, leave this at the default.  In particular, note
 				that this is *not* a dataset id in the VO sense, so this should

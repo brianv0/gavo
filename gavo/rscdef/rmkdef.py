@@ -213,7 +213,7 @@ class ApplyDef(procdef.ProcApp):
 	"""
 	name_ = "apply"
 	requiredType = "apply"
-	formalArgs = "vars, result, targetTable"
+	formalArgs = "vars, result, targetTable, _self"
 	
 	def getFuncCode(self):
 		return common.replaceProcDefAt(procdef.ProcApp.getFuncCode(self))
@@ -252,6 +252,14 @@ class RowmakerMacroMixin(base.StandardMacroMixin):
 		ingested for this source.
 		"""
 		return 'vars["parser_"].recNo'
+
+	def macro_rowsMade(self):
+		"""returns an expression giving the number of records already
+		returned by this row maker.
+
+		This number excludes failed and skipped rows.
+		"""
+		return '_self.rowsMade'
 
 	def macro_property(self, property):
 		"""returns an expression giving the property on the current DD.
@@ -398,7 +406,7 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 			line = appendToSource(v.getCode(columns), line, "assigning "+v.key)
 		for a in self.apps:
 			line = appendToSource(
-				"%s(vars, result, targetTable)"%a.name, 
+				"%s(vars, result, targetTable, _self)"%a.name, 
 				line, "executing "+a.name)
 		for m in self.maps:
 			line = appendToSource(m.getCode(columns), line, "building "+m.key)
@@ -537,6 +545,7 @@ class Rowmaker(object):
 		self.globals, self.defaults = globals, defaults
 		self.keySet = set(self.defaults)
 		self.lineMap = sorted(lineMap.items())
+		self.rowsMade = 0
 
 	def _guessExSourceName(self, tb):
 		"""returns an educated guess as to which mapping should have
@@ -587,12 +596,15 @@ class Rowmaker(object):
 			locals = {
 				"vars": vars,
 				"result": {},
+				"_self": self,
 				"targetTable": table
 			}
 			missingKeys = self.keySet-set(vars)
 			for k in missingKeys:
 				vars[k] = self.defaults[k]
 			exec self.code in self.globals, locals
+
+			self.rowsMade += 1
 			return locals["result"]
 		except rmkfuncs.IgnoreThisRow: # pass these on
 			raise
