@@ -36,7 +36,7 @@ from gavo.formats.votablewrite import (writeAsVOTable, getAsVOTable,
 from gavo.rsc import (TableForDef, DBTable, makeData, parseValidating,
 	parseNonValidating, getParseOptions, Data)
 
-from gavo.rscdef import TableDef, getFlatName
+from gavo.rscdef import TableDef, getFlatName, getReferencedElement
 
 from gavo.user.logui import LoggingUI
 

@@ -146,21 +146,6 @@ def tapabort(querier, args):
 				"contact.email"))
 
 
-@exposedFunction(help="Re-import column information from all RDs"
-	" (incl. TAP_SCHEMA; like gavo imp -m <all rds>)")
-def allcols(querier, args):
-	from gavo import registry
-	from gavo import rsc
-	from gavo.protocols import tap
-
-	for rdId in registry.findAllRDs():
-		rd = base.caches.getRD(rdId)
-		tap.unpublishFromTAP(rd, querier.connection)
-		for dd in rd:
-			rsc.Data.create(dd, connection=querier.connection).updateMeta()
-		tap.publishToTAP(rd, querier.connection)
-
-
 @exposedFunction([Arg(help="identifier of the deleted service",
 		dest="svcId")],
 	help="Declare an identifier as deleted (for when"

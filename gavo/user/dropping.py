@@ -8,8 +8,6 @@ Dropping resources.  For now, you can only drop entire RDs.
 #c COPYING file in the source distribution.
 
 
-import os
-
 from gavo import api
 from gavo import base
 from gavo.protocols import tap
@@ -66,13 +64,12 @@ def _do_dropRD(opts, rdId, selectedIds=()):
 	"""drops the data and services defined in the RD selected by rdId.
 	"""
 	try:
-		rd = api.getRD(os.path.join(os.getcwd(), rdId))
-	except api.RDNotFound:
-		try:
-			rd = api.getRD(rdId, forImport=True)
-		except api.RDNotFound:
+		rd = api.getReferencedElement(rdId, forceType=api.RD)
+	except api.NotFoundError:
+		if opts.force:
 			rd = None
-	
+		else:
+			raise
 
 	with base.AdhocQuerier(base.getWritableAdminConn) as querier:
 		if rd is not None:
@@ -122,6 +119,10 @@ def dropRD():
 		parser.add_argument("-s", "--system", help="drop tables even if they"
 			" are system tables",
 			dest="systemImport", action="store_true")
+		parser.add_argument("-f", "--force", help="Even if the RD isn't"
+			" found, try to purge entries referencing it. This only"
+			" makes sense with the full RD id.",
+			dest="force", action="store_true")
 		parser.add_argument("--all", help="drop all DDs in the RD,"
 			" not only the auto ones (overrides manual selection)",
 			dest="dropAll", action="store_true")

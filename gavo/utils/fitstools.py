@@ -121,7 +121,10 @@ class FITSError(Exception):
 # pyfits is a bit too liberal in throwing depreciation warnings.  Filter them
 # for now TODO: Figure out a system to check them now and then
 warnings.filterwarnings('ignore', category=DeprecationWarning)
-warnings.filterwarnings('ignore', category=pyfits.PyfitsDeprecationWarning)
+try:
+	warnings.filterwarnings('ignore', category=pyfits.PyfitsDeprecationWarning)
+except AttributeError: # pyfits too old to produce these: Good.
+	pass
 
 def padCard(input, length=CARD_SIZE):
 	"""pads input (a string) with blanks until len(result)%80=0
