@@ -80,6 +80,22 @@ else:
 		pass
 
 
+# We monkeypatch new versions of pyfits to support some old interfaces
+# -- the removed deprecated interfaces too quickly, and we want to
+# support pyfitses that don't have the new interfaces yet.
+
+if not hasattr(pyfits.Header, "has_key"):
+	def _header_has_key(self, key):
+		return key in self
+	pyfits.Header.has_key = _header_has_key
+	del _header_has_key
+
+if not hasattr(pyfits.Header, "ascardlist"):
+	def _ascardlist(self):
+		return self.cards
+	pyfits.Header.ascardlist = _ascardlist
+	del _ascardlist
+
 _FITS_TABLE_LOCK = threading.RLock()
 
 @contextmanager
@@ -103,11 +119,9 @@ class FITSError(Exception):
 
 
 # pyfits is a bit too liberal in throwing depreciation warnings.  Filter them
-# for now
-warnings.filterwarnings('ignore', category=DeprecationWarning,
-	module="gavo.(utils.fitstools|protocols.sdm)")
-warnings.filterwarnings('ignore', category=DeprecationWarning,
-	module="astLib.*")
+# for now TODO: Figure out a system to check them now and then
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+warnings.filterwarnings('ignore', category=pyfits.PyfitsDeprecationWarning)
 
 def padCard(input, length=CARD_SIZE):
 	"""pads input (a string) with blanks until len(result)%80=0

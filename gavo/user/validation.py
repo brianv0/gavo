@@ -191,7 +191,7 @@ def validateOtherCode(rd, args):
 
 	for job in rd.jobs:
 		try:
-			job.compileForParent(rd)
+			job.job.compile(parent=rd)
 		except Exception, msg:
 			outputError(rd.sourceId, "Bad code in job  '%s': %s"%(
 				job.title, msg))
