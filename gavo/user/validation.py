@@ -4,6 +4,12 @@ resource descriptors.
 
 Validation means giving some prognosis as to whether RD will properly work 
 within both the DC and the VO.
+
+While validation is active there's base.VALIDATION=True.  If RDs
+to anything expensive, they're advised to have something like::
+
+	if getattr(base, "VALIDATING", False):
+		(don't do the expensive thing)
 """
 
 #c Copyright 2008-2014, the GAVO project
@@ -279,6 +285,7 @@ def parseCommandLine():
 
 
 def main():
+	base.VALIDATING = True
 	args = parseCommandLine()
 	if len(args.rd)==1 and args.rd[0]=="ALL":
 		validateAll(args)

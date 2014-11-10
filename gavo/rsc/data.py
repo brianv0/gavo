@@ -425,6 +425,11 @@ def makeData(dd, parseOptions=common.parseNonValidating,
 	You can pass in a data instance created by yourself in data.  This
 	makes sense if you want to, e.g., add some meta information up front.
 	"""
+	# Some proc setup does expensive things like actually building data.
+	# We don't want that when validating and return some empty data thing.
+	if getattr(base, "VALIDATING", False):
+		return Data(dd, {'primary': None})
+
 	if connection is None:
 		connection = base.getDBConnection("admin")
 	if data is None:
