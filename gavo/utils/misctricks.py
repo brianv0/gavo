@@ -35,9 +35,84 @@ class NotInstalledModuleStub(object):
 
 try:
 	from docutils import core as rstcore
+
+	from docutils import nodes
+	from docutils.parsers.rst import roles
+	from docutils.parsers.rst import directives
+
+	class RSTExtensions(object):
+		"""a register for local RST extensions.
+
+		This is for both directives and interpreted text roles.  
+
+		We need these as additional markup in examples; these always
+		introduce local rst interpreted text roles, which always
+		add some class to the node in question (modifications are possible).
+
+		These classes are then changed to properties as the HTML fragments
+		from RST translation are processed by the _Example nevow data factory.
+
+		To add a new text role, say::
+
+			RSTExtensions.addRole(roleName, roleFunc=None)
+
+		You can pass in a full role function as discussed in
+		/usr/share/doc/python-docutils/docs/howto/rst-roles.html (Debian systems).
+		It must, however, add a dachs-ex-<roleName> class to the node. The
+		default funtion produces a nodes.emphasis item with the proper class.
+
+		To add a directive, say::
+
+			RSTExtensions.addDirective(dirName, dirClass)
+
+		In HTML, these classes become properties named like the role name.
+		"""
+		classToProperty = {}
+
+		@classmethod
+		def addDirective(cls, name, implementingClass):
+			directives.register_directive(name, implementingClass)
+			cls.classToProperty["dachs-ex-"+name] = name
+
+		@classmethod
+		def makeTextRole(cls, roleName, roleFunc=None):
+			"""creates a new text role for roleName.
+
+			See class docstring.
+			"""
+			if roleFunc is None:
+				roleFunc = cls._makeDefaultRoleFunc(roleName)
+			roles.register_local_role(roleName, roleFunc)
+			cls.classToProperty["dachs-ex-"+roleName] = roleName
+		
+		@classmethod
+		def _makeDefaultRoleFunc(cls, roleName):
+			"""returns an RST interpeted text role parser function returning
+			an emphasis node with a dachs-ex-roleName class.
+			"""
+			def roleFunc(name, rawText, text, lineno, inliner, 
+					options={}, content=[]):
+				node = nodes.emphasis(rawText, text)
+				node["classes"] = ["dachs-ex-"+roleName]
+				return [node], []
+
+			return roleFunc
+
+
+	# Generally useful RST extensions (for roles useful in examples, 
+	# see examplesrender)
+	def _bibcodeRoleFunc(name, rawText, text, lineno, inliner,
+			options={}, content=[]):
+		node = nodes.reference(rawText, text,
+			refuri="http://ads.ari.uni-heidelberg.de/abs/%s"%text) 
+		node["classes"] = ["bibcode-link"]
+		return [node], []
+
+	RSTExtensions.makeTextRole("bibcode", _bibcodeRoleFunc)
+	del _bibcodeRoleFunc
+
 except ImportError:
 	rstcore = NotInstalledModuleStub("docutils") #noflake: conditional import
-
 
 
 class _UndefinedType(type):

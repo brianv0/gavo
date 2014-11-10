@@ -67,16 +67,6 @@ class InputStreamTest(testhelpers.VerboseTest):
 	def testInternalResource(self):
 		self._assertSourceName("//users", "/resources/inputs/__system__/users.rd")
 
-	def testOutOfInputs(self):
-		import tempfile
-		with tempfile.NamedTemporaryFile(dir="/tmp") as f:
-			self._assertSourceName(f.name, f.name)
-
-	def testOutOfInputsRD(self):
-		import tempfile
-		with tempfile.NamedTemporaryFile(dir="/tmp", suffix="rd") as f:
-			self._assertSourceName(f.name, f.name)
-
 	def testUserResource(self):
 		self._assertSourceName("data/test", "data/test.rd")
 	
@@ -397,7 +387,8 @@ class CachesTest(testhelpers.VerboseTest):
 			self.fail("This should have raised?")
 
 	def testClearOnRm(self):
-		with testhelpers.testFile("temp.rd",
+		with testhelpers.testFile(os.path.join(
+				base.getConfig("inputsDir"), "fugit.rd"),
 				"<resource schema='look'/>") as rdName:
 			rd = base.caches.getRD(rdName)
 			self.assertEqual(rd.schema, "look")

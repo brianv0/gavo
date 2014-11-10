@@ -25,75 +25,15 @@ import re
 
 from docutils import nodes
 from docutils.parsers import rst
-from docutils.parsers.rst import directives
-from docutils.parsers.rst import roles
 
 from lxml import etree
 
 from nevow import rend
 
+from gavo.utils import misctricks
 from .. import base
 from .. import svcs
 from . import grend
-
-
-class RSTExtensions(object):
-	"""a register for local RST extensions.
-
-	This is for both directives and interpreted text roles.  
-
-	We need these as additional markup in examples; these always
-	introduce local rst interpreted text roles, which always
-	add some class to the node in question (modifications are possible).
-
-	These classes are then changed to properties as the HTML fragments
-	from RST translation are processed by the _Example nevow data factory.
-
-	To add a new text role, say::
-
-		RSTExtensions.addRole(roleName, roleFunc=None)
-
-	You can pass in a full role function as discussed in
-	/usr/share/doc/python-docutils/docs/howto/rst-roles.html (Debian systems).
-	It must, however, add a dachs-ex-<roleName> class to the node. The
-	default funtion produces a nodes.emphasis item with the proper class.
-
-	To add a directive, say::
-
-		RSTExtensions.addDirective(dirName, dirClass)
-
-	In HTML, these classes become properties named like the role name.
-	"""
-	classToProperty = {}
-
-	@classmethod
-	def addDirective(cls, name, implementingClass):
-		directives.register_directive(name, implementingClass)
-		cls.classToProperty["dachs-ex-"+name] = name
-
-	@classmethod
-	def makeTextRole(cls, roleName, roleFunc=None):
-		"""creates a new text role for roleName.
-
-		See class docstring.
-		"""
-		if roleFunc is None:
-			roleFunc = cls._makeDefaultRoleFunc(roleName)
-		roles.register_local_role(roleName, roleFunc)
-		cls.classToProperty["dachs-ex-"+roleName] = roleName
-	
-	@classmethod
-	def _makeDefaultRoleFunc(cls, roleName):
-		"""returns an RST interpeted text role parser function returning
-		an emphasis node with a dachs-ex-roleName class.
-		"""
-		def roleFunc(name, rawText, text, lineno, inliner, 
-				options={}, content=[]):
-			node = nodes.emphasis(rawText, text)
-			node["classes"] = ["dachs-ex-"+roleName]
-			return [node], []
-
-		return roleFunc
 
 
 class _Example(rend.DataFactory, base.MetaMixin):
@@ -122,11 +62,11 @@ class _Example(rend.DataFactory, base.MetaMixin):
 	def _getTranslatedHTML(self):
 		rawHTML = self.original.getContent("html")
 		parsed = etree.fromstring("<container>%s</container>"%rawHTML)
-		actOnClasses = set(RSTExtensions.classToProperty)
+		actOnClasses = set(misctricks.RSTExtensions.classToProperty)
 
 		for node in parsed.iterfind(".//*[@class]"):
 			nodeClasses = set(node.attrib["class"].split())
-			properties = " ".join(RSTExtensions.classToProperty[c] 
+			properties = " ".join(misctricks.RSTExtensions.classToProperty[c] 
 				for c in actOnClasses & nodeClasses)
 			if properties:
 				node.set("property", properties)
@@ -204,6 +144,7 @@ class Examples(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 # When you add anything here, be sure to update the Examples docstring
 # above.
 
+
 ### ...for TAP
 
 def _taptableRoleFunc(name, rawText, text, lineno, inliner,
@@ -213,7 +154,7 @@ def _taptableRoleFunc(name, rawText, text, lineno, inliner,
 	node["classes"] = ["dachs-ex-table"]
 	return [node], []
 
-RSTExtensions.makeTextRole("table", _taptableRoleFunc)
+misctricks.RSTExtensions.makeTextRole("table", _taptableRoleFunc)
 del _taptableRoleFunc
 
 class _TAPQuery(rst.Directive):
@@ -225,10 +166,10 @@ class _TAPQuery(rst.Directive):
 		res["classes"] = ["dachs-ex-query"]
 		return [res]
 
-RSTExtensions.addDirective("query", _TAPQuery)
+misctricks.RSTExtensions.addDirective("query", _TAPQuery)
 del _TAPQuery
 
 
 ### ...for datalink
 
-RSTExtensions.makeTextRole("dl-id")
+misctricks.RSTExtensions.makeTextRole("dl-id")

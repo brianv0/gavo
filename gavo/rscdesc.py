@@ -361,9 +361,6 @@ def canonicalizeRDId(srcId):
 	that's not within inputs or doesn't end with .rd is handed through.
 	// is expanded to __system__/.  The path to built-in RDs,
 	/resources/inputs, is treated analoguous to inputsDir.
-
-	TODO: We should probably reject everything that's neither below inputs
-	nor below resources.
 	"""
 	if srcId.startswith("//"):
 		srcId = "__system__"+srcId[1:]
@@ -406,7 +403,17 @@ def getRDInputStream(srcId):
 	"""
 	for fName in _getFilenamesForId(srcId):
 		if os.path.isfile(fName):
+			# We don't want RDs from outside of inputs and config, as 
+			# these make referencing really messy.
+			filePath = os.path.abspath(fName)
+			if not (
+					filePath.startswith(base.getConfig("inputsDir"))
+					or filePath.startswith(base.getConfig("configDir"))):
+				raise base.ReportableError("%s: Only RDs below inputsDir (%s) are"
+					" allowed."%(fName, base.getConfig("inputsDir")))
+
 			return fName, open(fName)
+
 		if (pkg_resources.resource_exists('gavo', fName)
 				and not pkg_resources.resource_isdir('gavo', fName)):
 			return (PkgResourcePath(fName), 
@@ -441,6 +448,8 @@ class _UserConfigFakeRD(object):
 	This is used by the id resolvers in parsecontext; this certainly is
 	of no use as an RD otherwise.
 	"""
+	def __init__(self):
+		pass
 
 	def getRealRD(self):
 		return base.caches.getRD(USERCONFIG_RD_PATH)

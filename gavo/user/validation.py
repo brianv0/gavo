@@ -16,9 +16,8 @@ import re
 import sys
 import traceback
 
+from gavo import api
 from gavo import base
-from gavo import rsc
-from gavo import rscdesc #noflake: for cache registration
 from gavo import stc
 from gavo.helpers import testtricks
 from gavo.imp import argparse
@@ -73,16 +72,19 @@ def loadRD(rdId):
 	If that fails, diagnostics are printed and None is returned.
 	"""
 	try:
-		rd = base.caches.getRD(rdId)
+		rd = api.getReferencedElement(rdId)
+
+		# This is so we can validate userconfig.rd
 		if hasattr(rd, "getRealRD"):
 			rd = rd.getRealRD()
-	except base.RDNotFound:
+
+	except api.RDNotFound:
 		outputError(rdId, "Could not be located")
-	except base.LiteralParseError:
+	except api.LiteralParseError:
 		outputError(rdId, "Bad literal in RD, message follows", True)
-	except base.StructureError:
+	except api.StructureError:
 		outputError(rdId, "Malformed RD input, message follows", True)
-	except base.Error:
+	except api.Error:
 		outputError(rdId, "Syntax or internal error, message follows", True)
 	else:
 		return rd
@@ -113,7 +115,7 @@ def validateServices(rd, args):
 			continue
 		try:
 			base.validateStructure(svc)
-		except base.MetaValidationError, ex:
+		except api.MetaValidationError, ex:
 			validSoFar = False
 			outputWarning(rd.sourceId, "Missing metadata for publication of"
 				" service %s:\n%s"%(svc.id, str(ex)))
@@ -124,7 +126,7 @@ def validateServices(rd, args):
 			continue
 
 		# error out if the identifier cannot be generated
-		base.getMetaText(svc, "identifier")
+		api.getMetaText(svc, "identifier")
 		registryRecord = None
 		try:
 			registryRecord = builders.getVORMetadataElement(svc)
@@ -157,7 +159,7 @@ def validateRowmakers(rd, args):
 		for m in dd.makes:
 			m.table.onDisk = False
 			try:
-				rsc.TableForDef(m.table)
+				api.TableForDef(m.table)
 				m.rowmaker.compileForTableDef(m.table)
 			finally:
 				m.table.onDisk = True
@@ -215,8 +217,8 @@ def validateTables(rd, args):
 		for col in td:
 			try:
 				if col.unit:
-					base.parseUnit(col.unit)
-			except base.BadUnit:
+					api.parseUnit(col.unit)
+			except api.BadUnit:
 				valid = False
 				outputError(rd.sourceId, "Bad unit in table %s, column %s: %s"%(
 					td.getQName(), col.name, col.unit))

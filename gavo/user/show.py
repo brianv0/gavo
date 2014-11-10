@@ -10,7 +10,7 @@ Maybe gavo config and gavo info should be folded in here if this grows.
 #c COPYING file in the source distribution.
 
 
-from gavo import rscdesc  # (register getRD)
+from gavo import api
 from gavo.user.common import Arg, exposedFunction, makeParser
 
 
@@ -18,12 +18,13 @@ from gavo.user.common import Arg, exposedFunction, makeParser
 	Arg("rdId", help="an RD id (or a path to RD xml)"),],
 	help="show what data items are avalailable")
 def dds(args):
-	rd = rscdesc.openRD(args.rdId)
+	rd = api.getReferencedElement(args.rdId, forceType=api.RD)
 	for dd in rd.dds:
 		outLine = dd.id
 		if dd.auto:
 			outLine += "*"
 		print outLine
+
 
 def main():
 	args = makeParser(globals()).parse_args()

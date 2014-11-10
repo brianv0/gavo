@@ -48,7 +48,7 @@ def resolveCrossId(id, forceType=None):
 		rdId, rest = id, None
 
 	try:
-		srcRd = caches.getRD(rdId)
+		srcRD = caches.getRD(rdId)
 	except common.RDNotFound:
 		raise common.NotFoundError(rdId, "RD", "file system",
 			hint="I was trying to resolve the reference %s; note that DaCHS only"
@@ -57,9 +57,9 @@ def resolveCrossId(id, forceType=None):
 				" probably the reason."%id)
 	
 	if rest is None:
-		return assertType(id, srcRd, forceType)
+		return assertType(id, srcRD, forceType)
 	else:	
-		return resolveId(srcRd, rest, forceType=forceType)
+		return resolveId(srcRD, rest, forceType=forceType)
 
 
 def resolveNameBased(container, id, forceType=None):

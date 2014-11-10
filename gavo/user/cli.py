@@ -113,7 +113,7 @@ def _parseCLArgs():
 		" and exit", action="callback", callback=_printVersion)
 	parser.add_option("-U", "--ui", help="use UI to show what is going on;"
 		" try --ui=help to see available interfaces.",
-		dest="uiName", action="store", type="str", default="plain",
+		dest="uiName", action="store", type="str", default="module-dependent",
 		metavar="UI")
 
 	opts, args = parser.parse_args()
@@ -144,13 +144,14 @@ def main():
 	from gavo import base
 	from gavo import utils
 	from gavo.user import errhandle
-	from gavo.user import useless
 	from gavo.user import plainui
+	from gavo.user import useless
 
 	interfaces = {
 		"deluge": useless.DelugeUI,
 		"null": useless.NullUI,
 		"stingy": plainui.StingyPlainUI,
+		"semistingy": plainui.SemiStingyPlainUI,
 		"plain": plainui.PlainUI,
 	}
 
@@ -158,6 +159,10 @@ def main():
 		from gavo.user import logui
 		logui.LoggingUI(base.ui)
 
+	if opts.uiName=="module-dependent":
+		opts.uiName = {"registry.publication": "semistingy",
+			"user.dropping": "stingy",
+			}.get(module, "plain")
 	if opts.uiName not in interfaces:
 		raise base.ReportableError("UI %s does not exist.  Choose one of"
 			" %s"%(opts.uiName, ", ".join(interfaces)))

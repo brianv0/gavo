@@ -972,10 +972,7 @@ def _getRunnerForAll(runnerArgs):
 def _getRunnerForSingle(testId, runnerArgs):
 	from gavo import api
 
-	if '#' in testId:
-		testElement = base.resolveCrossId(testId)
-	else:
-		testElement = base.caches.getRD(testId)
+	testElement = common.getReferencedElement(testId)
 	
 	if isinstance(testElement, api.RD):
 		runner = TestRunner.fromRD(testElement, **runnerArgs)

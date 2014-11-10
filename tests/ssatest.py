@@ -447,14 +447,6 @@ class SDMDatalinkTest(_WithSSATableTest):
 			self.runService,
 			("dl", {}))
 
-	def testOriginalFormatAvailable(self):
-		res = self.runService("dl",
-			{"ID": 'ivo://test.inv/test1'}, renderer="dlmeta").original[1]
-		tree = testhelpers.getXMLTree(res, debug=False)
-		self.assertEqual(tree.xpath(
-			"//PARAM[@name='FORMAT']/VALUES/OPTION[@value='image/jpeg']")[0
-				].get("name"), "Original format")
-
 	def testVOTDelivery(self):
 		res = self.runService("dl",
 			{"ID": 'ivo://test.inv/test1', "FORMAT": "application/x-votable+xml"})

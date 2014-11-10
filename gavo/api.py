@@ -28,6 +28,9 @@ from gavo.base import (getConfig, setConfig,
 	NoMetaKey, Error, StructureError, ValidationError, LiteralParseError, 
 	ReportableError, NotFoundError, RDNotFound, SourceParseError,
 	parseFromString,
+	makeStruct,
+	parseUnit,
+	getMetaText,
 	ui)
 
 from gavo.formats.votablewrite import (writeAsVOTable, getAsVOTable,

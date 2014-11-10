@@ -119,7 +119,8 @@ class ImportTest(testhelpers.VerboseTest):
 			self.assertOutput(cli.main, 
 				argList=["imp", destName],
 				expectedRetcode=1, expectedStderr=
-				"*** Error: Only RDs from below inputsDir may be imported.\n")
+				"*** Error: /home/msdemlei/foobar.rd: Only RDs below inputsDir"
+				"\n(/home/msdemlei/_gavo_test/inputs) are allowed.\n")
 
 	def testMetaImportAndPurge(self):
 		self.assertOutput(cli.main, argList=["purge", "test.adql"])

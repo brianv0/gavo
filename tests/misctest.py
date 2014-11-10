@@ -567,7 +567,8 @@ class _ModifiedObscoreTables(testhelpers.TestResource):
 				</STREAM>
 			</resource>""")
 
-		with testhelpers.testFile("ex.rd", """
+		with testhelpers.testFile(
+			os.path.join(base.getConfig("inputsDir"), "ex.rd"), """
 				<resource schema="__system">
 					<table id="instable" onDisk="yes">
 						<mixin plutoLong="56">//obscore#publishSSAPHCD</mixin>

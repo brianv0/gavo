@@ -28,6 +28,7 @@ import pkg_resources
 from gavo import base
 from gavo import grammars
 from gavo import rsc
+from gavo import rscdef
 from gavo import utils
 
 from gavo.registry import builders
@@ -332,12 +333,14 @@ def findPublishedRDs():
 
 
 def getRDs(args):
-	"""returns a list of RDs from a list of more-or-less RD ids.
+	"""returns a list of RDs from a list of RD ids or paths.
 	"""
+	from gavo import rscdesc
 	allRDs = []
 	for rdPath in args:
 		try:
-			allRDs.append(base.caches.getRD(rdPath, doQueries=False))
+			allRDs.append(
+				rscdef.getReferencedElement(rdPath, forceType=rscdesc.RD))
 		except:
 			base.ui.notifyError("RD %s faulty, ignored.\n"%rdPath)
 	return allRDs
@@ -402,8 +405,6 @@ def main():
 	"""handles the user interaction for gavo publish.
 	"""
 	from gavo import rscdesc #noflake: register cache
-	from gavo.user import plainui
-	plainui.SemiStingyPlainUI(base.ui)
 	opts, args = parseCommandLine()
 	common.getServicesRD().touchTimestamp()
 	if opts.all:

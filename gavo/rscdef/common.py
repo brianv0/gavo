@@ -497,23 +497,23 @@ def getReferencedElement(refString, forceType=None):
 	"""
 	# get the inputs postfix now so we don't pollute the current exception later
 	try:
-		inputsPostfix = utils.getRelativePath(os.getcwd(),
+		cwdInInputs = utils.getRelativePath(os.getcwd(),
 			base.getConfig("inputsDir"), liberalChars=True)
 	except ValueError:
 		# not in inputs
-		inputsPostfix = None
+		cwdInInputs = None
 
 	try:
 		return base.resolveCrossId(refString, forceType=forceType)
 	except base.NotFoundError, ex:
-		if inputsPostfix:
+		if cwdInInputs:
 			try:
-				return base.resolveCrossId("%s/%s"%(inputsPostfix, refString),
+				return base.resolveCrossId("%s/%s"%(cwdInInputs, refString),
 					forceType=forceType)
 			except base.NotFoundError:
 				pass
 		raise ex
-
+	
 
 @utils.document
 def getStandardPubDID(path):

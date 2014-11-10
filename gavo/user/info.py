@@ -8,10 +8,8 @@ Commands for obtaining information about various things in the data center.
 #c COPYING file in the source distribution.
 
 
+from gavo import api
 from gavo import base
-from gavo import rsc
-from gavo import rscdef
-from gavo import rscdesc #noflake: for cache registration
 from gavo import svcs
 from gavo import utils
 from gavo.imp.argparse import ArgumentParser
@@ -52,7 +50,7 @@ class AnnotationMaker(object):
 		"""
 		destCol = nameMaker.makeName(propName+"_"+self.column.name)
 		self.propDests[destCol] = propName
-		return base.makeStruct(svcs.OutputField,
+		return api.makeStruct(svcs.OutputField,
 			name=destCol, 
 			select=propFunc%{"name": self.column.name}, 
 			type=self.column.type)
@@ -75,7 +73,7 @@ def annotateDBTable(td):
 	nameMaker = base.VOTNameMaker()
 	for col in td:
 		annotator = AnnotationMaker(col)
-		if col.type in ORDERED_TYPES:
+		if col.type in ORDERED_TYPES or col.type.startswith("char"):
 			outputFields.append(annotator.getOutputFieldFor("max",
 				"MAX(%(name)s)", nameMaker))
 			outputFields.append(annotator.getOutputFieldFor("min",
@@ -86,10 +84,10 @@ def annotateDBTable(td):
 		outputFields.append(annotator.getOutputFieldFor("hasnulls",
 				"BOOL_OR(%(name)s IS NULL)", nameMaker))
 		annotators.append(annotator)
-	table = rsc.TableForDef(td)
+	table = api.TableForDef(td)
 
 	if not hasattr(table, "iterQuery"):
-		raise base.ReportableError("Table %s cannot be queried."%td.getQName(),
+		raise api.ReportableError("Table %s cannot be queried."%td.getQName(),
 			hint="This is probably because it is an in-memory table.  Add"
 			" onDisk='True' to make tables reside in the database.")
 
@@ -128,5 +126,5 @@ def parseCmdline():
 
 def main():
 	args = parseCmdline()
-	td = base.resolveCrossId(args.tableId, rscdef.TableDef)
+	td = api.getReferencedElement(args.tableId, api.TableDef)
 	printTableInfo(td)

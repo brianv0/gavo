@@ -817,7 +817,7 @@ def getGrammarAndTable(grammarId):
 	"""returns a pair of directGrammar and table being fed for a cross-rd
 	reference.
 	"""
-	grammar = base.resolveId(None, grammarId, forceType=DirectGrammar)
+	grammar = rscdef.getReferencedElement(grammarId, forceType=DirectGrammar)
 	# to figure out the table built, use the parent's make
 	makes = grammar.parent.makes
 	if len(makes)!=1:
