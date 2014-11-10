@@ -283,13 +283,6 @@
 						"text/csv": "Comma separated values",
 						"application/fits": "FITS binary table"}
 
-				mimesFound = descriptor.mime
-				if isinstance(mimesFound, basestring):
-					mimesFound = set([mimesFound])
-				for mime in mimesFound:
-					if mime not in formatsAvailable:
-						formatsAvailable[mime] = "Original format"
-
 				yield MS(InputKey, name="FORMAT", type="text",
 					ucd="meta.code.mime",
 					utype="ssa:Access.Format",
