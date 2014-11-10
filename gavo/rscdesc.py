@@ -498,6 +498,9 @@ def getRD(srcId, forImport=False, doQueries=True,
 		rd = RD(canonicalizeRDId(srcId))
 	else:
 		rd = useRD
+	
+	if getattr(base, "VALIDATING", False):
+		doQueries = False
 
 	srcPath, inputFile = getRDInputStream(rd.sourceId)
 	context = RDParseContext(forImport, doQueries, dumpTracebacks, restricted)
