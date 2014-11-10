@@ -8,14 +8,3 @@
 #c COPYING file in the source distribution.
 
 # Not checked by pyflakes: API file with gratuitous imports
-
-
-from gavo.user import useless
-from gavo.user import plainui
-
-interfaces = {
-	"deluge": useless.DelugeUI,
-	"null": useless.NullUI,
-	"stingy": plainui.StingyPlainUI,
-	"plain": plainui.PlainUI,
-}

@@ -11,11 +11,9 @@ The user interface to importing resources into the VO.
 import sys
 from optparse import OptionParser
 
+from gavo import api
 from gavo import base
-from gavo import rscdesc
-from gavo import rsc
 from gavo.protocols import tap
-from gavo import user  # oops -- we should keep interfaces somewhere else.
 from gavo.user import common
 
 
@@ -46,37 +44,32 @@ def process(opts, args):
 	main's parseOption function below.
 	"""
 	# process manages its dependencies itself
-	retvalWatcher = RetvalWatcher(base.ui)
+	retvalWatcher = RetvalWatcher(api.ui)
 	opts.buildDependencies = False
 
-	src, selectedIds = args[0], args[1:]
-	rd = rscdesc.openRD(src)
-	if rd.sourceId.startswith("/"):
-		raise base.ReportableError(
-			"Only RDs from below inputsDir may be imported.",
-			hint="Your current configuration (from /etc/gavo.rc or ~/.gavorc)"
-			" makes %s the inputsDir"%base.getConfig("inputsDir"))
+	rdId, selectedIds = args[0], args[1:]
+	rd = api.getReferencedElement(rdId, forceType=api.RD)
 
 	dds = common.getPertainingDDs(rd, selectedIds)
-	connection = base.getDBConnection("admin")
+	connection = api.getDBConnection("admin")
 	tap.unpublishFromTAP(rd, connection)
 	tap.publishToTAP(rd, connection)
 
 	for dd in dds:
 		if opts.metaOnly:
-			base.ui.notifyInfo("Updating meta for %s"%dd.id)
-			res = rsc.Data.create(dd, parseOptions=opts, connection=connection
+			api.ui.notifyInfo("Updating meta for %s"%dd.id)
+			res = api.Data.create(dd, parseOptions=opts, connection=connection
 				).updateMeta(opts.metaPlusIndex)
 		else:
-			base.ui.notifyInfo("Making data %s"%dd.id)
-			res = rsc.makeData(dd, parseOptions=opts, connection=connection)
+			api.ui.notifyInfo("Making data %s"%dd.id)
+			res = api.makeData(dd, parseOptions=opts, connection=connection)
 		if hasattr(res, "nAffected"):
-			base.ui.notifyInfo("Rows affected: %s"%res.nAffected)
+			api.ui.notifyInfo("Rows affected: %s"%res.nAffected)
 	# We're committing here so that we don't lose all importing
 	# work just because some dependent messes up.
 	connection.commit()
 
-	rsc.makeDependentsFor(dds, opts, connection)
+	api.makeDependentsFor(dds, opts, connection)
 	connection.commit()
 	rd.touchTimestamp()
 
@@ -112,10 +105,6 @@ def main():
 			dest="systemImport", action="store_true")
 		parser.add_option("-v", "--verbose", help="talk a lot while working",
 			dest="verbose", action="store_true")
-		parser.add_option("-U", "--ui", help="use UI to show what is going on;"
-			" known UI names include: %s"%", ".join(user.interfaces),
-			dest="uiName", action="store", type="str", default="plain",
-			metavar="UI")
 		parser.add_option("-r", "--reckless", help="Do not validate rows"
 			" before ingestion", dest="validateRows", action="store_false",
 			default=True)
@@ -136,13 +125,8 @@ def main():
 
 		(opts, args) = parser.parse_args()
 
-		if opts.uiName:
-			if opts.uiName not in user.interfaces:
-				raise base.ReportableError("UI %s does not exist.  Choose one of"
-					" %s"%(opts.uiName, ", ".join(user.interfaces)))
-			if opts.metaPlusIndex:
-				opts.metaOnly = True
-			user.interfaces[opts.uiName](base.ui)
+		if opts.metaPlusIndex:
+			opts.metaOnly = True
 		if not args:
 			parser.print_help(file=sys.stderr)
 			sys.exit(1)

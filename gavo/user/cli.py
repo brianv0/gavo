@@ -111,6 +111,10 @@ def _parseCLArgs():
 		action="callback", callback=_enableDebug)
 	parser.add_option("--version", help="Write software version to stdout"
 		" and exit", action="callback", callback=_printVersion)
+	parser.add_option("-U", "--ui", help="use UI to show what is going on;"
+		" try --ui=help to see available interfaces.",
+		dest="uiName", action="store", type="str", default="plain",
+		metavar="UI")
 
 	opts, args = parser.parse_args()
 	if len(args)<1:
@@ -140,10 +144,24 @@ def main():
 	from gavo import base
 	from gavo import utils
 	from gavo.user import errhandle
+	from gavo.user import useless
+	from gavo.user import plainui
+
+	interfaces = {
+		"deluge": useless.DelugeUI,
+		"null": useless.NullUI,
+		"stingy": plainui.StingyPlainUI,
+		"plain": plainui.PlainUI,
+	}
 
 	if not (opts.suppressLog or os.environ.get("GAVO_LOG")=="no"):
 		from gavo.user import logui
 		logui.LoggingUI(base.ui)
+
+	if opts.uiName not in interfaces:
+		raise base.ReportableError("UI %s does not exist.  Choose one of"
+			" %s"%(opts.uiName, ", ".join(interfaces)))
+	interfaces[opts.uiName](base.ui)
 
 	if opts.enablePDB:
 		_enablePDB()
