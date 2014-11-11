@@ -49,12 +49,13 @@ def resolveCrossId(id, forceType=None):
 
 	try:
 		srcRD = caches.getRD(rdId)
-	except common.RDNotFound:
-		raise common.NotFoundError(rdId, "RD", "file system",
-			hint="I was trying to resolve the reference %s; note that DaCHS only"
-				" uses RDs residing below inputsDir and ignores all others."
-				"  If there's an RD that DaCHS insists isn't there, that's"
-				" probably the reason."%id)
+	except common.RDNotFound, ex:
+		ex.hint = (
+			"I was trying to resolve the reference %s; note that DaCHS only"
+			" uses RDs residing below inputsDir and ignores all others."
+			"  If there's an RD that DaCHS insists isn't there, that's"
+			" probably the reason."%id)
+		raise
 	
 	if rest is None:
 		return assertType(id, srcRD, forceType)

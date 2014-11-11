@@ -21,6 +21,7 @@ from gavo import base
 from gavo import api
 from gavo import rsc
 from gavo import rscdesc
+from gavo import utils
 from gavo.base import events
 from gavo.helpers import testtricks
 from gavo.user import cli
@@ -315,5 +316,54 @@ class ValidationTest(testhelpers.VerboseTest):
 					"  *** Error: mismatched tag: line 2, column 6\n  \nFail\n")
 
 
+class CLIReferenceTest(testhelpers.VerboseTest):
+	def testNonExRD(self):
+		self.assertRaisesWithMsg(base.RDNotFound,
+			"Resource descriptor 'i/do/not/exist' could not be located"
+			" in file system",
+			api.getReferencedElement,
+			("i/do/not/exist",))
+	
+	def testNoRDReference(self):
+		with testhelpers.testFile(os.path.join(base.getConfig("inputsDir"),
+				"nordref.rd"),
+				"""<resource schema="__test"><table original="i/do/not#exist"/>
+				</resource>""") as src:
+			self.assertRaisesWithMsg(base.RDNotFound,
+				"Resource descriptor u'i/do/not' could not be located in file system",
+				api.getReferencedElement,
+				("nordref",))
+
+	def testNoElDirectReference(self):
+		self.assertRaisesWithMsg(base.NotFoundError,
+			"Element with id 'justrandomjunk' could not be located in RD data/test",
+			api.getReferencedElement,
+			("data/test#justrandomjunk",))
+
+	def testNoElIndirectReference(self):
+		with testhelpers.testFile(os.path.join(base.getConfig("inputsDir"),
+				"badref.rd"),
+				"""<resource schema="__test">
+					<table original="data/test#justrandomjunk"/>
+				</resource>""") as src:
+			self.assertRaisesWithMsg(base.NotFoundError,
+				"Element with id u'justrandomjunk' could not be located"
+				" in RD data/test",
+				api.getReferencedElement,
+				("badref",))
+
+	def testNoElIndirectReferenceInDir(self):
+		baseDir = os.path.join(base.getConfig("inputsDir"), "test")
+		with testhelpers.testFile(os.path.join(baseDir, "locbad.rd"),
+				"""<resource schema="__test">
+					<table original="data/test#justrandomjunk"/>
+				</resource>""") as src:
+			with utils.in_dir(baseDir):
+				self.assertRaisesWithMsg(base.NotFoundError,
+					"Element with id u'justrandomjunk' could not be located"
+					" in RD data/test",
+					api.getReferencedElement,
+					("locbad",))
+	
 if __name__=="__main__":
 	testhelpers.main(DropTest)

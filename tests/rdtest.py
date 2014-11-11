@@ -53,7 +53,6 @@ class CanonicalizeTest(testhelpers.VerboseTest):
 		("/resources/inputs/where/q", "where/q"),]
 	
 
-
 class InputStreamTest(testhelpers.VerboseTest):
 # test the location of input streams.  This assumes testhelpers has set
 # gavo_inputs to <test_dir>/data

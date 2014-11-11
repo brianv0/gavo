@@ -82,6 +82,7 @@ class ResdirRelativeAttribute(base.FunctionRelativePathAttribute):
 			return None
 		return instance.rd.resdir
 
+
 class ProfileListAttribute(base.AtomicAttribute):
 	"""An attribute containing a comma separated list of profile names.
 
@@ -505,14 +506,11 @@ def getReferencedElement(refString, forceType=None):
 
 	try:
 		return base.resolveCrossId(refString, forceType=forceType)
-	except base.NotFoundError, ex:
+	except base.RDNotFound:
 		if cwdInInputs:
-			try:
-				return base.resolveCrossId("%s/%s"%(cwdInInputs, refString),
-					forceType=forceType)
-			except base.NotFoundError:
-				pass
-		raise ex
+			return base.resolveCrossId("%s/%s"%(cwdInInputs, refString),
+				forceType=forceType)
+		raise
 	
 
 @utils.document

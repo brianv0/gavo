@@ -213,7 +213,7 @@ class RDNotFound(NotFoundError):
 	"""is raised when an RD cannot be located.
 	"""
 	def __init__(self, rdId, hint=None):
-		NotFoundError.__init__(self, rdId, hint=hint, what="resource descriptor",
+		NotFoundError.__init__(self, rdId, hint=hint, what="Resource descriptor",
 			within="file system")
 		self.args = [rdId, hint]
 

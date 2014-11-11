@@ -557,7 +557,7 @@ class FITSCodeGenerator(_CodeGenerator):
 		# now fetch the first source to figure out its schema
 		if self.grammar.parent.sources is None:
 			raise base.StructureError("Cannot make FITS bintable booster without"
-				" a source element on the embedding data.")
+				" a sources element on the embedding data.")
 		try:
 			self.fitsTable = pyfits.open(
 				self.grammar.parent.sources.iterSources().next())[1]

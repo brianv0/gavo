@@ -312,7 +312,7 @@ class CrossResolutionTest(testhelpers.VerboseTest):
 
 	def testRDError(self):
 		self.assertRaisesWithMsg(base.NotFoundError,
-			"RD 'nonexisting' could not be located in file system",
+			"Resource descriptor 'nonexisting' could not be located in file system",
 			rscdef.getReferencedElement,
 			("nonexisting",))
 
@@ -328,7 +328,7 @@ class CrossResolutionTest(testhelpers.VerboseTest):
 		wd = os.path.join(base.getConfig("inputsDir"), "test")
 		with utils.in_dir(wd):
 			self.assertRaisesWithMsg(base.NotFoundError,
-				"RD 'foo' could not be located in file system",
+				"Resource descriptor 'test/foo' could not be located in file system",
 				rscdef.getReferencedElement,
 				("foo#bar", rscdef.TableDef))
 
