@@ -379,7 +379,9 @@ _config = Configuration(
 
 	Section('web', 'Settings related to serving content to the web.',
 		StringConfigItem("serverURL", default="http://localhost:8080",
-			description="URL fragment used to qualify relative URLs where necessary"),
+			description="URL fragment used to qualify relative URLs where"
+			" necessary.  Note that this must contain the port the server is"
+			" accessible under from the outside if that is not 80."),
 		StringConfigItem("bindAddress", default="127.0.0.1", description=
 			"Interface to bind to"),
 		IntConfigItem("serverPort", default="8080",

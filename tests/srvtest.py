@@ -46,7 +46,7 @@ class _Scheduler(object):
 		self.lastMessage = subject+"\n"+message
 
 	def finalize(self):
-		if self.curTimer.isAlive():
+		if self.curTimer and self.curTimer.isAlive():
 			self.curTimer.cancel()
 		cron.sendMailToAdmin = self.oldMailFunction
 
@@ -72,25 +72,27 @@ class CronTest(testhelpers.VerboseTest):
 	resources = [("scheduler", _TestScheduleFunction())]
 
 	def testDailyReschedulePre(self):
-		job = cron.DailyJob([(15, 20)], "testing#testing", None)
+		job = cron.TimedJob([(None, None, 15, 20)], "testing#testing", None)
 		t0 = calendar.timegm((1990, 5, 3, 10, 30, 0, -1, -1, -1))
 		t1 = time.gmtime(job.getNextWakeupTime(t0))
 		self.assertEqual(t1[2:5], (3, 15, 20))
 
 	def testDailyReschedulePost(self):
-		job = cron.DailyJob([(15, 20)], "testing#testing", None)
+		job = cron.TimedJob([(None, None, 15, 20)], "testing#testing", None)
 		t0 = calendar.timegm((1990, 5, 3, 20, 30, 0, -1, -1, -1))
 		t1 = time.gmtime(job.getNextWakeupTime(t0))
 		self.assertEqual(t1[2:5], (4, 15, 20))
 
 	def testDailyRescheduleBetween(self):
-		job = cron.DailyJob([(15, 20), (8, 45)], "testing#testing", None)
+		job = cron.TimedJob([(None, None, 15, 20), (None, None, 8, 45)], 
+			"testing#testing", None)
 		t0 = calendar.timegm((1990, 5, 3, 12, 30, 0, -1, -1, -1))
 		t1 = time.gmtime(job.getNextWakeupTime(t0))
 		self.assertEqual(t1[2:5], (3, 15, 20))
 
 	def testDailyRescheduleBeforeAll(self):
-		job = cron.DailyJob([(15, 20), (8, 45)], "testing#testing", None)
+		job = cron.TimedJob([(None, None, 15, 20), (None, None, 8, 45)], 
+			"testing#testing", None)
 		t0 = calendar.timegm((1990, 5, 3, 0, 30, 0, -1, -1, -1))
 		t1 = time.gmtime(job.getNextWakeupTime(t0))
 		self.assertEqual(t1[2:5], (3, 8, 45))
@@ -167,18 +169,48 @@ class CronTest(testhelpers.VerboseTest):
 						rd.flum = 31
 				</code></job></execute></resource>"""))
 
+	def testAtFromRDAlsoBad(self):
+		self.assertRaisesWithMsg(base.LiteralParseError,
+			'At [<resource schema="test">\\n\\...], (5, 17): \'m31 22:18\' is'
+				' not a valid value for at',
+			base.parseFromString,
+			(rscdesc.RD, """<resource schema="test">
+			<execute title="seir" at="m31 22:18">
+				<job><code>
+						rd.flum = 31
+				</code></job></execute></resource>"""))
+
 	def testAtFromRDGood(self):
 		rd = base.parseFromString(rscdesc.RD, """<resource schema="test">
 			<execute title="seir" at="16:28">
 				<job><code>
 						rd.flum = 31
 				</code></job></execute></resource>""")
-		self.assertEqual(rd.jobs[0].parsedAt[0], (16, 28))
+		self.assertEqual(rd.jobs[0].parsedAt[0], (None, None, 16, 28))
 		self.assertEqual(len(rd.jobs[0].parsedAt), 1)
 		self.scheduler.wait()
 		self.assertEqual(time.gmtime([j for _, j in cron._queue.jobs 
 			if j.name=="None#seir"][0].getNextWakeupTime(time.time()))[3:5],
 			(16, 28))
+
+	def testAtFromRDWithMonth(self):
+		# this is a somewhat non-deterministic test...
+		rd = base.parseFromString(rscdesc.RD, """<resource schema="test">
+			<execute title="seir" at="m6 16:28, w3 10:20">
+				<job><code>
+						rd.flum = 31
+				</code></job></execute></resource>""")
+		self.assertEqual(rd.jobs[0].parsedAt[0], (6, None, 16, 28))
+		self.assertEqual(rd.jobs[0].parsedAt[1], (None, 3, 10, 20))
+		self.assertEqual(len(rd.jobs[0].parsedAt), 2)
+
+		scheduledAt, job = [item for item in cron._queue.jobs
+			if item[1].name=="None#seir"][0]
+		tup = time.gmtime(scheduledAt)
+		self.assertTrue(tup.tm_wday==2 or tup.tm_mday==6,
+			"seir not scheduled on Wednesday or 6th of month: %s"%repr(tup))
+		self.assertTrue(scheduledAt>=time.time(),
+			"seir in the past")
 
 
 class Tell(Exception):

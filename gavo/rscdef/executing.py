@@ -144,7 +144,11 @@ class Execute(base.Structure, base.ExpansionDelegator):
 
 	_at = base.StringListAttribute("at",
 		description="One or more hour:minute pairs at which to run"
-			" the code each day.  This conflicts with every.",
+			" the code each day.  This conflicts with every.  Optionally,"
+			" you can prefix each time by one of m<dom> or w<dow> for"
+			" jobs only to be exectued at some day of the month or week, both"
+			" counted from 1.  So, 'm22 7:30, w3 15:02' would execute on"
+			" the 22nd of each month at 7:30 UTC and on every wednesday at 15:02.",
 		default=base.NotGiven,
 		copyable=True,)
 
@@ -154,7 +158,7 @@ class Execute(base.Structure, base.ExpansionDelegator):
 		"  This conflicts with at.  Note that the first execution of"
 		" such a job is after every/10 seconds, and that the timers"
 		" start anew at every server restart.  So, if you restart"
-		" often, these jobs may run much more frequent or not at all"
+		" often, these jobs may run much more frequently or not at all"
 		" if the interval is large.",
 		copyable=True,)
 
@@ -196,6 +200,41 @@ class Execute(base.Structure, base.ExpansionDelegator):
 		"""
 		self.spawn(["python", os.path.join(self.rd.resdir, pythonFile)])
 
+	def _parseAt(self, atSpec, ctx):
+		"""returns a tuple ready for cron.repeatAt from atSpec.
+
+		see the at StringListAttribute for how it would look like; this
+		parses one element of that string list.
+		"""
+		mat = re.match(r"(?P<dow>w\d\s+)?"	
+			r"(?P<dom>m\d\d?\s+)?"
+			r"(?P<hr>\d+):(?P<min>\d+)", atSpec)
+		if not mat:
+			raise base.LiteralParseError("at", atSpec, pos=ctx.pos, hint=
+				"This is hour:minute optionally prefixed by either w<weekday> or"\
+				" m<day of month>, each counted from 1.")
+		
+		hour, minute = int(mat.group("hr")), int(mat.group("min"))
+		if not (0<=hour<=23 and 0<=minute<=59):
+			raise base.LiteralParseError("at", atSpec, pos=ctx.pos, hint=
+				"This must be hour:minute with 0<=hour<=23 or 0<=minute<=59")
+
+		dom = None
+		if mat.group("dom"):
+			dom = int(mat.group("dom")[1:])
+			if not 1<=dom<=28:
+				raise base.LiteralParseError("at", atSpec, pos=ctx.pos, hint=
+					"day-of-month in at must be between 1 and 28.")
+
+		dow = None
+		if mat.group("dow"):
+			dow = int(mat.group("dow")[1:])
+			if not 1<=dow<=7:
+				raise base.LiteralParseError("at", atSpec, pos=ctx.pos, hint=
+					"day-of-week in at must be between 1 and 7.")
+
+		return (dom, dow, hour, minute)
+
 	def completeElement(self, ctx):
 		self._completeElementNext(Execute, ctx)
 		if len([s for s in [self.at, self.every] if s is base.NotGiven])!=1:
@@ -203,18 +242,9 @@ class Execute(base.Structure, base.ExpansionDelegator):
 				" for Execute", pos=ctx.pos)
 
 		if self.at is not base.NotGiven:
-			times = []
+			self.parsedAt = []
 			for literal in self.at:
-				mat = re.match(r"(\d+):(\d+)", literal)
-				if not mat:
-					raise base.LiteralParseError("at", literal, pos=ctx.pos, hint=
-						"This must be in hour:minute format")
-				hour, minute = int(mat.group(1)), int(mat.group(2))
-				if not (0<=hour<=23 and 0<=minute<=59):
-					raise base.LiteralParseError("at", literal, pos=ctx.pos, hint=
-						"This must be hour:minute with 0<=hour<=23 or 0<=minute<=59")
-				times.append((hour, minute))
-			self.parsedAt = times
+				self.parsedAt.append(self._parseAt(literal, ctx))
 
 		self.jobName = "%s#%s"%(self.rd.sourceId, self.title)
 

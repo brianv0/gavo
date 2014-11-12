@@ -125,10 +125,12 @@ class IntervalJob(AbstractJob):
 			return curTime+self.interval
 
 
-class DailyJob(AbstractJob):
+class TimedJob(AbstractJob):
 	"""A job that's run roughly daily at some wallclock (UTC) times.
 
-	times is a list of (hour, minute) pairs.
+	times is a list of (day-of-month, day-of-week, hour, minute) tuples.
+	day-of-month and/or day-of-week are 1-based and may be None (if both
+	are non-none, day-of-week wins).
 	"""
 	def __init__(self, times, name, callable):
 		self.times = times
@@ -139,13 +141,30 @@ class DailyJob(AbstractJob):
 		# in the past, add a day; do that for all recurrence times, and use
 		# the smallest one.
 		nextWakeups = []
-		curTup = time.gmtime(curTime)
-		for hour, minute in self.times:
-			wakeupTime = calendar.timegm(
-				curTup[:3]+(hour, minute)+curTup[5:])
-			if wakeupTime<curTime:
-				wakeupTime += 86400
-			nextWakeups.append(wakeupTime)
+		baseDT = datetime.datetime.fromtimestamp(curTime)
+
+		for dom, dow, hour, minute in self.times:
+			if dow is not None:
+				curDT = baseDT+datetime.timedelta(days=baseDT.isoweekday()-dow)
+				curDT = curDT.replace(hour=hour, minute=minute)
+				if curDT<baseDT:
+					curDT = curDT+datetime.timedelta(days=7)
+
+			elif dom is not None:
+				curDT = baseDT.replace(day=dom, hour=hour, minute=minute)
+				if curDT<baseDT:
+					if curDT.month<12:
+						curDT = curDT.replace(month=curDT.month+1)
+					else:
+						curDT = curDT.replace(year=curDT.year+1, month=1)
+			
+			else:
+				curDT = baseDT.replace(hour=hour, minute=minute)
+				if curDT<baseDT:
+					curDT = curDT+datetime.timedelta(hours=24)
+
+			nextWakeups.append(calendar.timegm(curDT.utctimetuple()))
+
 		return min(nextWakeups)
 
 
@@ -244,7 +263,9 @@ class Queue(object):
 	def repeatAt(self, times, name, callable):
 		"""schedules callable to be run every day at times.
 
-		times is a list of (hour, minute) pairs.
+		times is a list of (day-of-month, day-of-week, hour, minute) tuples.
+		day-of-month and/or day-of-week are 1-based and may be None (if both
+		are non-none, day-of-week wins).
 
 		name must be a unique identifier for the "job".  jobs with identical
 		names overwrite each other.
@@ -252,7 +273,7 @@ class Queue(object):
 		callable will be run in the main thread, so it must finish quickly
 		or it will block the server.
 		"""
-		self._scheduleJob(DailyJob(times, name, callable))
+		self._scheduleJob(TimedJob(times, name, callable))
 
 	def registerScheduleFunction(self, scheduleFunction):
 		if self.scheduleFunction is None:
