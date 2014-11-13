@@ -227,7 +227,8 @@ class FileProcessor(object):
 				if self.opts.bailOnError:
 					sys.exit(1)
 				sys.stderr.write("Skipping source %s: (%s, %s)\n"%(
-					getattr(msg, "source", "(unknown)"), msg.__class__.__name__, msg))
+					getattr(msg, "source", "(unknown)"), msg.__class__.__name__, 
+						repr(msg)))
 				ignored += 1
 			processed += 1
 			sys.stdout.write("%6d (-%5d)\r"%(processed, ignored))

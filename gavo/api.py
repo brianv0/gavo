@@ -33,8 +33,9 @@ from gavo.base import (getConfig, setConfig,
 	getMetaText,
 	ui)
 
+from gavo.formats import formatData, getFormatted
 from gavo.formats.votablewrite import (writeAsVOTable, getAsVOTable,
-	VOTableContext, formatData, getFormatted)
+	VOTableContext)
 
 
 from gavo.rsc import (TableForDef, DBTable, makeData, parseValidating,
