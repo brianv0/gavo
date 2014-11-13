@@ -26,7 +26,7 @@ def _encodeRow(row):
 	for val in row:
 		if isinstance(val, str):
 			res.append(re.sub("\s+", " ", val))
-		if isinstance(val, unicode):
+		elif isinstance(val, unicode):
 			res.append(re.sub("\s+", " ", val.encode("utf-8")))
 		else:
 			res.append(val)
