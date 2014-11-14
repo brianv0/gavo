@@ -37,6 +37,7 @@ class StaticRenderer(grend.ServiceBasedPage):
 	name = "static"
 
 	def __init__(self, ctx, service):
+		grend.ServiceBasedPage.__init__(self, ctx, service)
 		try:
 			self.indexFile = os.path.join(service.rd.resdir, 
 				service.getProperty("indexFile"))

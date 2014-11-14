@@ -145,7 +145,10 @@ class TimedJob(AbstractJob):
 
 		for dom, dow, hour, minute in self.times:
 			if dow is not None:
-				curDT = baseDT+datetime.timedelta(days=baseDT.isoweekday()-dow)
+				dayDiff = dow-baseDT.isoweekday()
+				if dayDiff<0:
+					dayDiff += 7
+				curDT = baseDT+datetime.timedelta(days=dayDiff)
 				curDT = curDT.replace(hour=hour, minute=minute)
 				if curDT<baseDT:
 					curDT = curDT+datetime.timedelta(days=7)

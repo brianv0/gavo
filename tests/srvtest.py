@@ -97,6 +97,28 @@ class CronTest(testhelpers.VerboseTest):
 		t1 = time.gmtime(job.getNextWakeupTime(t0))
 		self.assertEqual(t1[2:5], (3, 8, 45))
 
+	def testMonthlyReschedule(self):
+		job = cron.TimedJob([(8, None, 15, 20)], "testing#testing", None)
+
+		t0 = calendar.timegm((1990, 12, 3, 0, 30, 0, -1, -1, -1))
+		t1 = time.gmtime(job.getNextWakeupTime(t0))
+		self.assertEqual(t1[:3], (1990, 12, 8))
+
+		t0 = calendar.timegm((1990, 12, 13, 0, 30, 0, -1, -1, -1))
+		t1 = time.gmtime(job.getNextWakeupTime(t0))
+		self.assertEqual(t1[:3], (1991, 1, 8))
+
+	def testWeeklyReschedule(self):
+		job = cron.TimedJob([(None, 3, 15, 20)], "testing#testing", None)
+
+		t0 = calendar.timegm((1990, 12, 26, 0, 30, 0, -1, -1, -1))
+		t1 = time.gmtime(job.getNextWakeupTime(t0))
+		self.assertEqual(t1[:3], (1990, 12, 26))
+
+		t0 = calendar.timegm((1990, 12, 28, 0, 30, 0, -1, -1, -1))
+		t1 = time.gmtime(job.getNextWakeupTime(t0))
+		self.assertEqual(t1[:3], (1991, 1, 2))
+
 	def testEveryFirstSchedule(self):
 		job = cron.IntervalJob(3600, "testing#testing", None)
 		t0 = calendar.timegm((1990, 5, 3, 20, 30, 0, -1, -1, -1))

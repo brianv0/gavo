@@ -230,6 +230,8 @@ class ProductsBadNameTest(testhelpers.VerboseTest):
 		("don't want quotes", False),]
 
 
+@unittest.skip("Depending on testresource's cleanup of prodtestTable;"
+	" make a test case with deterministic dropping and run this again.")
 class CleanedupTest(RowsetTest):
 	"""tests for cleanup after table drop (may fail if other tests failed).
 	"""

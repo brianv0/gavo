@@ -430,7 +430,8 @@
 
 	<dbCore id="prodscore" queriedTable="prodtest"/>
 
-	<service id="basicprod" core="prodscore">
+	<service id="basicprod" core="prodscore" allowed="static,form"
+			defaultRenderer="form">
 		<meta name="title">Somebody else's problem</meta>
 		<meta name="creationDate">1975-01-01T12:00:00</meta>
 		<meta name="subject">Problems, somebody else's</meta>
