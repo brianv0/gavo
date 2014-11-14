@@ -223,12 +223,15 @@ class RenderTest(TrialTest):
 		return runQuery(self.renderer, "GET", path, args).addCallback(
 			lambda res: self.assertEqual(res[1].code, status))
 
-	def assertGETRaises(self, path, args, exc):
+	def assertGETRaises(self, path, args, exc, alsoCheck=None):
 		def cb(res):
 			raise AssertionError("%s not raised (returned %s instead)"%(
 				exc, res))
 		def eb(failure):
 			failure.trap(exc)
+			if alsoCheck is not None:
+				alsoCheck(failure)
+
 		return runQuery(self.renderer, "GET", path, args
 			).addCallback(cb
 			).addErrback(eb)

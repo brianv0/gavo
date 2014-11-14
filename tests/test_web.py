@@ -113,6 +113,44 @@ class CustomizationTest(trialhelpers.ArchiveTest):
 			"<managedAuthority>x-unregistred</managedAuthority>"])
 
 
+class StaticTest(trialhelpers.ArchiveTest):
+	def testSimple(self):
+		return self.assertGETHasStrings("/data/cores/rds/static/", {}, [
+			'<td><a href="test-gavorc">test-gavorc</a>',
+			'<title>Directory listing for //data/cores/rds/static/</title>'])
+	
+	def testRendererInferred(self):
+		def assertRightURL(failure):
+			self.assertTrue("http://localhost:8080/data/cores/rds/static/"
+				in failure.getErrorMessage())
+
+		return self.assertGETRaises("/data/cores/rds", {}, 
+			svcs.WebRedirect, alsoCheck=assertRightURL)
+
+	def testSlashAdded(self):
+		def assertRightURL(failure):
+			self.assertTrue("http://localhost:8080/data/cores/rds/static/"
+				in failure.getErrorMessage())
+
+		return self.assertGETRaises("/data/cores/rds/static", {}, 
+			svcs.WebRedirect, alsoCheck=assertRightURL)
+	
+
+	def testStaticFile(self):
+		return self.assertGETHasStrings("/data/cores/rds/static/ex.fits", {}, [
+			"BITPIX  =                   16"])
+
+	def test404(self):
+		return self.assertStatus("/data/cores/rds/static/ex.fit", 404)
+
+	def testWithIndexFile(self):
+		return self.assertGETHasStrings("/data/test/basicprod/static/", {}, [
+			"alpha: 23 34 33.45"])
+
+	def testSubDir(self):
+		return self.assertGETHasStrings("/data/cores/rds/static/bin/", {},
+			["Directory listing for //data/cores/rds/static/bin/"])
+
 class FormTest(trialhelpers.ArchiveTest):
 	def testSimple(self):
 		return self.assertGETHasStrings("/data/test/basicprod/form", {}, [

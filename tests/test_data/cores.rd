@@ -190,4 +190,9 @@
 		</debugCore>
 		<FEED source="//pql#DALIPars"/>
 	</service>
+
+	<service id="rds" allowed="static">
+		<nullCore/>
+		<property name="staticData">data</property>
+	</service>
 </resource>

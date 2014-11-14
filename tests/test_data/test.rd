@@ -437,7 +437,7 @@
 		<meta name="shortName">no looks</meta>
 		<meta name="description">If you are seeing this service, a unit test
 			forgot to clean up.</meta>
-		<property name="indexFile">index.html</property>
+		<property name="indexFile">data/a.imp</property>
 		<publish render="form" sets="local"/>
 	</service>
 

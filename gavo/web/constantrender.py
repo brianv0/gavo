@@ -21,11 +21,10 @@ from nevow import tags as T
 from gavo import base
 from gavo import svcs
 from gavo.web import grend
-from gavo.web import formrender
 
 __docformat__ = "restructuredtext en"
 
-class StaticRenderer(formrender.FormMixin, grend.ServiceBasedPage):
+class StaticRenderer(grend.ServiceBasedPage):
 	"""A renderer that just hands through files.
 
 	The standard operation here is to set a staticData property pointing
@@ -54,25 +53,39 @@ class StaticRenderer(formrender.FormMixin, grend.ServiceBasedPage):
 		return service.getProperty("indexFile", None) 
 
 	def renderHTTP(self, ctx):
-		if inevow.ICurrentSegments(ctx)[-1]!='':
-			# force a trailing slash on the "index"
-			request = inevow.IRequest(ctx)
-			request.redirect(request.URLPath().child(''))
-			return ''
-		if self.indexFile:
-			return static.File(self.indexFile)
+		"""The resource itself is the indexFile or the directory listing.
+		"""
+		# make sure there always is a slash at the end of any URL
+		# that points to any sort of index file (TODO: parse the URL?)
+		request = inevow.IRequest(ctx)
+		basePath = request.uri.split("?")[0]
+		if basePath.endswith("static/"):
+			if self.indexFile:
+				return static.File(self.indexFile)
+			else:
+				return static.File(self.staticPath).directoryListing()
+
+		elif basePath.endswith("static"):
+			raise svcs.WebRedirect(request.uri+"/")
+
 		else:
-			raise svcs.UnknownURI("No matching resource")
-	
+			raise svcs.WebRedirect(request.uri+"/static/")
+
 	def locateChild(self, ctx, segments):
-		if segments==('',) and self.indexFile:
+		if len(segments)==1 and not segments[0]:
 			return self, ()
-		elif self.staticPath is None:
+
+		if self.staticPath is None:
 			raise svcs.ForbiddenURI("No static data on this service") 
-		else:
-			if segments[-1]=="static": # no trailing slash given
-				segments = ()            # -- swallow the segment
-			return static.File(self.staticPath), segments
+
+		# leave the rest to static.File, except there's a bug in some
+		# versions of is so we check of existence ourselves.
+		relPath = "/".join(segments)
+		if not os.path.exists(os.path.join(self.staticPath, relPath)):
+			raise svcs.UnknownURI("No %s available here."%relPath)
+		return static.File(os.path.join(self.staticPath, segments[0])
+			), segments[1:]
+		
 
 
 class FixedPageRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
