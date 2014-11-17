@@ -1071,9 +1071,10 @@ def _replaceFDs(inFName, outFName):
       os.close(fd)
     except os.error:
       pass
-  ifF, outF = open(inFName), open(outFName, "w")
+  inF, outF = open(inFName), open(outFName, "w")
+  os.dup(inF.fileno())
   os.dup(outF.fileno())
-
+  os.dup(outF.fileno())
 
 
 class _UWSBackendProtocol(protocol.ProcessProtocol):

@@ -544,15 +544,15 @@ class TableDef(base.Structure, base.ComputedMetaMixin, common.PrivilegesMixin,
 		The function raises a ValidationError with an appropriate message
 		and the relevant field if not.
 		"""
-		for column in self:
-			if column.key not in row:
-				raise base.ValidationError("Column %s missing"%column.name,
-					column.name, row, hint="The table %s has a column named '%s',"
+		for col in self:
+			if col.key not in row:
+				raise base.ValidationError("Column %s missing"%col.name,
+					col.name, row, hint="The table %s has a column named '%s',"
 					" but the input row %s does not give it.  This typically means"
 					" bad input or a rowmaker failing on some corner case."%(
-						self.id, column.name, row))
+						self.id, col.name, row))
 			try:
-				column.validateValue(row[column.name])
+				col.validateValue(row[col.name])
 			except base.ValidationError, ex:
 				ex.row = row
 				raise

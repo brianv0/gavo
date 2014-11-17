@@ -116,5 +116,37 @@ class CachedGetterTest(testhelpers.VerboseTest):
 		self.assertEqual(g(), [3])
 
 
+class SimpleTextTest(testhelpers.VerboseTest):
+	def testFeatures(self):
+		with testhelpers.testFile("test.txt",
+				r"""# Test File\
+	this is stripped   
+An empty line is ignored
+
+Contin\
+uation lines \
+# (a comment in between is ok)
+  are concatenated
+""")    as fName:
+			with open(fName) as f:
+				res = list(utils.iterSimpleText(f))
+
+		self.assertEqual(res, [
+			(2, "this is stripped"),
+			(3, "An empty line is ignored"),
+			(8, "Continuation lines are concatenated")])
+
+	def testNoTrailingBackslash(self):
+		with testhelpers.testFile("test.txt",
+				"""No
+non-finished\\
+continuation\\""") as fName:
+			with open(fName) as f:
+				self.assertRaisesWithMsg(utils.SourceParseError,
+					"At line 3: File ends with a backslash",
+					lambda f: list(utils.iterSimpleText(f)),
+					(f,))
+
+
 if __name__=="__main__":
 	testhelpers.main(CachedGetterTest)

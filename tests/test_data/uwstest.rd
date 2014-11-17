@@ -1,4 +1,4 @@
-<resource schema="test">
+<resource schema="test" readProfiles="trustedquery,untrustedquery">
 	<table id="testjobs">
 		<FEED source="//uws#uwsfields"/>
 		<column name="magic" type="text" description="extra magic attribute

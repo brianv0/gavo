@@ -65,4 +65,4 @@ from gavo.utils.texttricks import (formatSize, makeEllipsis, floatRE,
 	fracHoursToDeg, degToHms, degToDms, getRelativePath, parseAssignments, 
 	NameMap, formatSimpleTable, replaceXMLEntityRefs,
 	ensureOneSlash, getRandomString,
-	safe_str,)
+	safe_str, iterSimpleText)

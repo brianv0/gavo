@@ -1,4 +1,4 @@
-<resource schema="test">
+<resource schema="test" readProfiles="trustedquery,untrustedquery">
 	<regSuite id="dumbsuite">
 		<regTest title="Failing Test" id="failtest">
 			<url testParam="10%w/o tax">foo</url>

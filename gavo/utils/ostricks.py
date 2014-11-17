@@ -109,7 +109,11 @@ def urlopenRemote(url, data=None, creds=(None, None)):
 	# The name in the next line is used in _UrlopenRemotePasswrodMgr
 	_temp_credentials = creds #noflake: Picked up from down the call chain
 	try:
-		return _restrictedURLOpener.open(url, data)
+		res = _restrictedURLOpener.open(url, data)
+		if res is None:
+			raise IOError("urlopen returned None; sorry about this, it shouldn't"
+				" happen.")
+		return res
 	except (urllib2.URLError, ValueError), msg:
 		msgStr = str(msg)
 		try:

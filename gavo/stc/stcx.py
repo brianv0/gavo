@@ -262,8 +262,6 @@ class STC(object):
 	class SpatialInterval(T_Interval):
 		_a_fill_factor = "1.0"
 	
-	class TimeFrame(STCElement): pass
-
 	class TimeRefDirection(STCElement):
 		_a_coord_system_id = None
 

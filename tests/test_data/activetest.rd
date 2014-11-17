@@ -1,4 +1,4 @@
-<resource resdir="." schema="test">
+<resource resdir="." schema="test" readProfiles="trustedquery,untrustedquery">
 	<macDef name="magCols">
 		band, bandU, valR,     errR 
 		j,    J,     140-145,  151-155

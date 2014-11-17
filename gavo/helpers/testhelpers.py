@@ -15,8 +15,10 @@ from __future__ import with_statement
 
 import BaseHTTPServer
 import contextlib
+import errno
 import gc
 import os
+import pickle
 import re
 import subprocess
 import sys
@@ -135,100 +137,129 @@ class ForkingSubprocess(subprocess.Popen):
 	"""A subprocess that doesn't exec but fork.
 	"""
 	def _execute_child(self, args, executable, preexec_fn, close_fds,
-						   cwd, env, universal_newlines,
-						   startupinfo, creationflags, shell,
-						   p2cread, p2cwrite,
-						   c2pread, c2pwrite,
-						   errread, errwrite):
-# stolen from 2.5 subprocess.  Unfortunately, I can't just override the
+							 cwd, env, universal_newlines,
+							 startupinfo, creationflags, shell, to_close,
+							 p2cread, p2cwrite,
+							 c2pread, c2pwrite,
+							 errread, errwrite):
+# stolen from 2.7 subprocess.  Unfortunately, I can't just override the
 # exec action.
-			"""Execute program (POSIX version)"""
 
-			if isinstance(args, basestring):
-				args = [args]
-			else:
-				args = list(args)
-
-			if shell:
-				args = ["/bin/sh", "-c"] + args
-
-			if executable is None:
+		sys.argv = args
+		if executable is None:
 				executable = args[0]
 
-			gc_was_enabled = gc.isenabled()
-			# Disable gc to avoid bug where gc -> file_dealloc ->
-			# write to stderr -> hang.  http://bugs.python.org/issue1336
-			gc.disable()
-			try:
-				self.pid = os.fork()
-			except:
-				if gc_was_enabled:
-					gc.enable()
-				raise
-			self._child_created = True
-			if self.pid == 0:
-				# Child
+		def _close_in_parent(fd):
+				os.close(fd)
+				to_close.remove(fd)
+
+		# For transferring possible exec failure from child to parent
+		# The first char specifies the exception type: 0 means
+		# OSError, 1 means some other error.
+		errpipe_read, errpipe_write = self.pipe_cloexec()
+		try:
 				try:
-					# Close parent's pipe ends
-					if p2cwrite:
-						os.close(p2cwrite)
-					if c2pread:
-						os.close(c2pread)
-					if errread:
-						os.close(errread)
+						gc_was_enabled = gc.isenabled()
+						# Disable gc to avoid bug where gc -> file_dealloc ->
+						# write to stderr -> hang.  http://bugs.python.org/issue1336
+						gc.disable()
+						try:
+								self.pid = os.fork()
+						except:
+								if gc_was_enabled:
+										gc.enable()
+								raise
+						self._child_created = True
+						if self.pid == 0:
+								# Child
+								try:
+										# Close parent's pipe ends
+										if p2cwrite is not None:
+												os.close(p2cwrite)
+										if c2pread is not None:
+												os.close(c2pread)
+										if errread is not None:
+												os.close(errread)
+										os.close(errpipe_read)
 
-					# Dup fds for child
-					if p2cread:
-						os.dup2(p2cread, 0)
-					if c2pwrite:
-						os.dup2(c2pwrite, 1)
-					if errwrite:
-						os.dup2(errwrite, 2)
+										# When duping fds, if there arises a situation
+										# where one of the fds is either 0, 1 or 2, it
+										# is possible that it is overwritten (#12607).
+										if c2pwrite == 0:
+												c2pwrite = os.dup(c2pwrite)
+										if errwrite == 0 or errwrite == 1:
+												errwrite = os.dup(errwrite)
 
-					# Close pipe fds.  Make sure we don't close the same
-					# fd more than once, or standard fds.
-					if p2cread and p2cread not in (0,):
-						os.close(p2cread)
-					if c2pwrite and c2pwrite not in (p2cread, 1):
-						os.close(c2pwrite)
-					if errwrite and errwrite not in (p2cread, c2pwrite, 2):
-						os.close(errwrite)
+										# Dup fds for child
+										def _dup2(a, b):
+												# dup2() removes the CLOEXEC flag but
+												# we must do it ourselves if dup2()
+												# would be a no-op (issue #10806).
+												if a == b:
+														self._set_cloexec_flag(a, False)
+												elif a is not None:
+														os.dup2(a, b)
+										_dup2(p2cread, 0)
+										_dup2(c2pwrite, 1)
+										_dup2(errwrite, 2)
 
-					# Close all other fds, if asked for
-					if close_fds:
-						self._close_fds()
+										# Close pipe fds.  Make sure we don't close the
+										# same fd more than once, or standard fds.
+										closed = { None }
+										for fd in [p2cread, c2pwrite, errwrite]:
+												if fd not in closed and fd > 2:
+														os.close(fd)
+														closed.add(fd)
 
-					if cwd is not None:
-						os.chdir(cwd)
+										if cwd is not None:
+												os.chdir(cwd)
 
-					if preexec_fn:
-						apply(preexec_fn)
-				
-					exitcode = 0
-					sys.argv = args
-					try:
-						executable()
-					except SystemExit, ex:
-						exitcode = ex.code
-					sys.stderr.close()
-					sys.stdout.close()
-					os._exit(exitcode)
+										if preexec_fn:
+												preexec_fn()
 
-				except:
-					traceback.print_exc()
-				# This exitcode won't be reported to applications, so it
-				# really doesn't matter what we return.
-				os._exit(255)
+										# Close all other fds, if asked for - after
+										# preexec_fn(), which may open FDs.
+										if close_fds:
+												self._close_fds(but=errpipe_write)
 
-			# Parent
-			if gc_was_enabled:
-				gc.enable()
-			if p2cread and p2cwrite:
-				os.close(p2cread)
-			if c2pwrite and c2pread:
-				os.close(c2pwrite)
-			if errwrite and errread:
-				os.close(errwrite)
+										exitcode = 0
+										try:
+											executable()
+										except SystemExit, ex:
+											exitcode = ex.code
+
+										sys.stderr.close()
+										sys.stdout.close()
+										os._exit(exitcode)
+
+								except:
+										exc_type, exc_value, tb = sys.exc_info()
+										# Save the traceback and attach it to the exception object
+										exc_lines = traceback.format_exception(exc_type,
+																													 exc_value,
+																													 tb)
+										exc_value.child_traceback = ''.join(exc_lines)
+										os.write(errpipe_write, pickle.dumps(exc_value))
+
+								os._exit(255)
+
+						# Parent
+						if gc_was_enabled:
+								gc.enable()
+				finally:
+						# be sure the FD is closed no matter what
+						os.close(errpipe_write)
+
+		finally:
+				if p2cread is not None and p2cwrite is not None:
+						_close_in_parent(p2cread)
+				if c2pwrite is not None and c2pread is not None:
+						_close_in_parent(c2pwrite)
+				if errwrite is not None and errread is not None:
+						_close_in_parent(errwrite)
+
+				# be sure the FD is closed no matter what
+				os.close(errpipe_read)
 
 
 class VerboseTest(testresources.ResourcedTestCase):
@@ -309,8 +340,6 @@ class VerboseTest(testresources.ResourcedTestCase):
 		"""
 		for name in ["output.stderr", "output.stdout"]:
 			try:
-				if os.path.exists(name) and os.path.getsize(name)>0:
-					print open(name).read()
 				os.unlink(name)
 			except os.error:
 				pass

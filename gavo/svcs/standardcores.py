@@ -363,7 +363,7 @@ class TableBasedCore(core.Core):
 		"""returns a where fragment and the appropriate parameters
 		for the query defined by inputTable and queryMeta.
 		"""
-		sqlPars, frags = {}, []
+		sqlPars = {}
 		inputPars = dict((p.name, p.value) for p in inputTable.iterParams())
 		return base.joinOperatorExpr("AND",
 			[cd.asSQL(inputPars, sqlPars, queryMeta)

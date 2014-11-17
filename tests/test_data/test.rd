@@ -2,12 +2,11 @@
 
 <!-- A resource descriptor for various unit tests -->
 
-<resource resdir=".">
+<resource resdir="." schema="test" readProfiles="trustedquery,untrustedquery">
 	<meta name="test.inRd">from Rd</meta>
 	<meta name="copyright">Everything in here is pure fantasy 
 	(distributed under the GNU GPL)</meta>
 	<meta name="creator.name">John C. Testwriter</meta>
-	<schema>test</schema>
 
 	<table id="bbox_siaptable" mixin="//siap#bbox" onDisk="True"/>
 	<table id="pgs_siaptable" mixin="//siap#pgs" onDisk="True"/>

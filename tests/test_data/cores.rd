@@ -1,4 +1,4 @@
-<resource resdir="." schema="test">
+<resource resdir="." schema="test" readProfiles="trustedquery,untrustedquery">
 	<meta name="description">Helpers for tests for cores.</meta>
 	<table id="abcd">
 		<column name="a" type="text" verbLevel="1"/>

@@ -121,8 +121,6 @@ class OAI(object):
 
 	class set(OAIElement): pass
 	
-	class setSpec(OAIElement): pass
-	
 	class setName(OAIElement): pass
 
 	class setDescription(OAIElement): pass
@@ -199,8 +197,6 @@ class VOR:
 	class facility(VORElement): pass
 
 	class instrument(VORElement): pass
-	
-	class relatedResource(VORElement): pass
 	
 	class name(VORElement): pass
 	
@@ -324,8 +320,6 @@ class VOG:
 		_a_xsi_type = "vg:OAISOAP"
 		# namespace declaration has happened in enclosing element
 
-	class description(VOGElement): pass
-		
 	class full(VOGElement): pass
 	
 	class managedAuthority(VOGElement): pass

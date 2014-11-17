@@ -107,8 +107,6 @@ class UWS(object):
 		_a_type = None  # transient | fatal
 		_a_hasDetail = None
 
-	class message(UWSElement): pass
-
 	class jobref(UWSElement):
 		_additionalPrefixes = frozenset(["xlink"])
 		_a_id = None

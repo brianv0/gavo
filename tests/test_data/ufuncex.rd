@@ -1,4 +1,4 @@
-<resource schema="test">
+<resource schema="test" readProfiles="trustedquery,untrustedquery">
 	<!-- a table to provide material for ufunctests. -->
 
 	<table id="ufuncex" onDisk="True" adql="True">

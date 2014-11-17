@@ -49,16 +49,16 @@ except ImportError:
 else:
 	# I need some parts of pyfits' internals, and it's version-dependent
 	# where they are found
-	def _TempHDU(*args):
+	def _TempHDU(*args):  #noflake: conditional definition
 		raise excs.ReportableError("Incompatible pyfits version."
 			"  Please complain to the maintainers.")
 
 	if hasattr(pyfits, "core") and hasattr(pyfits.core, "_TempHDU"):
-		_TempHDU = pyfits.core._TempHDU
+		_TempHDU = pyfits.core._TempHDU #noflake: conditional definition
 	elif hasattr(pyfits, "_TempHDU"):
-		_TempHDU = pyfits._TempHDU
+		_TempHDU = pyfits._TempHDU #noflake: conditional definition
 	elif hasattr(pyfits.Header, "fromstring"):
-		class _TempHDU(object):
+		class _TempHDU(object): #noflake: conditional definition
 			"""a wrapper around modern pyfits to provide some ancient whacko
 			functionality."""
 			def __init__(self):

@@ -172,7 +172,6 @@ class IVOMetaMixin(object):
 				{"rdId": self.rd.sourceId, "id": self.id})
 			res = list(curs)
 		if res:
-			row = res[0]
 			self.__dbRecord = {
 				"sets": base.makeMetaItem(list(set(row[2] for row in res)), 
 					name="sets"),

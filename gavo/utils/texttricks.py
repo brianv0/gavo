@@ -19,7 +19,7 @@ from email import utils as emailutils
 
 from gavo.utils import codetricks
 from gavo.utils import misctricks
-from gavo.utils.excs import Error
+from gavo.utils.excs import Error, SourceParseError
 
 floatRE = r"[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?"
 dateRE = re.compile("\d\d\d\d-\d\d-\d\d$")
@@ -109,38 +109,6 @@ def resolvePath(rootPath, relPath):
 		raise ValueError(
 			"Invalid path %s. This should not happend."%(fullPath))
 	return fullPath
-
-
-def formatDocs(docItems, underliner):
-	"""returns RST-formatted docs for docItems.
-
-	docItems is a list of (title, doc) tuples.  doc is currently
-	rendered in a preformatted block.
-	"""
-	def formatDocstring(docstring):
-		"""returns a docstring with a consistent indentation.
-
-		Rule (1): any whitespace in front of the first line is discarded.
-		Rule (2): if there is a second line, any whitespace at its front
-		  is the "governing whitespace"
-		Rule (3): any governing whitespace in front of the following lines
-		  is removed
-		Rule (4): All lines are indented by 2 blanks.
-		"""
-		lines = docstring.split("\n")
-		newLines = [lines.pop(0).lstrip()]
-		if lines:
-			whitespacePat = re.compile("^"+re.match(r"\s*", lines[0]).group())
-			for line in lines:
-				newLines.append(whitespacePat.sub("", line))
-		return "  "+("\n  ".join(newLines))
-
-	docLines = []
-	for title, body in docItems:
-		docLines.extend([title, underliner*len(title), "", "::", "",
-			formatDocstring(body), ""])
-	docLines.append("\n.. END AUTO\n")
-	return "\n".join(docLines)
 
 
 def fixIndentation(code, newIndent, governingLine=0):
@@ -540,6 +508,57 @@ def ensureOneSlash(s):
 	"""returns s with exactly one trailing slash.
 	"""
 	return s.rstrip("/")+"/"
+
+
+def _iterSimpleTextNoContinuation(f):
+	"""helps iterSimpleText.
+	"""
+	for (lineNumber, curLine) in enumerate(f):
+		curLine = curLine.strip()
+		if curLine and not curLine.startswith("#"):
+			yield (lineNumber+1), curLine
+
+
+@codetricks.document
+def iterSimpleText(f):
+	"""iterates over physLineNumber, line in f with some usual 
+	conventions for simple data files.
+
+	You should use this function to read from simple configuration and/or
+	table files that don't warrant a full-blown grammar/rowmaker combo.
+	The intended use is somewhat like this::
+		
+		with open(rd.getAbsPath("res/mymeta")) as f:
+			for lineNumber, content in iterSimpleText(f):
+				try:
+					...
+				except Exception, exc:
+					sys.stderr.write("Bad input line %s: %s"%(lineNumber, exc))
+
+	The grammar rules are, specifically:
+
+	* leading and trailing whitespace is stripped
+	* empty lines are ignored
+	* lines beginning with a hash are ignored
+	* lines ending with a backslash are joined with the following line;
+	  to have intervening whitespace, have a blank in front of the backslash.
+	"""
+	iter = _iterSimpleTextNoContinuation(f)
+	try:
+		while True:
+			lineNumber, curLine = iter.next()
+
+			while curLine.endswith("\\"):
+				try:
+					lineNumber, newStuff = iter.next()
+				except StopIteration:
+					raise SourceParseError("File ends with a backslash",
+						location="line %d"%lineNumber)
+				curLine = curLine[:-1]+newStuff
+
+			yield lineNumber, curLine
+	except StopIteration:  # all done, leave loop
+		pass
 
 
 _RANDOM_STRING_OK_CHARS = string.letters+string.digits+"_.,"

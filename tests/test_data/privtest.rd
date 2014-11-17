@@ -3,7 +3,7 @@
 <!-- A resource descriptor for testing privileges.  This spits out
 warnings when created, so we don't want it in the main test.rd -->
 
-<resource resdir=".">
+<resource resdir="." readProfiles="trustedquery,untrustedquery">
 
 	<schema>test</schema>
 
