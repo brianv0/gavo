@@ -15,7 +15,6 @@ from __future__ import with_statement
 
 import BaseHTTPServer
 import contextlib
-import errno
 import gc
 import os
 import pickle

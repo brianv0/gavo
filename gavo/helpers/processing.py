@@ -62,10 +62,8 @@ class FileProcessor(object):
 	def _createAuxiliaries(self, dd):
 		# There's been a type here in previous DaCHS versions; try
 		# to call old methods if they are still there
-		try:
+		if hasattr(self, "_createAuxillaries"):
 			self._createAuxillaries(dd)
-		except AttributeError: # no old method in the processor
-			pass
 
 	def classify(self, fName):
 		return "unknown"

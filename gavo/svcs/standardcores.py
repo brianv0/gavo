@@ -532,7 +532,8 @@ class FixedQueryCore(core.Core, base.RestrictionMixin):
 		"Seconds until the query is aborted")
 	_query = base.UnicodeAttribute("query", default=base.Undefined,
 		description="The query to be executed.  You must define the"
-			" output fields in the core's output table.")
+			" output fields in the core's output table.  The query will"
+			" be macro-expanded in the resource descriptor.")
 	_writable = base.BooleanAttribute("writable", default=False,
 		description="Use a writable DB connection?")
 
@@ -548,7 +549,8 @@ class FixedQueryCore(core.Core, base.RestrictionMixin):
 			connFactory = base.getTableConn
 		with base.AdhocQuerier(connFactory) as querier:
 			try:
-				cursor = querier.query(self.query, timeout=self.timeout)
+				cursor = querier.query(
+					self.rd.expand(self.query), timeout=self.timeout)
 				if cursor.description is None:
 					return self._parseOutput([], queryMeta)
 				else:

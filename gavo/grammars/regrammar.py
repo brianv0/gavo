@@ -77,13 +77,14 @@ class REIterator(FileRowIterator):
 
 		fields = self.grammar.fieldSep.split(inputLine)
 		if not self.grammar.lax and len(fields)!=len(self.grammar.names):
-			raise base.SourceParseError("Only %d fields found, expected %d"%(
+			raise base.SourceParseError("%d fields found, expected %d"%(
 					len(fields), len(self.grammar.names)),
 				source=self.sourceToken,
 				location=self.getLocator(),
 				hint="reGrammars need the same number of input fields in each line,"
 				" and that number has to match the number of tokens in the names"
-				" attribute")
+				" attribute.  If that's not true for your input but it still"
+				" makes sense, add lax='True' to your grammar.")
 		return dict(zip(self.grammar.names, fields))
 
 	def getLocator(self):

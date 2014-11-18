@@ -463,7 +463,7 @@ class ReGrammarTest(testhelpers.VerboseTest):
 		grammar = base.parseFromString(regrammar.REGrammar,
 			"""<reGrammar names="a,b"/>""")
 		self.assertRaisesWithMsg(base.SourceParseError,
-			"At line 1: Only 1 fields found, expected 2",
+			"At line 1: 1 fields found, expected 2",
 			lambda: list(grammar.parse(StringIO("1 2\n3"))),
 			())
 
