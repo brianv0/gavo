@@ -527,7 +527,7 @@ class PreviewMaker(FileProcessor):
 			dd.getProperty("previewDir"))
 		if not os.path.isdir(self.previewDir):
 			os.makedirs(self.previewDir)
-		FileProcessor._createAuxiliaries(dd)
+		FileProcessor._createAuxiliaries(self, dd)
 
 	def getPreviewPath(self, accref):
 		return os.path.join(self.previewDir,

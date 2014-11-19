@@ -116,7 +116,7 @@ class CBooster(object):
 		if os.path.exists(self.srcName):
 			utils.runInSandbox(self._copySources, self._build, self._retrieveBinary)
 		else:
-			base.ui.notifyError("Booster source does not exist."
+			raise base.ReportableError("Booster source does not exist."
 				"  You will not be able to import the enclosing data.",
 				hint="Use gavo mkboost to create a skeleton for the booster.")
 
@@ -160,11 +160,12 @@ class DirectGrammar(base.Structure, base.RestrictionMixin):
 		copyable=True)
 
 	_gzippedInput = base.BooleanAttribute("gzippedInput", default=False,
-		description="Pipe gzip before booster?",
+		description="Pipe gzip before booster? (will not work for FITS)",
 		copyable=True)
 
 	_autoNull = base.UnicodeAttribute("autoNull", default=None,
-		description="Use this string as general NULL value",
+		description="Use this string as general NULL value (when reading"
+		" from plain text).",
 		copyable=True)
 
 	_ignoreBadRecords = base.BooleanAttribute("ignoreBadRecords",
@@ -179,7 +180,7 @@ class DirectGrammar(base.Structure, base.RestrictionMixin):
 
 	_preFilter = base.UnicodeAttribute("preFilter", default=None,
 		description="Pipe input through this program before handing it to"
-			" the booster; this string is shell-expanded.",
+			" the booster; this string is shell-expanded (will not work for FITS).",
 		copyable=True)
 
 	_customFlags = base.UnicodeAttribute("customFlags", default="",
@@ -195,7 +196,11 @@ class DirectGrammar(base.Structure, base.RestrictionMixin):
 		copyable=True)
 
 	_splitChar = base.UnicodeAttribute("splitChar", default="|",
-		description="For split boosters, use this as the separator",
+		description="For split boosters, use this as the separator.",
+		copyable=True)
+	
+	_ext = base.IntAttribute("extension", default=1,
+		description="For FITS table boosters, get the table from this extension.",
 		copyable=True)
 
 	_mapKeys = base.StructAttribute("mapKeys", childFactory=common.MapKeys,
@@ -558,9 +563,12 @@ class FITSCodeGenerator(_CodeGenerator):
 		if self.grammar.parent.sources is None:
 			raise base.StructureError("Cannot make FITS bintable booster without"
 				" a sources element on the embedding data.")
+
+		self.forExtension = grammar.extension
+
 		try:
 			self.fitsTable = pyfits.open(
-				self.grammar.parent.sources.iterSources().next())[1]
+				self.grammar.parent.sources.iterSources().next())[self.forExtension]
 		except StopIteration:
 			raise base.StructureError("Buliding a FITS bintable booster requires"
 				" at least one matching source.")
@@ -626,6 +634,7 @@ class FITSCodeGenerator(_CodeGenerator):
 	def getPreamble(self):
 		return _CodeGenerator.getPreamble(self)+[
 			"#include <fitsio.h>",
+			"#include <assert.h>",
 			"#define FITSCATCH(x) if (x) {fatalFitsError(status);}",
 			"void fatalFitsError(int status) {",
 			"	if (status==0) {",
@@ -690,6 +699,7 @@ class FITSCodeGenerator(_CodeGenerator):
 		infoDict = {
 			"nCols": len(colDescs),
 			"colDescs": "{\n%s\n}"%",\n".join(colDescs),
+			"extension": self.forExtension,
 		}
 		return ("""
 typedef struct FITSColDesc_s {
@@ -704,6 +714,7 @@ FITSColDesc COL_DESCS[%(nCols)d] = %(colDescs)s;
 	fitsfile *fitsInput;
 	int ignored, i;
 	int status = 0;
+	int hdutype = 0;
 	long nRows = 0;
 	void *data[%(nCols)d];
 	char *nulls[%(nCols)d];
@@ -716,6 +727,10 @@ FITSColDesc COL_DESCS[%(nCols)d] = %(colDescs)s;
 	} else {
 		die("FITS tables cannot be read from stdin.");
 	}
+
+	FITSCATCH(fits_movabs_hdu(fitsInput, %(extension)s+1, 
+		&hdutype, &status));
+	assert(hdutype=BINARY_TBL);
 
 	FITSCATCH(fits_get_num_rows(fitsInput, &nRows, &status));
 

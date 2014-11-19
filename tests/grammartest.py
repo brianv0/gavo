@@ -586,6 +586,13 @@ class DirectGrammarTest(testhelpers.VerboseTest):
 		self.failUnless("MAKE_BIGINT(fi_b, ((long long*)(data[1]))[rowIndex]);" 
 			in src)
 
+	def testFITSSecondExtension(self):
+		src = directgrammar.getSource("data/dgs#fits2nd")
+		self.failUnless("fits_movabs_hdu(fitsInput, 2+1," in src)
+		self.failUnless("FITSColDesc COL_DESCS[1] = {\n"
+			"{.cSize = sizeof(long long), .fitsType = TLONGLONG, .index=1}\n};"
+			in src)
+
 	def testFITSWithAdditionalCols(self):
 		src = directgrammar.getSource("data/dgs#fitsplus")
 		self._assertCommonItems(src)

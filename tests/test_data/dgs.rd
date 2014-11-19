@@ -12,6 +12,10 @@
 		<column name="artificial" description="artificial column"
 			type="text"/>
 	</table>
+	
+	<table id="dgtonecol" onDisk="True" temporary="True">
+		<column name="b" type="bigint" required="True"/>
+	</table>
 
 	<data id="impcol">
 		<directGrammar id="col" type="col" cBooster="void.c"/>
@@ -35,6 +39,14 @@
 			<mapKeys>t:text</mapKeys>
 		</directGrammar>
 		<make table="dgtplus"/>
+	</data>
+
+	<data id="impfits2nd">
+		<sources>extable.fitstable</sources>
+		<directGrammar id="fits2nd" type="fits" cBooster="tmp.c"
+				extension="2">
+		</directGrammar>
+		<make table="dgtonecol"/>
 	</data>
 
 	<data id="impfitsplus">
