@@ -41,6 +41,8 @@ class EventProcessor(object):
 # on the current parser.  If it is None, we hand through the event
 # to the current structure.
 
+	debug = False
+	
 	def __init__(self, rootStruct, ctx):
 		self.rootStruct = rootStruct
 		self.curParser, self.next = self, None

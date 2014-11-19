@@ -114,8 +114,9 @@ def main():
 		parser.add_option("-b", "--batch-size", help="deliver N rows at a time"
 			" to the database.", dest="batchSize", action="store", type="int",
 			default=5000, metavar="N")
-		parser.add_option("-c", "--continue-bad", help="go on if processing a"
-			" source.", dest="keepGoing", action="store_true", default=False)
+		parser.add_option("-c", "--continue-bad", help="do not bail out after"
+			" an error, just skip the current source and continue with the"
+			" next one.", dest="keepGoing", action="store_true", default=False)
 		parser.add_option("-L", "--commit-after-meta", help="commit the importing"
 			" transaction after updating the meta tables.  Use this when loading"
 			" large (hence -L) data sets to avoid keeping a lock on the meta tables"

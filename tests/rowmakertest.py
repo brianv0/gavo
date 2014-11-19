@@ -25,8 +25,8 @@ def makeDD(tableCode, rowmakerCode, grammar="<dictlistGrammar/>",
 		moreMakeStuff=""):
 	dd = base.parseFromString(rscdef.DataDescriptor,
 		'<data><table id="foo">%s</table>'
-		'<rowmaker id="_foo">%s</rowmaker>'
-		'<make table="foo" rowmaker="_foo">'
+		'<make table="foo">'
+		' <rowmaker id="_foo">%s</rowmaker>'
 		'  %s'
 		'</make>'
 		'%s'
@@ -52,14 +52,14 @@ class RowmakerDefTest(testhelpers.VerboseTest):
 
 	def testStatementRaises(self):
 		self.assertRaisesWithMsg(base.BadCode,
-			'At [<data><table id="foo"><colu...], (1, 89):'
+			'At [<data><table id="foo"><colu...], (1, 108):'
 			" Bad source code in expression (Not an expression)",
 			makeDD, ('<column name="x"/>',
 				'<map dest="x">c = a+b</map>'))
 
 	def testBadSourceRaises(self):
 		self.assertRaisesWithMsg(base.BadCode,
-			'At [<data><table id="foo"><colu...], (1, 83): Bad source'
+			'At [<data><table id="foo"><colu...], (1, 102): Bad source'
 			" code in expression (invalid syntax (line 1))",
 			makeDD, ('<column name="x"/>', '<map dest="x">-</map>'))
 	
@@ -75,34 +75,34 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 	"""tests for mapping of values during parsing.
 	"""
 	def testBasicCode(self):
-		dd, td = makeDD('<column name="x" type="integer"/>',
+		dd, td = makeDD('<column name="x" type="integer" required="True"/>',
 			'<map dest="x">int(vars["src"])</map>')
-		mapper = dd.rowmakers[0].compileForTableDef(td)
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
 		self.assertEqual(mapper({'src': '15'}, None)['x'], 15)
 
 	def testBasicMap(self):
-		dd, td = makeDD('<column name="x" type="integer"/>',
+		dd, td = makeDD('<column name="x" type="integer" required="True"/>',
 			'<map dest="x" src="src"/>')
-		mapper = dd.rowmakers[0].compileForTableDef(td)
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
 		self.assertEqual(mapper({'src': '15'}, None)['x'], 15)
 
 	def testBadBasicMap(self):
 		self.assertRaisesWithMsg(base.LiteralParseError,
-			'At [<data><table id="foo"><colu...], (1, 109):'
+			'At [<data><table id="foo"><colu...], (1, 144):'
 			" '@src' is not a valid value for source",
-			makeDD, ('<column name="x" type="integer"/>',
+			makeDD, ('<column name="x" type="integer" required="True"/>',
 			'<map dest="x" src="@src"/>'))
 
 	def testWithDefault(self):
-		dd, td = makeDD('<column name="x" type="integer"><values default="18"/>'
-			'</column>', '<map dest="x">int(@x)</map>')
-		mapper = dd.rowmakers[0].compileForTableDef(td)
+		dd, td = makeDD('<column name="x" type="integer" required="True"'
+			'><values default="18"/></column>', '<map dest="x">int(@x)</map>')
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
 		self.assertEqual(mapper({}, None)['x'], 18)
 
 	def testMessages(self):
-		dd, td = makeDD('<column name="x" type="integer"/>',
+		dd, td = makeDD('<column name="x" type="integer" required="True"/>',
 			'<map dest="x">int(@src)</map>')
-		mapper = dd.rowmakers[0].compileForTableDef(td)
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
 		self.assertRaisesWithMsg(base.ValidationError,
 			"Field x: While building x in _foo: Key 'src' not found in a mapping.",
 			mapper, ({}, None))
@@ -112,12 +112,12 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 			mapper, ({"src": "ab c"}, None))
 	
 	def testMultilineExpressions(self):
-		dd, td = makeDD('<column name="x" type="integer"/>'
+		dd, td = makeDD('<column name="x" type="integer" required="True"/>'
 			'<column name="y" type="text"/>',
 			'<map dest="y">("foobar"+\n'
 			'@src.decode("utf-8"))\n</map>'
 			'<map dest="x">int(\n@src\n)</map>')
-		mapper = dd.rowmakers[0].compileForTableDef(td)
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
 		self.assertEqual(mapper({"src": '-20'}, None), {"x": -20, "y": 'foobar-20'})
 		self.assertRaisesWithMsg(base.ValidationError,
 			"Field x: While building x in _foo: invalid literal for int() with base 10: '3x3'",
@@ -152,7 +152,7 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 			' <map dest="ts" src="ts"/>'
 			' <map dest="t" src="t"/>'
 			' <map dest="raw" src="raw"/>')
-		mapper = dd.rowmakers[0].compileForTableDef(td)
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
 		self.assertEqual(mapper({"si": "0", "ii": "2000", "bi": "-3000",
 				"r": "0.25", "dp": "25e3", "b": "Off", "tx": "abc", "c": u"\xae",
 				"d": "2004-04-08", "ts": "2004-04-08T22:30:15", "t": "22:30:14",
@@ -163,10 +163,17 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 			'raw': ['x', 'y', 'z'], 'si': 0, 'r': 0.25, 
 			't': datetime.time(22, 30, 14), 'dp': 25000.0})
 
+	def testIdmapsSimple(self):
+		dd, td = makeDD('<column name="foo"/><column name="bar"/>',
+			'<idmaps>foo</idmaps><map key="bar">3.0</map>')
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
+		self.assertEqual(mapper({'foo': 2}, None),
+			{'foo': 2, 'bar': 3.0})
+
 	def testIdmapsDontOverwrite(self):
 		dd, td = makeDD('<column name="foo"/><column name="bar"/>',
 			'<map dest="foo">float(@foo)/2</map><idmaps>*</idmaps>')
-		mapper = dd.rowmakers[0].compileForTableDef(td)
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
 		self.assertEqual(mapper({'foo': 2, 'bar': 2}, None),
 			{'foo': 1, 'bar':2})
 
@@ -174,27 +181,27 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 		dd, td = makeDD('<column name="foo" type="text"/>',
 			'<map dest="foo">parseWithNull(@foo, str, "None")</map>'
 			'<idmaps>*</idmaps>')
-		mapper = dd.rowmakers[0].compileForTableDef(td)
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
 		self.assertEqual(mapper({'foo': "None"}, None), {'foo': None})
 		self.assertEqual(mapper({'foo': "123"}, None), {'foo': "123"})
 
 	def testMapNullAuto(self):
 		dd, td = makeDD('<column name="foo" type="integer"/>',
 			'<map dest="foo" nullExpr="22"/>')
-		mapper = dd.rowmakers[0].compileForTableDef(td)
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
 		self.assertEqual(mapper({'foo': "22"}, None), {'foo': None})
 		self.assertEqual(mapper({'foo': "23"}, None), {'foo': 23})
 
 	def testMapNullExprValue(self):
 		dd, td = makeDD('<column name="foo" type="integer"/>',
 			'<map dest="foo" nullExpr="22">parseInt(@bar)+22</map>')
-		mapper = dd.rowmakers[0].compileForTableDef(td)
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
 		self.assertEqual(mapper({'bar': "0"}, None), {'foo': None})
 		self.assertEqual(mapper({'bar': "1"}, None), {'foo': 23})
 
 	def testBadNullExpr(self):
 		self.assertRaisesWithMsg(base.BadCode,
-			'At [<data><table id="foo"><colu...], (1, 133):'
+			'At [<data><table id="foo"><colu...], (1, 152):'
 			" Bad source code in expression (invalid syntax"
 			" (line 1))",
 			makeDD,
@@ -204,7 +211,7 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 	def testNullExcAutoTimestamp(self):
 		dd, td = makeDD('<column name="foo" type="timestamp"/>',
 			'<map dest="foo" src="foo" nullExcs="ValueError"/>')
-		mapper = dd.rowmakers[0].compileForTableDef(td)
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
 		self.assertEqual(mapper({'foo': "x3"}, None), {'foo': None})
 
 
@@ -232,7 +239,7 @@ class ApplyTest(testhelpers.VerboseTest):
 			'	for i in range(int(vars["src"])):\n'
 			'		result["si"] = result.get("si", 0)+i\n'
 			'	</code></apply>')
-		mapper = dd.rowmakers[0].compileForTableDef(td)
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
 		self.assertEqual(mapper({"src": 23}, None), {'si': 253})
 	
 	def testRaising(self):
@@ -279,13 +286,13 @@ class VarTest(testhelpers.VerboseTest):
 	"""
 	def testBadNameRaises(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			'At [<data><table id="foo"></tab...], (1, 67):'
+			'At [<data><table id="foo"></tab...], (1, 86):'
 			" '77x' is not a valid value for name",
 			makeDD, ('', '<var name="77x">a</var>'))
 
 	def testBadSourceRaises(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			'At [<data><table id="foo"></tab...], (1, 69): Bad source code in'
+			'At [<data><table id="foo"></tab...], (1, 88): Bad source code in'
 			' expression (Not an expression)',
 			makeDD, ('', '<var name="x77">a=b</var>'))
 
@@ -294,13 +301,13 @@ class VarTest(testhelpers.VerboseTest):
 			'  <var name="x">28</var>'
 			'  <var name="y">29+@x</var>'
 			'  <map dest="si">@y</map>')
-		mapper = dd.rowmakers[0].compileForTableDef(td)
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
 		self.assertEqual(mapper({}, None), {'si': 57})
 
 	def testRaising(self):
 		dd, td = makeDD('  <column name="si" type="smallint"/>',
 			'  <map dest="si" nullExcs="ZeroDivisionError">1/0</map>')
-		mapper = dd.rowmakers[0].compileForTableDef(td)
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
 		self.assertEqual(mapper({}, None), {'si': None})
 
 
@@ -309,7 +316,7 @@ class SimpleMapsTest(testhelpers.VerboseTest):
 		dd, td = makeDD('<column name="si" type="smallint"/>'
 			'<column name="bi" type="smallint"/>',
 			'  <simplemaps>si:x, bi:y</simplemaps>')
-		mapper = dd.rowmakers[0].compileForTableDef(td)
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
 		self.assertEqual(mapper({'x': 57, 'y':'28'}, None), 
 			{'si': 57, 'bi': 28})
 
@@ -328,7 +335,7 @@ class SimpleMapsTest(testhelpers.VerboseTest):
 			'  <simplemaps>bi:y</simplemaps>')
 		self.assertRaisesWithMsg(base.NotFoundError,
 			"column u'bi' could not be located in table foo's columns",
-			dd.rowmakers[0].compileForTableDef, (td,))
+			dd.makes[0].rowmaker.compileForTableDef, (td,))
 
 
 class PredefinedTest(testhelpers.VerboseTest):
@@ -409,7 +416,7 @@ class IgnoreOnTest(testhelpers.VerboseTest):
 	def testBasic(self):
 		dd, td = makeDD('<column name="si"/>',
 			'<ignoreOn><keyPresent key="y"/></ignoreOn><idmaps>*</idmaps>')
-		mapper = dd.rowmakers[0].compileForTableDef(td)
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
 		self.assertEqual(mapper({'si': '1'}, None), {'si': 1.0})
 		self.assertRaises(rscdef.IgnoreThisRow, mapper,
 			{'si': 1, 'y': None}, None)

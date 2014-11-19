@@ -430,8 +430,6 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 	def _resolveIdmaps(self, columns):
 		"""adds mappings for self's idmap within column set.
 		"""
-		if self.idmaps is None:
-			return
 		existingMaps = set(m.key for m in self.maps)
 		baseNames = [c.name for c in columns]
 		for colName in self.idmaps:

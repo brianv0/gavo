@@ -47,6 +47,8 @@ class Bla(structure.ParseableStructure):
 
 class Palette(structure.ParseableStructure):
 	name_ = "pal"
+	_map = base.StringListAttribute("map", copyable=True)
+	_flavor = base.UnicodeAttribute("flavor")
 	_colors = base.StructListAttribute("colors", childFactory=CopyableColor,
 		copyable=True)
 	_foo = base.StructListAttribute("foos", childFactory=Foo, copyable=True)
@@ -61,7 +63,6 @@ class Image(structure.ParseableStructure):
 	_calib = base.ListOfAtomsAttribute("calibs",
 		itemAttD=base.UnicodeAttribute("calib"), copyable=True)
 	_orig = base.OriginalAttribute()
-
 
 class Root(structure.ParseableStructure):
 	name_ = "root"
@@ -366,6 +367,12 @@ class ReferenceAttTest(testhelpers.VerboseTest):
 		self.assertEqual(res.ims[0].pal.colors[0].r, 20)
 		self.assertEqual(res.ims[0].pal.parent, res.ims[0])
 
+	def testAtomicFirstChild(self):
+		res = base.parseFromString(Root,
+			'<root><image><pal><map>a, b</map><flavor>yellow</flavor></pal>'
+			'</image></root>')
+		self.assertEqual(res.ims[0].pal.map,  ['a', 'b'])
+		self.assertEqual(res.ims[0].pal.flavor,  "yellow")
 
 def _getArg(name):
 	return {"color": Color, "foo": Foo}[name]
