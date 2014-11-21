@@ -21,6 +21,7 @@ from __future__ import with_statement
 
 import datetime
 import gzip
+import itertools
 import os
 import re
 import tempfile
@@ -290,7 +291,7 @@ def replacePrimaryHeaderInPlace(fitsName, newHeader):
 
 
 # enforced sequence of well-known keywords, and whether they are mandatory
-keywordSeq = [
+STANDARD_CARD_SEQUENCE = [
 	("SIMPLE", True),
 	("BITPIX", True),
 	("NAXIS", True),
@@ -303,7 +304,7 @@ keywordSeq = [
 	("BSCALE", False),
 ]
 
-def _enforceHeaderConstraints(cardList):
+def _enforceHeaderConstraints(cardList, cardSequence):
 	"""returns a pyfits header containing the cards in cardList with FITS
 	sequence constraints satisfied.
 
@@ -311,18 +312,30 @@ def _enforceHeaderConstraints(cardList):
 
 	This will only work correctly for image FITSes with less than five 
 	dimensions.
+
+	On cardSequence, see sortHeaders.
 	"""
 # I can't use pyfits.verify for this since cardList may not refer to
 # a data set that's actually in memory
 	cardsAdded, newCards = set(), []
 	cardDict = dict((card.key, card) for card in cardList)
-	for kw, mandatory in keywordSeq:
+
+	for kw, mandatory in itertools.chain(
+			STANDARD_CARD_SEQUENCE,  cardSequence or []):
+		if isinstance(kw, pyfits.Card):
+			newCards.append(kw)
+			continue
+
+		if kw in cardsAdded:
+			continue
+
 		try:
 			newCards.append(cardDict[kw])
 			cardsAdded.add(kw)
 		except KeyError:
 			if mandatory:
 				raise FITSError("Mandatory card '%s' missing"%kw)
+
 	for card in cardList:  # use cardList rather than cardDict to maintain
 		                     # cardList order
 		if card.key not in cardsAdded:
@@ -330,7 +343,8 @@ def _enforceHeaderConstraints(cardList):
 	return pyfits.Header(newCards)
 
 
-def sortHeaders(header, commentFilter=None, historyFilter=None):
+def sortHeaders(header, commentFilter=None, historyFilter=None,
+		cardSequence=None):
 	"""returns a pyfits header with "real" cards first, then history, then
 	comment cards.
 
@@ -340,6 +354,15 @@ def sortHeaders(header, commentFilter=None, historyFilter=None):
 	Header can be an iterable yielding Cards or a pyfits header.
 
 	Duplicate history or comment entries will be swallowed.
+
+	cardSequence, if present, is a sequence of (item, mandatory) pairs.
+	There item can be a card name, in which case the corresponding
+	card will be inserted at this point in the sequence.  If mandatory is
+	True, a missing card is an error.  Keywords already in
+	fitstools.STANDARD_CARD_SEQUENCE are ignored.
+
+	Item can also a pyfits.Card instance; it will be put into the header
+	as-is.
 	"""
 	commentCs, historyCs, realCs = [], [], []
 	if hasattr(header, "ascardlist"):
@@ -376,7 +399,7 @@ def sortHeaders(header, commentFilter=None, historyFilter=None):
 				commentsSeen.add(card.value)
 				newCards.append(card)
 
-	return _enforceHeaderConstraints(newCards)
+	return _enforceHeaderConstraints(newCards, cardSequence)
 
 
 def openGz(fitsName, tempDir=None):

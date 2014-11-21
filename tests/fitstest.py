@@ -10,6 +10,7 @@ Tests for fits helpers
 
 import cStringIO
 import os
+import re
 import shutil
 import tempfile
 import unittest
@@ -101,6 +102,19 @@ class SortHeadersTest(unittest.TestCase):
 		self.assertHeaderSequence(hdr, ["SIMPLE", "BITPIX", "NAXIS", "NAXIS1", 
 			"EXTEND", "FLOB"])
 
+	def testWithCardSequence(self):
+		cardsIn = [pyfits.Card(*args) for args in (
+			("SIMPLE", True), ("BITPIX", 0), ("NAXIS", 0),
+			("BOOKS", "Plenty"), ("CROOKS", 5), ("HOOKS", "None"))]
+		hdr = fitstools.sortHeaders(cardsIn,
+			cardSequence=(("SIMPLE", True), ("HOOKS", True),
+				(pyfits.Card(value="---- Separator ----"), None), 
+				("CROOKS", True)))
+		self.assertEqual(
+			re.sub("  *", lambda mat: "(%d)"%len(mat.group(0)), str(hdr)),
+			"SIMPLE(2)=(20)T(50)BITPIX(2)=(20)0(50)NAXIS(3)=(20)0(50)"
+			"HOOKS(3)=(1)'None(4)'(68)----(1)Separator(1)----(53)"
+			"CROOKS(2)=(20)5(50)BOOKS(3)=(1)'Plenty(2)'(60)END(2317)")
 
 class FITSWriteTest(testhelpers.VerboseTest):
 	"""tests for correct FITS writing.
