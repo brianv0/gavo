@@ -521,6 +521,8 @@
 		<phraseMaker>
 			<setup original="baseSetup"/>
 			<code>
+				from gavo.protocols import simbadinterface
+
 				pos = inPars["hPOS"]
 				try:
 					ra, dec = base.parseCooPair(pos)

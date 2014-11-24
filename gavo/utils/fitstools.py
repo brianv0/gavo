@@ -304,6 +304,18 @@ STANDARD_CARD_SEQUENCE = [
 	("BSCALE", False),
 ]
 
+def _iterForcedPairs(seq):
+	"""helps _enforceHeaderConstraints.
+	"""
+	if seq is None:
+		return
+	for item in seq:
+		if isinstance(item, tuple):
+			yield item
+		else:
+			yield (item, False)
+
+
 def _enforceHeaderConstraints(cardList, cardSequence):
 	"""returns a pyfits header containing the cards in cardList with FITS
 	sequence constraints satisfied.
@@ -313,7 +325,8 @@ def _enforceHeaderConstraints(cardList, cardSequence):
 	This will only work correctly for image FITSes with less than five 
 	dimensions.
 
-	On cardSequence, see sortHeaders.
+	On cardSequence, see sortHeaders (except that this function always
+	requries sequences of pairs).
 	"""
 # I can't use pyfits.verify for this since cardList may not refer to
 # a data set that's actually in memory
@@ -321,7 +334,7 @@ def _enforceHeaderConstraints(cardList, cardSequence):
 	cardDict = dict((card.key, card) for card in cardList)
 
 	for kw, mandatory in itertools.chain(
-			STANDARD_CARD_SEQUENCE,  cardSequence or []):
+			STANDARD_CARD_SEQUENCE,  _iterForcedPairs(cardSequence)):
 		if isinstance(kw, pyfits.Card):
 			newCards.append(kw)
 			continue
@@ -363,6 +376,9 @@ def sortHeaders(header, commentFilter=None, historyFilter=None,
 
 	Item can also a pyfits.Card instance; it will be put into the header
 	as-is.
+
+	As a shortcut, a sequence item may be something else then a tuple;
+	it will then be combined with a False to make one.
 	"""
 	commentCs, historyCs, realCs = [], [], []
 	if hasattr(header, "ascardlist"):

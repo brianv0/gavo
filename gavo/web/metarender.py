@@ -542,7 +542,7 @@ class ExternalRenderer(grend.ServiceBasedPage):
 			if pub.render==self.name:
 				break
 		else: # no publication, 404
-			raise svcs.UnknownURI()
+			raise svcs.UnknownURI("No publication for an external service here.")
 		raise svcs.WebRedirect(base.getMetaText(pub, "accessURL",
 			macroPackage=self.service))
 

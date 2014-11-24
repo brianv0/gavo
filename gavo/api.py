@@ -43,6 +43,9 @@ from gavo.rsc import (TableForDef, DBTable, makeData, parseValidating,
 
 from gavo.rscdef import TableDef, getFlatName, getReferencedElement
 
+from gavo.stc import (dateTimeToJYear, dateTimeToJdn, dateTimeToMJD,
+	jYearToDateTime, jdnToDateTime, mjdToDateTime, parseISODT)
+
 from gavo.user.logui import LoggingUI
 
 from gavo.votable import VOTableError, ADQLTAPJob
