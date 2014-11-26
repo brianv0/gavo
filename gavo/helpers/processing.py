@@ -302,6 +302,7 @@ class HeaderProcessor(FileProcessor):
 	"""
 	headerExt = ".hdr"
 	maxHeaderBlocks = 40
+	cardSequence = None
 
 	def _makeCacheName(self, srcName):
 		return srcName+self.headerExt
@@ -319,8 +320,10 @@ class HeaderProcessor(FileProcessor):
 		if hdr.has_key("NAXIS2"):
 			del hdr["NAXIS2"]
 
-		hdr = fitstools.sortHeaders(hdr, commentFilter=self.commentFilter,
-			historyFilter=self.historyFilter)
+		hdr = fitstools.sortHeaders(hdr, 
+			commentFilter=self.commentFilter,
+			historyFilter=self.historyFilter,
+			cardSequence=self.cardSequence)
 
 		with open(dest, "w") as f:
 			f.write(fitstools.serializeHeader(hdr))

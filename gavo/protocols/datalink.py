@@ -270,7 +270,7 @@ class MetaMaker(rscdef.ProcApp):
 	metaMaker see the data descriptor of the input data under the name
 	descriptor.
 
-	The data attribute of the descriptor is always None for metaUpdaters, so
+	The data attribute of the descriptor is always None for metaMakers, so
 	you cannot use anything given there.
 
 	Within MetaMakers' code, you can access InputKey, Values, Option, and

@@ -210,7 +210,7 @@ def makeHeaderFromTemplate(template, **values):
 
 	for tp in template:
 		if isinstance(tp, pyfits.Card):
-			hdr.append(tp)
+			hdr.append(tp, end=True)
 		else:
 			key, comment = tp
 			argKey = key.replace("-", "_")

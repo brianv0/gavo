@@ -272,7 +272,10 @@ class PropertyAttribute(DictAttribute):
 
 		def getProperty(self, name, default=attrdef.Undefined):
 			if default is attrdef.Undefined:
-				return self.properties[name]
+				try:
+					return self.properties[name]
+				except KeyError:
+					raise KeyError("%s has no property '%s' set"%(self, name))
 			else:
 				return self.properties.get(name, default)
 		yield "getProperty", getProperty

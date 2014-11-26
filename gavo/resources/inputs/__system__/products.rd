@@ -103,9 +103,17 @@ machinery -->
 
 	<procDef type="rowfilter" id="define">
 		<doc>
-			enters the values defined by the product interface into result.
+			Enters the values defined by the product interface into 
+			a grammar's result.
 
-			See the documentation on the //products#table mixin.
+			See the documentation on the //products#table mixin.  In short:
+			you will always  have to touch table (to the name of the
+			table this row is managed in).  
+			
+			Everything else is optional: You may want to set preview
+			and preview_mime if DaCHS can't do previews of your stuff 
+			automatically.  datalink is there if you have  a datalink
+			thing.  What's left is for special situations.
 		</doc>
 		<setup>
 			<par key="table" description="the table this product is managed in.
