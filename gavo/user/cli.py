@@ -162,6 +162,7 @@ def main():
 	if opts.uiName=="module-dependent":
 		opts.uiName = {"registry.publication": "semistingy",
 			"user.dropping": "stingy",
+			"user.serve": "null",
 			}.get(module, "plain")
 	if opts.uiName not in interfaces:
 		raise base.ReportableError("UI %s does not exist.  Choose one of"

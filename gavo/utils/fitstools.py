@@ -83,7 +83,8 @@ else:
 
 # We monkeypatch new versions of pyfits to support some old interfaces
 # -- the removed deprecated interfaces too quickly, and we want to
-# support pyfitses that don't have the new interfaces yet.
+# support pyfitses that don't have the new interfaces yet.  And then
+# we monkeypatch some old versions to have newer, saner interfaces.
 
 if not hasattr(pyfits.Header, "has_key"):
 	def _header_has_key(self, key):
@@ -96,6 +97,12 @@ if not hasattr(pyfits.Header, "ascardlist"):
 		return self.cards
 	pyfits.Header.ascardlist = _ascardlist
 	del _ascardlist
+
+if not hasattr(pyfits.Header, "append"):
+	def _append(self, card, end=False):
+		self.ascard.append(card, bottom=end)
+	pyfits.Header.append = _append
+	del _append
 
 _FITS_TABLE_LOCK = threading.RLock()
 
@@ -390,7 +397,7 @@ def sortHeaders(header, commentFilter=None, historyFilter=None,
 			commentCs.append(card)
 		elif card.key=="HISTORY":
 			historyCs.append(card)
-		elif card.key!="":
+		else:
 			realCs.append(card)
 
 	newCards = []

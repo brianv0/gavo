@@ -150,7 +150,11 @@ def parseTimestamp(literal, format="%Y-%m-%dT%H:%M:%S"):
 	"""returns a datetime.datetime object of literal parsed according to the
 	strptime-similar format.
 	"""
-	return datetime.datetime(*time.strptime(literal, format)[:6])
+	try:
+		return datetime.datetime(*time.strptime(literal, format)[:6])
+	except ValueError:
+		# always try ISO format
+		return parseISODT(literal)
 
 
 @utils.document

@@ -168,6 +168,9 @@ WFPDB_TEMPLATE = MINIMAL_IMAGE_TEMPLATE+[
 			"RA_DEG%d", " [deg] ICRS center RA %s obs"
 		)+_makeHeaderSequence(
 			"DEC_DE%d", " [deg] ICRS center DEC %s obs")+[
+		("AIRMASS", "Airmass at mean epoch"),
+		("HA", "Hour angle at mean epoch"),
+		("ZD", "Zenith distance at mean epoch"),
 
 		pyfits.Card(value="-------------------- Scan details"),
 		("SCANNER", "Scanner hardware used"),
@@ -182,6 +185,8 @@ WFPDB_TEMPLATE = MINIMAL_IMAGE_TEMPLATE+[
 		("DATESCAN", "UT scan date and time"),
 		("SCANAUTH", "Author of the scan"),
 		("SCANNOTE", "Notes about the scan"),
+		("DATAMIN",  "Min pixel value in image"),
+		("DATAMAX",  "Max pixel value in image"),
 
 		pyfits.Card(value="-------------------- Data files"),
 		("FILENAME", "Filename of this file"),
@@ -215,8 +220,19 @@ def makeHeaderFromTemplate(template, **values):
 			key, comment = tp
 			argKey = key.replace("-", "_")
 			if values.get(argKey) is not None:
-				hdr.append(pyfits.Card(key, values[argKey], comment), end=True)
-				values.pop(argKey)
+				try:
+					val = values[argKey]
+					if isinstance(val, unicode):
+						val = val.encode("ascii")
+
+					hdr.append(pyfits.Card(key, val, comment), end=True)
+				except Exception, ex:
+					if hasattr(ex, "args") and isinstance(ex.args[0], basestring):
+						ex.args = ("While constructing card %s: %s"%(
+							key, ex.args[0]),)+ex.args[1:]
+					raise
+
+			values.pop(argKey, None)
 	
 	if values:
 		base.ui.notifyWarning("The following headers were left after"
