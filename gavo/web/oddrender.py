@@ -145,7 +145,11 @@ class MachineJpegRenderer(JpegRenderer):
 		return "%s/%s?"%(baseURL, cls.name)
 
 	def _realRenderHTTP(self, ctx):
-		return self.runService(inevow.IRequest(ctx).args
+		args = inevow.IRequest(ctx).args
+		args.setdefault("_ADDITEM", []).append(
+					args["plotField"][0])
+		args["line"] = ["%s .. %s"%(args["startLine"][0], args["endLine"][0])]
+		return self.runService(args
 			).addCallback(self._formatOutput, ctx)
 
 	def renderHTTP(self, ctx):
