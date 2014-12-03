@@ -761,7 +761,8 @@ class Service(base.Structure, base.ComputedMetaMixin,
 				return inputdef.makeAutoInputDD(core)
 
 			if id(core) not in self._inputDDCache:
-				self._inputDDCache[id(core)] = inputdef.makeAutoInputDD(core)
+				self._inputDDCache[id(core)] = inputdef.makeAutoInputDD(core,
+					self.serviceKeys)
 		return self._inputDDCache[id(core)]
 
 	def getInputKeysFor(self, renderer):
@@ -775,7 +776,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		"""
 		return (self.getInputDDFor(
 			self.getCoreFor(renderer)).grammar.inputKeys
-			)+self.serviceKeys
+			)
 
 	def _hackInputTableFromPreparsed(self, core, args):
 		"""returns an input table from dictionaries as produced by nevow formal.
@@ -812,22 +813,6 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		res = SvcResult(coreRes, inputTable, queryMeta, self)
 		return res
 
-	def _validateServiceInput(self, args):
-		"""raises a ValidationError if any of the parameters passed for the 
-		service (i.e., non-core) is not appropriate for the service.
-		"""
-		for inputKey in self.serviceKeys:
-			if inputKey.name in args:
-				for val in args[inputKey.name]:
-					if val:
-						# TODO: sanely handle empty inputs
-						inputKey.validateValue(val)
-			else:
-				if inputKey.required:
-					raise base.ValidationError(
-						"Mandatory service parameter %s not given"%inputKey.name,
-						colName=inputKey.name)
-
 	def run(self, renderer, args, queryMeta=None):
 		"""runs the service, returning an SvcResult.
 
@@ -842,7 +827,6 @@ class Service(base.Structure, base.ComputedMetaMixin,
 			queryMeta = common.QueryMeta.fromNevowArgs(args)
 
 		core = self.getCoreFor(renderer)
-		self._validateServiceInput(args)
 
 		return self._runWithInputTable(core,
 			self._makeInputTableFor(core, args),

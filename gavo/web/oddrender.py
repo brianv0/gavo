@@ -84,7 +84,7 @@ class JpegRenderer(formrender.FormMixin, grend.ServiceBasedPage,
 			yield rec["data"].decode("base64")+curveBytes
 
 	def _createImage(self, data):
-		pars = data.queryMeta.getQueryPars()
+		pars = data.inputTable.getParamDict()
 		if self.service.getProperty("curveMax"
 				) and "plotField" in pars and pars["plotField"]:
 			lines = [l for l in self._computeLinesWithCurve(
@@ -149,7 +149,7 @@ class MachineJpegRenderer(JpegRenderer):
 		args.setdefault("_ADDITEM", []).append(
 					args["plotField"][0])
 		args["line"] = ["%s .. %s"%(args["startLine"][0], args["endLine"][0])]
-		return self.runService(args
+		return self.runService(args, queryMeta=svcs.QueryMeta.fromNevowArgs(args)
 			).addCallback(self._formatOutput, ctx)
 
 	def renderHTTP(self, ctx):
@@ -159,6 +159,7 @@ class MachineJpegRenderer(JpegRenderer):
 			).addErrback(self._handleInputErrors, ctx)
 
 	def _handleInputErrors(self, failure, ctx):
+		failure.printTraceback()
 		failure.trap(base.ValidationError)
 		request = inevow.IRequest(ctx)
 		request.setResponseCode(400)

@@ -336,10 +336,10 @@ class ContextGrammar(grammars.Grammar):
 
 
 	def onElementComplete(self):
-		if self.inputKeys==[]:
-			if self.inputTable is base.NotGiven:
-				raise base.StructureError("Either inputKeys or inputTable"
-					" must be given in a context grammar")
+		if self.inputTable is not base.NotGiven:
+			if self.inputKeys!=[]:
+				raise base.StructureError("InputKeys and inputTable must not"
+					" both be given in a context grammar")
 			else:
 				if self.rowKey:
 					self.inputKeys = [InputKey.fromColumn(c) 
@@ -348,15 +348,11 @@ class ContextGrammar(grammars.Grammar):
 					self.inputKeys = self.inputTable.params
 
 		else:
-			if self.inputTable is not base.NotGiven:
-				raise base.StructureError("InputKeys and inputTable must not"
-					" both be given in a context grammar")
-			else:
-				columns = []
-				if self.rowKey:
-					columns = self.inputKeys
-				self.inputTable = MS(InputTable, params=self.inputKeys,
-					columns=columns)
+			columns = []
+			if self.rowKey:
+				columns = self.inputKeys
+			self.inputTable = MS(InputTable, params=self.inputKeys,
+				columns=columns)
 
 		self.defaults = {}
 		for ik in self.iterInputKeys():
@@ -433,13 +429,14 @@ class InputDescriptor(rscdef.DataDescriptor):
 		self._completeElementNext(InputDescriptor, ctx)
 
 
-def makeAutoInputDD(core):
+def makeAutoInputDD(core, serviceKeys=[]):
 	"""returns a standard inputDD for a core.
 
 	The standard inputDD is just a context grammar with the core's input
 	keys, and the table structure defined by these input keys.
 	"""
 	return MS(InputDescriptor,
-		grammar=MS(ContextGrammar, inputTable=core.inputTable,
+		grammar=MS(ContextGrammar, 
+			inputKeys=core.inputTable.params+serviceKeys,
 # the rejectExtras thing below is an experiment.  It may go away again.
 			rejectExtras=getattr(core, "rejectExtras", False)))

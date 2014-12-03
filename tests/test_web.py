@@ -466,7 +466,7 @@ class APIRenderTest(trialhelpers.ArchiveTest):
 	def testServiceParametersValidated(self):
 		return self.assertGETHasStrings("/data/cores/scs/api", 
 			{"RESPONSEFORMAT": "fantastic junk"}, 
-				["Field RESPONSEFORMAT: 'fantastic junk' is not a valid value for"
+				["Field RESPONSEFORMAT: [u'fantastic junk'] is not a valid value for"
 					" RESPONSEFORMAT</INFO>"])
 
 
