@@ -358,7 +358,7 @@ def _enforceHeaderConstraints(cardList, cardSequence):
 
 	for card in cardList:  # use cardList rather than cardDict to maintain
 		                     # cardList order
-		if card.key not in cardsAdded:
+		if card.key not in cardsAdded or card.key=='':
 			newCards.append(card)
 	return pyfits.Header(newCards)
 

@@ -35,7 +35,7 @@ def copyFields(header, cardList,
 		elif card.key=="HISTORY":
 			header.add_history(card.value)
 		elif card.key=="":
-			header.add_blank(card.value, card.comment)
+			header.append(pyfits.Card("", card.value), end=True)
 		elif card.key.lower() in ignoredHeaders:
 			pass
 		else:

@@ -133,6 +133,7 @@ class MachineJpegRenderer(JpegRenderer):
 	"""
 	name = "mimg.jpeg"
 	useURL = "base"
+	parameterStyle = "form"
 	resultType = "image/jpeg"
 
 	@classmethod
@@ -144,17 +145,8 @@ class MachineJpegRenderer(JpegRenderer):
 		return "%s/%s?"%(baseURL, cls.name)
 
 	def _realRenderHTTP(self, ctx):
-		args = inevow.IRequest(ctx).args
-		formalData = {}
-		try:
-			formalData["line"] = "%d .. %d"%(
-				int(args["startLine"][0]), int(args["endLine"][0]))
-			formalData["palette"] = str(args.get("palette", [""])[0])
-			formalData["plotField"] = str(args.get("plotField", [""])[0])
-		except:
-			raise base.ui.logOldExc(
-				base.ValidationError("Invalid input parameters %s"%args, "line"))
-		return JpegRenderer._realSubmitAction(self, ctx, None, formalData)
+		return self.runService(inevow.IRequest(ctx).args
+			).addCallback(self._formatOutput, ctx)
 
 	def renderHTTP(self, ctx):
 		# We're not going thorugh the motions of form processing here

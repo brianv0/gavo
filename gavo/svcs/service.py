@@ -819,7 +819,9 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		for inputKey in self.serviceKeys:
 			if inputKey.name in args:
 				for val in args[inputKey.name]:
-					inputKey.validateValue(val)
+					if val:
+						# TODO: sanely handle empty inputs
+						inputKey.validateValue(val)
 			else:
 				if inputKey.required:
 					raise base.ValidationError(
