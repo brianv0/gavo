@@ -99,8 +99,9 @@ class JpegRenderer(formrender.FormMixin, grend.ServiceBasedPage,
 			if pal in palettes:
 				img.putpalette(palettes[pal])
 			else:
-				raise base.ValidationError("No such palette: %s"%pal,
-					colName="palette")
+				if pal!="b/w":
+					raise base.ValidationError("No such palette: %s"%pal,
+						colName="palette")
 			img = img.convert("RGB")
 			img = img.tostring("jpeg", "RGB")
 		else:
