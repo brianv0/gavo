@@ -413,10 +413,15 @@ class FormMixin(formal.ResourceMixin):
 			# the service has a custom inputDD; all we have is the input keys.
 			for item in self.service.getInputKeysFor(self):
 				self._addInputKey(form, form, item)
+
 		else:
 			# we have an inputTable.  Handle groups and other fancy stuff
 			self._addQueryFieldsForInputTable(form,
 				self.service.getCoreFor(self).inputTable)
+
+			# and add the service keys manually
+			for item in self.service.serviceKeys:
+				self._addInputKey(form, form, item)
 
 	def _addMetaFields(self, form, queryMeta):
 		"""adds fields to choose output properties to form.

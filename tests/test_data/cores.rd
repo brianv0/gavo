@@ -188,6 +188,8 @@
 				</inputKey>
 			</inputTable>
 		</debugCore>
+		<inputKey name="frobnicate" type="boolean"
+			description="A service key"/>
 		<FEED source="//pql#DALIPars"/>
 	</service>
 

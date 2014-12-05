@@ -205,6 +205,10 @@ class FormTest(trialhelpers.ArchiveTest):
 				"genForm", "VERB": 3, "_FORMAT": "JSON"}, 
 				['"queryStatus": "Ok"', '"dbtype": "real"'])
 
+	def testServiceKeyRendered(self):
+		self.assertGETHasStrings("/data/cores/uploadtest/form", {},
+			['<div class="description">A service key</div>'])
+
 
 class StreamingTest(trialhelpers.ArchiveTest):
 	def testStreamingWorks(self):
