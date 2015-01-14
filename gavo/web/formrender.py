@@ -25,6 +25,7 @@ from gavo.base import typesystems
 from gavo.imp import formal
 from gavo.imp.formal import iformal
 from gavo.svcs import customwidgets
+from gavo.svcs import inputdef
 from gavo.svcs import streaming
 from gavo.web import common
 from gavo.web import grend
@@ -419,8 +420,9 @@ class FormMixin(formal.ResourceMixin):
 			self._addQueryFieldsForInputTable(form,
 				self.service.getCoreFor(self).inputTable)
 
-			# and add the service keys manually
-			for item in self.service.serviceKeys:
+			# and add the service keys manually as appropriate
+			for item in inputdef.filterInputKeys(self.service.serviceKeys,
+					self.name, inputdef.getRendererAdaptor(self)):
 				self._addInputKey(form, form, item)
 
 	def _addMetaFields(self, form, queryMeta):
