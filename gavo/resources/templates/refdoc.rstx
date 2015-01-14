@@ -798,11 +798,13 @@ user's unit preferences.  For this latter use case, there is the
 
     <condDesc>
       <inputKey original="minDist" inputUnit="arcsec"
-        type="vexpr-float"
-        onlyForRenderer="form"/>
+        type="vexpr-float">
+        <property key="onlyForRenderer">form</property>
+      </inputKey>
       <inputKey original="minDist" 
-        type="pql-float"
-        notForRenderer="form"/>
+        type="pql-float">
+        <property key="notForRenderer">form</property>
+      </inputKey>
     </condDesc>
 
 Note how in this case we adapted the types of the input keys to provide

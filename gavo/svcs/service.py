@@ -742,28 +742,31 @@ class Service(base.Structure, base.ComputedMetaMixin,
 			self._coresCache[renderer.name] = res
 		return self._coresCache[renderer.name]
 
-	def getInputDDFor(self, core=None):
+	def getInputDDFor(self, renderer, core=None):
 		"""returns an inputDD for renderer.
 
 		If service has a custom inputDD, it will be used for all renderers;
-		otherwise, this is an automatic inputDD for the core's inputTable.
+		otherwise, this is an automatic inputDD for the inputTable the
+		core adpated to renderer has.
 
-		You can pass in a core adapted for a rendere; otherwise, the
-		service's default core will be used.
+		Pass in the core if you already have it as an optimisation (in
+		particular for datalink, where cores aren't automatically cached).
 		"""
-		if core is None:
-			core = self.core
-
 		if self.inputDD:
 			return self.inputDD
+
 		else:
+			if core is None:
+				core = self.getCoreFor(renderer)
 			if getattr(core, "nocache", False):
 				return inputdef.makeAutoInputDD(core)
 
-			if id(core) not in self._inputDDCache:
-				self._inputDDCache[id(core)] = inputdef.makeAutoInputDD(core,
-					self.serviceKeys)
-		return self._inputDDCache[id(core)]
+			serviceKeys = list(inputdef.filterInputKeys(self.serviceKeys,
+				renderer.name, inputdef.getRendererAdaptor(renderer)))
+
+			self._inputDDCache[renderer.name] = inputdef.makeAutoInputDD(core,
+				serviceKeys)
+		return self._inputDDCache[renderer.name]
 
 	def getInputKeysFor(self, renderer):
 		"""returns a sequence of input keys, adapted for certain renderers.
@@ -774,15 +777,15 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		This is the main interface for external entities to discover.
 		service metadata.
 		"""
-		return (self.getInputDDFor(
-			self.getCoreFor(renderer)).grammar.inputKeys
-			)
+		if isinstance(renderer, basestring):
+			renderer = renderers.getRenderer(renderer)
+		return self.getInputDDFor(renderer).grammar.inputKeys
 
-	def _hackInputTableFromPreparsed(self, core, args):
+	def _hackInputTableFromPreparsed(self, renderer, args, core=None):
 		"""returns an input table from dictionaries as produced by nevow formal.
 		"""
 		args = utils.CaseSemisensitiveDict(args)
-		inputDD = self.getInputDDFor(core)
+		inputDD = self.getInputDDFor(renderer, core=core)
 		inputTable = rsc.TableForDef(inputDD.makes[0].table)
 
 		for ik in inputDD.grammar.iterInputKeys():
@@ -794,13 +797,14 @@ class Service(base.Structure, base.ComputedMetaMixin,
 
 		return inputTable
 
-	def _makeInputTableFor(self, core, args):
-		"""returns an input table for core, filled from contextData.
+	def _makeInputTableFor(self, renderer, args, core=None):
+		"""returns an input table for this service  through renderer, filled 
+		from contextData.
 		"""
 		if isinstance(args, PreparsedInput) and not self.inputDD:
-			return self._hackInputTableFromPreparsed(core, args)
+			return self._hackInputTableFromPreparsed(renderer, args, core=core)
 		else:
-			return rsc.makeData(self.getInputDDFor(core),
+			return rsc.makeData(self.getInputDDFor(renderer, core=core),
 				parseOptions=rsc.parseValidating, forceSource=args
 					).getPrimaryTable()
 
@@ -823,13 +827,15 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		(but, e.g., nevow formal data).  Otherwise, it will be constructed
 		from args.
 		"""
+		if isinstance(renderer, basestring):
+			renderer = renderers.getRenderer(renderer)
 		if queryMeta is None:
 			queryMeta = common.QueryMeta.fromNevowArgs(args)
 
 		core = self.getCoreFor(renderer)
 
 		return self._runWithInputTable(core,
-			self._makeInputTableFor(core, args),
+			self._makeInputTableFor(renderer, args, core=core),
 			queryMeta)
 
 

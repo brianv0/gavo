@@ -379,12 +379,12 @@ class DataURL(base.Structure):
 				payload = urllib.urlencode(self.getParams())
 				headers["Content-Type"] = "application/x-www-form-urlencoded"
 
-		scheme, host, path, _, query, _ = urlparse.urlparse(self.httpURL)
+		scheme, host, path, _, query, _ = urlparse.urlparse(str(self.httpURL))
 		assert scheme=="http"
 
 		if self.httpAuthKey is not base.NotGiven:
 			headers.update(getAuthFor(self.httpAuthKey))
-		status, respHeaders, content = doHTTPRequest(self.httpMethod,
+		status, respHeaders, content = doHTTPRequest(str(self.httpMethod),
 			host, path, query, payload, headers, timeout)
 		
 		while self.httpHonorRedirects and status in [301, 302, 303]:

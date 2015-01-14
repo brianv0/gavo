@@ -159,6 +159,27 @@ class InputKey(column.ParamBase):
 		return instance.finishElement(None)
 
 
+def filterInputKeys(keys, rendName, adaptor=None):
+	"""filters inputKeys in key, only returning those compatible with
+	rendName.
+
+	adaptor is is a function taking and returning an inputKey that is used
+	for input keys with an adaptToRenderer property.
+	"""
+	for key in keys:
+		if key.getProperty("onlyForRenderer", None) is not None:
+			if key.getProperty("onlyForRenderer")!=rendName:
+				continue
+		if key.getProperty("notForRenderer", None) is not None:
+			if key.getProperty("notForRenderer")==rendName:
+				continue
+
+		if key.getProperty("adaptToRenderer", None) and adaptor:
+			key = adaptor(key)
+
+		yield key
+	
+
 class InputTable(rscdef.TableDef):
 	"""an input table for a core.
 
@@ -182,26 +203,11 @@ class InputTable(rscdef.TableDef):
 
 		This is discussed in svcs.core's module docstring.
 		"""
-		newParams, changed = [], False
-		rendName = renderer.name
-		adaptor = getRendererAdaptor(renderer)
+		newParams = list(
+			filterInputKeys(self.params, renderer.name,
+				getRendererAdaptor(renderer)))
 
-		for param in self.params:
-			if param.getProperty("onlyForRenderer", None) is not None:
-				if param.getProperty("onlyForRenderer")!=rendName:
-					changed = True
-					continue
-			if param.getProperty("notForRenderer", None) is not None:
-				if param.getProperty("notForRenderer")==rendName:
-					changed = True
-					continue
-
-			if param.getProperty("adaptToRenderer", None) and adaptor:
-				changed = True
-				param = adaptor(param)
-
-			newParams.append(param)
-		if changed:
+		if newParams!=self.params:
 			return self.change(params=newParams)
 		else:
 			return self

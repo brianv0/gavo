@@ -27,6 +27,7 @@ from gavo import svcs
 from gavo import utils
 from gavo.imp import formal
 from gavo.imp.formal import iformal
+from gavo.svcs import renderers
 from gavo.web import formrender
 
 import tresc
@@ -175,7 +176,7 @@ class AutoInputDDTest(testhelpers.VerboseTest):
 class InputTableGenTest(testhelpers.VerboseTest):
 	def testDefaulting(self):
 		service = testhelpers.getTestRD("cores").getById("cstest")
-		it = service._makeInputTableFor(service.getCoreFor("form"), 
+		it = service._makeInputTableFor(renderers.getRenderer("form"), 
 			svcs.PreparsedInput({
 				"hscs_pos": "Aldebaran", "hscs_SR": "0.25"}))
 		self.assertEqual(it.getParamDict(), {
@@ -185,7 +186,7 @@ class InputTableGenTest(testhelpers.VerboseTest):
 	def testInvalidLiteral(self):
 		service = testhelpers.getTestRD("cores").getById("cstest")
 		try:
-			it = service._makeInputTableFor(service.core, {
+			it = service._makeInputTableFor(renderers.getRenderer("form"), {
 				"hscs_pos": "Aldebaran", "hscs_sr": "a23"})
 		except base.ValidationError, ex:
 			self.assertEqual(ex.colName, "hscs_sr")
@@ -194,13 +195,13 @@ class InputTableGenTest(testhelpers.VerboseTest):
 
 	def testEnumeratedNoDefault(self):
 		service = testhelpers.getTestRD("cores").getById("enums")
-		it = service._makeInputTableFor(service.core, {})
+		it = service._makeInputTableFor(renderers.getRenderer("form"), {})
 		self.assertEqual(it.getParamDict(), {'a': None, 'b': None,
 			'c':[1]})
 
 	def testCaseFolding(self):
 		service = testhelpers.getTestRD("cores").getById("enums")
-		it = service._makeInputTableFor(service.core, {"B": 2})
+		it = service._makeInputTableFor(renderers.getRenderer("form"), {"B": 2})
 		self.assertEqual(it.getParamDict(), {'a': None, 'b': [2],
 			'c':[1]})
 
@@ -209,7 +210,7 @@ class InputTableGenTest(testhelpers.VerboseTest):
 		self.assertRaisesWithMsg(base.ValidationError,
 			"Field b: [3] is not a valid value for b",
 			service._makeInputTableFor,
-			(service.core, {'b':"3"}))
+			(renderers.getRenderer("form"), {'b':"3"}))
 
 
 class PlainDBServiceTest(testhelpers.VerboseTest):
@@ -443,19 +444,17 @@ class InputKeyTest(testhelpers.VerboseTest):
 class InputFieldSelectionTest(testhelpers.VerboseTest):
 	# Tests for renderer-dependent selection and adaptation of db core 
 	# input fields.
-	def setUp(self):
-		testhelpers.VerboseTest.setUp(self)
-		self.service = testhelpers.getTestRD("cores").getById("cstest")
-
 	def testForm(self):
+		service = testhelpers.getTestRD("cores").getById("cstest")
 		self.assertEqual(
-			[(k.name, k.type) for k in self.service.getInputKeysFor("form")],
+			[(k.name, k.type) for k in service.getInputKeysFor("form")],
 			[("hscs_pos", "text"), ("hscs_sr", "real"), ("mag", "vexpr-float"),
 				('rV', 'vexpr-float')])
 
 	def testSCS(self):
+		service = testhelpers.getTestRD("cores").getById("cstest")
 		self.assertEqual(
-			[(k.name, k.type) for k in self.service.getInputKeysFor("scs.xml")],
+			[(k.name, k.type) for k in service.getInputKeysFor("scs.xml")],
 			[('RA', 'double precision'), ('DEC', 'double precision'), 
 				('SR', 'real'), ('MAXREC', 'integer'),
 				("mag", "pql-float"), (u'rV', u'vexpr-float')])
@@ -464,6 +463,14 @@ class InputFieldSelectionTest(testhelpers.VerboseTest):
 		svc = base.caches.getRD("data/ssatest").getById("d")
 		self.failIf("FORMAT" in
 			[k.name for k in svc.getInputKeysFor("ssap.xml")])
+
+	def testAPIKeysVanish(self):
+		svc = base.parseFromString(svcs.Service, """<service id="x"><nullCore/>
+			<FEED source="//pql#DALIPars"/></service>""")
+		self.assertEqual([],
+			[k.name for k in svc.getInputKeysFor("form")])
+		self.assertEqual(["RESPONSEFORMAT", "MAXREC"],
+			[k.name for k in svc.getInputKeysFor("api")])
 
 
 class GroupingTest(testhelpers.VerboseTest):
