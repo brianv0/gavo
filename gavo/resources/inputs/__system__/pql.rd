@@ -128,6 +128,7 @@ vodal-based services interpret. -->
 			ucd="meta.code.mime"
 			tablehead="Output Format"
 			description="File format requested for output.">
+			<property key="notForRenderer">form</property>
 			<values>
 				<LOOP>
 					<codeItems>
@@ -148,7 +149,9 @@ vodal-based services interpret. -->
 		<inputKey name="MAXREC" type="integer"
 			tablehead="Match limit"
 			description="Maximum number of records returned.  Pass 0 to
-				 retrieve service parameters."/>
+				 retrieve service parameters.">
+			<property key="notForRenderer">form</property>
+		</inputKey>
 	</NXSTREAM>
 	
 </resource>
