@@ -30,7 +30,7 @@ from gavo.base import (getConfig, setConfig,
 	parseFromString,
 	makeStruct,
 	parseUnit,
-	getMetaText,
+	getMetaText, makeMetaValue,
 	ui)
 
 from gavo.formats import formatData, getFormatted

@@ -290,6 +290,14 @@ class CSVGrammarTest(testhelpers.VerboseTest):
 			{"col1": "la", "col2": "le", "col3": "lu"},
 			{"col1": '1', "col2": '2', "col3": "schaut"}])
 
+	def testSkipLines(self):
+		grammar = base.parseFromString(rscdef.getGrammar("csvGrammar"),
+			'<csvGrammar topIgnoredLines="3"/>')
+		recs = getCleaned(grammar.parse(StringIO(
+			"There's\nsome\njunk at the top here\nla,le,lu\n1,2,schaut")))
+		self.assertEqual(recs, [
+			{"la": '1', "le": '2', "lu": "schaut"}])
+
 
 class ColDefTest(testhelpers.VerboseTest):
 	def testSimple(self):

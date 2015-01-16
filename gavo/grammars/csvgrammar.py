@@ -24,6 +24,11 @@ class CSVIterator(FileRowIterator):
 			"fieldnames": self.grammar.names,
 			"skipinitialspace": self.grammar.strip,
 		}
+
+		if self.grammar.topIgnoredLines:
+			for i in range(self.grammar.topIgnoredLines):
+				self.inputFile.readline()
+
 		self.csvSource = csv.DictReader(self.inputFile, **consArgs)
 			
 	def _iterRows(self):
@@ -60,5 +65,8 @@ class CSVGrammar(Grammar, FileRowAttributes):
 	_strip = base.BooleanAttribute("strip", default=False,
 		description="If True, whitespace immediately following a delimiter"
 		" is ignored.", copyable=True)
+
+	_til = base.IntAttribute("topIgnoredLines", default=0, description=
+		"Skip this many lines at the top of each source file.")
 
 	rowIterator = CSVIterator

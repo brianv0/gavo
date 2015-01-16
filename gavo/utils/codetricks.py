@@ -456,13 +456,17 @@ def in_dir(destDir):
 def sandbox(tmpdir=None, debug=False):
 	"""sets up and tears down a sandbox directory within tmpdir.
 
-	This is is a context manager.  The object returned is the original path
-	(which allows you to copy stuff from there).  The working directory is the
-	sandbox created while in the controlled block.
+	This is is a context manager.  The object returned is the original
+	path (which allows you to copy stuff from there).  The working
+	directory is the sandbox created while in the controlled block.
 
-	If tmpdir is None, the *system* default is used (usually /tmp), rather
-	than dachs' tmpdir.  So, you will ususally want to call this as
-	sandbox(base.getConfig("tempDir"))
+	If tmpdir is None, the *system* default is used (usually /tmp),
+	rather than dachs' tmpdir.  So, you will ususally want to call
+	this as sandbox(base.getConfig("tempDir"))
+
+	This is obviously not thread-safe -- you'll not usually want
+	to run this in the main server process.  Better fork before
+	running this.
 	"""
 	owd = os.getcwd()
 	wd = tempfile.mkdtemp("sandbox", dir=tmpdir)
