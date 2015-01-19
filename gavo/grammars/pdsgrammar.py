@@ -3,6 +3,12 @@ A grammar wrapping pypds to parse files in the format of the planetary
 data system (PDS).
 """
 
+#c Copyright 2008-2015, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 from gavo import base
 from gavo.grammars.common import Grammar, RowIterator, MapKeys
 

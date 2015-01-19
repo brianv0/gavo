@@ -3,6 +3,12 @@ A grammar wrapping spacepy to parse files in the Common Data Format (CDF),
 http://cdf.gsfc.nasa.gov.
 """
 
+#c Copyright 2008-2015, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 from gavo import base
 from gavo.grammars.common import Grammar, RowIterator, MapKeys
 

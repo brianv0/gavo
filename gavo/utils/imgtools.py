@@ -6,6 +6,12 @@ by utils.__init__.   Hence, none of these functions are in gavo.api or
 gavo.utils.
 """
 
+#c Copyright 2008-2015, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 from cStringIO import StringIO
 
 import Image

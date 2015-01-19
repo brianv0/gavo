@@ -5,7 +5,7 @@ Currently, I assume a plain text interface for those.  It might be
 a good idea to use the event mechanism here.
 """
 
-#c Copyright 2008-2014, the GAVO project
+#c Copyright 2008-2015, the GAVO project
 #c
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.

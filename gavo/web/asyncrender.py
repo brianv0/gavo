@@ -6,6 +6,12 @@ module using some of this; on the long run, it should probably be
 integrated here.
 """
 
+#c Copyright 2008-2015, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 from nevow import inevow
 from nevow import rend
 from twisted.internet import threads

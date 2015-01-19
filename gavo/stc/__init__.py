@@ -17,10 +17,11 @@ e.g. into functions or a query language.  Don't do any transformations
 in serious loops.
 """
 
-#c Copyright 2008-2014, the GAVO project
+#c Copyright 2008-2015, the GAVO project
 #c
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
+
 
 # Not checked by pyflakes: API file with gratuitous imports
 

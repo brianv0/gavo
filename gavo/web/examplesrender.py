@@ -16,10 +16,11 @@ logically belong (and where they should be documented in the renderer
 docstrings) is that we don't want docutils imports all over the place.
 """
 
-#c Copyright 2008-2014, the GAVO project
+#c Copyright 2008-2015, the GAVO project
 #c
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
+
 
 import re
 
