@@ -105,7 +105,7 @@ class QueryMeta(dict):
 	# lists because they are used internally.  This covers everything 
 	# QueryMeta interprets, but also keys by introduced by certain gwidgets
 	# and the nevow infrastructure
-	metaKeys = set(["_DBOPTIONS", "_FILTER", "_OUTPUT", "_charset_", "_ADDITEM",
+	metaKeys = set(["_FILTER", "_OUTPUT", "_charset_", "_ADDITEM",
 		"__nevow_form__", "_FORMAT", "_VERB", "_TDENC", "formal_data",
 		"_SET", "_TIMEOUT", "_VOTABLE_VERSION"])
 
@@ -204,14 +204,9 @@ class QueryMeta(dict):
 			for s in args.get("_DBOPTIONS_ORDER", []) if s.strip()]
 
 		try:
-			self["dbLimit"] = int(args["_DBOPTIONS_LIMIT"])
+			self["dbLimit"] = int(args["MAXREC"])
 		except (ValueError, KeyError):
 			self["dbLimit"] = base.getConfig("db", "defaultLimit")
-		if "MAXREC" in args:
-			try:
-				self["dbLimit"] = int(args["MAXREC"])
-			except ValueError:
-				pass
 
 		try:
 			self["timeout"] = int(args["_TIMEOUT"])

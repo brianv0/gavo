@@ -202,9 +202,6 @@ class SSAPCore(svcs.DBCore):
 
 		rawArgs = queryMeta.ctxArgs
 		del rawArgs[utils.getKeyNoCase(rawArgs, "request")]
-		# Also remove artificial parameter introduced by the SSA renderer
-		if "_DBOPTIONS_LIMIT" in rawArgs:
-			del rawArgs["_DBOPTIONS_LIMIT"]
 		if "_FORMAT" in rawArgs:
 			del rawArgs["_FORMAT"]
 

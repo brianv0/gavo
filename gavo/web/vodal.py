@@ -211,8 +211,8 @@ class SCSRenderer(DALRenderer):
 
 	def __init__(self, ctx, *args, **kwargs):
 		reqArgs = inevow.IRequest(ctx).args
-		if not "_DBOPTIONS_LIMIT" in reqArgs:
-			reqArgs["_DBOPTIONS_LIMIT"] = [
+		if not "MAXREC" in reqArgs:
+			reqArgs["MAXREC"] = [
 				str(base.getConfig("ivoa", "dalDefaultLimit")*10)]
 		if "_VOTABLE_VERSION" not in reqArgs:
 			reqArgs["_VOTABLE_VERSION"] = ["1.1"]

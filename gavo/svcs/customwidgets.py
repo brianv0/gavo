@@ -70,26 +70,28 @@ class DBOptions(object):
 			noneOption=("100", 100))
 
 	def render(self, ctx, key, args, errors):
-# XXX TODO: Clean up this mess -- you probably don't want the widget in
-# this way anyway.
+		# The whole plan sucks -- these should have been two separate widgets
 		children = []
 		if '_DBOPTIONS' in args:
+			# we're working from pre-parsed (nevow formal) arguments
 			v = [[args["_DBOPTIONS"]["order"]] or "", 
 				[args["_DBOPTIONS"]["limit"] or 100]]
 		else:
+			# args come raw from nevow contexts
 			v = [args.get("_DBOPTIONS_ORDER", ['']), 
-				args.get("_DBOPTIONS_LIMIT", [100])]
+				args.get("MAXREC", [100])]
+
 		if errors:
-			args = {"_DBOPTIONS_ORDER": v[0], "_DBOPTIONS_LIMIT": v[1]}
+			args = {"_DBOPTIONS_ORDER": v[0], "MAXREC": v[1]}
 		else:
-			args = {"_DBOPTIONS_ORDER": v[0][0], "_DBOPTIONS_LIMIT": int(v[1][0])}
+			args = {"_DBOPTIONS_ORDER": v[0][0], "MAXREC": int(v[1][0])}
 		if self.sortWidget:
 			children.extend(["Sort by ",
 				self.sortWidget.render(ctx, "_DBOPTIONS_ORDER", args, errors),
 				"   "])
 		if self.limitWidget:
 			children.extend(["Limit to ",
-				self.limitWidget.render(ctx, "_DBOPTIONS_LIMIT", args, errors),
+				self.limitWidget.render(ctx, "MAXREC", args, errors),
 				" items."])
 		return T.span(id=render_cssid(key))[children]
 
@@ -101,7 +103,7 @@ class DBOptions(object):
 		if self.sortWidget:
 			order = self.sortWidget.processInput(ctx, "_DBOPTIONS_ORDER", args)
 		if self.limitWidget:
-			limit = self.limitWidget.processInput(ctx, "_DBOPTIONS_LIMIT", args)
+			limit = self.limitWidget.processInput(ctx, "MAXREC", args)
 		return {
 			"order": order,
 			"limit": limit,
