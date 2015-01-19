@@ -117,7 +117,7 @@ def validateServices(rd, args):
 	validSoFar = True
 	for svc in rd.services:
 		# If it's not published, metadata are nobody's business.
-		if not svc.publications:  
+		if not (args.prePublication or svc.publications):
 			continue
 		try:
 			base.validateStructure(svc)
@@ -127,7 +127,7 @@ def validateServices(rd, args):
 				" service %s:\n%s"%(svc.id, str(ex)))
 			continue # further checks will just add verbosity
 
-		if not isIVOPublished(svc):
+		if not (args.prePublication or isIVOPublished(svc)):
 			# require sane metadata only if the VO will see the service
 			continue
 
@@ -145,7 +145,7 @@ def validateServices(rd, args):
 			outputWarning(rd.sourceId, "Error when producing registry record"
 				" of service %s:"%svc.id, True)
 
-		if args.doXSD and registryRecord:
+		if registryRecord:
 			try:
 				_XSD_VALIDATOR.assertValidates(
 					registryRecord.render(), leaveOffending=True)
@@ -271,9 +271,9 @@ def parseCommandLine():
 	parser.add_argument("rd", nargs="+", type=str,
 		help="RD identifier or file system path.  Use magic value ALL to"
 		" check all reachable RDs.")
-	parser.add_argument("-x", "--check-xsd", help="Do schema validation"
-		" of registry record (requires extra software, see docs)",
-		action="store_true", dest="doXSD")
+	parser.add_argument("-p", "--pre-publication", help="Validate"
+		" as if services were IVOA published even if they are not.",
+		action="store_true", dest="prePublication")
 	parser.add_argument("-v", "--verbose", help="Talk while working",
 		action="store_true", dest="verbose")
 	parser.add_argument("-t", "--run-tests", help="Run regression tests"

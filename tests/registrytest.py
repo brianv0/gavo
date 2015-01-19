@@ -664,10 +664,12 @@ class _TableVORRecord(testhelpers.TestResource):
 				<meta name="description">Some silly test data</meta>
 				<meta name="subject">testing</meta>
 				<meta name="subject">regressions</meta>
-				<meta name="coverage.profile">Box ICRS 12 13 2 3</meta>
-				<meta name="coverage.waveband">X-Ray</meta>
-				<meta name="coverage.waveband">Radio</meta>
-				<meta name="coverage.regionOfRegard">3</meta>
+				<meta name="coverage">
+					<meta name="profile">Box ICRS 12 13 2 3</meta>
+					<meta name="waveband">X-Ray</meta>
+					<meta name="waveband">Radio</meta>
+					<meta name="regionOfRegard">3</meta>
+				</meta>
 				<meta name="format">audio/vorbis</meta>
 				<meta name="referenceURL">http://junk.g-vo.org</meta>
 				<meta name="servedBy" ivoId="ivo://org.g-vo.junk/tap"
