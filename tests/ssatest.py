@@ -2,7 +2,7 @@
 Some tests around the SSAP infrastructure.
 """
 
-#c Copyright 2008-2014, the GAVO project
+#c Copyright 2008-2015, the GAVO project
 #c
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
@@ -242,6 +242,19 @@ class CoreMiscTest(_WithSSATableTest):
 			"Field REQUEST: Missing or invalid value for REQUEST.",
 			self.runService,
 			("s", inDict))
+	
+	def testDefaultRequest(self):
+		service = getRD().getById("s")
+		service.setProperty("defaultRequest", "querydata")
+		try:
+			res = self.runService("s", 
+				{"BAND": "4.5e-7/7.5e-7", "FORMAT": "votable"})
+			self.assertEqual(
+				set([row["ssa_pubDID"].split("/")[-1] 
+					for row in res.original.getPrimaryTable()]),
+				set(["test1", "test2", "test3"]))
+		finally:
+			service.clearProperty("defaultRequest")
 
 
 class GetDataTest(_WithSSATableTest):

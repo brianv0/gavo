@@ -393,6 +393,11 @@ class SSAPRenderer(UnifiedDALRenderer):
 	Services with this renderer can have a datalink property; if present, it
 	must point to a datalink service producing SDM-compliant spectra; this
 	is for doing cutouts and similar.
+
+	Services with ssap cores may also have a defaultRequest property.  By
+	default, requests without a REQUEST parameter will be rejected.  If
+	you set defaultRequest to querydata, such request will be processed
+	as if REQUEST were given.
 	"""
 	name = "ssap.xml"
 

@@ -320,7 +320,8 @@ class SSAPCore(svcs.DBCore):
 	################ the main dispatcher
 
 	def run(self, service, inputTable, queryMeta):
-		requestType = (inputTable.getParam("REQUEST") or "").upper()
+		defaultRequest = service.getProperty("defaultRequest", "")
+		requestType = (inputTable.getParam("REQUEST") or defaultRequest).upper()
 		if requestType=="QUERYDATA":
 			return self._run_queryData(service, inputTable, queryMeta)
 		elif requestType=="GETDATA":

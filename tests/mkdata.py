@@ -3,7 +3,7 @@ output a python string that's a base64 encoded zlib compressed representation
 of arg.
 """
 
-#c Copyright 2008-2014, the GAVO project
+#c Copyright 2008-2015, the GAVO project
 #c
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
