@@ -235,10 +235,11 @@ def cacheprev(querier, args):
 def suggestucds(querier, args):
 	import SOAPpy
 	import urllib
+	from gavo import api
 	
 	wsdlURL = "http://dc.zah.uni-heidelberg.de/ucds/ui/ui/soap/go/go?wsdl"
 	proxy = SOAPpy.WSDL.Proxy(urllib.urlopen(wsdlURL).read())
-	td = base.resolveId(None, args.tableId)
+	td = api.getReferencedElement(args.tableId, forceType=api.TableDef)
 	for col in td:
 		if (not col.ucd or col.ucd=="XXX") and col.description:
 			try:
