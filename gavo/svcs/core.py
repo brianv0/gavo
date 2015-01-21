@@ -196,8 +196,10 @@ class DebugCore(Core):
 
 	outputTableXML = """
 		<outputTable>
-			<outputField name="key" type="text"/>
-			<outputField name="value" type="text"/>
+			<outputField name="key" type="text"
+				description="Name of an input parameter"/>
+			<outputField name="value" type="text"
+				description="(First) value passed (or None)"/>
 		</outputTable>"""
 	
 	def run(self, service, inputData, queryMeta):

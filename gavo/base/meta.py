@@ -1087,7 +1087,7 @@ def makeMetaValue(value="", **kwargs):
 		return cls(value, **kwargs)
 	except TypeError:
 		raise utils.logOldExc(MetaError(
-			"Invalid arguments for %s meta items :%s"%(cls.__name__, str(kwargs)),
+			"Invalid arguments for %s meta items: %s"%(cls.__name__, str(kwargs)),
 			None))
 
 

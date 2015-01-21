@@ -90,6 +90,9 @@ class DALRenderer(grend.ServiceBasedPage):
 		# XXX TODO: build VOTable directly (rather than from data)
 		inputFields = []
 		for param in self.service.getInputKeysFor(self):
+			# Caution: UPLOAD mangling is a *renderer* thing -- the core
+			# doesn't know anything about it.  Hence, parameter adaption
+			# is *not* done by adapting the core.  Instead:
 			if param.type=="file":
 				inputFields.append(dali.getUploadKeyFor(param))
 			else:
@@ -110,6 +113,10 @@ class DALRenderer(grend.ServiceBasedPage):
 		data.setMeta("_type", "results")
 		data.addMeta("info", base.makeMetaValue("OK", type="info", 
 			infoName="QUERY_STATUS", infoValue="OK"))
+		data.addMeta("info", base.makeMetaValue(
+			base.getMetaText(self.service, "title") or "Unnamed",
+			type="info", infoName="serviceInfo", 
+			infoValue=str(self.service.getURL(self.name))))
 		
 		return data
 
@@ -408,9 +415,10 @@ class APIRenderer(UnifiedDALRenderer):
 
 	Use this for improvised APIs.  The default output format is a VOTable,
 	and the errors come in VOSI VOTables.  The renderer does, however,
-	evaluate the VOSI RESPONSEFORMAT parameter.  You can declare
-	its metadata by including <inputKey original="//procs#RESPONSEFORMAT"/>
-	in your service.
+	evaluate basic DALI parameters.  You can declare that by
+	including <FEED source="//pql#DALIPars"/> in your service.
+
+	These will return basic serice metadata if passed MAXREC=0.
 	"""
 	name = "api"
 

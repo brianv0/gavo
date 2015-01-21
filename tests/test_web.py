@@ -406,10 +406,13 @@ class MetaPagesTest(trialhelpers.ArchiveTest):
 			['<identifier>ivo://x-unregistred/data/pubtest/moribund</identifier>'])
 
 
-class _FakeUpload():
+class _FakeUpload(object):
 	value = "abc, die Katze lief im Schnee.\n"
 	file = StringIO(value)
 	filename = "test.txt"
+	
+	def __len__(self):
+		return len(self.value)
 	
 
 class APIRenderTest(trialhelpers.ArchiveTest):
@@ -431,7 +434,8 @@ class APIRenderTest(trialhelpers.ArchiveTest):
 			{"MAXREC": ["0"]}, [
 				'<OPTION name="HTML" value="text/html"/>',
 				'name="INPUT:MAXREC"',
-				'<TABLEDATA></TABLEDATA>'])
+				'<TABLEDATA></TABLEDATA>',
+				'value="http://localhost:8080/data/cores/scs/api?">Unnamed'])
 
 	def testUploadMetadata(self):
 		return self.assertGETHasStrings("/data/cores/uploadtest/api",

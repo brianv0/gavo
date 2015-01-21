@@ -19,6 +19,7 @@ from nevow import flat
 from gavo.helpers import testhelpers
 
 from gavo import base
+from gavo import formats
 from gavo import rsc
 from gavo import rscdef
 from gavo import rscdesc
@@ -29,6 +30,7 @@ from gavo.imp import formal
 from gavo.imp.formal import iformal
 from gavo.svcs import renderers
 from gavo.web import formrender
+from gavo.web import vodal
 
 import tresc
 import trialhelpers
@@ -629,18 +631,6 @@ class TableSetTest(testhelpers.VerboseTest):
 			<service id="quux" allowed="tap"><nullCore/></service></resource>""")
 		ts = rd.getById("quux").getTableSet()
 		self.failUnless("tap_schema.tables" in [t.getQName() for t in ts])
-
-
-class DALIUploadTest(testhelpers.VerboseTest):
-	def _testAdaption(self):
-		key = testhelpers.getTestRD("cores").getById("uploadtest"
-			).getInputKeysFor("api")[0]
-		self.assertEqual(key.type, "pql-upload")
-		self.assertTrue("An upload of the form 'nothing,URL'"
-			in key.description)
-		self.assertTrue("Purpose of the upload: An example upload" 
-			in key.description)
-		self.assertEqual(key.name, "UPLOAD")
 
 
 if __name__=="__main__":

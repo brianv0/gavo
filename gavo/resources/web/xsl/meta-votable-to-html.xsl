@@ -38,8 +38,22 @@
 		<xsl:template match="v:FIELD">
 			<xsl:call-template name="format-fieldlike"/>
 		</xsl:template>
-	
+
+		<xsl:template match="v:INFO" priority="0"/>
+
+		<xsl:template match="v:INFO[@name='serviceInfo']" priority="1">
+			<h2>Service <xsl:value-of select="."/></h2>
+			<p>Access URL: <a>
+				<xsl:attribute name="href">
+					<xsl:value-of select="@value"/>
+				</xsl:attribute>
+				<xsl:value-of select="@value"/>
+			</a></p>
+		</xsl:template>
+
 		<xsl:template match="v:RESOURCE[@type='results']">
+			<xsl:apply-templates select="v:INFO"/>
+
 			<h2>Input Parameters</h2>
 			<ul>
 				<xsl:apply-templates select="v:PARAM[starts-with(@name, 'INPUT:')]"/>

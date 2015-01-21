@@ -568,8 +568,8 @@ class ServiceBasedPage(ResourceBasedPage):
 	attribute of the underlying service ("meta renderers").
 
 	You can set a class attribute openRenderer=True to make a renderer
-	work even on restricted services (which make sense for stuff like logout
-	and maybe for metadata inspection).
+	work even on restricted services (which may make sense for stuff like 
+	logout and maybe for metadata inspection).
 	"""
 
 	checkedRenderer = True
