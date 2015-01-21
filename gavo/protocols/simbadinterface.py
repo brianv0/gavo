@@ -13,7 +13,6 @@ import os
 import socket
 import tempfile
 import urllib
-import warnings
 
 from gavo import base
 from gavo import utils
@@ -74,7 +73,7 @@ class Sesame(object):
 		try:
 			et = ElementTree.fromstring(simbadXML)
 		except Exception, msg: # simbad returned weird XML
-			warnings.warn("Bad XML from simbad (%s)"%str(msg))
+			base.ui.notifyWarning("Bad XML from simbad (%s)"%str(msg))
 			return None
 	
 		res = {}

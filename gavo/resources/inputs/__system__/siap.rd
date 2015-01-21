@@ -63,7 +63,7 @@
 			tablehead="Bandpass" description="Freeform name of the bandpass used"
 			 type="text" verbLevel="10"/>
 		<column name="bandpassUnit" ucd="VOX:BandPass_Unit"
-			description="Unit of bandpass specifications"
+			description="Unit of bandpass specifications (always m)."
 			tablehead="Bandpass unit"
 			 type="text" verbLevel="20"/>
 		<column name="bandpassRefval" ucd="VOX:BandPass_RefValue"
@@ -289,10 +289,13 @@
 	
 			These fields are common to all SIAP implementations.
 
-			Unless you are sure you will never publish the table to
-			obscore, make sure bandpassUnit is m.  Also, typically you
-			will fill in bandpassId and then let the //siap#getBandFromFilter
-			apply do the job.
+			If you define the bandpasses yourself, do *not* change
+			bandpassUnit and give all values in Meters.  If you do change
+			it, at least obscore would break, but probably more.
+			For optical images, we recommend to fill out bandpassId and then 
+			let the //siap#getBandFromFilter apply compute the actual
+			limits.  If your band is not known, please supply the
+			necessary information to the authors.
 
 			Do *not* use ``idmaps="*"`` when using this procDef; it writes
 			directly into result, and you would be clobbering what it does.
@@ -310,7 +313,7 @@
 			<par key="bandpassId" late="True" description="a rough indicator
 				of the bandpass, like Johnson bands">None</par>
 			<par key="bandpassUnit" late="True" description="the unit of
-				the bandpassRefval and friends">None</par>
+				the bandpassRefval and friends">"m"</par>
 			<par key="bandpassRefval" late="True" description="characteristic
 				frequency or wavelength of the exposure">None</par>
 			<par key="bandpassHi" late="True" description="lower value of
@@ -326,6 +329,9 @@
 				>None</par>
 		</setup>
 		<code>
+			if bandpassUnit!="m":
+				base.ui.NotifyWarning("//siap#setMeta has bandpassUnit!=m."
+					"  That's going to be trouble at the very least.")
 			result["dateObs"] = toMJD(dateObs)
 			result["imageTitle"] = title
 			result["instId"] = instrument

@@ -21,7 +21,6 @@ records.
 import datetime
 import itertools
 import os
-import warnings
 
 import pkg_resources
 
@@ -245,7 +244,7 @@ def updateServiceList(rds, metaToo=False, connection=None, onlyWarn=True,
 
 		if msg is not None:
 			if onlyWarn:
-				warnings.warn(msg)
+				base.ui.notifyWarning(msg)
 			else:
 				raise base.ReportableError(msg)
 		msg = None
