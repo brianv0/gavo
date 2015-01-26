@@ -111,10 +111,16 @@ def _unitMapperFactory(colDesc):
 
 		colDesc["unit"] = colDesc["displayHint"]["displayUnit"]
 		fmtStr = "%%.%df"%int(colDesc["displayHint"].get("sf", 2))
-		def coder(val):
-			if val is None:
-				return "N/A"
-			return fmtStr%(val*factor)
+		
+		if "[" in colDesc["dbtype"]:
+			def coder(val):
+				return "[%s]"%", ".join("N/A" if item is None else fmtStr%(item*factor)
+					for item in val)
+
+		else:
+			def coder(val):
+				return "N/A" if val is None else fmtStr%(val*factor)
+
 		return coder
 _registerHTMLMF(_unitMapperFactory)
 

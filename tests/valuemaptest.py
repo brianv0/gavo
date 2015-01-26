@@ -174,6 +174,11 @@ class HTMLMapperTest(testhelpers.VerboseTest):
 			245.3002,
 			"+245 18 00.720",
 			{"unit": "d:m:s"}),
+		('name="a" type="real[2]" unit="deg/pix"'
+			' displayHint="displayUnit=arcsec/pix,sf=4">',
+			[0.002, 0.004],
+			"[7.2000, 14.4000]",
+			{"unit": "arcsec/pix"}),
 
 	]
 
