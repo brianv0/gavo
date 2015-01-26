@@ -66,13 +66,16 @@
 			description="Unit of bandpass specifications (always m)."
 			tablehead="Bandpass unit"
 			 type="text" verbLevel="20"/>
-		<column name="bandpassRefval" ucd="VOX:BandPass_RefValue"
+		<column name="bandpassRefval" 
+			unit="m" ucd="VOX:BandPass_RefValue"
 			 verbLevel="20" tablehead="Band Ref."
 			description="Characteristic quantity for the bandpass of the image"/>
-		<column name="bandpassHi" ucd="VOX:BandPass_HiLimit"
+		<column name="bandpassHi" 
+			unit="m" ucd="VOX:BandPass_HiLimit"
 			 verbLevel="20" tablehead="Band upper"
 			description="Upper limit of the bandpass (in BandPass_Unit units)"/>
-		<column name="bandpassLo" ucd="VOX:BandPass_LoLimit"
+		<column name="bandpassLo" 
+			unit="m" ucd="VOX:BandPass_LoLimit"
 			 verbLevel="20" tablehead="Band lower"
 			description="Lower limit of the bandpass (in BandPass_Unit units)"/>
 		<column name="pixflags" ucd="VOX:Image_PixFlags" verbLevel="20"

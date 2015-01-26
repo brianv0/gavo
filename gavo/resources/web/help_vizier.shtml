@@ -81,10 +81,11 @@ numeric expressions (the base nonterminal is expr).</p>
 
 <p>Dates support the same operators as <a href="#floats">numeric operands</a>,
 except that the "error" in expressions with +/- is a simple float.  Dates
-are given in ISO format, i.e., YYYY-MM-DD or YYYY-MM-DDTHH-MM-SS.  Times
-without dates are not yet supported.  Note that a date without a time
-is interpreted as 00:00 of that day, so an expression like "&lt;= 2006-10-06" 
-will <em>not</em> match anything that has a time and is on Oct 6, 2006.</p>
+are given in one the the VO's preferred ISO formats, 
+i.e., YYYY-MM-DD or YYYY-MM-DDTHH-MM-SS.  Times
+without dates are not yet supported.  In general, we try to interpret
+dates without times  in a sensible way; for instance, if you just
+give a date, all records with a timestamp on that date will match.</p>
 
 <h3>Examples</h3>
 

@@ -46,6 +46,14 @@ class ParseNode(object):
 	def __repr__(self):
 		return "(%r %r)"%(self.operator, " ".join([str(c) for c in self.children]))
 
+	def _getSQLKey(self, name, item, sqlPars):
+		"""wraps base.getSQLKey and can be overridden in case operand 
+		mangling is necessary.
+
+		Do not call getSQLKey directly from within ParseNodes.
+		"""
+		return base.getSQLKey(name, item, sqlPars)
+
 	def _insertChild(self, index, field, sqlPars):
 		"""inserts children[index] into sqlPars with a unique key and returns
 		the key.
@@ -58,7 +66,7 @@ class ParseNode(object):
 		assert not isinstance(item, ParseNode)
 		if field.scaling:
 			item *= field.scaling
-		return base.getSQLKey(field.name, item, sqlPars)
+		return self._getSQLKey(field.name, item, sqlPars)
 
 	def asSQL(self, field, sqlPars):
 		if self.operator in self._standardOperators:
@@ -69,7 +77,7 @@ class ParseNode(object):
 
 
 class NumericNode(ParseNode):
-	"""is a node containing numeric operands (floats or dates).
+	"""A node containing numeric operands (floats or dates).
 	"""
 	def _emitBinop(self, field, sqlPars):
 		return base.joinOperatorExpr(self.operator,
@@ -97,7 +105,89 @@ class NumericNode(ParseNode):
 	}
 
 
+class DateNode(ParseNode):
+	"""A node containing date operands (datetime objects, as a rule).
+	"""
+	def _expandDate(self, arg):
+		# returns the last second of arg if it looks like a day (i.e., hms=0)
+		# this is to fix postgres' behaviour when comparing timestamps and
+		# dates (e.g., 1990-01-01 < 1990-01-01T00:00:01).
+		if arg.hour==arg.minute==arg.second==0:
+			return arg.replace(hour=23, 
+				minute=59, second=59)
+		return arg
+
+	def _emitBinop(self, field, sqlPars):
+		return base.joinOperatorExpr(self.operator,
+			[c.asSQL(field, sqlPars) for c in self.children])
+
+	def _emitUnop(self, field, sqlPars):
+		operand = self.children[0].asSQL(field, sqlPars)
+		if operand:
+			return "%s (%s)"%(self.operator, operand)
+
+	def _emitRange(self, field, sqlPars):
+		return "%s BETWEEN %%(%s)s AND %%(%s)s"%(
+			field.name, 
+			self._insertChild(0, field, sqlPars), 
+			self._insertChild(1, field, sqlPars))
+
+	def _emitEnum(self, field, sqlPars):
+		return base.joinOperatorExpr("OR", 
+			(self.__class__([child], "=").asSQL(field, sqlPars) 
+				for child in self.children))
+
+	def _emitSimple(self, field, sqlPars):
+		# return a simple comparison with the date itself
+		return "%s %s %%(%s)s"%(field.name, self.operator, 
+			self._insertChild(0, field, sqlPars))
+
+	def _emitEqual(self, field, sqlPars):
+		if self.children[0].hour==self.children[0].minute==0:
+			return "%s BETWEEN %%(%s)s AND %%(%s)s"%(
+				field.name, 
+				self._getSQLKey(field.name, self.children[0], sqlPars),
+				self._getSQLKey(field.name, 
+					self._expandDate(self.children[0]), sqlPars))
+
+		else:
+			return self._emitSimple(field, sqlPars)
+
+	def _emitExpanded(self, field, sqlPars):
+		# return a simple comparison with date's midnight
+		self.children[0] = self._expandDate(self.children[0])
+		return "%s %s %%(%s)s"%(field.name, self.operator, 
+			self._insertChild(0, field, sqlPars))
+
+	def asSQL(self, field, sqlPars):
+		return self._sqlEmitters[self.operator](self, field, sqlPars)
+
+	_sqlEmitters = {
+		'..': _emitRange,
+		'AND': _emitBinop,
+		'OR': _emitBinop,
+		'NOT': _emitUnop,
+		',': _emitEnum,
+		"=": _emitEqual,
+		">=": _emitSimple,
+		"<=": _emitExpanded,
+		"<": _emitSimple,
+		">": _emitExpanded,
+		"<=": _emitExpanded,
+	}
+
+
+class MJDNode(DateNode):
+	def _getSQLKey(self, name, item, sqlPars):
+		if (isinstance(item, datetime.datetime) 
+				or isinstance(item, datetime.date)):
+			item = stc.dateTimeToMJD(item)
+		return base.getSQLKey(name, item, sqlPars)
+
+
 class StringNode(ParseNode):
+	"""A node containing string operands.
+	"""
 	def asSQL(self, field, sqlPars):
 		if self.operator=="[":
 			return "[%s]"%self.children[0]
@@ -147,7 +237,7 @@ class StringNode(ParseNode):
 	def _emitPatOp(self, field, sqlPars):
 		pattern = self._makePattern(field, sqlPars)
 		return "%s %s %%(%s)s"%(field.name, self._patOps[self.operator],
-			base.getSQLKey(field.name, pattern, sqlPars))
+			self._getSQLKey(field.name, pattern, sqlPars))
 
 	def _emitEnum(self, field, sqlPars):
 		query = "%s IN (%s)"%(field.name, ", ".join([
@@ -185,13 +275,15 @@ def _getNodeFactory(op, nodeClass):
 	return _
 
 
-def _makeNotNode(s, loc, toks):
-	if len(toks)==1:
-		return toks[0]
-	elif len(toks)==2:
-		return NumericNode(toks[1:], "NOT")
-	else: # Can't happen :-)
-		raise Exception("Busted by not")
+def _makeNotNodeFactory(nodeClass):
+	def _makeNotNode(s, loc, toks):
+		if len(toks)==1:
+			return toks[0]
+		elif len(toks)==2:
+			return nodeClass(toks[1:], "NOT")
+		else: # Can't happen :-)
+			raise Exception("Busted by not")
+	return _makeNotNode
 
 
 def _makePmNode(s, loc, toks):
@@ -202,26 +294,37 @@ def _makeDatePmNode(s, loc, toks):
 	"""returns a +/- node for dates, i.e., toks[1] is a float in days.
 	"""
 	days = datetime.timedelta(days=toks[1])
-	return NumericNode([toks[0]-days, toks[0]+days], "..")
+	return DateNode([toks[0]-days, toks[0]+days], "..")
+
+def _makeMJDPmNode(s, loc, toks):
+	"""returns a +/- node for MJDs, i.e., toks[1] is a float in days, and 
+	an MJDNode must be returned.
+	"""
+	days = datetime.timedelta(days=toks[1])
+	return MJDNode([toks[0]-days, toks[0]+days], "..")
 
 
-def _getBinopFactory(op):
+
+def _getBinopFactory(op, nodeClass):
 	def _(s, loc, toks):
 		if len(toks)==1:
 			return toks[0]
 		else:
-			return NumericNode(toks, op)
+			return nodeClass(toks, op)
 	return _
 
 
-def _makeSimpleExprNode(s, loc, toks):
-	if len(toks)==1:
-		return NumericNode(toks[0:], "=")
-	else:
-		return NumericNode(toks[1:], toks[0])
+def _simpleExprFactory(nodeClass):
+	def _makeSimpleExprNode(s, loc, toks):
+		if len(toks)==1:
+			return nodeClass(toks[0:], "=")
+		else:
+			return nodeClass(toks[1:], toks[0])
+	return _makeSimpleExprNode
 
 
-def getComplexGrammar(baseLiteral, pmBuilder, errorLiteral=None):
+def getComplexGrammar(baseLiteral, pmBuilder, errorLiteral=None,
+		nodeClass=NumericNode):
 	"""returns the root element of a grammar parsing numeric vizier-like 
 	expressions.
 
@@ -266,20 +369,20 @@ def getComplexGrammar(baseLiteral, pmBuilder, errorLiteral=None):
 		expr.setName("expr")
 		simpleExpr.setName("simpleEx")
 
-		preopExpr.addParseAction(_makeSimpleExprNode)
-		rangeExpr.addParseAction(_getNodeFactory("..", NumericNode))
+		preopExpr.addParseAction(_simpleExprFactory(nodeClass))
+		rangeExpr.addParseAction(_getNodeFactory("..", nodeClass))
 		pmExpr.addParseAction(pmBuilder)
-		valList.addParseAction(_getNodeFactory(",", NumericNode))
-		notExpr.addParseAction(_makeNotNode)
-		andExpr.addParseAction(_getBinopFactory("AND"))
-		orExpr.addParseAction(_getBinopFactory("OR"))
+		valList.addParseAction(_getNodeFactory(",", nodeClass))
+		notExpr.addParseAction(_makeNotNodeFactory(nodeClass))
+		andExpr.addParseAction(_getBinopFactory("AND", nodeClass))
+		orExpr.addParseAction(_getBinopFactory("OR", nodeClass))
 
 		return exprInString
 
 
 def parseFloat(s, pos, tok):
-# This one is important: If something looks like an int, return it as an
-# int -- otherwise, postgres won't use int-indices
+# If something looks like an int, return it as an  int.
+# Otherwise, postgres won't use int-indices
 	try:
 		return int(tok[0])
 	except ValueError:
@@ -287,14 +390,10 @@ def parseFloat(s, pos, tok):
 
 floatLiteral = Regex(utils.floatRE).addParseAction(parseFloat)
 
-# XXX TODO: be a bit more lenient in what you accept as a date
+# XXX TODO: be a bit more lenient in what we accept as a date
 _DATE_REGEX = r"\d\d\d\d-\d\d-\d\d(T\d\d:\d\d:\d\d)?"
 _DATE_LITERAL_DT = Regex(_DATE_REGEX).addParseAction(
 			lambda s, pos, tok: literals.parseDefaultDatetime(tok[0]))
-_DATE_LITERAL_MJD = Regex(_DATE_REGEX).addParseAction(
-			lambda s, pos, tok: stc.dateTimeToMJD(
-				literals.parseDefaultDatetime(tok[0])))
-
 
 
 def parseNumericExpr(str, baseSymbol=getComplexGrammar(floatLiteral, 
@@ -305,7 +404,7 @@ def parseNumericExpr(str, baseSymbol=getComplexGrammar(floatLiteral,
 
 
 def parseDateExpr(str, baseSymbol=getComplexGrammar(_DATE_LITERAL_DT,
-		_makeDatePmNode, floatLiteral)):
+		_makeDatePmNode, floatLiteral, DateNode)):
 	"""returns a parse tree for vizier-like expressions over ISO dates.
 
 	Note that the semantic validity of the date (like, month<13) is not
@@ -314,8 +413,8 @@ def parseDateExpr(str, baseSymbol=getComplexGrammar(_DATE_LITERAL_DT,
 	return utils.pyparseString(baseSymbol, str)[0]
 
 
-def parseDateExprToMJD(str, baseSymbol=getComplexGrammar(_DATE_LITERAL_MJD,
-		_makePmNode, floatLiteral)):
+def parseDateExprToMJD(str, baseSymbol=getComplexGrammar(_DATE_LITERAL_DT,
+		_makeMJDPmNode, floatLiteral, MJDNode)):
 	"""returns a parse tree for vizier-like expression of ISO dates with
 	parsed values in MJD.
 	"""
@@ -489,4 +588,4 @@ def _test():
 
 
 if __name__=="__main__":
-	print repr(parseStringExpr("=="))
+	print repr(parseDateExpr(""))

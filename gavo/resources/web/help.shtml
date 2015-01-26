@@ -50,10 +50,14 @@ much like you may know from file name patterns.  To force literal matching,
 prepend your strings with ==.  <a href="/static/help_vizier.shtml#strings" n:render="rootlink">Other operators available for string expressions</a> include
 caseless matching, string comparisons, or negation.</li>
 <li>date expressions -- these are marked with "[?date expr.]" tags.  Dates must
-be given in the ISO format (YYYY-MM-DD).  Among the more useful of the
+be given in one of the VO's preferred ISO formats (YYYY-MM-DD or 
+YYYY-MM-DDTHH:MM:SS).  Among the more useful of the
 <a href="/static/help_vizier.shtml#dates" n:render="rootlink">supported operators</a>
 is the range -- you can say 2004-01-02 .. 2005-05-01 to specify a range of
-dates between Jan 2nd, 2004 and May 1st, 2005.</li>
+dates between Jan 2nd, 2004 and May 1st, 2005; also note that dates without
+times (or datetimes with hour, minute, and second all 0) are sometimes treated
+specially (e.g., a simple comparison is expanded into a between) to match the
+behaviour of the backend database with the presumed user intention.</li>
 <li>Selection boxes -- these are either drop down, in which case you can only 
 select one entry, or open boxes you can select more than one entry in,
 usually (depending on your user interface) using control-click.</li>

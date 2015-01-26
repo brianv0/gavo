@@ -283,13 +283,65 @@ class ComplexNumericSQLGenerTest(_SQLGenerTest):
 class DateSQLGenerTest(_SQLGenerTest):
 	protoField = MS(inputdef.InputKey, name="foo", type="vexpr-date")
 	samples = [
-		("2001-05-12", "foo = %(foo0)s", 
-			{"foo0": datetime.datetime(2001, 5, 12)}),
+		("2001-05-12", "foo BETWEEN %(foo0)s AND %(foo1)s", {
+				"foo0": datetime.datetime(2001, 5, 12),
+				"foo1": datetime.datetime(2001, 5, 12, 23, 59, 59)}),
+		("2001-05-12T12:33:14", "foo = %(foo0)s", {
+				"foo0": datetime.datetime(2001, 5, 12, 12, 33, 14)}),
+		("> 2001-05-12", "foo > %(foo0)s",
+			{"foo0": datetime.datetime(2001, 5, 12, 23, 59, 59)}),
 		("< 2001-05-12", "foo < %(foo0)s",
-			{"foo0": datetime.datetime(2001, 5, 12)}),
+			{"foo0": datetime.datetime(2001, 5, 12, 0, 0, 0)}),
+		("< 2001-05-12T14:21:12", "foo < %(foo0)s",
+			{"foo0": datetime.datetime(2001, 5, 12, 14, 21, 12)}),
 		("2001-05-12 +/- 2.5", 'foo BETWEEN %(foo0)s AND %(foo1)s', {
 			"foo0": datetime.datetime(2001, 5, 9, 12, 0, 0),
-			"foo1": datetime.datetime(2001, 5, 14, 12, 0, 0)}),]
+			"foo1": datetime.datetime(2001, 5, 14, 12, 0, 0)}),
+		("2001-05-12,2001-05-12T14:21:12", 
+			'(foo BETWEEN %(foo0)s AND %(foo1)s) OR (foo = %(foo2)s)', { 
+				"foo0": datetime.datetime(2001, 5, 12),
+				"foo1": datetime.datetime(2001, 5, 12, 23, 59, 59),
+				"foo2": datetime.datetime(2001, 5, 12, 14, 21, 12)}),
+		("! 2001-06-07",
+			'NOT (foo BETWEEN %(foo0)s AND %(foo1)s)', {
+			'foo0': datetime.datetime(2001, 6, 7, 0, 0),
+			'foo1': datetime.datetime(2001, 6, 7, 23, 59, 59)}),
+		("! 2001-06-07 & >2011-10-20T14:33:10", 
+			'(NOT (foo BETWEEN %(foo0)s AND %(foo1)s)) AND (foo > %(foo2)s)', {
+				'foo0': datetime.datetime(2001, 6, 7, 0, 0),
+				'foo1': datetime.datetime(2001, 6, 7, 23, 59, 59),
+				'foo2': datetime.datetime(2011, 10, 20, 14, 33, 10)}),]
+
+
+class MJDSQLGenerTest(_SQLGenerTest):
+	protoField = MS(inputdef.InputKey, name="foo", type="vexpr-mjd")
+	samples = [
+		("2001-05-12", "foo BETWEEN %(foo0)s AND %(foo1)s", {
+			'foo0': 52041.0, 'foo1': 52041.99998842599}),
+		("2001-05-12T12:00:00", "foo = %(foo0)s", {
+				"foo0": 52041.5}),
+		("> 2001-05-12", "foo > %(foo0)s",
+			{"foo0": 52041.99998842599}),
+		("< 2001-05-12", "foo < %(foo0)s",
+			{"foo0": 52041.0}),
+		("< 2001-05-12T18:00:00", "foo < %(foo0)s",
+			{"foo0": 52041.75}),
+		("2001-05-12 +/- 2.5", 'foo BETWEEN %(foo0)s AND %(foo1)s', {
+			'foo0': 52038.5, 'foo1': 52043.5}),
+		("2001-05-12,2001-05-12T12:00:00", 
+			'(foo BETWEEN %(foo0)s AND %(foo1)s) OR (foo = %(foo2)s)', { 
+				'foo0': 52041.0, 
+				'foo1': 52041.99998842599, 
+				'foo2': 52041.5}),
+		("! 2001-06-07",
+			'NOT (foo BETWEEN %(foo0)s AND %(foo1)s)', {
+			'foo0': 52067.0,
+			'foo1': 52067.99998842599}),
+		("! 2001-06-07 & >2011-10-20T06:00:00", 
+			'(NOT (foo BETWEEN %(foo0)s AND %(foo1)s)) AND (foo > %(foo2)s)', {
+				'foo0': 52067.0,
+				'foo1': 52067.99998842599,
+				'foo2': 55854.25}),]
 
 
 class NULLSQLGenerTest(_SQLGenerTest):

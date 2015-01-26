@@ -366,7 +366,7 @@ class HTMLResultRenderMixin(object):
 	
 		s = [self._makeParPair(k, v, fieldDict) 
 			for k, v in self.result.queryMeta.get("formal_data", {}).iteritems()
-			if v is not None
+			if v is not None and v!=[]
 				and k not in self.__suppressedParNames 
 				and not k.startswith("_")]
 		s.sort()
