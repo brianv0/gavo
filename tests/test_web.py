@@ -135,7 +135,6 @@ class StaticTest(trialhelpers.ArchiveTest):
 		return self.assertGETRaises("/data/cores/rds/static", {}, 
 			svcs.WebRedirect, alsoCheck=assertRightURL)
 	
-
 	def testStaticFile(self):
 		return self.assertGETHasStrings("/data/cores/rds/static/ex.fits", {}, [
 			"BITPIX  =                   16"])
@@ -151,6 +150,11 @@ class StaticTest(trialhelpers.ArchiveTest):
 		return self.assertGETHasStrings("/data/cores/rds/static/bin/", {},
 			["Directory listing for //data/cores/rds/static/bin/"])
 
+	def testAutoMinification(self):
+		return self.assertGETHasStrings("/static/js/fancyroot.js", {},
+			["ResourceHeader);fetchSubject"])
+
+		
 class FormTest(trialhelpers.ArchiveTest):
 	def testSimple(self):
 		return self.assertGETHasStrings("/data/test/basicprod/form", {}, [

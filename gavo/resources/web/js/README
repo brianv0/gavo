@@ -6,7 +6,5 @@ samp.js -- 2012-12
 jquery-gavo.js -- 2011-09
 jquery.flog.js -- 2011-11
 
-NOTE: locally developed code has .src.js extensions and is *not* (usually)
-served to the net.  All standard templates use the versions without src.  
-
-To update what's going out to the web, run ``make``.
+In its default configuration, DaCHS minifies this code before sending it to the browsers.  That's inconvenient for debugging the stuff, and hence you can
+turn it off by setting [web]minifyJS to False in /etc/gavo.rc.

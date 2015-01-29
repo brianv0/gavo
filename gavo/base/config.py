@@ -415,6 +415,9 @@ _config = Configuration(
 			"Webdir-relative path to a favicon"),
 		BooleanConfigItem("enableTests", "False",
 			"Enable test pages (don't if you don't know why)"),
+		BooleanConfigItem("minifyJS", "True",
+			"Automatically minify Javascript delivered by DaCHS (you want"
+			" to turn this off for Javascript debugging)"),
 		IntConfigItem("maxPreviewWidth", "300", "Ignored, only present"
 			" for backward compatiblity"),
 		ListConfigItem("graphicMimes", "image/fits,image/jpeg", "MIME types"

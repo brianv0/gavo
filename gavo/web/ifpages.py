@@ -22,6 +22,7 @@ from gavo import base
 from gavo import registry
 from gavo import svcs
 from gavo import utils
+from gavo.imp import rjsmin
 from gavo.web import caching
 from gavo.web import common
 from gavo.web import grend
@@ -135,6 +136,22 @@ class TemplatedPage(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 				datetime.datetime.fromtimestamp(os.path.getmtime(fName))))
 
 
+def minifyJS(ctx, path):
+	"""returns javascript in path minified.
+
+	You can turn off auto-minification by setting [web] minifyJS to false;
+	that's sometimes convenient while debugging the javascript.
+
+	If minifyJS is true (the default), changes to javascript are only picked
+	up on a server reload.
+	"""
+	with open(path) as f:
+		if base.getConfig("web", "minifyJS"):
+			return rjsmin.jsmin(f.read())
+		else:
+			return f.read()
+
+
 def expandTemplate(ctx, fName):
 	"""renders fName as a template on the root service.
 	"""
@@ -154,6 +171,7 @@ class StaticFile(rend.Page):
 
 	magicMimes = {
 		"text/nevow-template": expandTemplate,
+		"application/javascript": minifyJS,
 	}
 
 	def __init__(self, fName):
@@ -251,3 +269,4 @@ class RobotsTxt(rend.Page):
 
 	def locateChild(self, segments):
 		return None
+
