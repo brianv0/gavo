@@ -134,10 +134,7 @@ class doctypedStan(loaders.stan):
 			rootEl(xmlns="http://www.w3.org/1999/xhtml")], pattern)
 
 
-if base.getConfig("web", "jsSource"):
-	JSEXT = ".src.js"
-else:
-	JSEXT = ".js"
+JSEXT = ".js"
 
 
 class CommonRenderers(object):

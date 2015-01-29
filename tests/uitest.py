@@ -126,7 +126,8 @@ class ImportTest(testhelpers.VerboseTest):
 	def testMetaImportAndPurge(self):
 		self.assertOutput(cli.main, argList=["purge", "test.adql"])
 		# make sure the test schema before running the test exists
-		self.assertOutput(cli.main, argList=["imp", "data/test", "csTestTable"])
+		self.assertOutput(cli.main, 
+			argList=["imp", "data/test", "productimport-skip"])
 		try:
 			with base.AdhocQuerier(base.getWritableAdminConn) as querier:
 				querier.query("CREATE TABLE test.adql (erratic INTEGER)")
