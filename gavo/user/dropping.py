@@ -10,6 +10,7 @@ Dropping resources.  For now, you can only drop entire RDs.
 
 from gavo import api
 from gavo import base
+from gavo import utils
 from gavo.protocols import tap
 from gavo.user import common
 
@@ -88,7 +89,14 @@ def _do_dropRD(opts, rdId, selectedIds=()):
 				from gavo.registry import servicelist
 				servicelist.cleanServiceTablesFor(rd, querier.connection)
 				tap.unpublishFromTAP(rd, querier.connection)
-		
+
+			try:
+				with base.savepointOn(querier.connection):
+					querier.query("drop schema %s"%rd.schema)
+			except Exception, msg:
+				api.ui.notifyWarning("Cannot drop RD %s's schema %s because:"
+					" %s."%(rd.sourceId, rd.schema, utils.safe_str(msg)))
+
 		else:
 			# If the RD doesn't exist any more, just manually purge it
 			# from wherever it could have been mentioned.

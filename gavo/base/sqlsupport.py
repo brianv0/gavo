@@ -471,8 +471,7 @@ class PostgresQueryMixin(object):
 			{'tableName': tableName.lower(), 'schemaName': schema.lower()})
 
 	def getSchemaPrivileges(self, schema):
-		"""returns (owner, readRoles, allRoles) for the relation tableName
-		and the schema.
+		"""returns (owner, readRoles, allRoles) for schema's ACL.
 		"""
 		res = self.query("SELECT nspacl FROM pg_namespace WHERE"
 			" nspname=%(schema)s", locals()).fetchall()

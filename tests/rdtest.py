@@ -117,9 +117,7 @@ class MetaTest(unittest.TestCase):
 			"I'm so well I could cry")
 
 
-class ValidationTest(unittest.TestCase):
-	"""Test for validation of values.
-	"""
+class ValidationTest(testhelpers.VerboseTest):
 	def setUp(self):
 		self.rd = testhelpers.getTestRD()
 
@@ -169,6 +167,13 @@ class ValidationTest(unittest.TestCase):
 			rec)
 		rec["numeric"] = 14
 		self.assert_(recDef.validateRow(rec)==None)
+	
+	def testBadSchema(self):
+		self.assertRaisesWithMsg(base.StructureError,
+			'At [<resource schema="a;drop ta...], (1, 37):'
+			' DaCHS schema attributes must be valid python identifiers',
+			base.parseFromString,
+			(rscdesc.RD, '<resource schema="a;drop table foo"/>'))
 
 
 class MacroTest(unittest.TestCase):

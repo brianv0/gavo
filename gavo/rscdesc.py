@@ -172,6 +172,11 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 	def __repr__(self):
 		return "<resource descriptor for %s>"%self.sourceId
 
+	def validate(self):
+		if not utils.identifierPattern.match(self.schema):
+			raise base.StructureError("DaCHS schema attributes must be valid"
+				" python identifiers")
+
 	def isDirty(self):
 		"""returns true if the RD on disk has a timestamp newer than
 		loadedAt.
