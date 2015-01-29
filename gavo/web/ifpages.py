@@ -139,17 +139,17 @@ class TemplatedPage(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 def minifyJS(ctx, path):
 	"""returns javascript in path minified.
 
-	You can turn off auto-minification by setting [web] minifyJS to false;
+	You can turn off auto-minification by setting [web] jsSource to True;
 	that's sometimes convenient while debugging the javascript.
 
-	If minifyJS is true (the default), changes to javascript are only picked
+	If jsSource is false (the default), changes to javascript are only picked
 	up on a server reload.
 	"""
 	with open(path) as f:
-		if base.getConfig("web", "minifyJS"):
-			return rjsmin.jsmin(f.read())
-		else:
+		if base.getConfig("web", "jsSource"):
 			return f.read()
+		else:
+			return rjsmin.jsmin(f.read())
 
 
 def expandTemplate(ctx, fName):
@@ -269,4 +269,3 @@ class RobotsTxt(rend.Page):
 
 	def locateChild(self, segments):
 		return None
-
