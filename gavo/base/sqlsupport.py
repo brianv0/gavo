@@ -653,49 +653,6 @@ class QuerierMixin(PostgresQueryMixin, StandardQueryMixin):
 			cursor.execute("SET %s=%%(val)s"%key, {"val": val})
 		cursor.close()
 
-	def runIsolatedQuery(self, query, data={}, silent=False, raiseExc=True,
-			timeout=None, asDict=False, settings=()):
-		"""runs a query over a connection of its own and returns a rowset of 
-		the result if the query is successful.
-
-		Mostly, you'll create all kinds of races if you think you need this.
-		Unfortunately, until postgres gets nested transactions, there's little
-		I can do.
-		"""
-		connection = getDBConnection(self.defaultProfile)
-		self.configureConnection(settings)
-		cursor = connection.cursor()
-		try:
-			if timeout:  # *** Postgres specific ***
-				cursor.execute("SET statement_timeout TO %d"%int(timeout*1000))
-			cursor.execute(query, data)
-		except DBError, msg:
-			cursor.close()
-			connection.rollback()
-			connection.close()
-			if not silent:
-				utils.sendUIEvent("Warning", "Failed query %s with"
-					" arguments %s (%s)\n"%(repr(cursor.query), data, str(msg).strip()))
-			if raiseExc:
-				raise
-		except:
-			connection.rollback()
-			connection.close()
-			raise
-		else:
-			try:
-				res = cursor.fetchall()
-				descr = cursor.description
-			except DBError:  # No results to fetch
-				res = None
-			cursor.close()
-			connection.commit()
-			connection.close()
-			if asDict:
-				return dictifyRowset(descr, res)
-			else:
-				return res
-
 	def enableAutocommit(self):
 		self.connection.set_isolation_level(
 			psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
