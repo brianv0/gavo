@@ -336,7 +336,7 @@ class InternalServerErrorPage(ErrorPage):
 			repr(request.args)[:2000])
 		if getattr(self.failure.value, "hint", None):
 			base.ui.notifyDebug("Exception hint: %s"%self.failure.value.hint)
-		if request.startedWriting:
+		if getattr(request, "startedWriting", False):
 			# exception happened while rendering a page.
 			return self.renderInnerException(ctx)
 		else:

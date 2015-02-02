@@ -115,7 +115,7 @@
 			]]></code>
 		</regTest>
 
-		<regTest title="Vanity redirect works" id="cur">
+		<regTest title="Vanity redirect works">
 			<url>/adql</url>
 			<code>
 				self.assertHTTPStatus(301)
@@ -175,6 +175,43 @@
 					'utype="obscore:access.reference"',
 					'<INFO name="QUERY_STATUS" value="OVERFLOW"')
 			]]></code>
+		</regTest>
+	</regSuite>
+
+	<regSuite title="Caching and compression" sequential="True" id="cur">
+		<regTest title="Root page is well-formed HTML">
+			<url>/</url>
+			<code>
+				from gavo.utils import ElementTree
+				tree = ElementTree.fromstring(self.data)
+				self.assertEqual(tree[1].tag,
+					'{http://www.w3.org/1999/xhtml}body')
+			</code>
+		</regTest>
+
+		<regTest title="Transparent compression of static resource works">
+			<url>
+				<value key="Accept-Encoding">gzip</value>/</url>
+			<code>
+				import gzip
+				from cStringIO import StringIO
+				stuff = gzip.GzipFile(fileobj=StringIO(self.data)).read()
+				self.assertTrue('src="/static/img/logo_medium.png"' in stuff,
+				 	"decompressed response looks about right")
+			</code>
+		</regTest>
+
+		<regTest title="Uncompressed root page served from cache">
+			<url>/</url>
+			<code>
+				self.assertHasStrings('src="/static/img/logo_medium.png"')
+				for key, value in self.headers:
+					if key=="x-cache-creation":
+						self.assertFalse(value is None)
+						break
+				else:
+					raise AssertionError("No x-cache-creation header")
+			</code>
 		</regTest>
 	</regSuite>
 

@@ -12,11 +12,11 @@ import os
 import time
 from cStringIO import StringIO
 
-# we put some calculations into threads.
 from twisted.python import threadable
 threadable.init()
 
 from nevow import appserver
+from nevow import compression
 from nevow import inevow
 from nevow import rend
 from nevow import static
@@ -229,7 +229,7 @@ class ArchiveService(rend.Page):
 		cache = base.caches.getPageCache(service.rd.sourceId)
 		segments = tuple(segments)
 		if segments in cache:
-			return cache[segments]
+			return compression.CompressingResourceWrapper(cache[segments])
 
 		caching.instrumentRequestForCaching(request,
 			caching.enterIntoCacheAs(segments, cache))

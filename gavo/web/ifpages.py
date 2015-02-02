@@ -206,11 +206,11 @@ class StaticFile(rend.Page):
 
 		mime = self.getMimeType()
 		if mime in self.magicMimes:
-			return self.magicMimes[mime](ctx, self.fName)
+			return (self.magicMimes[mime](ctx, self.fName))
 		else:
 			request.setHeader("content-type", mime)
 			self.renderPlain(request)
-		return request.deferred
+		return (request.deferred)
 
 
 class StaticServer(rend.Page):
@@ -236,7 +236,7 @@ class StaticServer(rend.Page):
 		relPath = "/".join(segments)
 		path = self.userPath+relPath
 		if os.path.exists(path):
-			return StaticFile(path), ()
+			return (StaticFile(path)), ()
 		path = self.systemPath+relPath
 		if os.path.exists(path):
 			return StaticFile(

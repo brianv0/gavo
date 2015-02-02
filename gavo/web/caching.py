@@ -13,6 +13,7 @@ snarf content and headers.
 
 import time
 
+from nevow import compression
 from nevow import inevow
 from nevow import rend
 
@@ -23,8 +24,12 @@ def instrumentRequestForCaching(request, finishAction):
 	"""changes request such that finishAction is called with the request and
 	the content written for a successful page render.
 	"""
-	builder = CacheItemBuilder(finishAction)
 	request = inevow.IRequest(request)
+	# For now, we don't cache compressed responses
+	if isinstance(request, compression.CompressingRequestWrapper):
+		return
+
+	builder = CacheItemBuilder(finishAction)
 	origWrite, origFinishRequest = request.write, request.finishRequest
 
 	def write(content):

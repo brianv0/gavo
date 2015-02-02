@@ -21,7 +21,6 @@ try:
 except ImportError:
     from twisted.protocols import http #noflake: conditional import
 
-
 from gavo import base
 from gavo import svcs
 from gavo import utils
