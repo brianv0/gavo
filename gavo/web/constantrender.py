@@ -21,6 +21,7 @@ from nevow import tags as T
 from gavo import base
 from gavo import svcs
 from gavo.web import grend
+from gavo.web import ifpages
 
 __docformat__ = "restructuredtext en"
 
@@ -79,15 +80,20 @@ class StaticRenderer(grend.ServiceBasedPage):
 		if self.staticPath is None:
 			raise svcs.ForbiddenURI("No static data on this service") 
 
-		# leave the rest to static.File, except there's a bug in some
-		# versions of is so we check of existence ourselves.
 		relPath = "/".join(segments)
-		if not os.path.exists(os.path.join(self.staticPath, relPath)):
-			raise svcs.UnknownURI("No %s available here."%relPath)
-		return static.File(os.path.join(self.staticPath, segments[0])
-			), segments[1:]
-		
+		destName = os.path.join(self.staticPath, relPath)
 
+		if os.path.isdir(destName):
+			if not destName.endswith("/"):
+				raise svcs.WebRedirect(inevow.IRequest(ctx).uri+"/")
+			return static.File(destName).directoryListing(), ()
+
+		elif os.path.isfile(destName):
+			return ifpages.StaticFile(destName, self.rd), ()
+
+		else:
+			raise svcs.UnknownURI("No %s available here."%relPath)
+		
 
 class FixedPageRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 	"""A renderer that renders a single template.

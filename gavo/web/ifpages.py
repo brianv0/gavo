@@ -162,10 +162,14 @@ class StaticFile(rend.Page):
 	"""a file from the file system, served pretty directly.
 
 	Since these really are static files that are not supposed to change
-	for e.g., admins, we can cache very aggressively.
+	regularly, so we cache them fairly aggressively.
 
-	The cache is bound to the servicelist RD ID and thus will be cleared
-	on a server reload.
+	The caches should be bound to an RD, which you pass in as cacheRD.
+	For system resources, that should be getRD(registry.SERVICELIST_ID).
+
+	There is a hack that certain magic mime types receive preprocessing
+	before being served.  This is currently used to expand text/nevow-template
+	and minify application/javascript.
 	"""
 	defaultType = "application/octet-stream"
 
@@ -174,8 +178,8 @@ class StaticFile(rend.Page):
 		"application/javascript": minifyJS,
 	}
 
-	def __init__(self, fName):
-		self.fName = fName
+	def __init__(self, fName, cacheRD):
+		self.fName, self.cacheRD = fName, cacheRD
 
 	def getMimeType(self):
 		ext = os.path.splitext(self.fName)[-1]
@@ -187,12 +191,11 @@ class StaticFile(rend.Page):
 
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
-		rd = base.caches.getRD(registry.SERVICELIST_ID)
-
-		modStamp = max(rd.loadedAt, os.path.getmtime(self.fName))
+		modStamp = max(self.cacheRD.loadedAt, os.path.getmtime(self.fName))
 		if request.setLastModified(modStamp) is http.CACHED:
 			return ''
-		cache = base.caches.getPageCache(rd.sourceId)
+
+		cache = base.caches.getPageCache(self.cacheRD.sourceId)
 		cachedRes = cache.get(self.fName)
 		if cachedRes is not None and cachedRes.creationStamp>modStamp:
 			return cachedRes
@@ -236,7 +239,8 @@ class StaticServer(rend.Page):
 			return StaticFile(path), ()
 		path = self.systemPath+relPath
 		if os.path.exists(path):
-			return StaticFile(path), ()
+			return StaticFile(
+				path, base.caches.getRD(registry.SERVICELIST_ID)), ()
 		raise svcs.UnknownURI("No matching file,"
 			" neither built-in nor user-provided")
 	processors = {
