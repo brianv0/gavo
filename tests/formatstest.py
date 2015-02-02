@@ -412,7 +412,10 @@ class V11VOTableOutputTest(DefaultVOTableOutputTest):
 	def testNamespace(self):
 		self.assertOutputHas('version="1.1"')
 		self.assertOutputHas('xmlns="http://www.ivoa.net/xml/VOTable/v1.1"')
-	
+
+	def testXtypeSwallowed(self):
+		self.assertFalse("xtype" in self.output)
+
 
 class FITSOutputTest(FormatOutputTest):
 	resources = [("output", _FormattedData("fits"))]

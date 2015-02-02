@@ -250,7 +250,7 @@ class _ServiceDescriptor(object):
 
 		for ik in self.inputKeys:
 			param = votablewrite._addID(ik,
-				votablewrite.makeFieldFromColumn(V.PARAM, ik), ctx)
+				votablewrite.makeFieldFromColumn(ctx, V.PARAM, ik), ctx)
 			if linkIdTo and ik.name=="ID":
 				# TODO: Kill the LINK child (older proposal implemented by some
 				# splat betas) some time after June 2014

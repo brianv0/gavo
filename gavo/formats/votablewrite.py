@@ -173,9 +173,9 @@ def _makeValuesForColDesc(colDesc):
 
 
 # keys copied from colDescs to FIELDs in _getFieldFor
-_voFieldCopyKeys = ["name", "datatype", "ucd", "utype", "xtype"]
+_voFieldCopyKeys = ["name", "datatype", "ucd", "utype"]
 
-def defineField(element, colDesc):
+def defineField(ctx, element, colDesc):
 	"""adds attributes and children to element from colDesc.
 
 	element can be a V.FIELD or a V.PARAM *instance* and is changed in place.
@@ -198,6 +198,11 @@ def defineField(element, colDesc):
 		element(unit=colDesc["unit"])
 	element(ID=colDesc["id"])
 
+	# don't include xtype if writing 1.1
+	xtype = colDesc.get("xtype")
+	if ctx.version>(1,1):
+		element(xtype=xtype)
+
 	element(**dict((key, colDesc.get(key)) for key in _voFieldCopyKeys))[
 		V.DESCRIPTION[colDesc["description"]],
 		_makeValuesForColDesc(colDesc),
@@ -205,23 +210,23 @@ def defineField(element, colDesc):
 	]
 
 
-def makeFieldFromColumn(colType, rscCol):
+def makeFieldFromColumn(ctx, colType, rscCol):
 	"""returns a VOTable colType for a rscdef column-type thing.
 
 	This function lets you make PARAM and FIELD elements (colType) from
 	column or param instances.
 	"""
 	instance = colType()
-	defineField(instance, valuemappers.AnnotatedColumn(rscCol))
+	defineField(ctx, instance, valuemappers.AnnotatedColumn(rscCol))
 	return instance
 
 
-def _iterFields(serManager):
+def _iterFields(ctx, serManager):
 	"""iterates over V.FIELDs based on serManger's columns.
 	"""
 	for colDesc in serManager:
 		el = V.FIELD()
-		defineField(el, colDesc)
+		defineField(ctx, el, colDesc)
 		yield el
 
 
@@ -258,7 +263,7 @@ def _makeVOTParam(ctx, param):
 		content = param.content_
 
 	el = V.PARAM()
-	defineField(el, valuemappers.AnnotatedColumn(param))
+	defineField(ctx, el, valuemappers.AnnotatedColumn(param))
 	if content is None:
 		# Null value generation -- tactics: If we have a nullLiteral, use it
 		# otherwise use some type-dependent default
@@ -273,11 +278,11 @@ def _makeVOTParam(ctx, param):
 	return el
 
 
-def _iterTableParams(serManager):
+def _iterTableParams(ctx, serManager):
 	"""iterates over V.PARAMs based on the table's param elements.
 	"""
 	for param in serManager.table.iterParams():
-		votEl = _makeVOTParam(serManager, param)
+		votEl = _makeVOTParam(ctx, param)
 		if votEl is not None:
 			_addID(param, votEl, serManager)
 			yield votEl
@@ -303,7 +308,7 @@ def _iterParams(ctx, dataSet):
 		colDesc = valuemappers.AnnotatedColumn(item)
 		el = V.PARAM()
 		el(value=ctx.mfRegistry.getMapper(colDesc)(values.get(item.name)))
-		defineField(el, colDesc)
+		defineField(ctx, el, colDesc)
 		_addID(el, item, ctx)
 		yield el
 
@@ -364,7 +369,7 @@ def _makeRef(baseType, ref, container, serManager):
 		ucd=ref.ucd)
 
 
-def _iterGroups(container, serManager):
+def _iterGroups(ctx, container, serManager):
 	"""yields GROUPs for the RD groups within container, taking params and
 	fields from serManager's table.
 
@@ -383,9 +388,9 @@ def _iterGroups(container, serManager):
 				serManager.table, serManager)]
 
 		for param in group.params:
-			votGroup[_makeVOTParam(serManager, param)]
+			votGroup[_makeVOTParam(ctx, param)]
 
-		for subgroup in _iterGroups(group, serManager):
+		for subgroup in _iterGroups(ctx, group, serManager):
 			votGroup[subgroup]
 
 		yield votGroup
@@ -406,9 +411,9 @@ def makeTable(ctx, table):
 		# the elements is done by xmlstan.
 		V.DESCRIPTION[base.getMetaText(table, "description", 
 			macroPackage=table.tableDef, propagate=False)],
-		_iterGroups(table.tableDef, sm),
-		_iterFields(sm),
-		_iterTableParams(sm),
+		_iterGroups(ctx, table.tableDef, sm),
+		_iterFields(ctx, sm),
+		_iterTableParams(ctx, sm),
 		_iterNotes(sm),
 		_linkBuilder.build(table.tableDef),
 		]
