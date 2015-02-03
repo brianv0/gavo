@@ -7,6 +7,38 @@ to see the gory details.  If anything not mentioned here breaks something
 for you, we'd consider it a severe bug, though.
 
 
+Version 0.9.4 (2015-02-03)
+
+	* Uniform referencing to RDs and elements in them, allowing to skip
+	  input-relative paths throughout.
+
+	* Some fixes for Debian jessie compatibility.
+
+	* fitsProdGrammar supports compressed FITSes transparently.
+
+	* New templating system for writing more beautiful FITS headers
+	  in processing (see kapteyn/q in hdinputs for examples)
+
+	* New grammar for working with CDF files
+
+	* New api renderer for DAL-style machine-oriented services (see
+		sp_ace/q in hdinputs for an example)
+
+	* Transparent support for gzip compression on selected documents
+
+	* We now officially force SIAP services to have their bandpasses in m
+	  (if this breaks your service, it's been broken before).
+
+	* Possibly bookmark-relevant change: _DBOPTIONS_LIMIT is now MAXREC
+
+	* Possibly scripting-relevant change: --ui option on gavo imp now
+	  needs to be given before the imp.
+
+	* Possibly registry-relevant change: this upgrade will change your
+		TAP service's IVORN (to ivo://<authority>/tap; we admit that was
+		a dumb idea, but reverting now will only make things worse)
+
+
 Version 0.9.3 (2014-09-04)
 
 	* Improved EPN-TAP support such that it actually works (this release is
