@@ -45,6 +45,10 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 	"""
 	name_ = "resource"
 
+	# this is set somewhere below once parsing has proceeded far enough
+	# such that caching the RD make sense
+	cacheable = False
+
 	_resdir = base.FunctionRelativePathAttribute("resdir", 
 		default=None, 
 		baseFunction=lambda instance: base.getConfig("inputsDir"),
@@ -319,6 +323,8 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 			"""A class that reacts to all attribute requests with a some exception.
 			"""
 			def __getattribute__(self, attributeName):
+				if attributeName=="__class__":
+					return BrokenClass
 				raise base.ReportableError(errMsg)
 
 		self.__class__ = BrokenClass
@@ -344,11 +350,26 @@ class RDParseContext(base.ParseContext):
 	to parse XML snippets with a standard parse context, so use 
 	getattr(ctx, "doQueries", True) or somesuch.
 	"""
-	def __init__(self, forImport=False, doQueries=True, dumpTracebacks=False, 
-			restricted=False, forRD=None):
-		self.forImport, self.doQueries = forImport, doQueries
-		self.dumpTracebacks = dumpTracebacks
+	def __init__(self, doQueries=True, restricted=False, forRD=None):
+		self.doQueries = doQueries
 		base.ParseContext.__init__(self, restricted, forRD)
+
+	@classmethod
+	def fromContext(cls, ctx, forRD=None):
+		"""a constructor that makes a context with the parameters taken from
+		the RDParseContext ctx.
+		"""
+		return cls(doQueries=ctx.doQueries, restricted=ctx.restricted,
+			forRD=forRD)
+
+	@property
+	def failuresAreCacheable(self):
+		"""returns true if failures produced with this context should
+		be cached.
+
+		This is not the case with restricted parses.
+		"""
+		return not self.restricted
 
 
 class PkgResourcePath(str):
@@ -483,8 +504,7 @@ class _UserConfigFakeRD(object):
 				"etc/userconfig.rd")
 
 
-def getRD(srcId, forImport=False, doQueries=True, 
-		dumpTracebacks=False, restricted=False, useRD=None):
+def getRD(srcId, doQueries=True, restricted=False, useRD=None):
 	"""returns a ResourceDescriptor for srcId.
 
 	srcId is something like an input-relative path; you'll generally
@@ -495,6 +515,7 @@ def getRD(srcId, forImport=False, doQueries=True,
 
 	The useRD parameter is for _loadRDIntoCache exclusively and is
 	used by it internally.  It is strictly an ugly implementation detail.
+	
 	"""
 	if srcId=='%':
 		return _UserConfigFakeRD()
@@ -504,22 +525,27 @@ def getRD(srcId, forImport=False, doQueries=True,
 	else:
 		rd = useRD
 	
-	if getattr(base, "VALIDATING", False):
-		doQueries = False
-
 	srcPath, inputFile = getRDInputStream(rd.sourceId)
-	context = RDParseContext(forImport, doQueries, dumpTracebacks, restricted)
+	# look for a context upstack and get the default parameters from there,
+	# overriding the parameters.
+	try:
+		getRD_context = RDParseContext.fromContext(
+			utils.stealVar("getRD_context"), forRD=rd.sourceId)
+	except ValueError:
+		# no getRD_context variable in the stack
+		getRD_context = RDParseContext(doQueries=doQueries, 
+			restricted=restricted, forRD=rd.sourceId)
 
 	if not isinstance(srcPath, PkgResourcePath):
 		srcPath = os.path.abspath(srcPath)
-	rd.srcPath = context.srcPath = srcPath
-	context.forRD = rd.sourceId
-	rd.idmap = context.idmap
+	rd.srcPath = getRD_context.srcPath = srcPath
+	rd.idmap = getRD_context.idmap
 
 	try:
-		rd = base.parseFromStream(rd, inputFile, context=context)
+		rd = base.parseFromStream(rd, inputFile, context=getRD_context)
 	except Exception, ex:
 		ex.srcPath = srcPath
+		ex.cacheable = getRD_context.failuresAreCacheable
 		raise
 	setRDDateTime(rd, inputFile)
 	return rd
@@ -577,6 +603,7 @@ def _loadRDIntoCache(canonicalRDId, cacheDict):
 		else:
 			lock, rd = threading.RLock(), RD(canonicalRDId)
 			_currentlyParsing[canonicalRDId] = lock, rd
+			lock.acquire()
 			justWait = False
 
 	if justWait:
@@ -588,15 +615,15 @@ def _loadRDIntoCache(canonicalRDId, cacheDict):
 		lock.release()
 		return rd
 
-	lock.acquire()
 	try:
 		try:
 			cacheDict[canonicalRDId] = getRD(canonicalRDId, useRD=rd)
 		except Exception, ex:
 			# Importing failed, invalidate the RD (in case other threads still
 			# see it from _currentlyParsing)
-			cacheDict[canonicalRDId] = CachedException(ex, 
-				getattr(rd, "srcPath", None))
+			if getattr(ex, "cacheable", False):
+				cacheDict[canonicalRDId] = CachedException(ex, 
+					getattr(rd, "srcPath", None))
 			rd.invalidate()
 			raise
 	finally:
@@ -620,39 +647,31 @@ def _makeRDCache():
 	"""
 # TODO: Maybe unify this again with caches._makeCache?  That stuff could
 # do with a facility to invalidate cached entries, too.
+# But care is necessary to not cache any RD parsed in a nonstandard
+# fashion (e.g., in restricted mode).  CAREFUL: since getRD indulges
+# in variable stealing, explicit checks are necessary.
 	rdCache = {}
 
 	def getRDCached(srcId, **kwargs):
 		if kwargs:
 			return getRD(srcId, **kwargs)
-		srcId = canonicalizeRDId(srcId)
 
+		srcId = canonicalizeRDId(srcId)
 		if (srcId in rdCache 
 				and getattr(rdCache[srcId], "isDirty", lambda: False)()):
 			base.caches.clearForName(srcId)
 
-		try:
+		if srcId in rdCache:
 			cachedOb = rdCache[srcId]
 			if isinstance(cachedOb, CachedException):
 				cachedOb.raiseAgain()
 			else:
 				return cachedOb
-		except KeyError:
+
+		else:
 			return _loadRDIntoCache(srcId, rdCache)
 
 	getRDCached.cacheCopy = rdCache
 	base.caches.registerCache("getRD", rdCache, getRDCached)
 
 _makeRDCache()
-
-
-def openRD(relPath):
-	"""returns a (cached) RD for relPath.
-
-	relPath is first interpreted as a file system path, then as an RD id.
-	the first match wins.
-	"""
-	try:
-		return base.caches.getRD(os.path.join(os.getcwd(), relPath), forImport=True)
-	except base.RDNotFound:
-		return base.caches.getRD(relPath, forImport=True)

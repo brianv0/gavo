@@ -316,9 +316,70 @@ class RestrictionTest(testhelpers.VerboseTest):
 	]
 
 
+class _RD1(tresc.FileResource):
+	path = "inputs/rd1.rd"
+	content = """<resource schema='test'>
+			<table id="tmp"><column name="a"/></table>
+			<data id="import">
+				<dictlistGrammar/>
+				<make table="tmp" rowmaker="rd2#rmk"/>
+			</data>
+		</resource>"""
+
+
+class _RD2(tresc.FileResource):
+	path = "inputs/rd2.rd"
+	content = """<resource schema='test'>
+			<rowmaker id="rmk" idmaps="*">
+				<apply name="foo">
+					<code>
+						@a = ord(@a)*0.5
+					</code>
+				</apply>
+			</rowmaker>
+		</resource>"""
+
+
+class RestrictionInheritingTest(testhelpers.VerboseTest):
+	# tests making sure cross-RD references don't break out of restricted
+	# mode
+	resources = [("rd1", _RD1()), ("rd2", _RD2())]
+
+	def testRestrictionRequired(self):
+		rows = rsc.makeData(base.caches.getRD("rd1"
+			).getById("import"),
+			forceSource=[{'a': 'x'}]).getPrimaryTable().rows
+		self.assertEqual(rows, [{'a': 60.0}])
+
+	def testRestrictionEnforced(self):
+		self.assertRaises(base.RestrictedElement,
+			base.caches.getRD,
+			"rd1", restricted=True)
+
+
 class _TempRDFile(tresc.FileResource):
 	path = "inputs/temp.rd"
 	content = "<resource schema='temptemp'/>"
+
+
+class _UnloadableRDFile(tresc.FileResource):
+	# this is handcrafted for specific failure in parallelRDIsInvalidated
+	path = "inputs/unloadable.rd"
+	content = """<resource schema='temptemp'>
+			<LOOP>
+				<codeItems>
+					from gavo import base
+					base.OTHER_IS_WAITING = True
+					while True:
+						if hasattr(base, "I_AM_HERE"):
+							raise base.ReportableError("All is good")
+					yield {"foo": "a"}
+				</codeItems>
+				<events>
+					<table id="\\foo"/>
+				</events>
+			</LOOP>
+		</resource>"""
 
 
 class _TempBadRDFile(tresc.FileResource):
@@ -540,7 +601,7 @@ class DependentsTest(testhelpers.VerboseTest):
 
 
 class ConcurrentRDTest(testhelpers.VerboseTest):
-	resources = [("tempBadRDFile", _TempBadRDFile())]
+	resources = [("unloadableRDFile", _UnloadableRDFile())]
 
 	def testInvalidation(self):
 		rd = base.parseFromString(rscdesc.RD, '<resource schema="test"/>')
@@ -560,6 +621,7 @@ class ConcurrentRDTest(testhelpers.VerboseTest):
 		def loadFromOne():
 			rd = base.caches.getRD("__system__/services")
 			self.failUnless(hasattr(rd, "serviceIndex"))
+
 		t1 = threading.Thread(target=loadFromOne)
 		t1.daemon = True
 		t1.start()
@@ -568,43 +630,41 @@ class ConcurrentRDTest(testhelpers.VerboseTest):
 				break
 			time.sleep(0.05)
 		else:
-			self.fail("getRD does not load the services RD?")
+			self.fail("getRD in thread does not load the services RD?")
+
 		base.caches.clearForName("__system__/services")
 		newRD = base.caches.getRD("__system__/services")
 		self.failUnless(hasattr(newRD, "serviceIndex"))
 
 	def testParallelRDIsInvalidated(self):
-		base.caches.clearForName("tempbad")
-		fromThread = []
+		base.caches.clearForName("unloadable")
+		fromThreads = []
 		def loadFromOne():
 			try:
-				fromThread.append(base.caches.getRD("tempbad"))
+				fromThreads.append(base.caches.getRD("unloadable"))
 			except Exception, ex:
-				fromThread.append(ex)
+				fromThreads.append(ex)
 		t1 = threading.Thread(target=loadFromOne)
 		t1.start()
-# this is an extremely haphazard way to try and make the RD import from
-# the thread "parallel" with the one in the main thread.
-# What we *should* do to make this test robust is run some code inside
-# the borken RD that expects an action from the main thread and only
-# then bombs out.  But then maybe the whole functionality we test
-# here stinks...
-		time.sleep(0.0001)
-		try:
-			fromMain = base.caches.getRD("tempbad")
-		except Exception, ex:
-			fromMain = ex
-		t1.join()
-		try:
-			# one of the two accesses will fail if one actually got back
-			# an invalidated RD.
-			fromMain.sourceId, fromThread[0].sourceId
-		except base.ReportableError:
-			# all's fine
-			return
-		self.fail("On a parallel load of a bad RD, none of the returned values"
-			" was a BrokenClass.  Most likely your machine is too fast for this"
-			" test and you should just nuke it and forget about this.")
+
+		# Check the _UnloadableRDFile above: This will set base.OTHER_IS_WAITING
+		# and the wait for base.I_AM_HERE to appear.  This will happen in
+		# thread 1.  We here provide the trigger when we've started to
+		# in another thread.
+		t2 = threading.Thread(target=loadFromOne)
+		t2.start()
+
+		while not hasattr(base, "OTHER_IS_WAITING"):
+			time.sleep(0.001)
+		base.I_AM_HERE = True
+		t1.join(0.2)
+		t2.join(0.2)
+
+		# now one of the results must be an exception, the other a
+		# BrokenClass
+		self.assertEqual(set(r.__class__.__name__ for r in fromThreads),
+			frozenset(["BrokenClass", "ReportableError"]))
+		
 
 
 _RUNNERS_RESPONSES = {

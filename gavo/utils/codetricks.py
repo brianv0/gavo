@@ -765,7 +765,7 @@ def stealVar(varName):
 	above my caller.
 
 	This is obviously abominable.  This is only used within the DC code where
-	the author deemed the specification ugly.
+	the author deemed the specification ugly.  Ah.  Almost.
 	"""
 	frame = inspect.currentframe().f_back.f_back
 	while frame:

@@ -7,111 +7,114 @@ to see the gory details.  If anything not mentioned here breaks something
 for you, we'd consider it a severe bug, though.
 
 
+Version 0.9.5 (2015-)
+
+
 Version 0.9.4 (2015-02-03)
 
-	* Uniform referencing to RDs and elements in them, allowing to skip
-	  input-relative paths throughout.
+  * Uniform referencing to RDs and elements in them, allowing to skip
+    input-relative paths in all of gavo's subcommands.
 
-	* Some fixes for Debian jessie compatibility.
+  * Some fixes for Debian jessie compatibility.
 
-	* fitsProdGrammar supports compressed FITSes transparently.
+  * fitsProdGrammar supports compressed FITSes transparently.
 
-	* New templating system for writing more beautiful FITS headers
-	  in processing (see kapteyn/q in hdinputs for examples)
+  * New templating system for writing more beautiful FITS headers
+    in processing (see kapteyn/q in hdinputs for examples)
 
-	* New grammar for working with CDF files
+  * New grammar for working with CDF files
 
-	* New api renderer for DAL-style machine-oriented services (see
-		sp_ace/q in hdinputs for an example)
+  * New api renderer for DAL-style machine-oriented services (see
+    sp_ace/q in hdinputs for an example)
 
-	* Transparent support for gzip compression on selected documents
+  * Transparent support for gzip compression on selected documents
 
-	* We now officially force SIAP services to have their bandpasses in m
-	  (if this breaks your service, it's been broken before).
+  * We now officially force SIAP services to have their bandpasses in m
+    (if this breaks your service, it's been broken before).
 
-	* Possibly bookmark-relevant change: _DBOPTIONS_LIMIT is now MAXREC
+  * Possibly bookmark-relevant change: _DBOPTIONS_LIMIT is now MAXREC
 
-	* Possibly scripting-relevant change: --ui option on gavo imp now
-	  needs to be given before the imp.
+  * Possibly scripting-relevant change: --ui option on gavo imp now
+    needs to be given before the imp.
 
-	* Possibly registry-relevant change: this upgrade will change your
-		TAP service's IVORN (to ivo://<authority>/tap; we admit that was
-		a dumb idea, but reverting now will only make things worse)
+  * Possibly registry-relevant change: this upgrade will change your
+    TAP service's IVORN (to ivo://<authority>/tap; we admit that was
+    a dumb idea, but reverting now will only make things worse)
 
 
 Version 0.9.3 (2014-09-04)
 
-	* Improved EPN-TAP support such that it actually works (this release is
-	  mainly for visitors of EPSC); this includes a simple interface to
-	  pyPDS.
+  * Improved EPN-TAP support such that it actually works (this release is
+    mainly for visitors of EPSC); this includes a simple interface to
+    pyPDS.
 
-	* New "api" renderer that mimics DAL parameter style (including UPLOAD
-		and metadata VOTable) but doesn't assume particular data semantics.
-	
-	* The registry entry for the built-in TAP service now uses the vanity
-	  name; if you have published your TAP service to the Registry, run 
-	  gavo pub //tap to have a less ugly IVORN and access URL (nothing will
-	  break if you don't).
+  * New "api" renderer that mimics DAL parameter style (including UPLOAD
+    and metadata VOTable) but doesn't assume particular data semantics.
+  
+  * The registry entry for the built-in TAP service now uses the vanity
+    name; if you have published your TAP service to the Registry, run 
+    gavo pub //tap to have a less ugly IVORN and access URL (nothing will
+    break if you don't).
 
 
 Version 0.9.2 (2014-08-14)
-	
-	* !Important!: Internal changes to the way mixins work cause some column
-		sequences to change.  In particular, as a consequence you must re-import all
-		tables with non-trivial mixins.  We are really sorry about that.  Gavo
-		upgrade will warn about tables it finds that need re-importing.
+  
+  * !Important!: Internal changes to the way mixins work cause some column
+    sequences to change.  In particular, as a consequence you must re-import all
+    tables with non-trivial mixins.  We are really sorry about that.  Gavo
+    upgrade will warn about tables it finds that need re-importing.
 
   * DaCHS can now produce JSON output (with certain not yet VO-standardised
     conventions) from TAP and other services.
 
   * TAP_SCHEMA type names are automatically updated to comply to
-  	recently established conventions.  If you have tricked weird type names
-  	into TAP_SCHEMA (you'll know if you have), please ensure DaCHS hasn't 
-  	messed it up.
+    recently established conventions.  If you have tricked weird type names
+    into TAP_SCHEMA (you'll know if you have), please ensure DaCHS hasn't 
+    messed it up.
 
-	* DaCHS does not produce DataCollection registry records any more; they
-	  are all CatalogServices with (TAP) services exposing the data
-	  given as capabilities directly.
-	
-	* The generation of examples (formerly TAP examples) is now done
-	  completely differently.  If you have material in __system/adqlexamples,
-	  you'll have to move it to etc/userconfig.rd (see doc on the tap
-	  renderer).
+  * DaCHS does not produce DataCollection registry records any more; they
+    are all CatalogServices with (TAP) services exposing the data
+    given as capabilities directly.
+  
+  * The generation of examples (formerly TAP examples) is now done
+    completely differently.  If you have material in __system/adqlexamples,
+    you'll have to move it to etc/userconfig.rd (see doc on the tap
+    renderer).
 
-	* DaCHS now has a hard dependency on python-lxml (apt-get it if on
-	  Debian and not running from package, otherwise see http://lxml.de/)
+  * DaCHS now has a hard dependency on python-lxml (apt-get it if on
+    Debian and not running from package, otherwise see http://lxml.de/)
 
 Version 0.9.1 (2014-04-30)
 
-	* New regression testing framework derived from a local hack we've had
-	  in the GAVO DC for a while now.  Try it, it's your friend.  See the
-	  http://docs.g-vo.org/DaCHS/ref.html#regression-testing
+  * New regression testing framework derived from a local hack we've had
+    in the GAVO DC for a while now.  Try it, it's your friend.  See the
+    http://docs.g-vo.org/DaCHS/ref.html#regression-testing
 
-	* New framework for having operator-defined previews.  Please have a look
-	  at http://docs.g-vo.org/DaCHS/ref.html#product-previews for details.
-	  An unfortunate side effect is that all your cached previews are now 
-	  invalid.  Remove all files in (presumably) /var/gavo/web/previewCache.
+  * New framework for having operator-defined previews.  Please have a look
+    at http://docs.g-vo.org/DaCHS/ref.html#product-previews for details.
+    An unfortunate side effect is that all your cached previews are now 
+    invalid.  Remove all files in (presumably) /var/gavo/web/previewCache.
 
-	* Column selection for non-HTML now always includes all columns explicitely
-	  given in the output table (unless supressed by a displayHint).  If
-	  you lie about types in your output table (e.g., declare string types
-	  for things that are really ints), you may now get errors on VOTable
-	  generation.  Fix the types or have a noxml=true displayHint in these
-	  cases.
-	
-	* Removed the table attribute on ForeignKeys (that's been deprecated
-		for more than a year now).  Use the inTable attribute with an
-		actual table reference instead.
-	
-	* Datalink support bumped to WD-2014-02-28
+  * Column selection for non-HTML now always includes all columns explicitely
+    given in the output table (unless supressed by a displayHint).  If
+    you lie about types in your output table (e.g., declare string types
+    for things that are really ints), you may now get errors on VOTable
+    generation.  Fix the types or have a noxml=true displayHint in these
+    cases.
+  
+  * Removed the table attribute on ForeignKeys (that's been deprecated
+    for more than a year now).  Use the inTable attribute with an
+    actual table reference instead.
+  
+  * Datalink support bumped to WD-2014-02-28
 
 
 Version 0.9 (2013-12-13)
 
-	* API CHANGE: If you have custom logic (i.e., phraseMakers) on
-	  string inputKeys with values, you'll now get back lists of strings
-	  by default.  This will break your phraseMakers in that situation.
-	  Solution: Add multiplicity="single" to the inputKeys.
+  * API CHANGE: If you have custom logic (i.e., phraseMakers) on
+    string inputKeys with values, you'll now get back lists of strings
+    by default.  This will break your phraseMakers in that situation.
+    Solution: Add multiplicity="single" to the inputKeys.
 
   * Change to latest VOUnit version.  Many unit strings that previously
     appeared ok no longer are; in particular, exponentiation is now
@@ -127,21 +130,21 @@ Version 0.9 (2013-12-13)
     pair of rd id and and table id.  It can now also parse from fits
     binary tables directly.
 
-	* Datalink prototype changed during development: the parameter is now
-	  called ID in conformance with the WD; what was pubdid in the datalink
-	  functions is now called pubDID; several other changes that only
-	  concern you if you're running datalink (chances are you're not)
+  * Datalink prototype changed during development: the parameter is now
+    called ID in conformance with the WD; what was pubdid in the datalink
+    functions is now called pubDID; several other changes that only
+    concern you if you're running datalink (chances are you're not)
 
-	* Any resource using \standardPubDID or similar needs to be re-imported.
-	  As that stuff hasn't been there in the last release, this probably
-	  doesn't concern you either.
+  * Any resource using \standardPubDID or similar needs to be re-imported.
+    As that stuff hasn't been there in the last release, this probably
+    doesn't concern you either.
 
 Version 0.8.9 (2013-07-13)
 
-	* We now officially require postgres >9.0.  If this hurts you, tell
-	  us, this is mainly a convenience matter.
+  * We now officially require postgres >9.0.  If this hurts you, tell
+    us, this is mainly a convenience matter.
 
-	* DaCHS now supports the new BINARY2 VOTable encoding
+  * DaCHS now supports the new BINARY2 VOTable encoding
 
   * Internal rework of web-facing parameter processing.  If you use
     custom condDescs, test those services throughly (though we've
@@ -152,17 +155,17 @@ Version 0.8.9 (2013-07-13)
   * There's now a facility to add custom columns to the ObsCore table.
 
   * SIAP processing rework.  If you have SIAP services, you should probably
- 	  re-import them, since the old SIAP processing sometimes was a bit
- 	  too lenient.
+     re-import them, since the old SIAP processing sometimes was a bit
+     too lenient.
 
- 	* SIAP and SCS now count as "PQL" renderers, as SSAP before.  This
- 	  means custom parameters created via buildFrom will allow range and list
- 	  syntaxes as for SSAP.
+   * SIAP and SCS now count as "PQL" renderers, as SSAP before.  This
+     means custom parameters created via buildFrom will allow range and list
+     syntaxes as for SSAP.
 
- 	* Many minor updates, fixes, and compatibility improvements.
+   * Many minor updates, fixes, and compatibility improvements.
 
- 	* New root-tree.html template that you can optionally use as the
- 	  root page; it provides some ajaxy alternative to the old root page.
+   * New root-tree.html template that you can optionally use as the
+     root page; it provides some ajaxy alternative to the old root page.
 
 Version 0.8.4 (2012-12-17)
 
@@ -180,13 +183,13 @@ Version 0.8.4 (2012-12-17)
 
 Version 0.8 (2012-08-15)
 
-	* The schema for the DaCHS-internal metadata tables changed.  To adapt
-		your database, run
+  * The schema for the DaCHS-internal metadata tables changed.  To adapt
+    your database, run
 
-			gavo imp --system //dc_tables
+      gavo imp --system //dc_tables
 
-		(to fill the tables again, say gavo pub -ma, but you'll do so in the
-		next step anyway)
+    (to fill the tables again, say gavo pub -ma, but you'll do so in the
+    next step anyway)
 
   * There's now a table tap_schema.groups.  To create it, say:
 
@@ -202,18 +205,18 @@ Version 0.8 (2012-08-15)
       gavo imp --system //services
       gavo pub -ma
 
- 	* Some ADQL user-defined functions are now implemented as Postgres
-	  stored procedures.  Say::
+   * Some ADQL user-defined functions are now implemented as Postgres
+    stored procedures.  Say::
 
-			gavo imp //adql
+      gavo imp //adql
 
-		define those.
+    define those.
 
-	* The UWS code now writes to the UWS tables with less privileges.
-	  To let it do that, you must update the privileges on all queue tables;
-	  in standard DaCHS, that's only the TAP table, so simply say:
-	  
-	  	gavo imp -m //tap createJobTable
+  * The UWS code now writes to the UWS tables with less privileges.
+    To let it do that, you must update the privileges on all queue tables;
+    in standard DaCHS, that's only the TAP table, so simply say:
+    
+      gavo imp -m //tap createJobTable
 
   * The organization running the dc is now configurable.  If you are
     running the registry interface, you must now give authority.managingOrg,
@@ -226,9 +229,9 @@ Version 0.8 (2012-08-15)
     profile names rather than DB roles.  In the unlikely case you're
     using this feature, you'd have to change the RDs.
 
-	* You can no longer map db profile "roles" to actual profile names in
-	  the gavorc [profiles] section.  If you actually need this, try
-	  symbolic links to the profile files.
+  * You can no longer map db profile "roles" to actual profile names in
+    the gavorc [profiles] section.  If you actually need this, try
+    symbolic links to the profile files.
 
 
 Version 0.7 (2012-01-12)
