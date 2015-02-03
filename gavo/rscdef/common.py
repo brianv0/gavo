@@ -483,7 +483,7 @@ def replaceProcDefAt(src, dictName="vars"):
 # this is mainly here for lack of a better place.  I don't want it in
 # base.parsecontext as it needs config, and I don't want it
 # in user.common as it might be useful for non-UI stuff.
-def getReferencedElement(refString, forceType=None):
+def getReferencedElement(refString, forceType=None, **kwargs):
 	"""returns the element for the DaCHS reference refString.
 
 	refString would be rdId[#subRef]; rdId can be filesystem-relative,
@@ -494,6 +494,8 @@ def getReferencedElement(refString, forceType=None):
 
 	You should usually use base.resolveCrossId instead of this from *within*
 	DaCHS.  This is intended for code handling RD ids from users.
+
+	This supports further keyword arguments to getRD.
 	"""
 	# get the inputs postfix now so we don't pollute the current exception later
 	try:
@@ -504,7 +506,7 @@ def getReferencedElement(refString, forceType=None):
 		cwdInInputs = None
 
 	try:
-		return base.resolveCrossId(refString, forceType=forceType)
+		return base.resolveCrossId(refString, forceType=forceType, **kwargs)
 	except base.RDNotFound:
 		if cwdInInputs:
 			return base.resolveCrossId("%s/%s"%(cwdInInputs, refString),

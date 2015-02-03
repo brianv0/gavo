@@ -78,7 +78,7 @@ def loadRD(rdId):
 	If that fails, diagnostics are printed and None is returned.
 	"""
 	try:
-		rd = api.getReferencedElement(rdId)
+		rd = api.getReferencedElement(rdId, doQueries=False)
 
 		# This is so we can validate userconfig.rd
 		if hasattr(rd, "getRealRD"):

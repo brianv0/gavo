@@ -31,12 +31,14 @@ def assertType(id, ob, forceType):
 	return ob
 
 
-def resolveCrossId(id, forceType=None):
+def resolveCrossId(id, forceType=None, **kwargs):
 	"""resolves id, where id is of the form rdId#id.
 
 	id can also be a simple rdID.
 
 	See resolveId for forceType.
+
+	This lets you pass additional keyword arguments to getRD.
 	"""
 	try:
 		rdId, rest = id.split("#")
@@ -48,7 +50,7 @@ def resolveCrossId(id, forceType=None):
 		rdId, rest = id, None
 
 	try:
-		srcRD = caches.getRD(rdId)
+		srcRD = caches.getRD(rdId, **kwargs)
 	except common.RDNotFound, ex:
 		ex.hint = (
 			"I was trying to resolve the reference %s; note that DaCHS only"
