@@ -236,7 +236,8 @@ class StaticServer(rend.Page):
 		relPath = "/".join(segments)
 		path = self.userPath+relPath
 		if os.path.exists(path):
-			return (StaticFile(path)), ()
+			return StaticFile(path, 
+				base.caches.getRD(registry.SERVICELIST_ID)), ()
 		path = self.systemPath+relPath
 		if os.path.exists(path):
 			return StaticFile(
