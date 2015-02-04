@@ -23,13 +23,12 @@ class QueryTable(table.BaseTable, dbtable.DBMethodsMixin):
 	"""QueryTables are constructed with a table definition and a DB query
 	feeding this table definition.
 
-	*Warning, funky stuff*: QueryTables must be constructed with a connection,
-	and they will devour them (i.e. close them when they're done).  Do
-	*not* pass in any connection you want to re-use.
+	A QueryTable must be constructed with a connection.  If you pass
+	autoClose=True, it will close this connection after the data is
+	delivered.
 
 	This funky semantics is for the benefit of taprunner; it needs a
-	connection up front for uploads.  Any solutions that prevent this
-	kind of devouring of parameters is welcome.
+	connection up front for uploads.
 
 	There's an alternative constructor allowing "quick" construction of
 	the result table (fromColumns).
@@ -38,6 +37,7 @@ class QueryTable(table.BaseTable, dbtable.DBMethodsMixin):
 
 	def __init__(self, tableDef, query, connection, **kwargs):
 		self.connection = connection
+		self.autoClose = kwargs.pop("autoClose", False)
 		if "rows" in kwargs:
 			raise base.ReportableError("QueryTables cannot be constructed"
 				" with rows.")
@@ -96,13 +96,13 @@ class QueryTable(table.BaseTable, dbtable.DBMethodsMixin):
 		raise AttributeError()
 
 	def cleanup(self):
-		if self.connection is not None:
+		if self.autoClose and self.connection is not None:
 			try:
 				self.connection.close()
 			except base.DBError:  
 				# Connection already closed or similarly ignorable
 				pass
-			self.connection = None
+		self.connection = None
 
 	def getPlan(self):
 		"""returns a parsed query plan for the current query.

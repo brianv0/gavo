@@ -97,6 +97,8 @@ else:
 			# Import some resources necessary in trial tests
 			rsc.makeData(
 				base.caches.getRD("data/ssatest").getById("test_import"))
+			rsc.makeData(
+				base.caches.getRD("//obscore").getById("create"))
 		except:
 			traceback.print_exc()
 			sys.stderr.write("Creation of test environment failed.  Remove %s\n"

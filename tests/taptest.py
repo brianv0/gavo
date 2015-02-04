@@ -416,6 +416,37 @@ class VOTableMetaTest(testhelpers.VerboseTest):
 			"1635QB41.G135......")
 
 
+class TAPTableMetaTest(testhelpers.VerboseTest):
+	resources = [("conn", tresc.dbConnection), ("ot", tresc.obscoreTable)]
+
+	def testSingleSourceTableMetadataCopied(self):
+		res = taprunner.runTAPQuery(
+			"SELECT TOP 1 * FROM ivoa.obscore", 1, self.conn, [], 1,
+			autoClose=False)
+		self.assertEqual(
+			base.getMetaText(res, "description"),
+			"The IVOA-defined obscore table, containing generic metadata for\n"
+			"datasets within this datacenter.")
+		list(res)
+	
+	def testNoMetadataOnComplexQuery(self):
+		res = taprunner.runTAPQuery(
+			"SELECT TOP 1 * FROM (SELECT * from ivoa.obscore) as q", 
+				1, self.conn, [], 1, autoClose=False)
+		self.assertEqual(
+			base.getMetaText(res, "description"), None)
+		list(res)
+
+	def testNoMetadataOnJoin(self):
+		res = taprunner.runTAPQuery(
+			"SELECT TOP 1 * FROM ivoa.obscore as a join ivoa.obscore as b"
+				" ON (a.obs_collection=b.dataproduct_subtype)", 
+				1, self.conn, [], 1, autoClose=False)
+		self.assertEqual(
+			base.getMetaText(res, "description"), None)
+		list(res)
+
+
 class JobMetaTest(testhelpers.VerboseTest):
 	def setUp(self):
 		self.jobId = tap.workerSystem.getNewJobId()

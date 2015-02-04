@@ -166,12 +166,12 @@ class RDDataResource(testhelpers.TestResource):
 	"""
 	resources = [('conn', dbConnection)]
 
-	rdName = "test.rd"
+	rdName = "data/test"
 	dataId = None
 
 	def make(self, deps):
 		self.conn = deps["conn"]
-		dd = testhelpers.getTestRD(self.rdName).getById(self.dataId)
+		dd = base.caches.getRD(self.rdName).getById(self.dataId)
 		self.dataCreated = rsc.makeData(dd, connection=self.conn)
 		return self.dataCreated.getPrimaryTable()
 	
@@ -205,6 +205,13 @@ class _SSATable(testhelpers.TestResource):
 		pass
 
 ssaTestTable = _SSATable()
+
+
+class _ObscoreTable(RDDataResource):
+	rdName = "//obscore"
+	dataId = "create"
+
+obscoreTable = _ObscoreTable()
 
 
 class RandomDataTable(testhelpers.TestResource):

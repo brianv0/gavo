@@ -106,7 +106,7 @@ class _UfuncTestbed(tresc.RDDataResource):
 	*and data* extensions.  They are sure to come as new UDFs need exercise.
 	Use the kind column as necessary.
 	"""
-	rdName = "ufuncex.rd"
+	rdName = "data/ufuncex.rd"
 	dataId = "import"
 
 _ufuncTestbed = _UfuncTestbed()

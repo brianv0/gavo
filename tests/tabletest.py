@@ -474,26 +474,28 @@ class ParamTest(testhelpers.VerboseTest):
 
 
 class QueryTableTest(testhelpers.VerboseTest):
-	resources = [("basetable", tresc.csTestTable)]
+	resources = [("basetable", tresc.csTestTable),
+		("conn", tresc.dbConnection)]
 
 	def testBasic(self):
 		table = rsc.QueryTable(self.basetable.tableDef, 
 			"SELECT * FROM %s"%self.basetable.tableDef.getQName(),
-			base.getDBConnection("trustedquery"))
+			base.getDBConnection("trustedquery"), autoClose=True)
 		rows = list(table)
 		self.failUnless(isinstance(rows[0], dict))
 
 	def testFromColumns(self):
-		table = rsc.QueryTable.fromColumns(
-			[self.basetable.tableDef.getColumnByName("alpha"),
-				{"name": "mag2", "ucd": "phot.mag;times.two"}],
-			"SELECT alpha, mag*2 FROM %s"%self.basetable.tableDef.getQName(),
-			connection=base.getDBConnection("trustedquery"))
+		with base.getTableConn() as conn:
+			table = rsc.QueryTable.fromColumns(
+				[self.basetable.tableDef.getColumnByName("alpha"),
+					{"name": "mag2", "ucd": "phot.mag;times.two"}],
+				"SELECT alpha, mag*2 FROM %s"%self.basetable.tableDef.getQName(),
+				connection=conn)
 
 	def testRepeatedIteration(self):
 		table = rsc.QueryTable(self.basetable.tableDef, 
 			"SELECT * FROM %s"%self.basetable.tableDef.getQName(),
-			connection=base.getDBConnection("trustedquery"))
+			connection=self.conn)
 		rows = list(table)
 		self.assertRaisesWithMsg(base.ReportableError,
 			"QueryTable already exhausted.",

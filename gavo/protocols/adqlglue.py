@@ -131,9 +131,23 @@ def _getTableDescForOutput(parsedTree):
 	ctx = TDContext()
 	columns = [_makeColumnFromFieldInfo(ctx, *fi) 
 			for fi in parsedTree.fieldInfos.seq]
-	# TODO: Fiddle in system metadata if unlucky enough to have STC-S in output
-	return base.makeStruct(rscdef.TableDef, columns=columns,
+	resTable = base.makeStruct(rscdef.TableDef, columns=columns,
 		id=parsedTree.suggestAName())
+
+	# if this is a simple one-table query, take the metadata from that
+	# table.
+	fromNames = [t.qName
+		for t in parsedTree.fromClause.getAllTables()
+		if hasattr(t, "qName")]
+	if len(fromNames)==1:
+		try:
+			srcTable = base.caches.getMTH(None).getTableDefForTable(fromNames[0])
+			resTable.copyMetaFrom(srcTable)
+		except base.NotFoundError:
+			# Single source is not one of our tables, hence no metadata
+			pass
+
+	return resTable
 
 
 def _getSchema(tableName):
@@ -211,7 +225,7 @@ def _addTableMeta(query, tree, table):
 				infoName="src_res", 
 				infoValue="Contains traces from resource %s"%(sourceTD.rd.sourceId)))
 			table.addMeta("info", meta.makeMetaValue(
-				base.getMetaText(sourceTD, "description", ""),
+				base.getMetaText(sourceTD, "description", "", propagate=False),
 				name="info",
 				infoName="src_table", 
 				infoValue="Contains traces from table %s"%(

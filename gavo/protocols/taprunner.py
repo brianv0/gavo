@@ -138,7 +138,8 @@ def writeResultTo(format, res, outF):
 		formats.formatData(format, res, outF, acquireSamples=False)
 
 
-def runTAPQuery(query, timeout, connection, tdsForUploads, maxrec):
+def runTAPQuery(query, timeout, connection, tdsForUploads, maxrec,
+		autoClose=True):
 	"""executes a TAP query and returns the result in a data instance.
 	"""
 # Some of this replicates functionality from adqlglue.  We should probably
@@ -148,7 +149,8 @@ def runTAPQuery(query, timeout, connection, tdsForUploads, maxrec):
 			tdsForUploads=tdsForUploads, externalLimit=maxrec)
 		base.ui.notifyInfo("Sending to postgres: %s"%repr(pgQuery))
 		
-		result = rsc.QueryTable(tableTrunk.tableDef, pgQuery, connection)
+		result = rsc.QueryTable(tableTrunk.tableDef, pgQuery, connection,
+			autoClose=autoClose)
 		# XXX Hack: this is a lousy fix for postgres' seqscan love with
 		# limit.  See if we still want this with newer postgres...
 		result.configureConnection([("enable_seqscan", False)])
@@ -217,6 +219,7 @@ def getQTableFromJob(parameters, jobId, queryProfile, timeout):
 	"""
 	query, maxrec = _parseTAPParameters(jobId, parameters)
 	connectionForQuery = base.getDBConnection(queryProfile)
+
 	try:
 		_noteWorkerPID(connectionForQuery)
 	except: # Don't fail just because we can't kill workers

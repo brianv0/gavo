@@ -58,7 +58,7 @@ _TEST_UWS = uws.UWS(UWSTestJob, uwsactions.JobActions())
 
 
 class _TestUWSTable(tresc.RDDataResource):
-	rdName = "uwstest.rd"
+	rdName = "data/uwstest"
 	dataId = "import"
 
 _testUWSTable = _TestUWSTable()
