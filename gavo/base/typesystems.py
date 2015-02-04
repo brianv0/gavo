@@ -5,6 +5,7 @@ The DC software has to deal with a quite a few type systems:
 
  - Python
  - SQL
+ - Postgres pg_type
  - VOTable
  - XSD
  - Twisted formal
@@ -381,6 +382,82 @@ class ToLiteralConverter(object):
 		return utils.identity
 
 
+class ToPgTypeValidatorConverter(FromSQLConverter):
+	"""returns a callable that takes a type code from postgres' pg_type
+	that will raise a TypeError if the to types are deemed incompatible.
+	"""
+	@staticmethod
+	def checkInt(pgcode):
+		if pgcode not in frozenset(['int2', 'int4', 'int8']):
+			raise TypeError("%s is not compatible with an integer column"%pgcode)
+	
+	@staticmethod
+	def checkFloat(pgcode):
+		if pgcode not in frozenset(['float4', 'float8']):
+			raise TypeError("%s is not compatible with an integer column"%pgcode)
+
+	def makeChecker(expectedCode):
+		def checker(pgcode):
+			if expectedCode!=pgcode:
+				raise TypeError("Incompatible type in DB: Expected %s, found %s"%(
+					expectedCode, pgcode))
+		return checker
+
+	@staticmethod
+	def dontCheck(pgcode):
+		# should we give a warning that we didn't check a column?
+		pass
+	
+	@staticmethod
+	def beAlarmed(pgcode):
+		raise TypeError("Column with a non-db mapped to db type %s"%pgcode)
+
+	simpleMap = {
+		"smallint": checkInt,
+		"integer": checkInt,
+		"bigint": checkInt,
+		"real": checkFloat,
+		"boolean": makeChecker("bool"),
+		"double precision": checkFloat,
+		"text": makeChecker("text"),
+		"char": makeChecker("bpchar"),
+		"date": makeChecker("date"),
+		"timestamp": makeChecker("timestamp"),
+		"time": makeChecker("time"),
+		"box": dontCheck, # for now
+		"vexpr-mjd": beAlarmed,
+		"vexpr-string": beAlarmed,
+		"vexpr-date": beAlarmed,
+		"vexpr-float": beAlarmed,
+		"file": beAlarmed,
+		"pql-float": beAlarmed,
+		"pql-string": beAlarmed,
+		"pql-date": beAlarmed,
+		"pql-int": beAlarmed,
+		"pql-upload": beAlarmed,
+		"raw": beAlarmed,
+		"bytea": makeChecker("bytea"),
+		"spoint": dontCheck, # for now
+		"scircle": dontCheck, # for now
+		"sbox": dontCheck, # for now
+		"spoly": dontCheck, # for now
+		"unicode": makeChecker("text"),
+	}
+
+	def mapComplex(self, type, length):
+		if (length is None or length==1) and type in self.simpleMap:
+			return self.simpleMap[type]
+
+		# it seems postgres always has a _ in front of arrays, but char(*)
+		# doesn't have it.  We pretend we don't care for now.
+		def check(pgcode):
+			if pgcode.startswith("_"):
+				pgcode = pgcode[1:]
+			self.simpleMap[type](pgcode)
+
+		return check
+
+
 toVOTableConverter = ToVOTableConverter()
 sqltypeToVOTable = toVOTableConverter.convert
 sqltypeToADQL = ToADQLConverter().convert
@@ -388,6 +465,7 @@ sqltypeToXSD = ToXSDConverter().convert
 sqltypeToNumpy = ToNumpyConverter().convert
 sqltypeToPython = ToPythonConverter().convert
 sqltypeToPythonCode = ToPythonCodeConverter().convert
+sqltypeToPgVal = ToPgTypeValidatorConverter().convert
 voTableToSQLType = FromVOTableConverter().convert
 pythonToLiteral = ToLiteralConverter().convert
 

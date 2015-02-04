@@ -301,12 +301,28 @@ def _parseTableName(tableName, schema=None):
 
 		If tableName is qualified (i.e. schema.table), the schema given
 		in the name overrides the schema argument.
+
+		We do not support delimited identifiers for tables in DaCHS.  Hence,
+		this will raise a ValueError if anything that wouldn't work as
+		an SQL regular identifier (except we don't filter for reserved
+		words yet, which is an implementation detail that might change).
 		"""
+		parts = tableName.split(".")
+		if len(parts)>2:
+			raise ValueError("%s is not a SQL regular identifier"%repr(tableName))
+		for p in parts:
+			if not utils.identifierPattern.match(p):
+				raise ValueError("%s is not a SQL regular identifier"%repr(tableName))
+
+		if len(parts)==1:
+			name = "public"
+		else:
+			schema, name = parts
+
 		if schema is None:
 			schema = "public"
-		if "." in tableName:
-			schema, tableName = tableName.split(".")
-		return schema.lower(), tableName.lower()
+
+		return schema.lower(), name.lower()
 
 
 def parseBannerString(bannerString, digits=2):
@@ -415,6 +431,34 @@ class PostgresQueryMixin(object):
 		except DBError:
 			return False
 		return True
+
+	@utils.memoized
+	def _resolveTypeCode(self, oid):
+		"""returns a textual description for a type oid as returned
+		by cursor.description.
+
+		These descriptions are *not* DDL-ready.  There's the
+		
+		*** postgres specific ***
+		"""
+		res = list(self.query(
+			"select typname from pg_type where oid=%(oid)s", {"oid": oid}))
+		return res[0][0]
+
+	def getColumnsFromDB(self, tableName):
+		"""returns a sequence of (name, type) pairs of the columsn this
+		table has in the database.
+
+		If the table is not on disk, this will raise a NotFoundError.
+
+		*** psycopg2 specific ***
+		"""
+		# _parseTableName bombs out on non-regular identifiers, hence
+		# foiling a possible SQL injection
+		_parseTableName(tableName)
+		cursor = self.query("select * from %s limit 0"%tableName)
+		return [(col.name, self._resolveTypeCode(col.type_code)) for col in 
+			sorted(cursor.description, key=lambda v: v.index)]
 
 	def roleExists(self, role):
 		"""returns True if there role is known to the database.

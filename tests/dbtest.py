@@ -306,7 +306,7 @@ class TestRoleSetting(TestPrivs):
 
 
 class AdhocQuerierTest(testhelpers.VerboseTest):
-	resources = [("table", tresc.csTestTable)]
+	resources = [("table", tresc.csTestTable), ("conn", tresc.dbConnection)]
 
 	def testBasic(self):
 		with base.AdhocQuerier() as q:
@@ -349,6 +349,29 @@ class AdhocQuerierTest(testhelpers.VerboseTest):
 			self.assertEqual(1, len(list(q.query(
 				"select * from %s limit 1"%self.table.tableDef.getQName(), timeout=2))))
 			self.assertEqual(q.getTimeout(), 0)
+
+	def testNoInjectionOnGetColumns(self):
+		with base.UnmanagedQuerier(self.conn) as q:
+			self.assertRaisesWithMsg(ValueError,
+				"'foo; drop tables' is not a SQL regular identifier",
+				q.getColumnsFromDB,
+				("foo; drop tables",))
+
+	def testGetColumns(self):
+		with digestedTable(self.conn, "odd_table", 
+				"(t text, s smallint, i integer, b bigint,"
+				" r real, d double precision, ar real[], c char,"
+				" ad double precision[], odd char(20), frotsch bytea[30],"
+				" fro bytea, ts timestamp, dt date, ti time,"
+				" boo boolean)", []):
+			q = base.UnmanagedQuerier(self.conn)
+			self.assertEqual(q.getColumnsFromDB("odd_table"), [
+				('t', u'text'), ('s', u'int2'), ('i', u'int4'),
+				('b', u'int8'), ('r', u'float4'), ('d', u'float8'),
+				('ar', u'_float4'), ('c', u'bpchar'), ('ad', u'_float8'),
+				('odd', u'bpchar'), ('frotsch', u'_bytea'), ('fro', u'bytea'),
+				('ts', u'timestamp'), ('dt', u'date'), ('ti', u'time'),
+				('boo', u'bool')])
 
 
 class TestMetaTable(TestWithTableCreation):
@@ -490,7 +513,7 @@ class TestIgnoreFrom(testhelpers.VerboseTest):
 			rsc.getParseOptions(updateMode=True, keepGoing=True),
 			connection=self.connection)
 		self.assertEqual(data2.nAffected, 0)
-	
+
 
 if __name__=="__main__":
 	testhelpers.main(AdhocQuerierTest)
