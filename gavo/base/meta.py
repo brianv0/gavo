@@ -937,7 +937,7 @@ class BibcodeMeta(MetaValue):
 		from gavo.base import config
 		adsMirror = config.get("web", "adsMirror")
 		return '<a href="%s">%s</a>'%(
-			adsMirror+"cgi-bin/nph-data_query?bibcode=%s&"
+			adsMirror+"/cgi-bin/nph-data_query?bibcode=%s&"
 				"link_type=ABSTRACT"%urllib.quote(matOb.group(0)),
 			matOb.group(0))  
 
