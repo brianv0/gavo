@@ -31,6 +31,19 @@
 			</li>
 		</xsl:template>
 
+		<xsl:template match="v:OPTION">
+			<li><xsl:value-of select="@value"/></li>
+		</xsl:template>
+
+		<xsl:template match="v:VALUES">
+			<xsl:if test="v:OPTION">
+				Valid values for this parameter are:
+				<ul>
+					<xsl:apply-templates/>
+				</ul>
+			</xsl:if>
+		</xsl:template>
+
 		<xsl:template match="v:PARAM">
 			<xsl:call-template name="format-fieldlike"/>
 		</xsl:template>
