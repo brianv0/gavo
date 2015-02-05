@@ -215,10 +215,7 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 		title = ctx.tag.attributes.get("title", metaKey.capitalize())
 		try:
 			return T.div(class_="explodable")[
-				T.h4(class_="exploHead")[
-					T.a(onclick="toggleCollapsedMeta(this)", 
-						class_="foldbutton")[title+" >>"],
-				],
+				T.h4(class_="exploHead")[title],
 				T.div(class_="exploBody")[
 					self._doRenderMeta(ctx, raiseOnFail=True)]]
 		except base.MetaError:

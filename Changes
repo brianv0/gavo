@@ -9,6 +9,9 @@ for you, we'd consider it a severe bug, though.
 
 Version 0.9.5 (2015-)
 
+	* Sidebar style has changed; actually removed the old support code, so
+	  the old behaviour cannot be restored by templates and javascript alone,
+	  but I'd be happy to provide you with the necessary hooks.
 
 Version 0.9.4 (2015-02-03)
 

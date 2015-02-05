@@ -295,7 +295,7 @@ tr.even {
 
 div#sidebar {
 	float: left;
-	width: 120px;
+	width: 100pt;
 	background: #d2dcf0;
 }
 
@@ -329,8 +329,8 @@ div#body {
 	min-width: 450px;
 	width: 80%;
 	position: absolute;
-	border-left: 120px solid #d2dcf0;
-	padding-left: 10px;
+	border-left: 100pt solid #d2dcf0;
+	padding-left: 8pt;
 	float:left;
 	background:white;
 }
@@ -352,31 +352,45 @@ li.metaItem {
 }
 
 div.explodable {
-	padding: 1px; /* must be in sync with gavo.js:*Meta */
+	width: 96pt;
+	height: 28pt;
+	overflow: hidden;
+	z-index:  1;
+	background:rgba(255,255,255,0.8);
+	margin-bottom: 5pt;
+	padding: 2pt;
 }
 
-div.explodable h4 {
-	margin-bottom: 1px;
+div.explodable:hover {
+	overflow: visible;
+	height: auto;
+	width: 200pt;
+	z-index: 10;
+	box-shadow: 10px 10px 5px #888;
+}
+
+div.explodable * {
 }
 
 h4.exploHead {
+	margin-top: 5pt;
 	font-weight:bold;
 	font-size:11px;
 	height: 13pt;
 	margin: 0px;
 	padding: 0px;
-	background: none;
 	cursor: pointer;
 	overflow: visible;
 	white-space: nowrap;
+	padding: 2pt;
 }
 
 div.exploBody {
-	overflow: auto;
-	height: 0px;
-	/* width is set in gavo.js:expandMeta */
-	visibility: hidden;
 	font-size: 11px;
+	width: 200pt;
+	overflow: auto;
+	max-height: 300px;
+	margin-bottom: 5pt;
 }
 
 .sidebaritem h3 {

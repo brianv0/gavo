@@ -160,45 +160,6 @@ function makeBookmarkLink(form) {
 
 ///////////// Functions for the sidebar
 
-var expandedMetaWidth = '200px';
-
-function markFold(title, markstr) {
-	return title.slice(0, title.length-2)+markstr;
-}
-
-function toggleCollapsedMeta(el) {
-	var contentBox = el.parentNode.nextSibling;
-	if (contentBox.style.visibility=='visible') {
-		el.childNodes[0].data = markFold(el.childNodes[0].data, ">>");
-		collapseMeta(contentBox);
-	} else {
-		el.childNodes[0].data = markFold(el.childNodes[0].data, "<<");
-		expandMeta(contentBox);
-	}
-}
-
-function collapseMeta(box) {
-	box.style.visibility = 'hidden';
-	box.style.height = '0px';
-	box.style.maxHeight = '0px';
-	var parent = box.parentNode;
-	parent.style.border = '0px none #707ca0';
-	parent.style.padding = '1px';
-	parent.style.background = 'none';
-}
-
-function expandMeta(box) {
-	box.style.visibility = 'visible';
-	box.style.height = 'auto';
-	box.style.maxHeight = '200px';
-	box.style.width = expandedMetaWidth;
-	var parent = box.parentNode;
-	parent.style.border = '1px solid #707ca0';
-	parent.style.padding = '3px';
-	parent.style.background = '#ffffff';
-	parent.style.width = expandedMetaWidth;
-}
-
 function followEmbeddedLink(parent) {
 // forwards the browser to the href of the first child that has one.
 // this is for the button-type decoration around links.
