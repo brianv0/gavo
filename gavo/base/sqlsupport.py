@@ -458,7 +458,7 @@ class PostgresQueryMixin(object):
 		_parseTableName(tableName)
 		cursor = self.query("select * from %s limit 0"%tableName)
 		return [(col.name, self._resolveTypeCode(col.type_code)) for col in 
-			sorted(cursor.description, key=lambda v: v.index)]
+			cursor.description]
 
 	def roleExists(self, role):
 		"""returns True if there role is known to the database.

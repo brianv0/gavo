@@ -386,12 +386,12 @@ class ToPgTypeValidatorConverter(FromSQLConverter):
 	"""returns a callable that takes a type code from postgres' pg_type
 	that will raise a TypeError if the to types are deemed incompatible.
 	"""
-	@staticmethod
+	typeSystem = "Postgres pg_types validators"
+
 	def checkInt(pgcode):
 		if pgcode not in frozenset(['int2', 'int4', 'int8']):
 			raise TypeError("%s is not compatible with an integer column"%pgcode)
 	
-	@staticmethod
 	def checkFloat(pgcode):
 		if pgcode not in frozenset(['float4', 'float8']):
 			raise TypeError("%s is not compatible with an integer column"%pgcode)
@@ -403,14 +403,15 @@ class ToPgTypeValidatorConverter(FromSQLConverter):
 					expectedCode, pgcode))
 		return checker
 
-	@staticmethod
 	def dontCheck(pgcode):
 		# should we give a warning that we didn't check a column?
 		pass
-	
-	@staticmethod
-	def beAlarmed(pgcode):
-		raise TypeError("Column with a non-db mapped to db type %s"%pgcode)
+
+	def makeAlarmer(typeName):
+		def beAlarmed(pgcode):
+			raise TypeError("Column with a non-db type %s mapped to db type %s"%(
+				typeName, pgcode))
+		return beAlarmed
 
 	simpleMap = {
 		"smallint": checkInt,
@@ -425,17 +426,17 @@ class ToPgTypeValidatorConverter(FromSQLConverter):
 		"timestamp": makeChecker("timestamp"),
 		"time": makeChecker("time"),
 		"box": dontCheck, # for now
-		"vexpr-mjd": beAlarmed,
-		"vexpr-string": beAlarmed,
-		"vexpr-date": beAlarmed,
-		"vexpr-float": beAlarmed,
-		"file": beAlarmed,
-		"pql-float": beAlarmed,
-		"pql-string": beAlarmed,
-		"pql-date": beAlarmed,
-		"pql-int": beAlarmed,
-		"pql-upload": beAlarmed,
-		"raw": beAlarmed,
+		"vexpr-mjd": makeAlarmer("vexpr-mjd"),
+		"vexpr-string": makeAlarmer("vexpr-string"),
+		"vexpr-date": makeAlarmer("vexpr-date"),
+		"vexpr-float": makeAlarmer("vexpr-float"),
+		"file": makeAlarmer("file"),
+		"pql-float": makeAlarmer("pql-float"),
+		"pql-string": makeAlarmer("pql-string"),
+		"pql-date": makeAlarmer("pql-date"),
+		"pql-int": makeAlarmer("pql-int"),
+		"pql-upload": makeAlarmer("pql-upload"),
+		"raw": makeAlarmer("raw"),
 		"bytea": makeChecker("bytea"),
 		"spoint": dontCheck, # for now
 		"scircle": dontCheck, # for now
@@ -465,7 +466,7 @@ sqltypeToXSD = ToXSDConverter().convert
 sqltypeToNumpy = ToNumpyConverter().convert
 sqltypeToPython = ToPythonConverter().convert
 sqltypeToPythonCode = ToPythonCodeConverter().convert
-sqltypeToPgVal = ToPgTypeValidatorConverter().convert
+sqltypeToPgValidator = ToPgTypeValidatorConverter().convert
 voTableToSQLType = FromVOTableConverter().convert
 pythonToLiteral = ToLiteralConverter().convert
 
@@ -479,4 +480,5 @@ if __name__=="__main__":
 
 __all__ = ["sqltypeToVOTable", "sqltypeToXSD", "sqltypeToNumpy",
 	"sqltypeToPython", "sqltypeToPythonCode", "voTableToSQLType",
-	"ConversionError", "FromSQLConverter", "pythonToLiteral"]
+	"ConversionError", "FromSQLConverter", "pythonToLiteral",
+	"sqltypeToPgValidator"]

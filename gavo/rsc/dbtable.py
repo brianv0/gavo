@@ -14,6 +14,7 @@ import sys
 
 from gavo import base
 from gavo import rscdef
+from gavo import utils
 from gavo.base import sqlsupport
 from gavo.rsc import common
 from gavo.rsc import table
@@ -275,6 +276,38 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 			self.query("CREATE SCHEMA %(schemaName)s"%locals())
 			self.setSchemaPrivileges(self.tableDef.rd)
 		return self
+
+	def ensureOnDiskMatches(self):
+		"""raises a DataError if the on-disk structure of a table doesn't
+		match DaCHS' idea of it.
+
+		If the table doesn't exist on disk, this will raise a NotFoundError.
+		"""
+		dbCols = self.getColumnsFromDB(self.tableDef.getQName())
+		mismatches = []
+		if len(self.tableDef.columns)<len(dbCols):
+			mismatches.append("extra columns in DB (%s)"%", ".join(
+				name for name, _ in dbCols[len(self.tableDef.columns):]))
+		
+		for index, col in enumerate(self.tableDef):
+			try:
+				name, type = dbCols[index]
+			except IndexError:
+				mismatches.append("from column %s on: No matches in DB"%col.name)
+				break
+
+			if col.name.lower()!=name:
+				mismatches.append("mismatching name of %s (DB: %s)"%(col.name, name))
+				continue
+			try:
+				base.sqltypeToPgValidator(col.type)(type)
+			except TypeError, ex:
+				mismatches.append("type mismatch in column %s (%s)"%(
+					col.name, utils.safe_str(ex)))
+
+		if mismatches:
+			raise base.DataError("Table %s: %s"%(
+				self.tableDef.getQName(), "; ".join(mismatches)))
 
 	def close(self):
 		"""cleans up connection if it is owned.

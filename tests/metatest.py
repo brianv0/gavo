@@ -296,8 +296,6 @@ class CopiesTest(testhelpers.VerboseTest):
 
 
 class ContentTest(testhelpers.VerboseTest):
-	"""tests for plain content access.
-	"""
 # Under normal circumstances, you don't want to access meta content
 # like this either; this is much better than fiddling with children
 # and content, though
@@ -330,7 +328,15 @@ class ContentTest(testhelpers.VerboseTest):
 		self.assertEqual(m.getMeta("brasel").getContent("html"), 
 			'<p><a class="reference external" href="http://foo.org">foo</a></p>\n')
 
-
+	def testRstExtension(self):
+		m = base.MetaMixin()
+		m.addMeta("brasel", meta.makeMetaValue(
+			"See also :bibcode:`2011AJ....142....3H` .", format="rst"))
+		self.assertTrue(
+			'href="http://ads.ari.uni-heidelberg.de/abs/2011AJ....142....3H"'
+			in m.getMeta("brasel").getContent("html"))
+			
+		
 class _MetaCarrier(base.Structure, base.MetaMixin, base.StandardMacroMixin):
 	name_ = "m"
 

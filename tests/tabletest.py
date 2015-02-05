@@ -244,6 +244,20 @@ class DBTableTest(tresc.TestWithDBConnection):
 		table.drop()
 		self.assert_(not querier.tableExists(td.getQName()))
 
+	def testValidationFailure(self):
+		td = self._getRD().getTableDefById("xy")
+		querier = base.UnmanagedQuerier(connection=self.conn)
+		table = rsc.TableForDef(td, connection=self.conn, nometa=True)
+		try:
+			querier.query("alter table testing.xy drop column x")
+			self.assertRaisesWithMsg(base.DataError,
+				"Table testing.xy: mismatching name of x (DB: y); from"
+				" column y on: No matches in DB",
+				table.ensureOnDiskMatches,
+				())
+		finally:
+			table.drop()
+
 	def testFilling(self):
 		td = self._getRD().getTableDefById("xy")
 		table = rsc.TableForDef(td, nometa=True, connection=self.conn)

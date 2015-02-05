@@ -25,6 +25,7 @@ import traceback
 from gavo import api
 from gavo import base
 from gavo import stc
+from gavo import utils
 from gavo.helpers import testtricks
 from gavo.imp import argparse
 from gavo.registry import builders
@@ -229,6 +230,16 @@ def validateTables(rd, args):
 				outputError(rd.sourceId, "Bad unit in table %s, column %s: %s"%(
 					td.getQName(), col.name, col.unit))
 
+		if td.onDisk and args.compareDB:
+			with base.getTableConn() as conn:
+				q = base.UnmanagedQuerier(conn)
+				if q.tableExists(td.getQName()):
+					t = api.TableForDef(td, connection=conn)
+					try:
+						t.ensureOnDiskMatches()
+					except api.DataError, msg:
+						outputError(rd.sourceId, 
+							utils.makeEllipsis(utils.safe_str(msg), 160))
 	return valid
 
 
@@ -281,6 +292,10 @@ def parseCommandLine():
 	parser.add_argument("-T", "--timeout", help="When running tests, abort"
 		" and fail requests after inactivity of SECONDS",
 		action="store", dest="timeout", type=int, default=15, metavar="SECONDS")
+	parser.add_argument("-c", "--compare-db", help="Also make sure that"
+		" tables that are on disk (somewhat) match the definition in the RD.",
+		action="store_true", dest="compareDB")
+
 	return parser.parse_args()
 
 

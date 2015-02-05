@@ -351,11 +351,11 @@ class AdhocQuerierTest(testhelpers.VerboseTest):
 			self.assertEqual(q.getTimeout(), 0)
 
 	def testNoInjectionOnGetColumns(self):
-		with base.UnmanagedQuerier(self.conn) as q:
-			self.assertRaisesWithMsg(ValueError,
-				"'foo; drop tables' is not a SQL regular identifier",
-				q.getColumnsFromDB,
-				("foo; drop tables",))
+		q = base.UnmanagedQuerier(self.conn)
+		self.assertRaisesWithMsg(ValueError,
+			"'foo; drop tables' is not a SQL regular identifier",
+			q.getColumnsFromDB,
+			("foo; drop tables",))
 
 	def testGetColumns(self):
 		with digestedTable(self.conn, "odd_table", 

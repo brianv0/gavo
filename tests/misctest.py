@@ -908,5 +908,34 @@ class ValidatorTest(testhelpers.VerboseTest):
 		self.assertFalse(val(oaiTree))
 
 
+class PgValidatorTest(testhelpers.VerboseTest):
+	def testBasicAcceptance(self):
+		base.sqltypeToPgValidator("integer")("int4")
+	
+	def testBadRejecting(self):
+		self.assertRaisesWithMsg(base.ConversionError,
+			"No Postgres pg_types validators type for float",
+			base.sqltypeToPgValidator,
+			("float",))
+
+	def testBasicRejecting(self):
+		self.assertRaisesWithMsg(TypeError,
+			"int4 is not compatible with an integer column",
+			base.sqltypeToPgValidator("real"),
+			("int4",))
+
+	def testArrayAcceptance(self):
+		base.sqltypeToPgValidator("real[]")("_float8")
+
+	def testNondbRejecting(self):
+		self.assertRaisesWithMsg(TypeError,
+			"Column with a non-db type file mapped to db type wurst",
+			base.sqltypeToPgValidator("file"),
+			("wurst",))
+
+	def testIgnoring(self):
+		base.sqltypeToPgValidator("spoint")("wurst")
+
+
 if __name__=="__main__":
 	testhelpers.main(KVLMakeTest)
