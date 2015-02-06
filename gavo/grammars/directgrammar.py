@@ -549,6 +549,7 @@ class FITSCodeGenerator(_CodeGenerator):
 		"D": ("TDOUBLE", "double")}
 	makers = {
 		"bigint": "MAKE_BIGINT",
+		"smallint": "MAKE_SHORT",
 		"bytea": "MAKE_BYTE",
 		"text": "MAKE_TEXT",
 		"integer": "MAKE_INT",
