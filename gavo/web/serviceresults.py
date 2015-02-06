@@ -147,6 +147,24 @@ class TextResponse(ServiceResult):
 		return ""
 
 
+class CSVResponse(ServiceResult):
+	code = "CSV"
+	label = "CSV"
+
+	@classmethod
+	def _formatOutput(cls, data, ctx):
+		request = inevow.IRequest(ctx)
+		request.setHeader('content-disposition', 
+			'attachment; filename=table.csv')
+		request.setHeader("content-type", "text/csv;header=present")
+
+		def produceData(destFile):
+			formats.formatData("csv_header", data.original, 
+				request, acquireSamples=False)
+
+		return streaming.streamOut(produceData, request)
+
+
 class JsonResponse(ServiceResult):
 	code = "JSON"
 	label = "JSON"
