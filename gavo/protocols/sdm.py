@@ -1,6 +1,10 @@
 """
 Code dealing with spectra (the actual data), in particular in the spectral
 data model (sdm).
+
+This assumes Spectral Data Model Version 1, but doesn't use very much of it.
+There's an sdm2 module for version 2 support.  Generic, version-independent 
+code should go here.
 """
 
 #c Copyright 2008-2015, the GAVO project
@@ -12,6 +16,7 @@ data model (sdm).
 import datetime
 import os
 import urllib
+import warnings
 from cStringIO import StringIO
 
 from gavo import base
@@ -427,7 +432,7 @@ def mangle_fluxcalib(sdmTable, newCalib):
 
 
 ################## The SDM core (usable in dcc: accrefs).  
-################## Superceded by datalink, scheduled for removal Jan 2015
+################## Superceded by datalink, scheduled for removal 2016
 
 class SDMCore(svcs.Core):
 	"""A core for making (VO)Tables according to the Spectral Data Model.
@@ -457,6 +462,9 @@ class SDMCore(svcs.Core):
 		" as input.", copyable=True)
 
 	def onElementComplete(self):
+		warnings.warn("SDMCore is deprecated, and chances are you don't need"
+			" need it.  See http://docs.g-vo.org/DaCHS/commonproblems.html for"
+			" details.", DeprecationWarning)
 		self._onElementCompleteNext(SDMCore)
 		if self.sdmDD.getMeta("utype", default=None) is None:
 			self.sdmDD.setMeta("utype", "spec:Spectrum")

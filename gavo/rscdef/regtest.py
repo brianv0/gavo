@@ -972,7 +972,7 @@ def _getRunnerForAll(runnerArgs):
 def _getRunnerForSingle(testId, runnerArgs):
 	from gavo import api
 
-	testElement = common.getReferencedElement(testId)
+	testElement = common.getReferencedElement(testId, doQueries=False)
 	
 	if isinstance(testElement, api.RD):
 		runner = TestRunner.fromRD(testElement, **runnerArgs)

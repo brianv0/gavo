@@ -12,8 +12,8 @@
 			instrument="DaCHS test suite" 
 			fluxCalibration="UNCALIBRATED"
 			spectralCalibration="CALIBRATED"
-			fluxSI=" "
-			spectralSI="Angstrom"
+			fluxUnit=" "
+			spectralUnit="Angstrom"
 			spectralResolution="1e-10"
 			collection="test set"
 			>//ssap#hcd</mixin>
@@ -24,8 +24,8 @@
 
 	<table id="mixctest" onDisk="True" primary="accref">
 		<mixin
-			fluxSI="Jy"
-			spectralSI="Hz"
+			fluxUnit="Jy"
+			spectralUnit="Hz"
 			fluxUCD="whatever.junk"
 			spectralUCD="frequency">//ssap#mixc</mixin>
 	</table>
@@ -106,7 +106,9 @@
 	</data>
 
 	<table id="spectrum">
-		<mixin ssaTable="hcdtest">//ssap#sdm-instance</mixin>
+		<mixin ssaTable="hcdtest"
+			spectralDescription="Wavelength"
+			>//ssap#sdm-instance</mixin>
 	</table>
 
 	<sdmCore id="mksdm" queriedTable="hcdtest">

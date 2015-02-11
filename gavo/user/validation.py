@@ -224,7 +224,12 @@ def validateTables(rd, args):
 		for col in td:
 			try:
 				if col.unit:
-					api.parseUnit(col.unit)
+					parsedUnit = api.parseUnit(col.unit)
+					if parsedUnit.isUnknown:
+						outputWarning(rd,
+							"Column %s.%s: Unit %s is not interoperable"%(
+							td.getQName(), col.name, col.unit))
+					
 			except api.BadUnit:
 				valid = False
 				outputError(rd.sourceId, "Bad unit in table %s, column %s: %s"%(

@@ -42,7 +42,11 @@ class RDTest(testhelpers.VerboseTest):
 	def testDefaultedParam(self):
 		self.assertEqual(
 			getRD().getById("hcdtest").getParamByName("ssa_timeSI").value, 
-			"s")
+			None)
+		self.assertEqual(
+			getRD().getById("hcdtest").getParamByName("ssa_fluxucd").value, 
+			"phot.flux.density;em.wl")
+
 
 	def testNullDefaultedParam(self):
 		self.assertEqual(
@@ -772,7 +776,7 @@ class _RenderedSDMResponse(testhelpers.TestResource):
 			"accessPath": "dcc://data.ssatest/mksdm?data/spec1.ssatest.vot",})
 		prod = products.getProductForRAccref(rAccref)
 		rawVOT = "".join(prod.iterData(svcs.QueryMeta({"_TDENC": True})))
-		return rawVOT, testhelpers.getXMLTree(rawVOT)
+		return rawVOT, testhelpers.getXMLTree(rawVOT, debug=False)
 
 
 class SDMTableTest(testhelpers.VerboseTest):
@@ -826,6 +830,33 @@ class SDMTableTest(testhelpers.VerboseTest):
 		tree = self.stringAndTree[1]
 		p = tree.xpath("//PARAM[@utype='spec:Spectrum.Access.Reference']")[0]
 		self.failUnless(p.get("value").startswith("http"))
+
+	def testDescriptionOverridden(self):
+		tree = self.stringAndTree[1]
+		self.assertEqual(
+			tree.xpath("//FIELD[@name='spectral']/DESCRIPTION")[0].text,
+			"Wavelength")
+	
+	def testDescriptionDefault(self):
+		tree = self.stringAndTree[1]
+		self.assertEqual(
+			tree.xpath("//FIELD[@name='flux']/DESCRIPTION")[0].text,
+			"The dependent variable of this spectrum ("
+			"see the ucd for its physical meaning)")
+	
+	def testSpectralUnitUsed(self):
+		tree = self.stringAndTree[1]
+		self.assertEqual(
+			tree.xpath("//FIELD[@name='spectral']")[0].get("unit"),
+			"Angstrom")
+
+	def testSSAMetadataUnchanged(self):
+		# FIXME: I guess SDM *should* adapt ssa metadata to whatever is
+		# used in the spectra themselves.  Right now, the metadata units
+		# are fixed by SSA, so DaCHS must not  do any conversions here
+		p = self.stringAndTree[1].xpath("//PARAM[@name='ssa_specstart']")[0]
+		self.assertEqual(p.get("unit"), "m")
+		self.assertEqual(p.get("value"), "4e-07")
 
 
 class _RenderedSDMFITSResponse(testhelpers.TestResource):
@@ -919,7 +950,13 @@ class MixcTableTest(testhelpers.VerboseTest):
 		col = table.getColumnByName("ssa_spectStatError")
 		for attName, expected in [
 			("utype", "ssa:Char.SpectralAxis.Accuracy.StatError"),
-			("unit", "Hz"),
+			("unit", "m"),
+			("verbLevel", 15)]:
+			self.assertEqual(getattr(col, attName), expected)
+		col = table.getColumnByName("ssa_fluxStatError")
+		for attName, expected in [
+			("utype", "ssa:Char.FluxAxis.Accuracy.StatError"),
+			("unit", "Jy"),
 			("verbLevel", 15)]:
 			self.assertEqual(getattr(col, attName), expected)
 
@@ -948,6 +985,11 @@ class MixcTableTest(testhelpers.VerboseTest):
 			self.assertEqual(rows[0]["ssa_dstitle"], "junk from "+id)
 		finally:
 			self.conn.rollback()
+
+	def testParams(self):
+		table = getRD().getById("mixctest")
+		param = table.getParamByName("ssa_fluxunit")
+		self.assertEqual(param.value, "Jy")
 
 
 if __name__=="__main__":

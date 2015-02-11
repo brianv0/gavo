@@ -91,26 +91,31 @@
 			displayHint="type=humanDate"
 			xtype="mjd"/>
 		<column name="ssa_timeExt"
+			unit="s"
 			utype="ssa:Char.TimeAxis.Coverage.Bounds.Extent" ucd="time.duration"
 			verbLevel="5" tablehead="Exp. Time"
 			description="Exposure duration"/>
 		<column name="ssa_specmid"
+			unit="m"
 			utype="ssa:Char.SpectralAxis.Coverage.Location.Value"
 			ucd="em.wl;instr.bandpass"
-			verbLevel="15" tablehead="Mid. Band" unit="m"
+			verbLevel="15" tablehead="Mid. Band"
 			description="Midpoint of region covered in this dataset"/>
 		<column name="ssa_specext"
+			unit="m"
 			utype="ssa:Char.SpectralAxis.Coverage.Bounds.Extent"
 			ucd="em.wl;instr.bandwidth"
-			verbLevel="15" tablehead="Bandwidth" unit="m"
+			verbLevel="15" tablehead="Bandwidth"
 			description="Width of the spectrum"/>
 		<column name="ssa_specstart"
+			unit="m"
 			utype="ssa:Char.SpectralAxis.Coverage.Bounds.Start" ucd="em.wl;stat.min"
-			verbLevel="15" tablehead="Band start" unit="m"
+			verbLevel="15" tablehead="Band start"
 			description="Lower value of spectral coordinate"/>
 		<column name="ssa_specend"
+			unit="m"
 			utype="ssa:Char.SpectralAxis.Coverage.Bounds.Stop" ucd="em.wl;stat.max"
-			verbLevel="15" tablehead="Band end" unit="m"
+			verbLevel="15" tablehead="Band end"
 			description="Upper value of spectral coordinate"/>
 	</STREAM>
 
@@ -144,21 +149,28 @@
 		<param name="ssa_timeSI" type="text"
 			utype="ssa:Dataset.TimeSI"
 			tablehead="[Time]"
-			description="Time unit">\timeSI</param>
+			description="Time conversion factor in Osuna-Salgado convention."
+			>\timeSI</param>
+
 		<param name="ssa_spectralSI" type="text"
 			utype="ssa:Dataset.SpectralSI"
 			tablehead="[Spectral]"
-			description="Unit of frequency or wavelength"
+			description="Spectral conversion factor in Osuna-Salgado convention"
 			>\spectralSI</param>
 		<param name="ssa_spectralucd" type="text" required="True"
 			utype="ssa:Char.SpectralAxis.Ucd"
 			tablehead="UCD(spectral)" verbLevel="25" 
 			description="UCD of the spectral column">\spectralUCD</param>
+		<param name="ssa_spectralunit" type="text" required="True"
+			utype="ssa:Char.SpectralAxis.Unit"
+			tablehead="unit(spectral)" verbLevel="25" 
+			description="Unit of the spectral column">\spectralUnit</param>
 
 		<param name="ssa_fluxSI" type="text"
 			utype="ssa:Dataset.FluxSI"
 			tablehead="[Flux]"
-			description="Unit of flux/magnitude">\fluxSI</param>
+			description="Flux/magnitude conversion factor in Osuna-Salgado convention"
+			>\fluxSI</param>
 		<param name="ssa_fluxucd" type="text" required="True"
 			utype="ssa:Char.FluxAxis.Ucd"
 			tablehead="UCD(flux)" verbLevel="25" 
@@ -166,12 +178,7 @@
 		<param name="ssa_fluxunit" type="text" required="True"
 			utype="ssa:Char.FluxAxis.Unit"
 			tablehead="unit(flux)" verbLevel="25" 
-			description="Unit of the flux column">\fluxSI</param>
-		<param name="ssa_spectralunit" type="text" required="True"
-			utype="ssa:Char.SpectralAxis.Unit"
-			tablehead="unit(spectral)" verbLevel="25" 
-			description="Unit of the spectral column">\spectralSI</param>
-
+			description="Unit of the flux column">\fluxUnit</param>
 	</STREAM>
 
 	<STREAM id="hcd_outpars">
@@ -227,14 +234,14 @@
 			description="URL or bibcode of a publication describing this data."
 			>\reference</param>
 		<param name="ssa_fluxStatError" 
-			unit="\fluxSI" utype="ssa:Char.FluxAxis.Accuracy.StatError"
+			unit="\fluxUnit" utype="ssa:Char.FluxAxis.Accuracy.StatError"
 			ucd="stat.error;phot.flux.density;em"
 			tablehead="Err. flux" verbLevel="25"
 			description="Statistical error in flux"
 			><values nullLiteral="NaN"/>\statFluxError</param>
 		<param name="ssa_fluxSysError" 
 			utype="ssa:Char.FluxAxis.Accuracy.SysError"
-			unit="\fluxSI" ucd="stat.error.sys;phot.flux.density;em"
+			unit="\fluxUnit" ucd="stat.error.sys;phot.flux.density;em"
 			tablehead="Sys. Err flux" verbLevel="25"
 			description="Systematic error in flux"
 			><values nullLiteral="NaN"/>\sysFluxError</param>
@@ -244,18 +251,18 @@
 			description="Type of flux calibration">\fluxCalibration</param>
 		<param name="ssa_binSize" 
 			utype="ssa:Char.SpectralAxis.Accuracy.BinSize" 
-			unit="\spectralSI" ucd="em.wl;spect.binSize"
+			unit="m" ucd="em.wl;spect.binSize"
 			tablehead="Spect. Bin" verbLevel="25"
 			description="Bin size in wavelength"/>
 		<param name="ssa_spectStatError"
 			utype="ssa:Char.SpectralAxis.Accuracy.StatError" 
-			unit="\spectralSI" ucd="stat.error;em"
+			unit="m" ucd="stat.error;em"
 			tablehead="Err. Spect" verbLevel="25"
 			description="Statistical error in wavelength">
 			<values nullLiteral="NaN"/>\statSpectError</param>
 		<param name="ssa_spectSysError"
 			utype="ssa:Char.SpectralAxis.Accuracy.SysError" 
-			unit="\spectralSI" ucd="stat.error.sys;em"
+			unit="m" ucd="stat.error.sys;em"
 			tablehead="Sys. Err. Spect" verbLevel="25"
 			description="Systematic error in wavelength">
 			<values nullLiteral="NaN"/>\sysSpectError</param>
@@ -364,10 +371,10 @@
 		<meta name="description">A sample of SSA fields for referencing and such.
 		</meta>
 		<FEED source="hcd_fields"/>
-		<FEED source="hcd_outpars" timeSI="junk" fluxSI="junk"
-			publisher="junk" creator="junk" collection=""
-			instrument="junk" dataSource="junk" creationType="junk"
-			reference="junk" fluxUCD="junk" spectralSI="junk"
+		<FEED source="hcd_outpars" spectralUnit="junk" fluxUnit="junk"
+			publisher="junk" creator="junk" collection="" timeSI=""
+			spectralSI="" fluxSI="" instrument="junk" dataSource="junk" 
+			creationType="junk" reference="junk" fluxUCD="junk"
 			spectralUCD="junk" statFluxError="NaN" sysFluxError="NaN"
 			fluxCalibration="" statSpectError="NaN" sysSpectError="NaN"
 			spectralCalibration="" statSpaceError="NaN"
@@ -497,15 +504,15 @@
 				a publication describing this data.">"Take from RD"</par>
 
 			<par key="binSize" late="True" description="Bin size on the
-				spectral axis in units of spectralSI">None</par>
+				spectral axis in m">None</par>
 			<par key="fluxStatError" late="True" description="Statistical
-				error for flux in units of fluxSI">None</par>
+				error for flux in units of fluxUnit">None</par>
 			<par key="spectStatError" late="True" description="Statistical
-				error for the spectral coordinate in units of spectralSI">None</par>
+				error for the spectral coordinate in m">None</par>
 			<par key="fluxSysError" late="True" description="Systematic
-				error for flux in units of fluxSI">None</par>
+				error for flux in units of fluxUnit">None</par>
 			<par key="spectSysError" late="True" description="Systematic
-				error for the spectral coordinate in units of spectralSI">None</par>
+				error for the spectral coordinate in m">None</par>
 
 			<par key="fluxCalib" late="True" description="Type of flux calibration
 				(one of ABSOLUTE, RELATIVE, NORMALIZED, or UNCALIBRATED);
@@ -537,6 +544,32 @@
 		</code>
 	</procDef>
 
+	<STREAM id="commonMixinParams">
+		<mixinPar key="fluxUnit" description="Flux unit used by the
+			spectra and in SSA char metadata.  This must be a VOUnit string."/>
+		<mixinPar key="spectralUnit" description="Spectral unit used by the
+			spectra (SSA char metadata always is wavelength in meters).  
+			This must be a VOUnit string."/>
+
+		<mixinPar key="timeSI" description="SI conversion factor for times
+			in Osuna-Salgado convention; ssa:DataSet.TimeSI (you probably want
+			to leave this empty)">__NULL__</mixinPar>
+		<mixinPar key="fluxSI" description="SI conversion factor for fluxes 
+			in the spectrum instance (not the SSA metadata) in Osuna-Salgado 
+			convention; ssa:Dataset.FluxSI (you probably want to leave this
+			empty)">__NULL__</mixinPar>
+		<mixinPar key="spectralSI" description="SI conversion factor of frequency 
+			or wavelength in the spectrum instance (not the SSA metadata, they
+			are all in meters); ssa:Dataset.SpectralSI (you probably want to
+			leave this empty)">__NULL__</mixinPar>
+		<mixinPar key="spectralUCD" description="ucd of the spectral column, like
+			em.freq or em.energy; default is wavelength; ssa:Char.SpectralAxis.Ucd"
+			>em.wl</mixinPar>
+		<mixinPar key="fluxUCD" description="ucd of the flux column, like
+			phot.count, phot.flux.density, etc.  Default is for flux over
+			wavelength; ssa:Char.FluxAxis.Ucd">phot.flux.density;em.wl</mixinPar>
+	</STREAM>
+
 	<mixinDef id="hcd">
 		<doc><![CDATA[
 			This mixin is for "homogeneous" data collections, where homogeneous
@@ -555,14 +588,9 @@
 					<bind name="table">"mySchema.myTableName"</bind>
 				</rowfilter>
 		]]></doc>
-		<mixinPar key="timeSI" description="Time unit (WCS convention);
-			ssa:DataSet.TimeSI">s</mixinPar>
-		<mixinPar key="fluxSI" description="Flux unit in the spectrum
-			instance (not the SSA metadata); use a blank (or a percent) for
-			relative or uncalibrated fluxes; ssa:Dataset.FluxSI"/>
-		<mixinPar key="spectralSI" description="Unit of frequency or 
-			wavelength in the spectrum instance (not the SSA metadata, they
-			are all in meters); ssa:Dataset.SpectralSI"/>
+
+		<FEED source="commonMixinParams"/>
+
 		<mixinPar key="creator" description="Creator designation;
 			ssa:DataID.Creator">__NULL__</mixinPar>
 		<mixinPar key="publisher" description="Publisher IVO (by default
@@ -580,11 +608,11 @@
 		<mixinPar key="reference" description="URL or bibcode of a 
 			publication describing this data; ssa:Curation.Reference"
 			>__NULL__</mixinPar>
-		<mixinPar key="statFluxError" description="Statistical error in flux
-			(units of fluxSI); ssa:Char.FluxAxis.Accuracy.StatError"
+		<mixinPar key="statFluxError" description="Statistical error in 
+			flux; ssa:Char.FluxAxis.Accuracy.StatError"
 			>__NULL__</mixinPar>
-		<mixinPar key="sysFluxError" description="Systematic error in flux
-			(units of fluxSI); ssa:Char.FluxAxis.Accuracy.SysError"
+		<mixinPar key="sysFluxError" description="Systematic error in flux;
+			ssa:Char.FluxAxis.Accuracy.SysError"
 			>__NULL__</mixinPar>
 		<mixinPar key="fluxCalibration" description="Type of flux calibration
 			(one of ABSOLUTE, RELATIVE, NORMALIZED, or UNCALIBRATED);
@@ -593,7 +621,7 @@
 			description="Statistical error in wavelength (units of specralSI); 
 			ssa:Char.SpectralAxis.Accuracy.StatError">__NULL__</mixinPar>
 		<mixinPar key="sysSpectError" description="Systematic error in wavelength
-			(units of spectralSI); ssa:Char.SpectralAxis.Accuracy.SysError"
+			(in m); ssa:Char.SpectralAxis.Accuracy.SysError"
 			>__NULL__</mixinPar>
 		<mixinPar key="spectralCalibration" description="Type of wavelength 
 			Calibration (one of ABSOLUTE, RELATIVE, NORMALIZED, or UNCALIBRATED);
@@ -604,12 +632,6 @@
 			>__NULL__</mixinPar>
 		<mixinPar key="collection" description="ivo id of the originating
 			collection; ssa:DataID.Collection">__NULL__</mixinPar>
-		<mixinPar key="spectralUCD" description="ucd of the spectral column, like
-			em.freq or em.energy; default is wavelength; ssa:Char.SpectralAxis.Ucd"
-			>em.wl</mixinPar>
-		<mixinPar key="fluxUCD" description="ucd of the flux column, like
-			phot.count, phot.flux.density, etc.  Default is for flux over
-			wavelength; ssa:Char.FluxAxis.Ucd">phot.flux.density;em.wl</mixinPar>
 		<mixinPar key="spectralResolution" 
 			description="Resolution on the spectral axis; you must give this
 			as FWHM wavelength in meters here. Approximate as necessary; 
@@ -649,27 +671,8 @@
 					<bind name="table">"mySchema.myTableName"</bind>
 				</rowfilter>
 		]]></doc>
-		<mixinPar key="fluxSI" description="Flux unit in all your spectra.
-			This is for metadata on errors and such.  If your spectra do
-			not agree on flux units, you probably want to set this NULL and
-			hope that clients are not too badly confused; alternatively,
-			you might want to homogenize the flux errors."/>
-		<mixinPar key="spectralSI" description="Unit of frequency or 
-			wavelength in the spectrum instances (not the SSA metadata, they
-			are all in meters); ssa:Dataset.SpectralSI;  If your spectra do
-			not agree on spectral units, you probably want to set this NULL and
-			hope that clients are not too badly confused; alternatively,
-			you might want to homogenize the spectal errors."/>
-		<mixinPar key="timeSI" description="Unit of time
-			in the spectrum instances; ssa:Dataset.timeSI;  If your spectra do
-			not agree on time units, you probably want to set this NULL and
-			hope that clients are not too badly confused; alternatively,
-			you might want to homogenize the temporal errors.">d</mixinPar>
-		<mixinPar key="fluxUCD"
-			description="UCD of flux column; ssa:Char.FluxAxis.Ucd"/>
-		<mixinPar key="spectralUCD"
-			description="UCD of spectral column; ssa:Char.SpectralAxis.Ucd"/>
-			
+		
+		<FEED source="commonMixinParams"/>
 
 		<FEED source="//products#hackProductsData"/>
 		<events>
@@ -982,12 +985,14 @@
 			The mixin adds two columns (you could add more if, e.g., you had
 			errors depending on the spectral or flux value), spectral (wavelength
 			or the like) and flux.  Their metadata is taken from the ssa fields
-			(fluxSI -> unit of flux, fluxUCD as its UCD, etc).
+			where available (ssa_fluxucd as flux UCD, ssa_fluxunit etc).
 
 			This mixin in action could look like this::
 
 				<table id="instance" onDisk="False">
-					<mixin ssaTable="spectra">//ssap#sdm-instance</mixin>
+					<mixin ssaTable="spectra"
+						fluxUnit="Jy"
+						>//ssap#sdm-instance</mixin>
 				</table>
 
 			]]></doc>
@@ -1005,6 +1010,7 @@
 				>The independent variable of this spectrum (see its ucd to figure out whether it's a wavelength, frequency, or energy)</mixinPar>
 		<mixinPar key="fluxDescription" description="Description
 			for the flux column">The dependent variable of this spectrum (see the ucd for its physical meaning)</mixinPar> 
+
 		<events>
 			<FEED source="makeSpecGroup" 
 				groupUtype="spec:Spectrum.Target"
@@ -1024,7 +1030,7 @@
 				fieldnames="ssa_dstitle ssa_creatorDID ssa_cdate ssa_bandpass 
 					ssa_cversion ssa_creator ssa_collection ssa_instrument 
 					ssa_datasource ssa_creationtype"/>
-			<!-- units and UCDs are being filled in by processEarly -->
+			<!-- UCDs and Units filled in by processEarly -->
 			<column name="spectral" type="double precision"
 				utype="spec:Spectrum.Data.SpectralAxis.Value"
 				description="\spectralDescription"/>

@@ -481,8 +481,11 @@ class GroupingTest(testhelpers.VerboseTest):
 		ctx = trialhelpers.getRequestContext("/")
 		ctx.remember({}, iformal.IFormData)
 		ctx.remember({}, inevow.IData)
-		form = formrender.Form(ctx, svc).form_genForm(ctx)
+
+		rend = formrender.Form(ctx, svc)
+		form = rend.form_genForm(ctx)
 		ctx.remember(form, iformal.IForm)
+		ctx.remember(rend, inevow.IRendererFactory)
 		form.name = "foo"
 		return flat.flatten(FormRenderer(form), ctx)
 

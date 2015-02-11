@@ -96,9 +96,11 @@
 		</div>
 		<div class="result" n:render="ifresult">
 			<p class="plotbuttons">
-				<button id="sendViaSAMP" title="Broadcasts this table to all 
+				<n:invisible n:render="iflinkable">
+					<button id="sendViaSAMP" title="Broadcasts this table to all 
 SAMP clients on your desktop.
 This needs a fairly modern hub to work.">Send via SAMP</button>
+				</n:invisible>
 				<button n:render="flotplot">Quick Plot</button>
 <!--				<button onClick="openVOPlot()">Open in VOPlot</button>-->
 			</p>
