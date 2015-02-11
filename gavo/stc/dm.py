@@ -213,6 +213,7 @@ class RadiusWiggle(_WiggleSpec):
 	def getValues(self):
 		return self.radii
 
+
 class MatrixWiggle(_WiggleSpec):
 	"""A matrix for specifying wiggle.
 
@@ -512,6 +513,9 @@ class SpaceInterval(_CoordinateInterval):
 			raise NotImplemented("Cannot yet transform coordinate intervals"
 				" in n>2 dims.")
 
+# Service for stcsast -- this may go away again
+PositionInterval = SpaceInterval
+
 
 class VelocityInterval(_CoordinateInterval):
 	cType = VelocityType
@@ -675,6 +679,13 @@ class _Compound(_Geometry):
 	"""
 	_a_children = ()
 
+	def polish(self):
+		for node in self.children:
+			if node.frame is None:
+				node.frame = self.frame
+			getattr(node, "polish", lambda: None)()
+
+
 	def adaptValuesWith(self, converter):
 		return self.change(children=[child.adaptValuesWith(converter)
 			for child in self.children])
@@ -814,6 +825,10 @@ class STCSpec(common.ASTNode):
 		# Fix local frames if not given (e.g., manual construction)
 		if self.place is not None and self.place.frame is None:
 			self.place.frame = self.astroSystem.spaceFrame
+		for area in self.areas:
+			if area.frame is None:
+				area.frame = self.astroSystem.spaceFrame
+			getattr(area, "polish", lambda: None)()
 
 # Operations here cannot be in a _setupNode since when parsing from
 # XML, there may be IdProxies instead of real objects.

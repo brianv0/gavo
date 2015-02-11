@@ -203,6 +203,7 @@ class STCSCompoundParsesTest(STCSParsesTestBase):
 		("compoundGeoPhrase", 
 			"Difference ICRS (Circle 10 12 1 Intersection (Not (Circle 11 11 1)"
 				" Box 12 22 1 2))"),
+# 5
 		("compoundGeoPhrase", 
 			"Union ICRS (Circle 10 12 1"
 			" Not (Intersection( Circle 11 11 1 Box 12 22 1 2)))"),
@@ -210,6 +211,9 @@ class STCSCompoundParsesTest(STCSParsesTestBase):
 			"Union ICRS (Circle 10 12 1"
 			" Not (Intersection (Circle 11 11 1 Not (Union (Box 12 22 1 2"
 			" Ellipse 1 2 3 4 5)))))"),
+		("compoundGeoPhrase",
+			"Union Galactic (PositionInterval 10 12 20 14"
+			"  PositionInterval 20 12 20 24)"),
 	]
 
 

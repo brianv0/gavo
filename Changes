@@ -9,6 +9,14 @@ for you, we'd consider it a severe bug, though.
 
 Version 0.9.5 (2015-)
 
+	* **RD breakage**: The old DaCHS implemenation got the meaning of
+		spectralSI and fluxSI completely wrong.  You will fairly certainly have
+		to change RDs doing SSA.  Any occurrence of spectralSI will have to become
+		spectralUnit, and fluxSI fluxUnit (run gavo val ALL to catch RDs where
+		that's necessary).  While you could add correct spectralSI and fluxSI
+		values (which would look like "10e-10 L" or so), the DaCHS authors
+		currently consider that a waste of time.
+
 	* Sidebar style has changed; actually removed the old support code, so
 	  the old behaviour cannot be restored by templates and javascript alone,
 	  but I'd be happy to provide you with the necessary hooks.

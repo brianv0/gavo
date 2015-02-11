@@ -442,6 +442,7 @@ def _makeGeometryKeyIterators():
 			("Box", [('center', 'v'), ('boxsize', 'v')]),
 			("Polygon", [("vertices", "rv")]),
 			("Convex", [("vectors", "cv")]),
+			("PositionInterval", [("lowerLimit", "v"), ("upperLimit", "v")]),
 		])
 
 _geometryKeyIterators = _makeGeometryKeyIterators()

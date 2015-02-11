@@ -225,7 +225,7 @@ def validateTables(rd, args):
 			try:
 				if col.unit:
 					parsedUnit = api.parseUnit(col.unit)
-					if parsedUnit.isUnknown:
+					if parsedUnit.isUnknown and not args.acceptFreeUnits:
 						outputWarning(rd,
 							"Column %s.%s: Unit %s is not interoperable"%(
 							td.getQName(), col.name, col.unit))
@@ -300,6 +300,10 @@ def parseCommandLine():
 	parser.add_argument("-c", "--compare-db", help="Also make sure that"
 		" tables that are on disk (somewhat) match the definition in the RD.",
 		action="store_true", dest="compareDB")
+	parser.add_argument("-u", "--accept-free-units", help="Do not warn"
+		" against units not listed in VOUnits.",
+		action="store_true", dest="acceptFreeUnits")
+
 
 	return parser.parse_args()
 

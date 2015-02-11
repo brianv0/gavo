@@ -330,12 +330,13 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 # atomic "geometries"; I do not bother to specify their actual
 # arguments since, without knowing the frame, they may be basically
 # anthing.   Also, I want to allow geometry column references.
-		_atomicGeometryKey = ( CaselessKeyword("AllSky") 
+		_atomicGeometryKey = ( CaselessKeyword("AllSky").setName("sub-geometry")
 			| CaselessKeyword("Circle") 
 			| CaselessKeyword("Ellipse") 
 			| CaselessKeyword("Box") 
 			| CaselessKeyword("Polygon") 
-			| CaselessKeyword("Convex") )
+			| CaselessKeyword("Convex") 
+			| CaselessKeyword("PositionInterval") )
 		atomicGeometry = ( _atomicGeometryKey("type") 
 			+ _commonRegionItems 
 			+ _coos 

@@ -285,6 +285,9 @@ def _makePolygonCoos(node):
 def _makeConvexCoos(node):
 	return {"geoCoos": tuple(itertools.chain(*node.vectors))}
 
+def _makeSpaceIntervalCoos(node):
+	return {"geoCoos": node.lowerLimit+node.upperLimit}
+
 _compoundGeos = ["Union", "Difference", "Intersection", "Not"]
 
 def _makeUnionCoos(node):

@@ -488,9 +488,9 @@ class STCSRoundtripTest(testhelpers.VerboseTest):
 			" Not (Difference (Circle 12 12 3 Box 11 11 2 3))))))",
 			"Difference ICRS Epoch J1999.9 (AllSky  Union (Circle 10.0 10.0 2.0 Intersection (Polygon 10.0 2.0 2.0 10.0 10.0 10.0 Intersection (Ellipse 11.0 11.0 2.0 3.0 30.0 Not (Difference (Circle 12.0 12.0 3.0 Box 11.0 11.0 2.0 3.0))))))"),
 # 25
-		("Union ICRS (Circle 1 1 0.5 Box 0.5 0.5 0.25 0.125) unit rad"
+		("Union ICRS (PositionInterval 0.5 1 2 1.5 Box 0.5 0.5 0.25 0.125) unit rad"
 			" Error 0.0001 0.0001",
-			"Union ICRS (Circle 1.0 1.0 0.5 Box 0.5 0.5 0.25 0.125) unit rad Error 0.0001 0.0001"),
+			"Union ICRS (SpaceInterval 0.5 1.0 2.0 1.5 Box 0.5 0.5 0.25 0.125) unit rad Error 0.0001 0.0001"),
 		("Union ICRS TOPOCENTER (Circle 180 10 20 Circle 190 20 20"
 			" Intersection (Circle 120 -10 20 Difference (Circle 130 -10 20"
 			" Circle 125 -10 2) Not (Circle 118 -8 3)))",

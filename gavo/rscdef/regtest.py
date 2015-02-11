@@ -963,7 +963,11 @@ def _getRunnerForAll(runnerArgs):
 
 	suites = []
 	for rdId in publication.findAllRDs():
-		rd = api.getRD(rdId)
+		try:
+			rd = api.getRD(rdId, doQueries=False)
+		except Exception, msg:
+			base.ui.notifyError("Error loading RD %s (%s). Ignoring."%(
+				rdId, utils.safe_str(msg)))
 		suites.extend(rd.tests)
 	
 	return TestRunner(suites, **runnerArgs)
