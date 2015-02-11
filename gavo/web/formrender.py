@@ -442,7 +442,8 @@ class FormMixin(formal.ResourceMixin):
 		"""
 		return T.div(class_="formLinks")[
 				T.a(href="", class_="resultlink", onmouseover=
-						"this.href=makeResultLink(getEnclosingForm(this))")
+						"this.href=makeResultLink(getEnclosingForm(this))",
+						render=T.directive("iflinkable"))
 					["[Result link]"],
 				" ",
 				T.a(href="", class_="resultlink", onmouseover=

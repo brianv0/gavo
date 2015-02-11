@@ -327,6 +327,22 @@ class HTMLResultRenderMixin(object):
 		else:
 			return ""
 
+	def render_iflinkable(self, ctx, data):
+		"""renders ctx.tag if we have a linkable result, nothing otherwise.
+
+		Linkable means that the result will come out as displayed through
+		a link.  Currently, we only see if a file upload was part of
+		the result production -- if there was, it's not linkable.
+
+		This currently doesn't even look if a file was indeed passed in: Things
+		already are not linkable if the service takes a file upload, whether
+		that's used or not.
+		"""
+		for ik in self.service.getInputKeysFor(self):
+			if ik.type=='file':
+				return ""
+		return ctx.tag
+
 	def render_servicestyle(self, ctx, data):
 		"""enters custom service styles into ctx.tag.
 
