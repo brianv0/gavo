@@ -859,6 +859,103 @@ class SDMTableTest(testhelpers.VerboseTest):
 		self.assertEqual(p.get("value"), "4e-07")
 
 
+class _RenderedSDM2Response(testhelpers.TestResource):
+	resources = [("ssatable", tresc.ssaTestTable)]
+
+	def make(self, deps):
+		ssaRow = list(deps["ssatable"].iterQuery(
+			fragment="accref='data/spec2.ssatest'"))[0]
+		_, rawVOT = sdm.formatSDMData(
+			sdm.makeSDMDataForSSARow(ssaRow, 
+				deps["ssatable"].tableDef.rd.getById("sdmdata"), "2"),
+			base.votableType+";serialization=tabledata")
+		return rawVOT, testhelpers.getXMLTree(rawVOT, debug=False)
+
+
+class SDM2TableTest(testhelpers.VerboseTest):
+	resources = [("stringAndTree", _RenderedSDM2Response())]
+
+	def _getUniqueByXPath(self, xpath, root=None):
+		if root is None:
+			root = self.stringAndTree[1]
+		resSet = root.xpath(xpath)
+		self.assertEqual(len(resSet), 1)
+		return resSet[0]
+
+	def testParameterSet(self):
+		res = self._getUniqueByXPath(
+			"//PARAM[@utype='spec2:Curation.PublisherDID']")
+		self.assertEqual(res.get('value'), 'ivo://test.inv/test2')
+
+	def testSpecGroupsPresent(self):
+		group = self._getUniqueByXPath("//GROUP[@utype='spec2:Target']")
+		ref = self._getUniqueByXPath(
+			'//PARAMref[@utype="spec2:Target.Name"]')
+		self.failIf(ref.get("ref") is None)
+	
+	def testReferentialIntegrity(self):
+		#open("zw.vot", "w").write(self.stringAndTree[0])
+		tree = self.stringAndTree[1]
+		knownIds = set()
+		for element in tree.xpath("//*[@ID]"):
+			knownIds.add(element.get("ID"))
+		for element in tree.xpath("//*[@ref]"):
+			self.failUnless(element.get("ref") in knownIds,
+				"%s is referred to but no element with this id present"%
+					element.get("ref"))
+
+	def testDataPresent(self):
+		tree = self.stringAndTree[1]
+		firstRow = tree.xpath("//TR")[0]
+		self.assertEqual(
+			[el.text for el in firstRow.xpath("TD")],
+			["3000.0", "30.0"])
+
+	def testContainerUtypes(self):
+		tree = self.stringAndTree[1]
+		votRes = tree.xpath("//RESOURCE")[0]
+		self.assertEqual(votRes.get("utype"), "spec2:Spectrum")
+		table = votRes.xpath("//TABLE")[0]
+		self.assertEqual(table.get("utype"), "spec2:Spectrum")
+
+	def testAccrefMappedAndUtype(self):
+		# the product link is made in a hack in SDMCore.
+		tree = self.stringAndTree[1]
+		p = tree.xpath("//PARAM[@utype='spec2:Access.Reference']")[0]
+		self.failUnless(p.get("value").startswith("http"))
+
+	def testDescriptionOverridden(self):
+		tree = self.stringAndTree[1]
+		self.assertEqual(
+			tree.xpath(
+				"//FIELD[@utype='spec2:Data.SpectralAxis.Value']/DESCRIPTION")[0].text,
+			"Wavelength")
+	
+	def testDescriptionDefault(self):
+		tree = self.stringAndTree[1]
+		self.assertEqual(
+			tree.xpath(
+				"//FIELD[@utype='spec2:Data.FluxAxis.Value']/DESCRIPTION")[0].text,
+			"The dependent variable of this spectrum ("
+			"see the ucd for its physical meaning)")
+	
+	def testSpectralUnitUsed(self):
+		tree = self.stringAndTree[1]
+		self.assertEqual(
+			tree.xpath("//FIELD[@utype='spec2:Data.SpectralAxis.Value']"
+				)[0].get("unit"),
+			"Angstrom")
+
+	def testSSAMetadataUnchanged(self):
+		# FIXME: I guess SDM *should* adapt ssa metadata to whatever is
+		# used in the spectra themselves.  Right now, the metadata units
+		# are fixed by SSA, so DaCHS must not  do any conversions here
+		p = self.stringAndTree[1].xpath(
+			"//PARAM[@utype='spec2:Char.SpectralAxis.Coverage.Bounds.Start']")[0]
+		self.assertEqual(p.get("unit"), "m")
+		self.assertEqual(p.get("value"), "5e-07")
+
+
 class _RenderedSDMFITSResponse(testhelpers.TestResource):
 	resources = [("ssatable", tresc.ssaTestTable)]
 

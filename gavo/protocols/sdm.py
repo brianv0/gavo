@@ -43,7 +43,7 @@ GETDATA_FORMATS = {
 	"application/fits": None,}
 
 
-_SSA_SPEC_EXCEPTIONS = {
+_SDM1_IRREGULARS = {
 	"Dataset.Type": "Spectrum.Type",
 	"Dataset.Length ": "Spectrum.Length",
 	"Dataset.TimeSI": "Spectrum.TimeSI",
@@ -51,7 +51,7 @@ _SSA_SPEC_EXCEPTIONS = {
 	"Dataset.FluxSI": "Spectrum.FluxSI",
 }
 
-def getSpecForSSA(utype):
+def getSDM1UtypeForSSA(utype):
 	"""returns a utype from the spectrum data model for a utype of the ssa
 	data model.
 
@@ -64,14 +64,61 @@ def getSpecForSSA(utype):
 	if utype is None:
 		return None
 	localName = utype.split(":")[-1]
-	specLocal = _SSA_SPEC_EXCEPTIONS.get(localName, "Spectrum."+localName)
+	specLocal = _SDM1_IRREGULARS.get(localName, "Spectrum."+localName)
 	return "spec:"+specLocal
+
+
+_SDM2_IRREGULARS = {
+	# a dict mapping utypes from SSA trunks to SDM2 trunks where
+	# they are different
+	"dataid.instrument": "ObsConfig.Instrument.Name",
+	"dataid.bandpass": "ObsConfig.Bandpass.Name",
+	"dataid.datasource": "ObsConfig.DataSource.Name",
+
+	"char.spatialaxis.samplingprecision.fillfactor":
+		"Char.SpatialAxis.SamplingPrecision.SamplingPrecisionRefval.fillFactor",
+	"char.spatialaxis.calibration": "Char.SpatialAxis.CalibrationStatus",
+	"char.spatialaxis.resolution": "Char.SpatialAxis.Resolution.refVal",
+
+	"char.spectralaxis.samplingprecision.fillfactor":
+		"Char.SpectralAxis.SamplingPrecision.SamplingPrecisionRefval.fillFactor",
+	# TODO: I believe the next line should have CalibrationStatus and this
+	# is just a typo.
+	"char.spectralaxis.calibration": "Char.SpectralAxis.CalibStatus",
+	"char.spectralaxis.resolution": "Char.SpectralAxis.Resolution.refVal",
+
+	"char.timeaxis.samplingprecision.fillfactor":
+		"Char.TimeAxis.SamplingPrecision.SamplingPrecisionRefval.fillFactor",
+	"char.timeaxis.calibration": "Char.TimeAxis.CalibrationStatus",
+	"char.timeaxis.resolution": "Char.TimeAxis.Resolution.refVal",
+
+	"char.fluxaxis.calibration": "Char.FluxAxis.CalibrationStatus",
+}
+
+
+def getSDM2UtypeForSSA(utype):
+	"""returns a utype from the spectral data model 2 for a utype of the ssa
+	data model.
+
+	For convenience, utype=None is allowed and returned as such.
+	"""
+# This isn't used yet.  This would be used in ssap#sdm-instance
+# if we made sdm2 our default (and then we'd have to translate back
+# the sdm2 utypes to sdm1 ones if we still wanted to spit out sdm1)
+	if utype is None:
+		return None
+	localName = utype.split(":")[-1]
+	specLocal = _SDM2_IRREGULARS.get(localName.lower(), localName)
+	return "spec2:"+specLocal
 
 
 _SDM_TO_SED_UTYPES = {
 	"spec:Spectrum.Data.SpectralAxis.Value": 
 		"sed:Segment.Points.SpectralCoord.Value",
+	"spec2:Data.SpectralAxis.Value": 
+		"sed:Segment.Points.SpectralCoord.Value",
 	"spec:Spectrum.Data.FluxAxis.Value": "sed:Segment.Points.Flux.Value",
+	"spec2:Data.FluxAxis.Value": "sed:Segment.Points.Flux.Value",
 }
 
 
@@ -97,15 +144,83 @@ def hackSDMToSED(data):
 			param.utype = _SDM_TO_SED_UTYPES[param.utype]
 
 
+
+SDM1_TO_SDM2_IRREGULARS = {
+	"Char.FluxAxis.Calibration": "Char.FluxAxis.CalibrationStatus",
+	"Char.SpatialAxis.Calibration": "Char.SpatialAxis.CalibrationStatus",
+	"Char.SpatialAxis.Resolution": "Char.SpatialAxis.Resolution.refVal",
+	"Char.SpectralAxis.Calibration": "Char.SpectralAxis.CalibrationSatus",
+	"Char.SpectralAxis.Resolution": "Char.SpectralAxis.Resolution.refVal",
+	"Char.SpectralAxis.ResPower": 
+		"Char.SpectralAxis.Resolution.ResolPower.refVal",
+	"Char.TimeAxis.Calibration": "Char.TimeAxis.CalibrationStatus",
+	"Char.TimeAxis.Resolution": "Char.TimeAxis.Resolution.refVal",
+	"Data.FluxAxis.Quality": "Data.FluxAxis.Accuracy.QualityStatus",
+	"Data.SpectralAxis.Resolution": "Data.SpectralAxis.Resolution.refVal",
+	"Type": "Dataset.Type",
+	"DataModel": "Dataset.DataModel.Name",
+	"Length": "Dataset.Length",
+	"TimeSI": "Dataset.TimeSI",
+	"SpectralSI": "Dataset.SpectralSI",
+	"FluxSI": "Dataset.FluxSI",
+	"DataID.Instrument": "ObsConfig.Instrument",
+	"DataID.Bandpass": "ObsConfig.Bandpass",
+	"DataID.DataSource": "ObsConfig.DataSource",
+}
+
+def getSDM2utypeForSDM1(utype):
+	"""returns a utype for the spectral data model 2 from a version 1 one.
+	"""
+	if utype is None:
+		return None
+	
+	if not utype.startswith("spec:Spectrum."):
+		return utype
+	localPart = SDM1_TO_SDM2_IRREGULARS.get(utype[14:], utype[14:])
+	return "spec2:%s"%localPart
+
+
+def hackSDM1ToSDM2(data):
+	"""changes some utypes to make an SDM2 compliant spectrum from an
+	SDM1 compliant one.
+
+	All this is too horrible to even contemplate, but it's really pending
+	sound DM support in both DaCHS and the VO.  If we have that, I hope
+	sick mess like this is going to disappear.
+	"""
+	table = data.getPrimaryTable()
+	table.tableDef = table.tableDef.copy(table.tableDef.parent)
+	for group in table.tableDef.groups:
+		group.utype = getSDM2utypeForSDM1(group.utype)
+		for param in group.params:
+			param.utype = getSDM2utypeForSDM1(param.utype)
+		for paramRef in group.paramRefs:
+			paramRef.utype = getSDM2utypeForSDM1(paramRef.utype)
+		for columnRef in group.columnRefs:
+			columnRef.utype = getSDM2utypeForSDM1(columnRef.utype)
+
+	for param in table.iterParams():
+		param.utype = getSDM2utypeForSDM1(param.utype)
+	for column in table.tableDef.columns:
+		column.utype = getSDM2utypeForSDM1(column.utype)
+
+	data.setMeta("utype", "spec2:Spectrum")
+	table.setMeta("utype", "spec2:Spectrum")
+
+
 ################### Making SDM compliant tables (from SSA rows and
 ################### data descriptors making spectral data)
-def makeSDMDataForSSARow(ssaRow, spectrumData):
+
+def makeSDMDataForSSARow(ssaRow, spectrumData,
+		sdmVersion=base.getConfig("ivoa", "sdmVersion")):
 	"""returns a rsc.Data instance containing an SDM compliant spectrum
 	for the spectrum described by ssaRow.
 
 	spectrumData is a data element making a primary table containing
 	the spectrum data from an SSA row (typically, this is going to be
 	the tablesource property of an SSA service).
+
+	You'll usually use this via //datalink#sdm_genData
 	"""
 	resData = rsc.makeData(spectrumData, forceSource=ssaRow)
 	resTable = resData.getPrimaryTable()
@@ -114,10 +229,15 @@ def makeSDMDataForSSARow(ssaRow, spectrumData):
 	# fudge accref  into a full URL
 	resTable.setParam("accref",
 		products.makeProductLink(resTable.getParam("accref")))
+	resData.DACHS_SDM_VERSION = sdmVersion
+
+	if sdmVersion=="2":
+		hackSDM1ToSDM2(resData)
 	return resData
 
 
-def makeSDMDataForPUBDID(pubDID, ssaTD, spectrumData):
+def makeSDMDataForPUBDID(pubDID, ssaTD, spectrumData,
+		sdmVersion=base.getConfig("ivoa", "sdmVersion")):
 	"""returns a rsc.Data instance containing an SDM compliant spectrum
 	for pubDID from ssaTable.
 
@@ -133,7 +253,8 @@ def makeSDMDataForPUBDID(pubDID, ssaTD, spectrumData):
 		if not matchingRows:
 			raise svcs.UnknownURI("No spectrum with pubdid %s known here"%
 				pubDID)
-	return makeSDMDataForSSARow(matchingRows[0], spectrumData)
+	return makeSDMDataForSSARow(matchingRows[0], spectrumData,
+		sdmVersion=sdmVersion)
 
 
 ################## Special FITS hacks for SDM serialization
@@ -303,6 +424,9 @@ def makeBasicSDMHeader(sdmData):
 
 def makeSDMFITS(sdmData):
 	"""returns sdmData in an SDM-compliant FITS.
+
+	This only works for SDM version 1.  Behaviour with version 2 SDM
+	data is undefined.
 	"""
 	sdmData.getPrimaryTable().IgnoreTableParams = None
 	hdus = fitstable.makeFITSTable(sdmData)
@@ -318,26 +442,25 @@ def makeSDMFITS(sdmData):
 
 ################## Serializing SDM compliant tables
 
-def makeSDMVOT(table, **votContextArgs):
-	"""returns SDM-compliant xmlstan for a table containing an SDM-compliant
-	spectrum.
-	"""
-	table.addMeta("_votableRootAttributes", 
-		'xmlns:spec="http://www.ivoa.net/xml/SpectrumModel/v1.01"')
-	return votablewrite.makeVOTable(table, **votContextArgs)
-
-
 def formatSDMData(sdmData, format, queryMeta=svcs.emptyQueryMeta):
 	"""returns a pair of mime-type and payload for a rendering of the SDM
 	Data instance sdmData in format.
+
+	(you'll usually use this via //datalink#sdm_format)
 	"""
+	# target version is usually set by makeSDMDataForSSARow; but if
+	# people made sdmData in some other way, fall back to default.
+	sdmVersion = getattr(sdmData, "DACHS_SDM_VERSION",
+		base.getConfig("ivoa", "sdmVersion"))
+
 	destMime =  str(format or base.votableType)
 	if queryMeta["tdEnc"] and destMime==base.votableType:
 		destMime = "application/x-votable+xml;serialization=tabledata"
 	formatId = GETDATA_FORMATS.get(destMime, None)
 
-	sdmData.addMeta("_votableRootAttributes", 
-		'xmlns:spec="http://www.ivoa.net/xml/SpectrumModel/v1.01"')
+	if sdmVersion=="1":
+		sdmData.addMeta("_votableRootAttributes", 
+			'xmlns:spec="http://www.ivoa.net/xml/SpectrumModel/v1.01"')
 
 	if formatId is None:
 		# special or unknown format
@@ -360,6 +483,26 @@ def formatSDMData(sdmData, format, queryMeta=svcs.emptyQueryMeta):
 # may want to provide some plugin system so people can add their own
 # transformations, but let's first see someone request that.
 
+def getFluxColumn(sdmTable):
+	"""returns the column containing the flux in sdmTable.
+
+	sdmTable can be in SDM1 or SDM2.
+	"""
+	return sdmTable.tableDef.getByUtypes(
+		"spec:Spectrum.Data.FluxAxis.Value",
+		"spec2:Data.FluxAxis.Value")
+
+
+def getSpectralColumn(sdmTable):
+	"""returns the column containing the spectral coordindate in sdmTable.
+
+	sdmTable can be in SDM1 or SDM2.
+	"""
+	return sdmTable.tableDef.getByUtypes(
+		"spec:Spectrum.Data.SpectralAxis.Value",
+		"spec2:Data.SpectralAxis.Value")
+
+
 def mangle_cutout(sdmTable, low, high):
 	"""returns only those rows from sdmTable for which the spectral coordinate
 	is between low and high.
@@ -367,8 +510,7 @@ def mangle_cutout(sdmTable, low, high):
 	Both low and high must be given.  If you actually want half-open intervals,
 	do it in interface code (low=-1 and high=1e308 should do fine).
 	"""
-	spectralColumn = sdmTable.tableDef.getByUtype(
-		"spec:Spectrum.Data.SpectralAxis.Value")
+	spectralColumn = getSpectralColumn(sdmTable)
 
 	spectralUnit = spectralColumn.unit
 	# convert low and high from meters to the unit on the 
@@ -402,10 +544,10 @@ def mangle_fluxcalib(sdmTable, newCalib):
 	newCalib = newCalib.lower()
 	if newCalib==sdmTable.getParam("ssa_fluxcalib").lower():
 		return sdmTable
-	fluxName = sdmTable.tableDef.getByUtype(
-		"spec:Spectrum.Data.FluxAxis.Value").name
+	fluxName = getFluxColumn(sdmTable).name
+
 	try:
-		# Todo: parameterize this, make more flexible, or select on utype
+		# TODO: parameterize this
 		errorName = sdmTable.tableDef.getColumnByUCD(
 			"stat.error;phot.flux;em.opt").name
 	except ValueError:
@@ -433,6 +575,15 @@ def mangle_fluxcalib(sdmTable, newCalib):
 
 ################## The SDM core (usable in dcc: accrefs).  
 ################## Superceded by datalink, scheduled for removal 2016
+
+def makeSDMVOT(table, **votContextArgs):
+	"""returns SDM-compliant xmlstan for a table containing an SDM-compliant
+	spectrum.
+	"""
+	table.addMeta("_votableRootAttributes", 
+		'xmlns:spec="http://www.ivoa.net/xml/SpectrumModel/v1.01"')
+	return votablewrite.makeVOTable(table, **votContextArgs)
+
 
 class SDMCore(svcs.Core):
 	"""A core for making (VO)Tables according to the Spectral Data Model.

@@ -112,7 +112,7 @@
 	</table>
 
 	<sdmCore id="mksdm" queriedTable="hcdtest">
-		<data>
+		<data id="sdmdata">
 			<embeddedGrammar>
 				<iterator>
 					<code>

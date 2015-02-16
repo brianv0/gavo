@@ -963,7 +963,8 @@
 					from gavo.protocols import sdm
 					srcTable = context.getById("instance")
 					for name in "\fieldnames".split():
-						utype = sdm.getSpecForSSA(srcTable.getElementForName(name).utype)
+						utype = sdm.getSDM1UtypeForSSA(
+							srcTable.getElementForName(name).utype)
 						yield {"dest": name, "utype": utype}
 				</codeItems>
 				<events>
@@ -976,8 +977,7 @@
 	<mixinDef id="sdm-instance">
 		<doc><![CDATA[
 			This mixin is intended for tables that get serialized into documents
-			conforming to the Spectral Data Model, specifically to VOTables
-			(serialization to FITS would take a couple of additional hacks).
+			conforming to the Spectral Data Model 1, specifically to VOTables
 
 			The input to such tables comes from ssa tables (hcd, in this case).
 			Their columns (and params) are transformed into params here.
@@ -1053,12 +1053,12 @@
 				ssapInstance = context.resolveId(mixinPars["ssaTable"])
 				for col in ssapInstance.columns:
 					atts = col.getAttributes()
-					atts["utype"] = sdm.getSpecForSSA(atts["utype"])
+					atts["utype"] = sdm.getSDM1UtypeForSSA(atts["utype"])
 					atts["required"] = False
 					substrate.feedObject("param", 
 						base.makeStruct(rscdef.Param, parent_=substrate, **atts))
 				for param in ssapInstance.params:
-					newUtype = sdm.getSpecForSSA(param.utype)
+					newUtype = sdm.getSDM1UtypeForSSA(param.utype)
 					substrate.feedObject("param", 
 						param.change(utype=newUtype))
 

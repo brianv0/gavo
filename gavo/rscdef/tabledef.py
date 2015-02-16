@@ -597,6 +597,19 @@ class TableDef(base.Structure, base.ComputedMetaMixin, common.PrivilegesMixin,
 		except base.NotFoundError:
 			return self.columns.getColumnByUtype(utype)
 
+	def getByUtypes(self, *utypes):
+		"""returns the first param or column matching the first utype
+		matching anything.
+		"""
+		for utype in utypes:
+			try:
+				return self.getByUtype(utype)
+			except base.NotFoundError:
+				pass
+		raise base.NotFoundError(", ".join(utypes), 
+			what="param or column with utype in", 
+			within="table %s"%self.id)
+
 	def getByName(self, name):
 		"""returns the column or param with name.
 

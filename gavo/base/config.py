@@ -495,7 +495,12 @@ _config = Configuration(
 		EnumeratedConfigItem("votDefaultEncoding", "binary",
 			"Default 'encoding' for VOTables in many places (like the DAL"
 			" responses; this can be user-overridden using"
-			" the _TDENC local HTTP parameter.", options=["binary", "td"])),
+			" the _TDENC local HTTP parameter.", options=["binary", "td"]),
+		EnumeratedConfigItem("sdmVersion", "1",
+			"Version of the spectral data model we generate our spectra"
+			" as (unless someone asks for another version explicitly).",
+			options=["1", "2"]),
+	),
 )
 
 def loadConfig():

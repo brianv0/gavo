@@ -618,7 +618,7 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 			query.append("FOR UPDATE ")
 		return resultTableDef, "".join(query), pars
 
-	def iterQuery(self, resultTableDef, fragment="", pars=None, 
+	def iterQuery(self, resultTableDef=None, fragment="", pars=None, 
 			distinct=False, limits=None, groupBy=None):
 		"""returns an iterator over rows for a table defined
 		by resultTableDef giving the results for a query for
@@ -636,6 +636,8 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 
 		pars may be mutated in the process.
 		"""
+		if resultTableDef is None:
+			resultTableDef = self.tableDef
 		resultTableDef, query, pars = self.getQuery(
 			resultTableDef, fragment, pars=pars,
 			distinct=distinct, limits=limits, groupBy=groupBy)
