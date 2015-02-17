@@ -3052,7 +3052,7 @@ Embedded Documentation
 ======================
 
 ReStructuredText
-----------------
+''''''''''''''''
 
 Text needing some amount of markup within DaCHS is almost always
 input as ReStructuredText (RST).  The source versions of the 
@@ -3074,7 +3074,7 @@ bibcode
 .. _ReStructuredText primer: http://docutils.sourceforge.net/docs/user/rst/quickstart.html
 
 Examples Endpoints
-------------------
+''''''''''''''''''
 
 TBD
 

@@ -1,5 +1,6 @@
-DATETIME_RE = /^(\d\d\d\d)-(\d\d)-(\d\d)[T ](\d\d):(\d\d):(\d\d.?\d*)$/
-DATE_RE = /^(\d\d\d\d)-(\d\d)-(\d\d)$/
+var DATETIME_RE = /^(\d\d\d\d)-(\d\d)-(\d\d)[T ](\d\d):(\d\d):(\d\d.?\d*)$/;
+var DATE_RE = /^(\d\d\d\d)-(\d\d)-(\d\d)$/;
+
 function _getValue(s) {
 // tries to make some kind of number from a string s
 // if s looks like a datetime, return a julian year
@@ -129,7 +130,7 @@ function _plotUsingFlot(table, options) {
 		'<option value="Histogram">Histogram</option>'));
 	controlPara.append(ysel);
 	controlPara.append(' using ');
-	var usingSel = $('<select><option selected="selected">Points</option><option>Lines</option></select>')
+	var usingSel = $('<select><option selected="selected">Points</option><option>Lines</option></select>');
 	controlPara.append(usingSel);
 
 	// Set default plot features from options if given there
@@ -145,9 +146,9 @@ function _plotUsingFlot(table, options) {
 	if (options.usingIndex) {
 		usingIndex = options.usingIndex;
 	}
-	xsel.children()[xselIndex].setAttribute("selected", "selected")
-	ysel.children()[yselIndex].setAttribute("selected", "selected")
-	usingSel.children()[usingIndex].setAttribute("selected", "selected")
+	xsel.children()[xselIndex].setAttribute("selected", "selected");
+	ysel.children()[yselIndex].setAttribute("selected", "selected");
+	usingSel.children()[usingIndex].setAttribute("selected", "selected");
 
 	// the callback any form items controlling the plot
 	var updatePlot = function() {

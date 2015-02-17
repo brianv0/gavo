@@ -38,7 +38,7 @@ class PDSGrammar(Grammar):
 
 	Extra care needs to be taken here since the values in the rawdicts
 	can be complex objects (e.g., other labels).  It's likely that you
-	will need constructs like ``@IMAGE["KEY"].
+	will need constructs like ``@IMAGE["KEY"]``.
 
 	Current versions of PyPDS also don't parse the values.  This is
 	particularly insiduous because general strings are marked with " in PDS.
