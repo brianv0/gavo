@@ -330,6 +330,21 @@
 		</LOOP>
 	</STREAM>
 
+	<STREAM id="atomicCoords">
+		<outputField name="location_ra"
+			unit="deg" ucd="pos.eq.ra;meta.main"
+			utype="ssa:Char.SpatialAxis.Coverage.Location.Value.C1"
+			tablehead="RA" verbLevel="15"
+			select="degrees(long(ssa_location))"
+			displayHint="sf=7"/>
+		<outputField name="location_dec"
+			unit="deg" ucd="pos.eq.dec;meta.main"
+			utype="ssa:Char.SpatialAxis.Coverage.Location.Value.C2"
+			tablehead="Dec" verbLevel="15"
+			select="degrees(lat(ssa_location))"
+			displayHint="sf=7"/>
+	</STREAM>
+
 	<STREAM id="coreOutputAdditionals">
 		<!-- Fields added to the queried table def to make the core
 		output table. -->
@@ -340,16 +355,7 @@
 			<description>A measure of how closely the record matches your
 				query.  Higher numbers mean better matches.</description>
 		</outputField>
-		<outputField name="location_ra"
-			ucd="pos.eq.ra;meta.main"
-			utype="ssa:Char.SpatialAxis.Coverage.Location.Value.C1"
-			tablehead="RA" verbLevel="15"
-			select="degrees(long(ssa_location))"/>
-		<outputField name="location_dec"
-			ucd="pos.eq.dec;meta.main"
-			utype="ssa:Char.SpatialAxis.Coverage.Location.Value.C2"
-			tablehead="Dec" verbLevel="15"
-			select="degrees(lat(ssa_location))"/>
+		<FEED source="atomicCoords"/>
 		<outputField name="location_arr" type="real(2)"
 			ucd="pos.eq"
 			utype="ssa:Char.SpatialAxis.Coverage.Location.Value"

@@ -248,7 +248,7 @@ def _solveField(fName, solverParameters, sexControl, objectFilter,
 				"--use-sextractor",
 				"--width", str(width), "--height", str(height)])
 			objectSource = "img.axy"
-#	args.append("--no-fits2fits") # leaks into tmp as of 0.36 otherwise
+	args.append("--no-fits2fits") # leaks into tmp as of 0.36 otherwise
 	args.append("-v")
 
 	if "indices" in solverParameters:
