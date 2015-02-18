@@ -441,19 +441,20 @@ function insertPreview(node, width) {
 	}
 
 	node.removeAttribute("onmouseover");
-	$(node).addClass("busy");
+	var jqNode = $(node);
+	jqNode.addClass("busy");
 
 	var previewURL = oldHref+joiner+newPars;
-	var img = $("<img/>").attr("src", previewURL
+	var img = $("<img class='preview'/>").attr("src", previewURL
 		).attr("alt", "[preview image]");
 
 	img.bind("load", function() {
-		node.replaceChild(img[0], node.firstChild);
-		$(node).removeClass("busy");
+		jqNode.prepend(img[0], node.firstChild);
+		jqNode.removeClass("busy");
 	});
 	// TODO: use "complete" here when we've updated jquery
 	img.bind("error", function() {
-		$(node).removeClass("busy");
+		jqNode.removeClass("busy");
 	});
 }
 
