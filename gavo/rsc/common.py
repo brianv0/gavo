@@ -81,6 +81,9 @@ class ParamMixin(object):
 	def getParamByName(self, parName):
 		return self._params.getColumnByName(parName)
 
+	def getParamByUtype(self, utype):
+		return self._params.getColumnByUtype(utype)
+
 	def iterParams(self):
 		"""iterates over the parameters for this table.
 

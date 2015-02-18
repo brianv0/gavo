@@ -51,6 +51,7 @@ class SOAPProcessor(soap.SOAPPublisher):
 		try:
 			return self.runServiceFromArgs(self.ctx, args)
 		except Exception, exc:
+			base.ui.notifyError("SOAP service failed.")
 			return self._formatError(exc)
 
 	def _formatError(self, exc):

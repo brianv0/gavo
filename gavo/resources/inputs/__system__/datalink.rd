@@ -279,6 +279,8 @@
 						"application/x-votable+xml": "VOTable, binary encoding",
 						"application/x-votable+xml;serialization=tabledata": 
 							"VOTable, tabledata encoding",
+						"application/x-votable+xml;content=spec2": 
+							"VOTable, experimental spectral DM 2 serialization",
 						"text/plain": "Tab separated values",
 						"text/csv": "Comma separated values",
 						"application/fits": "FITS binary table"}

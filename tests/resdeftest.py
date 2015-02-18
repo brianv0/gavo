@@ -505,6 +505,17 @@ class ParamTest(testhelpers.VerboseTest):
 		self.assertEqual(res.content_, "3.0")
 		self.assertEqual(res.value, 3.0)
 
+	def testNaNisNULL(self):
+		res = base.parseFromString(rscdef.Param,
+			'<param name="u">NaN</param>')
+		self.assertEqual(res.getStringValue(), "")
+		self.assertEqual(res.value, None)
+
+	def testString(self):
+		res = base.parseFromString(rscdef.Param,
+			'<param name="u" type="text">some string</param>')
+		self.assertEqual(res.value, "some string")
+
 	def testTimestamp(self):
 		res = base.parseFromString(rscdef.Param,
 			'<param name="u" type="timestamp">1969-04-06T04:20:23</param>')
@@ -537,11 +548,6 @@ class ParamTest(testhelpers.VerboseTest):
 		self.assertEqual(res.params[1].name, "bar")
 		self.assertEqual(res.params[1].value, 2.0)
 
-	def testNanIsNull(self):
-		par = base.parseFromString(rscdef.Param,
-			'<param name="foo"><values nullLiteral="NaN"/>NaN</param>')
-		self.assertEqual(par.value, None)
-
 	def test__NULL__IsNull(self):
 		par = base.parseFromString(rscdef.Param,
 			'<param name="foo" type="text">__NULL__</param>')
@@ -549,8 +555,7 @@ class ParamTest(testhelpers.VerboseTest):
 
 	def testEmptyIsNotNull(self):
 		par = base.parseFromString(rscdef.Param,
-			'<param name="foo" type="text" required="True">'
-			'<values nullLiteral="XXX"/></param>')
+			'<param name="foo" type="text" required="True">__EMPTY__</param>')
 		self.assertEqual(par.value, '')
 
 

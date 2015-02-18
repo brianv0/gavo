@@ -60,11 +60,6 @@ def parseFloat(literal):
 			(isinstance(literal, basestring) and not literal.strip())):
 		return None
 	res = float(literal)
-	# XXX TODO: NaN hack to work around psycopg2 serialization bug.  Fix there!
-	if res!=res:
-		return "NaN"
-	if res==_inf:
-		return "Inf"
 	return res
 
 _trueLiterals = set(["true", "yes", "t", "on", "enabled", "1"])

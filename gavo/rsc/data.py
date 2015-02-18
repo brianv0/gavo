@@ -227,6 +227,13 @@ class Data(base.MetaMixin, common.ParamMixin):
 		data = cls(dd, controlledTables, parseOptions)
 		data.dropTables(parseOptions)
 
+	def validateParams(self):
+		"""raises a ValidationError if any required parameters within 
+		this data's tables are still None.
+		"""
+		for table in self:
+			table.validateParams()
+
 	def dropTables(self, parseOptions):
 		for t in self:
 			if t.tableDef.onDisk:
@@ -454,6 +461,8 @@ def makeData(dd, parseOptions=common.parseNonValidating,
 					continue
 		else:
 			processSource(res, forceSource, feeder, parseOptions, connection)
+
+	res.validateParams()
 
 	if runCommit:
 		res.commitAll()

@@ -175,6 +175,17 @@ class StandardMacroMixin(MacroPackage):
 	The class mixing in needs to provide its resource descriptor in the
 	rd attribute.
 	"""
+	def macro_magicEmpty(self, val):
+		"""returns __EMPTY__ if val is empty.
+
+		This is necessary when feeding possibly empty params from mixin
+		parameters (don't worry if you don't understand this).
+		"""
+		if val:
+			return val
+		else:
+			return "__EMPTY__"
+
 	def macro_rdId(self):
 		"""the identifier of the current resource descriptor.
 		"""

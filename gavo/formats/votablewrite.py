@@ -230,27 +230,6 @@ def _iterFields(ctx, serManager):
 		yield el
 
 
-# default null values for params for special types
-_PARAM_NULLS = {
-	"integer": "-1",
-	"bigint": "-1",
-	"smallint": "-1",
-	"real": "NaN",
-	"double precision": "NaN",
-	"char": "X",}
-
-def _defineNullInValues(votEl, nullLiteral):
-	"""sets nullLiteral as null attribute in a VALUES child of votEl.
-
-	If no VALUES child exists yet, we make one up.
-	"""
-	try:
-		valuesEl = votEl.makeChildDict()["VALUES"]
-		valuesEl[0](null=nullLiteral)
-	except KeyError:
-		votEl[V.VALUES(null=nullLiteral)]
-
-
 def _makeVOTParam(ctx, param):
 	"""returns VOTable stan for param.
 	"""
@@ -265,14 +244,7 @@ def _makeVOTParam(ctx, param):
 	el = V.PARAM()
 	defineField(ctx, el, valuemappers.AnnotatedColumn(param))
 	if content is None:
-		# Null value generation -- tactics: If we have a nullLiteral, use it
-		# otherwise use some type-dependent default
-		if param.values.nullLiteral is None:
-			nullLiteral = _PARAM_NULLS.get(param.type, "__NULL__")
-			_defineNullInValues(el, nullLiteral)
-		else:
-			nullLiteral =param.values.nullLiteral
-		el.value = nullLiteral
+		el.value = ""
 	else:
 		el.value = content
 	return el

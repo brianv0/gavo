@@ -174,11 +174,11 @@
 		<param name="ssa_fluxucd" type="text" required="True"
 			utype="ssa:Char.FluxAxis.Ucd"
 			tablehead="UCD(flux)" verbLevel="25" 
-			description="UCD of the flux column">\fluxUCD</param>
+			description="UCD of the flux column">\magicEmpty{\fluxUCD}</param>
 		<param name="ssa_fluxunit" type="text" required="True"
 			utype="ssa:Char.FluxAxis.Unit"
 			tablehead="unit(flux)" verbLevel="25" 
-			description="Unit of the flux column">\fluxUnit</param>
+			description="Unit of the flux column">\magicEmpty{\fluxUnit}</param>
 	</STREAM>
 
 	<STREAM id="hcd_outpars">
@@ -552,10 +552,11 @@
 
 	<STREAM id="commonMixinParams">
 		<mixinPar key="fluxUnit" description="Flux unit used by the
-			spectra and in SSA char metadata.  This must be a VOUnit string."/>
+			spectra and in SSA char metadata.  This must be a VOUnit string."
+			>__EMPTY__</mixinPar>
 		<mixinPar key="spectralUnit" description="Spectral unit used by the
 			spectra (SSA char metadata always is wavelength in meters).  
-			This must be a VOUnit string."/>
+			This must be a VOUnit string.">__EMPTY__</mixinPar>
 
 		<mixinPar key="timeSI" description="SI conversion factor for times
 			in Osuna-Salgado convention; ssa:DataSet.TimeSI (you probably want
@@ -1027,7 +1028,7 @@
 					ssa_specmid ssa_specext ssa_specstart ssa_specend ssa_spectralucd
 					ssa_binSize ssa_fluxSysError ssa_fluxStatError
 					ssa_spectStatError ssa_spectSysError ssa_speccalib
-					ssa_specres"/>
+					ssa_specres ssa_spectralunit ssa_fluxunit"/>
 			<FEED source="makeSpecGroup" 
 				groupUtype="spec:Spectrum.Curation" 
 				fieldnames="ssa_reference ssa_pubDID ssa_pdate"/>

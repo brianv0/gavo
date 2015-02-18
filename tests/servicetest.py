@@ -139,6 +139,14 @@ class InputDDTest(testhelpers.VerboseTest):
 			({},),
 			type="real", required="True")
 
+	def testMissingStringRequired(self):
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Field x: Value is required but was not provided",
+			self._getTableForInputKey,
+			({"x": ""},),
+			type="text", required="True")
+
+
 # XXX TODO test some other funky properties of rows generating ContextGrammars.
 # XXX TODO test singleton inputs into ContextGrammar
 

@@ -884,7 +884,7 @@ class SDM2TableTest(testhelpers.VerboseTest):
 
 	def testParameterSet(self):
 		res = self._getUniqueByXPath(
-			"//PARAM[@utype='spec2:Curation.PublisherDID']")
+			"//PARAM[@utype='spec2:DataID.DatasetID']")
 		self.assertEqual(res.get('value'), 'ivo://test.inv/test2')
 
 	def testSpecGroupsPresent(self):
@@ -954,6 +954,12 @@ class SDM2TableTest(testhelpers.VerboseTest):
 			"//PARAM[@utype='spec2:Char.SpectralAxis.Coverage.Bounds.Start']")[0]
 		self.assertEqual(p.get("unit"), "m")
 		self.assertEqual(p.get("value"), "5e-07")
+	
+	def testModelName(self):
+		p = self.stringAndTree[1].xpath(
+			"//PARAM[@utype='spec2:Dataset.DataModel.Name']")[0]
+		self.assertEqual(p.get("value"), "Spectrum-2.0")
+
 
 
 class _RenderedSDMFITSResponse(testhelpers.TestResource):

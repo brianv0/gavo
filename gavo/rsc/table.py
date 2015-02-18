@@ -195,6 +195,15 @@ class BaseTable(base.MetaMixin, common.ParamMixin):
 		if self._runScripts:  # if defined, it was set by data and make.
 			self._runScripts(self, phase, **kwargs)
 
+	def validateParams(self):
+		"""raises a ValidationError if any required parameters of this
+		tables are None.
+		"""
+		for par in self.iterParams():
+			if par.required and par.value is None:
+				raise base.ValidationError(
+					"Value is required but was not provided", par.name)
+
 
 class InMemoryTable(BaseTable):
 	"""is a table kept in memory.

@@ -779,6 +779,9 @@ class Service(base.Structure, base.ComputedMetaMixin,
 
 	def _hackInputTableFromPreparsed(self, renderer, args, core=None):
 		"""returns an input table from dictionaries as produced by nevow formal.
+
+		This is a shortcut to bypass the relatively expensive makeData.
+		And is probably a bad idea.
 		"""
 		args = utils.CaseSemisensitiveDict(args)
 		inputDD = self.getInputDDFor(renderer, core=core)
@@ -791,6 +794,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 			else:
 				inputTable.setParam(ik.name, ik.value)
 
+		inputTable.validateParams()
 		return inputTable
 
 	def _makeInputTableFor(self, renderer, args, core=None):

@@ -467,29 +467,28 @@ class ParamNullValueTest(VOTableRenderTest):
 		self.assertEqual(par[0].tag, votable.voTag("VALUES"))
 		self.assertEqual(par[0].get("null"), nullLiteral)
 
+	def _assertParsesAsNULL(self, colDef):
+		par = self._getParamFor(colDef)
+		self.assertEqual(par.get("value"), "")
+
 	def testEmptyString(self):
 		par = self._getParamFor('<param name="x" type="text"/>')
 		self.assertEqual(par.get("value"), "")
 
 	def testEmptyIntIsNull(self):
-		self._assertDeclaredNull(
-			'<param name="x" type="integer"/>',
-			"-1")
+		self._assertParsesAsNULL(
+			'<param name="x" type="integer"/>')
 
 	def testStringNullDefault(self):
-		self._assertDeclaredNull(
-			'<param name="x" type="text">__NULL__</param>',
-			"__NULL__")
+		self._assertParsesAsNULL(
+			'<param name="x" type="text">__NULL__</param>')
 
-	def testNonDefaultNull(self):
-		self._assertDeclaredNull(
-			'<param name="x" type="text"><values nullLiteral="xy"/>xy</param>',
-			"xy")
-
-	def testInt(self):
-		self._assertDeclaredNull(
-			'<param name="x" type="text"><values nullLiteral="23"/>23</param>',
-			'23')
+	def testNonDefaultNULL(self):
+		par = self._getParamFor(
+			'<param name="x" type="integer"><values nullLiteral="-1"/>-1</param>')
+		self.assertEqual(par.get("value"), "")
+		self.assertEqual(par[0].tag, votable.voTag("VALUES"))
+		self.assertEqual(par[0].get("null"), "-1")
 
 	def testIntDefault(self):
 		table = self._getTable('<param name="x" type="integer"/>')
@@ -497,13 +496,16 @@ class ParamNullValueTest(VOTableRenderTest):
 		par = self._getEls(
 			ElementTree.fromstring(
 				votablewrite.getAsVOTable(table)), "PARAM")[0]
-		self.assertEqual(par.get("value"), '-1')
-		self.assertEqual(par[0].tag, votable.voTag("VALUES"))
-		self.assertEqual(par[0].get("null"), "-1")
+		self.assertEqual(par.get("value"), '')
 
-	def testFloatNull(self):
+	def testFloatNaN(self):
 		par = self._getParamFor('<param name="x">NaN</param>')
-		self.assertEqual(par.get("value"), "NaN")
+		self.assertEqual(par.get("value"), "")
+
+	def testFloatEmpty(self):
+		par = self._getParamFor('<param name="x"/>')
+		self.assertEqual(par.get("value"), "")
+
 
 	def testNonNullNotDeclared(self):
 		par = self._getParamsFor('<param name="z" type="text">abc</param>')[0]

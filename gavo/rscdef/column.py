@@ -570,7 +570,6 @@ class ParamBase(ColumnBase):
 
 	_valueCache = base.Undefined
 
-	# we need to fix null literal handling of params.  Meanwhile:
 	nullLiteral = ""
 
 	def __repr__(self):
@@ -647,22 +646,40 @@ class ParamBase(ColumnBase):
 		The method also makes sure literal matches any constraints
 		set by a values child and raises a ValidationError if not.
 		"""
+# XXX TODO: We should probably take this from VOTable tabledata parsing
+# (and keep the __EMPTY__/__NULL__ hacks)
 		if not isinstance(literal, basestring):
 			value = literal
+	
+		elif literal=="__NULL__" or literal=="":
+			value = None
+
+		elif ((self.type=="text" or self.type=="unicode") 
+				and literal=="__EMPTY__"):
+			value = ""
 
 		else:
-			try:
-				if literal==self.values.nullLiteral:
-					return None
+			if literal==self.values.nullLiteral:
+				value = None
+			else:
+				try:
+					value = base.sqltypeToPython(self.type)(literal)
 
-				value = base.sqltypeToPython(self.type)(literal)
-			except ValueError:
-				raise base.ValidationError("%s is not a valid literal for %s"%(
-					repr(literal), self.name), self.name)
+					# make NaNs NULL here for consistent VOTable practice
+					if value!=value:
+						value = None
+				except ValueError:
+					raise base.ValidationError("%s is not a valid literal for %s"%(
+						repr(literal), self.name), self.name)
 
 		if not self.values.validateOptions(value):
 			raise base.ValidationError("%s is not a valid value for %s"%(
 				repr(literal), self.name), self.name)
+
+		# unify NULL value representation to the empty string
+		if value is None:
+			self.content_ = ""
+
 		return value
 
 	def _unparse(self, value):
@@ -678,7 +695,7 @@ class ParamBase(ColumnBase):
 		if isinstance(value, (list, tuple, set)):
 			return value
 		if value is None:
-			return self.values.nullLiteral
+			return ""
 		else:
 			return base.pythonToLiteral(self.type)(value)
 
@@ -697,25 +714,27 @@ class Param(ParamBase):
 	You can obtain a parsed value from the value attribute.
 
 	Null value handling is a bit tricky with params.  An empty param (like 
-	``<param name="x"/>)`` will usually be NULL, except of strings, for which
-	it is the empty string (as is, by the way, everything that contains
-	whitespace exclusively).
-	
-	params also support explicit null values via values, as in::
+	``<param name="x"/>)`` is always NULL (None in python).
+	In order to allow setting NULL even where syntactially something has
+	to stand, we also turn any __NULL__ to None.
+
+	For floats, NaN will also yield NULLs.  For integers, you can also
+	use
 
 		<param name="x" type="integer"><values nullLiteral="-1"/>-1</params>
 	
-	The value attribute for NULL params is None.
+	For arrays, floats, and strings, the interpretation of values is 
+	undefined.  Following VOTable practice, we do not tell empty strings and
+	NULLs apart; for internal usage, there is a little hack: __EMPTY__ as literal
+	does set an empty string.  This is to allow defaulting of empty strings -- in
+	VOTables, these cannot be distinguished from "true" NULLs.
 	"""
 	name_ = "param"
 
 	def validate(self):
 		self._validateNext(Param)
 		if self.content_ is base.NotGiven:
-			if self.type=="text" or self.type=="unicode":
-				self.set("")
-			else:
-				self.set(None)
+			self.set(None)
 
 		if self.required and self.value is None:
 			raise base.StructureError("Required value not given for param"

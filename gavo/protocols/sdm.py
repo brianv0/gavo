@@ -40,7 +40,8 @@ GETDATA_FORMATS = {
 	"application/x-votable+xml;serialization=tabledata": "votabletd",
 	"text/plain": "tsv",
 	"text/csv": "csv",
-	"application/fits": None,}
+	"application/fits": None,
+	"application/x-votable+xml;content=spec2": None,}
 
 
 _SDM1_IRREGULARS = {
@@ -93,6 +94,8 @@ _SDM2_IRREGULARS = {
 	"char.timeaxis.resolution": "Char.TimeAxis.Resolution.refVal",
 
 	"char.fluxaxis.calibration": "Char.FluxAxis.CalibrationStatus",
+
+	"curation.publisherdid": "DataID.DatasetID",
 }
 
 
@@ -166,6 +169,7 @@ SDM1_TO_SDM2_IRREGULARS = {
 	"DataID.Instrument": "ObsConfig.Instrument",
 	"DataID.Bandpass": "ObsConfig.Bandpass",
 	"DataID.DataSource": "ObsConfig.DataSource",
+	"Curation.PublisherDID": "DataID.DatasetID",
 }
 
 def getSDM2utypeForSDM1(utype):
@@ -204,8 +208,13 @@ def hackSDM1ToSDM2(data):
 	for column in table.tableDef.columns:
 		column.utype = getSDM2utypeForSDM1(column.utype)
 
+	param = table.getParamByUtype("spec2:Dataset.DataModel")
+	param.utype = "spec2:Dataset.DataModel.Name"
+	table.setParam(param.name, "Spectrum-2.0")
+
 	data.setMeta("utype", "spec2:Spectrum")
 	table.setMeta("utype", "spec2:Spectrum")
+	data.DACHS_SDM_VERSION = "2"
 
 
 ################### Making SDM compliant tables (from SSA rows and
@@ -448,28 +457,35 @@ def formatSDMData(sdmData, format, queryMeta=svcs.emptyQueryMeta):
 
 	(you'll usually use this via //datalink#sdm_format)
 	"""
-	# target version is usually set by makeSDMDataForSSARow; but if
-	# people made sdmData in some other way, fall back to default.
-	sdmVersion = getattr(sdmData, "DACHS_SDM_VERSION",
-		base.getConfig("ivoa", "sdmVersion"))
 
 	destMime =  str(format or base.votableType)
 	if queryMeta["tdEnc"] and destMime==base.votableType:
 		destMime = "application/x-votable+xml;serialization=tabledata"
 	formatId = GETDATA_FORMATS.get(destMime, None)
 
-	if sdmVersion=="1":
-		sdmData.addMeta("_votableRootAttributes", 
-			'xmlns:spec="http://www.ivoa.net/xml/SpectrumModel/v1.01"')
-
 	if formatId is None:
 		# special or unknown format
 		if destMime=="application/fits":
 			return destMime, makeSDMFITS(sdmData)
+		elif destMime =="application/x-votable+xml;content=spec2":
+			# At the last moment, hack data so it becomes
+			# SDM2.  We'll have to finally decide when we actually want
+			# to apply the hacks.  And do the whole thing completely
+			# differently.
+			hackSDM1ToSDM2(sdmData)
+			formatId = "votabletd"
 		else:
 			raise base.ValidationError("Cannot format table to %s"%destMime,
 				"FORMAT")
-		
+
+	# target version is usually set by makeSDMDataForSSARow; but if
+	# people made sdmData in some other way, fall back to default.
+	sdmVersion = getattr(sdmData, "DACHS_SDM_VERSION",
+		base.getConfig("ivoa", "sdmVersion"))
+	if sdmVersion=="1":
+		sdmData.addMeta("_votableRootAttributes", 
+			'xmlns:spec="http://www.ivoa.net/xml/SpectrumModel/v1.01"')
+	
 	resF = StringIO()
 	formats.formatData(formatId, sdmData, resF, acquireSamples=False)
 	return destMime, resF.getvalue()

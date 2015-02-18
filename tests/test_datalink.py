@@ -59,6 +59,15 @@ class SyncTest(trialhelpers.ArchiveTest):
 			"NAXIS3  =                    2",
 			"CRPIX3  =                 -1.0"])
 
+	def testSDM2Spectrum(self):
+		# This is testing a silly sort of backdoor.  Don't count on it
+		# staying in place.
+		return self.assertGETHasStrings("/data/ssatest/dl/dlget", {
+				"FORMAT": "application/x-votable+xml;content=spec2",
+				"ID": "ivo://test.inv/test2"},
+			["spec2:AstroCoords.Position2D.Value2",
+			"1908.0"])
+
 
 def killLocalhost(url):
 	"""should delete the host part from url.
@@ -146,5 +155,5 @@ class AsyncTest(trialhelpers.ArchiveTest):
 			).addCallback(checkPosted)
 			
 
-
 atexit.register(trialhelpers.provideRDData("test", "import_fitsprod"))
+atexit.register(trialhelpers.provideRDData("ssatest", "test_import"))
