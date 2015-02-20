@@ -152,32 +152,48 @@ def fixIndentation(code, newIndent, governingLine=0):
 	return "\n".join(reserved+fixedLines)
 
 
+@codetricks.memoized
+def _getREForPercentExpression(format):
+	"""helps parsePercentExpression.
+	"""
+	parts = re.split(r"(%\w)", format)
+	newReParts = []
+	for ind, p in enumerate(parts):
+		if p.startswith("%"):
+			# the time-parsing hack explained in the docstring:
+			if ind+2<len(parts) and parts[ind+1]=="":
+				if p[1] in "HMS":
+					newReParts.append("(?P<%s>..)"%p[1])
+				else:
+					raise ValueError(
+						"At %s: conversions with no intervening literal not supported."% p)
+			else:
+				newReParts.append("(?P<%s>.*?)"%p[1])
+		else:
+			newReParts.append(re.escape(p))
+	return re.compile("".join(newReParts)+"$")
+
+
 def parsePercentExpression(literal, format):
 	"""returns a dictionary of parts in the %-template format.
 
 	format is a template with %<conv> conversions, no modifiers are
 	allowed.  Each conversion is allowed to contain zero or more characters
-	matched stingily.  Successive conversions without intervening literarls
-	are very tricky and will usually not match what you want.  If we need
-	this, we'll have to think about modifiers or conversion descriptions ("H
-	is up to two digits" or so).
-
+	matched stingily.  Successive conversions without intervening literals
+	aren't really supported.  There's a hack for strptime-type times, though:
+	H, M, and S just eat two characters each if there's no seperator.
+	
 	This is really only meant as a quick hack to support times like 25:33.
 
 	>>> r=parsePercentExpression("12,xy:33,","%a:%b,%c"); r["a"], r["b"], r["c"]
 	('12,xy', '33', '')
+	>>> sorted(parsePercentExpression("2357-x", "%H%M-%u").items())
+	[('H', '23'), ('M', '57'), ('u', 'x')]
 	>>> r = parsePercentExpression("12,13,14", "%a:%b,%c")
 	Traceback (most recent call last):
 	ValueError: '12,13,14' cannot be parsed using format '%a:%b,%c'
 	"""
-	parts = re.split(r"(%\w)", format)
-	newReParts = []
-	for p in parts:
-		if p.startswith("%"):
-			newReParts.append("(?P<%s>.*?)"%p[1])
-		else:
-			newReParts.append(re.escape(p))
-	mat = re.match("".join(newReParts)+"$", literal)
+	mat = _getREForPercentExpression(format).match(literal)
 	if not mat:
 		raise ValueError("'%s' cannot be parsed using format '%s'"%(
 			literal, format))

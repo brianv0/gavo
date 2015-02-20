@@ -231,8 +231,8 @@ class Data(base.MetaMixin, common.ParamMixin):
 		"""raises a ValidationError if any required parameters within 
 		this data's tables are still None.
 		"""
-		for table in self:
-			table.validateParams()
+		for t in self:
+			t.validateParams()
 
 	def dropTables(self, parseOptions):
 		for t in self:

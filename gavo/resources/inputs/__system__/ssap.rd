@@ -331,6 +331,12 @@
 	</STREAM>
 
 	<STREAM id="atomicCoords">
+		<doc>
+			A stream for form-based service's VOTables to include simple
+			RA and Dec rather than normal ssa_location.
+
+			SSA services get that from the core and don't need this.
+		</doc>
 		<outputField name="location_ra"
 			unit="deg" ucd="pos.eq.ra;meta.main"
 			utype="ssa:Char.SpatialAxis.Coverage.Location.Value.C1"
@@ -552,11 +558,13 @@
 
 	<STREAM id="commonMixinParams">
 		<mixinPar key="fluxUnit" description="Flux unit used by the
-			spectra and in SSA char metadata.  This must be a VOUnit string."
+			spectra and in SSA char metadata.  This must be a VOUnit string (use
+			a single blank if your spectrum is not calibrated)."
 			>__EMPTY__</mixinPar>
 		<mixinPar key="spectralUnit" description="Spectral unit used by the
 			spectra (SSA char metadata always is wavelength in meters).  
-			This must be a VOUnit string.">__EMPTY__</mixinPar>
+			This must be a VOUnit string (use a single blank if your
+			spectrum is not calibrated).">__EMPTY__</mixinPar>
 
 		<mixinPar key="timeSI" description="SI conversion factor for times
 			in Osuna-Salgado convention; ssa:DataSet.TimeSI (you probably want

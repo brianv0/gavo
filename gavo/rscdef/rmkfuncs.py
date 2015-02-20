@@ -149,6 +149,9 @@ def parseDate(literal, format="%Y-%m-%d"):
 def parseTimestamp(literal, format="%Y-%m-%dT%H:%M:%S"):
 	"""returns a datetime.datetime object of literal parsed according to the
 	strptime-similar format.
+
+	A ValueError is raised if literal doesn't match format (actually,
+	a parse with essentially DALI-standard ISO representation is always tried)
 	"""
 	try:
 		return datetime.datetime(*time.strptime(literal, format)[:6])
