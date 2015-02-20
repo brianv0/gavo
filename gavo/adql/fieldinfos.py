@@ -197,13 +197,16 @@ class QueryFieldInfos(FieldInfos):
 		with context.customResolver(result.getFieldInfo):
 			if queryNode.whereClause:
 				_annotateNodeRecurse(queryNode.whereClause, context)
+
+		for col in queryNode.getSelectFields():
+			result.addColumn(col.name, col.fieldInfo)
+
+		with context.customResolver(result.getFieldInfo):
 			if queryNode.having:
 				_annotateNodeRecurse(queryNode.having, context)
 			if queryNode.groupby:
 				_annotateNodeRecurse(queryNode.groupby, context)
 
-		for col in queryNode.getSelectFields():
-			result.addColumn(col.name, col.fieldInfo)
 		return result
 
 	def _getEnclosingQuery(self, context):

@@ -943,6 +943,20 @@ class ColResTest(ColumnTest):
 		self._assertColumns(cols, [
 			("real", 'deg', 'pos.eq.ra;meta.main', False)])
 
+	def testAliasedColumn(self):
+		cols = self._getColSeq("SELECT foo, ra1 FROM ("
+			"SELECT ra1 as foO, ra1 FROM spatial) as q")
+		self._assertColumns(cols, [
+			("real", 'deg', 'pos.eq.ra', False),
+			("real", 'deg', 'pos.eq.ra', False)])
+
+	def testAliasedGrouping(self):
+		cols = self._getColSeq("SELECT count(*) as ct, round(ra1/10) as band"
+			" FROM spatial GROUP BY band")
+		self._assertColumns(cols, [
+			('integer', '', 'meta.number', False), 
+			('double precision', 'deg', 'pos.eq.ra', True)])
+
 
 class ExprColTest(ColumnTest):
 	def testCharConcat(self):
