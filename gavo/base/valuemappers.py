@@ -112,7 +112,7 @@ def _timeMapperFactory(annCol):
 			if val is None:
 				return val
 			elif isinstance(val, (datetime.time, datetime.datetime)):
-				res = fmtStr%(val.hours, val.minutes, val.second)
+				res = fmtStr%(val.hour, val.minute, val.second)
 			elif isinstance(val, datetime.timedelta):
 				hours = val.seconds//3600
 				minutes = (val.seconds-hours*3600)//60
