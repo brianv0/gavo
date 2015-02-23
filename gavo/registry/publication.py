@@ -328,7 +328,7 @@ def findPublishedRDs():
 	"""
 	with base.getTableConn() as conn:
 		return [r['sourcerd'] for r in conn.queryToDicts(
-			"select distinct sourcerd from dc.resources")]
+			"select distinct sourcerd from dc.resources where not deleted")]
 
 
 def getRDs(args):
