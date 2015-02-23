@@ -121,7 +121,13 @@ class DocumentStructure(dict):
 
 	From this information, it can later fill out the ParentPlaceholders
 	left in the proto reference doc.
+
+	This also keeps track of what macros can be used where.
 	"""
+	def __init__(self):
+		dict.__init__(self)
+		self.knownMacros = KnownMacros()
+
 	def _makeDoc(self, parents):
 		return "May occur in %s.\n"%", ".join("`Element %s`_"%name
 			for name in parents)
@@ -131,6 +137,7 @@ class DocumentStructure(dict):
 		for parent, children in self.iteritems():
 			for child in children:
 				parentDict.setdefault(child, []).append(parent)
+
 		for index, item in enumerate(protoDoc):
 			if isinstance(item, ParentPlaceholder):
 				if item.elementName in parentDict:
@@ -171,20 +178,23 @@ class StructDocMaker(object):
 		except TypeError: # unhashable default is a default
 			return True
 
-	def _addMacroDocs(self, klass, content):
+	def _addMacroDocs(self, klass, content, docStructure):
 		if not issubclass(klass, base.MacroPackage):
 			return
-		macs = []
-		for name in dir(klass):
-			if name.startswith("macro_"):
-				macs.append((name, getattr(klass, name)))
-		content.addHead2("Macros defined on %s"%klass.__name__)
-		for name, mac in sorted(macs):
-			makeMacroDoc(name[6:], mac, content)
-		content.delEmptySection()
+
+		macNames = []
+		for attName in dir(klass):
+			if attName.startswith("macro_"):
+				name = attName[6:]
+				docStructure.knownMacros.addMacro(name, 
+					getattr(klass, attName), klass)
+				macNames.append(name)
+
+		content.addNormalizedPara("Macros predefined here: "+", ".join(
+			"`Macro %s`_"%name for name in sorted(macNames)))
 		content.makeSpace()
 
-	def _realAddDocsFrom(self, klass):
+	def _realAddDocsFrom(self, klass, docStructure):
 		name = getDocName(klass)
 		if name in self.docStructure:
 			return
@@ -211,7 +221,7 @@ class StructDocMaker(object):
 				if isinstance(getattr(att, "childFactory", None), structure.StructType):
 					children.append(getDocName(att.childFactory))
 					if att.childFactory not in self.visitedClasses:
-						self.addDocsFrom(att.childFactory)
+						self.addDocsFrom(att.childFactory, docStructure)
 			except:
 				sys.stderr.write("While gendoccing %s in %s:\n"%(
 					att.name_, name))
@@ -226,13 +236,13 @@ class StructDocMaker(object):
 		content.delEmptySection()
 		content.makeSpace()
 
-		self._addMacroDocs(klass, content)
+		self._addMacroDocs(klass, content, docStructure)
 
 		self.docParts.append((klass.name_, content.content))
 
-	def addDocsFrom(self, klass):
+	def addDocsFrom(self, klass, docStructure):
 		try:
-			self._realAddDocsFrom(klass)
+			self._realAddDocsFrom(klass, docStructure)
 		except:
 			sys.stderr.write("Cannot add docs from element %s\n"%klass.name_)
 			traceback.print_exc()
@@ -245,28 +255,78 @@ class StructDocMaker(object):
 		return resDoc
 
 
-def makeMacroDoc(name, macFunc, content):
-	# macros have args in {}, of course there's no self, and null-arg
-	# macros have not {}...
-	args, varargs, varkw, defaults = inspect.getargspec(macFunc)
-	args = inspect.formatargspec(args[1:], varargs, varkw, defaults
-		).replace("(", "{").replace(")", "}").replace("{}", ""
-		).replace(", ", "}{")
-	content.addRaw("*\\\\%s%s*\n"%(name, args))
-	content.addRaw(utils.fixIndentation(
-		macFunc.func_doc or "undocumented", "  ", 1)+"\n")
+class MacroDoc(object):
+	"""documentation for a macro, including the objects that know about
+	it.
+	"""
+	def __init__(self, name, macFunc, foundIn):
+		self.name = name
+		self.macFunc = macFunc
+		self.inObjects = [foundIn]
+
+	def addObject(self, obj):
+		"""declares that macFunc is also available on the python object obj.
+		"""
+		self.inObjects.append(obj)
+
+	def makeDoc(self, content):
+		"""adds documentation of macFunc to the RSTFragment content.
+		"""
+		# macros have args in {}, of course there's no self, and null-arg
+		# macros have not {}...
+		args, varargs, varkw, defaults = inspect.getargspec(self.macFunc)
+		args = inspect.formatargspec(args[1:], varargs, varkw, defaults
+			).replace("(", "{").replace(")", "}").replace("{}", ""
+			).replace(", ", "}{")
+		content.addRaw("::\n\n  \\%s%s\n\n"%(self.name, args))
+		content.addRaw(utils.fixIndentation(
+			self.macFunc.func_doc or "undocumented", "", 1).replace("\\", "\\\\"))
+		content.addNormalizedPara("Available in "+", ".join(
+				sorted(
+					"`Element %s`_"%c.name_ for c in self.inObjects)))
+
+
+class KnownMacros(object):
+	"""An accumulator for all macros known to the various DaCHS objects.
+	"""
+	def __init__(self):
+		self.macros = {}
+	
+	def addMacro(self, name, macFunc, foundIn):
+		"""registers macFunc as expanding name in the element foundIn.
+
+		macFunc is the method, foundIn is the python class it's defined on.
+		"""
+		if name in self.macros:
+			self.macros[name].addObject(foundIn)
+		else:
+			self.macros[name] = MacroDoc(name, macFunc, foundIn)
+
+	def getDocs(self):
+		"""returns RST lines describing all macros fed in in addMacro.
+		"""
+		content = RSTFragment()
+		for macName in sorted(self.macros):
+			content.addHead1("Macro %s"%macName)
+			self.macros[macName].makeDoc(content)
+			content.makeSpace()
+		return content.content
+
+
+def formatKnownMacros(docStructure):
+	return docStructure.knownMacros.getDocs()
 
 
 def getStructDocs(docStructure):
 	dm = StructDocMaker(docStructure)
-	dm.addDocsFrom(rscdesc.RD)
+	dm.addDocsFrom(rscdesc.RD, docStructure)
 	return dm.getDocs()
 
 
 def getStructDocsFromRegistry(registry, docStructure):
 	dm = StructDocMaker(docStructure)
 	for name, struct in sorted(registry.items()):
-		dm.addDocsFrom(struct)
+		dm.addDocsFrom(struct, docStructure)
 	return dm.getDocs()
 
 

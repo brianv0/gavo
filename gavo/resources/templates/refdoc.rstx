@@ -127,6 +127,20 @@ that core.
 
 .. replaceWithResult getCoreDocs(docStructure)
 
+
+Predefined Macros
+=================
+
+Macro expansions in DaCHS start with a backslash, arguments are given
+in curly braces.  What macros are available depends on the element doing
+the expansion; regrettably, not all strings are expanded, and at this
+point it's not usually documented which are and which are not (though we
+hope DaCHS typically behaves "as expected").  If this bites you,
+complain to the authors and we promise we'll give fixing this a higher
+priority.
+
+.. replaceWithResult formatKnownMacros(docStructure)
+
 Mixins
 ======
 
