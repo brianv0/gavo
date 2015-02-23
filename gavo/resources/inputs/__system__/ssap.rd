@@ -1078,11 +1078,16 @@
 						param.change(utype=newUtype))
 
 				specCol = substrate.getColumnByName("spectral")
-				specCol.ucd = substrate.getParamByName("ssa_spectralucd").value
-				specCol.unit = substrate.getParamByName("ssa_spectralunit").value
+				specCol.feed("ucd",
+					substrate.getParamByName("ssa_spectralucd").value)
+				specCol.feed("unit",
+					substrate.getParamByName("ssa_spectralunit").value)
+
 				fluxCol = substrate.getColumnByName("flux")
-				fluxCol.ucd = substrate.getParamByName("ssa_fluxucd").value
-				fluxCol.unit = substrate.getParamByName("ssa_fluxunit").value
+				fluxCol.feed("ucd",
+					substrate.getParamByName("ssa_fluxucd").value)
+				fluxCol.feed("unit",
+					substrate.getParamByName("ssa_fluxunit").value)
 
 				# set the SDM container meta if not already present
 				if substrate.getMeta("utype", default=None) is None:

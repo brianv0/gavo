@@ -317,7 +317,8 @@ class ColumnBase(base.Structure, base.MetaMixin):
 		"datatype for the column (SQL-like type system)",
 		copyable=True, before="unit")
 	_unit = base.UnicodeAttribute("unit", default="", description=
-		"Unit of the values", copyable=True, before="ucd")
+		"Unit of the values", copyable=True, before="ucd",
+		strip=True)
 	_ucd = base.UnicodeAttribute("ucd", default="", description=
 		"UCD of the column", copyable=True, before="description")
 	_description = base.NWUnicodeAttribute("description", 

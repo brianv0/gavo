@@ -233,7 +233,7 @@ def validateTables(rd, args):
 			except api.BadUnit:
 				valid = False
 				outputError(rd.sourceId, "Bad unit in table %s, column %s: %s"%(
-					td.getQName(), col.name, col.unit))
+					td.getQName(), col.name, repr(col.unit)))
 
 		if td.onDisk and args.compareDB:
 			with base.getTableConn() as conn:
