@@ -1964,7 +1964,9 @@ Thus, a descriptor generator could look like this::
     </code>
   </descriptorGenerator>
 
-
+Where sensible, you should pass (as a keyword argument) semantics (as
+for LinkDefs) to the ``DatalinkFault``'s constructor; this would
+indicate what kind of link you wanted to create.
 
 Data Functions
 ''''''''''''''

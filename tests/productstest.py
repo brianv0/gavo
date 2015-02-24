@@ -488,9 +488,9 @@ class DLInterfaceTest(testhelpers.VerboseTest):
 
 	def testIDNecessary(self):
 		self.assertRaisesWithMsg(base.ValidationError,
-			"Field ID: Value is required but was not provided",
+			"Field ID: ID is mandatory with dlget",
 			self.svc.run,
-			("dlmeta", {"REQUEST": ["getLinks"]}))
+			("dlget", {"REQUEST": ["getLinks"]}))
 
 	def testREQUESTLegal(self):
 		dlResp = self.svc.run("dlmeta", {"request": ["getLinks"],
@@ -530,11 +530,11 @@ class _MetaMakerTestData(testhelpers.TestResource):
 					<code>
 					yield LinkDef(descriptor.pubDID, "http://foo/bar", 
 						contentType="test/junk", 
-						semantics="science",
+						semantics="#alternative",
 						contentLength=500002)
 					yield LinkDef(descriptor.pubDID, "http://foo/baz", 
 						contentType="test/gold", 
-						semantics="calibration")
+						semantics="#calibration")
 					</code>
 				</metaMaker>
 				<metaMaker>
@@ -614,7 +614,7 @@ class DatalinkMetaMakerTest(testhelpers.VerboseTest):
 			'http://localhost:8080/data/test/foo/dlmeta')
 
 		self.assertEqual(self.serviceResult[3].xpath("/capability")[0].attrib[
-			"standardID"], "ivo://ivoa.net/std/DataLink#links")
+			"standardID"], "ivo://ivoa.net/std/DataLink#links-1.0")
 
 	def testCapabilityParameters(self):
 		intfEl = self.serviceResult[3].xpath("//interface")[0]
@@ -697,12 +697,12 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 	
 	def testAccessURLStatic(self):
 		self.assertEqual(self.rows[
-			('ivo://x-unregistred/~?data/b.imp', 'science')][0]["access_url"], 
+			('ivo://x-unregistred/~?data/b.imp', '#alternative')][0]["access_url"], 
 			'http://foo/bar')
 
 	def testAccessURLAccess(self):
 		self.assertEqual(self.rows[
-			('ivo://x-unregistred/~?data/b.imp', 'access')][0]["access_url"],
+			('ivo://x-unregistred/~?data/b.imp', '#access')][0]["access_url"],
 			'http://localhost:8080/data/test/foo/dlget')
 
 	def testAccessURLSelf(self):
@@ -717,21 +717,22 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 	
 	def testMimes(self):
 		self.assertEqual(self.rows[('ivo://x-unregistred/~?data/a.imp', 
-			'calibration')][0]["content_type"], 'test/gold')
+			'#calibration')][0]["content_type"], 'test/gold')
 	
 	def testSemantics(self):
 		self.assertEqual(set(r[1] for r in self.rows), 
-			set(['science', 'calibration', '#self', 'access', None, '#preview']))
+			set(['#access', '#self', '#alternative', '#calibration', '#preview',
+				"http://dc.g-vo.org/datalink#other"]))
 
 	def testSizes(self):
 		self.assertEqual(self.rows[('ivo://x-unregistred/~?data/a.imp', 
-			'science')][0]["content_length"], 500002) 
+			'#alternative')][0]["content_length"], 500002) 
 		self.assertEqual(self.rows[('ivo://x-unregistred/~?data/a.imp', 
-			'calibration')][0]["content_length"], None) 
+			'#calibration')][0]["content_length"], None) 
 
 	def testServiceLink(self):
 		svcRow = self.rows[('ivo://x-unregistred/~?data/a.imp', 
-			'access')][0]
+			'#access')][0]
 		resId = svcRow["service_def"]
 		for res in self.serviceResult[1].xpath("//RESOURCE"):
 			if res.attrib.get("ID")==resId:
@@ -747,9 +748,9 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 		self.assertEqual(selfRow["content_length"], 73)
 
 	def testMetaError(self):
-		errors = self.rows[('ivo://not.asked.for', None)]
+		errors = self.rows[('ivo://not.asked.for', datalink.DEFAULT_SEMANTICS)]
 		self.assertEqual(errors[0]["error_message"],
-			'NotFoundError: Cannot locate other mess')
+			'NotFoundFault: Cannot locate other mess')
 
 	def testPreviewMetaURL(self):
 		previewRow = self.rows[('ivo://x-unregistred/~?data/b.imp', '#preview')][0]
@@ -782,8 +783,8 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 		mime, data = svc.run("dlmeta", {
 			"ID": ["ivo://junky.ivorn/made/up"]}).original
 		self.assertEqual("application/x-votable+xml;content=datalink", mime)
-		self.failUnless("<TR><TD>ivo://junky.ivorn/made/up</TD>"
-			"<TD></TD><TD>NotFoundError: Not a pubDID from this site.</TD>" in data)
+		self.failUnless("<TR><TD>ivo://junky.ivorn/made/up</TD><TD></TD>"
+			"<TD></TD><TD>NotFoundFault: Not a pubDID from this site.</TD>" in data)
 
 	def testMakeDescriptor(self):
 		svc = base.parseFromString(svcs.Service, """<service id="foo"

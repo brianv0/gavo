@@ -25,6 +25,10 @@ from gavo.votable import V, modelgroups
 from nevow import inevow
 from nevow import rend
 
+
+DEFAULT_SEMANTICS = "http://dc.g-vo.org/datalink#other"
+
+
 MS = base.makeStruct
 
 
@@ -96,21 +100,24 @@ class DatalinkFault(object):
 	all of which take the pubDID that caused the failure and a human-oriented
 	error message.
 	"""
-	def __init__(self, code, pubDID, message, exceptionClass):
+	def __init__(self, code, pubDID, message, exceptionClass, semantics):
 		self.code, self.pubDID, self.message = code, pubDID, message
+		self.semantics = semantics
 		self.exceptionClass = exceptionClass
 	
 	@classmethod
-	def _addErrorMaker(cls, errCode, exceptionClass):
+	def _addErrorMaker(cls, errCode, exceptionClass, 
+			semantics=DEFAULT_SEMANTICS):
 		def meth(inner, pubDID, message):
-			return inner(errCode, pubDID, message, exceptionClass)
+			return inner(errCode, pubDID, message, exceptionClass, semantics)
 		setattr(cls, errCode, classmethod(meth))
 
 	def asDict(self):
 		"""returns an error row for the datalink response.
 		"""
 		return {"ID": self.pubDID, "error_message":
-			"%s: %s"%(self.code, self.message)}
+			"%s: %s"%(self.code, self.message),
+			"semantics": self.semantics}
 
 	def raiseException(self):
 		raise self.exceptionClass(self.message+" (pubDID: %s)"%self.pubDID)
@@ -176,7 +183,7 @@ class LinkDef(object):
 			serviceType=None, 
 			errorMessage=None,
 			description=None, 
-			semantics="http://dc.g-vo.org/datalink#other", 
+			semantics=DEFAULT_SEMANTICS,
 			contentType=None, 
 			contentLength=None):
 		ID = pubDID #noflake: used in locals()
@@ -559,6 +566,11 @@ class DatalinkCore(DatalinkCoreBase):
 	"""
 	name_ = "datalinkCore"
 
+	# the core will be specially and non-cacheably adapted for these
+	# renderers (ssap.xml is in here for legacy getData):
+	datalinkAdaptingRenderers = frozenset([
+		"form", "dlget", "dlmeta", "dlasync", "ssap.xml"])
+
 	def _getPubDIDs(self, args):
 		"""returns a list of pubDIDs from args["ID"].
 
@@ -687,7 +699,7 @@ class DatalinkCore(DatalinkCoreBase):
 		"""
 		# if we're not speaking real datalink, return right (this will
 		# be cached, so this must never happen for actual data)
-		if not renderer.name.startswith("dl"):
+		if not renderer.name in self.datalinkAdaptingRenderers:
 			return self
 
 		try:
