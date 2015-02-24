@@ -306,7 +306,7 @@ class SSAPCore(svcs.DBCore):
 			# Also point to the dl metadata service
 			vot[V.RESOURCE(type="meta", utype="adhoc:service")[
 				V.PARAM(name="standardID", datatype="char", arraysize="*",
-					value="ivo://ivoa.net/std/DataLink#links"),
+					value="ivo://ivoa.net/std/DataLink#links-1.0"),
 				V.PARAM(name="accessURL", datatype="char", arraysize="*",
 					value=self.rd.getById(datalinkId).getURL("dlmeta")),
 				V.GROUP(name="inputParams")[

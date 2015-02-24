@@ -24,12 +24,12 @@ class SyncTest(trialhelpers.ArchiveTest):
 	def testErrorDocumentMetaGeneral(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlmeta", 
 			{"ID": "broken"},
-			["<TD>Error: global name 'ddt' is not defined</TD>"])
+			["<TD>Fault: global name 'ddt' is not defined</TD>"])
 
 	def testErrorDocumentMetaNotFound(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlmeta", 
 			{"ID": "ivo://not.here"},
-			["<TD>NotFoundError: Not a pubDID from this site.</TD>"])
+			["<TD>NotFoundFault: Not a pubDID from this site.</TD>"])
 
 	def testErrorDocumentAccess(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlget", 
@@ -39,17 +39,47 @@ class SyncTest(trialhelpers.ArchiveTest):
 	def testErrorStatus(self):
 		return self.assertStatus("/data/cores/dl/dlget", 422)
 
+	def testWithoutId(self):
+		return self.assertGETHasStrings("/data/cores/dl/dlmeta", {}, [
+			"<TABLEDATA></TABLEDATA>",
+			"<FIELD",
+			'name="service_def"']) 
+
 	def testMetadata(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlmeta", 
 			{"ID": "ivo://x-unregistred/~?data/excube.fits"},
 			['<DESCRIPTION>The latitude coordinate, lower limit</DESCRIPTION>'
 				'<VALUES><MIN value="30.9831815872">',])
 
+	def testRespformat1(self):
+		return self.assertGETHasStrings("/data/cores/dl/dlmeta", {
+				"ID": "ivo://x-unregistred/~?data/excube.fits",
+				"RESPONSEFORMAT": "votable",
+			},
+			['<DESCRIPTION>The latitude coordinate, lower limit</DESCRIPTION>'
+				'<VALUES><MIN value="30.9831815872">',])
+
+	def testRespformat2(self):
+		return self.assertGETHasStrings("/data/cores/dl/dlmeta", {
+				"ID": "ivo://x-unregistred/~?data/excube.fits",
+				"RESPONSEFORMAT": "application/x-votable+xml",
+			},
+			['<DESCRIPTION>The latitude coordinate, lower limit</DESCRIPTION>'
+				'<VALUES><MIN value="30.9831815872">',])
+
+	def testInvalidRespformat(self):
+		return self.assertGETHasStrings("/data/cores/dl/dlmeta", {
+				"ID": "ivo://x-unregistred/~?data/excube.fits",
+				"RESPONSEFORMAT": "vnd-microsoft/xls"
+			},
+			["ValidationError: Field RESPONSEFORMAT: u'vnd-microsoft/xls'"
+				" is not a valid value for RESPONSEFORMAT"])
+
 	def testMetadataError(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlmeta", 
 			{"ID": "ivo://x-unregistred/~?data/excube.fit"},
-			["TR><TD>ivo://x-unregistred/~?data/excube.fit</TD><TD></TD><TD>"
-				"NotFoundError: accref 'data/excube.fit' could not be located"
+			["TR><TD>ivo://x-unregistred/~?data/excube.fit</TD><TD></TD><TD></TD><TD>"
+				"NotFoundFault: accref 'data/excube.fit' could not be located"
 				" in product table</TD>"])
 	
 	def testSpecCutout(self):
@@ -67,6 +97,16 @@ class SyncTest(trialhelpers.ArchiveTest):
 				"ID": "ivo://test.inv/test2"},
 			["spec2:AstroCoords.Position2D.Value2",
 			"1908.0"])
+
+	def testAvailability(self):
+		return self.assertGETHasStrings("/data/cores/dl/availability", {},
+			["<avl:available>true</avl:available>"])
+
+	def testCapabilities(self):
+		return self.assertGETHasStrings("/data/cores/dl/capabilities", {}, [
+			'standardID="ivo://ivoa.net/std/DataLink#links-1.0"',
+			'/data/cores/dl/dlmeta</accessURL>',
+			'<ucd>meta.id;meta.main</ucd>'])
 
 
 def killLocalhost(url):

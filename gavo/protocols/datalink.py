@@ -80,19 +80,18 @@ class ProductDescriptor(object):
 				pass
 
 
-class DatalinkError(object):
-	"""A datalink error.
+class DatalinkFault(object):
+	"""A datalink error ("fault", as it's called in the spec).
 
 	These are usually constructed using one of the classmethods
 
-
-	* AuthenticationError -- Not authenticated (and authentication required)
-	* AuthorizationError -- Not authorized (to access the resource)
-	* NotFoundError -- Unknown ID value
-	* UsageError -- Invalid input (e.g. no ID values)
-	* TransientError -- Service is not currently able to function
-	* FatalError -- Service cannot perform requested action
-	* Error -- General error (not covered above)
+	* AuthenticationFault -- Not authenticated (and authentication required)
+	* AuthorizationFault -- Not authorized (to access the resource)
+	* NotFoundFault -- Unknown ID value
+	* UsageFault -- Invalid input (e.g. no ID values)
+	* TransientFault -- Service is not currently able to function
+	* FatalFault -- Service cannot perform requested action
+	* Fault -- General error (not covered above)
 
 	all of which take the pubDID that caused the failure and a human-oriented
 	error message.
@@ -117,14 +116,14 @@ class DatalinkError(object):
 		raise self.exceptionClass(self.message+" (pubDID: %s)"%self.pubDID)
 
 for errName, exClass in [
-		("AuthenticationError", svcs.ForbiddenURI), 
-		("AuthorizationError", svcs.ForbiddenURI),
-		("NotFoundError", svcs.UnknownURI),
-		("UsageError", svcs.BadMethod),
-		("TransientError", svcs.BadMethod),
-		("FatalError", svcs.Error),
-		("Error", svcs.Error)]:
-	DatalinkError._addErrorMaker(errName, exClass)
+		("AuthenticationFault", svcs.ForbiddenURI), 
+		("AuthorizationFault", svcs.ForbiddenURI),
+		("NotFoundFault", svcs.UnknownURI),
+		("UsageFault", svcs.BadMethod),
+		("TransientFault", svcs.BadMethod),
+		("FatalFault", svcs.Error),
+		("Fault", svcs.Error)]:
+	DatalinkFault._addErrorMaker(errName, exClass)
 del errName, exClass
 
 
@@ -154,7 +153,7 @@ class DescriptorGenerator(rscdef.ProcApp):
 
 	additionalNamesForProcs = {
 		"ProductDescriptor": ProductDescriptor,
-		"DatalinkError": DatalinkError,
+		"DatalinkFault": DatalinkFault,
 	}
 
 
@@ -168,15 +167,16 @@ class LinkDef(object):
 
 	In addition, we accept the remaining column names from 
 	//datalink#dlresponse as keyword arguments.
-	
-	For semantics, try to user one of science, calibration, preview, info,
-	auxiliary, and processed.
+
+	In particular, do set semantics with a term from 
+	http://www.ivoa.net/rdf/datalink/core.  This includes #self, #preview,
+	#calibration, #progenitor, #derivation
 	"""
 	def __init__(self, pubDID, accessURL, 
 			serviceType=None, 
 			errorMessage=None,
 			description=None, 
-			semantics=None, 
+			semantics="http://dc.g-vo.org/datalink#other", 
 			contentType=None, 
 			contentLength=None):
 		ID = pubDID #noflake: used in locals()
@@ -296,7 +296,7 @@ class MetaMaker(rscdef.ProcApp):
 	  - Values -- the class to make for input parameters' values attributes
 	  - Options -- used by Values
 	  - LinkDef -- a class to define further links within datalink services.
-	  - DatalinkError -- a container of datalink error generators
+	  - DatalinkFault -- a container of datalink error generators
 	"""
 	name_ = "metaMaker"
 	requiredType = "metaMaker"
@@ -308,7 +308,7 @@ class MetaMaker(rscdef.ProcApp):
 		"Values": rscdef.Values,
 		"Option": rscdef.Option,
 		"LinkDef": LinkDef,
-		"DatalinkError": DatalinkError,
+		"DatalinkFault": DatalinkFault,
 	}
 
 
@@ -448,7 +448,6 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 		self.inputKeys.append(MS(svcs.InputKey, name="ID", type="text", 
 			ucd="meta.id;meta.main",
 			multiplicity="multiple",
-			required=True,
 			std=True,
 			description="The pubisher DID of the dataset of interest"))
 
@@ -473,14 +472,14 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 				for item in metaMaker.compile(self)(descriptor):
 					if isinstance(item, LinkDef):
 						linkDefs.append(item)
-					elif isinstance(item, DatalinkError):
+					elif isinstance(item, DatalinkFault):
 						errors.append(item)
 					else:
 						inputKeys.append(item)
 			except Exception, ex:
-				errors.append(DatalinkError.Error(descriptor.pubDID),
+				errors.append(DatalinkFault.Fault(descriptor.pubDID,
 					"Unexpected failure while creating"
-					" datalink: %s"%utils.safe_str(ex))
+					" datalink: %s"%utils.safe_str(ex)))
 	
 		return linkDefs, inputKeys, errors
 
@@ -497,7 +496,7 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 		internalLinks = []
 
 		internalLinks.extend(LinkDef(s.pubDID, service.getURL(s.rendName),
-				serviceType=ctx.getOrMakeIdFor(s), semantics="access")
+				serviceType=ctx.getOrMakeIdFor(s), semantics="#access")
 			for s in self.datalinkEndpoints)
 
 		# for accessing the dataset itself, prefer sync dlget
@@ -567,13 +566,11 @@ class DatalinkCore(DatalinkCoreBase):
 		are taken from the ID parameter.  If it's atomic, it'll be expanded into
 		a list.  If it's not present, a ValidationError will be raised.
 		"""
-		try:
-			pubDIDs = args["ID"]
-			if not isinstance(pubDIDs, list):
-				pubDIDs = [pubDIDs]
-		except (KeyError, IndexError):
-			raise base.ValidationError("Value is required but was not provided",
-				"ID")
+		pubDIDs = args.get("ID")
+		if not pubDIDs:
+			pubDIDs = []
+		elif not isinstance(pubDIDs, list):
+			pubDIDs = [pubDIDs]
 		return pubDIDs
 
 	def adaptForDescriptors(self, renderer, descriptors):
@@ -587,9 +584,10 @@ class DatalinkCore(DatalinkCoreBase):
 		except ValueError:
 			allowedForSvc = []
 
+
 		linkDefs, endpoints, errors = [], [], []
 		for descriptor in descriptors:
-			if isinstance(descriptor, DatalinkError):
+			if isinstance(descriptor, DatalinkFault):
 				errors.append(descriptor)
 
 			else:
@@ -624,8 +622,10 @@ class DatalinkCore(DatalinkCoreBase):
 				required=False,
 				std=True,
 				description="Format of the request document",
-				values=rscdef.Values.fromOptions(
-					["application/x-votable+xml;content=datalink"])))
+				values=rscdef.Values.fromOptions( [
+						"application/x-votable+xml;content=datalink",
+						"votable",
+						"application/x-votable+xml"])))
 
 		else:
 			# we're a data generating core;  inputKeys are the core's plus 
@@ -635,9 +635,12 @@ class DatalinkCore(DatalinkCoreBase):
 			# TODO: this restricts the use of the core to dlget and dlasync
 			# (see endpoint creation above).  It's not clear that's what we
 			# want, as e.g. form may work fine as well.
+			if not descriptors:
+				raise base.ValidationError("ID is mandatory with dlget",
+					"ID")
 			if endpoints:
 				inputKeys.extend(endpoints[-1].inputKeys)
-			if isinstance(descriptors[-1], DatalinkError):
+			if isinstance(descriptors[-1], DatalinkFault):
 				descriptors[-1].raiseException()
 
 		res = self.change(inputTable=MS(svcs.InputTable, 
@@ -668,7 +671,7 @@ class DatalinkCore(DatalinkCoreBase):
 		somewhere upstack.  Nasty, but for now an acceptable solution.
 
 		It is particularly important to never let service cache the
-		cores returned; hence to "nocache" magic.
+		cores returned for the dl* renderers; hence to "nocache" magic.
 
 		This tries to generate all datalink-relevant metadata in one go 
 		and avoid calling the descriptorGenerator(s) more than once per
@@ -682,14 +685,19 @@ class DatalinkCore(DatalinkCoreBase):
 		though, e.g., if we want to allow retrieving multiple datasets
 		in a tar file?  Or to re-use the same service for all pubdids?
 		"""
+		# if we're not speaking real datalink, return right (this will
+		# be cached, so this must never happen for actual data)
+		if not renderer.name.startswith("dl"):
+			return self
+
 		try:
 			args = utils.stealVar("args")
 			if not isinstance(args, dict):
 				# again, we're not being called in a context with a pubdid
 				raise ValueError("No pubdid")
 		except ValueError:
-			# no arguments found: no pubdid-specific interfaces
-			return self
+			# no arguments found: decide later on whether to fault out.
+			args = {"ID": []}
 
 		pubDIDs = self._getPubDIDs(args)
 		descGen = self.descriptorGenerator.compile(self)
@@ -698,11 +706,11 @@ class DatalinkCore(DatalinkCoreBase):
 			try:
 				descriptors.append(descGen(pubDID, args))
 			except base.NotFoundError, ex:
-				descriptors.append(DatalinkError.NotFoundError(pubDID,
+				descriptors.append(DatalinkFault.NotFoundFault(pubDID,
 					utils.safe_str(ex)))
 # TODO: Catch more "known" exceptions, e.g. Authorization
 			except Exception, ex:
-				descriptors.append(DatalinkError.Error(pubDID,
+				descriptors.append(DatalinkFault.Fault(pubDID,
 					utils.safe_str(ex)))
 
 		return self.adaptForDescriptors(renderer, descriptors)

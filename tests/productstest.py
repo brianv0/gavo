@@ -540,7 +540,7 @@ class _MetaMakerTestData(testhelpers.TestResource):
 				<metaMaker>
 					<code>
 						if descriptor.pubDID.endswith("b.imp"):
-							yield DatalinkError.NotFoundError("ivo://not.asked.for",
+							yield DatalinkFault.NotFoundFault("ivo://not.asked.for",
 								"Cannot locate other mess")
 					</code>
 				</metaMaker>

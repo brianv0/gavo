@@ -1476,14 +1476,16 @@ you could, for example, extract from a tcpdump log.
 Datalink Cores
 ==============
 
-[Note: Datalink specification in the IVOA is not yet finalized; it is
-conceivable that the DaCHS Datalink API will have to change once it is]
-
 Datalink is an IVOA protocol that allows associating various products
-and artifacts with a data set id.  Classical examples for functionality
-exposed via Datalink include cutouts, format conversions or
-recalibrations done on the fly, and associating error or mask maps with
-the actual data.
+and artifacts with a data set id.  Think the association of error or
+mask maps, progenitor datasets, or processed data products, with a data
+set.  It also lets you associate data processing services with datasets,
+which allows on-the-fly generation of cutouts, format conversions or
+recalibrations.  Note that in DaCHS, Datalink support covers both what
+the IVOA recommendation on Datalink gives (essentially metadata
+transport; that's the dlmeta renderer) and the access services described
+(there's a standard called "AccessData" planned for that; in DaCHS,
+that's the dlget renderer).
 
 A central term for datalink is the pubDID, or publisher DID.  This is an
 identifier assigned (essentially) by you that points to a concrete
@@ -1530,27 +1532,28 @@ metadata request.
 
 When a request for processed data comes in, the descriptor generator is
 again used to make a product descriptor, and again the input keys are
-updated as before.  They are then used to build the arguments structure
-described by the input keys.  
+updated as before.  They are then used to build the arguments described
+by the input keys.  
 
 If the context grammar succeeds, the data descriptor is passed to the
 first data function together with the arguments parsed.  This must fill
 out the ``data`` attribute of the descriptor or raise a ValidationError
-for the PUBDID; leaving it as None results in a 500 server error.
-Descriptor.data could an ``rsc.InMemoryTable`` (e.g., in SSAP) or a
-products.Products instance, but as long as the other data functions and
-the formatter agree on what it is, anything goes.  It will usually be
-fed from a database, pixels in FITS files, or the like.
+for the PUBDID; leaving descriptor as ``None`` results in a 500 server
+error.  Descriptor.data could an ``rsc.InMemoryTable`` (e.g., in SSAP)
+or a ``products.Products`` instance, but as long as the other data
+functions and the formatter agree on what it is, anything goes.  It will
+usually be fed from a database, pixels in FITS files, or the like.
 
 This object is then handed through all remaining data functions; these
 change the data in place or create a new one as convenient and
 manipulate ``descriptor.data`` accordingly.
 
 Finally, the data enters the formatter, which actually generates the
-output, returning a pair of mime type and string to be delivered.
+output, usually returning a pair of mime type and string to be
+delivered.
 
 It is a design descision which manipulations are done in the data
-generator, which are in later filters, and which maybe only in the
+generator, which are in later filters, and which perhaps only in the
 formatter.  The advantage of filters is that they are more flexible and
 can more easily be reused, while doing it things in the data generator
 itself will usually be more efficient, sometimes much so (e.g., sums
@@ -1567,15 +1570,15 @@ applications that see a pubDID value and are expected to return a
 
 In the end, this usually boils down to figuring out the value of accref
 in the product table and using what's there to construct the descriptor
-generatorr.  In the simplest case, the pubDID will be in DaCHS'
+generator.  In the simplest case, the pubDID will be in DaCHS'
 "standard" format (see the ``getStandardPubDID`` rowmaker function), in
 which case the default descriptor generator works and you don't have to
 specify anything.  You could manually insert that default by saying::
   
   <descriptorGenerator procDef="//datalink#fromStandardPubDID"/>
 
-(but that would be silly since DaCHS already does this for you).  It's
-functionality is equivalent to this::
+(this happens to be DaCHS' default if no descriptor generator is given).
+It's functionality is equivalent to this::
 
   <descriptorGenerator>
     <code>
@@ -1863,15 +1866,6 @@ In addition to the pubDID and the access URL, LinkDefs accept keyword
 arguments for the columns of the ``//datalink#dlresponse`` table.  At
 the time of this writing, these include:
 
-serviceType
-  This is a URI saying what kind of a service is behind accessURL if it
-  is a service.  You'll not usually want to set this in links you give.
-  The exception is when you're pointing to some standard service that
-  exposes the data that's being talked about, too.  As of this writing,
-  it is probably most relevant for SSA services, in which case you'd put
-  ``ivo://ivoa.net/std/SSA`` here.  Otherwise, this field is used to
-  generate a link to a descriptor of the services' dlget endpoint, but
-  that's done automatically by DaCHS.
 errorMessage
   If your code cannot make a link and wants to communicate that to a
   client, you leave accessURL empty (None) and set a message here.
@@ -1881,14 +1875,19 @@ semantics
   A term from a controlled-vocabulary describing what's behind the link
   (see below)
 contentType
-  An (advisory) mime type of whatever accessURL points to.  Please make
+  An (advisory) media type of whatever accessURL points to.  Please make
   sure it's consistent with what the server actually returns if the
   protocol used by accessURL supports that.
 contentLength
-  The size of the resource at accessURL, in bytes.
+  The (approximate) size of the resource at accessURL, in bytes.
 
-All auxillary data defaults to None if not given, and it's legal to
-leave it at that.
+With the exception of semantics, all auxillary data defaults to None if
+not given, and it's legal to leave it at that.  Semantics must be
+non-NULL, even if an error message is generated.  To make sure that's
+true, DaCHS inserts a non-informational URL, which preferentially
+shouldn't escape to the user.  Hence, please set semantics on LinkDefs,
+and if possible choose one of the terms given at 
+http://www.ivoa.net/rdf/datalink/core
 
 You can inspect the definition of the datalinks table active in your
 system by saying::
@@ -1896,39 +1895,6 @@ system by saying::
   gavo admin dumpDF //datalink | less
 
 (the table definition is right at the top).
-
-The vocabulary for the semantics value is not finalized yet.  Complain
-to the DaCHS maintainers that this sentence still is here.
-At the time of writing, the following terms are in discussion:
-
-science
-  Associated datasets containing science data, possibly derived or
-  further reduced data; an example would be a merged spectrum from
-  Echelle orders.
-qa
-  Files containing error estimates or the like.
-calibration
-  Datasets used for reduction of the current dataset.
-preview
-  Scaled-down or rendered versions of the datasets; this could include a
-  small plot for spectra, say.
-info
-  Erm.  Frankly, I don't know.
-self
-  The data set itself.  DaCHS generates such a link automatically to a
-  dlget giving just the PubDID if the renderer is enabled on the service.  
-  If this is a problem for you, let us know and we'll hack something 
-  that lets you suppress it.
-source
-  A predecessor data set, e.g., uncalibrated or less calibrated data
-access
-  A service that allows access to parts of the dataset, or to processed
-  versions of it.  DaCHS automatically makes a link with this semantics
-  for the dlget endpoint if the ``dlget`` renderer is enabled on the
-  service.
-auxiliary
-  Basically, a "none of the above" option.  You'll probably want to
-  use the description column to help clients figure out what it is.
 
 Data links frequently should expose some data that's not in the product
 table (e.g., because you don't want the error files to show up there).
@@ -1965,17 +1931,17 @@ link definition.  This allows more fine-tuned control over the messages
 generated than raising an exception.
 
 Error messages are constructed using class functions of
-``DatalinkError``, which is visible to both procedure types.  The class
+``DatalinkFault``, which is visible to both procedure types.  The class
 function names correspond to the message types defined in the datalink
 spec and match the semantics given there:
 
-* AuthenticationError
-* AuthorizationError
-* NotFoundError
-* UsageError
-* TransientError
-* FatalError
-* Error
+* AuthenticationFault
+* AuthorizationFault
+* NotFoundFault
+* UsageFault
+* TransientFault
+* FatalFault
+* Fault
 
 Thus, a descriptor generator could look like this::
 
@@ -1992,7 +1958,7 @@ Thus, a descriptor generator could look like this::
           "select physPath from schema.myTable where pub_did=%(pubDID)s",
           locals()))
         if not matchingRows:
-          return DatalinkError.NotFoundError(pubDID,
+          return DatalinkFault.NotFoundFault(pubDID,
             "No dataset with this pubDID known here")
         return MyCustomDescriptor.fromFile(matchingRows[0]["physPath"])
     </code>

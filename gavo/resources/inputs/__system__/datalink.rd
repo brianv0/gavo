@@ -15,17 +15,17 @@
 			tablehead="URL"
 			description="URL to retrieve the data or access the service."
 			verbLevel="1" displayHint="type=url"/>
-		<column name="error_message" type="text"
-			ucd="meta.code.error"
-			tablehead="Why not?"
-			description="If accessURL is empty, this column gives the reason why."
-			verbLevel="20"/>
 		<column name="service_def" type="text"
 			ucd="meta.code"
 			tablehead="Svc. Type"
 			description="Identifier for the type of service if accessURL refers
 				to a service."
 			verbLevel="1"/>
+		<column name="error_message" type="text"
+			ucd="meta.code.error"
+			tablehead="Why not?"
+			description="If accessURL is empty, this column gives the reason why."
+			verbLevel="20"/>
 		<column name="description" type="text"
 			ucd="meta.note"
 			tablehead="Description"
@@ -151,7 +151,7 @@
 				matchingRows = list(ssaTable.iterQuery(ssaTable.tableDef, 
 					"ssa_pubdid=%(pubdid)s", {"pubdid": pubDID}))
 				if not matchingRows:
-					return DatalinkError.NotFoundError(pubDID,
+					return DatalinkFault.NotFoundFault(pubDID,
 						"No spectrum with this pubDID known here")
 
 				# the relevant metadata for all rows with the same PubDID should
@@ -324,11 +324,11 @@
 					try:
 						accref = getAccrefFromStandardPubDID(pubDID)
 					except ValueError:
-						return DatalinkError.NotFoundError(pubDID,
+						return DatalinkFault.NotFoundFault(pubDID,
 							"Not a pubDID from this site.")
 
 					if accrefStart and not accref.startswith(accrefStart):
-						return DatalinkError.AuthenticationError(pubDID,
+						return DatalinkFault.AuthenticationFault(pubDID,
 							"This datalink service not available"
 							" with this pubDID")
 

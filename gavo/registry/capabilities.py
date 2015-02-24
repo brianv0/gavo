@@ -333,7 +333,7 @@ class DatalinkCapabilityMaker(CapabilityMaker):
 	renderer = "dlmeta"
 
 	class capabilityClass(VOR.capability):
-		_a_standardID = "ivo://ivoa.net/std/DataLink#links"
+		_a_standardID = "ivo://ivoa.net/std/DataLink#links-1.0"
 		
 
 _tapModelBuilder = meta.ModelBasedBuilder([
