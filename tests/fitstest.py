@@ -18,6 +18,7 @@ import unittest
 from gavo.helpers import testhelpers
 
 from gavo import base
+from gavo.helpers import fitstricks
 from gavo.utils import fitstools
 from gavo.utils import pyfits
 
@@ -470,6 +471,95 @@ class ESODescriptorsTest(testhelpers.VerboseTest):
   			4.069884765625001E+03  4.099591796875001E+03""",))
 
 	# Maybe do a test with a real header here?
+
+
+class _TemplatedHeader(testhelpers.TestResource):
+	fitstricks.registerTemplate('dachstest',
+		fitstricks.MINIMAL_IMAGE_TEMPLATE+[
+			pyfits.Card(value="---- Separator"),
+			("ADDLATER", "This is inserted later"),
+			("CHGLATER", "This is changed later"),
+			("TESTVAL", "Just some random junk"),])
+
+	def make(self, dependents):
+		hdr = fitstricks.makeHeaderFromTemplate("dachstest",
+			BITPIX=8, NAXIS1=3, NAXIS2=4, TESTVAL="Really",
+			CHGLATER=23)
+
+		class _(object):
+			fits = hdr
+			ser = str(hdr)
+
+		return _
+
+_templatedHeader = _TemplatedHeader()
+
+
+class _ExtendedTemplatedHeader(testhelpers.TestResource):
+	resources = [("base", _templatedHeader)]
+
+	def make(self, dependents):
+		base = dependents["base"].fits.copy()
+		base.add_history("Changed by someone else")
+		base.add_comment("This is snide")
+		base.add_comment("Da-te-dum")
+		hdr = fitstricks.updateTemplatedHeader(base,
+			ADDLATER=42.25, CHGLATER=24)
+
+		class _(object):
+			fits = hdr
+			ser = str(hdr)
+
+		return _
+
+
+class TemplatingTest(testhelpers.VerboseTest):
+	resources = [("base", _templatedHeader),
+		("mod", _ExtendedTemplatedHeader())]
 	
+	def testParmeterSwallowed(self):
+		self.assertEqual(self.base.fits["NAXIS1"], 3)
+	
+	def testOmittedHeadersOmitted(self):
+		self.assertFalse("BZERO" in self.base.fits)
+	
+	def testHeaderSequence(self):
+		self.assertEqual([c.key for c in self.base.fits.ascard],
+			['SIMPLE', 'EXTEND', 'BITPIX', 'NAXIS', 'NAXIS1', 'NAXIS2', 
+				'', 'CHGLATER', 'TESTVAL', 'HISTORY'])
+	
+	def testNiceSeparator(self):
+		self.assertTrue("2nd axis                      ---- Separator"
+			in self.base.ser)
+	
+	def testCustomComment(self):
+		self.assertTrue("'Really  '           / Just some random junk"
+			in self.base.ser)
+	
+	def testCreationHistoryPresent(self):
+		self.assertTrue("HISTORY GAVO DaCHS template used: dachstest"
+			in self.base.ser)
+
+	def testModifiedHeaderSequence(self):
+		self.assertEqual([c.key for c in self.mod.fits.ascard],
+			['SIMPLE', 'EXTEND', 'BITPIX', 'NAXIS', 'NAXIS1', 'NAXIS2', 
+				'', 'ADDLATER', 'CHGLATER', 'TESTVAL', 'HISTORY', 'HISTORY',
+				'', 'COMMENT', 'COMMENT'])
+	
+	def testUpdateAdds(self):
+		self.assertEqual(self.mod.fits["ADDLATER"], 42.25)
+	
+	def testUpdateChanges(self):
+		self.assertEqual(self.base.fits["CHGLATER"], 23)
+		self.assertEqual(self.mod.fits["CHGLATER"], 24)
+
+	def testHistoryPreserved(self):
+		self.assertTrue("HISTORY Changed by someone else"
+			in self.mod.ser)
+
+	def testCommentsPreserved(self):
+		self.assertTrue("COMMENT Da-te-dum" in self.mod.ser)
+
+
 if __name__=="__main__":
 	testhelpers.main(WCSFromHeaderTest)
