@@ -250,6 +250,7 @@ def EnumeratedWidget(ik):
 		else:
 			baseWidget = MultiSelectChoice
 			moreArgs["size"] = ik.showItems
+			moreArgs["noneOption"] = None
 	else:
 		if len(options)<4:
 			baseWidget = RadioChoice
