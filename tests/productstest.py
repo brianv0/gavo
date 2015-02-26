@@ -707,11 +707,11 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 
 	def testAccessURLSelf(self):
 		self.assertEqual(self.rows[
-			('ivo://x-unregistred/~?data/b.imp', '#self')][0]["access_url"],
+			('ivo://x-unregistred/~?data/b.imp', '#this')][0]["access_url"],
 			'http://localhost:8080/data/test/foo/dlget?'
 				'ID=ivo%3A%2F%2Fx-unregistred%2F%7E%3Fdata%2Fb.imp')
 		self.assertEqual(self.rows[
-			('ivo://x-unregistred/~?data/a.imp', '#self')][0]["access_url"],
+			('ivo://x-unregistred/~?data/a.imp', '#this')][0]["access_url"],
 			'http://localhost:8080/data/test/foo/dlget?'
 				'ID=ivo%3A%2F%2Fx-unregistred%2F%7E%3Fdata%2Fa.imp')
 	
@@ -721,7 +721,7 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 	
 	def testSemantics(self):
 		self.assertEqual(set(r[1] for r in self.rows), 
-			set(['#access', '#self', '#alternative', '#calibration', '#preview',
+			set(['#access', '#this', '#alternative', '#calibration', '#preview',
 				"http://dc.g-vo.org/datalink#other"]))
 
 	def testSizes(self):
@@ -743,7 +743,7 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 		self.assertEqual(res.attrib.get("utype"), "adhoc:service")
 
 	def testSelfMeta(self):
-		selfRow = self.rows[('ivo://x-unregistred/~?data/b.imp', '#self')][0]
+		selfRow = self.rows[('ivo://x-unregistred/~?data/b.imp', '#this')][0]
 		self.assertEqual(selfRow["content_type"], "text/plain")
 		self.assertEqual(selfRow["content_length"], 73)
 

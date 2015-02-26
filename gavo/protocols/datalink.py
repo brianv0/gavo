@@ -176,7 +176,7 @@ class LinkDef(object):
 	//datalink#dlresponse as keyword arguments.
 
 	In particular, do set semantics with a term from 
-	http://www.ivoa.net/rdf/datalink/core.  This includes #self, #preview,
+	http://www.ivoa.net/rdf/datalink/core.  This includes #this, #preview,
 	#calibration, #progenitor, #derivation
 	"""
 	def __init__(self, pubDID, accessURL, 
@@ -524,7 +524,7 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 					description="The full dataset.",
 					contentType=d.mime,
 					contentLength=d.estimateSize(),
-					semantics="#self"))
+					semantics="#this"))
 
 			if getattr(d, "preview", None):
 				if d.preview.startswith("http"):

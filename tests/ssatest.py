@@ -361,7 +361,7 @@ class GetDataTest(_WithSSATableTest):
 				"FORMAT": "application/x-votable+xml;serialization=tabledata", 
 				"BAND": "1.9e-7/1.92e-7", "FLUXCALIB": "RELATIVE"}).original
 		self.failUnless("<TD>1900.0</TD><TD>0.91676" in payload)
-		tree = testhelpers.getXMLTree(payload, debug=True)
+		tree = testhelpers.getXMLTree(payload, debug=False)
 		self.assertEqual(tree.xpath(
 			"//PARAM[@utype='spec:Spectrum.Char.FluxAxis.Calibration']")[0].get(
 				"value"),
