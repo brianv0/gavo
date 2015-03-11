@@ -190,6 +190,9 @@ def _getWidgetFactory(inputKey):
 
 
 def getFieldArgsForInputKey(inputKey):
+	"""returns a dictionary of keyword arguments for nevow formal
+	addField from a DaCHS InputKey.
+	"""
 	# infer whether to show a unit and if so, which
 	unit = ""
 	if inputKey.type!="date":  # Sigh.
@@ -211,8 +214,6 @@ def getFieldArgsForInputKey(inputKey):
 		res["default"] = unicode(inputKey.values.default)
 	if inputKey.value:
 		res["default"] = unicode(inputKey.value)
-	if inputKey.hasProperty("defaultForForm"):
-		res["default"] = inputKey.getProperty("defaultForForm")
 
 	return res
 
@@ -313,12 +314,16 @@ class FormMixin(formal.ResourceMixin):
 			return failure
 		return self.form.errors
 
-	def _addDefaults(self, ctx, form):
-		"""adds defaults from request arguments.
+	def _addDefaults(self, ctx, form, additionalDefaults):
+		"""adds defaults from request arguments (coming in via ctx) and defaults
+		from input keys (additionalDefaults).
+
+		This is mainly here so forms can be bookmarked.
 		"""
 		if ctx is None:  # no request context, no arguments
 			return
-		args = inevow.IRequest(ctx).args
+		args = additionalDefaults.copy()
+		args.update(inevow.IRequest(ctx).args)
 
 		# do remainig work in function as this can be recursive
 		def process(container):
@@ -337,6 +342,9 @@ class FormMixin(formal.ResourceMixin):
 	def _addInputKey(self, form, container, inputKey):
 		"""adds a form field for an inputKey to the form.
 		"""
+		if inputKey.hasProperty("defaultForForm"):
+			self._defaultsForForm[inputKey.name
+				] = [inputKey.getProperty("defaultForForm")]
 		container.addField(**getFieldArgsForInputKey(inputKey))
 
 	def _groupQueryFields(self, inputTable):
@@ -453,12 +461,18 @@ class FormMixin(formal.ResourceMixin):
 				],
 			]
 
+
 	def form_genForm(self, ctx=None, data=None):
+		# this is an accumulator for defaultForForm items processed; this
+		# is used below to pre-fill forms without influencing service
+		# behaviour in the absence of parameters.
+		self._defaultsForForm = {}
+
 		queryMeta = svcs.QueryMeta.fromContext(ctx)
 		form = formal.Form()
 		self._addQueryFields(form)
 		self._addMetaFields(form, queryMeta)
-		self._addDefaults(ctx, form)
+		self._addDefaults(ctx, form, self._defaultsForForm)
 
 		if (self.name=="form" 
 				and not hasattr(self.service.core, "HACK_RETURNS_DOC")):
