@@ -9,6 +9,7 @@ Renderers that take services "as arguments".
 
 
 import cgi
+import datetime
 import urllib
 
 from nevow import inevow
@@ -23,6 +24,7 @@ from gavo import rsc
 from gavo import svcs
 from gavo import utils
 from gavo.protocols import creds
+from gavo.registry.model import OAI
 from gavo.web import common
 from gavo.web import grend
 
@@ -714,7 +716,10 @@ class ResourceRecordMaker(rend.Page):
 				rdId, svcId))
 
 		return common.TypedData(
-			utils.xmlrender(builders.getVORMetadataElement(resob),
+			utils.xmlrender(OAI.PMH[
+					OAI.responseDate[datetime.datetime.utcnow().isoformat()],
+					OAI.metadata[
+						builders.getVORMetadataElement(resob)]],
 				prolog="<?xml version='1.0'?>"
 					"<?xml-stylesheet href='/static/xsl/oai.xsl' type='text/xsl'?>",
 				),

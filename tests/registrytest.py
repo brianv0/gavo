@@ -626,6 +626,8 @@ class _ServiceVORRecord(testhelpers.TestResource):
 			<meta name="creationDate">2011-03-04T11:00:00</meta>
 			<meta name="title">A sensless service</meta>
 			<meta name="source">1989AGAb....2...33W</meta>
+			<meta name="type">Other</meta>
+			<meta name="type">Simulation</meta>
 			<service id="glonk">
 				<nullCore/>
 				<outputTable>
@@ -648,6 +650,12 @@ class ServiceRecordTest(testhelpers.VerboseTest):
 	def testSourceFormatInferred(self):
 		self.assertEqual(self.rec.xpath("content/source")[0].get("format"),
 			"bibcode")
+	
+	def testContentTypePresent(self):
+		self.assertEqual(self.rec.xpath("content/type")[0].text,
+			"Other")
+		self.assertEqual(self.rec.xpath("content/type")[1].text,
+			"Simulation")
 
 
 class _TableVORRecord(testhelpers.TestResource):

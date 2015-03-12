@@ -459,7 +459,7 @@ renderers -- include:
 * creator.name -- this should be the name of the "author" of the data
   set.  See below for multiple creators.  If you set this, you may want
   to override creator.logo as well.
-* content.type – one of Other, Archive, Bibliography, Catalog, 
+* type – one of Other, Archive, Bibliography, Catalog, 
   Journal, Library, Simulation, Survey, Transformation, Education, 
   Outreach, EPOResource, Animation, Artwork, Background, BasicData, 
   Historical, Photographic, Press, Organisation, Project, Registry –
