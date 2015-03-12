@@ -613,7 +613,13 @@ class CutoutProduct(ProductBase):
 	def _getCutoutHDU(self):
 		ra, dec, sra, sdec = [self.rAccref.params[k] for k in self._myKeys]
 		with utils.fitsLock():
-			hdus = pyfits.open(self.rAccref.localpath, do_not_scale_image_data=True)
+			# The following memmap=False works around a weird bug in pyfits 3.3,
+			# where it performs a separate memmap for each call to section(),
+			# which makes us run out of FDs for largeish images.  We might
+			# drop it again once we know 3.3 is out of use (though it probably
+			# doesn't really hurt).
+			hdus = pyfits.open(self.rAccref.localpath, do_not_scale_image_data=True,
+				memmap=False)
 			try:
 				skyWCS = coords.getWCS(hdus[0].header)
 				pixelFootprint = numpy.asarray(
