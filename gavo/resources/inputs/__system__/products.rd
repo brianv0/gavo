@@ -141,7 +141,7 @@ machinery -->
 			<par late="True" key="preview_mime" 
 				description="MIME-type for the preview (if there is one).">None</par>
 			<par key="datalink" description="id of a datalink service that
-				understands this file's pubDID.">None</par>
+				understands this file's pubDID." late="True">None</par>
 		</setup>
 		<code>
 			newVars = {}

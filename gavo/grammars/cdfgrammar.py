@@ -25,8 +25,14 @@ class CDFHeaderIterator(RowIterator):
 				" http://spacepy.lanl.gov.")
 		
 		cdfStruct = pycdf.CDF(self.sourceToken)
-		# we return a copy so libcdf doesn't try to write anything back
-		yield cdfStruct.attrs.copy()
+
+		res = {}
+		for key, value in cdfStruct.attrs.iteritems():
+			if self.grammar.autoAtomize and value.max_idx()==0:
+				res[key] = value[0]
+			else:
+				res[key] = value[:]
+		yield res
 
 
 class CDFHeaderGrammar(Grammar):
@@ -50,6 +56,10 @@ class CDFHeaderGrammar(Grammar):
 	_mapKeys = base.StructAttribute("mapKeys", childFactory=MapKeys,
 		default=None, copyable=True, description="Prescription for how to"
 		" map labels keys to grammar dictionary keys")
+	_autoAtomize = base.BooleanAttribute("autoAtomize",
+		default="False", copyable=True, description="Unpack 1-element"
+		" lists to their first value.")
+
 
 	rowIterator = CDFHeaderIterator
 

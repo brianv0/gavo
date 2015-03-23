@@ -435,11 +435,13 @@ class Service(base.Structure, base.ComputedMetaMixin,
 			try:
 				modNs, moddesc = utils.loadPythonModule(self.customPage)
 				page = modNs.MainPage
-			except ImportError, msg:
-				raise base.LiteralParseError("customPage", self.customPage, 
-					hint="While loading the custom page you specified, the following"
-					" error was raised: '%s'.  See the log for a traceback."%
-					unicode(msg))
+			except ImportError:
+				raise base.ui.logOldExc(
+					base.LiteralParseError("customPage", self.customPage, 
+					hint="This means that an exception was raised while DaCHS"
+						" tried to import the renderer module.  If DaCHS ran"
+						" with --debug, the original traceback is available"
+						" in the logs."))
 			self.customPageCode = page, (os.path.basename(self.customPage),)+moddesc
 
 	def getTemplate(self, key):

@@ -499,7 +499,7 @@
 			vars["access_estsize"] = vars["prodtblFsize"]/1024
 			vars["access_url"] = makeProductLink(vars["prodtblAccref"])
 			if @prodtblPreview:
-				vars["preview_url"] = vars["access_url"]+"?preview=True"
+				vars["preview_url"] = @prodtblPreview
 			vars["accref"] = vars["prodtblAccref"]
 		</code>
 	</procDef>
