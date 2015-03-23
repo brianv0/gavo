@@ -102,10 +102,9 @@ class DALRenderer(grend.ServiceBasedPage):
 			self.service.getCurOutputFields(queryMeta), id="result")
 
 		nullRowmaker = MS(rscdef.RowmakerDef)
-		dataDesc = MS(rscdef.DataDescriptor, makes=[
-			MS(rscdef.Make, table=inputTable, role="parameters", 
-				rowmaker=nullRowmaker),
+		dataDesc = MS(svcs.InputDescriptor, makes=[
 			MS(rscdef.Make, table=outputTable, rowmaker=nullRowmaker)],
+			params=inputFields,
 			parent_=self.service.rd)
 
 		data = rsc.makeData(dataDesc)

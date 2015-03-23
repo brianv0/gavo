@@ -232,20 +232,22 @@ class MetaAttribute(attrdef.AttributeDef):
 		self.meta_ = value
 
 	def getCopy(self, parent, newParent):
-		"""creates a deep copy of the current meta dictionary and sets it
-		as the new meta dictionary.
+		"""creates a deep copy of the current meta dictionary and returns it.
 
-		You need to call this when you do a copy (using something like copy.copy()
-		of an object mixing in this class.
+		This is used when a MetaMixin's attribute is set to copyable and a
+		meta carrier is copied.  As there's currently no way to make the
+		_metaAttr copyable, this isn't called by itself.  If you
+		must, you can manually call this (_metaAttr.getCopy), but that'd
+		really be an indication the interface needs changes.
 
 		Note that the copying semantics is a bit funky: Copied values
 		remain, but on write, sequences are replaced rather than added to.
 		"""
-		oldDict = self.meta_
+		oldDict = parent.meta_
 		newMeta = {}
 		for key, mi in oldDict.iteritems():
 			newMeta[key] = mi.copy()
-		return oldDict
+		return newMeta
 	
 	def create(self, parent, ctx, name):
 		return MetaParser(parent, parent)
@@ -289,6 +291,11 @@ class MetaMixin(object):
 
 	When querying meta information, by default all parents are queried as
 	well (propagate=True).
+
+	Metadata is not copied when the embedding object is copied.
+	That, frankly, has not been a good design descision, and there should
+	probably be a way to pass copypable=True to the mixin's attribute
+	definition.
 	"""
 	_metaAttr = MetaAttribute()
 

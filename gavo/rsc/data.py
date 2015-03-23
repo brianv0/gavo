@@ -308,23 +308,18 @@ class Data(base.MetaMixin, common.ParamMixin):
 
 		If no matching table can be found, raise a DataError.
 		"""
-		if len(self.tables)==1:
-			return self.tables.values()[0]
-		else:
-			try:
-				return self.getTableWithRole("primary")
-			except base.DataError: # raise more telling message
-				pass
-		raise base.DataError("Ambiguous request for primary table")
+		try:
+			return self.tables[self.dd.getPrimary().id]
+		except (KeyError, base.StructureError):
+			raise base.DataError(
+				"No primary table in this data")
 
 	def getTableWithRole(self, role):
 		try:
-			for t in self.tables.values():
-				if t.role==role:
-					return t
-		except base.StructureError:
-			pass
-		raise base.DataError("No table with role '%s'"%role)
+			return self.tables[self.dd.getTableDefWithRole(role).id]
+		except (KeyError, base.StructureError):
+			raise base.DataError(
+				"No table with role %s known here"%repr(role))
 
 	def feedGrammarParameters(self, grammarParameters):
 		"""feeds grammarParameters to the parmakers of all makes that have one.
@@ -418,6 +413,14 @@ def processSource(data, source, feeder, opts, connection=None):
 					" (%s)"%utils.safe_str(ex))
 
 
+class _TableCornucopeia(object):
+	"""a scaffolding class instances of which return something (eventually 
+	table-like) for all keys it is asked for.
+	"""
+	def __getitem__(self, key):
+		return None
+
+
 def makeData(dd, parseOptions=common.parseNonValidating,
 		forceSource=None, connection=None, data=None, runCommit=True):
 	"""returns a data instance built from dd.
@@ -435,7 +438,7 @@ def makeData(dd, parseOptions=common.parseNonValidating,
 	# Some proc setup does expensive things like actually building data.
 	# We don't want that when validating and return some empty data thing.
 	if getattr(base, "VALIDATING", False):
-		return Data(dd, {'primary': None})
+		return Data(dd, _TableCornucopeia())
 
 	if connection is None:
 		connection = base.getDBConnection("admin")
@@ -544,3 +547,20 @@ def wrapTable(table, rdSource=None):
 	res = Data(newDD, tables={table.tableDef.id: table})
 	res.meta_ = table.meta_
 	return res
+
+
+def makeCombinedData(baseDD, tablesForRoles):
+	"""returns a Data instance containing all of tablesForRoles.
+
+	A DD is being generated based on baseDD; if baseDD has any tables, they are
+	discarded.
+
+	tablesForRoles is a mapping from strings (one of which should be "primary")
+	to tables; the strings end up as roles.
+	"""
+	newDD = baseDD.change(
+		makes=[MS(rscdef.Make, table=t.tableDef, rowmaker=None, role=role)
+			for role, t in tablesForRoles.iteritems()])
+	newDD.meta_ = baseDD._metaAttr.getCopy(baseDD, newDD)
+	return Data(newDD, tables=dict((t.tableDef.id, t) 
+		for t in tablesForRoles.values()))

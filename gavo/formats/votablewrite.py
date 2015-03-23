@@ -18,6 +18,7 @@ You should access this module through formats.votable.
 import functools
 import itertools
 from cStringIO import StringIO
+import warnings
 
 from gavo import base
 from gavo import rsc
@@ -271,7 +272,8 @@ def _iterParams(ctx, dataSet):
 		parTable = dataSet.getTableWithRole("parameters")
 	except base.DataError:  # no parameter table
 		return
-	
+
+	warnings.warn("Parameters table used.  You shouldn't do that any more.")
 	values = {}
 	if parTable:  # no data for parameters: keep empty values.
 		values = parTable.rows[0]
@@ -412,8 +414,7 @@ def _makeResource(ctx, data):
 		_linkBuilder.build(data.dd),
 		]
 	for table in data:
-		if table.role!="parameters":
-			res[makeTable(ctx, table)]
+		res[makeTable(ctx, table)]
 	res[ctx.overflowElement]
 	return res
 

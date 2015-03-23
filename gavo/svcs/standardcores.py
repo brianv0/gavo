@@ -478,7 +478,7 @@ class DBCore(TableBasedCore):
 			**kwargs):
 		with base.getTableConn()  as conn:
 			queriedTable = rsc.TableForDef(self.queriedTable, nometa=True,
-				create=False, role="primary", connection=conn)
+				create=False, connection=conn)
 			queriedTable.setTimeout(queryMeta["timeout"])
 			iqArgs = {"limits": queryMeta.asSQL(), "distinct": self.distinct,
 				"groupBy": self.groupBy}

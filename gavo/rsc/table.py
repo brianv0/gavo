@@ -169,7 +169,6 @@ class BaseTable(base.MetaMixin, common.ParamMixin):
 		self.meta_ = self.tableDef.meta_.copy()
 		self.validateRows = kwargs.get("validateRows", False)
 		self.votCasts = kwargs.get("votCasts", {})
-		self.role = kwargs.get("role")
 		self._initParams(self.tableDef, kwargs.pop("params", None))
 
 	__iter__ = _makeFailIncomplete("__iter__")

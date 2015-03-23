@@ -511,6 +511,4 @@ class TestExamples(trialhelpers.ArchiveTest):
 
 atexit.register(trialhelpers.provideRDData("test", "import_fitsprod"))
 atexit.register(trialhelpers.provideRDData("cores", "import_conecat"))
-
-
-
+atexit.register(trialhelpers.provideRDData("test", "ADQLTest"))

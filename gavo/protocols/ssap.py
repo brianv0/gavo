@@ -232,7 +232,7 @@ class SSAPCore(svcs.DBCore):
 	def _run_getTargetNames(self, service, inputTable, queryMeta):
 		with base.getTableConn()  as conn:
 			table = rsc.TableForDef(self.queriedTable, create=False,
-				role="primary", connection=conn)
+				connection=conn)
 			destTD = base.makeStruct(outputdef.OutputTableDef, 
 				parent_=self.queriedTable.parent,
 				id="result", onDisk=False,

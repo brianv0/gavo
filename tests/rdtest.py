@@ -792,5 +792,34 @@ class RegtestRunTest(_RegtestTest):
 		self.assertContains("3 of 4 bad.", stdout)
 
 
+class _CombinedData(testhelpers.TestResource):
+	resources = [("csTable", tresc.csTestTable),
+		("randomTable", tresc.randomDataTable)]
+
+	def make(self, dependents):
+		return rsc.makeCombinedData(testhelpers.getTestRD().getById("metatest"),
+			{"primary": dependents["csTable"], "other": dependents["randomTable"]})
+
+
+class CombiningDataTest(testhelpers.VerboseTest):
+	resources = [("data", _CombinedData())]
+
+	def testTablesIterating(self):
+		names = [t.tableDef.id for t in self.data]
+		self.assertEqual(names, ['randomDataTable', 'adql'])
+	
+	def testMetaFromBasis(self):
+		self.assertEqual(base.getMetaText(self.data.dd, "onData"), "present")
+
+	def testPrimaryTable(self):
+		res = self.data.getPrimaryTable()
+		self.assertEqual(list(res), [
+			{'tinyflag': None, 'alpha': 10.0, 'rV': None, 
+			'mag': 14.0, 'delta': 12.0}])
+	
+	def testSecondaryTable(self):
+		self.assertEqual(self.data.getTableWithRole("other").rows[0],
+			{'n': 23, 'x': 29.25})
+
 if __name__=="__main__":
 	testhelpers.main(RegtestRunTest)

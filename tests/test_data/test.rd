@@ -89,6 +89,7 @@
 	</data>
 
 	<data id="metatest">
+		<meta name="onData">present</meta>
 		<table id="noname">
 			<column name="alpha"
 				type="double precision" required="true"/>
