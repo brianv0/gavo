@@ -97,7 +97,6 @@ class DALRenderer(grend.ServiceBasedPage):
 				inputFields.append(dali.getUploadKeyFor(param))
 			else:
 				inputFields.append(param.change(name="INPUT:"+param.name))
-		inputTable = MS(rscdef.TableDef, columns=inputFields)
 		outputTable = MS(rscdef.TableDef, columns=
 			self.service.getCurOutputFields(queryMeta), id="result")
 

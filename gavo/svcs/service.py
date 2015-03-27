@@ -17,6 +17,7 @@ import os
 import urllib
 
 from nevow import inevow
+from nevow import rend
 
 from nevow import tags as T, entities as E #noflake: for custom render fcts
 
@@ -101,7 +102,7 @@ class PreparsedInput(dict):
 	"""
 
 
-class SvcResult(object):
+class SvcResult(rend.DataFactory):
 	"""is a nevow.IContainer that has the result and also makes the
 	input dataset accessible.
 
@@ -135,7 +136,7 @@ class SvcResult(object):
 				service.getCurOutputFields(queryMeta))
 		self.original = coreResult
 
-	def data_resultmeta(self, ctx):
+	def data_resultmeta(self, ctx, data):
 		resultmeta = {
 			"itemsMatched": self.queryMeta.get("Matched", 
 				len(self.original.getPrimaryTable())),
@@ -144,11 +145,24 @@ class SvcResult(object):
 		}
 		return resultmeta
 
-	def data_inputRec(self, ctx=None):
+	def data_inputRec(self, ctx, data):
 		return self.inputTable.getParamDict()
 
-	def data_table(self, ctx=None):
+	def data_table(self, ctx, data):
 		return self.original.getPrimaryTable()
+
+	def data_tableWithRole(self, role):
+		"""returns the table with role.
+
+		If no such table is available, this will return an empty string.
+		"""
+		def _(ctx, data):
+			try:
+				return data.original.getTableWithRole(role)
+			except (AttributeError, base.DataError):
+				return ""
+
+		return _
 
 	def getParam(self, paramName):
 		"""returns getParam of the core result or that of its primary table.
@@ -161,9 +175,6 @@ class SvcResult(object):
 			pass
 
 		return self.original.getPrimaryTable().getParam(paramName)
-
-	def child(self, ctx, name):
-		return getattr(self, "data_"+name)(ctx)
 
 
 class Publication(base.Structure, base.ComputedMetaMixin):

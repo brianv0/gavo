@@ -110,11 +110,21 @@ function _plotUsingFlot(table, options) {
 // allows simple plotting of HTML tables.  This only works from
 // within openFlotPlot since it uses javascript that's not loaded
 // by default.
+// In options, have xselIndex, yselIndex (column indices of columsn to
+// plot), usingIndex (1 for lines instead of dots), plotContainer (if
+// given, becomes the parent of the plot; note that right now it MUST
+// contain an element with id plotarea with nonzero size).
+
 	// create the plot element
-	var plotElement = $('<div id="plotcontainer" style="position:fixed;z-index:3000;background:white;padding-left:3px;padding-right:3px;padding-bottom:3px;border:2px solid gray"><p class="innerTitle"><span class="closer">x&nbsp;</span></p><div id="plotarea" style="width:700px;height:400px;"/></div>');
-	plotElement.draggable();
-	plotElement.find(".closer").bind("click", function(){
-		plotElement.remove()});
+	if (options.plotContainer) {
+		var plotElement = $(options.plotContainer);
+	} else {
+		var plotElement = $('<div id="plotcontainer" style="position:fixed;z-index:3000;background:white;padding-left:3px;padding-right:3px;padding-bottom:3px;border:2px solid gray"><p class="innerTitle"><span class="closer">x&nbsp;</span></p><div id="plotarea" style="width:700px;height:400px;"/></div>');
+		plotElement.draggable();
+		plotElement.find(".closer").bind("click", function(){
+			plotElement.remove()});
+	}
+
 	var controlPara = $('<p class="flotControl"></p>');
 	plotElement.append(controlPara);
 
@@ -163,7 +173,9 @@ function _plotUsingFlot(table, options) {
 	ysel.change(updatePlot);
 	usingSel.change(updatePlot);
 
-	$("body").prepend(plotElement);
+	if (! options.plotContainer) {
+		$("body").prepend(plotElement);
+	}
 	updatePlot();
 }
 

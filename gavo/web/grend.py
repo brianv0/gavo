@@ -26,6 +26,7 @@ from zope.interface import implements
 
 from gavo import base
 from gavo import svcs
+from gavo import rsc
 from gavo.protocols import creds
 from gavo.web import common
 from gavo.web import htmltable
@@ -295,16 +296,22 @@ class HTMLResultRenderMixin(object):
 	result = None
 
 	def render_resulttable(self, ctx, data):
-		if hasattr(data, "child"):
-			return htmltable.HTMLTableFragment(data.child(ctx, "table"), 
+		if isinstance(data, rsc.BaseTable):
+			return htmltable.HTMLTableFragment(data, svcs.emptyQueryMeta)
+
+		elif hasattr(data, "child"):
+			return htmltable.HTMLTableFragment(
+				data.child(ctx, "table")(ctx, data), 
 				data.queryMeta)
+
 		else:
 			# a FormError, most likely
 			return ""
 
 	def render_resultline(self, ctx, data):
 		if hasattr(data, "child"):
-			return htmltable.HTMLKeyValueFragment(data.child(ctx, "table"), 
+			return htmltable.HTMLKeyValueFragment(
+				data.child(ctx, "table")(ctx, data), 
 				data.queryMeta)
 		else:
 			# a FormError, most likely
