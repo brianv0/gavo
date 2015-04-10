@@ -57,7 +57,7 @@ class CDFHeaderGrammar(Grammar):
 		default=None, copyable=True, description="Prescription for how to"
 		" map labels keys to grammar dictionary keys")
 	_autoAtomize = base.BooleanAttribute("autoAtomize",
-		default="False", copyable=True, description="Unpack 1-element"
+		default=False, copyable=True, description="Unpack 1-element"
 		" lists to their first value.")
 
 

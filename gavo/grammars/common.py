@@ -456,6 +456,9 @@ class GrammarMacroMixin(base.StandardMacroMixin):
 		liberalChars can be a boolean literal (True, False, etc); if false,
 		a value error is raised if characters that will result in trouble
 		with the product mixin are within the result path.
+
+		In rowmakers fed by grammars with //products#define, better use
+		@prodtblAccref.
 		"""
 		return ('utils.getRelativePath(rowIter.sourceToken,'
 			' base.getConfig("inputsDir"), liberalChars=%s)'%(

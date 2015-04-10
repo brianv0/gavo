@@ -17,14 +17,14 @@ from gavo import utils
 
 
 class RDAttribute(base.AttributeDef):
-	"""is an attribute that gives access to the current rd.
+	"""an attribute that gives access to the current rd.
 
 	The attribute is always called rd.  There is no default, but on
 	the first access, we look for an ancestor with an rd attribute and
 	use that if it exists, otherwise rd will be None.  There currently
 	is no way to reset the rd.
 
-	These attributes cannot (yet) be fed, so there's rd="xxx" won't work.
+	These attributes cannot (yet) be fed, so rd="xxx" won't work.
 	If we need this, the literal would probably be an id.
 	"""
 	computed_ = True
@@ -48,8 +48,8 @@ class RDAttribute(base.AttributeDef):
 						self.__rd = parent.rd
 						break
 					parent = parent.parent
-				else:
-					self.__rd = None
+				else:  # a parent hasn't been adopted yet, try again later.
+					return None
 			return self.__rd
 		yield ("rd", property(_getRD))
 

@@ -2848,6 +2848,12 @@ and access the table in the row iterator.
 Also look into EmbeddedGrammar, which may be a more convenient way to
 achieve the same thing.
 
+A fairly complex example for a custom grammar is a provisional 
+`Skyglow grammar`_ .
+
+.. _Skyglow grammar: http://svn.ari.uni-heidelberg.de/svn/gavo/hdinputs/lightmeter/res/skyglowgrammar.py
+
+
 Dispatching Grammars
 ''''''''''''''''''''
 

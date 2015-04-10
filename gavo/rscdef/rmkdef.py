@@ -239,9 +239,21 @@ class RowmakerMacroMixin(base.StandardMacroMixin):
 		"""
 		return ('getStandardPubDID(vars["prodtblAccref"])')
 
+	def macro_dlMetaURI(self, dlId):
+		"""returns a link to the datalink document for the current product.
+
+		This assumes you're assinging standard pubDIDs (see also standardPubDID,
+		which is used by this).
+
+		dlId is the XML id of the datalink service, which is supposed to
+		be in the sameRD as the rowmaker.
+		"""
+		return ('"%%s?ID=%%s"%%('
+			'rd_.getById(%s).getURL("dlmeta", absolute=True),'%repr(dlId)+
+			'urllib.quote(getStandardPubDID(vars["prodtblAccref"])))')
+
 	def macro_inputRelativePath(self, liberalChars="True"):
-		"""returns an expression giving the current source's path 
-		relative to inputsDir
+		"""see grammars.common.GrammarMacroMixin
 		"""
 		return ('getInputsRelativePath('
 			'vars["parser_"].sourceToken, liberalChars=%s)'
@@ -249,7 +261,7 @@ class RowmakerMacroMixin(base.StandardMacroMixin):
 	
 	def macro_rowsProcessed(self):
 		"""returns an expression giving the number of records already 
-		ingested for this source.
+		parsed by the grammar.
 		"""
 		return 'vars["parser_"].recNo'
 
@@ -261,10 +273,11 @@ class RowmakerMacroMixin(base.StandardMacroMixin):
 		"""
 		return '_self.rowsMade'
 
-	def macro_property(self, property):
-		"""returns an expression giving the property on the current DD.
+	def macro_property(self, propName):
+		"""returns an expression giving the value of the property propName
+		on the current DD.
 		"""
-		return 'curDD_.getProperty("%s")'%property
+		return 'curDD_.getProperty("%s")'%propName
 
 	def macro_sourceDate(self):
 		"""returns an expression giving the timestamp of the current source.
@@ -273,23 +286,24 @@ class RowmakerMacroMixin(base.StandardMacroMixin):
 			'os.path.getmtime(vars["parser_"].sourceToken))')
 		
 	def macro_srcstem(self):
-		"""returns the stem of the source file currently parsed.
+		"""returns the name of the current source file with all extensions stripped.
 		
-		Example: if you're currently parsing /tmp/foo.bar, the stem is foo.
+		Example: if you're currently parsing /tmp/foo.bar.gz, the stem is foo.
 		"""
-		return 'os.path.splitext(os.path.basename(vars["parser_"].sourceToken))[0]'
+		return 'os.path.basename(vars["parser_"].sourceToken).split(".")[0]'
 
 	def macro_lastSourceElements(self, numElements):
 		"""returns an expression calling rmkfuncs.lastSourceElements on
 		the current input path.
 		"""
-		return 'lastSourceElements(vars["parser_"].sourceToken, int(numElements))'
+		return 'lastSourceElements(vars["parser_"].sourceToken, %d)'%(
+			int(numElements))
 
 	def macro_rootlessPath(self):
 		"""returns an expression giving the current source's path with 
 		the resource descriptor's root removed.
 		"""
-		return 'utils.getRelativePath(rd_.resdir, vars["parser_"].sourceToken)'
+		return 'utils.getRelativePath(vars["parser_"].sourceToken, rd_.resdir)'
 
 	def macro_inputSize(self):
 		"""returns an expression giving the size of the current source.
@@ -298,14 +312,14 @@ class RowmakerMacroMixin(base.StandardMacroMixin):
 
 	def macro_docField(self, name):
 		"""returns an expression giving the value of the column name in the 
-		document parameters.
+		document row.
 		"""
 		return '_parser.getParameters()[fieldName]'
 
 	def macro_qName(self):
 		"""returns the qName of the table we are currently parsing into.
 		"""
-		return "tableDef.getQName()"
+		return "tableDef_.getQName()"
 
 
 class RowmakerDef(base.Structure, RowmakerMacroMixin):
@@ -424,7 +438,8 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		if self.ignoreOn:
 			globals["checkTrigger"] = self.ignoreOn
 		globals["tableDef_"] = tableDef
-		globals["rd_"] = self.rd
+		globals["rd_"] = tableDef.rd
+		globals["curDD_"] = tableDef.parent
 		return globals
 
 	def _resolveIdmaps(self, columns):

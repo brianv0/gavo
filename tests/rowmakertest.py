@@ -22,7 +22,7 @@ from gavo.utils import DEG
 
 
 def makeDD(tableCode, rowmakerCode, grammar="<dictlistGrammar/>",
-		moreMakeStuff=""):
+		moreMakeStuff="", parentRD=None):
 	dd = base.parseFromString(rscdef.DataDescriptor,
 		'<data><table id="foo">%s</table>'
 		'<make table="foo">'
@@ -32,6 +32,8 @@ def makeDD(tableCode, rowmakerCode, grammar="<dictlistGrammar/>",
 		'%s'
 		'</data>'%(
 			tableCode, rowmakerCode, moreMakeStuff, grammar))
+	if parentRD:
+		dd.parent = parentRD
 	td = dd.getTableDefById("foo")
 	return dd, td
 
@@ -409,6 +411,122 @@ class PredefinedTest(testhelpers.VerboseTest):
 		self.assertEqual(rows[0]["foo"], "u")
 		self.assertEqual(rows[1]["foo"], None)
 
+
+class RowmakerMacroTest(testhelpers.VerboseTest):
+	"""tests for the standard macros defined by row makers.
+	"""
+	def test_standardPubDID(self):
+		dd, td = makeDD('<column name="x" type="text" required="True"/>',
+			r'<map dest="x">\standardPubDID</map>',
+			parentRD=testhelpers.getTestRD("ssatest"))
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
+		self.assertEqual(
+			mapper(
+				{'prodtblAccref': 'foo'}, None)['x'], 
+			'ivo://x-unregistred/~?foo')
+	
+	def test_dlMetaURI(self):
+		dd, td = makeDD('<column name="x" type="text" required="True"/>',
+			r'<map dest="x">\dlMetaURI{dl}</map>',
+			parentRD=testhelpers.getTestRD("ssatest"))
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
+		self.assertEqual(
+			mapper(
+				{'prodtblAccref': 'foo'}, None)['x'], 
+			'http://localhost:8080/data/ssatest/dl/dlmeta'
+				'?ID=ivo%3A//x-unregistred/%7E%3Ffoo')
+
+	def test_inputRelativePath(self):
+		dd, td = makeDD('<column name="x" type="text" required="True"/>',
+			r'<map dest="x">\inputRelativePath</map>',
+			parentRD=testhelpers.getTestRD("ssatest"))
+
+		class Parser:
+			sourceToken = dd.rd.getAbsPath('foo/bar+baz')
+
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
+		self.assertEqual(
+			mapper({"parser_": Parser} , None)['x'], 
+			'foo/bar+baz')
+
+	def test_rowsMade(self):
+		dd, td = makeDD('<column name="x" type="integer" required="True"/>',
+			r'<map dest="x">\rowsMade</map>')
+
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
+		self.assertEqual(
+			mapper({}, None)['x'], 
+			0)
+		self.assertEqual(
+			mapper({}, None)['x'], 
+			1)
+
+	def test_property(self):
+		dd, td = makeDD('<column name="x" type="integer" required="True"/>',
+			r'<map dest="x">\property{prop}</map>',
+			grammar='<dictlistGrammar/><property key="prop">bla</property>')
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
+		self.assertEqual(
+			mapper({}, None)['x'], 
+			"bla")
+
+	def test_srcstem(self):
+		dd, td = makeDD('<column name="x" type="integer" required="True"/>',
+			r'<map dest="x">\srcstem</map>')
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
+
+		class Parser:
+			sourceToken = 'goo/quux/foo/bar+baz.tar.gz'
+
+		self.assertEqual(
+			mapper({"parser_": Parser}, None)['x'], 
+			"bar+baz")
+
+	def test_lastSourceEl(self):
+		dd, td = makeDD('<column name="x" type="text" required="True"/>',
+			r'<map dest="x">\lastSourceElements{3}</map>',
+			parentRD=testhelpers.getTestRD("ssatest"))
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
+
+		class Parser:
+			sourceToken = dd.rd.getAbsPath('goo/quux/foo/bar+baz')
+
+		self.assertEqual(
+			mapper({"parser_": Parser}, None)['x'], 
+			'quux/foo/bar+baz')
+
+	def test_rootlessPathl(self):
+		dd, td = makeDD('<column name="x" type="text" required="True"/>',
+			r'<map dest="x">\rootlessPath</map>',
+			parentRD=testhelpers.getTestRD("ssatest"))
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
+
+		class Parser:
+			sourceToken = dd.rd.getAbsPath('norz/foo.fits')
+
+		self.assertEqual(
+			mapper({"parser_": Parser}, None)['x'], 
+			'norz/foo.fits')
+
+	def test_inputSize(self):
+		dd, td = makeDD('<column name="x" type="integer" required="True"/>',
+			r'<map dest="x">\inputSize</map>',
+			parentRD=testhelpers.getTestRD("ssatest"))
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
+
+		class Parser:
+			sourceToken = dd.rd.getAbsPath('data/spec3.ssatest')
+
+		self.assertEqual(
+			mapper({"parser_": Parser}, None)['x'], 182)
+
+	def test_qName(self):
+		dd, td = makeDD('<column name="x" type="text" required="True"/>',
+			r'<map dest="x">\qName</map>',
+			parentRD=testhelpers.getTestRD("ssatest"))
+		mapper = dd.makes[0].rowmaker.compileForTableDef(td)
+		self.assertEqual(
+			mapper({}, None)['x'], 'test.foo')
 
 class IgnoreOnTest(testhelpers.VerboseTest):
 	"""tests for working ignoreOn clauses.

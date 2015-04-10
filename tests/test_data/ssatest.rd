@@ -1,4 +1,4 @@
-<resource schema="test" resdir="." readProfiles="trustedquery,untrustedquery">
+<resource schema="test" resdir="" readProfiles="trustedquery,untrustedquery">
 	<meta name="creationDate">1973-02-03T12:22:01Z</meta>
 	<meta name="title">DaCHS SSA unittest resource</meta>
 	<meta name="description">You should not see this.</meta>
