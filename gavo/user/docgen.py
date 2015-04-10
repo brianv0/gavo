@@ -264,10 +264,15 @@ class MacroDoc(object):
 		self.macFunc = macFunc
 		self.inObjects = [foundIn]
 
-	def addObject(self, obj):
+	def addObject(self, macFunc, obj):
 		"""declares that macFunc is also available on the python object obj.
+
+		If also checks implements the "see <whatever>" mechanism described
+		in KnownMacros.
 		"""
 		self.inObjects.append(obj)
+		if (self.macFunc.func_doc or "").startswith("see "):
+			self.macFunc = macFunc
 
 	def makeDoc(self, content):
 		"""adds documentation of macFunc to the RSTFragment content.
@@ -288,6 +293,14 @@ class MacroDoc(object):
 
 class KnownMacros(object):
 	"""An accumulator for all macros known to the various DaCHS objects.
+
+	Note that macros with identical names are supposed to do essentially
+	the same things.  In particular, they must all have the same signature
+	or the documentation will be wrong.
+
+	When macros share names, all but one implementation should have
+	a docstring just saying "see <whatever>"; that way, the docstring
+	actually chosen is deterministic.
 	"""
 	def __init__(self):
 		self.macros = {}
@@ -298,7 +311,7 @@ class KnownMacros(object):
 		macFunc is the method, foundIn is the python class it's defined on.
 		"""
 		if name in self.macros:
-			self.macros[name].addObject(foundIn)
+			self.macros[name].addObject(macFunc, foundIn)
 		else:
 			self.macros[name] = MacroDoc(name, macFunc, foundIn)
 
