@@ -364,7 +364,7 @@ div.explodable {
 	background:rgba(255,255,255,0.5);
 	margin-bottom: 5pt;
 	padding: 2pt;
-	box-shadow: inset -8pt -8pt 15pt #aaa;
+	box-shadow: inset -8pt -8pt 5pt #ccc;
 }
 
 div.explodable:hover {

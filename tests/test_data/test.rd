@@ -164,8 +164,11 @@
 	</table>
 
 	<data id="ADQLTest">
-		<rowmaker id="AT_adql" idmaps="alpha,delta,mag,rV,tinyflag"/>
-		<dictlistGrammar/>
+		<sources pattern="data/adqlin.txt"/>
+		<rowmaker id="AT_adql" idmaps="alpha,delta,mag,rV">
+			<map key="tinyflag">chr(int(@tinyflag))</map>
+		</rowmaker>
+		<reGrammar names="alpha, delta, mag, rV, tinyflag"/>
 		<make table="adql" rowmaker="AT_adql"/>
 	</data>
 

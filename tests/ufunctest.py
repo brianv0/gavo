@@ -90,8 +90,8 @@ class UfuncDefTest(testhelpers.VerboseTest):
 
 	def testQueryInSelectList(self):
 		self.assertEqual(adqlglue.query(self.querier,
-			"SELECT GAVO_TESTINGXXX(rV) FROM test.adql").rows[0].values(),
-			[1.])
+			"SELECT GAVO_TESTINGXXX(rV) FROM test.adql where mag<0").rows[0].values(),
+			[29.])
 
 	def testQueryInWhereClause(self):
 		self.assertEqual(adqlglue.query(self.querier,

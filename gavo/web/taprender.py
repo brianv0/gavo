@@ -49,6 +49,7 @@ class TAPQueryResource(rend.Page):
 	def _doRender(self, ctx):
 		jobId = tap.workerSystem.getNewIdFromRequest(
 			inevow.IRequest(ctx), self.service)
+
 		try:
 			with tap.workerSystem.changeableJob(jobId) as job:
 				job.change(executionDuration=

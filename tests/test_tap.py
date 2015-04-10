@@ -15,6 +15,7 @@ an external resource package taptest.
 
 from __future__ import with_statement
 
+import atexit
 import datetime
 import httplib
 import re
@@ -43,22 +44,6 @@ from gavo.web import weberrors
 from gavo.web.taprender import TAPRenderer
 
 import trialhelpers
-
-
-# This stuff needs the data/tests#adql table.  We import it here and
-# don't delete it since trial doesn't seem to provide a hook for it and
-# we can't use testresources since trial has its own runner.
-# Not cleaning up behind us isn't cool, but working around it isn't
-# worth it right now.
-
-def _importADQLTable():
-	from gavo import api
-	dd = api.getRD("data/test").getById("ADQLTest")
-	api.makeData(dd, forceSource=[
-		{"alpha": 2, "delta": 14, "mag": 10.25, "rv": -23.75, "tinyflag": "\x03"},
-		{"alpha": 25, "delta": -14, "mag": 1.25, "rv": 0, "tinyflag": "\x01"},
-		{"alpha": 290.125, "delta": 89, "mag": -1, "rv": 28, "tinyflag": "\x02"}])
-_importADQLTable()
 
 
 base.DEBUG = True
@@ -378,3 +363,5 @@ class SimpleAsyncTest(TAPRenderTest):
 			"MAXREC": "kaputt",
 			"QUERY": "SELECT ra FROM test.adql WHERE ra<3"}
 		).addCallback(checkPosted)
+
+atexit.register(trialhelpers.provideRDData("test", "ADQLTest"))

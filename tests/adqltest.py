@@ -52,8 +52,6 @@ class _ADQLTestTable(testhelpers.TestResource):
 	def make(self, deps):
 		self.rd = testhelpers.getTestRD()
 		ds = rsc.makeData(self.rd.getById("ADQLTest"),
-				forceSource=[
-				{"alpha": 22, "delta": 23, "mag": -27, "rV": 0, "tinyflag": "a"},],
 				connection=deps["adqlQuerier"].connection).commitAll()
 		return ds
 	
@@ -1742,12 +1740,12 @@ class QueryTest(testhelpers.VerboseTest):
 
 	def testPlainSelect(self):
 		res = self.runQuery(
-			"select alpha, delta from %s where mag<-10"%
+			"select alpha, delta from %s where mag<0"%
 			self.tableName)
 		self.assertEqual(res.tableDef.id, self.tableName.split(".")[-1])
 		self.assertEqual(len(res.rows), 1)
 		self.assertEqual(len(res.rows[0]), 2)
-		self.assertEqual(res.rows[0]["alpha"], 22.0)
+		self.assertEqual(res.rows[0]["alpha"], 290.125)
 		raField, deField = res.tableDef.columns
 		self._assertFieldProperties(raField, [("ucd", 'pos.eq.ra;meta.main'),
 			("description", 'A sample RA'), ("unit", 'deg'), 
@@ -1757,7 +1755,7 @@ class QueryTest(testhelpers.VerboseTest):
 			("tablehead", None)])
 
 	def testStarSelect(self):
-		res = self.runQuery("select * from %s where mag<-10"%
+		res = self.runQuery("select * from %s where mag<0"%
 			self.tableName)
 		self.assertEqual(len(res.rows), 1)
 		self.assertEqual(len(res.rows[0]), 5)
@@ -1775,7 +1773,8 @@ class QueryTest(testhelpers.VerboseTest):
 			("ucd", ''), ("description", ''), ("unit", '')])
 
 	def testQualifiedStarSelect(self):
-		res = self.runQuery("select %s.* from %s, %s as q1 where q1.mag<-10"%(
+		res = self.runQuery("select %s.* from %s join %s as q1"
+			" using (mag) where q1.mag<0"%(
 			self.tableName, self.tableName, self.tableName))
 		self.assertEqual(res.tableDef.id, "adql_q1")
 		self.assertEqual(len(res.rows), 1)
@@ -1808,40 +1807,34 @@ class QueryTest(testhelpers.VerboseTest):
 				' ucd may be severely wrong'),
 			("unit", 'deg')])
 
-	def testGeometry(self):
-		res = self.runQuery("select mag from %s where"
-			" 1=intersects(circle('galactic', alpha, delta, 1),"
-			"   box('galactic', alpha+1, delta+2, 3, 3))"%self.tableName)
-		self.assertEqual(list(res)[0]["mag"], -27.0)
-	
 	def testTransformation(self):
 		res = self.runQuery("select mag from %s where"
-			" 1=contains(point('galactic', 133.792, -39.0994),"
-			"   circle('icrs', alpha, delta, 1))"%self.tableName)
-		self.assertEqual(list(res)[0]["mag"], -27.0)
-
+			" 1=contains(point('icrs', alpha, delta),"
+			"   circle('galactic', 107,-47, 1))"%self.tableName)
+		self.assertEqual(list(res)[0]["mag"], 10.25)
+	
 	def testGeometryInSelect(self):
 		res = self.runQuery(
 			"select rv, point('icrs', alpha, delta) as p, mag, alpha, delta,"
-			" contains(point('', alpha, delta), circle('', 10, 10, 1)) as c,"
-			" contains(point('', alpha, delta), circle('', 22, 23, 1.1)) as c1,"
-			" intersects(point('', alpha, delta), circle('', 22, 23, 1.1)) as i1,"
-			" intersects(circle('', alpha, delta, 1.5), circle('', 22, 25, 1.1)) as i2,"
-			" intersects(circle('', alpha, delta, 1), circle('', 22, 26, 1.1)) as i3,"
+			" contains(point('', alpha, delta), circle('', 3, 15, 1)) as c,"
+			" contains(point('', alpha, delta), circle('', 3, 15, 2)) as c1,"
+			" intersects(point('', alpha, delta), circle('', 3, 15, 2)) as i1,"
+			" intersects(circle('', alpha, delta, 1.5), circle('', 3, 15, 1.5)) as i2,"
+			" intersects(circle('', alpha, delta, 0.5), circle('', 3, 15, 0.5)) as i3,"
 			" circle('icrs', alpha, delta, 10) as ci"
-			" from %s"%self.tableName)
+			" from %s where mag>5"%self.tableName)
 		rows = list(res)
 
 		self.assertEqual(rows[0]["p"], 
-			'Position ICRS 22. 23.')
-		self.assertEqual(rows[0]["rv"], 0)
+			'Position ICRS 2. 14.')
+		self.assertEqual(rows[0]["rv"], -23.75)
 		self.assertEqual(rows[0]["c"], 0)
 		self.assertEqual(rows[0]["c1"], 1)
 		self.assertEqual(rows[0]["i1"], 1)
 		self.assertEqual(rows[0]["i2"], 1)
 		self.assertEqual(rows[0]["i3"], 0)
 		self.assertEqual(rows[0]["ci"], 
-			'Circle ICRS 22. 23. 10.')
+			'Circle ICRS 2. 14. 10.')
 		self.assertEqual(res.tableDef.getColumnByName("p").xtype,
 			"adql:POINT")
 		self.assertEqual(res.tableDef.getColumnByName("ci").xtype,
@@ -1849,8 +1842,8 @@ class QueryTest(testhelpers.VerboseTest):
 
 	def testQuotedIdentifier(self):
 		res = self.runQuery(
-			'select "rv", rV from %s'%self.tableName)
-		self.assertEqual(res.rows, [{"rv": 0., "rv_": 0.}])
+			'select "rv", rV from %s where delta=89'%self.tableName)
+		self.assertEqual(res.rows, [{"rv": 28., "rv_": 28.}])
 
 	def testDistanceDegrees(self):
 		res = self.runQuery(
@@ -1861,8 +1854,8 @@ class QueryTest(testhelpers.VerboseTest):
 	def testWithUDF(self):
 		res = self.runQuery(
 			"SELECT mag FROM %s WHERE 1=CONTAINS(REGION('simbad M1'),"
-			" CIRCLE('ICRS', alpha, delta, 90))"%self.tableName)
-		self.assertEqual(res.rows, [{u'mag': -27.0}])
+			" CIRCLE('ICRS', alpha, delta, 68))"%self.tableName)
+		self.assertEqual(res.rows, [{u'mag': 1.25}])
 
 
 class SimpleSTCSTest(testhelpers.VerboseTest):

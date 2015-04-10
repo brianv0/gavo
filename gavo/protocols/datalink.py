@@ -566,6 +566,8 @@ class DatalinkCore(DatalinkCoreBase):
 	"""
 	name_ = "datalinkCore"
 
+	datalinkType = "application/x-votable+xml;content=datalink"
+
 	# the core will be specially and non-cacheably adapted for these
 	# renderers (ssap.xml is in here for legacy getData):
 	datalinkAdaptingRenderers = frozenset([
@@ -635,7 +637,8 @@ class DatalinkCore(DatalinkCoreBase):
 				std=True,
 				description="Format of the request document",
 				values=rscdef.Values.fromOptions( [
-						"application/x-votable+xml;content=datalink",
+						self.datalinkType,
+						"text/xml",
 						"votable",
 						"application/x-votable+xml"])))
 
@@ -742,7 +745,12 @@ class DatalinkCore(DatalinkCoreBase):
 		vot = V.VOTABLE[
 				self.getDatalinksResource(ctx, service), 
 				self._iterAccessResources(ctx, service)]
-		return ("application/x-votable+xml;content=datalink", vot.render())
+
+		destMime = str(inputTable.getParam("RESPONSEFORMAT") or self.datalinkType)
+		if destMime=="votable":
+			destMime = self.datalinkType
+			
+		return (destMime, vot.render())
 
 	def runForData(self, service, inputTable, queryMeta):
 		"""returns a data set processed according to inputTable's parameters.

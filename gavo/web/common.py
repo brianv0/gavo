@@ -8,6 +8,7 @@ Common code for the nevow based interface.
 #c COPYING file in the source distribution.
 
 
+import cgi
 import urllib
 
 from nevow import appserver
@@ -48,11 +49,13 @@ def getExtForMime(mime):
 
 	If no extension matches, ".bin" is returned.
 	"""
-	if mime==base.votableType:
+	mediaType, paramdict = cgi.parse_header(mime)
+
+	if mediaType==base.votableType:
 		return ".vot"
 
 	for ext, type in static.File.contentTypes.iteritems():
-		if mime==type:
+		if mediaType==type:
 			return ext
 	return ".bin"
 

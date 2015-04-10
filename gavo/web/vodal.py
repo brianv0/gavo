@@ -502,6 +502,9 @@ class _DatalinkRendererBase(grend.ServiceBasedPage):
 	"""
 	urlUse = "base"
 
+	# end out files as attachments with separate file names
+	attachResult = False
+
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
 		return self.runService(request.args, ctx
@@ -519,8 +522,11 @@ class _DatalinkRendererBase(grend.ServiceBasedPage):
 # a good place
 			mime, payload = data
 			request.setHeader("content-type", mime)
-			request.setHeader('content-disposition', 
-				'attachment; filename=result%s'%common.getExtForMime(mime))
+
+			if self.attachResult:
+				request.setHeader('content-disposition', 
+					'attachment; filename=result%s'%common.getExtForMime(mime))
+
 			return streaming.streamOut(lambda f: f.write(payload), 
 				request)
 
@@ -548,6 +554,7 @@ class DatalinkGetDataRenderer(_DatalinkRendererBase):
 	complemented by the dlmeta renderer which allows retrieving metadata.
 	"""
 	name = "dlget"
+	attachResult = True
 
 
 class DatalinkGetMetaRenderer(_DatalinkRendererBase):
