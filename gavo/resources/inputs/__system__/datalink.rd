@@ -513,7 +513,8 @@
 			from gavo.utils import pyfits
 
 			descriptor.data = pyfits.open(os.path.join(
-				base.getConfig("inputsDir"), descriptor.accessPath))
+				base.getConfig("inputsDir"), descriptor.accessPath),
+				memmap=False)
 			if crop:
 				descriptor.data = pyfits.HDUList([descriptor.data[0]])
 		</code>
@@ -550,10 +551,12 @@
 			# limits: [minRA, maxRA], [minDec, maxDec]]
 			limits = [[min(footprint[:,0]), max(footprint[:,0])],
 				[min(footprint[:,1]), max(footprint[:,1])]]
+			limitsChanged = False
 
 			for parBase, fitsAxis in descriptor.axisNames.iteritems():
 				if args[parBase+"_MIN"] is None and args[parBase+"_MAX"] is None:
 					continue
+				limitsChanged = True
 
 				if not isinstance(fitsAxis, int):
 					# some sort of spherical axis
@@ -576,7 +579,10 @@
 					axMax = args[parBase+"_MAX"]
 					slices.append((fitsAxis, 
 						transform.physToPix(axMin), transform.physToPix(axMax)))
-		
+	
+			if not limitsChanged:
+				return
+
 			pixelFootprint = numpy.asarray(
 				numpy.round(descriptor.skyWCS.wcs_sky2pix([
 					(limits[0][0], limits[1][0]),

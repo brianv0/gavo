@@ -127,6 +127,14 @@ def _timeMapperFactory(annCol):
 _registerDefaultMF(_timeMapperFactory)
 
 
+def _byteaMapperFactory(colDesc):
+	if colDesc["dbtype"]=="bytea":
+		# psycopg2 here returns buffers which are painful in some situations.
+		def _(val):
+			return str(val)
+		return _
+_registerDefaultMF(_byteaMapperFactory)
+
 def datetimeMapperFactory(colDesc):
 	import time
 

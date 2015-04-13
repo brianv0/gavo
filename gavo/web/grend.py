@@ -426,7 +426,6 @@ class HTMLResultRenderMixin(object):
 		return renderer
 
 
-
 class CustomTemplateMixin(object):
 	"""is a mixin providing for customized templates.
 

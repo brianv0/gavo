@@ -749,7 +749,8 @@ class TestRunner(object):
 
 	def __init__(self, suites, serverURL=None, 
 			verbose=True, dumpNegative=False, tags=None,
-			timeout=45, failFile=None, nRepeat=1):
+			timeout=45, failFile=None, nRepeat=1,
+			execDelay=0, nThreads=8):
 		self.verbose, self.dumpNegative = verbose, dumpNegative
 		self.failFile, self.nRepeat = failFile, nRepeat
 		if tags:
@@ -757,6 +758,8 @@ class TestRunner(object):
 		else:
 			self.tags = frozenset()
 		self.timeout = timeout
+		self.execDelay = execDelay
+		self.nThreads = nThreads
 
 		self.serverURL = serverURL or base.getConfig("web", "serverurl")
 		self.curRunning = {}
@@ -813,7 +816,7 @@ class TestRunner(object):
 		"""
 		test = self.testList.popleft()
 		newThread = threading.Thread(target=self.runOneTest, 
-			args=(test, self.threadId))
+			args=(test, self.threadId, self.execDelay))
 		newThread.description = test.description
 		newThread.setDaemon(True)
 		self.curRunning[self.threadId] = newThread
@@ -824,7 +827,7 @@ class TestRunner(object):
 			test.runCount += 1
 			self.testList.append(test)
 
-	def runOneTest(self, test, threadId):
+	def runOneTest(self, test, threadId, execDelay):
 		"""runs test and puts the results in the result queue.
 
 		This is usually run in a thread.	However, threadId is only
@@ -832,7 +835,12 @@ class TestRunner(object):
 
 		To support sequential execution, if test has a followUp attribute,
 		this followUp is queued after the test has run.
+
+		If the execDelay argument is non-zero, the thread delays its execution 
+		by that many seconds.
 		"""
+		if execDelay:
+			time.sleep(execDelay)
 		startTime = time.time()
 		try:
 			try:
@@ -880,18 +888,15 @@ class TestRunner(object):
 				test.url.httpURL)
 			print traceback
 
-	def _runTestsReal(self, nThreads=8, showDots=False):
+	def _runTestsReal(self, showDots=False):
 		"""executes the tests, taking tests off the queue and spawning
 		threads until the queue is empty.
-
-		nThreads gives the number of maximum number threads that run the
-		tests at one time.
 
 		showDots, if True, instructs the runner to push one dot to stderr
 		per test spawned.
 		"""
 		while self.testList or self.curRunning:
-			while len(self.curRunning)<nThreads and self.testList:
+			while len(self.curRunning)<self.nThreads and self.testList:
 				self._spawnThread()
 
 			evType, test, payload, traceback, dt = self.resultsQueue.get(
@@ -929,7 +934,7 @@ class TestRunner(object):
 		"""runs all tests sequentially and in the order they were added.
 		"""
 		for test in self.testList:
-			self.runOneTest(test, None)
+			self.runOneTest(test, None, self.execDelay)
 			try:
 				while True:
 					evType, test, payload, traceback, dt = self.resultsQueue.get(False)
@@ -1012,12 +1017,17 @@ def parseCommandLine(args=None):
 		" last failing test to FILE", metavar="FILE",
 		action="store", type=str, dest="failFile", 
 		default=None)
-
-
+	parser.add_argument("-w", "--wait", help="Wait SECONDS before executing"
+		" a request", metavar="SECONDS", action="store", 
+		dest="execDelay", type=int, default=0)
 	parser.add_argument("-u", "--serverURL", help="URL of the DaCHS root"
 		" at the server to test",
 		action="store", type=str, dest="serverURL", 
 		default=base.getConfig("web", "serverURL"))
+	parser.add_argument("-n", "--number-par", help="Number of requests"
+		" to be run in parallel",
+		action="store", type=int, dest="nThreads", 
+		default=8)
 
 	return parser.parse_args(args)
 
@@ -1040,6 +1050,8 @@ def main(args=None):
 		"failFile": args.failFile,
 		"nRepeat": args.nRepeat,
 		"timeout": args.timeout,
+		"execDelay": args.execDelay,
+		"nThreads": args.nThreads,
 	}
 
 	if args.id=="ALL":
