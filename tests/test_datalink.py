@@ -9,6 +9,8 @@ Tests for the datalink subsystem and (potentially) special data tricks.
 
 
 import atexit
+import glob
+import os
 import time
 
 from twisted.internet import reactor
@@ -82,7 +84,7 @@ class SyncTest(trialhelpers.ArchiveTest):
 				"NotFoundFault: accref 'data/excube.fit' could not be located"
 				" in product table</TD>"])
 	
-	def testSpecCutout(self):
+	def testCubeCutout(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlget", {
 			"ID": "ivo://x-unregistred/~?data/excube.fits",
 			"COO_3_MIN": "3753"}, [
@@ -97,7 +99,7 @@ class SyncTest(trialhelpers.ArchiveTest):
 				"ID": "ivo://test.inv/test2"},
 			["spec2:AstroCoords.Position2D.Value2",
 			"1908.0"])
-
+	
 	def testAvailability(self):
 		return self.assertGETHasStrings("/data/cores/dl/availability", {},
 			["<avl:available>true</avl:available>"])
@@ -108,6 +110,15 @@ class SyncTest(trialhelpers.ArchiveTest):
 			'/data/cores/dl/dlmeta</accessURL>',
 			'<ucd>meta.id;meta.main</ucd>'])
 
+	def testCleanedup(self):
+		# this doesn't do any queries, it just makes sure that
+		# the datalink services above cleaned up after themselves
+		# (of course, we might see crap from the last run rather than
+		# from this, but statistically it should catch trouble.
+		pooLeft = glob.glob(
+			os.path.join(api.getConfig("tempDir"), "fitstable*"))
+		self.assertFalse(pooLeft, "Something left fitstable temporaries"
+			" in tempDir")
 
 def killLocalhost(url):
 	"""should delete the host part from url.
@@ -151,6 +162,7 @@ class AsyncTest(trialhelpers.ArchiveTest):
 			).addCallback(assertDeleted, jobURL)
 
 		def checkResult(result, jobURL):
+			self.assertEqual(result[1].headers["content-type"], "image/fits")
 			self.assertTrue("NAXIS1  =                   11" in result[0])
 			return deleteJob(jobURL)
 		

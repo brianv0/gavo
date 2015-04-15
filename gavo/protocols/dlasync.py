@@ -13,11 +13,11 @@ from __future__ import with_statement
 import cPickle as pickle
 import datetime
 
-from .. import base
-from .. import rscdesc #noflake: cache registration
-from . import products
-from . import uws
-from . import uwsactions
+from gavo import base
+from gavo import rscdesc #noflake: cache registration
+from gavo.protocols import products
+from gavo.protocols import uws
+from gavo.protocols import uwsactions
 
 
 class DLTransitions(uws.ProcessBasedUWSTransitions):
@@ -103,6 +103,118 @@ class DLUWS(uws.UWS):
 
 DL_WORKER = DLUWS()
 
+####################### nevow simulation
+# This is so we can handle nevow resources coming back from datalink.
+# Factor this out?  This is essentially stolen from trialhelpers,
+# and we might just put that somewhere where it's useful.
+
+import warnings
+from nevow import inevow
+from nevow import context
+from nevow import testutil
+from twisted.internet import defer
+from twisted.internet import reactor
+
+
+def _requestDone(result, request, ctx):
+	"""essentially calls renderHTTP on result and stops the reactor.
+
+	This is a helper for our nevow simulation.
+	"""
+	if isinstance(result, basestring):
+		if result:
+			request.write(result)
+	elif hasattr(result, "renderHTTP"):
+		return _doRender(result, ctx)
+	else:
+		warnings.warn("Unsupported async datalink render result: %s"%repr(result))
+	request.d.callback(request.accumulator)
+	reactor.stop()
+	return request.accumulator, request
+
+
+def _renderCrashAndBurn(failure, ctx):
+	"""stops the reactor and returns a failure.
+
+	This is a helper for our nevow simulation.
+	"""
+	reactor.stop()
+	return failure
+
+
+def _doRender(page, ctx):
+	"""returns a deferred firing the result of page.renderHTTP(ctx).
+
+	This is a helper for our nevow simulation.
+	"""
+	request = inevow.IRequest(ctx)
+	if not hasattr(page, "renderHTTP"):
+		return _requestDone(page, request, ctx)
+		
+	d = defer.maybeDeferred(page.renderHTTP,
+		context.PageContext(
+			tag=page, parent=context.RequestContext(tag=request)))
+
+	d.addCallback(_requestDone, request, ctx)
+	d.addErrback(_renderCrashAndBurn, ctx)
+	return d
+
+
+class FakeRequest(testutil.AccumulatingFakeRequest):
+	"""A Request for testing purpuses.
+
+	We have a version of our own for this since nevow's has a 
+	registerProducer that produces an endless loop with push
+	producers (which is what we have).
+	"""
+	def __init__(self, destFile, *args, **kwargs):
+		self.finishDeferred = defer.Deferred()
+		testutil.AccumulatingFakeRequest.__init__(self, *args, **kwargs)
+		self.destFile = destFile
+	
+	def write(self, stuff):
+		self.destFile.write(stuff)
+
+	def registerProducer(self, producer, isPush):
+		self.producer = producer
+		if not isPush:
+			testutil.AccumulatingFakeRequest.registerProducer(
+				self, producer, isPush)
+
+	def unregisterProducer(self):
+		del self.producer
+
+	def notifyFinish(self):
+		return self.finishDeferred
+
+
+def _getRequestContext(destFile):
+	"""returns a very simple nevow context writing to destFile.
+	"""
+	req = FakeRequest(destFile)
+	ctx = context.WovenContext()
+	ctx.remember(req)
+	return ctx
+
+
+def writeResultTo(page, destFile):
+	"""arranges for the result of rendering the nevow resource page 
+	to be written to destFile.
+
+	This uses a very simple simulation of nevow rendering, so a few
+	tricks are possible.  Also, it actually runs a reactor to do its magic.
+	"""
+	ctx = _getRequestContext(destFile)
+
+	def _(func, ctx):
+		return defer.maybeDeferred(func, ctx
+			).addCallback(_doRender, ctx)
+
+	reactor.callWhenRunning(_, page.renderHTTP, ctx)
+	reactor.run()
+	return inevow.IRequest(ctx)
+
+
 
 ####################### CLI
 
@@ -144,6 +256,13 @@ def main():
 				for chunk in data.iterData():
 					destF.write(chunk)
 
+		elif hasattr(data, "renderHTTP"):
+			# these are nevow resources.  Let's run a reactor so these properly
+			# work.
+			with job.openResult(type, "result") as destF:
+				req = writeResultTo(data, destF)
+			job.fixTypeForResultName("result", req.headers["content-type"])
+
 		else:
 			raise NotImplementedError("Cannot handle a service %s result yet."%
 				repr(data))
@@ -161,3 +280,29 @@ def main():
 		# that we're quite hosed, but it's worth the try
 		DL_WORKER.changeToPhase(jobId, uws.ERROR, ex)
 		raise
+
+
+if __name__=="__main__":
+	# silly test code, not normally reached
+	from nevow import rend
+	import os
+	class _Foo(rend.Page):
+		def __init__(self, stuff):
+			self.stuff = stuff
+
+		def renderHTTP(self, ctx):
+			if self.stuff=="booga":
+				return "abc"
+			else:
+				return defer.maybeDeferred(_Foo, "booga").addBoth(self.cleanup)
+
+		def cleanup(self, res):
+			print "cleaning up"
+			return res
+
+	with open("bla", "w") as f:
+		writeResultTo(_Foo("ork"), f)
+	with open("bla") as f:
+		print f.read()
+	os.unlink("bla")
+

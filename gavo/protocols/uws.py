@@ -844,6 +844,17 @@ class UWSJobWithWD(BaseUWSJob):
 			{'resultName': name, 'resultType': mimeType})
 		self._saveResults(resTable)
 
+	def fixTypeForResultName(self, resultName, mediaType):
+		"""sets the media type for result resultName.
+
+		It is not an error if no result with resultName exists.
+		"""
+		resTable = self._loadResults()
+		for row in resTable:
+			if row["resultName"]==resultName:
+				row["resultType"] = mediaType
+		self._saveResults(resTable)
+
 	def addResult(self, source, mimeType, name=None):
 		"""adds a result, with data taken from source.
 

@@ -24,6 +24,9 @@ from gavo.votable import V, modelgroups
 
 from nevow import inevow
 from nevow import rend
+from nevow import static
+
+from twisted.internet import defer
 
 
 DEFAULT_SEMANTICS = "http://dc.g-vo.org/datalink#other"
@@ -132,6 +135,30 @@ for errName, exClass in [
 		("Fault", svcs.Error)]:
 	DatalinkFault._addErrorMaker(errName, exClass)
 del errName, exClass
+
+
+class _File(static.File):
+	"""A nevow static.File with a pre-determined type.
+	"""
+	def __init__(self, path, mediaType):
+		static.File.__init__(self, path)
+		self.type = mediaType
+		self.encoding = None
+
+
+class _TemporaryFile(_File):
+	"""A nevow resource that spits out a file and then deletes it.
+
+	This is a helper class for DataFunctions and DataFormatters, available
+	there as TemporaryFile.
+	"""
+	def renderHTTP(self, ctx):
+		return defer.maybeDeferred(_File.renderHTTP, self, ctx).addBoth(
+			self._cleanup)
+	
+	def _cleanup(self, result):
+		self.fp.remove()
+		return result
 
 
 class DescriptorGenerator(rscdef.ProcApp):
@@ -348,6 +375,11 @@ class DataFunction(rscdef.ProcApp):
 	  - FormatNow -- exception to raise to go directly to the formatter
 	  - DeliverNow -- exception to raise to skip all further formatting
 	    and just deliver what's currently in descriptor.data
+	  - File(path, type) -- if you just want to return a file on disk, pass 
+	  	its path and media type to File and assign the result to 
+	  	descriptor.data.  
+	  - TemporaryFile(path,type) -- as File, but the disk file is 
+	    unlinked after use
 	"""
 	name_ = "dataFunction"
 	requiredType = "dataFunction"
@@ -356,6 +388,8 @@ class DataFunction(rscdef.ProcApp):
 	additionalNamesForProcs = {
 		"FormatNow": FormatNow,
 		"DeliverNow": DeliverNow,
+		"File": _File,
+		"TemporaryFile": _TemporaryFile, 
 	}
 
 
@@ -380,6 +414,10 @@ class DataFormatter(rscdef.ProcApp):
 	In addition to the usual names available to ProcApps, data formatters have:
 	  - Page -- base class for resources with renderHTTP methods.
 	  - IRequest -- the nevow interface to make Request objects with.
+	  - File(path, type) -- if you just want to return a file on disk, pass 
+	    its path and media type to File and return the result. 
+	  - TemporaryFile(path, type) -- as File, but the disk file is unlinked 
+	    after use
 	"""
 	name_ = "dataFormatter"
 	requiredType = "dataFormatter"
@@ -388,6 +426,8 @@ class DataFormatter(rscdef.ProcApp):
 	additionalNamesForProcs = {
 		"Page": rend.Page,
 		"IRequest": inevow.IRequest,
+		"File": _File,
+		"TemporaryFile": _TemporaryFile, 
 	}
 
 

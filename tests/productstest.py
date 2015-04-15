@@ -767,6 +767,19 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 			"text/plain")
 
 
+def _dissectDLFile(datalinkFile):
+	"""returns mime and content for a datalink File.
+
+	It also calls cleanup(), if it's there -- basically, that's stuff
+	nevow does for us in actual action.
+	"""
+	content = datalinkFile.fp.getContent()
+	datalinkFile.fp.remove()
+	if hasattr(datalinkFile, "cleanup"):
+		datalinkFile.cleanup(None)
+	return datalinkFile.type, content
+
+
 class DatalinkFITSTest(testhelpers.VerboseTest):
 	resources = [("fitsTable", _fitsTable)]
 
@@ -863,13 +876,13 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 				<dataFormatter procDef="//datalink#fits_formatHDUs"/>
 			</datalinkCore></service>""")
 
-		mime, data = svc.run("dlget", {
+		mime, data = _dissectDLFile(svc.run("dlget", {
 				"ID": [rscdef.getStandardPubDID("data/excube.fits")],
 				"COO_3_MIN": ["3753"],
 				"COO_3_MAX": ["3755"],
-				}).original
+				}).original)
 
-		self.assertEqual(mime, "application/fits")
+		self.assertEqual(mime, "image/fits")
 		hdr = fitstools.readPrimaryHeaderQuick(StringIO(data))
 		self.assertEqual(hdr["NAXIS1"], 11)
 		self.assertEqual(hdr["NAXIS2"], 7)
@@ -889,14 +902,14 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 				<dataFormatter procDef="//datalink#fits_formatHDUs"/>
 			</datalinkCore></service>""")
 
-		mime, data = svc.run("dlget", {
+		mime, data = _dissectDLFile(svc.run("dlget", {
 				"ID": [rscdef.getStandardPubDID("data/excube.fits")],
 				"LAMBDA_MIN": ["3.755e-7"],
 				"RA_MIN": ["359.359"],
 				"DEC_MIN": ["30.39845"],
-				}).original
+				}).original)
 
-		self.assertEqual(mime, "application/fits")
+		self.assertEqual(mime, "image/fits")
 		hdr = fitstools.readPrimaryHeaderQuick(StringIO(data))
 		self.assertEqual(hdr["NAXIS1"], 8)
 		self.assertEqual(hdr["NAXIS2"], 7)
@@ -913,7 +926,7 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 				<dataFormatter procDef="//datalink#fits_formatHDUs"/>
 			</datalinkCore></service>""")
 
-		mime, data = svc.run("dlget", {
+		mime, data = _dissectDLFile(svc.run("dlget", {
 				"ID": [rscdef.getStandardPubDID("data/excube.fits")],
 				"RA_MAX": ["359.36"],
 				"RA_MIN": ["359.359"],
@@ -921,9 +934,9 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 				"DEC_MIN": ["30.985"],
 				"COO_3_MIN": ["3753"],
 				"COO_3_MAX": ["3755"],
-				}).original
+				}).original)
 
-		self.assertEqual(mime, "application/fits")
+		self.assertEqual(mime, "image/fits")
 		hdr = fitstools.readPrimaryHeaderQuick(StringIO(data))
 		self.assertEqual(hdr["NAXIS1"], 4)
 		self.assertEqual(hdr["NAXIS2"], 2)
@@ -996,11 +1009,11 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 					stcs="" accrefStart=""/>
 			</datalinkCore></service>""")
 		svc.parent = testhelpers.getTestRD()
-		mime, data = svc.run("dlget", {
+		mime, data = _dissectDLFile(svc.run("dlget", {
 			"ID": rscdef.getStandardPubDID("data/excube.fits"),
 				"PIXEL_1_MIN": "4", "PIXEL_1_MAX": "4",
-				"PIXEL_3_MIN": "2", "PIXEL_3_MAX": "2"}).original
-		self.assertEqual(mime, "application/fits")
+				"PIXEL_3_MIN": "2", "PIXEL_3_MAX": "2"}).original)
+		self.assertEqual(mime, "image/fits")
 		self.failUnless("NAXIS1  =                    1" in data)
 		self.failUnless("NAXIS2  =                    7" in data)
 		self.failUnless("NAXIS3  =                    1" in data)

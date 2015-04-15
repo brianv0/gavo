@@ -612,10 +612,7 @@
 		<code>
 			from gavo.formats import fitstable
 			resultName = fitstable.writeFITSTableFile(descriptor.data)
-			with open(resultName) as f:
-				data = f.read()
-			os.unlink(resultName)
-			return "application/fits", data
+			return TemporaryFile(resultName, "image/fits")
 		</code>
 	</procDef>
 

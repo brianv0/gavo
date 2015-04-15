@@ -191,7 +191,8 @@ def writeFITSTableFile(hdulist):
 	"""returns the name of a temporary file containing the FITS data for
 	hdulist.
 	"""
-	handle, pathname = tempfile.mkstemp(".fits", dir=base.getConfig("tempDir"))
+	handle, pathname = tempfile.mkstemp(".fits", prefix="fitstable",
+		dir=base.getConfig("tempDir"))
 
 	# if there's more than the primary HDU, EXTEND=True is mandatory; let's
 	# be defensive here
