@@ -504,6 +504,13 @@
 			make that into a descriptor's data attribute.
 
 			This wants a descriptor as returned by fits_genDesc.
+
+			There's a hack here: this sets a dataIsPristine boolean on
+			descriptor that's made false when one of the fits manipulators
+			change something.  If that's true by the time the formatter
+			sees it, it will just push out the entire file.  So, if you
+			use this and insert your own data functions, make sure you
+			set dataIsPristine accordingly.
 		</doc>
 		<setup>
 			<par key="crop" description="Cut away everything but the
@@ -512,6 +519,7 @@
 		<code>
 			from gavo.utils import pyfits
 
+			descriptor.dataIsPristine = True
 			descriptor.data = pyfits.open(os.path.join(
 				base.getConfig("inputsDir"), descriptor.accessPath),
 				do_not_scale_image_data=True)
@@ -599,6 +607,7 @@
 			if slices:
 				descriptor.data[0] = fitstools.cutoutFITS(descriptor.data[0],
 					*slices)
+				descriptor.dataIsPristine = False
 		</code>
 	</procDef>
 
@@ -610,6 +619,11 @@
 			more streamlined.
 		</doc>
 		<code>
+			if descriptor.dataIsPristine:
+				return File(os.path.join(
+					base.getConfig("inputsDir"), descriptor.accessPath),
+					"image/fits")
+
 			from gavo.formats import fitstable
 			resultName = fitstable.writeFITSTableFile(descriptor.data)
 			return TemporaryFile(resultName, "image/fits")
@@ -681,6 +695,7 @@
 						slices.append([fitsInd, axMin, axMax])
 
 				if slices:
+					descriptor.dataIsPristine = False
 					descriptor.data[0] = fitstools.cutoutFITS(descriptor.data[0],
 						*slices)
 			</code>
