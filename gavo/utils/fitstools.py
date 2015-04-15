@@ -603,9 +603,8 @@ def cutoutFITS(hdu, *cuts):
 			refpixKey = "CRPIX%d"%(index+1)
 			newHeader.update(refpixKey, newHeader[refpixKey]-firstPix)
 
-	# fix for fortran-vs-C column order
 	slices.reverse()
-	newHDU = pyfits.PrimaryHDU(data=hdu.section[tuple(slices)],
+	newHDU = pyfits.PrimaryHDU(data=hdu.data[tuple(slices)].copy(order='C'),
 		header=newHeader)
 	return newHDU
 

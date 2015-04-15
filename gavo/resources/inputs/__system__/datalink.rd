@@ -514,7 +514,7 @@
 
 			descriptor.data = pyfits.open(os.path.join(
 				base.getConfig("inputsDir"), descriptor.accessPath),
-				memmap=False)
+				do_not_scale_image_data=True)
 			if crop:
 				descriptor.data = pyfits.HDUList([descriptor.data[0]])
 		</code>
