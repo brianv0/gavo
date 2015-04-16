@@ -115,15 +115,17 @@ function _doFlotPlot(table, xsel, ysel, usingSel,
 		_doHistogramPlot(table, xIndex);
 	} else {
 		var toPlot = [];
-		var options = {
-			"color": "#444444",};
-		toPlot.push(_getFlotSeries(table, xIndex, yIndex, style, options));
 
 		if (style2!=undefined) {
 			var options = {
 				"color": "#99aa00",};
 			toPlot.push(_getFlotSeries(table, xIndex2, yIndex2, style2, options));
 		}
+
+		var options = {
+			"color": "#444444",};
+		toPlot.push(_getFlotSeries(table, xIndex, yIndex, style, options));
+
 		jQuery.plot(jQuery('#plotarea'), toPlot, {});
 	}
 }
