@@ -410,7 +410,9 @@ function openFlotPlot(tableElement, options) {
 // loads the flot plotting code; this stub will be overrwritten as
 // flotplot.js is loaded.
 	$.getScript("/static/js/flotplot.js",
-		function() {openFlotPlot(tableElement, options)});
+		function() {openFlotPlot(tableElement, options)}
+		).fail(function() {
+			alert("Loading the plotting code failed; please complain to the operators")});
 }
 
 

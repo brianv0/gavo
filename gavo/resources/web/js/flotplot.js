@@ -25,12 +25,20 @@ function _getValue(s) {
 	}
 	return null;
 }
-	
 
 
-function _doLinePlot(table, xInd, yInd, style) {
+function _getFlotSeries(table, xInd, yInd, style, options) {
+	// returns a flot series object for plotting a line/point plot
+	// of xInd vs. yInd from table.
+	//
+	// options, if given, must be a dict pre-filled with series options.
+	// It will be modified and returned.
+
 	var data = new Array();
-	var options = {"series": {}};
+
+	if (options===undefined) {
+		options = {};
+	}
 
 	table.find('tr.data').each(function(index, row) {
 		var tds = $(row).children();
@@ -40,15 +48,18 @@ function _doLinePlot(table, xInd, yInd, style) {
 			data.push([x, y]);
 		}
 	});
+	options["data"] = data;
+
 	if (style=="Lines") {
-		options.series["lines"] = {'show': true};
+		options["lines"] = {'show': true,
+			'lineWidth': 1};
 		data.sort(function(a,b){return a[0]-b[0]});
 	} else {
-		options.series["points"] = {'show': true};
+		options["points"] = {'show': true};
 	}
-	jQuery.plot(jQuery('#plotarea'), [data], options);
-}
 
+	return options;
+}
 
 function _makeHistogram(data, numBins) {
 	if (data.length<2) {
@@ -94,14 +105,26 @@ function _doHistogramPlot(table, colInd) {
 }	
 
 
-function _doFlotPlot(table, xsel, ysel, usingSel) {
-	xInd = xsel.find("option:selected").val()
-	yInd = ysel.find("option:selected").val()
-	style = usingSel.find("option:selected").val()
-	if (yInd=='Histogram') {
-		_doHistogramPlot(table, xInd);
+function _doFlotPlot(table, xsel, ysel, usingSel,
+		xIndex2, yIndex2, style2) {
+	var xIndex = xsel.find("option:selected").val();
+	var yIndex = ysel.find("option:selected").val();
+	var style = usingSel.find("option:selected").val();
+
+	if (yIndex=='Histogram') {
+		_doHistogramPlot(table, xIndex);
 	} else {
-		_doLinePlot(table, xInd, yInd, style);
+		var toPlot = [];
+		var options = {
+			"color": "#444444",};
+		toPlot.push(_getFlotSeries(table, xIndex, yIndex, style, options));
+
+		if (style2!=undefined) {
+			var options = {
+				"color": "#99aa00",};
+			toPlot.push(_getFlotSeries(table, xIndex2, yIndex2, style2, options));
+		}
+		jQuery.plot(jQuery('#plotarea'), toPlot, {});
 	}
 }
 
@@ -114,6 +137,9 @@ function _plotUsingFlot(table, options) {
 // plot), usingIndex (1 for lines instead of dots), plotContainer (if
 // given, becomes the parent of the plot; note that right now it MUST
 // contain an element with id plotarea with nonzero size).
+// 
+// For overplotting, there's now also xselIndex2, yselIndex2, style2.
+// No UI to manipulate that exists right now.
 
 	// create the plot element
 	if (options.plotContainer) {
@@ -163,7 +189,8 @@ function _plotUsingFlot(table, options) {
 	// the callback any form items controlling the plot
 	var updatePlot = function() {
 		try {
-			_doFlotPlot(table, xsel, ysel, usingSel);
+			_doFlotPlot(table, xsel, ysel, usingSel,
+				options.xselIndex2, options.yselIndex2, options.style2);
 		} catch (e) {
 			jQuery.plot(jQuery('#plotarea'), [{data:[], label: "unplottable"}]);
 			throw e;
@@ -187,4 +214,3 @@ function openFlotPlot(tableElement, options) {
 	$.getScript("/static/js/jquery.flot.js",
 		function() {_plotUsingFlot(tableElement, options)});
 }
-
