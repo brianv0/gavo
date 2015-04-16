@@ -55,7 +55,7 @@ from gavo.utils.ostricks import (safeclose, urlopenRemote,
 from gavo.utils.plainxml import StartEndHandler, iterparse, traverseETree
 
 from gavo.utils.stanxml import (ElementTree, xmlrender, 
-	escapeAttrVal, escapePCDATA)
+	escapeAttrVal, escapePCDATA, registerPrefix, getPrefixInfo)
 
 from gavo.utils.texttricks import (formatSize, makeEllipsis, floatRE, 
 	dateRE, datetimeRE, identifierPattern,

@@ -260,8 +260,8 @@ class RowmakerMacroMixin(base.StandardMacroMixin):
 			)%base.parseBooleanLiteral(liberalChars)
 	
 	def macro_rowsProcessed(self):
-		"""returns an expression giving the number of records already 
-		parsed by the grammar.
+		"""returns an expression giving the number of records already
+		delivered by the grammar.
 		"""
 		return 'vars["parser_"].recNo'
 

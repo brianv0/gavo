@@ -495,8 +495,8 @@ class DLInterfaceTest(testhelpers.VerboseTest):
 	def testREQUESTLegal(self):
 		dlResp = self.svc.run("dlmeta", {"request": ["getLinks"],
 			"ID": rscdef.getStandardPubDID("data/b.imp")}).original[1]
-		self.failUnless("TD>http://localhost:8080/data/test/uh/dlget?"
-			"ID=ivo%3A%2F%2Fx-unregistred%2F%7E%3Fdata%2Fb.imp</TD>" in dlResp)
+		self.failUnless("TD>http://localhost:8080/getproduct/data/b.imp</TD>"
+			in dlResp)
 
 	def testbraindeadREQUESTbombs(self):
 		self.assertRaisesWithMsg(base.ValidationError, 
@@ -708,12 +708,10 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 	def testAccessURLSelf(self):
 		self.assertEqual(self.rows[
 			('ivo://x-unregistred/~?data/b.imp', '#this')][0]["access_url"],
-			'http://localhost:8080/data/test/foo/dlget?'
-				'ID=ivo%3A%2F%2Fx-unregistred%2F%7E%3Fdata%2Fb.imp')
+				"http://localhost:8080/getproduct/data/b.imp")
 		self.assertEqual(self.rows[
 			('ivo://x-unregistred/~?data/a.imp', '#this')][0]["access_url"],
-			'http://localhost:8080/data/test/foo/dlget?'
-				'ID=ivo%3A%2F%2Fx-unregistred%2F%7E%3Fdata%2Fa.imp')
+				"http://localhost:8080/getproduct/data/a.imp")
 	
 	def testMimes(self):
 		self.assertEqual(self.rows[('ivo://x-unregistred/~?data/a.imp', 
@@ -1132,7 +1130,49 @@ class FileIntfTest(ProductsCoreTest):
 		self.failUnless(isinstance(p._openedInputFile, file))
 		p.close()
 		self.assertEqual(p._openedInputFile, None)
-			
+
+
+class _GlobalFITSLinks(testhelpers.TestResource):
+	resources = [("fitsTable", _fitsTable)]
+
+	def make(self, deps):
+		svc = api.getRD("//products").getById("dl")
+		data, metadata = votable.loads(svc.run("dlmeta", {
+			"ID": [rscdef.getStandardPubDID("data/excube.fits")]}).original[1])
+		res = {}
+		for link in metadata.iterDicts(data):
+			res.setdefault(link["semantics"], []).append(link)
+		return res
+
+
+class GlobalDatalinkTest(testhelpers.VerboseTest):
+	resources = [("links", _GlobalFITSLinks())]
+
+	def testNumberOfLinks(self):
+		self.assertEqual(sum(len(r) for r in self.links.values()), 2)
+	
+	def testDatasetMeta(self):
+		r, = self.links["#this"]
+		self.assertEqual(tuple(r[s] for s in 
+			"content_length description error_message content_type ID".split()),
+			(5760, "The full dataset.", None, "image/fits",
+				"ivo://x-unregistred/~?data/excube.fits"))
+	
+	def testDatasetURL(self):
+		self.assertEqual(self.links["#this"][0]["access_url"],
+			"http://localhost:8080/getproduct/data/excube.fits")
+
+	def testPreviewMeta(self):
+		r, = self.links["#preview"]
+		self.assertEqual(tuple(r[s] for s in 
+			"content_length description error_message content_type ID".split()),
+			(None, "A preview for the dataset.", None, None,
+				"ivo://x-unregistred/~?data/excube.fits"))
+	
+	def testPreviewURL(self):
+		self.assertEqual(self.links["#preview"][0]["access_url"],
+			"http://localhost:8080/getproduct/data/excube.fits?preview=True")
+
 
 if __name__=="__main__":
 	testhelpers.main(DatalinkFITSTest)

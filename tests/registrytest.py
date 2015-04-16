@@ -826,6 +826,45 @@ class DataGetRecordTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 		self.assertEqual(len(capChildren), 1)
 
 
+class _ProductServiceRecord(testhelpers.TestResource):
+	def make(self, ignored):
+		return getGetRecordResponse(api.getRD("//products").getById("p"))
+
+
+class ProductServiceTest(testhelpers.VerboseTest):
+	resources = [("srcAndTree", _ProductServiceRecord())]
+
+	def testIdentifier(self):
+		self.assertEqual(
+			self.srcAndTree[1].xpath("//identifier")[0].text,
+			"ivo://x-unregistred/~")
+	
+	def testCreationDate(self):
+		self.assertEqual(
+			self.srcAndTree[1].xpath("//Resource")[0].get("created"),
+			base.getMetaText(base.MetaMixin(), "authority.creationDate"))
+
+	def testDescriptionExpanded(self):
+		self.assertTrue("datasets held at\nUnittest Suite" in
+			self.srcAndTree[1].xpath("//content/description")[0].text,
+			"Product service description doesn't contain site name?")
+
+	def testGetCapability(self):
+		el = self.srcAndTree[1].xpath(
+			"//interface[@xsi:type='vr:WebBrowser']/accessURL",
+			namespaces={"xsi": utils.getPrefixInfo("xsi")[0]})[0]
+		self.assertEqual(el.text, "http://localhost:8080/getproduct")
+		self.assertEqual(el.get("use"), "base")
+
+	def testDLCapability(self):
+		el = self.srcAndTree[1].xpath(
+			"//capability[@standardID='ivo://ivoa.net/std/DataLink#links-1.0']")[0]
+		self.assertEqual(el.xpath("interface/accessURL")[0].text,
+			"http://localhost:8080/__system__/products/dl/dlmeta")
+		self.assertEqual(el.xpath("interface/param[name='ID']")[0].get("std"),
+			"true")
+
+
 # minimal meta for successful RR generation without a (working) RD
 _fakeMeta ="""<meta name="identifier">ivo://gavo.testing</meta>
 <meta name="datetimeUpdated">2000-00-00T00:00:00</meta>

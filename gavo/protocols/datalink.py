@@ -69,7 +69,7 @@ class ProductDescriptor(object):
 		self.pubDID = pubDID
 		self.accref, self.accessPath, self.mime = accref, accessPath, mime
 		self.owner, self.embargo, self.sourceTable = owner, embargo, sourceTable
-		self.preview, self.preview_mime = preview, preview_mime
+		self.preview, self.previewMime = preview, preview_mime
 
 	@classmethod
 	def fromAccref(cls, pubDID, accref):
@@ -558,13 +558,12 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 			# available through the data access, possibly also adding a preview.
 			if not isinstance(d, ProductDescriptor):
 				continue
-			if accessRenderer:
-				internalLinks.append(LinkDef(d.pubDID, 
-					service.getURL(accessRenderer)+"?ID="+urllib.quote_plus(d.pubDID),
-					description="The full dataset.",
-					contentType=d.mime,
-					contentLength=d.estimateSize(),
-					semantics="#this"))
+			internalLinks.append(LinkDef(d.pubDID, 
+				products.makeProductLink(d.accref),
+				description="The full dataset.",
+				contentType=d.mime,
+				contentLength=d.estimateSize(),
+				semantics="#this"))
 
 			if getattr(d, "preview", None):
 				if d.preview.startswith("http"):
@@ -577,7 +576,7 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 				# not much we can do about it.  Or is there?
 				internalLinks.append(LinkDef(d.pubDID,
 					previewLink, description="A preview for the dataset.",
-					contentType=d.preview_mime, semantics="#preview"))
+					contentType=d.previewMime, semantics="#preview"))
 
 		data = rsc.makeData(
 			base.caches.getRD("//datalink").getById("make_response"),

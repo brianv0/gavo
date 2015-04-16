@@ -46,7 +46,7 @@ machinery -->
 				resource and used by obscore) forward datalink requests globally."
 			verbLevel="40"/>
 		<column name="preview_mime" type="text"
-			description="MIME type of a previw (if any)"
+			description="MIME type of a preview (if any)"
 			verbLevel="40"/>
 	</table>
 
@@ -354,7 +354,42 @@ machinery -->
 		<column name="sdec"/>
 	</table>
 
-	<service id="p" core="core" allowed="get,form,dlasync">
-		<meta name="description">The main product deliverer</meta>
+	<service id="dl" allowed="dlmeta">
+		<meta name="description">A simple datalink service for everything
+		that's in DaCHS' product table.  This only exposes the dataset
+		itself and its preview, if existing.</meta>
+		<datalinkCore>
+			<!-- the built-in links are good enough for us -->
+		</datalinkCore>
+	</service>
+
+	<service id="p" core="core" allowed="get,form">
+		<!-- this service is the one mentioned in the standard PubDIDs that
+			we produce.  It must be published once you put out such PubDIDs,
+			as all IVORIs must resolve in the registry. -->
+
+		<meta name="identifier">ivo://\getConfig{ivoa}{authority}/~</meta>
+		<meta name="creationDate">\metaString{authority.creationDate}</meta>
+		<meta name="shortName">\metaString{authority.shortName} DL</meta>
+		<meta name="subject">Data retrieval</meta>
+		<meta name="title"
+			>\getConfig{web}{sitename} Dataset Delivery</meta>
+		<meta name="description">
+			This service delivers (most of) the datasets held at
+			\getConfig{web}{sitename}.  In addition to the default (nonstandard) way
+			of just appending accrefs to the get access URL, there is also a very
+			simple datalink service here that, for each dataset, essentially just
+			gives the dataset itself and possibly a preview.  More advanced datalink
+			services might be available.
+
+			Some datasets may be embargoed, in which case the access yields
+			a 403.  Credentials for individual files may be obtained by contacting
+			the site operators.
+		</meta>
+		<publish render="get" sets="ivo_managed">
+			<meta name="accessURL">\getConfig{web}{serverURL}/getproduct</meta>
+			<meta name="urlUse">base</meta>
+		</publish>
+		<publish render="dlmeta" sets="ivo_managed" service="dl"/>
 	</service>
 </resource>

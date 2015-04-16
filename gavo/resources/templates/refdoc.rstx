@@ -1591,8 +1591,10 @@ d.g., e.g., because you have some special logic to encode the accref in
 the PubDID).
 
 The default ``ProductDescriptor`` class exposes all the columns from the
-products table, i.e., accref, accessPath, mime, owner, embargo, and
-sourceTable, in addition to the pubDID itself.
+products table, i.e., accref, accessPath, mime, owner, embargo, 
+sourceTable, datalink (a specialised datalink service for this data
+set),
+preview, and previewMime in addition to the pubDID itself.
 
 A slightly more interesting example is provided by datalink for SSA,
 where cutouts and similar is generated from spectra.  The actual
@@ -1851,13 +1853,13 @@ example could look like this::
 
   <metaMaker>
     <code>
-      yield LinkDef(descriptor.PubDID,
+      yield LinkDef(descriptor.pubDID,
         makeAbsoluteURL("get/"+descriptor.accref[:-5]+".err.fits"),
-        contentType="image/fits", semantics="errors",
+        contentType="image/fits", semantics="#error",
         description="Errors for this dataset")
       yield LinkDef(descriptor.pubDID,
         "http://foo.bar/raw/"+descriptor.accref.split("/")[-1],
-        contentType="image/fits", semantics="raw",
+        contentType="image/fits", semantics="#progenitor",
         description="Un-flatfielded, uncalibrated source data")
     </code>
   </metaMaker>
@@ -1911,7 +1913,7 @@ datalink renderer and then write a meta maker like this::
           stem = descriptor.accref.split("/")[-1].split("_")[0]
           yield LinkDef(descriptor.pubDID, makeAbsoluteURL(
             "\rdId/d/static/%s_err.fits"%stem),
-            contentType="image/fits", semantics="qa")
+            contentType="image/fits", semantics="#error")
         </code>
       </metaMaker>
     </datalinkCore>

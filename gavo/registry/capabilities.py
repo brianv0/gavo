@@ -105,12 +105,16 @@ class InterfaceWithParams(InterfaceMaker):
 	interfaceClass = VS.ParamHTTP
 
 	def _makeInterface(self, publication):
+		paramSrc = publication.parent
+		if publication.service:
+			paramSrc = publication.service
+
 		return InterfaceMaker._makeInterface(self, publication)[
 			VS.queryType[base.getMetaText(
 				publication, "requestMethod", propagate=False)],
 			VS.resultType[base.getMetaText(
 				publication, "resultType", propagate=False)],
-			getInputParams(publication, publication.parent),
+			getInputParams(publication, paramSrc)
 		]
 
 
@@ -178,9 +182,9 @@ class WebBrowserInterface(InterfaceMaker):
 class FormInterface(WebBrowserInterface):
 	renderer = "form"
 
+
 class DocformInterface(WebBrowserInterface):
 	renderer = "docform"
-
 
 
 # Actually, statics, externals and customs could be anything, but if you
@@ -198,6 +202,8 @@ class CustomInterface(WebBrowserInterface):
 class ExternalInterface(WebBrowserInterface):
 	renderer = "external"
 
+class GetProductInterface(WebBrowserInterface):
+	renderer = "get"
 
 
 _getInterfaceMaker = utils.buildClassResolver(InterfaceMaker, 
@@ -465,6 +471,9 @@ class FixedCapabilityMaker(CapabilityMaker):
 
 class DocformCapabilityMaker(CapabilityMaker):
 	renderer = "docform"
+
+class ProductCapabilityMaker(CapabilityMaker):
+	renderer = "get"
 
 
 _getCapabilityMaker = utils.buildClassResolver(CapabilityMaker, 
