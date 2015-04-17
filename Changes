@@ -21,6 +21,11 @@ Version 0.9.5 (2015-)
 	  the old behaviour cannot be restored by templates and javascript alone,
 	  but I'd be happy to provide you with the necessary hooks.
 
+	* By popular demand: The "_r" column (in cone searches, distance between
+		the cone center and the actual object) is there.  To get it, use
+		an scsCore rather than a dbCore.
+
+
 Version 0.9.4 (2015-02-03)
 
   * Uniform referencing to RDs and elements in them, allowing to skip

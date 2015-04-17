@@ -644,5 +644,32 @@ class TableSetTest(testhelpers.VerboseTest):
 		self.failUnless("tap_schema.tables" in [t.getQName() for t in ts])
 
 
+class _ConecatTable(tresc.RDDataResource):
+	rdName = "data/cores"
+	dataId = "import_conecat"
+
+
+class ConeSearchTest(testhelpers.VerboseTest):
+	resources = [("cstable", _ConecatTable())]
+
+	def testRadiusAddedSCS(self):
+		svc = base.resolveCrossId("data/cores#scs")
+		res = svc.run("scs.xml", {"RA": 1, "DEC": "2", "SR": 3}
+			).original.getPrimaryTable()
+		self.assertAlmostEqual(res.rows[0]["_r"], 0.5589304685425)
+		col = res.tableDef.getColumnByName("_r")
+		self.assertEqual(col.unit, "deg")
+
+	def testRadiusAddedForm(self):
+		svc = base.resolveCrossId("data/cores#scs")
+		res = svc.run("form", {"hscs_pos": "1, 2", "hscs_sr": 3*60}
+			).original.getPrimaryTable()
+		self.assertAlmostEqual(res.rows[0]["_r"], 0.5589304685425)
+
+	def testNoRadiusWithoutPos(self):
+		svc = base.resolveCrossId("data/cores#scs")
+		res = svc.run("form", {"id": "0"}).original.getPrimaryTable()
+		self.assertTrue(res.rows[0]["_r"]!=res.rows[0]["_r"]) # isNaN
+
 if __name__=="__main__":
 	testhelpers.main(ComputedServiceTest)

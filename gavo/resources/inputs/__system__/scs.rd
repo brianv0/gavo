@@ -12,6 +12,19 @@
 		</index>
 	</STREAM>
 
+	<outputTable id="instance">
+		<!-- this is the prototype from which SCSCore makes its distance
+		columns -->
+		<outputField id="distCol"
+			name="_r" type="double precision"
+			unit="deg" ucd="pos.distance"
+			tablehead="Dist."
+			description="Distance to cone center"
+			select="'NaN'::REAL"
+			verbLevel="10"
+			displayHint="displayUnit=arcsec"/>
+	</outputTable>
+
 	<STREAM id="positionsFields">
 		<doc>
 			Old-style positions.  Use naked q3c instead.

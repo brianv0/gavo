@@ -163,16 +163,16 @@
 		<make table="conecat"/>
 	</data>
 
-	<service id="scs" allowed="scs.xml, api" defaultRenderer="scs.xml">
+	<service id="scs" allowed="scs.xml, api, form" defaultRenderer="scs.xml">
 		<meta name="testQuery">
 			<meta name="ra">10</meta>
 			<meta name="dec">20</meta>
 			<meta name="sr">1</meta>
 		</meta>
-		<dbCore queriedTable="conecat">
-    	<condDesc original="//scs#protoInput"/>
+		<scsCore queriedTable="conecat">
+    	<FEED source="//scs#coreDescs"/>
     	<condDesc buildFrom="id"/>
-		</dbCore>
+		</scsCore>
 
 		<FEED source="//pql#DALIPars"/>
 

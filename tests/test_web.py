@@ -430,7 +430,7 @@ class APIRenderTest(trialhelpers.ArchiveTest):
 		return self.assertGETHasStrings("/data/cores/scs/api", 
 			{"id": ["/0"], "RESPONSEFORMAT": 
 				["application/x-votable+xml;serialization=BINARY2"]},
-			["<BINARY2>", "AAAAAAA/oAAAQAQAAAAAAAA="],
+			["<BINARY2>", "AH/4AAAAAAAAAAAAAD+gAA"],
 			customTest=lambda tx: self.assertFalse("1\t23.0" in tx))
 	
 	def testMetadataResponse(self):
@@ -486,7 +486,7 @@ class SCSTest(trialhelpers.ArchiveTest):
 	def testCasting(self):
 		return self.assertGETHasStrings("/data/cores/scs/scs.xml", 
 			{"RA": ["1"], "DEC": ["2"], "SR": ["1.5"]},
-			['AAAAATA/9AAAAAAAAEAEAAAAAAAA', 'datatype="char"'])
+			['P+HiwiZkGz0AAAABMD/0AAAAAA', 'datatype="char"'])
 
 	def testCapability(self):
 		return self.assertGETHasStrings("/data/cores/scs/capabilities", {}, [

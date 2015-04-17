@@ -1,5 +1,5 @@
 """
-IVOA cone search: Helper functions and misc.
+IVOA cone search: Helper functions, a core, and misc.
 """
 
 #c Copyright 2008-2015, the GAVO project
@@ -9,6 +9,9 @@ IVOA cone search: Helper functions and misc.
 
 
 from gavo import base
+from gavo import svcs
+from gavo.svcs import outputdef
+
 
 def findNClosest(alpha, delta, tableDef, n, fields, searchRadius=5):
 	"""returns the n objects closest around alpha, delta in table.
@@ -39,3 +42,78 @@ def findNClosest(alpha, delta, tableDef, n, fields, searchRadius=5):
 						raField, decField),
 			locals()).fetchall()
 		return res
+
+
+class SCSCore(svcs.DBCore):
+	"""A core performing cone searches.
+
+	This will, if it finds input parameters it can make out a position from,
+	add a _r column giving the distance between the match center and 
+	the columns that a cone search will match against.
+
+	If any of the conditions for adding _r aren't met, this will silently
+	degrade to a plain DBCore.
+	"""
+	name_ = "scsCore"
+
+	def onElementComplete(self):
+		self._onElementCompleteNext(SCSCore)
+		self.raColumn = self.queriedTable.getColumnByUCDs(
+			"pos.eq.ra;meta.main", "POS_EQ_RA_MAIN")
+		self.decColumn = self.queriedTable.getColumnByUCDs(
+			"pos.eq.dec;meta.main", "POS_EQ_DEC_MAIN")
+		self.idColumn = self.queriedTable.getColumnByUCDs(
+			"meta.id;meta.main", "ID_MAIN")
+
+		self.distCol = base.resolveCrossId("//scs#distCol")
+		self.outputTable = self.outputTable.change(
+			columns=[self.distCol]+self.outputTable.columns)
+
+	def _guessDestPos(self, inputTable):
+		"""returns RA and Dec for a cone search possibly contained in inputTable.
+
+		If no positional query is discernable, this returns None.
+		"""
+		pars = inputTable.getParamDict()
+		if pars.get("RA") is not None and pars.get("DEC") is not None:
+			return pars["RA"], pars["DEC"]
+		elif pars.get("hscs_pos") is not None:
+			return base.parseCooPair(pars["hscs_pos"])
+		else:
+			return None
+
+	def _getDistColumn(self, destPos):
+		"""returns an outputField selecting the distance of the match
+		object to the cone center.
+		"""
+		return self.distCol.change(
+			select="degrees(spoint(radians(%s), radians(%s)) <-> %s)"%(
+			self.raColumn.name, self.decColumn.name,
+			"spoint '(%fd,%fd)'"%destPos))
+
+	def _fixupQueryColumns(self, destPos, baseColumns):
+		"""returns the output columns from baseColumns for a query
+		centered at destPos.
+
+		In particular, the _r column is primed so it yields the right result
+		if destPos is given.
+		"""
+		res = []
+		for col in baseColumns:
+			if col.name=="_r" and destPos:
+				res.append(self._getDistColumn(destPos))
+			else:
+				res.append(col)
+		return res
+
+	def _makeResultTableDef(self, service, inputTable, queryMeta):
+		destPos = self._guessDestPos(inputTable)
+		outCols = self._fixupQueryColumns(destPos,
+			self.getQueryCols(service, queryMeta))
+
+		return base.makeStruct(outputdef.OutputTableDef,
+			parent_=self.queriedTable.parent, 
+			id="result",
+			onDisk=False, 
+			columns=outCols,
+			params=self.queriedTable.params)

@@ -68,6 +68,7 @@ CORE_REGISTRY = {
 	"nullCore": ("svcs.standardcores", "NullCore"),
 	"productCore": ("protocols.products", "ProductCore"),
 	"registryCore": ("registry.oaiinter", "RegistryCore"),
+	"scsCore": ("protocols.scs", "SCSCore"),
 	"sdmCore": ("protocols.sdm", "SDMCore"),
 	"siapCutoutCore": ("protocols.siap", "SIAPCutoutCore"),
 	"ssapCore": ("protocols.ssap", "SSAPCore"),

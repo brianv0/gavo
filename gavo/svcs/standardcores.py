@@ -494,14 +494,20 @@ class DBCore(TableBasedCore):
 			finally:
 				queriedTable.close()
 
+	def _makeResultTableDef(self, service, inputTable, queryMeta):
+		"""returns an OutputTableDef object for querying our table with queryMeta.
+		"""
+		return base.makeStruct(outputdef.OutputTableDef,
+			parent_=self.queriedTable.parent, id="result",
+			onDisk=False, columns=self.getQueryCols(service, queryMeta),
+			params=self.queriedTable.params)
+
 	def run(self, service, inputTable, queryMeta):
 		"""does the DB query and returns an InMemoryTable containing
 		the result.
 		"""
-		resultTableDef = base.makeStruct(outputdef.OutputTableDef,
-			parent_=self.queriedTable.parent, id="result",
-			onDisk=False, columns=self.getQueryCols(service, queryMeta),
-			params=self.queriedTable.params)
+		resultTableDef = self._makeResultTableDef(
+			service, inputTable, queryMeta)
 
 		resultTableDef.copyMetaFrom(self.queriedTable)
 		if not resultTableDef.columns:

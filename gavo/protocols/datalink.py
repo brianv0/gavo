@@ -333,7 +333,7 @@ class MetaMaker(rscdef.ProcApp):
 	"""
 	name_ = "metaMaker"
 	requiredType = "metaMaker"
-	formalArgs = "descriptor"
+	formalArgs = "self, descriptor"
 
 	additionalNamesForProcs = {
 		"MS": base.makeStruct,
@@ -515,7 +515,7 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 	
 		for metaMaker in self.metaMakers:
 			try:
-				for item in metaMaker.compile(self)(descriptor):
+				for item in metaMaker.compile(self)(self, descriptor):
 					if isinstance(item, LinkDef):
 						linkDefs.append(item)
 					elif isinstance(item, DatalinkFault):
@@ -523,6 +523,10 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 					else:
 						inputKeys.append(item)
 			except Exception, ex:
+				if base.DEBUG:
+					base.ui.notifyError("Error in datalink meta generator %s"%(
+						metaMaker))
+					base.ui.notifyError("Failing source: \n%s"%metaMaker.getFuncCode())
 				errors.append(DatalinkFault.Fault(descriptor.pubDID,
 					"Unexpected failure while creating"
 					" datalink: %s"%utils.safe_str(ex)))
@@ -754,8 +758,9 @@ class DatalinkCore(DatalinkCoreBase):
 			except base.NotFoundError, ex:
 				descriptors.append(DatalinkFault.NotFoundFault(pubDID,
 					utils.safe_str(ex)))
-# TODO: Catch more "known" exceptions, e.g. Authorization
 			except Exception, ex:
+				if base.DEBUG:
+					base.ui.notifyError("Error in datalink descriptor generator")
 				descriptors.append(DatalinkFault.Fault(pubDID,
 					utils.safe_str(ex)))
 

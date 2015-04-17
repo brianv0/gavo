@@ -257,7 +257,7 @@ def replacePrimaryHeader(inputFile, newHeader, targetFile, bufSize=100000):
 def replacePrimaryHeaderInPlace(fitsName, newHeader):
 	"""replaces the primary header of fitsName with newHeader.
 
-	Doing this, it tries to minimize the amout of writing necessary; if
+	Doing this, it tries to minimize the amount of writing necessary; if
 	fitsName has enough space for newHeader, just the header is written,
 	and newHeader is extended if necessary.  Only if newHeader is longer than
 	the existing header is fitsName actually copied.  We try to be safe in
