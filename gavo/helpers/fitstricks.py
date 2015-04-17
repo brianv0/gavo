@@ -85,6 +85,7 @@ MINIMAL_IMAGE_TEMPLATE = [
 
 
 # Internal representation of Tuvikene et al FITS headers for plates
+# See https://www.plate-archive.org/wiki/index.php/FITS_header_format
 WFPDB_TEMPLATE = MINIMAL_IMAGE_TEMPLATE+[
 		pyfits.Card(value="-------------------- Original data of observation"),
 		("DATEORIG", "Original recorded date of the observation"),

@@ -266,13 +266,47 @@ class FileProcessor(object):
 		return utils.getRelativePath(srcName, self.inputsDir)
 
 
+class ImmediateHeaderProcessor(FileProcessor):
+	"""An base for processors doing simple FITS manipulations to the primary
+	FITS header.
+
+	To define these, override _isProcessed(self, srcName, hdr) and 
+	_changeHeader(self, hdr).
+
+	_changeHeader can change the pyfits header hdr in place.  It will then
+	be replaced on the actual file.
+
+	For complex operations, it is probably advisable to use HeaderProcessor's
+	two-step process that gives you a two-step process of first having
+	the detached headers that you can check before applying them.
+	"""
+	def _isProcessed(self, srcName, hdr):
+		return False
+
+	def process(self, srcName):
+		with open(srcName) as f:
+			hdr = fitstools.readPrimaryHeaderQuick(f)
+		if not self.opts.reProcess:
+			if self._isProcessed(srcName, hdr):
+				return
+
+		self._changeHeader(srcName, hdr)
+		fitstools.replacePrimaryHeaderInPlace(srcName, hdr)
+
+	@staticmethod
+	def addOptions(optParser):
+		FileProcessor.addOptions(optParser)
+		optParser.add_option("--reprocess", help="Recompute all headers",
+			action="store_true", dest="reProcess", default=False)
+
+
 class HeaderProcessor(FileProcessor):
-	"""is an abstract processor for FITS header manipulations.
+	"""A base for processors doing complicated FITS header manipulations.
 
 	The processor builds naked FITS headers alongside the actual files, with an
-	added extension .hdr.  The presence of a FITS header indicates that a file
-	has been processed.  The headers on the actual FITS files are only replaced
-	if necessary.
+	added extension .hdr (or whatever is in the headerExt attribute).  The
+	presence of a FITS header indicates that a file has been processed.  The
+	headers on the actual FITS files are only replaced if necessary.
 
 	The basic flow is: Check if there is a header.  If not, call
 	_getNewHeader(srcFile) -> hdr.  Store hdr to cache.  Insert cached

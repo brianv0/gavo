@@ -11,7 +11,6 @@ More on this in "Datalink Cores" in the reference documentation.
 
 
 import os
-import urllib
 
 from gavo import base
 from gavo import rsc
@@ -545,13 +544,6 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 		internalLinks.extend(LinkDef(s.pubDID, service.getURL(s.rendName),
 				serviceType=ctx.getOrMakeIdFor(s), semantics="#access")
 			for s in self.datalinkEndpoints)
-
-		# for accessing the dataset itself, prefer sync dlget
-		accessRenderer = None
-		if "dlasync" in service.allowed:
-			accessRenderer = "dlasync"
-		if "dlget" in service.allowed:
-			accessRenderer = "dlget"
 
 		for d in self.descriptors:
 			# for all descriptors that are products, make a full dataset

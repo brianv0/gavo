@@ -39,6 +39,10 @@ from gavo.formats import formatData, getFormatted
 from gavo.formats.votablewrite import (writeAsVOTable, getAsVOTable,
 	VOTableContext)
 
+from gavo.helpers.processing import (CannotComputeHeader,
+	FileProcessor, ImmediateHeaderProcessor, HeaderProcessor,
+	AnetHeaderProcessor, PreviewMaker, SpectralPreviewMaker,
+	procmain)
 
 from gavo.rsc import (TableForDef, DBTable, makeData, parseValidating,
 	parseNonValidating, getParseOptions, Data, makeDependentsFor)
