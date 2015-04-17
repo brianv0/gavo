@@ -91,7 +91,7 @@ class Sesame(object):
 		try:
 			res["RA"] = float(firstResponse.find("jradeg").text)
 			res["dec"] = float(firstResponse.find("jdedeg").text)
-		except ValueError:
+		except (ValueError, AttributeError):
 			# presumably null position
 			return None
 		return res

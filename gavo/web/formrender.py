@@ -514,7 +514,8 @@ class FormMixin(formal.ResourceMixin):
 
 		This is a callback for the formal form.
 		"""
-		return defer.maybeDeferred(self._realSubmitAction, ctx, form, data
+		return defer.maybeDeferred(
+			self._realSubmitAction, ctx, form, data
 			).addErrback(self._handleInputErrors, ctx)
 
 

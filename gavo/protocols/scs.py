@@ -78,7 +78,11 @@ class SCSCore(svcs.DBCore):
 		if pars.get("RA") is not None and pars.get("DEC") is not None:
 			return pars["RA"], pars["DEC"]
 		elif pars.get("hscs_pos") is not None:
-			return base.parseCooPair(pars["hscs_pos"])
+			try:
+				return base.parseCooPair(pars["hscs_pos"])
+			except ValueError, ex:
+				raise base.ui.logOldExc(base.ValidationError(str(ex),
+					"hscs_pos"))
 		else:
 			return None
 
