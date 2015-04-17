@@ -66,16 +66,23 @@ class _DataFeeder(table._Feeder):
 			table = self.data.tables[make.table.id]
 			feeder = table.getFeeder(batchSize=self.batchSize)
 			makeRow = make.rowmaker.compileForTableDef(table.tableDef)
+
 			def addRow(srcRow, feeder=feeder, makeRow=makeRow):
 				try:
 					procRow = makeRow(srcRow, table)
 					feeder.add(procRow)
 				except rscdef.IgnoreThisRow:
 					pass
+
 			if make.rowSource=="parameters":
 				parAdders.setdefault(make.role, []).append(addRow)
 			else:
 				adders.setdefault(make.role, []).append(addRow)
+
+			if make.parmaker:
+				parAdders.setdefault(make.role, []).append(
+					lambda row, m=make, t=table: m.runParmakerFor(row, t))
+
 			feeders.append(feeder)
 		return adders, parAdders, feeders
 
@@ -321,13 +328,6 @@ class Data(base.MetaMixin, common.ParamMixin):
 			raise base.DataError(
 				"No table with role %s known here"%repr(role))
 
-	def feedGrammarParameters(self, grammarParameters):
-		"""feeds grammarParameters to the parmakers of all makes that have one.
-		"""
-# XXX TODO: remove this, it's a misfeature.  _pipeRows does all we want here
-		for m in self.dd.makes:
-			m.runParmakerFor(grammarParameters, self.tables[m.table.id])
-
 	def getFeeder(self, **kwargs):
 		return _DataFeeder(self, **kwargs)
 
@@ -370,7 +370,6 @@ def _processSourceReal(data, source, feeder, opts):
 	data.runScripts("newSource", sourceToken=source)
 	srcIter = data.dd.grammar.parse(source, data)
 	if hasattr(srcIter, "getParameters"):  # is a "normal" grammar
-		data.feedGrammarParameters(srcIter.getParameters())
 		try:
 			_pipeRows(srcIter, feeder, opts)
 		except (base.Error,base.ExecutiveAction):
