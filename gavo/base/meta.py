@@ -380,6 +380,30 @@ class MetaMixin(object):
 				val = configMeta.iterMeta(key, propagate=False)
 		return val
 
+	def getAllMetaPairs(self):
+		"""iterates over all meta items this container has.
+
+		Each item consists of key, MetaValue.  Multiple MetaValues per
+		key may be given.
+
+		This will not iterate up, i.e., in general, getMeta will succeed
+		for more keys than what's given here.
+		"""
+		class Accum(object):
+			def __init__(self):
+				self.items = []
+				self.keys = []
+			def startKey(self, key):
+				self.keys.append(key)
+			def enterValue(self, value):
+				self.items.append((".".join(self.keys), value))
+			def endKey(self, key):
+				self.keys.pop()
+
+		accum = Accum()
+		self.traverse(accum)
+		return accum.items
+
 	def buildRepr(self, key, builder, propagate=True, raiseOnFail=True):
 		value = self.getMeta(key, raiseOnFail=raiseOnFail, propagate=propagate)
 		if value:
@@ -701,10 +725,13 @@ class MetaValue(MetaMixin):
 		elif self.format=="raw":
 			return content
 
-	def getContent(self, targetFormat="text", macroPackage=None):
-		content = self.content
+	def getExpandedContent(self, macroPackage):
 		if hasattr(macroPackage, "expand") and "\\" in self.content:
-			content = macroPackage.expand(content)
+			return macroPackage.expand(self.content)
+		return self.content
+
+	def getContent(self, targetFormat="text", macroPackage=None):
+		content = self.getExpandedContent(macroPackage)
 		if targetFormat=="text":
 			return self._getContentAsText(content)
 		elif targetFormat=="html":

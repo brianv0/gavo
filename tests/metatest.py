@@ -198,6 +198,15 @@ class IterMetaTest(testhelpers.VerboseTest):
 				).iterMeta("creator.name", propagate=True))
 		self.assertEqual(res, "Could be same as contact.name")
 
+	def testAllMeta(self):
+		cont = meta.MetaMixin()
+		meta.parseMetaStream(cont, "single: a\none.two: b\none.two:\n"
+			"one.two.three:c\none.two.three:d\none.two:e\n")
+		res = [(key, value.getContent("text"))
+			for key, value in cont.getAllMetaPairs()]
+		self.assertEqual(res,  [('single', 'a'), ('one.two', 'b'), 
+			('one.two.three', 'c'), ('one.two.three', 'd'), ('one.two', 'e')])
+
 
 class SetAndDelTest(testhelpers.VerboseTest):
 	"""tests for working deletion and setting of meta items.

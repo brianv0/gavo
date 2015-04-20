@@ -3,10 +3,10 @@ The renderer for VOSI examples, plus the docutils extensions provided for
 them.
 
 If you have a renderer that needs custom text roles or directives, read the
-docstring of RSTExtensions and add whatever roles you need below, more or less
-like this::
+docstring of misctricks.RSTExtensions and add whatever roles you need below,
+more or less like this::
 
-	examplesrender.RSTExtensions.makeTextRole("niceRole")
+	misctricks.RSTExtensions.makeTextRole("niceRole")
 
 Only go through RSTExtensions, as these will make sure HTML postprocessing
 happens as required.
@@ -152,10 +152,10 @@ def _taptableRoleFunc(name, rawText, text, lineno, inliner,
 		options={}, content=[]):
 	node = nodes.reference(rawText, text,
 		refuri="/tableinfo/%s"%text) 
-	node["classes"] = ["dachs-ex-table"]
+	node["classes"] = ["dachs-ex-taptable"]
 	return [node], []
 
-misctricks.RSTExtensions.makeTextRole("table", _taptableRoleFunc)
+misctricks.RSTExtensions.makeTextRole("taptable", _taptableRoleFunc)
 del _taptableRoleFunc
 
 class _TAPQuery(rst.Directive):
@@ -164,10 +164,10 @@ class _TAPQuery(rst.Directive):
 	def run(self):
 		body = "\n".join(self.content)
 		res = nodes.literal_block(body, body)
-		res["classes"] = ["dachs-ex-query"]
+		res["classes"] = ["dachs-ex-tapquery"]
 		return [res]
 
-misctricks.RSTExtensions.addDirective("query", _TAPQuery)
+misctricks.RSTExtensions.addDirective("tapquery", _TAPQuery)
 del _TAPQuery
 
 

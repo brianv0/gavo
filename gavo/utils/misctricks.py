@@ -17,6 +17,7 @@ import re
 import struct
 import threading
 import urllib2
+from cStringIO import StringIO
 
 from gavo.utils import excs
 
@@ -446,8 +447,9 @@ def getWithCache(url, cacheDir, extraHeaders={}):
 		return doc
 
 
-def rstxToHTML(source, **userOverrides):
-	"""returns HTML for a piece of ReStructured text.
+def rstxToHTMLWithWarning(source, **userOverrides):
+	"""returns HTML and a string with warnings for a piece of ReStructured 
+	text.
 
 	source can be a unicode string or a byte string in utf-8.
 
@@ -458,8 +460,10 @@ def rstxToHTML(source, **userOverrides):
 	if not isinstance(source, unicode):
 		source = source.decode("utf-8")
 	
+	warnAccum = StringIO()
 	overrides = {'input_encoding': 'unicode',
 		'doctitle_xform': None,
+		'warning_stream': warnAccum,
 		'initial_header_level': 4}
 	overrides.update(userOverrides)
 
@@ -467,7 +471,18 @@ def rstxToHTML(source, **userOverrides):
 		source=source+"\n", source_path=sourcePath,
 		destination_path=destinationPath,
 		writer_name='html', settings_overrides=overrides)
-	return parts["fragment"]
+	return parts["fragment"], warnAccum.getvalue()
+
+
+def rstxToHTML(source, **userOverrides):
+	"""returns HTML for a piece of ReStructured text.
+
+	source can be a unicode string or a byte string in utf-8.
+
+	userOverrides will be added to the overrides argument of docutils'
+	core.publish_parts.
+	"""
+	return rstxToHTMLWithWarning(source, **userOverrides)[0]
 
 
 class CaseSemisensitiveDict(dict):

@@ -33,6 +33,7 @@ from gavo.registry import publication
 from gavo.user import errhandle
 from gavo.web import htmltable
 
+from gavo.web import examplesrender #noflake: for RST registration
 
 builders.VALIDATING = True
 
@@ -158,6 +159,31 @@ def validateServices(rd, args):
 	return validSoFar
 
 
+def validateRST(rd, args):
+	"""outputs diagnostics on RST formatting problems.
+	"""
+	def validateRSTOne(el):
+		validSoFar = True
+
+		for key, val in getattr(el, "getAllMetaPairs", lambda: [])():
+			if  val.format=='rst':
+				content = val.getExpandedContent(macroPackage=el)
+				_, msg = utils.rstxToHTMLWithWarning(content)
+				if msg:
+					outputWarning(rd.sourceId, 
+						"%s metadata on %s (%s) has an RST problem: %s"%(
+							key, el, utils.makeEllipsis(content, 80), msg))
+					validSoFar = False
+		
+		for child in el.iterChildren():
+			if child:
+				validSoFar = validSoFar and validateRSTOne(child)
+
+		return validSoFar
+
+	return validateRSTOne(rd)
+
+
 def validateRowmakers(rd, args):
 	"""tries to build all rowmakers mentioned in the RD and bails out
 	if one is bad.
@@ -262,6 +288,7 @@ def validateOne(rdId, args):
 	validSoFar = validSoFar and validateRowmakers(rd, args)
 	validSoFar = validSoFar and validateTables(rd, args)
 	validSoFar = validSoFar and validateOtherCode(rd, args)
+	validSoFar = validSoFar and validateRST(rd, args)
 	return validSoFar
 
 
