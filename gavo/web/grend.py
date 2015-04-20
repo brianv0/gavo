@@ -43,7 +43,7 @@ class RDBlocked(Exception):
 
 ########## Useful mixins for Renderers
 
-class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
+class GavoRenderMixin(common.CommonRenderers):
 	"""A mixin with renderers useful throughout the data center.
 
 	Rendering of meta information:
@@ -81,27 +81,34 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 
 	def _initGavoRender(self):
 		# call this to initialize this mixin.
-		base.MetaMixin.__init__(self)
+		# (kept for backward compatibility; don't use this any more)
+		pass
 
 	def _doRenderMeta(self, ctx, raiseOnFail=False, plain=False, 
 			carrier=None):
 		if carrier is None:
-			carrier = self
+			carrier = self.metaCarrier
+		if not hasattr(carrier, "_metaRenderCache"):
+			carrier._metaRenderCache = {}
 
 		metaKey = "(inaccessible)"
 		try:
 			metaKey = ctx.tag.children[0].strip()
-			htmlBuilder = common.HTMLMetaBuilder(self.macroPackage)
-
-			if plain:
-				ctx.tag.clear()
-				return ctx.tag[base.getMetaText(carrier, metaKey, raiseOnFail=True,
-					macroPackage=self.macroPackage)]
+			if (metaKey, plain) in carrier._metaRenderCache:
+				rendered = carrier._metaRenderCache[(metaKey, plain)]
 
 			else:
-				ctx.tag.clear()
-				return ctx.tag[T.xml(carrier.buildRepr(metaKey, htmlBuilder,
-					raiseOnFail=True))]
+				htmlBuilder = common.HTMLMetaBuilder(self.macroPackage)
+
+				if plain:
+					rendered = base.getMetaText(carrier, metaKey, raiseOnFail=True,
+						macroPackage=self.macroPackage)
+
+				else:
+					rendered = T.xml(carrier.buildRepr(metaKey, htmlBuilder,
+						raiseOnFail=True))
+
+				carrier._metaRenderCache[(metaKey, plain)] = rendered
 
 		except base.NoMetaKey:
 			if raiseOnFail:
@@ -112,11 +119,14 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 			base.ui.notifyError(msg)
 			return T.comment[msg]
 
+		ctx.tag.clear()
+		return ctx.tag[rendered]
+
 	def data_meta(self, metaKey):
 		"""returns the value for the meta key metaName on this service.
 		"""
 		def get(ctx, data):
-			return self.getMeta(metaKey)
+			return self.metaCarrier.getMeta(metaKey)
 		return get
 	
 	def render_meta(self, ctx, data):
@@ -140,12 +150,11 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 	def render_ifmeta(self, metaName, propagate=True):
 		"""renders its children if there is metadata for metaName.
 		"""
-		# accept direct parent as "own" meta as well.
 		if propagate:
-			hasMeta = self.getMeta(metaName) is not None
+			hasMeta = self.metaCarrier.getMeta(metaName) is not None
 		else:
-			hasMeta = (self.getMeta(metaName, propagate=False) is not None
-				or self.getMetaParent().getMeta(metaName, propagate=False) is not None)
+			hasMeta = self.metaCarrier.getMeta(metaName, propagate=False) is not None
+
 		if hasMeta:
 			return lambda ctx, data: ctx.tag
 		else:
@@ -237,7 +246,7 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 		if introKey is None:
 			return ctx.tag[""]
 		else:
-			return ctx.tag[T.xml(self.buildRepr(introKey, 
+			return ctx.tag[T.xml(self.metaCarrier.buildRepr(introKey, 
 				common.HTMLMetaBuilder(self.macroPackage),
 				raiseOnFail=False))]
 
@@ -499,7 +508,7 @@ class ResourceBasedPage(GavoPage):
 	def __init__(self, ctx, rd):
 		rend.Page.__init__(self)
 		self.rd = rd
-		self.setMetaParent(rd)
+		self.metaCarrier = rd
 		self.macroPackage = rd
 		if hasattr(self.rd, "currently_blocked"):
 			raise RDBlocked()
@@ -608,7 +617,7 @@ class ServiceBasedPage(ResourceBasedPage):
 			raise svcs.ForbiddenURI(
 				"The renderer %s is not allowed on this service."%self.name,
 				rd=self.service.rd)
-		self.setMetaParent(self.service)
+		self.metaCarrier = self.service
 		self.macroPackage = self.service
 
 		# Set to true when we notice we need to fix the service's output fields
@@ -704,6 +713,7 @@ class ServiceBasedPage(ResourceBasedPage):
 			raise svcs.WebRedirect(url.URL.fromContext(ctx))
 		else:
 			return ResourceBasedPage.locateChild(self, ctx, segments)
+
 
 if __name__=="__main__":
 	import doctest, grend

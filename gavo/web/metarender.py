@@ -399,7 +399,7 @@ class TableInfoRenderer(MetaRenderer):
 			# _retrieveTableDef did not run, i.e., no tableName was given
 			raise svcs.UnknownURI(
 				"You must provide a table name to this renderer.")
-		self.setMetaParent(self.table)
+		self.metaCarrier = self.table
 		return super(TableInfoRenderer, self).renderHTTP(ctx)
 
 	def _retrieveTableDef(self, tableName):
@@ -480,7 +480,7 @@ class TableNoteRenderer(MetaRenderer):
 	def _retrieveNote(self, tableName, noteTag):
 		try:
 			table = registry.getTableDef(tableName)
-			self.setMetaParent(table)
+			self.metaCarrier = table
 			self.noteHTML = table.getNote(noteTag
 				).getContent(targetFormat="html", macroPackage=table)
 		except base.NotFoundError, msg:

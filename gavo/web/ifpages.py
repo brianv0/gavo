@@ -22,6 +22,7 @@ from gavo import base
 from gavo import registry
 from gavo import svcs
 from gavo import utils
+from gavo.base import meta
 from gavo.imp import rjsmin
 from gavo.web import caching
 from gavo.web import common
@@ -131,7 +132,9 @@ class TemplatedPage(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 		grend.ServiceBasedPage.__init__(self, ctx,
 			base.caches.getRD(registry.SERVICELIST_ID
 			).getById("root"))
-		self.setMeta("dateUpdated", 
+		self.metaCarrier = meta.MetaMixin()
+		self.metaCarrier.setMetaParent(self.service)
+		self.metaCarrier.setMeta("dateUpdated", 
 			utils.formatISODT(
 				datetime.datetime.fromtimestamp(os.path.getmtime(fName))))
 
