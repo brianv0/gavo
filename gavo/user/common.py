@@ -55,6 +55,27 @@ def exposedFunction(argSpecs=(), help=None):
 	return deco
 
 
+class _PrefixMatchDict(dict):
+	"""quick hack to teach argparse to match actions based on unique
+	prefixes.
+	"""
+	def __getitem__(self, key):
+		matches = [s for s in self.keys() if s.startswith(key)]
+		if len(matches)==0:
+			raise KeyError(key)
+		elif len(matches)==1:
+			return dict.__getitem__(self, matches[0])
+		else:
+			raise base.ReportableError("Ambiguous subcommand specification;"
+				" choose between %s."%repr(matches))
+
+	def __contains__(self, key):
+		for s in self.keys():
+			if s.startswith(key):
+				return True
+		return False
+
+
 def makeParser(functions):
 	"""returns a command line parser parsing subcommands from functions.
 
@@ -73,6 +94,20 @@ def makeParser(functions):
 			for arg in args:
 				arg.add(subForName)
 			subForName.set_defaults(subAction=val)
+
+	# Now monkeypatch matching of unique prefixes into argparse guts.
+	# If the guts change, don't fail hard, just turn off prefix matching
+	try:
+		for action in parser._actions:
+			if isinstance(action, argparse._SubParsersAction):
+				action.choices = action._name_parser_map = \
+					_PrefixMatchDict(action._name_parser_map)
+				break
+	except Exception, msg:
+		# no prefix matching, then
+		base.ui.notifyWarning("Couldn't teach prefix matching to argparse: %s"%
+			repr(msg))
+
 	return parser
 
 

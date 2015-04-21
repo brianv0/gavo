@@ -339,7 +339,7 @@ def debug(args):
 @exposedFunction([
 		Arg("rdIds", help="one or more rdIds", nargs="+"),
 	], help="reload RDs listed in the server named by [web]serverURL.")
-def reloadRDs(args):
+def expireRDs(args):
 	pw = base.getConfig("web", "adminpasswd")
 	if pw=='':
 		raise base.ReportableError("expireRDs needs [web]adminpasswd config item.")
