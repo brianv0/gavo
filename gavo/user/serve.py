@@ -17,6 +17,7 @@ import pwd
 import signal
 import sys
 import time
+import urllib
 import warnings
 
 from nevow import inevow
@@ -32,7 +33,7 @@ from gavo import utils
 from gavo.base import config
 from gavo.base import cron
 from gavo.user import plainui
-from gavo.user.common import exposedFunction, makeParser
+from gavo.user.common import exposedFunction, makeParser, Arg
 from gavo.web import root
 
 
@@ -333,6 +334,27 @@ def debug(args):
 	reactor.listenTCP(int(base.getConfig("web", "serverPort")), root.site)
 	setupServer(root)
 	reactor.run()
+
+
+@exposedFunction([
+		Arg("rdIds", help="one or more rdIds", nargs="+"),
+	], help="reload RDs listed in the server named by [web]serverURL.")
+def reloadRDs(args):
+	pw = base.getConfig("web", "adminpasswd")
+	if pw=='':
+		raise base.ReportableError("expireRDs needs [web]adminpasswd config item.")
+
+	for rdId in args.rdIds:
+		if rdId.startswith("//"):
+			rdId = "__system__"+rdId[1:]
+
+		try:
+			f = utils.urlopenRemote(base.makeAbsoluteURL("/seffe/"+rdId),
+				urllib.urlencode({"__nevow_form__": "adminOps", "submit": "Reload RD"}),
+				creds=("gavoadmin", pw))
+			ignored = f.read()
+		except IOError, msg:
+			raise base.ReportableError("Failed to reload %s: %s"%(rdId, msg))
 
 
 def main():
