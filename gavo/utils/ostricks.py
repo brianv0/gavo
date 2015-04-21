@@ -111,8 +111,8 @@ def urlopenRemote(url, data=None, creds=(None, None)):
 	try:
 		res = _restrictedURLOpener.open(url, data)
 		if res is None:
-			raise IOError("urlopen returned None; sorry about this, it shouldn't"
-				" happen.")
+			raise IOError("Could not open URL %s -- does the resource exist?"%
+				url)
 		return res
 	except (urllib2.URLError, ValueError), msg:
 		msgStr = str(msg)

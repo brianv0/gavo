@@ -241,6 +241,18 @@ class SSAPCore(svcs.DBCore):
 				distinct=True))
 			res.noPostprocess = True
 			return res
+	
+	def _addPreviewLinks(self, resultTable):
+		try:
+			col = resultTable.tableDef.getColumnByUCD(
+				"meta.ref.url;datalink.preview")
+		except ValueError:
+			# no preview column, nothing to do
+			return
+		previewName = col.name
+
+		for row in resultTable:
+			row[previewName] = row["accref"]+"?preview=True"
 
 	def _run_queryData(self, service, inputTable, queryMeta):
 		format = inputTable.getParam("FORMAT") or ""
@@ -263,6 +275,8 @@ class SSAPCore(svcs.DBCore):
 		else:
 			queryStatus = "OK"
 			queryStatusBody = ""
+
+		self._addPreviewLinks(res)
 
 		# We wrap our result into a data instance since we need to set the
 		#	result type

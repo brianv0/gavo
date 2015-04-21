@@ -366,14 +366,23 @@
 			ucd="pos.eq"
 			utype="ssa:Char.SpatialAxis.Coverage.Location.Value"
 			tablehead="SSA Pos."
+			description="Observed position RA and Dec as a 2-real
+			  array as required by SSAP."
 			select="array[degrees(long(ssa_location)),degrees(lat(ssa_location))]"
 			verbLevel="15"/>
 		<outputField name="target_arr" type="real(2)"
 			ucd="pos.eq;src"
 			utype="ssa:Target.Pos"
 			tablehead="SSA Target Pos."
+			description="Target RA and Dec as a 2-real array as required by SSAP."
 			select="array[degrees(long(ssa_targetpos)),degrees(lat(ssa_targetpos))]"
 			verbLevel="15"/>
+		<outputField name="preview" type="text"
+			ucd="meta.ref.url;datalink.preview"
+			tablehead="Preview"
+			description="URL of a preview for the dataset, where available."
+			select="NULL"
+			displayHint="type=product" verbLevel="15"/>
 		<stc>
 			Position ICRS "location_ra" "location_dec"
 		</stc>
@@ -947,7 +956,9 @@
 			</inputKey>
 			<inputKey name="TOP" type="integer" tablehead="#Best"
 				multiplicity="single"
-				description='Only return the TOP "best" records' std="True"/>
+				description='Only return the TOP "best" records (on this service,
+					this usually is equivalent to MAXREC, so no ranking is implied).' 
+					std="True"/>
 			<inputKey name="MAXREC" type="integer" tablehead="Limit"
 				multiplicity="single"
 				description="Do not return more than MAXREC records"

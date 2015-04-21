@@ -102,11 +102,11 @@ class CronJob(procdef.ProcApp):
 
 	Note that no I/O capturing takes place (that's impossible since in
 	general the jobs run within the server).  To have actual cron jobs,
-	use execDef.spawn(["cmd", "arg1"...]).  This will send a mail on failed
+	use ``execDef.spawn(["cmd", "arg1"...])``.  This will send a mail on failed
 	execution and also raise a ReportableError in that case.
 
 	In the frequent use case of a resdir-relative python program, you
-	can use the execDef.spawnPython(modulePath) function.
+	can use the ``execDef.spawnPython(modulePath)`` function.
 
 	If you must stay within the server process, you can do something like::
 
@@ -246,10 +246,12 @@ class Execute(base.Structure, base.ExpansionDelegator):
 			for literal in self.at:
 				self.parsedAt.append(self._parseAt(literal, ctx))
 
-		self.jobName = "%s#%s"%(self.rd.sourceId, self.title)
 
 	def onElementComplete(self):
 		self._onElementCompleteNext(Execute)
+
+		self.jobName = "%s#%s"%(self.rd.sourceId, self.title)
+
 		callable = _guardedFunctionFactory.makeGuardedThreaded(
 			self.job.compile(), self)
 

@@ -726,6 +726,15 @@ class SSATableTest(testhelpers.VerboseTest):
 			"//TABLEDATA/TR[4]/TD[%s]"%(arrIndex))[0]
 		self.failUnless(re.match("NaN", valEl.text))
 
+	def testPreviewColumn(self):
+		previewField = self.docAndTree[1].xpath(
+			"//FIELD[@ucd='meta.ref.url;datalink.preview']")[0]
+		previewIndex = list(f for f in previewField.getparent().iterchildren()
+			if f.tag=='FIELD').index(previewField)
+		self.assertEqual(self.docAndTree[1].xpath(
+			"//TABLEDATA/TR[1]/TD[%s]"%(previewIndex+1))[0].text,
+			"http://localhost:8080/getproduct/data/spec1.ssatest.vot?preview=True")
+
 	def testDatalinkResourcePresent(self):
 		_, tree = self.docAndTree
 		self.assertEqual(len(tree.xpath(

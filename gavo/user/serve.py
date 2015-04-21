@@ -352,7 +352,7 @@ def expireRDs(args):
 			f = utils.urlopenRemote(base.makeAbsoluteURL("/seffe/"+rdId),
 				urllib.urlencode({"__nevow_form__": "adminOps", "submit": "Reload RD"}),
 				creds=("gavoadmin", pw))
-			ignored = f.read()
+			ignored = f.read()  #noflake: don't care enough to check at this point.
 		except IOError, msg:
 			raise base.ReportableError("Failed to reload %s: %s"%(rdId, msg))
 
