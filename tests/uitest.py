@@ -254,6 +254,9 @@ class MkRDTest(testhelpers.VerboseTest):
 				expectedStdout=lambda s: "Rows affected: 1", expectedRetcode=0)
 			self.assertOutput(cli.main, ["drop", "gen"])
 
+	def testFITSRDMetaFirst(self):
+		self.failUnless(self.fitsrd.split("\n")[1].strip().startswith("<meta"))
+
 
 class _MyRDResource(tresc.FileResource):
 	path = "inputs/myrd.rd"

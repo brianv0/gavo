@@ -30,13 +30,21 @@ def sortAttrs(attrSeq):
 
 	It returns a reference to attrSeq for convenience.
 	"""
-	beforeGraph = []
+	beforeGraph, prependMeta = [], False
 	for att in attrSeq:
 		if att.before:
 			beforeGraph.append((att.name_, att.before))
+		if att.name_=="meta_":
+			prependMeta = True
+
 	if beforeGraph:
 		attDict = dict((a.name_, a) for a in attrSeq)
 		sortedNames = utils.topoSort(beforeGraph)
+
+		# Hack: metadata always comes first
+		if prependMeta:
+			sortedNames[:0] = ["meta_"]
+
 		sortedAtts = [attDict[n] for n in sortedNames]
 		attrSeq = sortedAtts+list(set(attrSeq)-set(sortedAtts))
 	return attrSeq
@@ -81,6 +89,7 @@ class StructType(type):
 			if not hasattr(cls, name):
 				continue
 			val = getattr(cls, name)
+
 			if isinstance(val, attrdef.AttributeDef):
 				managedAttrs[val.name_] = val
 				attrSeq.append(val)

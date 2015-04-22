@@ -597,7 +597,8 @@ class Rowmaker(object):
 		else:
 			msg = unicode(str(ex), "iso-8859-1", "replace")
 			hint = ("This is a failure in more-or-less user-provided code."
-				"  The source of the failing code should be in the log (but make"
+				"  If you run again with the global --debug flag, the source of"
+				" the failing code should be in the logs/dcInfos (but make"
 				" sure it's the source the error is reported for; with procs,"
 				" this might not be the case).")
 		raise base.ui.logOldExc(base.ValidationError("While %s in %s: %s"%(
