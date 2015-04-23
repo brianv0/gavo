@@ -133,6 +133,9 @@ class Execute(base.Structure, base.ExpansionDelegator):
 	If you do daring things, fork off (note that you must not use
 	any database connections you may have after forking, which means
 	you can't safely use the RD passed in).  See the docs on CronJob.
+
+	Then testing/debugging such code, use ``gavo admin execute rd#id``
+	to immediately run the jobs.
 	"""
 	name_ = "execute"
 

@@ -1,4 +1,12 @@
 <resource schema="test" readProfiles="trustedquery,untrustedquery">
+	<execute id="silly" title="Do silly things" at="m1 1:00">
+		<job>
+			<code>
+				print "Silly"
+			</code>
+		</job>
+	</execute>
+
 	<regSuite id="dumbsuite">
 		<regTest title="Failing Test" id="failtest">
 			<url testParam="10%w/o tax">foo</url>

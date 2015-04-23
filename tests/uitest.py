@@ -64,6 +64,11 @@ class MiscCLITest(testhelpers.VerboseTest):
 		self.assertOutput(cli.main, argList=["admin", "cleantap"],
 			expectedRetcode=0)
 
+	def testExecute(self):
+		self.assertOutput(cli.main, argList=["admin", "exec", 
+			"data/regtest#silly"],
+			expectedStdout="Silly\n")
+
 	def testCleanTAPPending(self):
 		self.assertOutput(cli.main, argList=["admin", "cleantap", "-p"],
 			expectedRetcode=0, expectedStderr="")

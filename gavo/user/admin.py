@@ -265,6 +265,15 @@ def indexStatements(querier, args):
 		print "\n".join(re.sub(r"\s+", " ", s) for s in ind.iterCode())
 
 
+@exposedFunction([Arg(help="rd#exec-id of the execute element to run.",
+	dest="execId")],
+	help="Execute the contents of an RD execute element.  You must"
+	" give that element an explicit id in order to make this work.")
+def execute(querier, args):
+	execEl = base.resolveId(None, args.execId)
+	execEl.job.compile()(execEl.rd, execEl)
+
+
 @exposedFunction([Arg(help="Package resource path"
 	" (like '/inputs/__system__/scs.rd); for system RDs, the special"
 	" //rd-id syntax is supported.",
