@@ -172,7 +172,7 @@ class DebugCursor(psycopg2.extensions.cursor):
 		print "Executing %s %s"%(id(self.connection), sql)
 		res = psycopg2.extensions.cursor.execute(self, sql, args)
 		print "Finished %s %s"%(id(self.connection), self.query)
-		return res
+		return res.rowcount
 	
 	def executemany(self, sql, args=[]):
 		print "Executing many", sql
@@ -221,11 +221,14 @@ class GAVOConnection(psycopg2.extensions.connection):
 			cursor.close()
 	
 	def execute(self, query, args={}):
-		"""executes query in a cursor; returns nothing.
+		"""executes query in a cursor.
+
+		This returns the rowcount of the cursor used.
 		"""
 		cursor = self.cursor()
 		try:
 			cursor.execute(query, args)
+			return cursor.rowcount
 		finally:
 			cursor.close()
 
