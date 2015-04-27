@@ -547,9 +547,10 @@ def getADQLGrammarCopy():
 		joinOperand = (possiblyAliasedTable 
 			| derivedTable
 			| subJoin)
-		tableReference = (joinedTable 
-			| possiblyAliasedTable 
-			| derivedTable)
+		tableReference = ( 
+			joinedTable 
+			| derivedTable
+			| possiblyAliasedTable )
 
 # JOINs
 		columnNameList = columnName + ZeroOrMore( "," + columnName)
@@ -572,6 +573,39 @@ def getADQLGrammarCopy():
 				+ joinOperand
 				+ Optional( joinSpecification ) ))
 
+# set expressions; rewritten a bit to avoid left recursion.
+		querySpecification = Forward()
+		nonJoinQueryExpressionOp = Forward()
+		nonJoinQueryExpression = Forward()
+		additiveSetOperator = ((
+				CaselessKeyword("UNION")
+				| CaselessKeyword("EXCEPT"))
+			+ Optional( CaselessKeyword("ALL")))
+		queryPrimary = (
+			querySpecification
+			| subqueryOpener + nonJoinQueryExpression +')'
+			| joinedTable)
+		queryTerm = (
+			queryPrimary
+			+ ZeroOrMore(
+				CaselessKeyword("INTERSECT")
+				+ Optional( CaselessKeyword("ALL") )
+				+ queryPrimary))
+		nonJoinQueryExpressionOp << (
+			queryTerm
+			| subqueryOpener + nonJoinQueryExpression +')'
+			| querySpecification )
+		nonJoinQueryExpression << (
+			nonJoinQueryExpressionOp
+			| queryExpression - additiveSetOperator + queryTerm)
+		queryExpressionOp = (
+			nonJoinQueryExpressionOp
+			| joinedTable )
+		queryExpression << (
+			queryExpressionOp
+			+ ZeroOrMore(
+				additiveSetOperator + queryTerm))
+
 # Detritus in table expressions
 		groupByClause = (CaselessKeyword( "GROUP" ) + CaselessKeyword( "BY" ) 
 			+ columnReference 
@@ -589,13 +623,13 @@ def getADQLGrammarCopy():
 # FROM fragments and such
 		fromClause = ( CaselessKeyword("FROM") 
 			+ tableReference )("fromClause")
-		tableExpression = (fromClause + Optional( whereClause ) 
-			+ Optional( groupByClause )  + Optional( havingClause ) 
+		tableExpression = (fromClause 
+			+ Optional( whereClause ) 
+			+ Optional( groupByClause )  
+			+ Optional( havingClause ) 
 			+ Optional( orderByClause ))
 
 # toplevel select clause
-		querySpecification = Forward()
-		queryExpression << ( querySpecification |  joinedTable )
 		querySpecification << ( CaselessKeyword("SELECT") 
 			+ Optional( setQuantifier )
 			+ Optional( setLimit ) 
@@ -652,6 +686,6 @@ if __name__=="__main__":
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
 	res = syms["querySpecification"].parseString(
-		"select 'ivo://' ||  '%' as pat from crazy"
+		"select * from (select x from t1 intersect select x from t2) as q"
 		, parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)
