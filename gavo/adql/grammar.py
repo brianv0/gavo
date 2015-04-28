@@ -611,21 +611,22 @@ def getADQLGrammarCopy():
 			+ Optional( setLimit ) 
 			+ selectList + tableExpression )
 		setTerm = (
+			'(' + querySpecification + ')'
+			| selectNoParens 
+				+ ZeroOrMore( 
+					intersectOperator
+					+ selectNoParens) )
+		firstSetTerm = (
 			selectNoParens 
-			+ ZeroOrMore( 
-				intersectOperator
-				+ selectNoParens) )
-		setExpression = (
-			setTerm
+				+ ZeroOrMore( 
+					intersectOperator
+					+ selectNoParens) )
+
+		querySpecification << (
+			firstSetTerm
 			+ ZeroOrMore(
 				additiveSetOperator
 				+ setTerm))
-		querySpecification << (
-			setExpression |
-			setExpression 
-			+ '('
-			+ querySpecification
-			+ ')')
 		statement = querySpecification + Optional( White() ) + StringEnd()
 
 # comment
@@ -671,6 +672,7 @@ def getADQLGrammar():
 		_grammarCache = getADQLGrammarCopy()
 	return _grammarCache
 
+
 if __name__=="__main__":
 	def printCs(s, pos, toks):
 		print "---------------Tokens:", toks
@@ -678,6 +680,6 @@ if __name__=="__main__":
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
 	res = syms["querySpecification"].parseString(
-		"select * from (select * from z) as q, a"
+		"select top 3 * from t1 union (select top 4 * from t2 except select * from t3) except (select top 30 x from t4 intersect select top 3 y from t5)"
 		, parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)

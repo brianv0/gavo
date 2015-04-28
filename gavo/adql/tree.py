@@ -78,4 +78,4 @@ def getTreeBuildingGrammar():
 
 
 if __name__=="__main__":
-	print getTreeBuildingGrammar()[1].parseString('select TAP_UPLOAD.user_table.ra FROM TAP_UPLOAD.user_table')
+	print getTreeBuildingGrammar()[1].parseString('select top 3 * from t1 union select top 4 * from t2')

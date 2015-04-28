@@ -310,7 +310,10 @@ def morphMiscFunctions(tree):
 	return morphhelpers.morphTreeWithMorphers(tree, _miscMorphers)
 
 
-class _PGQS(nodes.SelectNoParens):
+class _PGSC(nodes.SelectNoParens):
+	"""A modifield selectNoParens that fixes the syntactic differences
+	between ADQL and postgres.
+	"""
 	_a_offset = None
 	def flatten(self):
 		return nodes.flattenKWs(self,
@@ -326,8 +329,26 @@ class _PGQS(nodes.SelectNoParens):
 			("OFFSET", "offset"))
 
 
-def _insertPGQS(node, state):
-	"""wraps a query specification into a query spec that serializes to postgres.
+class _PGQS(nodes.ADQLNode):
+	"""A wrapper for a postgres query specification.  
+	
+	The only funciton here is to make sure there's just one LIMIT part
+	at the very end (except, of course, in deeper subqueries).
+
+	Nuking operand setLimits is already performed by _fixSetLimit below.
+	"""
+	type = "postgres query specification"
+	_a_original = None
+	_a_setLimit = None
+
+	def flatten(self):
+		return nodes.flattenKWs(self,
+			("", "original"),
+			("LIMIT", "setLimit"))
+
+
+def _insertPGSC(node, state):
+	"""wraps a select clause into something that serializes to postgres.
 	
 	This will turn TOP and ALL into LIMIT and OFFSET 0.
 
@@ -338,7 +359,7 @@ def _insertPGQS(node, state):
 	offset = None
 	if node.setQuantifier and node.setQuantifier.lower()=="all":
 		offset = "0"
-	res = _PGQS.cloneFrom(node, offset=offset)
+	res = _PGSC.cloneFrom(node, offset=offset)
 	return res
 
 
@@ -386,11 +407,21 @@ def _forceAlias(node, state):
 	return node
 
 
+def _fixSetLimit(node, state):
+	"""postgres only wants a global limit on set expressions.
+	"""
+	for n in node.getSelectClauses():
+		n.setLimit = None
+
+	return _PGQS(node, node.setLimit and str(node.setLimit))
+
+
 _syntaxMorphers = {
-	"selectNoParens": _insertPGQS,
+	"selectNoParens": _insertPGSC,
 	'comparisonPredicate': morphhelpers.booleanizeComparisons,
 	'selectList': _expandStars,
 	'derivedColumn': _forceAlias,
+	"querySpecification": _fixSetLimit,
 }
 
 # Warning: if ever there are two Morphers for the same type, this will

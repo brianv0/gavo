@@ -509,9 +509,10 @@ class DerivedTable(ColumnBearingNode):
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
-		return {'tableName': TableName(name=str(_parseResult.get("alias"))),
+		tmp = {'tableName': TableName(name=str(_parseResult.get("alias"))),
 			'query': getChildOfClass(_parseResult, QuerySpecification),
 		}
+		return tmp
 
 	def flatten(self):
 		return "(%s) AS %s"%(flatten(self.query), flatten(self.tableName))
@@ -840,11 +841,13 @@ class SetOperationNode(ColumnBearingNode, TransparentMixin):
 				yield child.suggestAName()
 			else:
 				print ">>>>>>>>>>>>> no name:", repr(child)
-
-
-class SetExpression(SetOperationNode):
-	type = "setExpression"
-	collapsible = True
+	
+	def getSelectClauses(self):
+		for child in self.children:
+			for sc in getattr(child, "getSelectClauses", lambda: [])():
+				yield sc
+			if hasattr(child, "setLimit"):
+				yield child
 
 
 class SetTerm(SetOperationNode):
@@ -861,12 +864,36 @@ class QuerySpecification(SetOperationNode):
 	After annotation, we strongly believe the relevant structures of
 	all operands will be reasonably congruent.  Hence, we hand through
 	most method calls to our first child.
+
+	The main ugly thing here is the set limit; the querySpecification has
+	a setLimit which is being initialised, somewhat arbitrarily, to the
+	max of the limits of the children, if existing, otherwise to None.
+
+	This is mainly a service for postgres that cannot limit the individual
+	parts.
 	"""
 	type = "querySpecification"
 
+	def getSelectClauses(self):
+		for child in self.children:
+			for sc in getattr(child, "getSelectClauses", lambda: [])():
+				yield sc
+			if hasattr(child, "setLimit"):
+				yield child
+
+	def _polish(self):
+		limits = [selectClause.setLimit
+			for selectClause in self.getSelectClauses()]
+
+		limits = [int(s) for s in limits if s]
+		if limits:
+			self.setLimit = max(limits)
+		else:
+			self.setLimit = None
+
 	def __getattr__(self, attrName):
 		return getattr(self.children[0], attrName)
-	
+
 
 class ColumnReference(FieldInfoedNode):
 	type = "columnReference"

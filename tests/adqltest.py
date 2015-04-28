@@ -491,6 +491,19 @@ class TreeParseTest(testhelpers.VerboseTest):
 			utils.QuotedName("Murks Tabelle"))
 		self.assertEqual(table.tableName.schema,
 			utils.QuotedName("Murks Schema"))
+	
+	def testSetLimitInherited(self):
+		t = adql.parseToTree('select top 3 * from t1 union'
+			' select top 4 * from t2 except select * from t3')
+		self.assertEqual(t.setLimit, 4)
+	
+	def testSetLimitDeep(self):
+		t = adql.parseToTree(
+			'select top 7 * from t1 union'
+			' (select top 4 * from t2 except select * from t3)'
+			' except (select top 30 x from t4 except select top 3 y from t5)')
+		self.assertEqual(t.setLimit, 30)
+
 
 
 class ParseErrorTest(testhelpers.VerboseTest):
@@ -1636,6 +1649,16 @@ class PQMorphTest(testhelpers.VerboseTest):
 		status, t = adql.morphPG(tree)
 		flattened = nodes.flatten(t)
 		self.assertTrue(re.match(r'SELECT spatial.dist, spatial.width, spatial.height, spatial.ra1, spatial.ra2, q.([a-z]*), q.foo, q.dec FROM spatial JOIN \(SELECT ra1 \+ dec AS \1, dist - 2 AS foo, dec FROM spatial2\) AS q ON \( width = dec \)$', flattened))
+
+	def testSetLimitIntegrated(self):
+		self._testMorph("select top 3 * from x union (select top 40 a from y"
+			" except select * from z)", 
+			"SELECT * FROM x UNION ( SELECT a FROM y EXCEPT SELECT * FROM z ) LIMIT 40")
+	
+	def testDeepSetLimitProtected(self):
+		self._testMorph("select * from (select TOP 30 * from x) as q union"
+			" select TOP 4 * from u", 
+			"SELECT * FROM (SELECT * FROM x LIMIT 30) AS q UNION SELECT * FROM u LIMIT 4")
 
 
 class PGSMorphTest(testhelpers.VerboseTest):
