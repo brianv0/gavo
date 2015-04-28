@@ -339,8 +339,6 @@ class NakedParseTest(_ADQLParsesTest):
 
 
 class FunctionsParseTest(_ADQLParsesTest):
-	"""tests for parsing of valid statements containing functions.
-	"""
 	__metaclass__ = testhelpers.SamplesBasedAutoTest
 
 	def _runTest(self, sample):
@@ -363,15 +361,33 @@ class FunctionsParseTest(_ADQLParsesTest):
 	]
 
 
+class SetExpressionsTest(_ADQLParsesTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		self._assertGoodADQL(sample)
+	
+	samples = [
+		"select x from t1 union select x from t2",
+		"select x from t1 intersect select x from t2",
+		"select x from t1 except select x from t2",
+		"select x from t1 where x>2 union select x from t2",
+		"select * from t1 union select x from t2 intersect select x from t3"
+			" except select x from t4",
+		"select * from (select * from t1 except select * from t2) as q union"
+			" select * from  t3",
+	]
+
+
 class AsTreeTest(testhelpers.VerboseTest):
 	"""tests for asTree()
 	"""
 	def testSimple(self):
 		t = adql.parseToTree("SELECT * FROM t WHERE 1=CONTAINS("
 			"CIRCLE('ICRS', 4, 4, 2), POINT('', ra, dec))").asTree()
-		self.assertEqual(t[1][1][0], 'possiblyAliasedTable')
-		self.assertEqual(t[3][0], 'whereClause')
-		self.assertEqual(t[3][1][2][1][0], 'circle')
+		self.assertEqual(t[1][1][1][0], 'possiblyAliasedTable')
+		self.assertEqual(t[1][3][0], 'whereClause')
+		self.assertEqual(t[1][3][1][2][1][0], 'circle')
 
 
 class TreeParseTest(testhelpers.VerboseTest):
@@ -562,6 +578,8 @@ class JoinTypeTest(testhelpers.VerboseTest):
 # 10
 		("(a join b) cross join (c join d)", ["NATURAL", "CROSS", "NATURAL"]),
 	]
+
+
 
 
 spatialFields = [

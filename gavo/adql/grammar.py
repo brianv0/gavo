@@ -593,13 +593,39 @@ def getADQLGrammarCopy():
 			+ Optional( groupByClause )  + Optional( havingClause ) 
 			+ Optional( orderByClause ))
 
-# toplevel select clause
+# toplevel select clause and set operators
 		querySpecification = Forward()
 		queryExpression << ( querySpecification |  joinedTable )
-		querySpecification << ( CaselessKeyword("SELECT") 
+
+		optionalAll = Optional( CaselessKeyword("ALL") )
+		intersectOperator = (
+			CaselessKeyword("INTERSECT")
+			+ optionalAll )
+		additiveSetOperator = ((
+				CaselessKeyword("UNION")
+				| CaselessKeyword("EXCEPT") )
+			+ optionalAll )
+
+		selectNoParens = ( CaselessKeyword("SELECT") 
 			+ Optional( setQuantifier )
 			+ Optional( setLimit ) 
 			+ selectList + tableExpression )
+		setTerm = (
+			selectNoParens 
+			+ ZeroOrMore( 
+				intersectOperator
+				+ selectNoParens) )
+		setExpression = (
+			setTerm
+			+ ZeroOrMore(
+				additiveSetOperator
+				+ setTerm))
+		querySpecification << (
+			setExpression |
+			setExpression 
+			+ '('
+			+ querySpecification
+			+ ')')
 		statement = querySpecification + Optional( White() ) + StringEnd()
 
 # comment
@@ -652,6 +678,6 @@ if __name__=="__main__":
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
 	res = syms["querySpecification"].parseString(
-		"select 'ivo://' ||  '%' as pat from crazy"
+		"select * from (select * from z) as q, a"
 		, parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)

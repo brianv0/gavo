@@ -361,7 +361,6 @@ class FunctionNode(FieldInfoedNode):
 		return "%s(%s)"%(self.funName, ", ".join(flatten(a) for a in self.args))
 
 
-
 class ColumnBearingNode(ADQLNode):
 	"""A Node types defining selectable columns.
 
@@ -720,8 +719,8 @@ class OrderBy(TransparentNode):
 	type = "sortSpecification"
 
 
-class QuerySpecification(ColumnBearingNode): 
-	type = "querySpecification"
+class SelectNoParens(ColumnBearingNode): 
+	type = "selectNoParens"
 
 	_a_setQuantifier = None
 	_a_setLimit = None
@@ -806,6 +805,68 @@ class QuerySpecification(ColumnBearingNode):
 				names.add(val.flatten())
 		return names
 
+
+class SetOperationNode(ColumnBearingNode, TransparentMixin):
+	"""A node containing a set expression.
+
+	This is UNION, INTERSECT, or EXCEPT.  In all cases, we need to check
+	all contributing sub-expressions have compatible degree.  For now,
+	in violation of SQL1992, we require identical names on all operands.
+	(sql92 in 7.10 says 
+
+	  [if column names are unequal], the <column name> of the i-th column of TR
+	  is implementation-dependent and different from the <column name> of any
+	  column, other than itself, of any table referenced by any <table reference>
+	  contained in the SQL-statement.
+
+	Yikes.
+
+	These collapse to keep things simple in the typcial case.
+	"""
+
+	def addFieldInfos(self, context):
+		# TODO: actually make sure all fieldInfos are compatible.
+		for child in self.children:
+			if hasattr(child, "fieldInfos"):
+				self.fieldInfos = child.fieldInfos
+				break
+
+	def getAllNames(self):
+		for index, child in enumerate(self.children):
+			if hasattr(child, "getAllNames"):
+				for name in child.getAllNames():
+					yield name
+			elif hasattr(child, "suggestAName"):
+				yield child.suggestAName()
+			else:
+				print ">>>>>>>>>>>>> no name:", repr(child)
+
+
+class SetExpression(SetOperationNode):
+	type = "setExpression"
+	collapsible = True
+
+
+class SetTerm(SetOperationNode):
+	type = "setTerm"
+	collapsible = True
+
+
+class QuerySpecification(SetOperationNode):
+	"""The top-level container.
+
+	If there is a set expression on the top level, this will have a complex
+	structure.
+
+	After annotation, we strongly believe the relevant structures of
+	all operands will be reasonably congruent.  Hence, we hand through
+	most method calls to our first child.
+	"""
+	type = "querySpecification"
+
+	def __getattr__(self, attrName):
+		return getattr(self.children[0], attrName)
+	
 
 class ColumnReference(FieldInfoedNode):
 	type = "columnReference"

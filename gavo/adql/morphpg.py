@@ -310,7 +310,7 @@ def morphMiscFunctions(tree):
 	return morphhelpers.morphTreeWithMorphers(tree, _miscMorphers)
 
 
-class _PGQS(nodes.QuerySpecification):
+class _PGQS(nodes.SelectNoParens):
 	_a_offset = None
 	def flatten(self):
 		return nodes.flattenKWs(self,
@@ -387,7 +387,7 @@ def _forceAlias(node, state):
 
 
 _syntaxMorphers = {
-	"querySpecification": _insertPGQS,
+	"selectNoParens": _insertPGQS,
 	'comparisonPredicate': morphhelpers.booleanizeComparisons,
 	'selectList': _expandStars,
 	'derivedColumn': _forceAlias,
