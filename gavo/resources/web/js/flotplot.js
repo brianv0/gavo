@@ -1,5 +1,6 @@
 var DATETIME_RE = /^(\d\d\d\d)-(\d\d)-(\d\d)[T ](\d\d):(\d\d):(\d\d.?\d*)$/;
 var DATE_RE = /^(\d\d\d\d)-(\d\d)-(\d\d)$/;
+var CURRENT_PLOT;
 
 function _getValue(s) {
 // tries to make some kind of number from a string s
@@ -97,7 +98,7 @@ function _doHistogramPlot(table, colInd) {
 	});
 
 	var histo = _makeHistogram(data, 20);
-	jQuery.plot(jQuery('#plotarea'), [{
+	CURRENT_PLOT = jQuery.plot(jQuery('#plotarea'), [{
 		bars: {
 			show: true,
 			barWidth: histo[1][0]-histo[0][0]},
@@ -126,7 +127,7 @@ function _doFlotPlot(table, xsel, ysel, usingSel,
 			"color": "#444444",};
 		toPlot.push(_getFlotSeries(table, xIndex, yIndex, style, options));
 
-		jQuery.plot(jQuery('#plotarea'), toPlot, {});
+		CURRENT_PLOT = jQuery.plot(jQuery('#plotarea'), toPlot, {});
 	}
 }
 
@@ -194,7 +195,8 @@ function _plotUsingFlot(table, options) {
 			_doFlotPlot(table, xsel, ysel, usingSel,
 				options.xselIndex2, options.yselIndex2, options.style2);
 		} catch (e) {
-			jQuery.plot(jQuery('#plotarea'), [{data:[], label: "unplottable"}]);
+			CURRENT_PLOT = jQuery.plot(
+				jQuery('#plotarea'), [{data:[], label: "unplottable"}]);
 			throw e;
 		}
 	}

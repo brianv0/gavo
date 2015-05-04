@@ -135,4 +135,20 @@
 				  WHERE description LIKE '%em.IR.8-15um%'
 		</meta>
 	</STREAM>
+
+<!-- ============================= TAP ========================== -->
+	
+	<NXSTREAM id="tapexamples">
+	</NXSTREAM>
+
+	<NXSTREAM id="tapdescription">
+		<meta name="description">The \\getConfig{web}{sitename}'s TAP end point.  
+			The Table Access Protocol (TAP) lets you execute queries against our
+			database tables, inspect various metadata, and upload your own
+			data.  It is thus the VO's premier way to access public data
+			holdings.
+
+			Tables exposed through this endpoint include: \\tablesForTAP.
+		</meta>
+	</NXSTREAM>
 </resource>

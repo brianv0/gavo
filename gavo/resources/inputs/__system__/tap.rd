@@ -529,19 +529,12 @@
 		with, this will probably not be fixed.]]>
 		</meta>
 
-		<meta name="description">The \getConfig{web}{sitename}'s TAP end point.  The
-			Table Access Protocol (TAP) lets you execute queries against our
-			database tables, inspect various metadata, and upload your own
-			data.  It is thus the VO's premier way to access public data
-			holdings.
-
-			Tables exposed through this endpoint include: \tablesForTAP.
-		</meta>
 		<meta name="identifier">ivo://\getConfig{ivoa}{authority}/tap</meta>
 		<publish render="tap" sets="ivo_managed,local">
 			<meta name="accessURL">\internallink{tap}</meta>
 		</publish>
 
+		<FEED source="%#tapdescription"/>
 		<FEED source="%#tapexamples"/>
 	</service>
 
