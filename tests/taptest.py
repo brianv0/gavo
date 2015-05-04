@@ -51,6 +51,7 @@ import tresc
 class TAPFakeRequest(FakeRequest):
 # taprender calls lowercaseProtocolArgs; fake this here.
 	def __init__(self, *args, **kwargs):
+		self.method = kwargs.pop("method", "GET")
 		FakeRequest.__init__(self, *args, **kwargs)
 		uwsactions.lowercaseProtocolArgs(self.args)
 
@@ -509,6 +510,17 @@ class JobMetaTest(testhelpers.VerboseTest):
 		res = uwsactions.doJobAction(tap.workerSystem, TAPFakeRequest(),
 			segments=(self.jobId, "owner"))
 		self.assertEqual(res, "")
+
+	def testPlan(self):
+		self._postRedirectCheck(
+			TAPFakeRequest(args={"QUERY": "SELECT * from TAP_SCHEMA.tables",
+				"request": "doQuery", "lang": "ADQL"}),
+			segments=("parameters",))
+		res = uwsactions.doJobAction(tap.workerSystem, TAPFakeRequest(),
+			segments=(self.jobId, "plan"))
+		self.assertTrue("SELECT TAP_SCHEMA.tables.schema_name, TAP_SCHEMA.tables.table_name, TAP_SCHEMA.tables.table_type, TAP_SCHEMA.tables.description, TAP_SCHEMA.tables.utype, TAP_SCHEMA.tables.sourcerd FROM TAP_SCHEMA.tables LIMIT 2000"
+			in res)
+		
 
 
 class _TAPPublishedADQLTable(tresc.CSTestTable):

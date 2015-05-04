@@ -874,6 +874,8 @@ class QuerySpecification(SetOperationNode):
 	"""
 	type = "querySpecification"
 
+	_a_setLimit = None
+
 	def getSelectClauses(self):
 		for child in self.children:
 			for sc in getattr(child, "getSelectClauses", lambda: [])():
@@ -882,14 +884,13 @@ class QuerySpecification(SetOperationNode):
 				yield child
 
 	def _polish(self):
-		limits = [selectClause.setLimit
-			for selectClause in self.getSelectClauses()]
+		if self.setLimit is None:
+			limits = [selectClause.setLimit
+				for selectClause in self.getSelectClauses()]
 
-		limits = [int(s) for s in limits if s]
-		if limits:
-			self.setLimit = max(limits)
-		else:
-			self.setLimit = None
+			limits = [int(s) for s in limits if s]
+			if limits:
+				self.setLimit = max(limits)
 
 	def __getattr__(self, attrName):
 		return getattr(self.children[0], attrName)
