@@ -109,6 +109,20 @@ class FieldInfos(object):
 			raise common.AmbiguousColumn(colName)
 		return fi
 
+	def assertIsCompatible(self, other):
+		"""raises an IncompatibleTables if the FieldInfos other
+		have different length or names from self.
+		"""
+		if len(self.seq)!=len(other.seq):
+			raise common.IncompatibleTables("Operands in set operation"
+				" have differing result tuple lengths.", "query")
+
+		for ownCol, otherCol in zip(self.seq, other.seq):
+			if ownCol[0]!=otherCol[0]:
+				raise common.IncompatibleTables("Operands if set operation"
+					" have differing names.  First differing name: %s vs. %s"%(
+						ownCol[0], otherCol[0]))
+
 
 class TableFieldInfos(FieldInfos):
 	"""FieldInfos coming from something that's basically a table in the DB.

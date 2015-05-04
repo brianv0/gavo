@@ -374,8 +374,10 @@ class SetExpressionsTest(_ADQLParsesTest):
 		"select x from t1 where x>2 union select x from t2",
 		"select * from t1 union select x from t2 intersect select x from t3"
 			" except select x from t4",
+# 5
 		"select * from (select * from t1 except select * from t2) as q union"
 			" select * from  t3",
+		"select * from t1 union select foo from (select * from t2 except select * from t1) as q",
 	]
 
 
@@ -1060,8 +1062,6 @@ class DelimitedColResTest(ColumnTest):
 
 
 class JoinColResTest(ColumnTest):
-	"""tests for column resolution with joins.
-	"""
 	def testJoin(self):
 		cols = self._getColSeq("select dist, speed, 2*mass*height"
 			" from spatial join misc on (mass>height)")
@@ -1202,6 +1202,47 @@ class JoinColResTest(ColumnTest):
 		self._assertColumns(cols, [
 			('integer', '', '', False)])
 
+
+class SetColResTest(ColumnTest):
+	def testSimple(self):
+		cols = self._getColSeq("select dist, height from spatial"
+			" union select dist, height from spatial")
+		self._assertColumns(cols, [
+			("real", 'm', 'phys.distance', False),
+			("real", 'km', 'phys.dim', False)])
+
+	def testLengthFailure(self):
+		self.assertRaisesWithMsg(adql.IncompatibleTables,
+			"Operands in set operation have differing result tuple lengths.",
+			self._getColSeq,
+			("select dist, width, height from spatial"
+			" union select dist, height from spatial",))
+
+	def testName(self):
+		self.assertRaisesWithMsg(adql.IncompatibleTables,
+			"Operands if set operation have differing names.  First differing name: width vs. dist",
+			self._getColSeq,
+			("select width, height from spatial"
+			" union select dist, height from spatial",))
+
+	def testAliasing(self):
+		cols = self._getColSeq("select dist, height from spatial"
+			" union select dist, ra1 as height from spatial2"
+			" intersect select mass as dist, mag as height from misc"
+			' except select "left-right" as dist, "plAin" as height from quoted')
+		self._assertColumns(cols, [
+			("real", 'm', 'phys.distance', False),
+			("real", 'km', 'phys.dim', False)])
+
+	def testNested(self):
+		cols = self._getColSeq("select dist, height from spatial"
+			" union select ra1 as dist, dec as height from ("
+			"   select * from spatial2"
+			"   except select mag as ra1, mass as dec, speed as dist from misc) as q"
+			"  where dist>2")
+		self._assertColumns(cols, [
+			("real", 'm', 'phys.distance', False),
+			("real", 'km', 'phys.dim', False)])
 
 class UploadColResTest(ColumnTest):
 	def setUp(self):

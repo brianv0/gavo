@@ -34,12 +34,10 @@ class TableNotFound(Error, utils.NotFoundError):
 		utils.NotFoundError.__init__(self, tableName, "table", "table metadata",
 			hint=hint)
 
-
 class MorphError(Error):
 	"""is raised when the expectations of the to-ADQL morphers are violated.
 	"""
 	pass
-
 
 class AmbiguousColumn(Error):
 	"""is raised if a column name matches more than one column in a
@@ -86,6 +84,10 @@ class FlattenError(Error):
 	"""is raised when something cannot be flattened.
 	"""
 
+class IncompatibleTables(Error):
+	"""is raised when the operands of a set operation are not deemed
+	compatible.
+	"""
 
 class Absent(object):
 	"""is a sentinel to pass as default to nodes.getChildOfType.

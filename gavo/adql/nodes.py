@@ -822,15 +822,25 @@ class SetOperationNode(ColumnBearingNode, TransparentMixin):
 
 	Yikes.
 
-	These collapse to keep things simple in the typcial case.
+	These collapse to keep things simple in the typical case.
 	"""
+	def _assertFieldInfosCompatible(self):
+		"""errors out if operands have incompatible signatures.
 
-	def addFieldInfos(self, context):
-		# TODO: actually make sure all fieldInfos are compatible.
+		For convenience, if all are compatible, the common signature (ie, 
+		fieldInfos) is returned.
+		"""
+		fieldInfos = None
 		for child in self.children:
 			if hasattr(child, "fieldInfos"):
-				self.fieldInfos = child.fieldInfos
-				break
+				if fieldInfos is None:
+					fieldInfos = child.fieldInfos
+				else:
+					fieldInfos.assertIsCompatible(child.fieldInfos)
+		return fieldInfos
+
+	def addFieldInfos(self, context):
+		self.fieldInfos = self._assertFieldInfosCompatible()
 
 	def getAllNames(self):
 		for index, child in enumerate(self.children):

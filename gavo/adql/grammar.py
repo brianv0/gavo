@@ -680,6 +680,9 @@ if __name__=="__main__":
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
 	res = syms["querySpecification"].parseString(
-		"select top 3 * from t1 union (select top 4 * from t2 except select * from t3) except (select top 30 x from t4 intersect select top 3 y from t5)"
+		"select dist, height from spatial union select dist, height from ("
+			"   select * from spatial"
+			"   except mag as height, speed as dist from misc) as q"
+			"  where dist>2"
 		, parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)
