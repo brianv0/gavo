@@ -196,6 +196,30 @@ def _string_agg(args):
 		nodes.flatten(args[0]), nodes.flatten(args[1]))
 
 
+@userFunction("ivo_apply_pm",
+	"(ra DOUBLE PRECISION, dec DOUBLE PRECISION, pmra DOUBLE PRECISION, pmde DOUBLE PRECISON, epdist DOUBLE PRECISION) -> POINT",
+	"""Returns a POINT (in the UNDEFINED reference frame) for the position
+	an object at ra/dec with proper motion pmra/pmde has after epdist years.
+
+	positions must be in degrees, PMs in should be in julian years (i.e., proper
+	motions are expected in degrees/year).  pmra is assumed to contain 
+	cos(delta).
+
+	NOTE: This currently is a crappy approximation that does *not* go
+	through the tangential plane.  If you use it, let the operators know
+	so we replace it with something real.
+	""",
+	returntype="spoint")
+def _ivo_apply_pm(args):
+	if len(args)!=5:
+		raise common.UfuncError(
+			"ivo_apply_pm requires exactly ra, dec, pmra, pmdec, epdist.")
+	
+	ra, dec, pmra, pmdec, epdist = [nodes.flatten(a) for a in args]
+	return ("spoint(RADIANS({ra}+{pmra}/cos(RADIANS({dec})*{epdist})),"
+		" RADIANS({dec}+{pmdec}*{epdist}))").format(**locals())
+
+
 class UserFunction(nodes.FunctionNode):
 	"""A node processing user defined functions.
 
@@ -204,12 +228,14 @@ class UserFunction(nodes.FunctionNode):
 	"""
 	type = "userDefinedFunction"
 
-	def _polish(self):
+	def _getFunc(self):
 		try:
-			self.processedExpression = UFUNC_REGISTRY[self.funName.upper()](
-				self.args)
-		except KeyError:
+			return UFUNC_REGISTRY[self.funName.upper()]
+		except:
 			raise common.UfuncError("No such function: %s"%self.funName)
+
+	def _polish(self):
+		self.processedExpression = self._getFunc()(self.args)
 
 	def flatten(self):
 		if self.processedExpression is None:
@@ -218,10 +244,7 @@ class UserFunction(nodes.FunctionNode):
 			return self.processedExpression
 
 	def addFieldInfo(self, context):
-		try:
-			ufunc = UFUNC_REGISTRY[self.funName.upper()]
-		except KeyError:
-			raise common.UfuncError("No such function: %s"%self.funName)
+		ufunc = self._getFunc()
 		self.fieldInfo = fieldinfo.FieldInfo(ufunc.adqlUDF_returntype, 
 			ufunc.adqlUDF_unit, ufunc.adqlUDF_ucd)
 

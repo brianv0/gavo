@@ -55,8 +55,8 @@ def registerBooleanizer(funcName, handler):
 	"""registers handler as a booleanizer for ADQL functions called
 	funcName.
 
-	funcName must be for this to work all-uppercase.  handler(node,
-	operand, operator) is a function that receive a function node
+	funcName must be all-uppercase for this to work.  handler(node,
+	operand, operator) is a function that receives a function node
 	and the operand and operator of the comparison and either returns
 	None to say it can't handle it, or something else; that something
 	else is what the entire comparison node is morphed into.

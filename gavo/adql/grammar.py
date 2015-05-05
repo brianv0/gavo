@@ -425,13 +425,18 @@ def getADQLGrammarCopy():
 		geometryValueExpression = geometryExpression | geometryValue | centroid
 
 # geometry functions
+		userDefinedFunction = Forward()
 		distanceFunction = (CaselessKeyword("DISTANCE")("fName") 
 			+ '(' + Args(coordValue) + ',' + Args(coordValue) + ')')
 		pointFunction = (Regex("(?i)COORD[12]|COORDSYS")("fName") + '(' +
 			Args(coordValue) + ')')
 		area = (CaselessKeyword("AREA")("fName") 
 			+ '(' + Args(geometryValueExpression) + ')')
-		nonPredicateGeometryFunction = (distanceFunction | pointFunction | area)
+		nonPredicateGeometryFunction = (
+			distanceFunction 
+			| pointFunction 
+			| area
+			| userDefinedFunction)
 		predicateGeoFunctionName = Regex("(?i)CONTAINS|INTERSECTS")
 		predicateGeometryFunction = (predicateGeoFunctionName("fName") 
 			+ '(' + Args(geometryValueExpression) 
@@ -481,7 +486,7 @@ def getADQLGrammarCopy():
 		userDefinedFunctionParam = valueExpression
 		userDefinedFunctionName = Regex("(?i)"+userFunctionPrefix+"_[A-Za-z_]+")
 		userDefinedFunctionName.setName("Name of locally defined function")
-		userDefinedFunction = ( userDefinedFunctionName("fName") + '(' +
+		userDefinedFunction << ( userDefinedFunctionName("fName") + '(' +
 			Args(userDefinedFunctionParam) 
 			+ ZeroOrMore( "," + Args(userDefinedFunctionParam) ) 
 				+ ')')

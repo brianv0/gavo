@@ -1947,6 +1947,13 @@ class QueryTest(testhelpers.VerboseTest):
 			" CIRCLE('ICRS', alpha, delta, 68))"%self.tableName)
 		self.assertEqual(res.rows, [{u'mag': 1.25}])
 
+	def testApplyPM(self):
+		res = self.runQuery(
+			"SELECT ivo_apply_pm(alpha, delta, 0.002, -0.001, -55) as moved"
+			" FROM %s where alpha between 20 and 26"%self.tableName)
+		self.assertEqual(list(base.SerManager(res).getMappedValues()),
+			[{'moved': 'Position UNKNOWNFrame 25.0031114477 -13.945'}])
+
 
 
 class SimpleSTCSTest(testhelpers.VerboseTest):
