@@ -33,7 +33,7 @@ def addNotToBooleanized(expr, operator, operand):
 	"""prepends a NOT to expr if operator and operand suggest there should
 	be one for ADQL integerized boolean expressions.
 
-	The function will return None for unknown combinatins of operator and
+	The function will return None for unknown combinations of operator and
 	operand, and it will simply hand through Nones for expr, so calling 
 	functions can just return addNotToBooleanized(...).
 	"""

@@ -56,6 +56,7 @@ class _ADQLTestTable(testhelpers.TestResource):
 		return ds
 	
 	def clean(self, ds):
+		ds.tables.values()[0].connection.rollback()
 		ds.dropTables(rsc.parseNonValidating)
 		ds.commitAll().closeAll()
 adqlTestTable = _ADQLTestTable()
@@ -358,6 +359,7 @@ class FunctionsParseTest(_ADQLParsesTest):
 		"ROUND(PI(),2)=3.14",
 		"POWER(x,10)=3.14",
 		"POWER(10,x)=3.14",
+		"1=CROSSMATCH(ra1, dec1, ra2, dec2, 0.001)"
 	]
 
 
@@ -1922,6 +1924,12 @@ class QueryTest(testhelpers.VerboseTest):
 		self.assertEqual(res.tableDef.getColumnByName("ci").xtype,
 			"adql:REGION")
 
+	def testCrossmatch(self):
+		res = self.runQuery(
+			"select alpha, delta from %s" 
+			" WHERE 1=CROSSMATCH(3, 15, alpha, delta, 2)"%self.tableName)
+		self.assertEqual(list(res), [{'alpha': 2.0, 'delta': 14.0}])
+
 	def testQuotedIdentifier(self):
 		res = self.runQuery(
 			'select "rv", rV from %s where delta=89'%self.tableName)
@@ -1938,6 +1946,7 @@ class QueryTest(testhelpers.VerboseTest):
 			"SELECT mag FROM %s WHERE 1=CONTAINS(REGION('simbad M1'),"
 			" CIRCLE('ICRS', alpha, delta, 68))"%self.tableName)
 		self.assertEqual(res.rows, [{u'mag': 1.25}])
+
 
 
 class SimpleSTCSTest(testhelpers.VerboseTest):

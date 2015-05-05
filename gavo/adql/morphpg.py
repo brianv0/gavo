@@ -88,6 +88,15 @@ def _booleanizeContainsQ3C(node, operator, operand):
 
 morphhelpers.registerBooleanizer("CONTAINS", _booleanizeContainsQ3C)
 
+
+def _booleanizeCROSSMATCH(node, operator, operand):
+	node.funName = "q3c_join"
+	return morphhelpers.addNotToBooleanized(
+		_flatAndMorph(node), operator, operand)
+
+
+morphhelpers.registerBooleanizer("CROSSMATCH", _booleanizeCROSSMATCH)
+
 ######### End q3c specials
 
 
@@ -243,7 +252,7 @@ def _stcsRegionToPGSphere(node, state):
 
 
 
-_pgsphereMorphers = {
+_geometricMorphers = {
 	'circle': _morphCircle,
 	'point': _morphPoint,
 	'box': _morphBox,
@@ -265,6 +274,7 @@ _renamedFunctions = {
 	"LOG10": "LOG",
 	"TRUNCATE": "TRUNC",
 }
+
 
 def _adqlFunctionToPG(node, state):
 	if node.funName in _renamedFunctions:
@@ -427,7 +437,7 @@ _syntaxMorphers = {
 # Warning: if ever there are two Morphers for the same type, this will
 # break, and we'll need to allow lists of Morphers (and need to think
 # about their sequence...)
-_allMorphers = _pgsphereMorphers.copy()
+_allMorphers = _geometricMorphers.copy()
 _allMorphers.update(_miscMorphers)
 _allMorphers.update(_syntaxMorphers)
 

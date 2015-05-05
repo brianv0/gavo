@@ -170,9 +170,9 @@ def registerType(oid, name, castFunc):
 class DebugCursor(psycopg2.extensions.cursor):
 	def execute(self, sql, args=None):
 		print "Executing %s %s"%(id(self.connection), sql)
-		res = psycopg2.extensions.cursor.execute(self, sql, args)
+		psycopg2.extensions.cursor.execute(self, sql, args)
 		print "Finished %s %s"%(id(self.connection), self.query)
-		return res.rowcount
+		return self.rowcount
 	
 	def executemany(self, sql, args=[]):
 		print "Executing many", sql
@@ -245,7 +245,6 @@ class DebugConnection(GAVOConnection):
 	def rollback(self):
 		print "Rollback %s"%id(self)
 		return GAVOConnection.rollback(self)
-
 
 	def getPID(self):
 		cursor = self.cursor()

@@ -439,6 +439,15 @@ def getADQLGrammarCopy():
 		numericGeometryFunction = (predicateGeometryFunction | 
 			nonPredicateGeometryFunction)
 
+# miscellaneous function-like things
+		misc5ArgFunctionName = CaselessKeyword("CROSSMATCH")
+		miscFunction = (
+			misc5ArgFunctionName("fName")
+			+ '('
+			+ Args(numericValueExpression) 
+			+ ( ',' + Args(numericValueExpression) ) * 4
+			+ ')')
+
 # numeric, system, user defined functions
 		trig1ArgFunctionName = Regex("(?i)ACOS|ASIN|ATAN|COS|COT|SIN|TAN")
 		# trig1ArgFunction is what causes a parse failure on common numeric
@@ -478,6 +487,7 @@ def getADQLGrammarCopy():
 				+ ')')
 		numericValueFunction << (trigFunction 
 			| mathFunction 
+			| miscFunction
 			| userDefinedFunction 
 			| numericGeometryFunction)
 
