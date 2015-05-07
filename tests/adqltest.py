@@ -1007,6 +1007,20 @@ class ExprColTest(ColumnTest):
 		self._assertColumns(cols, [
 			("unicode", '', "", True),])
 
+	def testUCDColSimple(self):
+		cols = self._getColSeq("select UCDCOL('phys.mass') from misc")
+		self._assertColumns(cols, [
+			("real", "kg", "phys.mass", False)])
+
+	def testUCDColPattern(self):
+		cols = self._getColSeq("select UCDCOL('phys.mass'), UCDCOL('phys.dist*')"
+			" from misc join spatial on (dist=mass)")
+		self._assertColumns(cols, [
+			("real", "kg", "phys.mass", False),
+			("real", "m", "phys.distance", False)
+			])
+
+
 
 class DelimitedColResTest(ColumnTest):
 	"""tests for column resolution with delimited identifiers.
@@ -1245,6 +1259,7 @@ class SetColResTest(ColumnTest):
 		self._assertColumns(cols, [
 			("real", 'm', 'phys.distance', False),
 			("real", 'km', 'phys.dim', False)])
+
 
 class UploadColResTest(ColumnTest):
 	def setUp(self):
@@ -1703,7 +1718,14 @@ class PQMorphTest(testhelpers.VerboseTest):
 			" select TOP 4 * from u", 
 			"SELECT * FROM (SELECT * FROM x LIMIT 30) AS q UNION SELECT * FROM u LIMIT 4")
 
+	def testUCDCOL(self):
+		# non postgres-specific, but we need the annotation
+		self._testMorph("select UCDCOL('pos.eq.dec*'), UCDCOL('phys.dim')"
+			" from spatial natural join spatial2",
+			"SELECT dec, width FROM spatial NATURAL JOIN spatial2 ",
+			_sampleFieldInfoGetter)
 
+	
 class PGSMorphTest(testhelpers.VerboseTest):
 	"""tests for some pgSphere morphing.
 	"""
@@ -1953,7 +1975,6 @@ class QueryTest(testhelpers.VerboseTest):
 			" FROM %s where alpha between 20 and 26"%self.tableName)
 		self.assertEqual(list(base.SerManager(res).getMappedValues()),
 			[{'moved': 'Position UNKNOWNFrame 25.0031114477 -13.945'}])
-
 
 
 class SimpleSTCSTest(testhelpers.VerboseTest):

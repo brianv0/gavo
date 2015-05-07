@@ -350,10 +350,15 @@ def getADQLGrammarCopy():
 			+ Optional( "." + identifier )
 			+ Optional( "." + identifier ))
 		tableName = qualifier("tableName")
-		columnReference = (identifier 
-			+ Optional( "." + identifier )
-			+ Optional( "." + identifier )
-			+ Optional( "." + identifier ))
+		columnReferenceByUCD = (
+			CaselessKeyword("UCDCOL") 
+			+ '(' + characterStringLiteral + ')')
+		columnReference = (
+			columnReferenceByUCD
+			| identifier 
+				+ Optional( "." + identifier )
+				+ Optional( "." + identifier )
+				+ Optional( "." + identifier ))
 		asClause = ( CaselessKeyword("AS") | whitespace ) + columnName("alias")
 
 		valueExpression = Forward()
@@ -695,9 +700,6 @@ if __name__=="__main__":
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
 	res = syms["querySpecification"].parseString(
-		"select dist, height from spatial union select dist, height from ("
-			"   select * from spatial"
-			"   except mag as height, speed as dist from misc) as q"
-			"  where dist>2"
+		"select UCDCOL('phys.mass') from misc"
 		, parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)

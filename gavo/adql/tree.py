@@ -78,4 +78,6 @@ def getTreeBuildingGrammar():
 
 
 if __name__=="__main__":
-	print getTreeBuildingGrammar()[1].parseString('select top 3 * from t1 union select top 4 * from t2')
+	print getTreeBuildingGrammar()[1].parseString(
+		"select UCDCOL('phys.mass') from misc"
+	)[0].asTree()

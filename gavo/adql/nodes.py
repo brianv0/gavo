@@ -8,6 +8,7 @@ Node classes and factories used in ADQL tree processing.
 #c COPYING file in the source distribution.
 
 
+import fnmatch
 import re
 import weakref
 
@@ -850,7 +851,7 @@ class SetOperationNode(ColumnBearingNode, TransparentMixin):
 			elif hasattr(child, "suggestAName"):
 				yield child.suggestAName()
 			else:
-				print ">>>>>>>>>>>>> no name:", repr(child)
+				assert False, "no name"
 	
 	def getSelectClauses(self):
 		for child in self.children:
@@ -907,8 +908,10 @@ class QuerySpecification(SetOperationNode):
 
 
 class ColumnReference(FieldInfoedNode):
+# normal column references will be handled by the dispatchColumnReference
+# function below, hence the binding is missing here.
 	type = "columnReference"
-	bindings = ["columnReference", "geometryValue"]
+	bindings = ["geometryValue"]
 	_a_refName = None  # if given, a TableName instance
 	_a_name = None
 
@@ -940,6 +943,52 @@ class ColumnReference(FieldInfoedNode):
 	def _treeRepr(self):
 		return (self.type, self.name)
 
+
+class ColumnReferenceByUCD(ColumnReference):
+# these are tricky: As, when parsing, we don't know where the columns
+# might come from, we have to 
+	type = "columnReferenceByUCD"
+	bindings = ["columnReferenceByUCD"]
+	_a_ucdWanted = None
+
+	@classmethod
+	def _getInitKWs(cls, _parseResult):
+		return {
+			"ucdWanted": _parseResult[2].value,
+			"name": utils.Undefined,
+			"refName": utils.Undefined}
+
+	def addFieldInfo(self, context):
+		# I've not really thought about where these might turn up.
+		# Hence, I just heuristically walk up the ancestor stack
+		# until I find a from clause.  TODO: think about if that's valid.
+		for ancestor in reversed(context.ancestors):
+			if hasattr(ancestor, "fromClause"):
+				break
+		else:
+			raise common.Error("UCDCOL outside of query specification with FROM")
+
+		for field in ancestor.fromClause.getAllFields():
+			if fnmatch.fnmatch(field.fieldInfo.ucd, self.ucdWanted):
+				self.fieldInfo = field.fieldInfo
+				self.name = self.colName = field.name
+				self.refName = None
+				break
+		else:
+			raise utils.NotFoundError(self.ucdWanted, "column matching ucd",
+				"from clause")
+
+@symbolAction("columnReference")
+def dispatchColumnReference(parseResult):
+# this dispatch is there so ColumnReference is not bothered
+# by the by-UCD hack in the normal case.  It should go if we
+# punt UCDCOL, and the columnReference binding should then go
+# back to ColumnReference
+	if len(parseResult)==1 and isinstance(parseResult[0], ColumnReferenceByUCD):
+		return parseResult[0]
+	else:
+		return ColumnReference.fromParseResult(parseResult)
+	
 
 class FromClause(ADQLNode):
 	type = "fromClause"
@@ -1015,23 +1064,29 @@ class DerivedColumn(FieldInfoedNode):
 	_a_expr = None
 	_a_alias = None
 	_a_tainted = True
-	_a_name = None
 
 	def _polish(self):
-		if self.name is None:
-			if getType(self.expr)=="columnReference":
-				self.name = self.expr.name
-			else:
-				self.name = utils.intToFunnyWord(id(self))
 		if getType(self.expr)=="columnReference":
 			self.tainted = False
+
+	@property
+	def name(self):
+		# todo: be a bit more careful here to come up with meaningful
+		# names (users don't like the funny names).  Also: do
+		# we make sure somewhere we're getting unique names?
+		if self.alias is not None:
+			return self.alias
+
+		elif hasattr(self.expr, "name"):
+			return self.expr.name
+
+		else:
+				return utils.intToFunnyWord(id(self))
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
 		expr = _parseResult["expr"] #noflake: locals returned
 		alias = _parseResult.get("alias") #noflake: locals returned
-		if alias is not None:
-			name = alias #noflake: locals returned
 		return locals()
 	
 	def flatten(self):

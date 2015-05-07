@@ -412,7 +412,7 @@ def _forceAlias(node, state):
 			node.alias = node.name
 		return node
 
-	if node.expr.type!="columnReference" and node.alias is None:
+	if not isinstance(node.expr, nodes.ColumnReference) and node.alias is None:
 		node.alias = node.name
 	return node
 

@@ -53,7 +53,7 @@ class AnnotationContext(object):
 
 	@contextlib.contextmanager
 	def customResolver(self, getter):
-		"""a context manager temporarily installing a difference field info
+		"""a context manager temporarily installing a different field info
 		getter.
 		"""
 		self.colResolvers.append(getter)
@@ -63,9 +63,8 @@ class AnnotationContext(object):
 			self.colResolvers.pop()
 
 	def getFieldInfo(self, colName, tableName):
-		"""returns the value of the current field info getter for tableName.
-
-		This should be a sequence of (colName, common.FieldInfo) pairs.
+		"""returns the (colName, fieldInfo) for colName within tableName
+		in the current context.
 		"""
 		res = self.colResolvers[-1](colName, tableName)
 		if res is None:
