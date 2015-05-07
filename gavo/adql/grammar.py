@@ -507,16 +507,25 @@ def getADQLGrammarCopy():
 			| miscFunction
 			| inUnitFunction
 			| userDefinedFunction 
-			| numericGeometryFunction)
+			| numericGeometryFunction )
 
-		characterPrimary << (generalLiteral | valueExpressionPrimary | 
-			userDefinedFunction)
+		foldFunction = (
+			( CaselessKeyword("UPPER") | CaselessKeyword("LOWER") )("fName")
+			- '(' + Args(characterValueExpression) + ')' )
+		stringValueFunction = foldFunction
+
+		characterPrimary << (
+			stringValueFunction
+			| generalLiteral 
+			| valueExpressionPrimary 
+			| userDefinedFunction)
 
 # toplevel value expression
-		valueExpression << LongestMatch([
-			numericValueExpression,
-			stringValueExpression,
-			geometryValueExpression])
+		valueExpression << (
+			LongestMatch([
+				numericValueExpression,
+				stringValueExpression,
+				geometryValueExpression]) )
 		derivedColumn = valueExpression("expr") + Optional( asClause )
 
 # parts of select clauses
@@ -708,6 +717,6 @@ if __name__=="__main__":
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
 	res = syms["querySpecification"].parseString(
-		"select UCDCOL('phys.mass') from misc"
+		"SELECT UPPper(table_name), lower(description) from tap_schema.columns"
 		, parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)

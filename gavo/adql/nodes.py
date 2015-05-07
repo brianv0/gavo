@@ -1266,7 +1266,7 @@ class StringValueExpression(FieldInfoedNode, TransparentMixin):
 		else:
 			self.fieldInfo = fieldinfo.FieldInfo(
 				"text", "", "")
-	
+
 
 class GenericValueExpression(CombiningFINode, TransparentMixin):
 	"""A container for value expressions that we don't want to look at
@@ -1396,6 +1396,14 @@ class NumericValueFunction(FunctionNode):
 		self.fieldInfo = fieldinfo.FieldInfo("double precision",
 			unit, ucd, *collectUserData(infoChildren))
 		self.fieldInfo.tainted = True
+
+
+class StringValueFunction(FunctionNode):
+	type = "stringValueFunction"
+
+	def addFieldInfo(self, context):
+		self.fieldInfo = fieldinfo.FieldInfo("text", "", "",
+			userData=collectUserData(self._getInfoChildren())[0])
 
 
 class InUnitFunction(FieldInfoedNode):

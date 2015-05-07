@@ -987,6 +987,13 @@ class ColResTest(ColumnTest):
 			('integer', '', 'meta.number', False), 
 			('double precision', 'deg', 'pos.eq.ra', True)])
 
+	def testStringFunction(self):
+		cols = self._getColSeq("SELECT LOWER('foo'), LOWER(version)"
+			" from crazy")
+		self._assertColumns(cols, [
+			('text', '', '', False), 
+			('text', '', '', False)])
+
 
 class ExprColTest(ColumnTest):
 	def testCharConcat(self):
@@ -1997,6 +2004,12 @@ class QueryTest(testhelpers.VerboseTest):
 			" FROM %s where alpha between 20 and 26"%self.tableName)
 		self.assertEqual(list(base.SerManager(res).getMappedValues()),
 			[{'moved': 'Position UNKNOWNFrame 25.0031114477 -13.945'}])
+	
+	def testStringFunctions(self):
+		res = self.runQuery(
+			"SELECT UPPer(table_name) as tn, lower(description) as td"
+				" from tap_schema.columns where column_name ='delta'")
+		self.assertEqual(res.rows, [{'tn': 'TEST.ADQL', 'td': 'a sample dec'}])
 
 
 class SimpleSTCSTest(testhelpers.VerboseTest):
