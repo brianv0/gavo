@@ -281,11 +281,11 @@ class FieldInfo(object):
 			newType = getSubsumingType([fi1.type, fi2.type])
 		return cls(newType, unit, ucd, cls.combineUserData(fi1, fi2), taint, stc)
 
-	def copyModified(self, **kwargs):
+	def change(self, **kwargs):
 		consArgs = {"type": self.type, "unit": self.unit, "ucd": self.ucd,
 			"userData": self.userData, "tainted": self.tainted, "stc": self.stc}
 		consArgs.update(kwargs)
-		return FieldInfo(**kwargs)
+		return FieldInfo(**consArgs)
 
 
 def _test():

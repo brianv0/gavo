@@ -1286,7 +1286,7 @@ class GenericValueExpression(CombiningFINode, TransparentMixin):
 			childUCDs.add(c.fieldInfo.ucd)
 		if len(childUnits)==1 and len(childUCDs)==1:
 			# let's taint the first info and be done with it
-			return infoChildren[0].fieldInfo.copyModified(tainted=True)
+			return infoChildren[0].fieldInfo.change(tainted=True)
 		else:
 			# if all else fails: let's hope someone can make a string from it
 			return fieldinfo.FieldInfo("text", "", "")
@@ -1396,6 +1396,46 @@ class NumericValueFunction(FunctionNode):
 		self.fieldInfo = fieldinfo.FieldInfo("double precision",
 			unit, ucd, *collectUserData(infoChildren))
 		self.fieldInfo.tainted = True
+
+
+class InUnitFunction(FieldInfoedNode):
+	type = "inUnitFunction"
+	_a_expr = None
+	_a_unit = None
+
+	conversionFactor = None
+
+	@classmethod
+	def _getInitKWs(cls, _parseResult):
+		return {
+			'expr': _parseResult[2],
+			'unit': _parseResult[4].value,
+		}
+	
+	def addFieldInfo(self, context):
+		try:
+			from gavo.base import computeConversionFactor, IncompatibleUnits
+		except ImportError:
+			raise utils.ReportableError("in_unit only available with gavo.base"
+				" installed")
+
+		try:
+			self.conversionFactor = computeConversionFactor(
+				self.expr.fieldInfo.unit, self.unit)
+			self.fieldInfo = self.expr.fieldInfo.change(unit=self.unit)
+		except IncompatibleUnits, msg:
+			raise common.Error("in_unit error: %s"%msg)
+	
+	def flatten(self):
+		if self.conversionFactor is None:
+			raise common.Error("in_unit can only be flattened in annotated"
+				" trees")
+
+		if isinstance(self.expr, ColumnReference):
+			exprPat = "%s"
+		else:
+			exprPat = "(%s)"
+		return "(%s * %s)"%(exprPat%self.expr.flatten(), self.conversionFactor)
 
 
 class CharacterStringLiteral(FieldInfoedNode):

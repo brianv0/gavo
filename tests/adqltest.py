@@ -509,7 +509,6 @@ class TreeParseTest(testhelpers.VerboseTest):
 		self.assertEqual(t.setLimit, 30)
 
 
-
 class ParseErrorTest(testhelpers.VerboseTest):
 	"""tests for sensible error messages.
 	"""
@@ -595,8 +594,6 @@ class JoinTypeTest(testhelpers.VerboseTest):
 # 10
 		("(a join b) cross join (c join d)", ["NATURAL", "CROSS", "NATURAL"]),
 	]
-
-
 
 
 spatialFields = [
@@ -1020,7 +1017,23 @@ class ExprColTest(ColumnTest):
 			("real", "m", "phys.distance", False)
 			])
 
-
+	def testUCDColFails(self):
+		self.assertRaisesWithMsg(base.NotFoundError,
+			"column matching ucd 'phys.mass' could not be located in from clause",
+			self._getColSeq,
+			("select UCDCOL('phys.mass') from spatial",))
+	
+	def testInUnit(self):
+		cols = self._getColSeq("select IN_UNIT(height, 'm') from spatial")
+		self._assertColumns(cols, [
+			("real", "m", "phys.dim", False),])
+	
+	def testInUnitFailsIncompatibleUnit(self):
+		self.assertRaisesWithMsg(adql.Error,
+			"in_unit error: km and rad do not have the same SI base",
+			self._getColSeq,
+			("select IN_UNIT(height, 'rad') from spatial",))
+	
 
 class DelimitedColResTest(ColumnTest):
 	"""tests for column resolution with delimited identifiers.
@@ -1723,6 +1736,15 @@ class PQMorphTest(testhelpers.VerboseTest):
 		self._testMorph("select UCDCOL('pos.eq.dec*'), UCDCOL('phys.dim')"
 			" from spatial natural join spatial2",
 			"SELECT dec, width FROM spatial NATURAL JOIN spatial2 ",
+			_sampleFieldInfoGetter)
+
+	def testInUnit(self):
+		# non postgres-specific, but we need the annotation
+		self._testMorph("select in_unit("
+				"in_unit(ra1, 'deg')/in_unit(height, 'pc')+"
+				"in_unit(ra2, 'deg')/in_unit(width, 'pc'), 'rad/pc') as fantasy"
+				" from spatial",
+			"SELECT (((ra1 * 1) / (height * 3.24075574424e-14) + (ra2 * 57.2957795131) / (width * 3.24075574424e-17)) * 0.0174532925199) AS fantasy FROM spatial",
 			_sampleFieldInfoGetter)
 
 	

@@ -488,6 +488,13 @@ def getADQLGrammarCopy():
 			|	math2ArgFunctionName("fName") + '(' 
 				+ Args(numericValueExpression) 
 				+ ',' + Args(numericValueExpression) + ')')
+		inUnitFunction = (
+			CaselessKeyword("IN_UNIT")
+			- '('
+			- numericValueExpression
+			- ','
+			- characterStringLiteral
+			- ')')
 		userDefinedFunctionParam = valueExpression
 		userDefinedFunctionName = Regex("(?i)"+userFunctionPrefix+"_[A-Za-z_]+")
 		userDefinedFunctionName.setName("Name of locally defined function")
@@ -498,6 +505,7 @@ def getADQLGrammarCopy():
 		numericValueFunction << (trigFunction 
 			| mathFunction 
 			| miscFunction
+			| inUnitFunction
 			| userDefinedFunction 
 			| numericGeometryFunction)
 
