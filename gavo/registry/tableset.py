@@ -67,7 +67,7 @@ def getTableColumnFromColumn(column, typeElement):
 	elif not column.required:
 		flags.append("nullable")
 	return VS.column[
-		VS.name[column.name.lower()],
+		VS.name[str(column.name)],
 		VS.description[column.description],
 		VS.unit[column.unit],
 		VS.ucd[column.ucd],

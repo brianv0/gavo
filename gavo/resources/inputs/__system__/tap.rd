@@ -103,7 +103,7 @@
 			description="ADQL datatype">
 			<property name="std">1</property>
 		</column>
-		<column name="size" type="integer" 
+		<column name="quoted/size" type="integer" 
 				description="Length of variable length datatypes">
 			<values nullLiteral="-1"/>
 			<property name="std">1</property>
