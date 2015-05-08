@@ -652,7 +652,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 				if f.verbLevel<=verbLevel and f.displayHint.get("noxml")!="true"]
 		
 		if (verbLevel!="HTML"
-				and self.getProperty("votableRespectsOutputTable")!="True"):
+				and self.getProperty("votableRespectsOutputTable", None)!="True"):
 			htmlNames = set(f.name for f in fields)
 
 			for field in self.outputTable.parentTable:
