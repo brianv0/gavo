@@ -338,6 +338,12 @@ class Service(base.Structure, base.ComputedMetaMixin,
 	  widget itself, it just sets a default for its value.  Don't use this unless
 	  you have to; the combination of sort and limit can have disastrous effects
 	  on the run time of queries.
+	* votableRespectsOutputTable -- usually, VOTable output puts in
+	  all columns from the underlying database table with low enough
+	  verbLevel (essentially).  When this property is "True" (case-sensitive),
+		that's not done and only the service's output table is evaluated.
+		[Note that column selection is such a mess it needs to be fixed
+		before version 1.0 anyway]
 	"""
 	name_ = "service"
 
@@ -633,15 +639,20 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		"""returns a list of OutputFields suitable for a VOTable response 
 		described by queryMeta.
 
-		This is at least what's given for HTML (except where a displayHint
-		of noxml is present), plus possibly additional stuff by verbLevel
-		from an outputTable's parent.
+		This is what's given for HTML when the columns verbLevel is low
+		enough and there's no displayHint of noxml present. 
+		
+		In addition, more columns are added from outputTable's parent (which 
+		usually will be the database table itself) if their verbLevel is low
+		enough.  this may be suppressed by setting the
+		votableRespectsOutputTable property to "True".
 		"""
 		verbLevel = queryMeta.get("verbosity", 20)
 		fields = [f for f in self.getHTMLOutputFields(queryMeta)
-				if f.displayHint.get("noxml")!="true"]
+				if f.verbLevel<=verbLevel and f.displayHint.get("noxml")!="true"]
 		
-		if verbLevel!="HTML":
+		if (verbLevel!="HTML"
+				and self.getProperty("votableRespectsOutputTable")!="True"):
 			htmlNames = set(f.name for f in fields)
 
 			for field in self.outputTable.parentTable:
