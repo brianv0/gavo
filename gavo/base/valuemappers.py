@@ -500,6 +500,10 @@ def needsQuoting(identifier, forRowmaker=False):
 	"""
 	if utils.identifierPattern.match(identifier) is None:
 		return True
+	# extra rule for standards SQL 92
+	if identifier.startswith("_"):
+		return True
+
 	if identifier.lower() in getNameBlacklist(forRowmaker):
 		return True
 	return False

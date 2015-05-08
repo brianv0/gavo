@@ -937,5 +937,41 @@ class PgValidatorTest(testhelpers.VerboseTest):
 		base.sqltypeToPgValidator("spoint")("wurst")
 
 
+from gavo.user import validation
+
+class GavoTableValTest(testhelpers.VerboseTest):
+	class defaultArgs:
+		compareDB = False
+
+	def _getRdWithTable(self, columns):
+		rd = base.parseFromString(rscdesc.RD,
+			"""<resource schema="__test"><table id="totest" onDisk="True">
+			%s</table></resource>"""%columns)
+		rd.sourceId = "testing/q"
+		return rd
+	
+	def _getValFuncOutput(self, func, rd):
+		return testhelpers.captureOutput(func, (rd, self.defaultArgs))[1]
+
+	def _getMessagesForColumns(self, columns):
+		rd = self._getRdWithTable(columns)
+		return self._getValFuncOutput(validation.validateTables, rd)
+
+	def testBadName(self):
+		self.assertEqual(self._getMessagesForColumns(
+			"<column name='_r'/>"),
+			"[WARNING] testing/q: Column totest._r: Name is not a regular ADQL identifier.\n")
+
+	def testReservedName(self):
+		self.assertEqual(self._getMessagesForColumns(
+			"<column name='distance'/>"),
+			"[WARNING] testing/q: Column totest.distance: Name is not a regular ADQL identifier.\n")
+
+	def testDelimitedId(self):
+		self.assertEqual(self._getMessagesForColumns(
+			"<column name='quoted/distance'/>"),
+			"")
+
+
 if __name__=="__main__":
 	testhelpers.main(KVLMakeTest)

@@ -23,7 +23,14 @@ Version 0.9.5 (2015-)
 
 	* By popular demand: The "_r" column (in cone searches, distance between
 		the cone center and the actual object) is there.  To get it, use
-		an scsCore rather than a dbCore.
+		an scsCore rather than a dbCore in your ssa services.  It works with
+		the form renderer, too.
+
+	* In VO services (scs.xml, siap.xml, ssap.xml), even fields from an
+	  explicit output table are now filtered by verbLevel.  This means
+	  that fields you deemed unimportant might no longer show up in default
+	  answers.  To get them back, either lower their verbLevel or add
+	  a query parameter VERB=3.
 
 
 Version 0.9.4 (2015-02-03)

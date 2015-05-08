@@ -938,12 +938,6 @@ class ColResTest(ColumnTest):
 			("real", 'km/s', 'phys.veloc', False),
 			("real", 'kg*km', '', True),])
 
-	def testUnderscore(self):
-		cols = self._getColSeq("select _dist"
-			" from (select dist as _dist from spatial) as q")
-		self._assertColumns(cols, [
-			("real", 'm', 'phys.distance', False)])
-
 	def testWhereResolutionPlain(self):
 		cols = self._getColSeq("select dist from spatial where exists"
 			" (select * from misc where dist=misc.mass)")
@@ -1096,6 +1090,10 @@ class DelimitedColResTest(ColumnTest):
 		self._assertColumns(cols, [
 			("real", 'km*fin', None, True)])
 
+	def testReferencingRegulars(self):
+		cols = self._getColSeq('select "ra1" from spatial')
+		self._assertColumns(cols, [
+			("real", 'deg', "pos.eq.ra", False)])
 
 class JoinColResTest(ColumnTest):
 	def testJoin(self):

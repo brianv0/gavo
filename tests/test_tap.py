@@ -250,7 +250,7 @@ class SyncQueryTest(TAPRenderTest):
 				"UPLOAD": "bar,param:HoNk",
 				"LANG": "ADQL",
 				"QUERY": 'SELECT * FROM tap_upload.bar join test.adql on'
-					" (alpha-_raj2000<0)",
+					' (alpha-"_RAJ2000"<0)',
 				"HoNk": open(self.aVOTable).read(),
 			}, [
 				'xmlns="http://www.ivoa.net/xml/VOTable/',

@@ -520,7 +520,6 @@ class JobMetaTest(testhelpers.VerboseTest):
 			segments=(self.jobId, "plan"))
 		self.assertTrue("SELECT TAP_SCHEMA.tables.schema_name, TAP_SCHEMA.tables.table_name, TAP_SCHEMA.tables.table_type, TAP_SCHEMA.tables.description, TAP_SCHEMA.tables.utype, TAP_SCHEMA.tables.sourcerd FROM TAP_SCHEMA.tables LIMIT 2000"
 			in res)
-		
 
 
 class _TAPPublishedADQLTable(tresc.CSTestTable):

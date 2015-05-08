@@ -148,7 +148,7 @@ def runTAPQuery(query, timeout, connection, tdsForUploads, maxrec,
 		pgQuery, tableTrunk = adqlglue.morphADQL(query,
 			tdsForUploads=tdsForUploads, externalLimit=maxrec)
 		base.ui.notifyInfo("Sending to postgres: %s"%repr(pgQuery))
-		
+	
 		result = rsc.QueryTable(tableTrunk.tableDef, pgQuery, connection,
 			autoClose=autoClose)
 		# XXX Hack: this is a lousy fix for postgres' seqscan love with

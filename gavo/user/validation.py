@@ -23,6 +23,7 @@ import sys
 import traceback
 
 from gavo import api
+from gavo import adql
 from gavo import base
 from gavo import stc
 from gavo import utils
@@ -246,13 +247,15 @@ def validateTables(rd, args):
 	"""
 	valid = True
 
+	identifierSymbol = adql.getSymbols()["identifier"]
+
 	for td in rd.tables:
 		for col in td:
 			try:
 				if col.unit:
 					parsedUnit = api.parseUnit(col.unit)
 					if parsedUnit.isUnknown and not args.acceptFreeUnits:
-						outputWarning(rd,
+						outputWarning(rd.sourceId,
 							"Column %s.%s: Unit %s is not interoperable"%(
 							td.getQName(), col.name, col.unit))
 					
@@ -260,6 +263,12 @@ def validateTables(rd, args):
 				valid = False
 				outputError(rd.sourceId, "Bad unit in table %s, column %s: %s"%(
 					td.getQName(), col.name, repr(col.unit)))
+
+			try:
+				identifierSymbol.parseString(str(col.name), parseAll=True)
+			except base.ParseException, msg:
+				outputWarning(rd.sourceId, "Column %s.%s: Name is not a regular"
+					" ADQL identifier."%(td.id, col.name))
 
 		if td.onDisk and args.compareDB:
 			with base.getTableConn() as conn:
