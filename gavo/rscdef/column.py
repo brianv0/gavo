@@ -474,7 +474,7 @@ class ColumnBase(base.Structure, base.MetaMixin):
 		of the data field, in a dict of strings.
 		"""
 		return {
-			"name": self.name,
+			"name": unicode(self.name),
 			"description": self.description or "N/A",
 			"tablehead": self.getLabel(),
 			"unit": self.unit or "N/A",
