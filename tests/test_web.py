@@ -502,7 +502,7 @@ class TestExamples(trialhelpers.ArchiveTest):
 		return self.assertGETHasStrings("/data/cores/dl/examples", 
 			{}, [
 			'<title>Examples for Hollow Datalink</title',
-			'<h2 property="name"><span class="plainmeta">Example 1</span>',
+			'<h2 property="name">Example 1',
 			'property="dl-id"',
 			'ivo://org.gavo.dc/~?bla/foo/qua</em>',
 			'resource="#Example2"',

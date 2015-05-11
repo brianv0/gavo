@@ -614,9 +614,9 @@ class MetaItem(object):
 		else:
 			self.children[-1]._addMeta(atoms, metaValue)
 
-	def getMeta(self, key):
+	def getMeta(self, key, *args, **kwargs):
 		if len(self.children)==1:
-			return self.children[0].getMeta(key)
+			return self.children[0].getMeta(key, *args, **kwargs)
 		else:
 			return MetaCardError("No getMeta for meta value sequences",
 				carrier=self)

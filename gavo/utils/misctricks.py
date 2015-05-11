@@ -462,6 +462,7 @@ def rstxToHTMLWithWarning(source, **userOverrides):
 	
 	warnAccum = StringIO()
 	overrides = {'input_encoding': 'unicode',
+		'raw_enabled': True,
 		'doctitle_xform': None,
 		'warning_stream': warnAccum,
 		'initial_header_level': 4}

@@ -25,12 +25,14 @@ docstrings) is that we don't want docutils imports all over the place.
 import re
 
 from docutils import nodes
+from docutils import utils as rstutils
 from docutils.parsers import rst
 
 from lxml import etree
 
 from nevow import rend
 
+from gavo import utils
 from gavo.utils import misctricks
 from .. import base
 from .. import svcs
@@ -54,15 +56,22 @@ class _Example(rend.DataFactory, base.MetaMixin):
 		base.MetaMixin.__init__(self)
 		self.setMetaParent(exMeta)
 		self.original = exMeta
-		self.htmlId = re.sub("\W", "", base.getMetaText(
-			self.original, "title", propagate=False))
+		self.title = base.getMetaText(self.original, "title", propagate=False)
+		self.htmlId = re.sub("\W", "", self.title)
 
 	def data_id(self, ctx, data):
 		return self.htmlId
 
 	def _getTranslatedHTML(self):
 		rawHTML = self.original.getContent("html")
-		parsed = etree.fromstring("<container>%s</container>"%rawHTML)
+		parsed = etree.fromstring(
+			'<div typeof="example" id="%s" resource="#%s">\n'
+			'<h2 property="name">%s</h2>\n'
+			'%s\n</div>'%(
+				self.htmlId, 
+				self.htmlId, 
+				utils.escapePCDATA(self.title),
+				rawHTML))
 		actOnClasses = set(misctricks.RSTExtensions.classToProperty)
 
 		for node in parsed.iterfind(".//*[@class]"):
@@ -73,14 +82,14 @@ class _Example(rend.DataFactory, base.MetaMixin):
 				node.set("property", properties)
 
 			# For now, I assume element content always is intended to
-			# be the relation object (rather than a href that might\
+			# be the relation object (rather than a href that might
 			# be present and would take predence by RDFa
 			if "href" in node.attrib or "src" in node.attrib:
 				node.set("content", node.text)
-		
+	
 		return etree.tostring(parsed, encoding="utf-8").decode("utf-8")
 
-	def data_renderedDescription(self, ctx, data):
+	def data_rendered(self, ctx, data):
 		if not hasattr(self.original, "renderedDescription"):
 			self.original.renderedDescription = self._getTranslatedHTML()
 		return self.original.renderedDescription
@@ -163,8 +172,14 @@ class _TAPQuery(rst.Directive):
 
 	def run(self):
 		body = "\n".join(self.content)
-		res = nodes.literal_block(body, body)
-		res["classes"] = ["dachs-ex-tapquery"]
+		formatted = """<div property="generic-parameter" typeof="keyval">
+			<span property="key" class="invisible">QUERY</span>
+			<pre property="value" class="samplequery">%s</pre>
+			</div>"""%utils.escapePCDATA(rstutils.unescape(body, 1))
+		res = nodes.raw(
+			rawsource=self.content,
+			text=formatted,
+			format='html')
 		return [res]
 
 misctricks.RSTExtensions.addDirective("tapquery", _TAPQuery)

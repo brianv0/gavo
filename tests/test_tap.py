@@ -87,8 +87,11 @@ class SyncMetaTest(TAPRenderTest):
 			'property="taptable"',
 			'content="tap_schema.columns"',
 			'10\xc2\xb5m',
-			'property="tapquery"',
-			"LIKE '%em.IR.8-15um%'\n</pre>",
+			'property="generic-parameter"',
+			'property="value"',
+			'property="key"',
+			'QUERY</span>',
+			"LIKE '%em.IR.8-15um%'</pre>",
 			'vocab="ivo://ivoa.net/std/DALI-examples#"'])
 			
 

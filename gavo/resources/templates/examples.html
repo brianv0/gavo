@@ -6,6 +6,11 @@
 		xmlns:n="http://nevow.com/ns/nevow/0.1">
 <head n:render="commonhead">
 	<title n:render="title"/>
+<style type="text/css">
+.invisible {
+	display: none;
+}
+</style>
 </head>
 
 <body n:render="withsidebar"
@@ -21,15 +26,11 @@
 		</li>
 	</ul>
 
-	<n:invisible n:render="sequence" n:data="examples">
-		<div typeof="example" n:pattern="item">
-			<n:attr name="id" n:render="string" n:data="id"/>
-			<n:attr name="resource"
-				>#<n:invisible n:render="string" n:data="id"/></n:attr>
-			<h2 n:render="datameta" property="name">title</h2>
-			<n:invisible n:data="renderedDescription" n:render="xml"/>
-		</div>
-	</n:invisible>
+	<div id="exampleslist" n:render="sequence" n:data="examples">
+		<n:invisible n:pattern="item">
+			<n:invisible n:data="rendered" n:render="xml"/>
+		</n:invisible>
+	</div>
 
 </body>
 </html>
