@@ -35,8 +35,13 @@ Version 0.9.5 (2015-)
 	* Column naming is now ADQL-compliant, which means that leading underscores
 	  are no longer considered ok for regular identifiers (though they are
 	  fine to postgres).  You should run a gavo val ALL and fix any warnings
-	  you may get.  If you don't, TAP services you run might be flagged
-	  invalid by STILTS.
+	  you may get.  Also read the corresponding piece in 
+	  http://docs.g-vo.org/DaCHS/commonproblems.html ("...is not a regular
+	  identifier")
+
+	* If you're using our logs/logs.rd for access logging, update it now
+	  and read the comment near the top of logs.rd.
+
 Version 0.9.4 (2015-02-03)
 
   * Uniform referencing to RDs and elements in them, allowing to skip

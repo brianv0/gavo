@@ -47,9 +47,9 @@ tables and the RDs the tables come from. -->
 			Only one pair per key is supported, newer keys overwrite older ones.
 		</meta>
 
-		<column name="key" type="text" description="A key; everything that
+		<column name="quoted/key" type="text" description="A key; everything that
 			starts with an underscore is user defined."/>
-		<column name="value" type="text" description="A value; no serialization
+		<column name="quoted/value" type="text" description="A value; no serialization
 			 format is defined here, but you are encouraged to use python literals
 			 for non-strings."/>
 	</table>

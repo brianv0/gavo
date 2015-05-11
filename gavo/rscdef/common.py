@@ -351,7 +351,10 @@ class ColumnList(list):
 		try:
 			return self[self.nameIndex[name]]
 		except KeyError:
-			raise base.NotFoundError(name, what="column", within=self.withinId)
+			try:
+				return self[self.nameIndex[utils.QuotedName(name)]]
+			except KeyError:
+				raise base.NotFoundError(name, what="column", within=self.withinId)
 
 	def getColumnById(self, id):
 		"""returns the column with id.

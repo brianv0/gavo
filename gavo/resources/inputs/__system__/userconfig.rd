@@ -120,6 +120,8 @@
 		</service>
 	</STREAM>
 
+<!-- ============================= TAP ========================== -->
+
 	<STREAM id="tapexamples">
 		<doc>Examples for TAP querying</doc>
 		
@@ -136,11 +138,7 @@
 		</meta>
 	</STREAM>
 
-<!-- ============================= TAP ========================== -->
 	
-	<NXSTREAM id="tapexamples">
-	</NXSTREAM>
-
 	<NXSTREAM id="tapdescription">
 		<meta name="description">The \\getConfig{web}{sitename}'s TAP end point.  
 			The Table Access Protocol (TAP) lets you execute queries against our
