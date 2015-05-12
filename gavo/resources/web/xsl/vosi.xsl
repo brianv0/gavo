@@ -164,21 +164,35 @@
         <xsl:value-of select="."/>
     </xsl:template>
 
-    <xsl:template match="language/userDefinedFunction">
-        <dt class="udfsig"><xsl:value-of select="signature"/></dt>
+    <xsl:template match="feature">
+        <dt class="udfsig"><xsl:value-of select="form"/></dt>
         <dd><xsl:value-of select="description"/></dd>
+    </xsl:template>
+
+    <xsl:template match="languageFeatures[@type='ivo://ivoa.net/std/TAPRegExt#features-udf']">
+        <dt>
+        <p class="sechdr">User Defined Functions</p>
+        </dt>
+        <dd>
+            <dl>
+            <xsl:apply-templates/>
+            </dl>
+        </dd>
+    </xsl:template>
+
+    <xsl:template match="languageFeatures[@type='ivo://ivoa.net/std/TAPRegExt#features-adqlgeo']">
+        <dt>
+        <p class="sechdr">Geometry Primitives implemented here</p>
+        </dt>
+        <dd>
+            <xsl:apply-templates/>
+        </dd>
     </xsl:template>
 
     <xsl:template match="language">
         <dt>Query language <xsl:value-of select="name"/></dt>
         <dd>
-            <xsl:apply-templates select="version|description"/>
-            <xsl:if test="userDefinedFunction">
-                <p class="sechdr">User Defined Functions</p>
-                <dl class="udflist">
-                    <xsl:apply-templates select="userDefinedFunction"/>
-                </dl>
-            </xsl:if>
+            <xsl:apply-templates/>
         </dd>
     </xsl:template>
 
@@ -223,6 +237,11 @@
         <dd><xsl:apply-templates/></dd>
     </xsl:template>
 
+    <xsl:template match="uploadLimit">
+        <dt>Maximal size of result sets</dt>
+        <dd><xsl:apply-templates/></dd>
+    </xsl:template>
+
     <xsl:template match="capability">
         <h2>Capability <xsl:value-of select="@standardID"/></h2>
         <xsl:choose>
@@ -238,6 +257,9 @@
             <xsl:when test="@standardID='ivo://ivoa.net/std/VOSI#tables'">
                 <p>The tables exposed by this service (may be large!).</p>
             </xsl:when>
+            <xsl:otherwise>
+                <p>TBD: Describe this endpoint</p>
+            </xsl:otherwise>
         </xsl:choose>
         <dl class="caplist">
             <xsl:apply-templates/>
