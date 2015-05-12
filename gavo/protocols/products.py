@@ -371,6 +371,8 @@ class FileProduct(ProductBase):
 	to a real file and no params are in the RAccref, this will return
 	a product.
 	"""
+	forSaving = True
+
 	@classmethod
 	def fromRAccref(cls, rAccref, grammar=None):
 		if set(rAccref.params)-set(["preview"]):  # not a plain file
@@ -395,8 +397,9 @@ class FileProduct(ProductBase):
 
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
-		request.setHeader("content-disposition", 'attachment; filename="%s"'%
-			str(self.name))
+		if self.forSaving:
+			request.setHeader("content-disposition", 'attachment; filename="%s"'%
+				str(self.name))
 		request.setLastModified(os.path.getmtime(self.rAccref.localpath))
 		res = static.File(self.rAccref.localpath)
 		# we set the type manually to avoid having different mime types
@@ -412,7 +415,8 @@ FileProduct.setupRealFile(FileProduct._openUnderlyingFile)
 class StaticPreview(FileProduct):
 	"""A product that's a cached or pre-computed preview.
 	"""
-	
+	forSaving = False
+
 	@classmethod
 	def fromRAccref(cls, rAccref, grammar=None):
 		if not rAccref.params.get("preview"):
@@ -495,6 +499,8 @@ class UnauthorizedProduct(FileProduct):
 	However, there is a renderHTTP method, so the product renderer will
 	not use it; it will, instead, raise an Authenticate exception.
 	"""
+	forSaving = False
+
 	@classmethod
 	def fromRAccref(cls, rAccref, grammar=None):
 		dbRow = rAccref.productsRow
