@@ -145,6 +145,9 @@ class AdminRenderer(formal.ResourceMixin,
 		rdId = "/".join(segments)
 		try:
 			self.clientRD = base.caches.getRD(rdId)
+			if hasattr(self.clientRD, "getRealRD"):
+				self.clientRD = self.clientRD.getRealRD()
+
 			self.metaCarrier = self.clientRD
 			self.macroPackage = self.clientRD
 		except base.RDNotFound:

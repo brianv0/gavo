@@ -480,6 +480,9 @@ class _UserConfigFakeRD(object):
 	def getRealRD(self):
 		return base.caches.getRD(USERCONFIG_RD_PATH)
 
+	def getMeta(self, *args, **kwargs):
+		return base.caches.getRD(USERCONFIG_RD_PATH).getMeta(*args, **kwargs)
+
 	def getById(self, id, forceType=None):
 		"""returns an item from userconfig.
 
