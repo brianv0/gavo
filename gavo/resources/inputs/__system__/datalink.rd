@@ -644,7 +644,9 @@
 					" to retrieve just the primary header, leave empty for data.",
 					values = MS(Values,
 						options = [MS(Option, content_="HEADER", 
-							title="Retrieve header only")]))
+								title="Retrieve header only"),
+							MS(Option, content_="DATA", 
+								title="Retrieve the full data, including header (default)")]))
 			</code>
 		</metaMaker>
 
