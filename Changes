@@ -37,7 +37,9 @@ Version 0.9.5 (2015-)
 	  fine to postgres).  You should run a gavo val ALL and fix any warnings
 	  you may get.  Also read the corresponding piece in 
 	  http://docs.g-vo.org/DaCHS/commonproblems.html ("...is not a regular
-	  identifier")
+	  identifier").  At the very least, you'll have to run 
+
+	  	gavo imp -m //tap
 
 	* If you're using our logs/logs.rd for access logging, update it now
 	  and read the comment near the top of logs.rd.

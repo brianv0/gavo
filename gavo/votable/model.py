@@ -168,6 +168,15 @@ class VOTable(object):
 		_a_equinox = None
 		_a_system = None
 
+	class VODML(_VOTElement):
+		pass
+	
+	class TYPE(_VOTElement):
+		pass
+
+	class ROLE(_VOTElement):
+		pass
+
 	class DATA(_VOTElement):
 		_childSequence = ["INFO", "TABLEDATA", "BINARY", "BINARY2", "FITS"]
 	
@@ -188,7 +197,8 @@ class VOTable(object):
 	class GROUP(_DescribedElement):
 		_mayBeEmpty = True
 		_a_ref = None
-		_childSequence = ["DESCRIPTION", "PARAM", "FIELDref", "PARAMref", "GROUP"]
+		_childSequence = ["DESCRIPTION", "VODML", "PARAM", "FIELDref", 
+			"PARAMref", "GROUP"]
 
 
 	class INFO(_ValuedElement):
@@ -249,7 +259,7 @@ class VOTable(object):
 		_mayBeEmpty = True
 		_a_value = ""  # supposed to mean "a, somewhat null"
 		               # Needs to be cared for in client code.
-		_childSequence = ["DESCRIPTION", "VALUES", "LINK"]
+		_childSequence = ["VODML", "DESCRIPTION", "VALUES", "LINK"]
 
 
 	class PARAMref(_RefElement): pass
@@ -385,6 +395,7 @@ class VOTable(object):
 					getPrefixInfo("vot1")[0],
 					getPrefixInfo("xsi")[0])
 				+getPrefixInfo("vot1"))
+
 
 
 def voTag(tagName, version="1.2"):
