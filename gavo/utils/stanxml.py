@@ -94,7 +94,7 @@ class Stub(object):
 	def shouldBeSkipped(self):
 		return False
 
-	def makeChildDict(self):
+	def getChildDict(self):
 		return {}
 
 	def iterAttNames(self):
@@ -211,7 +211,7 @@ class Element(object):
 		return res
 
 	def _iterChildrenInSequence(self):
-		cDict = self.makeChildDict()
+		cDict = self.getChildDict()
 		for cName in self._childSequence:
 			if cName in cDict:
 				for c in cDict[cName]:
@@ -323,12 +323,22 @@ class Element(object):
 	def iterChildren(self):
 		return iter(self._children)
 
-	def makeChildDict(self):
+	def getChildDict(self):
 		cDict = {}
 		for c in self._children:
 			cDict.setdefault(c.name_, []).append(c)
 		return cDict
+	
+	def iterChildrenWithName(self, elName):
+		"""iterates over children whose element name is elName.
 
+		This always does a linear search through the children and hence
+		may be slow.
+		"""
+		for c in self._children:
+			if c.name_==elName:
+				yield c
+		
 	def _getChildIter(self):
 		if self._childSequence is None:
 			return iter(self._children)

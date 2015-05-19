@@ -7,9 +7,11 @@ Encoding to tabledata.
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
 
+import datetime #noflake: used in generated code
 
 from gavo import utils #noflake: used in generated code
 from gavo.utils import stanxml
+from gavo.utils import pgsphere #noflake: used in generated code
 from gavo.votable import coding
 from gavo.votable import common
 
@@ -98,19 +100,30 @@ def _makeIntEncoder(field):
 
 def _makeCharEncoder(field):
 	src = []
-
-	if field.datatype=="char":
-		src.extend([
-			'if isinstance(val, unicode):',
-			'  val = val.encode("ascii", "replace")'])
-
+	
 	if field.isMultiDim():
-		# 2+d char arrays are string arrays -- the serialization is insane
+		l = field.getShape()[0]  # length of the individual strings
 		src.extend([
-			"tokens.append(stanxml.escapePCDATA(' '.join("
-			" s.replace(' ', '%20') for s in common.iterflattened(val))))"])
-
+			"tokens.append(stanxml.escapePCDATA(''.join("
+			" coding.trimString(s, %d) for s in common.iterflattened(val))))"%l])
+	
 	else:
+		# TODO: string conditioning must be done for array elements, too
+		# -- this whole thing isn't structured right.
+		if field.xtype=="adql:TIMESTAMP":
+			src.extend([
+				"if isinstance(val, datetime.datetime):",
+				"  val = utils.formatISODT(val)"])
+		if field.xtype=="adql:POINT":
+			src.extend([
+				"if isinstance(val, pgsphere.SPoint):",
+				"  val = val.asSTCS('UnknownFrame')"])
+
+		if field.datatype=="char":
+				src.extend([
+					'if isinstance(val, unicode):',
+					'  val = val.encode("ascii", "replace")'])
+
 		src.extend([
 			"tokens.append(stanxml.escapePCDATA(val))"])
 

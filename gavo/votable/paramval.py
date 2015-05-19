@@ -11,6 +11,9 @@ import datetime
 
 from gavo import utils
 from gavo.utils import pgsphere
+from gavo.votable import coding
+from gavo.votable import enc_tabledata
+from gavo.votable.model import VOTable as V
 
 
 _SEQUENCE_TYPES = (tuple, list)
@@ -100,3 +103,62 @@ def guessParamAttrsForValue(pythonVal):
 
 	else:
 		return _guessParamAttrsForAtom(pythonVal)
+
+
+def _setNULLValue(param, val):
+	"""sets the null literal of param to val.
+	"""
+	valEls = list(param.iterChildrenWithName("VALUES"))
+	if valEls:
+		valEls[0](null=val)
+	else:
+		param[V.VALUES(null=val)]
+
+
+def _serializeNULL(param):
+	"""changes the VOTable PARAM param so it evaluates to NULL.
+	"""
+	if param.datatype in ["float", "double"]:
+		element = "NaN "
+	elif param.datatype in ["unsignedByte", "short", "int", "long"]:
+		element = "99 "
+		_setNULLValue(param, element)
+	elif param.datatype in ["char", "unicodeChar"]:
+		element = "x"
+		_setNULLValue(param, element)
+	else:
+		raise ValueError("No recipe for %s null values"%param.datatype)
+
+	if param.isScalar():
+		param.value = element.strip()
+	elif param.hasVarLength():
+		param.value = ""
+	else:
+		param.value = (element*param.getLength()).strip()
+
+
+@utils.memoized
+def getVOTSerializer(datatype, arraysize, xtype):
+	"""returns a function serializing for values of params with the
+	attributes given.
+	"""
+	return coding.buildCodec("\n".join([
+		"def codec(val):"]+
+		coding.indentList([
+			"tokens = []"]+
+			enc_tabledata.getLinesFor(V.PARAM(**locals()))+[
+			"return tokens[0]"], "  ")),
+		enc_tabledata.getGlobals(None))
+
+
+def serializeToParam(param, val):
+	"""changes the VOTable PARAM param such that val is represented.
+
+	This may involve adding a null value.
+	"""
+	if val is None:
+		_serializeNULL(param)
+	else:
+		param.value = getVOTSerializer(
+			param.datatype, param.arraysize, param.xtype)(val)
+		

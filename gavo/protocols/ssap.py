@@ -296,7 +296,7 @@ class SSAPCore(svcs.DBCore):
 
 		vot = votablewrite.makeVOTable(data, votCtx)
 		pubDIDId = votCtx.getIdFor(res.tableDef.getColumnByName("ssa_pubDID"))
-		resElement = vot.makeChildDict()["RESOURCE"][0]
+		resElement = vot.getChildDict()["RESOURCE"][0]
 		resElement[
 			V.INFO(name="SERVICE_PROTOCOL", value=self.ssapVersion)["SSAP"],
 			V.INFO(name="QUERY_STATUS", value=queryStatus)[

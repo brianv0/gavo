@@ -452,6 +452,30 @@ class SamplesBasedAutoTest(type):
 		return type.__new__(cls, name, bases, dict)
 
 
+class SimpleSampleComparisonTest(VerboseTest):
+	"""A base class for tests that simply run a function and compare
+	for equality.
+
+	The function to be called is in the functionToRun attribute (wrap
+	it in a staticmethod).
+
+	The samples are pairs of (input, output).  Output may be an
+	exception (or just the serialised form of the exception).
+	"""
+	__metaclass__ = SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		val, expected = sample
+		try:
+			self.assertEqual(self.functionToRun(val),
+				expected)
+		except AssertionError, ex:
+			raise
+		except Exception, ex:
+			if str(ex)!=str(expected):
+				raise
+
+
 def getTestRD(id="test.rd"):
 	from gavo import rscdesc  #noflake: import above is conditional
 	from gavo import base

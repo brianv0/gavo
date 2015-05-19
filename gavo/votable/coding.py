@@ -59,7 +59,6 @@ def buildCodec(source, env):
 	"""
 	ns = {}
 	ns.update(env)
-	#with open("/tmp/votcode.py", "w") as f: f.write(source)
 	try:
 		exec source in ns
 	except:

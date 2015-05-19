@@ -20,7 +20,7 @@ from gavo.utils.stanxml import escapePCDATA, escapeAttrVal
 
 from gavo.votable.model import VOTable as V, voTag
 
-from gavo.votable.paramval import guessParamAttrsForValue
+from gavo.votable.paramval import guessParamAttrsForValue, serializeToParam
 
 from gavo.votable.parser import parse, parseString, readRaw
 

@@ -16,7 +16,7 @@ is a stanxml Element).
 
 To customize what is being generated, define _gener_<child name>
 methods, where <child name> is a key within the dictionaries
-returned by stanxml.Element's makeChildDict method.
+returned by stanxml.Element's getChildDict method.
 
 To make the definition of the _gener_ methods easer, there's
 the handles decorator that you can pass a list of such child names.
@@ -100,7 +100,7 @@ class UtypeMaker(object):
 		yield prefix, child[0]
 
 	def iterUtypes(self, node, prefix):
-		children = node.makeChildDict()
+		children = node.getChildDict()
 		if node.text_:
 			yield prefix, node.text_
 		for attName, name in node.iterAttNames():

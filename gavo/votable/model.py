@@ -99,18 +99,31 @@ class VOTable(object):
 			"""
 			if self.arraysize is None:
 				return None
+
 			if self.datatype=="char" and not "x" in self.arraysize:
 				# special case: 1d char arrays are just scalar strings
 				return None
+
 			if self.arraysize=="*":
 				return None  # What should we really return here?
+
 			val = self.arraysize.replace("*", "")
 			if "x" in val:
 				if val.endswith("x"):  # variable last dimension
 					val = val+'1'
-				tuple(int(d) for d in val.split("x"))
+				return tuple(int(d) for d in val.split("x"))
+
 			else:
 				return (int(val),)
+
+		def _setNULLValue(self, val):
+			"""sets the null literal of self to val.
+			"""
+			valEls = list(self.iterChildrenWithName("VALUES"))
+			if valEls:
+				valEls[0](null=val)
+			else:
+				self[VOTable.VALUES(null=val)]
 
 	class _RefElement(_ValuedElement):
 		_a_ref = None
@@ -257,7 +270,7 @@ class VOTable(object):
 
 	class PARAM(_TypedElement):
 		_mayBeEmpty = True
-		_a_value = ""  # supposed to mean "a, somewhat null"
+		_a_value = ""  # supposed to mean "ah, somewhat null"
 		               # Needs to be cared for in client code.
 		_childSequence = ["VODML", "DESCRIPTION", "VALUES", "LINK"]
 

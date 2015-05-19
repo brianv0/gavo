@@ -913,10 +913,10 @@ class StringArrayTest(testhelpers.VerboseTest):
 	def _get2DTable(self, enc):
 		return V.VOTABLE[V.RESOURCE[votable.DelayedTable(
 			V.TABLE[V.FIELD(name="test", datatype="char", arraysize="2x*")], 
-			[[("ab", "cd")]], enc)]]
+			[[("ab", "c", "def")]], enc)]]
 
 	def test2dTdencWrite(self):
-		self.failUnless("<TD>ab cd</TD>" in votable.asString(
+		self.failUnless("<TD>abc de</TD>" in votable.asString(
 			self._get2DTable(V.TABLEDATA)))
 
 	def test2dBinaryWrite(self):
@@ -1019,18 +1019,9 @@ class StackUnwindingTest(testhelpers.VerboseTest):
 		self.failUnless("</RESOURCE></VOTABLE>" in result)
 
 
-class ParamTypecodeGuessingTest(testhelpers.VerboseTest):
-	__metaclass__ = testhelpers.SamplesBasedAutoTest
+class ParamTypecodeGuessingTest(testhelpers.SimpleSampleComparisonTest):
 
-	def _runTest(self, sample):
-		val, expected = sample
-		try:
-			self.assertEqual(votable.guessParamAttrsForValue(val),
-				expected)
-		except AssertionError, ex:
-			raise
-		except Exception, ex:
-			self.assertEqual(str(ex), str(expected))
+	functionToRun = staticmethod(votable.guessParamAttrsForValue)
 	
 	samples = [
 		(15, {"datatype": "int"}),
@@ -1049,6 +1040,49 @@ class ParamTypecodeGuessingTest(testhelpers.VerboseTest):
 		(base.NotGiven, base.NotFoundError(repr(base.NotGiven), 
 			"VOTable type code for", "paramval.py predefined types")),
 	]
+
+
+class ParamValueSerializationTest(testhelpers.SimpleSampleComparisonTest):
+
+	def functionToRun(self, args):
+		datatype, arraysize, val = args
+		param = V.PARAM(name="tmp", datatype=datatype, arraysize=arraysize)
+		votable.serializeToParam(param, val)
+		return param.value
+
+	samples = [
+		(("int", None, None), "99"),
+		(("char", "*", None), ""),
+		(("char", "4", None), "xxxx"),
+		(("float", "1", None), "NaN"),
+		(("double", "2x2", None), "NaN NaN NaN NaN"),
+# 5
+		(("long", "2x2", None), "99 99 99 99"),
+		(("int", None, 33), "33"),
+		(("char", "4x*", ["foobar", "wo", "nnnn"]), "foobwo  nnnn"),
+		(("int", "2x3x4", range(24)), '0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23'),
+		(("double", None, 0.25), "0.25"),
+	]
+
+	def testDatetimeValue(self):
+		param = V.PARAM(name="tmp", datatype="char", arraysize="*",
+			xtype="adql:TIMESTAMP")
+		votable.serializeToParam(param, 
+			datetime.datetime(2015, 5, 19, 15, 6, 22, 25))
+		self.assertEqual(param.value, "2015-05-19T15:06:22Z")
+
+	def testDatetimeNULL(self):
+		param = V.PARAM(name="tmp", datatype="char", arraysize="*",
+			xtype="adql:TIMESTAMP")
+		votable.serializeToParam(param, None)
+		self.assertEqual(param.value, "")
+	
+	def testSPointValue(self):
+		param = V.PARAM(name="tmp", datatype="char", arraysize="*",
+			xtype="adql:POINT")
+		votable.serializeToParam(param, 
+			pgsphere.SPoint.fromDegrees(10, 12))
+		self.assertEqual(param.value, "Position UnknownFrame 10. 12.")
 
 if __name__=="__main__":
 	testhelpers.main(BinaryReadTest)
