@@ -8,6 +8,7 @@ Tests for our low-level VOTable interface.
 #c COPYING file in the source distribution.
 
 
+import datetime
 import re
 import struct
 from cStringIO import StringIO
@@ -16,6 +17,7 @@ from gavo.helpers import testhelpers
 
 from gavo import base
 from gavo import votable
+from gavo.utils import pgsphere
 from gavo.votable import common
 from gavo.votable import V
 from gavo.utils.plainxml import iterparse
@@ -1017,6 +1019,36 @@ class StackUnwindingTest(testhelpers.VerboseTest):
 		self.failUnless("</RESOURCE></VOTABLE>" in result)
 
 
+class ParamTypecodeGuessingTest(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		val, expected = sample
+		try:
+			self.assertEqual(votable.guessParamAttrsForValue(val),
+				expected)
+		except AssertionError, ex:
+			raise
+		except Exception, ex:
+			self.assertEqual(str(ex), str(expected))
+	
+	samples = [
+		(15, {"datatype": "int"}),
+		("23", {"datatype": "char", "arraysize": "*"}),
+		([1, 2], {"datatype": "int", "arraysize": "2"}),
+		([[1, 2], [2, 3], [4, 5]], {"datatype": "int", "arraysize": "2x3"}),
+		(["abc", "defg", "alles Quatsch"], {"datatype": "char", 
+			"arraysize": "13x3"}),
+# 05
+		([datetime.datetime.now(), datetime.datetime.now()],
+			{"datatype": "char", "arraysize": "20x2", "xtype": "adql:TIMESTAMP"}),
+		(pgsphere.SPoint.fromDegrees(10, 20), 
+			{'arraysize': '*', 'datatype': 'char', 'xtype': 'adql:POINT'}),
+		([pgsphere.SPoint.fromDegrees(10, 20)], 
+			ValueError("Arrays of variable-length arrays are not allowed.")),
+		(base.NotGiven, base.NotFoundError(repr(base.NotGiven), 
+			"VOTable type code for", "paramval.py predefined types")),
+	]
 
 if __name__=="__main__":
 	testhelpers.main(BinaryReadTest)

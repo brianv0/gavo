@@ -74,7 +74,6 @@ def getTree(ob, ctx):
 				for storedElement in ctx.storedElements]]]
 
 
-
 def asString(ob, ctx=None):
 	"""returns the annotated object ob as a serialised VOTable.
 	"""
