@@ -31,24 +31,28 @@ def getSubtree(ob, ctx):
 	if ann.typeName:
 		res[V.VODML[V.TYPE[ann.qTypeName]]]
 
-	for name in ann.roleNames:
+	for name, itemAnn in ann.iteritems():
 		val = getattr(ob, name)
 
 		if common.getAnnotations(val) is None:
-			res[_getTreeForAtom(val, ann, name, ctx)]
+			res[_getTreeForAtom(val, itemAnn, name, ctx)]
 		else:
 			res[getTree(ob, ctx)]
 	
 	return res
 
 
-def _getTreeForAtom(ob, annotation, role, ctx):
+def _getTreeForAtom(ob, itemAnn, role, ctx):
 	"""returns a VO-DML-compliant param for ob within annotation.
 	"""
+	attrs = votable.guessParamAttrsForValue(ob)
+	attrs.update({
+		"unit": itemAnn.unit,
+		"ucd": itemAnn.ucd})
+
 	param = V.PARAM(name=role,
-		id=ctx.getOrMakeIdFor(ob),
-		**votable.guessParamAttrsForValue(ob))[
-			V.VODML[V.ROLE[annotation.qualify(role)]]]
+		id=ctx.getOrMakeIdFor(ob), **attrs)[
+			V.VODML[V.ROLE[itemAnn.qualifiedRole]]]
 	votable.serializeToParam(param, ob)
 	return param
 

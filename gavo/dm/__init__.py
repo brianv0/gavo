@@ -11,10 +11,9 @@ GAVO's VO-DML+VOTable library.
 # Not checked by pyflakes: API file with gratuitous imports
 
 from gavo.dm.common import (
-	Annotations,
+	Annotation, getAnnotations,
 	DMNode,
-	VODMLModel,
-	Model)
+	Model, VODMLModel)
 
 
 from gavo.dm.votablewrite import (

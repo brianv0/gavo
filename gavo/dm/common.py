@@ -17,50 +17,145 @@ class.  However, there's no need to use DMNodes to keep annotated objects.
 
 
 from gavo import utils
+from gavo.utils import autonode
 
 
-class Annotations(object):
+VODML_NAME = "vo-dml"
+
+
+class Annotation(object):
+	"""An annotation of an entity within a data model instance.
+
+	These live within VODMLMeta containers and allow keeping information
+	from VO-DML models including what's given there for Quantity
+	(unit, ucd...).
+	"""
+	_qualifiedRole = None
+
+	def __init__(self, name=None, value=None, unit=None, ucd=None):
+		self.name = name
+		self.default, self.unit, self.ucd = value, unit, ucd
+	
+	def becomeChild(self, parent):
+		"""must be called by the parent VODMLMeta when the Annotation
+		is adopted.
+		"""
+		self._qualifiedRole = parent.qualify(self.name)
+
+	@property
+	def qualifiedRole(self):
+		if self._qualifiedRole is None:
+			raise TypeError("Un-adopted Annotation has no qualified role name.")
+		return self._qualifiedRole
+
+
+class VODMLMeta(object):
 	"""annotations for an object.
 
 	This contains a bridge between an object's "native" attributes and
 	its VO-DML properties.
+
+	VODMLMeta is always constructed with a Model instance and
+	a type name; such annotations have no roles.  Although they
+	can be added later (as is required when parsing them  from
+	VOTables without having the DM available), you'll usually want
+	to use alternative constructors.
+
+	These have a limited dict-like interface; you can index them, iterate
+	over them (attribute names), and there's get.
 	"""
-	def __init__(self):
-		pass
-	
+	def __init__(self, model, typeName):
+		self.model, self.typeName = model, typeName
+		self.roles = {}
+
+	def __getitem__(self, attrName):
+		return self.roles[attrName]
+
+	def __iter__(self):
+		return iter(self.roles)
+
 	@classmethod
-	def fromRoles(cls, model, typeName, *roleNames):
-		"""creates annotations from a model instance, and the names
-		of the DM roles present in parent.
+	def fromRoles(cls, model, typeName, *roles):
+		"""creates annotations from a model instance, and the roles
+		within the DM.
+
+		See addRole for what you can pass as  a role
 		"""
-		res = cls()
-		res.model = model
-		res.typeName = typeName
-		res.roleNames = roleNames
+		res = cls(model, typeName)
+		for role in roles:
+			res.addRole(role)
 		return res
 
 	@property
 	def qTypeName(self):
 		return self.model.name+":"+self.typeName
 
+	def addRole(self, role):
+		"""adds a role to be annotated.
+
+		A role may be given as a plain string or as an annotation.
+		"""
+		if not isinstance(role, Annotation):
+			role = Annotation(name=role)
+
+		if role.name is None:
+				raise TypeError("Cannot add an anonymoous role")
+
+		role.becomeChild(self)
+		self.roles[role.name] = role
+
 	def qualify(self, name):
 		"""returns name as a qualified VO-DML attribute name (with model
 		and type name).
 		"""
 		return self.qTypeName+"."+name
+	
+	def get(self, *args):
+		return self.roles.get(*args)
+
+	def iteritems(self):
+		return self.roles.iteritems()
+
+
+class DMNodeType(autonode.AutoNodeType):
+	"""a type for nodes in data models.
+
+	Essentially, these make allow to use Annotation objects to
+	define autonode attributes.
+	"""
+	def _collectAttributes(cls):
+		cls.annotations = VODMLMeta(cls.DM_model,
+			cls.DM_typeName)
+		for name in dir(cls):
+			if name.startswith("_a_"):
+				val = getattr(cls, name)
+				if isinstance(val, Annotation):
+					val.name = name[3:]
+					cls.annotations.addRole(val)
+					setattr(cls, name, val.default)
+				else:
+					cls.annotations.addRole(name[3:])
+
+		autonode.AutoNodeType._collectAttributes(cls)
 
 
 class DMNode(utils.AutoNode):
 	"""these are AutoNodes with additional annotation to allow serialisation
 	into VO-DML instances.
 
-	The entire magic is to add DM_model and DM_typeName class attributes.
+	The entire magic is to add DM_model and DM_typeName class attributes
+	(which have to be overridden).
 	"""
-	def _setupNode(self):
-		self.annotations = Annotations.fromRoles(self.DM_model, 
-			self.DM_typeName,
-			*tuple(a[0] for a in self._nodeAttrs))
-		self._setupNodeNext(DMNode)
+	__metaclass__ = DMNodeType
+
+	DM_model = None
+	DM_typeName = None
+
+
+# (*) We have a hen-and-egg problem with Model's data model.  Circumvent
+# by emergency stand-in and later monkeypatching
+class _modelStrut(object):
+	name = VODML_NAME
 
 
 class Model(DMNode):
@@ -73,24 +168,26 @@ class Model(DMNode):
 	This could be expanded into something that would actually parse
 	VO-DML and validate things.
 	"""
-	DM_model = None  # filled in when we can define model
+	DM_model = _modelStrut  # to be monkeypatched; see (*)
 	DM_typeName = "Model"
 
 	_a_name = None
 	_a_version = None
 	_a_url = None
 
+del _modelStrut
+
 
 VODMLModel = Model(name="vo-dml", version="1.0", 
 	url="http://this.needs.to/be/fixed")
-# Monkeypatch to fix hen-and-egg-problem
+# Monkeypatch (see (*))
 Model.DM_model = VODMLModel
 VODMLModel.annotations.model = VODMLModel
 
 
-def getAnnotations(el):
-	"""returns the annotations on el.
+def getAnnotations(ob):
+	"""returns a VODMLMeta object for ob.
 
 	If there are none, None is returned.
 	"""
-	return getattr(el, "annotations", None)
+	return getattr(ob, "annotations", None)

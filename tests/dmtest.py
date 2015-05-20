@@ -6,9 +6,28 @@ from gavo.helpers import testhelpers
 
 
 from gavo import dm
+from gavo.dm import common
 
 
 _toyModel = dm.Model(name="toy", version="0.5", url="http://g-vo.org/toymodel")
+
+
+class _SampleQs(dm.DMNode):
+	DM_model = _toyModel
+	DM_typeName = "Bland"
+
+	_a_someQ = dm.Annotation(None, unit="m", ucd="phys.length")
+
+
+class AnnotationTest(testhelpers.VerboseTest):
+	def testGetValue(self):
+		o = _SampleQs(someQ=4)
+		self.assertEqual(o.someQ, 4)
+	
+	def testGetMeta(self):
+		o = _SampleQs()
+		self.assertEqual(dm.getAnnotations(o)["someQ"].ucd, "phys.length")
+
 
 
 class _OnlyParamVOT(testhelpers.TestResource):
@@ -18,7 +37,7 @@ class _OnlyParamVOT(testhelpers.TestResource):
 			height = 6.8
 			location = "upstairs"
 			internal = object()
-			annotations = dm.Annotations.fromRoles(_toyModel, "Thing",
+			annotations = common.VODMLMeta.fromRoles(_toyModel, "Thing",
 				"width", "height", "location")
 		
 		return testhelpers.getXMLTree(dm.asString(Ob), debug=False)
