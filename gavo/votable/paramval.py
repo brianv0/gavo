@@ -3,8 +3,10 @@ Serialisation of python values to VOTable PARAM values.
 
 This has two aspects:
 
-* Guessing proper VOTable type descriptors for python values
-* Serialising the python values to strings suitable for the PARAM.
+- Guessing proper VOTable type descriptors for python values
+  (use guessParamAttrsForValue)
+- Serialising the python values to strings suitable for the PARAM.
+  (use serializeToParam)
 """
 
 import datetime

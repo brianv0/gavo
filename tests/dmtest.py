@@ -67,6 +67,22 @@ class SimpleSerTest(testhelpers.VerboseTest):
 		par = self.tree.xpath("//PARAM[VODML/ROLE='toy:Thing.location']")[0]
 		self.assertEqual(par.get("value"), "upstairs")
 
+	def testIntTypeDeclared(self):
+		par = self.tree.xpath("//PARAM[VODML/ROLE='toy:Thing.width']")[0]
+		self.assertEqual(par.get("datatype"), "int")
+		self.assertEqual(par.get("arraysize"), None)
+
+	def testFloatTypeDeclared(self):
+		par = self.tree.xpath("//PARAM[VODML/ROLE='toy:Thing.height']")[0]
+		self.assertEqual(par.get("datatype"), "double")
+		self.assertEqual(par.get("arraysize"), None)
+
+	def testStringTypeDeclared(self):
+		par = self.tree.xpath("//PARAM[VODML/ROLE='toy:Thing.location']")[0]
+		self.assertEqual(par.get("datatype"), "char")
+		self.assertEqual(par.get("arraysize"), "*")
+
+
 
 if __name__=="__main__":
 	testhelpers.main(SimpleSerTest)

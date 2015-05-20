@@ -45,12 +45,12 @@ def getSubtree(ob, ctx):
 def _getTreeForAtom(ob, annotation, role, ctx):
 	"""returns a VO-DML-compliant param for ob within annotation.
 	"""
-	return V.PARAM(name=role,
-		datatype="char",
-		arraysize="*",
+	param = V.PARAM(name=role,
 		id=ctx.getOrMakeIdFor(ob),
-		value=str(ob))[
+		**votable.guessParamAttrsForValue(ob))[
 			V.VODML[V.ROLE[annotation.qualify(role)]]]
+	votable.serializeToParam(param, ob)
+	return param
 
 
 def getTree(ob, ctx):
