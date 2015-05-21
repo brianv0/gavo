@@ -52,7 +52,8 @@ class _DirectVOT(testhelpers.TestResource):
 			internal = object()
 			annotations = [common.VODMLMeta.fromRoles(_toyModel, "Thing",
 				"width", "height", "location",
-				dm.DataTypeAnnotation("pos", "Pos"))]
+				dm.DataTypeAnnotation("pos", "Pos"),
+				dm.SingletonRefAnnotation("extpos", Child))]
 		
 		return testhelpers.getXMLTree(dm.asString(
 			votablewrite.VOTableContext(), Ob), debug=False)
@@ -90,7 +91,7 @@ class DirectSerTest(testhelpers.VerboseTest):
 			len(self.tree.xpath("//GROUP[VODML/TYPE='vo-dml:Model']")))
 
 	def testToyInstancePresent(self):
-		toyGroup = self.tree.xpath("RESOURCE/GROUP")[0]
+		toyGroup = self.tree.xpath("RESOURCE/GROUP")[1]
 		self.assertEqual(toyGroup.xpath("VODML/TYPE")[0].text, "toy:Thing")
 	
 	def testFloatAttrSerialized(self):
@@ -120,6 +121,19 @@ class DirectSerTest(testhelpers.VerboseTest):
 		posGroup = self.tree.xpath("//GROUP/GROUP[VODML/TYPE='toy:Pos']")[0]
 		self.assertEqual("3",
 			posGroup.xpath("PARAM[VODML/ROLE='toy:Pos.y']")[0].get("value"))
+
+	def testSingletonReference(self):
+		ref = self.tree.xpath("//GROUP[VODML/ROLE='toy:Thing.extpos']")[0]
+		destGroup = self.tree.xpath("//GROUP[@ID='%s']"%ref.get("ref"))[0]
+		self.assertEqual(destGroup.xpath("VODML/TYPE")[0].text,
+			"toy:Pos")
+	
+	def testSingletonSerialized(self):
+		group = self.tree.xpath("RESOURCE/GROUP[1]")[0]
+		self.assertEqual(group.xpath("VODML/TYPE")[0].text, "toy:Pos")
+		self.assertEqual("2",
+			group.xpath("PARAM[VODML/ROLE='toy:Pos.x']")[0].get("value"))
+
 
 class _TableVOT(testhelpers.TestResource):
 	def make(self, deps):

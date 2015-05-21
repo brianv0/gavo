@@ -79,30 +79,6 @@ class Annotation(AnnotationBase):
 		return param
 
 
-class ColumnAnnotation(AnnotationBase):
-	"""An annotation of a table column.
-
-	These live in tables and hold a reference to one of the table's
-	columns.
-	"""
-	def __init__(self, name, columnName):
-		AnnotationBase.__init__(self, name)
-		self.columnName = columnName
-
-	def getTree(self, ctx, parent):
-		destCol = parent.getColumnByName(self.columnName)
-		return V.FIELDref(ref=ctx.getOrMakeIdFor(destCol))[
-			V.VODML[V.ROLE[self.qualifiedRole]]]
-
-
-class DataTypeAnnotation(AnnotationBase):
-	"""An annotation of a complex value without identitiy.
-	"""
-	def __init__(self, name, typeName):
-		AnnotationBase.__init__(self, name)
-		self.typeName = typeName
-
-
 class VODMLMeta(object):
 	"""annotations for an object.
 

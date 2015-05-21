@@ -15,6 +15,7 @@ You should access this module through formats.votable.
 #c COPYING file in the source distribution.
 
 
+import contextlib
 import functools
 import itertools
 from cStringIO import StringIO
@@ -69,15 +70,52 @@ class VOTableContext(utils.IdManagerMixin):
 		self.acquireSamples = acquireSamples
 		self.suppressNamespace = suppressNamespace
 		self.overflowElement = overflowElement
+		self._containerStack = []
 
 		# space to memorise models used within the document.
 		self.vodmlModels = set([dm.VODMLModel])
 
-		# a sequence of xmlstan that should be appended to the current
-		# RESOURCE (used by dm, and subject to change for now)
-		self.storedElements = []
+		# id()s of objects already serialised into the tree
+		self.alreadyInTree = set()
 
+	def getEnclosingTable(self):
+		"""returns the xmlstan element of the table currently built.
 
+		This returns a ValueError if the context isn't aware of a table
+		being built.
+
+		(this depends on the cooperation of the builders)
+		"""
+		for el in reversed(self._containerStack):
+			if el.name_=="TABLE":
+				return el
+		raise ValueError("Not currently building a table.")
+
+	def getEnclosingResource(self):
+		"""returns the xmlstan element of the resource currently built.
+
+		This returns a ValueError if the context isn't aware of a resource
+		being built.
+
+		(this depends on the cooperation of the builders)
+		"""
+		for el in reversed(self._containerStack):
+			if el.name_=="RESOURCE":
+				return el
+		raise ValueError("Not currently building a table.")
+
+	def getEnclosingContainer(self):
+		"""returns the innermost container element the builders have declared.
+		"""
+		return self._containerStack[-1]
+
+	@contextlib.contextmanager
+	def activeContainer(self, container):
+		self._containerStack.append(container)
+		try:
+			yield
+		finally:
+			self._containerStack.pop()
 
 
 def _addID(rdEl, votEl, idManager):
@@ -386,48 +424,51 @@ def makeTable(ctx, table):
 	sm = valuemappers.SerManager(table, mfRegistry=ctx.mfRegistry,
 		idManager=ctx, acquireSamples=ctx.acquireSamples)
 
-	result = V.TABLE(
-			name=table.tableDef.id,
-			utype=base.getMetaText(table, "utype", macroPackage=table.tableDef,
-			propagate=False))[
-		# _iterGroups must run before _iterFields and _iterParams since it
-		# may need to add ids to the respective items.  XSD-correct ordering of 
-		# the elements is done by xmlstan.
-		V.DESCRIPTION[base.getMetaText(table, "description", 
-			macroPackage=table.tableDef, propagate=False)],
-		_iterGroups(ctx, table.tableDef, sm),
-		_iterFields(ctx, sm),
-		_iterTableParams(ctx, sm),
-		_iterNotes(sm),
-		_linkBuilder.build(table.tableDef),
-		]
+	result = V.TABLE()
+	with ctx.activeContainer(result):
+		result(
+				name=table.tableDef.id,
+				utype=base.getMetaText(table, "utype", macroPackage=table.tableDef,
+				propagate=False))[
+			# _iterGroups must run before _iterFields and _iterParams since it
+			# may need to add ids to the respective items.  XSD-correct ordering of 
+			# the elements is done by xmlstan.
+			V.DESCRIPTION[base.getMetaText(table, "description", 
+				macroPackage=table.tableDef, propagate=False)],
+			_iterGroups(ctx, table.tableDef, sm),
+			_iterFields(ctx, sm),
+			_iterTableParams(ctx, sm),
+			_iterNotes(sm),
+			_linkBuilder.build(table.tableDef),
+			]
 
-	result[dm.getSubtrees(ctx, table.tableDef)]
+		result[dm.getSubtrees(ctx, table.tableDef)]
 
-	if ctx.version>(1,1):
-		result[_iterSTC(table.tableDef, sm),
-			_tableMetaBuilder.build(table)]
+		if ctx.version>(1,1):
+			result[_iterSTC(table.tableDef, sm),
+				_tableMetaBuilder.build(table)]
 
-	return votable.DelayedTable(result,
-		sm.getMappedTuples(),
-		tableEncoders[ctx.tablecoding],
-		overflowElement=ctx.overflowElement)
+		return votable.DelayedTable(result,
+			sm.getMappedTuples(),
+			tableEncoders[ctx.tablecoding],
+			overflowElement=ctx.overflowElement)
 
 
 def _makeResource(ctx, data):
 	"""returns a Resource node for the rsc.Data instance data.
 	"""
-	res = V.RESOURCE(
-			type=base.getMetaText(data, "_type"),
-			utype=base.getMetaText(data, "utype"))[
-		_iterResourceMeta(ctx, data),
-		_iterParams(ctx, data), [
-			_makeVOTParam(ctx, param) for param in data.iterParams()],
-		_linkBuilder.build(data.dd),
-		]
-	for table in data:
-		res[makeTable(ctx, table)]
-	res[ctx.overflowElement]
+	res = V.RESOURCE()
+	with ctx.activeContainer(res):
+		res(type=base.getMetaText(data, "_type"),
+				utype=base.getMetaText(data, "utype"))[
+			_iterResourceMeta(ctx, data),
+			_iterParams(ctx, data), [
+				_makeVOTParam(ctx, param) for param in data.iterParams()],
+			_linkBuilder.build(data.dd),
+			]
+		for table in data:
+			res[makeTable(ctx, table)]
+		res[ctx.overflowElement]
 	return res
 
 ############################# Toplevel/User-exposed code

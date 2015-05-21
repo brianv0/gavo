@@ -50,17 +50,13 @@ def getTree(ctx, ob):
 	TODO: I guess this should go, as getSubtrees is called from
 	formats.votablewrite.
 	"""
-	children = list(getSubtrees(ctx, ob))
+	res = V.RESOURCE()
+	with ctx.activeContainer(res):
+		res[getSubtrees(ctx, ob)]
 
-	res = V.VOTABLE()
-
-	declareDMs(ctx, res)
-	
-	return res[
-		V.RESOURCE[
-			children,
-			[storedElement
-				for storedElement in ctx.storedElements]]]
+	vot = V.VOTABLE[res]
+	declareDMs(ctx, vot)
+	return vot
 
 
 def asString(ctx, ob):
