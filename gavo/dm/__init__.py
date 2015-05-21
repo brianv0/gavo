@@ -11,7 +11,7 @@ GAVO's VO-DML+VOTable library.
 # Not checked by pyflakes: API file with gratuitous imports
 
 from gavo.dm.annotations import (
-	ColumnAnnotation, DataTypeAnnotation, SingletonRefAnnotation)
+	ColumnAnnotation, DataTypeAnnotation, GroupRefAnnotation)
 
 from gavo.dm.common import (
 	Annotation, getAnnotations,

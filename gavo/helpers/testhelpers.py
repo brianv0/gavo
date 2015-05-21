@@ -421,6 +421,7 @@ def getXMLTree(xmlString, debug=False):
 	"""
 	from lxml import etree as lxtree
 	tree = lxtree.fromstring(_nukeNamespaces(xmlString))
+
 	if debug:
 		lxtree.dump(tree)
 	return tree

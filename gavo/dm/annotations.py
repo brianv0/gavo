@@ -19,21 +19,22 @@ from gavo.votable import V
 class ColumnAnnotation(common.AnnotationBase):
 	"""An annotation of a table column.
 
-	These live in tables and hold a reference to one of the table's
-	columns.
+	These live in the annotations of tables and hold a reference to 
+	one of the table's columns.
 	"""
-	def __init__(self, name, columnName):
+	def __init__(self, name=None, columnName=None):
 		common.AnnotationBase.__init__(self, name)
 		self.columnName = columnName
+		self.default = None
 
 	def getTree(self, ctx, parent):
-		destCol = parent.getColumnByName(self.columnName)
+		destCol = ctx.currentTable.tableDef.getColumnByName(self.columnName)
 		return V.FIELDref(ref=ctx.getOrMakeIdFor(destCol))[
 			V.VODML[V.ROLE[self.qualifiedRole]]]
 
 
 class DataTypeAnnotation(common.AnnotationBase):
-	"""An annotation of a complex value without identitiy.
+	"""An annotation of a complex value serialised  as a direct group child.
 	"""
 	def __init__(self, name, typeName):
 		common.AnnotationBase.__init__(self, name)
@@ -53,8 +54,9 @@ def _the(gen):
 		" extra %s"%repr(extra))
 
 
-class SingletonRefAnnotation(common.AnnotationBase):
-	"""An annotation always referencing the same object.
+class GroupRefAnnotation(common.AnnotationBase):
+	"""An annotation always referencing a group that's not lexically
+	within the parent.
 	"""
 	def __init__(self, name, objectReferenced):
 		common.AnnotationBase.__init__(self, name)
@@ -68,5 +70,6 @@ class SingletonRefAnnotation(common.AnnotationBase):
 			ctx.alreadyInTree.add(id(self.objectReferenced))
 
 		return V.GROUP(ref=ctx.getIdFor(self.objectReferenced))[
+			V.VODML[V.TYPE["vo-dml:GROUPref"]],
 			V.VODML[V.ROLE[self.qualifiedRole]]]
 

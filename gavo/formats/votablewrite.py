@@ -71,6 +71,7 @@ class VOTableContext(utils.IdManagerMixin):
 		self.suppressNamespace = suppressNamespace
 		self.overflowElement = overflowElement
 		self._containerStack = []
+		self._tableStack = []
 
 		# space to memorise models used within the document.
 		self.vodmlModels = set([dm.VODMLModel])
@@ -84,7 +85,7 @@ class VOTableContext(utils.IdManagerMixin):
 		This returns a ValueError if the context isn't aware of a table
 		being built.
 
-		(this depends on the cooperation of the builders)
+		(This depends builders using activeContainer)
 		"""
 		for el in reversed(self._containerStack):
 			if el.name_=="TABLE":
@@ -97,7 +98,7 @@ class VOTableContext(utils.IdManagerMixin):
 		This returns a ValueError if the context isn't aware of a resource
 		being built.
 
-		(this depends on the cooperation of the builders)
+		(This depends builders using activeContainer)
 		"""
 		for el in reversed(self._containerStack):
 			if el.name_=="RESOURCE":
@@ -109,13 +110,37 @@ class VOTableContext(utils.IdManagerMixin):
 		"""
 		return self._containerStack[-1]
 
+	@property
+	def currentTable(self):
+		"""the DaCHS table object from which things are currently built.
+
+		If no builder has declared a table being built (using buildingFromTable), 
+		it's a value error.
+		"""
+		if not self._tableStack:
+			raise ValueError("No table being processed.")
+		return self._tableStack[-1]
+
 	@contextlib.contextmanager
 	def activeContainer(self, container):
+		"""a context manager to be called by VOTable builders when
+		they open a new TABLE or RESOURCE.
+		"""
 		self._containerStack.append(container)
 		try:
 			yield
 		finally:
 			self._containerStack.pop()
+
+	@contextlib.contextmanager
+	def buildingFromTable(self, table):
+		"""a context manager to control code that works on a DaCHS table.
+		"""
+		self._tableStack.append(table)
+		try:
+			yield
+		finally:
+			self._tableStack.pop()
 
 
 def _addID(rdEl, votEl, idManager):
@@ -467,7 +492,8 @@ def _makeResource(ctx, data):
 			_linkBuilder.build(data.dd),
 			]
 		for table in data:
-			res[makeTable(ctx, table)]
+			with ctx.buildingFromTable(table):
+				res[makeTable(ctx, table)]
 		res[ctx.overflowElement]
 	return res
 

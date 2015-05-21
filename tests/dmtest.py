@@ -18,6 +18,13 @@ _toy2Model = dm.Model(name="toy2", version="2.5",
 	url="http://g-vo.org/toy2model")
 
 
+def getByID(tree, id):
+	# (for checking VOTables)
+	res = tree.xpath("//*[@ID='%s']"%id)
+	assert len(res)==1, "Resolving ID %s gave %d matches"%(id, len(res))
+	return res[0]
+
+
 class _SampleQs(dm.DMNode):
 	DM_model = _toyModel
 	DM_typeName = "Bland"
@@ -53,7 +60,7 @@ class _DirectVOT(testhelpers.TestResource):
 			annotations = [common.VODMLMeta.fromRoles(_toyModel, "Thing",
 				"width", "height", "location",
 				dm.DataTypeAnnotation("pos", "Pos"),
-				dm.SingletonRefAnnotation("extpos", Child))]
+				dm.GroupRefAnnotation("extpos", Child))]
 		
 		return testhelpers.getXMLTree(dm.asString(
 			votablewrite.VOTableContext(), Ob), debug=False)
@@ -124,7 +131,8 @@ class DirectSerTest(testhelpers.VerboseTest):
 
 	def testSingletonReference(self):
 		ref = self.tree.xpath("//GROUP[VODML/ROLE='toy:Thing.extpos']")[0]
-		destGroup = self.tree.xpath("//GROUP[@ID='%s']"%ref.get("ref"))[0]
+		destGroup = getByID(self.tree, ref.get("ref"))
+		self.assertEqual(destGroup.tag, "GROUP")
 		self.assertEqual(destGroup.xpath("VODML/TYPE")[0].text,
 			"toy:Pos")
 	
@@ -139,11 +147,19 @@ class _TableVOT(testhelpers.TestResource):
 	def make(self, deps):
 		td = testhelpers.getTestRD().getById("abcd").copy(None)
 		td.maker = "Oma"
+
+		class Rulers(dm.DMNode):
+			DM_model = _toyModel
+			DM_typeName = "Rulers"
+			_a_caesar = dm.ColumnAnnotation(columnName="c")
+			_a_david = dm.ColumnAnnotation(columnName="d")
+
 		td.annotations = [common.VODMLMeta.fromRoles(
 				_toyModel, "Toy", dm.ColumnAnnotation("name", "a"),
 				dm.ColumnAnnotation("width", "b"), 
 				dm.ColumnAnnotation("birthday", "e"),
-				dm.Annotation(name="maker", value="Opa")),
+				dm.Annotation(name="maker", value="Opa"),
+				dm.GroupRefAnnotation("rulers", Rulers())),
 			common.VODMLMeta.fromRoles(
 				_toy2Model, "Toy2", dm.ColumnAnnotation("properName", "a"))]
 
@@ -175,22 +191,33 @@ class TableSerTest(testhelpers.VerboseTest):
 
 	def testTypeDeclared(self):
 		self.assertEqual("toy:Toy",
-			self.tt[1].xpath("RESOURCE/TABLE/GROUP/VODML/TYPE")[0].text)
+			self.tt[1].xpath("RESOURCE/TABLE/GROUP/VODML/TYPE")[1].text)
 	
 	def testParamSerialized(self):
 		self.assertEqual("Oma", self.tt[1].xpath(
-			"RESOURCE/TABLE/GROUP[1]/PARAM[VODML/ROLE='toy:Toy.maker']")[0].get(
+			"RESOURCE/TABLE/GROUP[2]/PARAM[VODML/ROLE='toy:Toy.maker']")[0].get(
 			"value"))
 	
 	def testFieldrefsSerialized(self):
 		self.assertEqual(3, len(self.tt[1].xpath(
-			"RESOURCE/TABLE/GROUP[1]/FIELDref[VODML/ROLE]")))
+			"RESOURCE/TABLE/GROUP[VODML/TYPE='toy:Toy']/FIELDref[VODML/ROLE]")))
 
 	def testFieldrefRef(self):
 		for el in self.tt[1].xpath(
 				"RESOURCE/TABLE/GROUP/FIELDref[VODML/ROLE]"):
 			self.assertEqual("FIELD",
-				self.tt[1].xpath("//*[@ID='%s']"%el.get("ref"))[0].tag)
+				getByID(self.tt[1], el.get("ref")).tag)
+
+	def testReffedObject(self):
+		reffedGroup = self.tt[1].xpath("//GROUP[VODML/TYPE='toy:Rulers']")[0]
+		self.assertEqual(
+			reffedGroup.xpath("FIELDref[@ref='c']/VODML/ROLE")[0].text,
+			"toy:Rulers.caesar")
+
+	def testInnerReference(self):
+		reffing = self.tt[1].xpath("//GROUP[VODML/ROLE='toy:Toy.rulers']")[0]
+		self.assertEqual(reffing.xpath("VODML/TYPE")[0].text, "vo-dml:GROUPref")
+		self.assertEqual(getByID(self.tt[1], reffing.get("ref")).tag, "GROUP")
 
 	# TODO: Tests for making objects from the table.
 
