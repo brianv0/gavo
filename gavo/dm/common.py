@@ -17,6 +17,8 @@ class.  However, there's no need to use DMNodes to keep annotated objects.
 
 
 from gavo import utils
+from gavo import votable
+from gavo.votable import V
 from gavo.utils import autonode
 
 
@@ -28,6 +30,9 @@ class AnnotationBase(object):
 
 	These always have a role name and are useless before they're adopted
 	by a VODMLMeta instance (using becomeChild).
+
+	If they have a method getTree(ctx, parent) -> xmlstan, it will be
+	used to serialise them into VOTable.
 
 	You'll normally want to use one of the subclasses.
 	"""
@@ -60,6 +65,19 @@ class Annotation(AnnotationBase):
 		AnnotationBase.__init__(self, name)
 		self.default, self.unit, self.ucd = value, unit, ucd
 
+	def getTree(self, ctx, parent):
+		ob = getattr(parent, self.name)
+		attrs = votable.guessParamAttrsForValue(ob)
+		attrs.update({
+			"unit": self.unit,
+			"ucd": self.ucd})
+
+		param = V.PARAM(name=self.name,
+			id=ctx.getOrMakeIdFor(ob), **attrs)[
+				V.VODML[V.ROLE[self.qualifiedRole]]]
+		votable.serializeToParam(param, ob)
+		return param
+
 
 class ColumnAnnotation(AnnotationBase):
 	"""An annotation of a table column.
@@ -70,6 +88,19 @@ class ColumnAnnotation(AnnotationBase):
 	def __init__(self, name, columnName):
 		AnnotationBase.__init__(self, name)
 		self.columnName = columnName
+
+	def getTree(self, ctx, parent):
+		destCol = parent.getColumnByName(self.columnName)
+		return V.FIELDref(ref=ctx.getOrMakeIdFor(destCol))[
+			V.VODML[V.ROLE[self.qualifiedRole]]]
+
+
+class DataTypeAnnotation(AnnotationBase):
+	"""An annotation of a complex value without identitiy.
+	"""
+	def __init__(self, name, typeName):
+		AnnotationBase.__init__(self, name)
+		self.typeName = typeName
 
 
 class VODMLMeta(object):

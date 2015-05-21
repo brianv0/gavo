@@ -23,36 +23,13 @@ def getSubtrees(ctx, ob):
 			res[V.VODML[V.TYPE[ann.qTypeName]]]
 
 		for name, itemAnn in ann.iteritems():
-			if isinstance(itemAnn, common.Annotation):
-				res[_getTreeForAtom(ctx, getattr(ob, name), itemAnn)]
-
-			elif isinstance(itemAnn, common.ColumnAnnotation):
-				res[_getTreeForColumnref(ctx, ob, itemAnn)]
+			if hasattr(itemAnn, "getTree"):
+				res[itemAnn.getTree(ctx, ob)]
 
 			else:
 				res[getSubtrees(ctx, getattr(ob, name))]
 		
 		yield res
-
-
-def _getTreeForColumnref(ctx, table, annotation):
-	destCol = table.getColumnByName(annotation.columnName)
-	return V.FIELDref(ref=ctx.getOrMakeIdFor(destCol))[
-		V.VODML[V.ROLE[annotation.qualifiedRole]]]
-
-def _getTreeForAtom(ctx, ob, itemAnn):
-	"""returns a VO-DML-compliant param for ob within annotation.
-	"""
-	attrs = votable.guessParamAttrsForValue(ob)
-	attrs.update({
-		"unit": itemAnn.unit,
-		"ucd": itemAnn.ucd})
-
-	param = V.PARAM(name=itemAnn.name,
-		id=ctx.getOrMakeIdFor(ob), **attrs)[
-			V.VODML[V.ROLE[itemAnn.qualifiedRole]]]
-	votable.serializeToParam(param, ob)
-	return param
 
 
 def declareDMs(ctx, stan):

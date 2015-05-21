@@ -36,22 +36,30 @@ class AnnotationTest(testhelpers.VerboseTest):
 
 
 
-class _OnlyParamVOT(testhelpers.TestResource):
+class _DirectVOT(testhelpers.TestResource):
 	def make(self, deps):
+		class Child(object):
+			x = 2
+			y = 3
+			annotations = [common.VODMLMeta.fromRoles(_toyModel, "Pos",
+				"x", "y")]
+
 		class Ob(object):
 			width = 3
 			height = 6.8
 			location = "upstairs"
+			pos = Child
 			internal = object()
 			annotations = [common.VODMLMeta.fromRoles(_toyModel, "Thing",
-				"width", "height", "location")]
+				"width", "height", "location",
+				dm.DataTypeAnnotation("pos", "Pos"))]
 		
 		return testhelpers.getXMLTree(dm.asString(
 			votablewrite.VOTableContext(), Ob), debug=False)
 
 
-class SimpleSerTest(testhelpers.VerboseTest):
-	resources = [("tree", _OnlyParamVOT())]
+class DirectSerTest(testhelpers.VerboseTest):
+	resources = [("tree", _DirectVOT())]
 
 	def testVODMLModelFirst(self):
 		dmgroup = self.tree.xpath("//GROUP[VODML/TYPE='vo-dml:Model']")[0]
@@ -108,6 +116,10 @@ class SimpleSerTest(testhelpers.VerboseTest):
 		self.assertEqual(par.get("datatype"), "char")
 		self.assertEqual(par.get("arraysize"), "*")
 
+	def testDataTypeChild(self):
+		posGroup = self.tree.xpath("//GROUP/GROUP[VODML/TYPE='toy:Pos']")[0]
+		self.assertEqual("3",
+			posGroup.xpath("PARAM[VODML/ROLE='toy:Pos.y']")[0].get("value"))
 
 class _TableVOT(testhelpers.TestResource):
 	def make(self, deps):
@@ -169,4 +181,4 @@ class TableSerTest(testhelpers.VerboseTest):
 	# TODO: Tests for making objects from the table.
 
 if __name__=="__main__":
-	testhelpers.main(SimpleSerTest)
+	testhelpers.main(DirectSerTest)
