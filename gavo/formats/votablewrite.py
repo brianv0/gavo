@@ -21,6 +21,7 @@ from cStringIO import StringIO
 import warnings
 
 from gavo import base
+from gavo import dm
 from gavo import rsc
 from gavo import utils
 from gavo import votable
@@ -68,6 +69,15 @@ class VOTableContext(utils.IdManagerMixin):
 		self.acquireSamples = acquireSamples
 		self.suppressNamespace = suppressNamespace
 		self.overflowElement = overflowElement
+
+		# space to memorise models used within the document.
+		self.vodmlModels = set([dm.VODMLModel])
+
+		# a sequence of xmlstan that should be appended to the current
+		# RESOURCE (used by dm, and subject to change for now)
+		self.storedElements = []
+
+
 
 
 def _addID(rdEl, votEl, idManager):
@@ -391,6 +401,10 @@ def makeTable(ctx, table):
 		_iterNotes(sm),
 		_linkBuilder.build(table.tableDef),
 		]
+
+	ann = dm.getAnnotations(table.tableDef)
+	if ann:
+		result[dm.getSubtree(ctx, table.tableDef)]
 
 	if ctx.version>(1,1):
 		result[_iterSTC(table.tableDef, sm),

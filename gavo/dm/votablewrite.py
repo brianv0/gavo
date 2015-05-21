@@ -1,13 +1,6 @@
 """
 Writing DM instances into VOTables.
-
-This for now depends on gavo.formats and hence the whole DaCHS package.
-Let's see if we can clean this up later.
 """
-
-# TODO: actually do something about object serialisation; infer types
-# from python values, etc.
-
 
 #c Copyright 2008-2015, the GAVO project
 #c
@@ -16,11 +9,10 @@ Let's see if we can clean this up later.
 
 from gavo import votable
 from gavo.dm import common
-from gavo.formats import votablewrite
 from gavo.votable import V
 
 
-def getSubtree(ob, ctx):
+def getSubtree(ctx, ob):
 	"""returns an xmlstan tree of VOTable elements for an annotated object ob.
 	"""
 	ann = common.getAnnotations(ob)
@@ -32,17 +24,24 @@ def getSubtree(ob, ctx):
 		res[V.VODML[V.TYPE[ann.qTypeName]]]
 
 	for name, itemAnn in ann.iteritems():
-		val = getattr(ob, name)
+		if isinstance(itemAnn, common.Annotation):
+			res[_getTreeForAtom(ctx, getattr(ob, name), itemAnn)]
 
-		if common.getAnnotations(val) is None:
-			res[_getTreeForAtom(val, itemAnn, name, ctx)]
+		elif isinstance(itemAnn, common.ColumnAnnotation):
+			res[_getTreeForColumnref(ctx, ob, itemAnn)]
+
 		else:
-			res[getTree(ob, ctx)]
+			res[getSubtree(ctx, getattr(ob, name))]
 	
 	return res
 
 
-def _getTreeForAtom(ob, itemAnn, role, ctx):
+def _getTreeForColumnref(ctx, table, annotation):
+	destCol = table.getColumnByName(annotation.columnName)
+	return V.FIELDref(ref=ctx.getOrMakeIdFor(destCol))[
+		V.VODML[V.ROLE[annotation.qualifiedRole]]]
+
+def _getTreeForAtom(ctx, ob, itemAnn):
 	"""returns a VO-DML-compliant param for ob within annotation.
 	"""
 	attrs = votable.guessParamAttrsForValue(ob)
@@ -50,26 +49,29 @@ def _getTreeForAtom(ob, itemAnn, role, ctx):
 		"unit": itemAnn.unit,
 		"ucd": itemAnn.ucd})
 
-	param = V.PARAM(name=role,
+	param = V.PARAM(name=itemAnn.name,
 		id=ctx.getOrMakeIdFor(ob), **attrs)[
 			V.VODML[V.ROLE[itemAnn.qualifiedRole]]]
 	votable.serializeToParam(param, ob)
 	return param
 
 
-def getTree(ob, ctx):
+def getTree(ctx, ob):
 	"""returns an xmlstan VOTable serialising ob.
+
+	TODO: I guess this should go, as getSubtree is called from
+	formats.votablewrite.
 	"""
-	child = getSubtree(ob, ctx)
+	child = getSubtree(ctx, ob)
 
 	res = V.VOTABLE()
 
 	# vo-dml must always be the first model defined
-	res[getSubtree(common.VODMLModel, ctx)]
+	res[getSubtree(ctx, common.VODMLModel)]
 
 	for model in ctx.vodmlModels:
 		if model!=common.VODMLModel:
-			res[getSubtree(model, ctx)]
+			res[getSubtree(ctx, model)]
 	
 	return res[
 		V.RESOURCE[
@@ -78,19 +80,11 @@ def getTree(ob, ctx):
 				for storedElement in ctx.storedElements]]]
 
 
-def asString(ob, ctx=None):
+def asString(ctx, ob):
 	"""returns the annotated object ob as a serialised VOTable.
+
+	ctx must be a votablewrite.VOTableContext
+	TODO: strike, I guess.
 	"""
-	if ctx is None:
-		ctx = votablewrite.VOTableContext()
-
-	# Furnish the normal context with some extra attributes we need for DM
-	# serialisation (TODO: merge into "normal" context)
-	# * space to memorise models used within the document.
-	ctx.vodmlModels = set([common.VODMLModel])
-	# * a sequence of xmlstan that should be appended to some container
-	#   (used by dm, and subject to change for now)
-	ctx.storedElements = []
-
-	tree = getTree(ob, ctx)
+	tree = getTree(ctx, ob)
 	return votable.asString(tree)

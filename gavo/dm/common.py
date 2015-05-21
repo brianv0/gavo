@@ -23,19 +23,19 @@ from gavo.utils import autonode
 VODML_NAME = "vo-dml"
 
 
-class Annotation(object):
-	"""An annotation of an entity within a data model instance.
+class AnnotationBase(object):
+	"""A base class for annotations.
 
-	These live within VODMLMeta containers and allow keeping information
-	from VO-DML models including what's given there for Quantity
-	(unit, ucd...).
+	These always have a role name and are useless before they're adopted
+	by a VODMLMeta instance (using becomeChild).
+
+	You'll normally want to use one of the subclasses.
 	"""
 	_qualifiedRole = None
 
-	def __init__(self, name=None, value=None, unit=None, ucd=None):
+	def __init__(self, name):
 		self.name = name
-		self.default, self.unit, self.ucd = value, unit, ucd
-	
+
 	def becomeChild(self, parent):
 		"""must be called by the parent VODMLMeta when the Annotation
 		is adopted.
@@ -47,6 +47,29 @@ class Annotation(object):
 		if self._qualifiedRole is None:
 			raise TypeError("Un-adopted Annotation has no qualified role name.")
 		return self._qualifiedRole
+
+
+class Annotation(AnnotationBase):
+	"""An annotation of an atomic value.
+
+	These live within VODMLMeta containers and allow keeping information
+	from VO-DML models including what's given there for Quantity
+	(unit, ucd...).
+	"""
+	def __init__(self, name=None, value=None, unit=None, ucd=None):
+		AnnotationBase.__init__(self, name)
+		self.default, self.unit, self.ucd = value, unit, ucd
+
+
+class ColumnAnnotation(AnnotationBase):
+	"""An annotation of a table column.
+
+	These live in tables and hold a reference to one of the table's
+	columns.
+	"""
+	def __init__(self, name, columnName):
+		AnnotationBase.__init__(self, name)
+		self.columnName = columnName
 
 
 class VODMLMeta(object):
@@ -95,7 +118,7 @@ class VODMLMeta(object):
 
 		A role may be given as a plain string or as an annotation.
 		"""
-		if not isinstance(role, Annotation):
+		if not isinstance(role, AnnotationBase):
 			role = Annotation(name=role)
 
 		if role.name is None:
@@ -129,7 +152,7 @@ class DMNodeType(autonode.AutoNodeType):
 		for name in dir(cls):
 			if name.startswith("_a_"):
 				val = getattr(cls, name)
-				if isinstance(val, Annotation):
+				if isinstance(val, AnnotationBase):
 					val.name = name[3:]
 					cls.annotations.addRole(val)
 					setattr(cls, name, val.default)
@@ -145,6 +168,8 @@ class DMNode(utils.AutoNode):
 
 	The entire magic is to add DM_model and DM_typeName class attributes
 	(which have to be overridden).
+
+	These essentially correspond to VO-DML's ObjectType instances.
 	"""
 	__metaclass__ = DMNodeType
 

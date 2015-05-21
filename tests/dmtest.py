@@ -4,12 +4,16 @@ Tests to do with new-style data modelling and VO-DML serialisation.
 
 from gavo.helpers import testhelpers
 
+import datetime
 
 from gavo import dm
+from gavo import rsc
 from gavo.dm import common
+from gavo.formats import votablewrite
 
 
-_toyModel = dm.Model(name="toy", version="0.5", url="http://g-vo.org/toymodel")
+_toyModel = dm.Model(name="toy", version="0.5", 
+	url="http://g-vo.org/toymodel")
 
 
 class _SampleQs(dm.DMNode):
@@ -40,7 +44,8 @@ class _OnlyParamVOT(testhelpers.TestResource):
 			annotations = common.VODMLMeta.fromRoles(_toyModel, "Thing",
 				"width", "height", "location")
 		
-		return testhelpers.getXMLTree(dm.asString(Ob), debug=False)
+		return testhelpers.getXMLTree(dm.asString(
+			votablewrite.VOTableContext(), Ob), debug=False)
 
 
 class SimpleSerTest(testhelpers.VerboseTest):
@@ -102,6 +107,49 @@ class SimpleSerTest(testhelpers.VerboseTest):
 		self.assertEqual(par.get("arraysize"), "*")
 
 
+class _TableVOT(testhelpers.TestResource):
+	def make(self, deps):
+		td = testhelpers.getTestRD().getById("abcd").copy(None)
+		td.maker = "Oma"
+		td.annotations = common.VODMLMeta.fromRoles(
+			_toyModel, "Toy", dm.ColumnAnnotation("name", "a"),
+			dm.ColumnAnnotation("width", "b"), 
+			dm.ColumnAnnotation("birthday", "e"),
+			dm.Annotation(name="maker", value="Opa"))
+
+		names = [c.name for c in td]
+		table = rsc.TableForDef(td, rows=[dict(zip(names, r)) 
+			for r in [
+				("fred", 12, 13, 15, datetime.datetime(2014, 4, 3, 12, 20)),
+				("fran", 11, 14, 13, datetime.datetime(2013, 2, 20, 12, 20))]])
+
+		return (table, 
+			testhelpers.getXMLTree(votablewrite.getAsVOTable(table), debug=False))
+
+
+class TableSerTest(testhelpers.VerboseTest):
+	resources = [("tt", _TableVOT())]
+
+	def testTypeDeclared(self):
+		self.assertEqual("toy:Toy",
+			self.tt[1].xpath("RESOURCE/TABLE/GROUP/VODML/TYPE")[0].text)
+	
+	def testParamSerialized(self):
+		self.assertEqual("Oma", self.tt[1].xpath(
+			"RESOURCE/TABLE/GROUP/PARAM[VODML/ROLE='toy:Toy.maker']")[0].get(
+			"value"))
+	
+	def testFieldrefsSerialized(self):
+		self.assertEqual(3, len(self.tt[1].xpath(
+			"RESOURCE/TABLE/GROUP/FIELDref[VODML/ROLE]")))
+
+	def testFieldrefRef(self):
+		for el in self.tt[1].xpath(
+				"RESOURCE/TABLE/GROUP/FIELDref[VODML/ROLE]"):
+			self.assertEqual("FIELD",
+				self.tt[1].xpath("//*[@ID='%s']"%el.get("ref"))[0].tag)
+
+	# TODO: Tests for making objects from the table.
 
 if __name__=="__main__":
 	testhelpers.main(SimpleSerTest)
