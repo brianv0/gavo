@@ -17,5 +17,6 @@ from gavo.dm.common import (
 
 
 from gavo.dm.votablewrite import (
-	getSubtree,
+	declareDMs,
+	getSubtrees,
 	asString)

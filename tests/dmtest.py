@@ -14,6 +14,8 @@ from gavo.formats import votablewrite
 
 _toyModel = dm.Model(name="toy", version="0.5", 
 	url="http://g-vo.org/toymodel")
+_toy2Model = dm.Model(name="toy2", version="2.5",
+	url="http://g-vo.org/toy2model")
 
 
 class _SampleQs(dm.DMNode):
@@ -30,7 +32,7 @@ class AnnotationTest(testhelpers.VerboseTest):
 	
 	def testGetMeta(self):
 		o = _SampleQs()
-		self.assertEqual(dm.getAnnotations(o)["someQ"].ucd, "phys.length")
+		self.assertEqual(dm.getAnnotations(o)[0]["someQ"].ucd, "phys.length")
 
 
 
@@ -41,8 +43,8 @@ class _OnlyParamVOT(testhelpers.TestResource):
 			height = 6.8
 			location = "upstairs"
 			internal = object()
-			annotations = common.VODMLMeta.fromRoles(_toyModel, "Thing",
-				"width", "height", "location")
+			annotations = [common.VODMLMeta.fromRoles(_toyModel, "Thing",
+				"width", "height", "location")]
 		
 		return testhelpers.getXMLTree(dm.asString(
 			votablewrite.VOTableContext(), Ob), debug=False)
@@ -111,11 +113,13 @@ class _TableVOT(testhelpers.TestResource):
 	def make(self, deps):
 		td = testhelpers.getTestRD().getById("abcd").copy(None)
 		td.maker = "Oma"
-		td.annotations = common.VODMLMeta.fromRoles(
-			_toyModel, "Toy", dm.ColumnAnnotation("name", "a"),
-			dm.ColumnAnnotation("width", "b"), 
-			dm.ColumnAnnotation("birthday", "e"),
-			dm.Annotation(name="maker", value="Opa"))
+		td.annotations = [common.VODMLMeta.fromRoles(
+				_toyModel, "Toy", dm.ColumnAnnotation("name", "a"),
+				dm.ColumnAnnotation("width", "b"), 
+				dm.ColumnAnnotation("birthday", "e"),
+				dm.Annotation(name="maker", value="Opa")),
+			common.VODMLMeta.fromRoles(
+				_toy2Model, "Toy2", dm.ColumnAnnotation("properName", "a"))]
 
 		names = [c.name for c in td]
 		table = rsc.TableForDef(td, rows=[dict(zip(names, r)) 
@@ -130,18 +134,31 @@ class _TableVOT(testhelpers.TestResource):
 class TableSerTest(testhelpers.VerboseTest):
 	resources = [("tt", _TableVOT())]
 
+	def testDM1declared(self):
+		dm1group = self.tt[1].xpath(
+			"GROUP[PARAM/@name='url' and PARAM/@value='http://g-vo.org/toymodel']"
+		)[0]
+		self.assertEqual("toy",
+			dm1group.xpath("PARAM[VODML/ROLE='vo-dml:Model.name']")[0].get("value"))
+	
+	def testDM2declared(self):
+		dm2group = self.tt[1].xpath(
+			"GROUP[PARAM[VODML/ROLE='vo-dml:Model.name' and @value='toy2']]")[0]
+		self.assertEqual("http://g-vo.org/toy2model",
+			dm2group.xpath("PARAM[VODML/ROLE='vo-dml:Model.url']")[0].get("value"))
+
 	def testTypeDeclared(self):
 		self.assertEqual("toy:Toy",
 			self.tt[1].xpath("RESOURCE/TABLE/GROUP/VODML/TYPE")[0].text)
 	
 	def testParamSerialized(self):
 		self.assertEqual("Oma", self.tt[1].xpath(
-			"RESOURCE/TABLE/GROUP/PARAM[VODML/ROLE='toy:Toy.maker']")[0].get(
+			"RESOURCE/TABLE/GROUP[1]/PARAM[VODML/ROLE='toy:Toy.maker']")[0].get(
 			"value"))
 	
 	def testFieldrefsSerialized(self):
 		self.assertEqual(3, len(self.tt[1].xpath(
-			"RESOURCE/TABLE/GROUP/FIELDref[VODML/ROLE]")))
+			"RESOURCE/TABLE/GROUP[1]/FIELDref[VODML/ROLE]")))
 
 	def testFieldrefRef(self):
 		for el in self.tt[1].xpath(

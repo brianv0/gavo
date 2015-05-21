@@ -389,6 +389,8 @@ class VOTable(object):
 					getPrefixInfo("vot")[0],
 					getPrefixInfo("xsi")[0])
 				+getPrefixInfo("vot"))
+		_childSequence = ["DESCRIPTION", "DEFINITIONS", "INFO", "COOSYS",
+			"GROUP", "PARAM", "RESOURCE"]
 
 
 	class VOTABLE11(_VOTElement):

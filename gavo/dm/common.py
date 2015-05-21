@@ -1,9 +1,9 @@
 """
 Common code for new-style Data Model support.
 
-DM support circles around the Annotation class which can be added to
+DM support circles around the VODMLMeta class which can be added to
 anything that maps names to values (it's expected in the annotations
-attribute).
+attribute, which is a sequence of such objects).
 
 When we define objects from a DM definition, we use the utils.AutoNode
 infrastructure.  To have automatic DM annotation on these, there's the DMNode
@@ -147,17 +147,17 @@ class DMNodeType(autonode.AutoNodeType):
 	define autonode attributes.
 	"""
 	def _collectAttributes(cls):
-		cls.annotations = VODMLMeta(cls.DM_model,
-			cls.DM_typeName)
+		cls.annotations = [VODMLMeta(cls.DM_model,
+			cls.DM_typeName)]
 		for name in dir(cls):
 			if name.startswith("_a_"):
 				val = getattr(cls, name)
 				if isinstance(val, AnnotationBase):
 					val.name = name[3:]
-					cls.annotations.addRole(val)
+					cls.annotations[0].addRole(val)
 					setattr(cls, name, val.default)
 				else:
-					cls.annotations.addRole(name[3:])
+					cls.annotations[0].addRole(name[3:])
 
 		autonode.AutoNodeType._collectAttributes(cls)
 
@@ -170,6 +170,9 @@ class DMNode(utils.AutoNode):
 	(which have to be overridden).
 
 	These essentially correspond to VO-DML's ObjectType instances.
+
+	DMNodes have their "native" annotation in annotations[0]; more annotations
+	could later be added as necessary.
 	"""
 	__metaclass__ = DMNodeType
 
@@ -207,12 +210,12 @@ VODMLModel = Model(name="vo-dml", version="1.0",
 	url="http://this.needs.to/be/fixed")
 # Monkeypatch (see (*))
 Model.DM_model = VODMLModel
-VODMLModel.annotations.model = VODMLModel
+VODMLModel.annotations[0].model = VODMLModel
 
 
 def getAnnotations(ob):
-	"""returns a VODMLMeta object for ob.
+	"""returns a sequence of VODMLMeta objects for ob.
 
-	If there are none, None is returned.
+	If there are none, an empty sequence is returned.
 	"""
-	return getattr(ob, "annotations", None)
+	return getattr(ob, "annotations", [])

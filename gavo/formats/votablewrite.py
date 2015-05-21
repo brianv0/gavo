@@ -402,9 +402,7 @@ def makeTable(ctx, table):
 		_linkBuilder.build(table.tableDef),
 		]
 
-	ann = dm.getAnnotations(table.tableDef)
-	if ann:
-		result[dm.getSubtree(ctx, table.tableDef)]
+	result[dm.getSubtrees(ctx, table.tableDef)]
 
 	if ctx.version>(1,1):
 		result[_iterSTC(table.tableDef, sm),
@@ -477,6 +475,9 @@ def makeVOTable(data, ctx=None, **kwargs):
 		rootHacks = [vot._fixedTagMaterial]+[
 			item.getContent() for item in rootAttrs]
 		vot._fixedTagMaterial = " ".join(s for s in rootHacks if s)
+
+	if len(ctx.vodmlModels)>1:
+		dm.declareDMs(ctx, vot)
 
 	return vot
 

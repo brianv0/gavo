@@ -12,28 +12,27 @@ from gavo.dm import common
 from gavo.votable import V
 
 
-def getSubtree(ctx, ob):
-	"""returns an xmlstan tree of VOTable elements for an annotated object ob.
+def getSubtrees(ctx, ob):
+	"""yields an xmlstan trees of VOTable elements for all annotations
+	of an arbitrary ob.
 	"""
-	ann = common.getAnnotations(ob)
-	assert ann
+	for ann in common.getAnnotations(ob):
+		ctx.vodmlModels.add(ann.model)
+		res = V.GROUP()
+		if ann.typeName:
+			res[V.VODML[V.TYPE[ann.qTypeName]]]
 
-	ctx.vodmlModels.add(ann.model)
-	res = V.GROUP()
-	if ann.typeName:
-		res[V.VODML[V.TYPE[ann.qTypeName]]]
+		for name, itemAnn in ann.iteritems():
+			if isinstance(itemAnn, common.Annotation):
+				res[_getTreeForAtom(ctx, getattr(ob, name), itemAnn)]
 
-	for name, itemAnn in ann.iteritems():
-		if isinstance(itemAnn, common.Annotation):
-			res[_getTreeForAtom(ctx, getattr(ob, name), itemAnn)]
+			elif isinstance(itemAnn, common.ColumnAnnotation):
+				res[_getTreeForColumnref(ctx, ob, itemAnn)]
 
-		elif isinstance(itemAnn, common.ColumnAnnotation):
-			res[_getTreeForColumnref(ctx, ob, itemAnn)]
-
-		else:
-			res[getSubtree(ctx, getattr(ob, name))]
-	
-	return res
+			else:
+				res[getSubtrees(ctx, getattr(ob, name))]
+		
+		yield res
 
 
 def _getTreeForColumnref(ctx, table, annotation):
@@ -56,27 +55,34 @@ def _getTreeForAtom(ctx, ob, itemAnn):
 	return param
 
 
-def getTree(ctx, ob):
-	"""returns an xmlstan VOTable serialising ob.
-
-	TODO: I guess this should go, as getSubtree is called from
-	formats.votablewrite.
+def declareDMs(ctx, stan):
+	"""adds the data models mentioned  in ctx to the root element of an
+	xmlstan tree.
 	"""
-	child = getSubtree(ctx, ob)
-
-	res = V.VOTABLE()
-
 	# vo-dml must always be the first model defined
-	res[getSubtree(ctx, common.VODMLModel)]
+	stan[getSubtrees(ctx, common.VODMLModel)]
 
 	for model in ctx.vodmlModels:
 		if model!=common.VODMLModel:
-			res[getSubtree(ctx, model)]
+			stan[getSubtrees(ctx, model)]
+
+
+def getTree(ctx, ob):
+	"""returns an xmlstan VOTable serialising ob.
+
+	TODO: I guess this should go, as getSubtrees is called from
+	formats.votablewrite.
+	"""
+	children = list(getSubtrees(ctx, ob))
+
+	res = V.VOTABLE()
+
+	declareDMs(ctx, res)
 	
 	return res[
 		V.RESOURCE[
-			child,
-			[child[storedElement]
+			children,
+			[storedElement
 				for storedElement in ctx.storedElements]]]
 
 
