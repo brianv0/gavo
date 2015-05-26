@@ -17,12 +17,13 @@ of TableDef elements, which I think is worse than a factory function.
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
 
+import sys
+import weakref
 
 from gavo import base
 from gavo import rscdef
 from gavo.rsc import common
 
-import sys
 
 class Error(base.Error):
 	pass
@@ -169,6 +170,8 @@ class BaseTable(base.MetaMixin, common.ParamMixin):
 		self.meta_ = self.tableDef.meta_.copy()
 		self.validateRows = kwargs.get("validateRows", False)
 		self.votCasts = kwargs.get("votCasts", {})
+		parent = kwargs.get("parent")
+		self.parent = parent and weakref.proxy(parent)
 		self._initParams(self.tableDef, kwargs.pop("params", None))
 
 	__iter__ = _makeFailIncomplete("__iter__")

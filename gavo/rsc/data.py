@@ -213,10 +213,12 @@ class Data(base.MetaMixin, common.ParamMixin):
 		re-create them, call recrateTables.
 		"""
 		controlledTables = {}
+		res = cls(dd, controlledTables, parseOptions)
 		for make in dd.makes:
 			controlledTables[make.table.id
-				] = make.create(connection, parseOptions, tables.TableForDef)
-		return cls(dd, controlledTables, parseOptions)
+				] = make.create(connection, parseOptions, tables.TableForDef,
+					parent=res)
+		return res
 
 	@classmethod
 	def drop(cls, dd, parseOptions=common.parseNonValidating, connection=None):

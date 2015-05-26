@@ -236,12 +236,12 @@ class Make(base.Structure, scripting.ScriptingMixin):
 		"""
 		return self.table.getExpander()
 	
-	def create(self, connection, parseOptions, tableFactory):
+	def create(self, connection, parseOptions, tableFactory, **kwargs):
 		"""returns a new empty instance of the table this is making.
 		"""
 		newTable = tableFactory(self.table,
 			parseOptions=parseOptions, connection=connection, role=self.role,
-			create=True)
+			create=True, **kwargs)
 		if (not parseOptions.updateMode 
 				and not getattr(self.parent, "updating", False)):
 			newTable._runScripts = self.getRunner()

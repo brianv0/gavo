@@ -6,8 +6,10 @@ from gavo.helpers import testhelpers
 
 import datetime
 
+from gavo import base
 from gavo import dm
 from gavo import rsc
+from gavo import rscdesc
 from gavo.dm import common
 from gavo.formats import votablewrite
 
@@ -220,6 +222,92 @@ class TableSerTest(testhelpers.VerboseTest):
 		self.assertEqual(getByID(self.tt[1], reffing.get("ref")).tag, "GROUP")
 
 	# TODO: Tests for making objects from the table.
+
+
+class _ManyTablesVOT(testhelpers.TestResource):
+	def make(self, deps):
+		rd = base.parseFromString(rscdesc.RD, """
+			<resource schema="test">
+				<table id="auxaux">
+					<column name="mything" type="integer"/>
+				</table>
+				<table id="aux">
+					<foreignKey inTable="auxaux" source="c2" dest="mything"/>
+					<column name="c1" type="integer"/>
+					<column name="c2" type="integer"/>
+				</table>
+				<table id="main">
+					<foreignKey inTable="aux" source="a,b" dest="c1,c2"/>
+					<foreignKey inTable="auxaux" source="c" dest="mything"/>
+					<column name="a" type="integer"/>
+					<column name="b" type="integer"/>
+					<column name="c" type="integer"/>
+				</table>
+				<data id="import">
+					<sources item="2"/>
+					<embeddedGrammar isDispatching="True">
+						<iterator>
+						<code>
+						for id in range(int(self.sourceToken)):
+							yield "auxaux", {"mything": id}
+							for c2 in range(3):
+								yield "aux", {"c1": id, "c2": c2}
+								for c in range(2):
+									yield "main", {"a": id, "b": c2, "c": c}
+						</code>
+						</iterator>
+					</embeddedGrammar>
+					<make role="auxaux" table="auxaux"/>
+					<make role="aux" table="aux"/>
+					<make role="main" table="main"/>
+				</data>
+			</resource>""")
+
+		# hold ref to data so dependent tables don't go away.
+		self.data = rsc.makeData(rd.getById("import"))
+		table = self.data.tables["main"]
+		table.tableDef.annotations = [common.VODMLMeta.fromRoles(_toyModel, "Toy",
+			dm.ColumnAnnotation("foo", "a"), dm.ColumnAnnotation("bar", "b")),
+			common.VODMLMeta.fromRoles(
+				_toyModel, "Mess", dm.ColumnAnnotation("comp", "c"))]
+
+		return (table, 
+			testhelpers.getXMLTree(votablewrite.getAsVOTable(table), debug=True))
+
+	def clean(self, ignored):
+		del self.data  
+
+
+class ManyTablesTest(testhelpers.VerboseTest):
+	resources = [("tt", _ManyTablesVOT())]
+
+	def testAllTablesSerializedOnce(self):
+		self.assertEqual(len(self.tt[1].xpath("RESOURCE/TABLE")), 3)
+
+	def testAuxAuxFK(self):
+		refGroup = self.tt[1].xpath("//GROUP[VODML/TYPE='toy:Toy']"
+			"/GROUP[VODML/TYPE='vo-dml:ORMReference']")[0]
+		self.assertEqual(refGroup.xpath("FIELDref")[0].get("ref"), "a")
+		self.assertEqual(refGroup.xpath("FIELDref")[1].get("ref"), "b")
+			
+		pkGroup = getByID(self.tt[1], refGroup.get("ref"))
+		self.assertEqual(pkGroup.xpath("VODML/ROLE")[0].text,
+			"vo-dml:ObjectTypeInstance.ID")
+
+	def testAuxFK(self):
+		refGroup = self.tt[1].xpath("//GROUP[VODML/TYPE='toy:Mess']"
+			"/GROUP[VODML/TYPE='vo-dml:ORMReference']")[0]
+		self.assertEqual(refGroup.xpath("FIELDref")[0].get("ref"), "c")
+
+		pkGroup = getByID(self.tt[1], refGroup.get("ref"))
+		self.assertEqual(pkGroup.xpath("VODML/ROLE")[0].text,
+			"vo-dml:ObjectTypeInstance.ID")
+
+	def testSecondaryRefResolves(self):
+		destField = getByID(self.tt[1],
+			self.tt[1].xpath("RESOURCE/TABLE[1]/GROUP/FIELDref")[0].get("ref"))
+		self.assertEqual(destField.get("name"), "c1")
+
 
 if __name__=="__main__":
 	testhelpers.main(DirectSerTest)

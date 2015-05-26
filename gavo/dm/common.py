@@ -92,7 +92,7 @@ class VODMLMeta(object):
 	to use alternative constructors.
 
 	These have a limited dict-like interface; you can index them, iterate
-	over them (attribute names), and there's get.
+	over them (attribute names), and there's get, iteritems, and itervalues.
 	"""
 	def __init__(self, model, typeName):
 		self.model, self.typeName = model, typeName
@@ -145,6 +145,9 @@ class VODMLMeta(object):
 
 	def iteritems(self):
 		return self.roles.iteritems()
+
+	def itervalues(self):
+		return self.roles.itervalues()
 
 
 class DMNodeType(autonode.AutoNodeType):

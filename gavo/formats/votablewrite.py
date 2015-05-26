@@ -79,6 +79,17 @@ class VOTableContext(utils.IdManagerMixin):
 		# id()s of objects already serialised into the tree
 		self.alreadyInTree = set()
 
+	def makeTable(self, table):
+		"""returns xmlstan for a table.
+
+		This is exposed as a method of context as the dm subpackage
+		needs it, but I don't want to import formats there (yet).
+
+		This may go away as I fix the interdependence of dm, votable, and
+		format.
+		"""
+		return makeTable(self, table)
+
 	def getEnclosingTable(self):
 		"""returns the xmlstan element of the table currently built.
 
@@ -448,6 +459,10 @@ def makeTable(ctx, table):
 	"""
 	sm = valuemappers.SerManager(table, mfRegistry=ctx.mfRegistry,
 		idManager=ctx, acquireSamples=ctx.acquireSamples)
+
+	# this must happen before FIELDs and such are serialised to ensure
+	# referenced things have IDs.
+	dm.addFKAnnotations(table)
 
 	result = V.TABLE()
 	with ctx.activeContainer(result):

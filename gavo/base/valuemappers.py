@@ -405,10 +405,11 @@ class SerManager(utils.IdManagerMixin):
 			self.annCols.append(
 				AnnotatedColumn(column, self.table.votCasts.get(column.name)))
 
-			# Do not generate an id if the field is already defined somewhere else.
-			# (if that happens, STC definitions could be in trouble, so try
-			# to avoid it, all right?)
-			colId = self.makeIdFor(column, column.id or column.key)
+			# We unconditionally generate IDs for FIELDs since rev ~4368
+			# If a column actually got included twice in a VOTable, its id
+			# would occur twice in the VOTable; I guess that would need
+			# handling in xmlstan
+			colId = self.getOrMakeIdFor(column, column.id or column.key)
 			if colId is not None:
 				self.annCols[-1]["id"] = colId
 
