@@ -122,7 +122,7 @@ class ParseOptions(object):
 def getParseOptions(validateRows=True, updateMode=False, doTableUpdates=False,
 		batchSize=1024, maxRows=None, keepGoing=False, dropIndices=False,
 		dumpRows=False, metaOnly=False, buildDependencies=True,
-		systemImport=False, commitAfterMeta=False):
+		systemImport=False, commitAfterMeta=False, dumpIngestees=False):
 	"""returns an object with some attributes set.
 
 	This object is used in the parsing code in dddef.  It's a standin
@@ -153,6 +153,7 @@ def getParseOptions(validateRows=True, updateMode=False, doTableUpdates=False,
 	po.metaOnly = metaOnly
 	po.buildDependencies = buildDependencies
 	po.commitAfterMeta = commitAfterMeta
+	po.dumpIngestees = dumpIngestees
 	return po
 
 

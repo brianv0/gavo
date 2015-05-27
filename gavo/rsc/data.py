@@ -39,11 +39,12 @@ class _DataFeeder(table._Feeder):
 	commit if all went well, rollback otherwise).
 	"""
 	def __init__(self, data, batchSize=1024, dispatched=False,
-			runCommit=True, connection=None):
+			runCommit=True, connection=None, dumpIngestees=False):
 		self.data, self.batchSize = data, batchSize
 		self.runCommit = runCommit
 		self.nAffected = 0
 		self.connection = connection
+		self.dumpIngestees = dumpIngestees
 		if dispatched:
 			makeAdders = self._makeFeedsDispatched
 		else:
@@ -70,6 +71,8 @@ class _DataFeeder(table._Feeder):
 			def addRow(srcRow, feeder=feeder, makeRow=makeRow):
 				try:
 					procRow = makeRow(srcRow, table)
+					if self.dumpIngestees:
+						print "PROCESSED ROW:", procRow
 					feeder.add(procRow)
 				except rscdef.IgnoreThisRow:
 					pass
@@ -345,7 +348,11 @@ class _EnoughRows(base.ExecutiveAction):
 
 
 def _pipeRows(srcIter, feeder, opts):
-	feeder.addParameters(srcIter.getParameters())
+	pars = srcIter.getParameters()
+	if opts.dumpIngestees:
+		print "PROCESSED PARAMS:", pars
+	feeder.addParameters(pars)
+
 	for srcRow in srcIter:
 
 		if srcRow is common.FLUSH:
@@ -449,7 +456,8 @@ def makeData(dd, parseOptions=common.parseNonValidating,
 		res = data
 	res.recreateTables(connection)
 	
-	feederOpts = {"batchSize": parseOptions.batchSize, "runCommit": runCommit}
+	feederOpts = {"batchSize": parseOptions.batchSize, "runCommit": runCommit,
+		"dumpIngestees": parseOptions.dumpIngestees}
 	if dd.grammar and dd.grammar.isDispatching:
 		feederOpts["dispatched"] = True
 
