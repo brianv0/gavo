@@ -130,6 +130,22 @@ class IntableAdapter(object):
 	__str__ = getquoted
 
 
+class NULLAdapter(object):
+	"""An adapter for things that should end up as NULL in the DB.
+	"""
+	def __init__(self, val):
+		# val doesn't matter, we're making it NULL anyway
+		pass
+	
+	def prepare(self, conn):
+		pass
+	
+	def getquoted(self):
+		return "NULL"
+	
+	__str__ = getquoted
+
+
 psycopg2.extensions.register_adapter(tuple, SqlArrayAdapter)
 psycopg2.extensions.register_adapter(numpy.ndarray, SqlArrayAdapter)
 psycopg2.extensions.register_adapter(list, SqlSetAdapter)
@@ -150,6 +166,14 @@ for numpyType, adapter in [
 	except AttributeError:
 		# what's not there we don't need to adapt
 		pass
+
+
+try:
+	from gavo.utils import pyfits
+	psycopg2.extensions.register_adapter(pyfits.Undefined, NULLAdapter)
+except (ImportError, NameError):
+	# don't fail here if pyfits isn't installed or is too old
+	pass
 
 from psycopg2 import (OperationalError, #noflake: exported names
 	DatabaseError, IntegrityError, ProgrammingError, 

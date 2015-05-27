@@ -28,6 +28,7 @@ from gavo.base import coords
 from gavo.base import config
 from gavo.base import sqlsupport
 from gavo.utils import pgsphere
+from gavo.utils import pyfits
 
 import tresc
 
@@ -220,6 +221,12 @@ class TestTypes(testhelpers.VerboseTest):
 		with digestedTable(self.conn, "n_a_t", "(b double precision[])",
 				[{"b": numpy.array([1.0, 1.5, 2])}]) as rows:
 			self.assertEqual(rows[0]["b"], [1.0, 1.5, 2.0])
+
+	def testPyfitsUndefined(self):
+		with digestedTable(self.conn, "n_a_t", "(a float, b text)",
+				[{"a": pyfits.Undefined(), "b": pyfits.Undefined()}]) as rows:
+			self.assertEqual(rows[0]["a"], None)
+			self.assertEqual(rows[0]["b"], None)
 
 
 class TestWithTableCreation(testhelpers.VerboseTest):
