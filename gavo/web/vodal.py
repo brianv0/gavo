@@ -507,7 +507,7 @@ class _DatalinkRendererBase(grend.ServiceBasedPage):
 
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
-		return self.runService(request.args, ctx
+		return self.runService(request.args, svcs.QueryMeta.fromContext(ctx)
 			).addCallback(self._formatData, request
 			).addErrback(self._reportError, request)
 	
