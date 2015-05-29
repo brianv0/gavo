@@ -534,6 +534,7 @@ class _DatalinkRendererBase(grend.ServiceBasedPage):
 			return data
 
 	def _reportError(self, failure, request):
+		failure.raiseException()
 		base.ui.notifyFailure(failure)
 		request.setHeader("content-type", "text/plain")
 		if isinstance(failure.value, base.Error):
