@@ -141,6 +141,10 @@ class SSAPInterface(InterfaceWithParams):
 	interfaceClass = SSAP.interface
 
 
+class APIInterface(InterfaceWithParams):
+	renderer = "api"
+
+
 class TAPInterface(InterfaceMaker):
 # for TAP, result type is tricky, and we don't have good metadata
 # on the accepted input parameters (QUERY, etc).  We should really
@@ -251,6 +255,10 @@ class CapabilityMaker(object):
 
 	def __call__(self, publication):
 		return self._makeCapability(publication)
+
+
+class APICapabilityMaker(CapabilityMaker):
+	renderer = "api"
 
 
 class SIACapabilityMaker(CapabilityMaker):

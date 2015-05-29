@@ -17,6 +17,7 @@ import itertools
 
 from gavo import base
 from gavo import svcs
+from gavo import utils
 from gavo.registry.model import VS
 
 
@@ -59,6 +60,11 @@ def getTableColumnFromColumn(column, typeElement):
 	type as child and generate whatever is necessary from that.
 	VS.voTableDataType is an example for such a factory.
 	"""
+	if isinstance(column.name, utils.QuotedName):
+		colName = str(column.name)
+	else:
+		colName = column.name.lower()
+
 	flags = []
 	if column.isIndexed():
 		flags.append("indexed")
@@ -66,8 +72,9 @@ def getTableColumnFromColumn(column, typeElement):
 		flags.append("primary")
 	elif not column.required:
 		flags.append("nullable")
+
 	return VS.column[
-		VS.name[str(column.name)],
+		VS.name[colName],
 		VS.description[column.description],
 		VS.unit[column.unit],
 		VS.ucd[column.ucd],
