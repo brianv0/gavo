@@ -458,6 +458,7 @@ def addBasicVSElements(baseNS, VSElement):
 			
 			typeMap = {
 				"char": "string",
+				"unicodeChar": "string",
 				"short": "integer",
 				"int": "integer",
 				"long": "integer",

@@ -153,7 +153,7 @@ def runTAPQuery(query, timeout, connection, tdsForUploads, maxrec,
 			autoClose=autoClose)
 		# XXX Hack: this is a lousy fix for postgres' seqscan love with
 		# limit.  See if we still want this with newer postgres...
-#		result.configureConnection([("enable_seqscan", False)])
+		result.configureConnection([("enable_seqscan", False)])
 		result.setTimeout(timeout)
 	except:
 		adqlglue.mapADQLErrors(*sys.exc_info())
