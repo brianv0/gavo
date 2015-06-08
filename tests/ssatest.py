@@ -235,6 +235,9 @@ class CoreQueriesTest(_WithSSATableTest):
 			['test1', 'test3', 'test2']),
 		({"COLLECTION": "Test set"},
 			[]),
+		({"FORMAT": "application/x-votable+xml,image/fits"},
+			["test1", "test2", "test3"]),
+
 	]
 
 

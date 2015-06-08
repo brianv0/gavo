@@ -248,13 +248,12 @@ class PQLIRTest(testhelpers.VerboseTest):
 			" OR to_tsvector('english', foo) @@ plainto_tsquery('english', %(foo1)s))")
 		self.assertEqual(sqlPars, {"foo0": " urgl", 'foo1': 'abc ef'})
 	
-	def testNoRange(self):
-		cs = pql.PQLTextParIR.fromLiteral("abc ef/urgl", "foo")
-		self.assertRaisesWithMsg(api.LiteralParseError,
-			"'abc%20ef/urgl/' is not a valid value for foo",
-			cs.getSQL,
-			("foo", {}))
-
+	def testNoRangeSyntax(self):
+		cs = pql.PQLStringPar.fromLiteral("abc ef/urgl", "foo")
+		sqlPars = {}
+		sql = cs.getSQL("foo", sqlPars)
+		self.assertEqual(sql, 'foo = %(foo0)s')
+		self.assertEqual(sqlPars, {"foo0": "abc ef/urgl"})
 
 class CoversTest(testhelpers.VerboseTest):
 	def testSimpleStringTrue(self):

@@ -232,7 +232,38 @@ class PQLRange(object):
 			covers &= self.stop>=value
 		return covers
 
-					
+
+class PQLNoRange(PQLRange):
+	"""a stand-in for PQLRange when no ranges are to be supported
+
+	It seems this is intended for string-typed values.  We try to
+	be compatible with PQLRange in the relevant API aspects.
+	"""
+	def __init__(self, value):
+		self.value = value
+		self.start = self.stop = self.step = None
+
+	def __eq__(self, other):
+		return (isinstance(other, PQLRange)
+			and self.value==other.value 
+			and self.start==other.start 
+			and self.stop==other.stop 
+			and self.step==other.step)
+
+	def __str__(self):
+		return str(self.value)
+			
+	@classmethod
+	def fromLiteral(cls, literal, destName, valParser, stepParser):
+		"""creates a PQLRange from a PQL range literal.
+
+		For the meaning of the arguments, see PQLPar.fromLiteral.
+		"""
+		if literal=="":
+			return cls(value="")
+		return cls(value=_parsePQLValue(literal, vp=valParser))
+
+
 class PQLPar(object):
 	"""a representation for PQL expressions.
 
@@ -257,6 +288,12 @@ class PQLPar(object):
 	Some advanced PQLPars do not support this method and will 
 	raise a ValueError if called.
 
+	Since "PQL" is totally crazy, not even the range parser is constant.
+	It seems string ranges were never meant to be supported, and therefore
+	we support RangeClass.  PQLRange allows the "/" syntax and is supposed
+	to work for most things but strings.  PQLNoRange is just always a simple
+	value.
+
 	Note: valParser and stepParser must not be *methods* of the
 	class but plain functions; since they are function-like class attributes,
 	you will usually have to wrap them in staticmethods
@@ -264,6 +301,7 @@ class PQLPar(object):
 	nullvalue = None
 	valParser = str
 	stepParser = staticmethod(_raiseNoSteps)
+	rangeClass = PQLRange
 
 	def __init__(self, ranges, qualifier=None, destName=None):
 		self.qualifier = qualifier
@@ -308,13 +346,13 @@ class PQLPar(object):
 		for rangeMat in LIST_RE.finditer(listLiteral):
 			try:
 				ranges.append(
-					PQLRange.fromLiteral(rangeMat.group(1), destName, 
+					cls.rangeClass.fromLiteral(rangeMat.group(1), destName, 
 						cls.valParser, cls.stepParser))
 			except base.LiteralParseError, ex:
 				ex.pos = rangeMat.start()
 				raise
 		ranges.append(
-			PQLRange.fromLiteral(listLiteral[rangeMat.end():], destName,
+			cls.rangeClass.fromLiteral(listLiteral[rangeMat.end():], destName,
 				cls.valParser, cls.stepParser))
 		return cls(ranges, qualifier, destName)
 
@@ -531,7 +569,7 @@ class PQLShellPatternPar(PQLPar):
 		if val is None:
 			return None
 		val = getREForShPat(val)
-		return cls([PQLRange(val)])
+		return cls([cls.rangeClass(val)])
 	
 	def getSQL(self, colName, sqlPars):
 		"""returns an RE-based query equivalent to the input shell pattern.
@@ -550,6 +588,14 @@ class PQLNocaseShellPatternPar(PQLShellPatternPar):
 	_reOperator = "~*"
 
 
+class PQLStringPar(PQLPar):
+	"""a PQL normal string parameter.
+
+	"normal" means that range expressions are not supported.
+	"""
+	rangeClass = PQLNoRange
+
+
 class PQLTextParIR(PQLPar):
 	"""a PQL string parameter matching "google-like", "Information Retrieval".
 
@@ -557,16 +603,10 @@ class PQLTextParIR(PQLPar):
 	vectors.  Correspondingly, ranges are disallowed.
 	"""
 	nullvalue = ""
+	rangeClass = PQLNoRange
 
 	def getSQL(self, colName, sqlPars):
-		try:
-			docs = self.getValuesAsSet()
-		except ValueError:
-			# ranges were given; we don't support those with IR-searching
-			raise base.LiteralParseError(colName, str(self), hint=
-				"Ranges are not allowed with IR-matches (or did you want to"
-				" to search for a slash?  In that case, please escape it)")
-
+		docs = self.getValuesAsSet()
 		keys = []
 		for doc in docs:
 			keys.append(base.getSQLKey(colName, doc, sqlPars))

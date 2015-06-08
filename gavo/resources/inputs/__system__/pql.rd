@@ -88,7 +88,7 @@
 
 		<code>
 			key = inputKeys[0].name
-			parsed = pql.PQLPar.fromLiteral(inPars.get(key, None), key)
+			parsed = pql.PQLStringPar.fromLiteral(inPars.get(key, None), key)
 			if parsed is not None:
 				yield parsed.getSQL(consCol, outPars)
 		</code>
