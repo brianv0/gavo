@@ -801,7 +801,7 @@
 					<par name="compliantFormats">frozenset([
 						"application/x-votable+xml"])</par>
 					<par name="nativeFormats">frozenset([
-						"application/fits", "text/csv", "text/plain"])</par>
+						"application/fits", "text/csv", "text/plain", "image/fits"])</par>
 					<par name="consCol">"mime"</par>
 				</setup>
 				<code>

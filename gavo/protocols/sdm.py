@@ -50,6 +50,12 @@ _SDM1_IRREGULARS = {
 	"Dataset.TimeSI": "Spectrum.TimeSI",
 	"Dataset.SpectralSI": "Spectrum.SpectralSI",
 	"Dataset.FluxSI": "Spectrum.FluxSI",
+	"Access.Format": None,
+	"Access.Reference": None,
+	"Access.Size": None,
+	"AstroCoords.Position2D.Value2": 
+		"Spectrum.Char.SpatialAxis.Coverage.Location.Value",
+	"Target.pos.spoint": "Spectrum.Target.pos",
 }
 
 def getSDM1UtypeForSSA(utype):
@@ -66,7 +72,10 @@ def getSDM1UtypeForSSA(utype):
 		return None
 	localName = utype.split(":")[-1]
 	specLocal = _SDM1_IRREGULARS.get(localName, "Spectrum."+localName)
-	return "spec:"+specLocal
+	if specLocal:
+		return "spec:"+specLocal
+	else:
+		return None
 
 
 _SDM2_IRREGULARS = {
@@ -83,9 +92,7 @@ _SDM2_IRREGULARS = {
 
 	"char.spectralaxis.samplingprecision.fillfactor":
 		"Char.SpectralAxis.SamplingPrecision.SamplingPrecisionRefval.fillFactor",
-	# TODO: I believe the next line should have CalibrationStatus and this
-	# is just a typo.
-	"char.spectralaxis.calibration": "Char.SpectralAxis.CalibStatus",
+	"char.spectralaxis.calibration": "Char.SpectralAxis.CalibrationStatus",
 	"char.spectralaxis.resolution": "Char.SpectralAxis.Resolution.refVal",
 
 	"char.timeaxis.samplingprecision.fillfactor":
@@ -152,7 +159,7 @@ SDM1_TO_SDM2_IRREGULARS = {
 	"Char.FluxAxis.Calibration": "Char.FluxAxis.CalibrationStatus",
 	"Char.SpatialAxis.Calibration": "Char.SpatialAxis.CalibrationStatus",
 	"Char.SpatialAxis.Resolution": "Char.SpatialAxis.Resolution.refVal",
-	"Char.SpectralAxis.Calibration": "Char.SpectralAxis.CalibrationSatus",
+	"Char.SpectralAxis.Calibration": "Char.SpectralAxis.CalibrationStatus",
 	"Char.SpectralAxis.Resolution": "Char.SpectralAxis.Resolution.refVal",
 	"Char.SpectralAxis.ResPower": 
 		"Char.SpectralAxis.Resolution.ResolPower.refVal",
@@ -212,7 +219,6 @@ def hackSDM1ToSDM2(data):
 	param.utype = "spec2:Dataset.DataModel.Name"
 	table.setParam(param.name, "Spectrum-2.0")
 
-	data.setMeta("utype", "spec2:Spectrum")
 	table.setMeta("utype", "spec2:Spectrum")
 	data.DACHS_SDM_VERSION = "2"
 
@@ -391,8 +397,8 @@ _SDM_HEADER_MAPPING = {
 		"SKY_FILL",
 	
 	# special handling through functions
-	"target.pos.spoint": _add_target_pos_cards,
-	"astrocoords.position2d.value2": _add_location_cards,
+	"target.pos": _add_target_pos_cards,
+	"char.spatialaxis.coverage.location.value": _add_location_cards,
 }
 
 def makeBasicSDMHeader(sdmData):

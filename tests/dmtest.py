@@ -272,7 +272,7 @@ class _ManyTablesVOT(testhelpers.TestResource):
 				_toyModel, "Mess", dm.ColumnAnnotation("comp", "c"))]
 
 		return (table, 
-			testhelpers.getXMLTree(votablewrite.getAsVOTable(table), debug=True))
+			testhelpers.getXMLTree(votablewrite.getAsVOTable(table), debug=False))
 
 	def clean(self, ignored):
 		del self.data  

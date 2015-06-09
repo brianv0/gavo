@@ -837,10 +837,10 @@ class SDMTableTest(testhelpers.VerboseTest):
 		table = votRes.xpath("//TABLE")[0]
 		self.assertEqual(table.get("utype"), "spec:Spectrum")
 
-	def testAccrefMappedAndUtype(self):
+	def testAccrefMapped(self):
 		# the product link is made in a hack in SDMCore.
 		tree = self.stringAndTree[1]
-		p = tree.xpath("//PARAM[@utype='spec:Spectrum.Access.Reference']")[0]
+		p = tree.xpath("//PARAM[@name='accref']")[0]
 		self.failUnless(p.get("value").startswith("http"))
 
 	def testDescriptionOverridden(self):
@@ -925,15 +925,13 @@ class SDM2TableTest(testhelpers.VerboseTest):
 
 	def testContainerUtypes(self):
 		tree = self.stringAndTree[1]
-		votRes = tree.xpath("//RESOURCE")[0]
-		self.assertEqual(votRes.get("utype"), "spec2:Spectrum")
-		table = votRes.xpath("//TABLE")[0]
+		table = tree.xpath("//TABLE")[0]
 		self.assertEqual(table.get("utype"), "spec2:Spectrum")
 
-	def testAccrefMappedAndUtype(self):
+	def testAccref(self):
 		# the product link is made in a hack in SDMCore.
 		tree = self.stringAndTree[1]
-		p = tree.xpath("//PARAM[@utype='spec2:Access.Reference']")[0]
+		p = tree.xpath("//PARAM[@ucd='meta.ref.url;meta.dataset']")[0]
 		self.failUnless(p.get("value").startswith("http"))
 
 	def testDescriptionOverridden(self):
