@@ -23,6 +23,7 @@ from gavo import utils
 from gavo.stc import parseSimpleSTCS
 from gavo.utils import pgsphere
 from gavo.utils import identity #noflake: exported name
+from gavo.utils import parseDefaultDatetime #noflake: exported name
 
 @utils.document
 def parseInt(literal):
@@ -94,27 +95,6 @@ def parseDefaultDate(literal):
 	if literal is None or isinstance(literal, datetime.date):
 		return literal
 	return datetime.date(*time.strptime(literal, '%Y-%m-%d')[:3])
-
-
-_SUPPORTED_DT_FORMATS =[
-	'%Y-%m-%dT%H:%M:%S',
-	'%Y-%m-%d %H:%M:%S',
-	'%Y-%m-%d',]
-
-def parseDefaultDatetime(literal):
-	if literal is None or isinstance(literal, datetime.datetime):
-		return literal
-	if literal.endswith("Z"):
-		literal = literal[:-1]
-	# just nuke fractional seconds, they're trouble with strptime.
-	literal = literal.split(".")[0]
-	for format in _SUPPORTED_DT_FORMATS:
-		try:
-			return datetime.datetime(
-				*time.strptime(literal, format)[:6])
-		except ValueError:
-			pass
-	return utils.parseISODT(literal)
 
 
 def parseDefaultTime(literal):

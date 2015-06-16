@@ -473,7 +473,7 @@ def addBasicVSElements(baseNS, VSElement):
 			_a_xsi_type = "vs:VOTableType"
 
 			def _defineType(self, type):
-				typeName, arrLen = typesystems.toVOTableConverter.convert(type)
+				typeName, arrLen, xtype = typesystems.toVOTableConverter.convert(type)
 				self.text_ = typeName
 				self(arraysize=str(arrLen))
 

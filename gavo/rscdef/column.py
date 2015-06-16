@@ -12,6 +12,7 @@ from gavo import base
 from gavo import utils
 from gavo.base import typesystems
 from gavo.utils import codetricks
+from gavo.votable import paramval
 
 __docformat__ = "restructuredtext en"
 
@@ -633,7 +634,12 @@ class ParamBase(ColumnBase):
 			self._valueCache = base.Undefined
 		else:
 			self._valueCache = base.Undefined
-			val = self._unparse(val)
+			try:
+				val = self._unparse(val)
+			except Exception:
+				base.ui.notifyWarning("Unserializable param value: %s"%repr(
+					val))
+				self.content_ = "(Not representable)"
 
 		self._valueCache = self._parse(val)
 		self.content_ = val
@@ -647,11 +653,12 @@ class ParamBase(ColumnBase):
 		The method also makes sure literal matches any constraints
 		set by a values child and raises a ValidationError if not.
 		"""
-# XXX TODO: We should probably take this from VOTable tabledata parsing
-# (and keep the __EMPTY__/__NULL__ hacks)
 		if not isinstance(literal, basestring):
 			value = literal
-	
+		
+		elif self.type=="raw":
+			value = literal
+
 		elif literal=="__NULL__" or literal=="":
 			value = None
 
@@ -664,8 +671,9 @@ class ParamBase(ColumnBase):
 				value = None
 			else:
 				try:
-					value = base.sqltypeToPython(self.type)(literal)
-
+					type, arraysize, xtype = base.sqltypeToVOTable(self.type)
+					value = paramval.getVOTParser(type, arraysize, 
+						self.xtype or xtype)(literal)
 					# make NaNs NULL here for consistent VOTable practice
 					if value!=value:
 						value = None
@@ -691,14 +699,21 @@ class ParamBase(ColumnBase):
 		this is not a string representation at all but just the python stuff.
 
 		Plus, right now, for sequences we're not doing anything.  We probably
-		should.
+		should; but we'll need to be much more careful in ContextGramar then.
 		"""
 		if isinstance(value, (list, tuple, set)):
+			# XXX TODO: fix ContextGrammar so we don't need this hack
 			return value
+
+		if self.type=="raw":
+			return value
+
 		if value is None:
 			return ""
 		else:
-			return base.pythonToLiteral(self.type)(value)
+			type, arraysize, xtype = base.sqltypeToVOTable(self.type)
+			return paramval.getVOTSerializer(type, arraysize, 
+				self.xtype or xtype)(value)
 
 
 class Param(ParamBase):

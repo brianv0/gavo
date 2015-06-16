@@ -15,7 +15,15 @@ from gavo import utils
 from gavo.utils import pgsphere
 from gavo.votable import coding
 from gavo.votable import enc_tabledata
+from gavo.votable import dec_tabledata
 from gavo.votable.model import VOTable as V
+
+try:
+	from gavo.base import valuemappers
+except ImportError:
+	# TODO: provide some fallback in case someone uses this without
+	# the full distribution
+	valuemappers = utils.NotInstalledModuleStub("gavo base distribution")
 
 
 _SEQUENCE_TYPES = (tuple, list)
@@ -139,18 +147,54 @@ def _serializeNULL(param):
 		param.value = (element*param.getLength()).strip()
 
 
+class PrimitiveAnnotatedColumn(dict):
+	"""A stand-in for valuemappers.AnnotatedColumn.
+
+	We don't want to use the full thing as it's too fat here, and
+	getVOTSerializer doesn't have the original param anyway (as
+	it shouldn't, as that would break memoization).
+	"""
+
+	class original(object):
+		stc = None
+		xtype = None
+
+	def __init__(self, datatype, arraysize, xtype):
+		dict.__init__(self, {
+			"nullvalue": "",
+			"name": "anonymous",
+			"dbtype": None,
+			"displayHint": {},
+			"note": None,
+			"ucd": None,
+			"utype": None,
+			"unit": None,
+			"description": None,
+			"id": None,
+			"datatype": datatype, 
+			"arraysize": arraysize, 
+			"xtype": xtype})
+
+
 @utils.memoized
 def getVOTSerializer(datatype, arraysize, xtype):
 	"""returns a function serializing for values of params with the
 	attributes given.
 	"""
-	return coding.buildCodec("\n".join([
+	lines = "\n".join([
 		"def codec(val):"]+
 		coding.indentList([
+			"val = mapper(val)",
 			"tokens = []"]+
 			enc_tabledata.getLinesFor(V.PARAM(**locals()))+[
-			"return tokens[0]"], "  ")),
-		enc_tabledata.getGlobals(None))
+			"return tokens[0]"], "  "))
+
+	mapper = valuemappers.defaultMFRegistry.getMapper(PrimitiveAnnotatedColumn(
+		datatype, arraysize, xtype))
+	env = enc_tabledata.getGlobals(None).copy()
+	env["mapper"] = mapper
+
+	return coding.buildCodec(lines, env)
 
 
 def serializeToParam(param, val):
@@ -163,4 +207,22 @@ def serializeToParam(param, val):
 	else:
 		param.value = getVOTSerializer(
 			param.datatype, param.arraysize, param.xtype)(val)
-		
+
+
+@utils.memoized
+def getVOTParser(datatype, arraysize, xtype):
+	"""returns a function deserializing values in a param with datatype,
+	arraysize, and xtype.
+	"""
+	p = V.PARAM(name="anonymous", datatype=datatype, arraysize=arraysize,
+		xtype=xtype)
+
+	lines = "\n".join([
+		"def codec(val):"]
+		+coding.indentList([
+			"row = []"]
+			+dec_tabledata.getLinesFor(p)
+			+[
+			"return row[0]"], "  "))
+
+	return coding.buildCodec(lines, dec_tabledata.getGlobals(None))

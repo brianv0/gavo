@@ -137,18 +137,18 @@ _registerDefaultMF(_byteaMapperFactory)
 
 def datetimeMapperFactory(colDesc):
 	import time
-
 # This is too gruesome.  We want some other way of handling this...
 # Simplify this, and kick out all the mess we don't want.
 	if (colDesc["dbtype"]=="timestamp"
 			or colDesc["dbtype"]=="date"
-			or colDesc.get("xtype")=="adql:TIMESTAMP"):
+			# must look in original, as the one in colDesc comes from typesystems
+			or colDesc.original.xtype=="adql:TIMESTAMP"):
 		unit = colDesc["unit"]
 		if (
 				unit=="Y:M:D" 
 				or unit=="Y-M-D" 
 				or colDesc["displayHint"].get("format")=="humanDate"
-				or colDesc.get("xtype")=="adql:TIMESTAMP"):
+				or colDesc.original.xtype=="adql:TIMESTAMP"):
 			fun = lambda val: (val and val.isoformat()) or None
 			destType = ("char", "*")
 			colDesc["nullvalue"] = ""
@@ -159,6 +159,7 @@ def datetimeMapperFactory(colDesc):
 			fun = lambda val: (val and stc.dateTimeToMJD(val))
 			destType = ("double", '1')
 			colDesc["nullvalue"] = "NaN"
+			colDesc["xtype"] = None
 
 		elif unit=="yr" or unit=="a":
 			fun = lambda val: (val and stc.dateTimeToJYear(val))
@@ -167,16 +168,19 @@ def datetimeMapperFactory(colDesc):
 				return str(val)
 			destType = ("double", '1')
 			colDesc["nullvalue"] = "NaN"
+			colDesc["xtype"] = None
 
 		elif unit=="d":
 			fun = lambda val: (val and stc.dateTimeToJdn(val))
 			destType = ("double", '1')
 			colDesc["nullvalue"] = "NaN"
+			colDesc["xtype"] = None
 
 		elif unit=="s":
 			fun = lambda val: (val and time.mktime(val.timetuple()))
 			destType = ("double", '1')
 			colDesc["nullvalue"] = "NaN"
+			colDesc["xtype"] = None
 
 		elif unit=="iso":
 			fun = lambda val: (val and val.isoformat())
@@ -187,6 +191,7 @@ def datetimeMapperFactory(colDesc):
 			fun = lambda val: (val and stc.dateTimeToJdn(val))
 			destType = ("double", '1')
 			colDesc["nullvalue"] = "NaN"
+			colDesc["xtype"] = None
 
 		colDesc["datatype"], colDesc["arraysize"] = destType
 		return fun
@@ -331,13 +336,13 @@ class AnnotatedColumn(object):
 			self.annotations.update(votCast)
 
 	def _initAnnotation(self):
-		type, size = typesystems.sqltypeToVOTable(self.original.type)
+		type, size, xtype = typesystems.sqltypeToVOTable(self.original.type)
 		self.annotations = {
 			"nullvalue": self.original.values and 
 				self.original.values.nullLiteral,
 			"name": self.original.key,
 			"dbtype": self.original.type,
-			"xtype": self.original.xtype,
+			"xtype": self.original.xtype or xtype,
 			"datatype": type,
 			"arraysize": size,
 			"displayHint": self.original.displayHint,

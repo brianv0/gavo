@@ -76,6 +76,7 @@
 			description="Signal-to-noise ratio estimated for this dataset"/>
 		<column name="ssa_location" type="spoint"
 			utype="stc:AstroCoords.Position2D.Value2"
+			xtype="adql:POINT"
 			ucd="pos.eq"
 			verbLevel="5" tablehead="Location"
 			description="ICRS location of aperture center" unit="deg"/>
@@ -868,7 +869,7 @@
 			<events>
 				<condDesc id="\keyName\+_cond">
 					<inputKey original="//ssap#instance.\matchCol" name="\keyName"
-						type="text" std="True" multiplicity="single"/>
+						type="text" xtype="" std="True" multiplicity="single"/>
 					<phraseMaker procDef="\procDef">
 						<bind name="consCol">"\matchCol"</bind>
 					</phraseMaker>

@@ -102,7 +102,7 @@ class SyncTest(trialhelpers.ArchiveTest):
 		return self.assertGETHasStrings("/data/ssatest/dl/dlget", {
 				"FORMAT": "application/x-votable+xml;content=spec2",
 				"ID": "ivo://test.inv/test2"},
-			["spec2:Char.Coverage.Location.Value",
+			["spec2:Char.SpatialAxis.Coverage.Location.Value",
 			"1908.0"])
 	
 	def testAvailability(self):

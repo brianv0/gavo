@@ -340,9 +340,9 @@ class GetDataTest(_WithSSATableTest):
 		self.assertEqual(tree.xpath("//PARAM[@utype="
 			"'spec:Spectrum.Char.SpectralAxis.Coverage.Bounds.Start']"
 			)[0].get("value"), "1.927e-07")
-		self.assertEqual(tree.xpath("//PARAM[@utype="
+		self.assertAlmostEqual(float(tree.xpath("//PARAM[@utype="
 			"'spec:Spectrum.Char.SpectralAxis.Coverage.Bounds.Extent']"
-			)[0].get("value"), "1e-10")
+			)[0].get("value")), 1e-10)
 
 	def testEmptyCutoutFails(self):
 		mime, payload = self.runService("c", 
@@ -509,9 +509,9 @@ class SDMDatalinkTest(_WithSSATableTest):
 		self.assertEqual(tree.xpath("//PARAM[@utype="
 			"'spec:Spectrum.Char.SpectralAxis.Coverage.Bounds.Start']"
 			)[0].get("value"), "1.927e-07")
-		self.assertEqual(tree.xpath("//PARAM[@utype="
+		self.assertAlmostEqual(float(tree.xpath("//PARAM[@utype="
 			"'spec:Spectrum.Char.SpectralAxis.Coverage.Bounds.Extent']"
-			)[0].get("value"), "1e-10")
+			)[0].get("value")), 1e-10)
 
 	def testEmptyCutoutFails(self):
 		res = self.runService("dl", {"ID": 'ivo://test.inv/test1', 
@@ -894,6 +894,12 @@ class SDM2TableTest(testhelpers.VerboseTest):
 		self.assertEqual(len(resSet), 1)
 		return resSet[0]
 
+	def testPosition(self):
+		res = self._getUniqueByXPath(
+			"//PARAM[@utype='spec2:Char.SpatialAxis.Coverage.Location.Value']")
+		self.assertEqual(res.get('value'), 
+			'Position UNKNOWNFrame 10.9999999989 14.0000000012')
+
 	def testParameterSet(self):
 		res = self._getUniqueByXPath(
 			"//PARAM[@utype='spec2:DataID.DatasetID']")
@@ -969,7 +975,6 @@ class SDM2TableTest(testhelpers.VerboseTest):
 		p = self.stringAndTree[1].xpath(
 			"//PARAM[@utype='spec2:Dataset.DataModel.Name']")[0]
 		self.assertEqual(p.get("value"), "Spectrum-2.0")
-
 
 
 class _RenderedSDMFITSResponse(testhelpers.TestResource):

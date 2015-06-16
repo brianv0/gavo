@@ -14,7 +14,6 @@ import tempfile
 import urllib2
 
 from . import codetricks
-from . import excs
 from . import misctricks
 
 
@@ -172,16 +171,3 @@ def ensureDir(dirPath, mode=None, setGroupTo=None):
 		os.chmod(dirPath, mode)
 	if setGroupTo:
 		os.chown(dirPath, -1, setGroupTo)
-
-
-class NotInstalledModuleStub(object):
-	"""A stub that raises some more or less descriptive error on attribute
-	access.
-
-	This is used in some places no replace non-essential modules.
-	"""
-	def __init__(self, modName):
-		self.modName = modName
-
-	def __getattr__(self, name):
-		raise excs.NotFoundError(self.modName, "module", "this system")

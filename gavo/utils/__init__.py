@@ -48,7 +48,8 @@ from gavo.utils.misctricks import (Undefined, QuotedName, getfirst,
 	logOldExc, sendUIEvent, pyparsingWhitechars, getWithCache,
 	rstxToHTML, rstxToHTMLWithWarning, 
 	pyparseString, pyparseTransform, parseKVLine, makeKVLine,
-	StreamBuffer, CaseSemisensitiveDict)
+	StreamBuffer, CaseSemisensitiveDict,
+	NotInstalledModuleStub)
 
 from gavo.utils.ostricks import (safeclose, urlopenRemote, 
 	fgetmtime, cat, ensureDir, safeReplaced)
@@ -60,7 +61,7 @@ from gavo.utils.stanxml import (ElementTree, xmlrender,
 
 from gavo.utils.texttricks import (formatSize, makeEllipsis, floatRE, 
 	dateRE, datetimeRE, identifierPattern,
-	datetimeToRFC2616, 
+	datetimeToRFC2616, parseDefaultDatetime,
 	isoTimestampFmt, isoTimestampFmtNoTZ, parseISODT, formatISODT,
 	formatRFC2616Date, parseRFC2616Date,
 	fixIndentation, parsePercentExpression, hmsToDeg, dmsToDeg,

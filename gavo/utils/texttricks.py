@@ -434,6 +434,27 @@ def parseISODT(literal):
 		int(parts["seconds"]), int(float(parts["secFracs"])*1000000))
 
 
+_SUPPORTED_DT_FORMATS =[
+	'%Y-%m-%dT%H:%M:%S',
+	'%Y-%m-%d %H:%M:%S',
+	'%Y-%m-%d',]
+
+def parseDefaultDatetime(literal):
+	if literal is None or isinstance(literal, datetime.datetime):
+		return literal
+	if literal.endswith("Z"):
+		literal = literal[:-1]
+	# just nuke fractional seconds, they're trouble with strptime.
+	literal = literal.split(".")[0]
+	for format in _SUPPORTED_DT_FORMATS:
+		try:
+			return datetime.datetime(
+				*time.strptime(literal, format)[:6])
+		except ValueError:
+			pass
+	return parseISODT(literal)
+
+
 def formatISODT(dt):
 	"""returns some ISO8601 representation of a datetime instance.
 

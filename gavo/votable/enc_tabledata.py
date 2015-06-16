@@ -110,19 +110,11 @@ def _makeCharEncoder(field):
 	else:
 		# TODO: string conditioning must be done for array elements, too
 		# -- this whole thing isn't structured right.
-		if field.xtype=="adql:TIMESTAMP":
-			src.extend([
-				"if isinstance(val, datetime.datetime):",
-				"  val = utils.formatISODT(val)"])
-		if field.xtype=="adql:POINT":
-			src.extend([
-				"if isinstance(val, pgsphere.SPoint):",
-				"  val = val.asSTCS('UnknownFrame')"])
-
 		if field.datatype=="char":
-				src.extend([
-					'if isinstance(val, unicode):',
-					'  val = val.encode("ascii", "replace")'])
+			src.extend(common.getXtypeCode(field))
+			src.extend([
+				'if isinstance(val, unicode):',
+				'  val = val.encode("ascii", "replace")'])
 
 		src.extend([
 			"tokens.append(stanxml.escapePCDATA(val))"])

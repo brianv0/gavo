@@ -558,6 +558,12 @@ class ParamTest(testhelpers.VerboseTest):
 			'<param name="foo" type="text" required="True">__EMPTY__</param>')
 		self.assertEqual(par.value, '')
 
+	def testSpoint(self):
+		par = base.parseFromString(rscdef.Param,
+			'<param name="foo" type="text" xtype="adql:POINT">'
+				'position ICRS 10 12</param>')
+		self.assertAlmostEqual(par.value.x, 0.1745329251994)
+
 
 class GroupTest(testhelpers.VerboseTest):
 	def testBasicColumn(self):

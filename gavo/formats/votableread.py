@@ -240,7 +240,7 @@ def _getRowMaker(table):
 	parts = []
 	for colInd, col in enumerate(table.tableDef):
 		if _xtypeParsers.get(col.xtype):
-			valCode = "%s(row[%d])"%(_xtypeParsers[col.xtype], colInd)
+			valCode = "%s(row[%d]) if isinstance(row[%d], basestring) else row[%d]"%(_xtypeParsers[col.xtype], colInd, colInd, colInd)
 		else:
 			valCode = "row[%d]"%colInd
 		parts.append("%s: %s"%(repr(col.key), valCode))

@@ -86,6 +86,28 @@ def iterflattened(arr):
 			yield val
 
 
+def getXtypeCode(field):
+	"""returns code that will stringify values of field depending on its
+	xtype.
+
+	For None or unknown xtypes, this will return an empty list.  Otherwise,
+	it expects the value in a local variable val and will leave the transformed
+	value there.
+	"""
+	if field.xtype=="adql:TIMESTAMP":
+		return [
+			"if isinstance(val, datetime.datetime):",
+			"  val = utils.formatISODT(val)"]
+
+	elif field.xtype in ["adql:POINT", "adql:REGION"]:
+		return [
+			"if isinstance(val, pgsphere.PgSAdapter):",
+			"  val = val.asSTCS('UNKNOWNFrame')"]
+
+	else:
+		return []
+
+
 class NULLFlags(object):
 	"""an interface to the BINARY2 NULL flags.
 

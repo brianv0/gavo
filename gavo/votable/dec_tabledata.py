@@ -10,9 +10,16 @@ Coding and decoding from tabledata.
 
 import re #noflake: used by generated code
 
+from gavo.utils import parseDefaultDatetime  #noflake: used by generated code
 from gavo.votable import coding
 from gavo.votable import common
 from gavo.votable.model import VOTable
+
+try:
+	from gavo import stc  #noflake: used by generated code
+except ImportError:
+	# see modelgroups
+	pass
 
 
 # literals for TDENC booleans
@@ -119,6 +126,37 @@ def _makeIntDecoder(field, maxInt):
 	return _addNullvalueCode(field, src, common.validateVOTInt)
 
 
+def _makeXtypeDecoder(field):
+	"""returns a decoder for fields with non-empty xtypes.
+
+	All of these come in strings and are NULL if empty.
+	"""
+	src = [
+		"if not val:",
+		"  val = None",
+		"else:"]
+
+	if field.xtype=="adql:POINT":
+		src.extend([
+			"  val = stc.parseSimpleSTCS(val)"])
+
+	elif field.xtype=="adql:REGION":
+		src.extend([
+			"  val = stc.simpleSTCSToPolygon(val)"])
+
+	elif field.xtype=="adql:TIMESTAMP":
+		src.extend([
+			"  val = parseDefaultDatetime(val)"])
+	
+	else:
+		# unknown xtype, just don't touch it (issue a warning?)
+		src.extend([
+			"  pass"])
+
+	src.append("row.append(val)")
+	return src
+
+
 def _makeCharDecoder(field, emptyIsNull=True):
 	"""parseString enables return of empty string (as opposed to None).
 	"""
@@ -133,6 +171,7 @@ def _makeCharDecoder(field, emptyIsNull=True):
 			'if val is None:',
 			'  val = ""'])	
 	nullvalue = coding.getNullvalue(field, str, "")
+
 	if nullvalue:
 		src.extend([
 			'if val==%s:'%repr(nullvalue),
@@ -178,8 +217,12 @@ def _getArrayDecoderLines(field):
 	"""
 	type = field.datatype
 
+	if field.xtype:
+		return _makeXtypeDecoder(field)
+
 	if type=='char' or type=='unicodeChar':
 		return _makeCharDecoder(field, emptyIsNull=True)
+
 	src = [ # OMG.  I'm still hellbent on not calling functions here.
 		'arrayLiteral = val',
 		'fullRow, row = row, []',

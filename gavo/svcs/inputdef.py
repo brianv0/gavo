@@ -96,7 +96,7 @@ class InputKey(column.ParamBase):
 			" ignored, and the values are what nevow formal passes in."
 			" If not given, it is single unless there is a values element with"
 			" options, in which case it's multiple.")
-
+	
 	# Don't validate meta for these -- while they are children
 	# of validated structures (services), they don't need any
 	# meta at all.  This should go as soon as we have a sane
@@ -217,6 +217,7 @@ class ContextRowIterator(grammars.RowIterator):
 	"""is a row iterator over "contexts", i.e. single dictionary-like objects.
 	"""
 	def __init__(self, grammar, sourceToken, **kwargs):
+		self.locator = "(internal)"
 		grammars.RowIterator.__init__(self, grammar,
 			utils.CaseSemisensitiveDict(sourceToken),
 			**kwargs)
@@ -251,6 +252,7 @@ class ContextRowIterator(grammars.RowIterator):
 			sequences = []
 
 			for ik in self.grammar.iterInputKeys():
+				self.locator = "param %s"%ik.name
 				if ik.name==self.grammar.rowKey:
 					continue
 
@@ -262,7 +264,8 @@ class ContextRowIterator(grammars.RowIterator):
 						self.grammar.defaults.get(ik.name))))
 				else:
 					sequences.append((ik.name, itertools.repeat(val)))
-			
+
+			self.locator = "(internal)"
 			inSeq = self.sourceToken[self.grammar.rowKey]
 			if not isinstance(inSeq, list):
 				inSeq = [inSeq]
@@ -277,7 +280,7 @@ class ContextRowIterator(grammars.RowIterator):
 		return self._completeRow(self.sourceToken)
 	
 	def getLocator(self):
-		return "Context input"
+		return self.locator
 
 
 class ContextGrammar(grammars.Grammar):

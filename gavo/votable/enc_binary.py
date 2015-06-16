@@ -10,6 +10,7 @@ Binary VOTable encoding.
 
 import struct
 
+from gavo.utils import pgsphere  #noflake: used by generated code
 from gavo.votable import coding
 from gavo.votable import common
 
@@ -154,9 +155,9 @@ def _makeCharEncoder(field):
 	nullvalue = coding.getNullvalue(field, lambda _: True)
 	if nullvalue is not None:
 		nullvalue = repr(struct.pack("c", str(nullvalue)))
+
 	return _addNullvalueCode(field, nullvalue, [
 		"tokens.append(struct.pack('c', str(val)))"])
-
 
 def _makeUnicodeCharEncoder(field):
 	nullvalue = coding.getNullvalue(field, lambda _: True)
@@ -185,6 +186,7 @@ def _makeCharArrayEncoder(field):
 			'  val = val.encode("ascii", "replace")'])
 
 	if field.hasVarLength():
+		src.extend(common.getXtypeCode(field))
 		src.append("tokens.append(struct.pack('!i', len(val)))")
 		if nullvalue is None:
 			nullvalue = repr('\0\0\0\0')

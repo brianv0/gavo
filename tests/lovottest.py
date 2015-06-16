@@ -1062,6 +1062,7 @@ class ParamValueSerializationTest(testhelpers.SimpleSampleComparisonTest):
 		(("char", "4x*", ["foobar", "wo", "nnnn"]), "foobwo  nnnn"),
 		(("int", "2x3x4", range(24)), '0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23'),
 		(("double", None, 0.25), "0.25"),
+		(("double", "2", [0.25, 1]), "0.25 1.0"),
 	]
 
 	def testDatetimeValue(self):
@@ -1082,7 +1083,8 @@ class ParamValueSerializationTest(testhelpers.SimpleSampleComparisonTest):
 			xtype="adql:POINT")
 		votable.serializeToParam(param, 
 			pgsphere.SPoint.fromDegrees(10, 12))
-		self.assertEqual(param.value, "Position UnknownFrame 10. 12.")
+		self.assertEqual(param.value, "Position UNKNOWNFrame 10. 12.")
+
 
 if __name__=="__main__":
 	testhelpers.main(BinaryReadTest)

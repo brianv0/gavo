@@ -17,6 +17,13 @@ Version 0.9.5 (2015-)
 		values (which would look like "10e-10 L" or so), the DaCHS authors
 		currently consider that a waste of time.
 
+	* Possible service breakage: We're now using VOTable tabledata parsers
+	  to parse the values of PARAMs; the same code is used to parse HTTP
+	  parameters.  If you define custom InputKeys and got metadata slightly
+	  wrong, these services might fail now.  If you have InputKeys anywhere
+	  in your RDs, make sure the corresponding services still behave as
+	  expected.
+
 	* Sidebar style has changed; actually removed the old support code, so
 	  the old behaviour cannot be restored by templates and javascript alone,
 	  but I'd be happy to provide you with the necessary hooks.

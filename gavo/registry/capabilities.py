@@ -26,7 +26,7 @@ from gavo.registry.model import (VOR, VOG, VS, SIA, SCS, SSAP, TR)
 def _getParamFromColumn(column, rootElement, typeFactory):
 	"""helper for get[Table|Input]ParamFromColumn.
 	"""
-	type, length = typesystems.sqltypeToVOTable(column.type)
+	type, length, xtype = typesystems.sqltypeToVOTable(column.type)
 	return rootElement[
 			VS.name[column.name],
 			VS.description[column.description],

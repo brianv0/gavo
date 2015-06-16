@@ -89,46 +89,46 @@ class ToVOTableConverter(FromSQLConverter):
 	typeSystem = "VOTable"
 
 	simpleMap = {
-		"smallint": ("short", "1"),
-		"integer": ("int", "1"),
-		"bigint": ("long", "1"),
-		"real": ("float", "1"),
-		"boolean": ("boolean", "1"),
-		"double precision": ("double", "1"),
-		"text": ("char", "*"),
-		"char": ("char", "1"),
-		"date": ("char", "*"),
-		"timestamp": ("char", "*"),
-		"time": ("char", "*"),
-		"box": ("double", "*"),
-		"vexpr-mjd": ("double", "1"),
-		"vexpr-string": ("char", "*"),
-		"vexpr-date": ("char", "*"),
-		"vexpr-float": ("double", "1"),
-		"file": ("bytea", "*"),  # this is for (lame) metadata generation
-		"pql-float": ("double", "1"),
-		"pql-string": ("char", "*"),
-		"pql-date": ("char", "*"),
-		"pql-int": ("int", "1"),
-		"pql-upload": ("char", "*"),  # (the upload parameter)
-		"raw": ("unsignedByte", "*"),
-		"bytea": ("unsignedByte", "1"),
-		"spoint": ("char", "*"),  # client code would need to deal with xtype.
-		"scircle": ("char", "*"),
-		"sbox": ("char", "*"),
-		"spoly": ("char", "*"),
-		"unicode": ("unicodeChar", "*"),
+		"smallint": ("short", "1", None),
+		"integer": ("int", "1", None),
+		"bigint": ("long", "1", None),
+		"real": ("float", "1", None),
+		"boolean": ("boolean", "1", None),
+		"double precision": ("double", "1", None),
+		"text": ("char", "*", None),
+		"char": ("char", "1", None),
+		"date": ("char", "*", None),
+		"timestamp": ("char", "*", "adql:TIMESTAMP"),
+		"time": ("char", "*", None),
+		"box": ("double", "*", None),
+		"vexpr-mjd": ("char", "*", None),
+		"vexpr-string": ("char", "*", None),
+		"vexpr-date": ("char", "*", None),
+		"vexpr-float": ("char", "*", None),
+		"file": ("bytea", "*", None),  # this is for (lame) metadata generation
+		"pql-float": ("char", "*", None),
+		"pql-string": ("char", "*", None),
+		"pql-date": ("char", "*", None),
+		"pql-int": ("char", "*", None),
+		"pql-upload": ("char", "*", None),  # (the upload parameter)
+		"raw": ("unsignedByte", "*", None),
+		"bytea": ("unsignedByte", "1", None),
+		"spoint": ("char", "*", "adql:POINT"),
+		"scircle": ("char", "*", "adql:REGION"),
+		"sbox": ("char", "*", "adql:REGION"),
+		"spoly": ("char", "*", "adql:REGION"),
+		"unicode": ("unicodeChar", "*", None),
 	}
 
 	def mapComplex(self, type, length):
 		if length=='':
 			length = '*'
 		if type in self._charTypes:
-			return "char", length
+			return "char", length, None
 		elif length!=1 and length!='1' and type=="bytea":
-			return ("unsignedByte", '*')
+			return ("unsignedByte", '*', None)
 		elif type in self.simpleMap:
-			return self.simpleMap[type][0], length
+			return self.simpleMap[type][0], length, None
 
 
 class FromVOTableConverter(object):

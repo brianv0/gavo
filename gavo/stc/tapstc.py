@@ -21,7 +21,8 @@ from gavo.utils import pgsphere
 
 
 TAP_SYSTEMS = set(
-	['ICRS', 'FK4', 'FK5', 'GALACTIC', 'RELOCATABLE', 'UNKNOWN', '', "BROKEN"])
+	['ICRS', 'FK4', 'FK5', 'GALACTIC', 'RELOCATABLE', 'UNKNOWN', '', "BROKEN",
+		"UNKNOWNFrame"])
 
 # universally ignored
 TAP_REFPOS = set(
@@ -254,6 +255,9 @@ def getSimpleSTCSParser():
 	def parse(s):
 		if s is None or not s.strip(): # special service: Null values
 			return None
+		if isinstance(s, pgsphere.PgSAdapter):
+			return s
+
 		try:
 			res = utils.pyparseString(region, s, parseAll=True)[0]
 			if not res.cooSys or res.cooSys.lower()=='unknownframe':  # Sigh.
