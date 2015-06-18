@@ -623,6 +623,8 @@ def makeSDMVOT(table, **votContextArgs):
 class SDMCore(svcs.Core):
 	"""A core for making (VO)Tables according to the Spectral Data Model.
 
+	Do *not* use this any more, use datalink to do this.
+
 	Here, the input table consists of the accref of the data to be generated.
 	The data child of an SDMVOTCore prescribes how to come up with the
 	table.  The output table is the (primary) table of the data instance.
