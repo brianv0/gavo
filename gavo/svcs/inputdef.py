@@ -136,6 +136,16 @@ class InputKey(column.ParamBase):
 		"""
 		self._parse(literal)
 
+	def _unparse(self, value):
+		# we need to override this as ContextGrammar is currently
+		# written to require lists to go through unchanged.  We
+		# should really fix this.
+		if isinstance(value, (list, tuple, set)):
+			return value
+
+		else:
+			return column.ParamBase._unparse(self, value)
+
 	@classmethod
 	def fromColumn(cls, column, **kwargs):
 		"""returns an InputKey for query input to column.

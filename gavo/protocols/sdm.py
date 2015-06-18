@@ -241,10 +241,23 @@ def makeSDMDataForSSARow(ssaRow, spectrumData,
 	resTable = resData.getPrimaryTable()
 	resTable.setMeta("description",
 		"Spectrum from %s"%products.makeProductLink(ssaRow["accref"]))
+
 	# fudge accref  into a full URL
 	resTable.setParam("accref",
 		products.makeProductLink(resTable.getParam("accref")))
 	resData.DACHS_SDM_VERSION = sdmVersion
+
+	# fudge spoint params into 2-arrays
+	for param in resTable.iterParams():
+		# Bad, bad: In-place changes; we should think how such things
+		# can be done better in a rewrite
+		if param.type=="spoint":
+			val = param.value
+			param.type = "double precision(2)"
+			param.xtype = None
+			param.unit = "deg"
+			if val:
+				param.set([val.x/utils.DEG, val.y/utils.DEG])
 
 	if sdmVersion=="2":
 		hackSDM1ToSDM2(resData)
@@ -284,8 +297,8 @@ def _add_target_pos_cards(header, par):
 def _add_location_cards(header, par):
 	"""_SDM_HEADER_MAPPING for target.pos.
 	"""
-	header.update("RA", par.value.x/utils.DEG)
-	header.update("DEC", par.value.y/utils.DEG)
+	header.update("RA", par.value[0])
+	header.update("DEC", par.value[1])
 
 
 # A mapping from utypes to the corresponding FITS keywords

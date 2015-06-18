@@ -898,7 +898,7 @@ class SDM2TableTest(testhelpers.VerboseTest):
 		res = self._getUniqueByXPath(
 			"//PARAM[@utype='spec2:Char.SpatialAxis.Coverage.Location.Value']")
 		self.assertEqual(res.get('value'), 
-			'Position UNKNOWNFrame 10.9999999989 14.0000000012')
+			'10.9999999989 14.0000000012')
 
 	def testParameterSet(self):
 		res = self._getUniqueByXPath(

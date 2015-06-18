@@ -254,6 +254,19 @@ class SSAPCore(svcs.DBCore):
 		for row in resultTable:
 			row[previewName] = row["accref"]+"?preview=True"
 
+	def getQueryCols(self, service, queryMeta):
+		"""changes our spoint columns to array[2] as required by SSA.
+		"""
+		cols = []
+		for col in svcs.DBCore.getQueryCols(self, service, queryMeta):
+			if col.type=="spoint":
+				cols.append(col.change(xtype=None, type="double precision(2)",
+					select="array[degrees(long(%s)),degrees(lat(%s))]"%(
+						col.name, col.name)))
+			else:
+				cols.append(col)
+		return cols
+
 	def _run_queryData(self, service, inputTable, queryMeta):
 		format = inputTable.getParam("FORMAT") or ""
 		if format.lower()=="metadata":

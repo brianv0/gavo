@@ -701,10 +701,6 @@ class ParamBase(ColumnBase):
 		Plus, right now, for sequences we're not doing anything.  We probably
 		should; but we'll need to be much more careful in ContextGramar then.
 		"""
-		if isinstance(value, (list, tuple, set)):
-			# XXX TODO: fix ContextGrammar so we don't need this hack
-			return value
-
 		if self.type=="raw":
 			return value
 
