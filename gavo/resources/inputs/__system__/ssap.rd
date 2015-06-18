@@ -41,7 +41,7 @@
 			xtype="adql:TIMESTAMP"/>
 		<column name="ssa_pdate" type="timestamp"
 			utype="ssa:Curation.Date"
-			tablehead="Pub. Date" verbLevel="25" 
+			tablehead="Pub. Date" verbLevel="15" 
 			description="Date last published."
 			xtype="adql:TIMESTAMP"/>
 		<column name="ssa_bandpass" type="text"
@@ -51,7 +51,7 @@
 			use something generic like 'Optical' here."/>
 		<column name="ssa_cversion" type="text"
 			utype="ssa:DataID.Version" ucd="meta.version;meta.dataset"
-			tablehead="C. Version" verbLevel="25" 
+			tablehead="C. Version" verbLevel="15" 
 			description="Creator assigned version for this dataset (will be 
 				incremented when this particular item is changed)."/>
 		<column name="ssa_targname" type="text" required="True"
@@ -60,19 +60,19 @@
 			description="Common name of object observed."/>
 		<column name="ssa_targclass" type="text"
 			utype="ssa:Target.Class" ucd="src.class"
-			tablehead="Ob. cls" verbLevel="25"
+			tablehead="Ob. cls" verbLevel="15"
 			description="Object class (star, QSO,...)"/>
 		<column name="ssa_redshift" 
 			utype="ssa:Target.Redshift" ucd="src.redshift"
-			tablehead="z" verbLevel="25"
+			tablehead="z" verbLevel="15"
 			description="Redshift of target object"/>
 		<column name="ssa_targetpos" type="spoint"
 			utype="ssa:Target.pos.spoint" ucd="pos.eq;src"
-			tablehead="Obj. pos" verbLevel="25"
+			tablehead="Obj. pos" verbLevel="15"
 			description="Equatorial (ICRS) position of the target object."/>
 		<column name="ssa_snr" 
 			utype="ssa:Derived.SNR" ucd="stat.snr"
-			tablehead="SNR" verbLevel="25"
+			tablehead="SNR" verbLevel="15"
 			description="Signal-to-noise ratio estimated for this dataset"/>
 		<column name="ssa_location" type="spoint"
 			utype="stc:AstroCoords.Position2D.Value2"
