@@ -237,7 +237,9 @@ def makeSDMDataForSSARow(ssaRow, spectrumData,
 
 	You'll usually use this via //datalink#sdm_genData
 	"""
-	resData = rsc.makeData(spectrumData, forceSource=ssaRow)
+	with base.getTableConn() as conn:
+		resData = rsc.makeData(spectrumData, forceSource=ssaRow,
+			connection=conn)
 	resTable = resData.getPrimaryTable()
 	resTable.setMeta("description",
 		"Spectrum from %s"%products.makeProductLink(ssaRow["accref"]))
@@ -601,6 +603,8 @@ def mangle_fluxcalib(sdmTable, newCalib):
 				row[errorName] = row[errorName]/normalizer
 
 		sdmTable.setParam("ssa_fluxcalib", "RELATIVE")
+		sdmTable.tableDef = sdmTable.tableDef.copy(sdmTable.tableDef.parent)
+		sdmTable.tableDef.getColumnByName("flux").unit = ""
 		return sdmTable
 		
 	raise base.ValidationError("Do not know how to turn a %s spectrum"
