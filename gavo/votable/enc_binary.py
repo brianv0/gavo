@@ -8,6 +8,7 @@ Binary VOTable encoding.
 #c COPYING file in the source distribution.
 
 
+import datetime #noflake: used in generated code
 import struct
 
 from gavo.utils import pgsphere  #noflake: used by generated code

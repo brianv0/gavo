@@ -1422,7 +1422,7 @@ class InUnitFunction(FieldInfoedNode):
 	
 	def addFieldInfo(self, context):
 		try:
-			from gavo.base import computeConversionFactor, IncompatibleUnits
+			from gavo.base import computeConversionFactor, IncompatibleUnits, BadUnit
 		except ImportError:
 			raise utils.ReportableError("in_unit only available with gavo.base"
 				" installed")
@@ -1433,6 +1433,8 @@ class InUnitFunction(FieldInfoedNode):
 			self.fieldInfo = self.expr.fieldInfo.change(unit=self.unit)
 		except IncompatibleUnits, msg:
 			raise common.Error("in_unit error: %s"%msg)
+		except BadUnit, msg:
+			raise common.Error("Bad unit passed to in_unit: %s"%msg)
 	
 	def flatten(self):
 		if self.conversionFactor is None:

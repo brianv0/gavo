@@ -321,6 +321,8 @@ def mapADQLErrors(excType, excValue, excTb):
 	elif isinstance(excValue, adql.AmbiguousColumn):
 		raise base.ui.logOldExc(base.ValidationError("%s needs to be qualified."%
 			unicode(excValue), "query"))
+	elif isinstance(excValue, adql.Error):
+		raise base.ui.logOldExc(base.ValidationError(unicode(excValue), "query"))
 	else:
 		svcs.mapDBErrors(excType, excValue, excTb)
 
