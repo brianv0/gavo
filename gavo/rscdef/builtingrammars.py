@@ -30,6 +30,7 @@ GRAMMAR_REGISTRY = {
 	"fitsProdGrammar": ("grammars.fitsprodgrammar", "FITSProdGrammar"),
 	"freeREGrammar": ("grammars.freeregrammar", "FreeREGrammar"),
 	"keyValueGrammar": ("grammars.kvgrammar", "KeyValueGrammar"),
+	"mySQLDumpGrammar": ("grammars.mysqldumpgrammar", "MySQLDumpGrammar"),
 	"nullGrammar": ("grammars.common", "NullGrammar"),
 	"pdsGrammar": ("grammars.pdsgrammar", "PDSGrammar"),
 	"reGrammar": ("grammars.regrammar", "REGrammar"),

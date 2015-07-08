@@ -91,7 +91,7 @@ def main():
 			default=False)
 		parser.add_option("-D", "--dumpIngestees", help="Dump processed"
 			" rows as emitted by the row makers.", dest="dumpIngestees",
-			action="store_true", default="False")
+			action="store_true", default=False)
 		parser.add_option("-R", "--redoIndex", help="Drop indices before"
 			" updating a table and recreate them when done", dest="dropIndices",
 			action="store_true", default=False)
