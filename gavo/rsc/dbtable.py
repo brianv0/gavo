@@ -224,7 +224,11 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 		if not self.exists():
 			return
 		self._dropForeignKeys()
-		self._dropPrimaryKey()
+# Don't drop the primary key for now -- foreign key relationships may
+# depend on it, and postgres doesn't seem to mind if we just create it later.
+# This is presumably still bad if someone changed the primary key.  Let's
+# worry about it then.
+#		self._dropPrimaryKey()
 		for index in self.tableDef.indices:
 			index.drop(self)
 		return self
