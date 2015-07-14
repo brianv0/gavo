@@ -220,13 +220,6 @@ def makeDDForVOTable(tableId, vot, gunzip=False, rd=None, **moreArgs):
 		makes=makes)
 
 
-_xtypeParsers = {
-	'adql:POINT': "parseSimpleSTCS",
-	'adql:REGION': "simpleSTCSToPolygon",
-	'adql:TIMESTAMP': "parseDefaultDatetime",
-}
-
-
 def _getRowMaker(table):
 	"""returns a function turning a VOTable tuple to a database row
 	for table.
@@ -239,10 +232,7 @@ def _getRowMaker(table):
 
 	parts = []
 	for colInd, col in enumerate(table.tableDef):
-		if _xtypeParsers.get(col.xtype):
-			valCode = "%s(row[%d]) if isinstance(row[%d], basestring) else row[%d]"%(_xtypeParsers[col.xtype], colInd, colInd, colInd)
-		else:
-			valCode = "row[%d]"%colInd
+		valCode = "row[%d]"%colInd
 		parts.append("%s: %s"%(repr(col.key), valCode))
 
 	return utils.compileFunction(
