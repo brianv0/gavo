@@ -298,6 +298,15 @@ class CSVGrammarTest(testhelpers.VerboseTest):
 		self.assertEqual(recs, [
 			{"la": '1', "le": '2', "lu": "schaut"}])
 
+	def testWithPreFilter(self):
+		grammar = base.parseFromString(rscdef.getGrammar("csvGrammar"),
+			'<csvGrammar preFilter="zcat"/>')
+		recs = getCleaned(grammar.parse(StringIO(
+			'\x1f\x8b\x08\x08\xb7\xd2\xa4U\x00\x03zw.txt\x00\xcbI\xd4\xc9I'
+			'\xd5\xc9)\xe52\xd41\xd2)N\xceH,-\xe1\x02\x00S@8\x1f\x14\x00\x00\x00')))
+		self.assertEqual(recs, [
+			{"la": '1', "le": '2', "lu": "schaut"}])
+
 
 class ColDefTest(testhelpers.VerboseTest):
 	def testSimple(self):

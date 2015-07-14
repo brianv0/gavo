@@ -148,6 +148,13 @@ class FilteredInputFile(object):
 			else:
 				return val
 
+	def __iter__(self):
+		while True:
+			res = self.readline()
+			if not res:
+				break
+			yield res
+
 	def close(self):
 		if self.process.returncode is None:
 			self.process.terminate()
