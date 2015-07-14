@@ -40,7 +40,7 @@ class SemiStingyPlainUI(StingyPlainUI):
 	"""
 	@listensTo("Warning")
 	def printWarning(self, message):
-		self.showMsg(message)
+		self.showMsg("** WARNING: "+message)
 
 
 class PlainUI(SemiStingyPlainUI):

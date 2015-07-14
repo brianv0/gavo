@@ -520,9 +520,16 @@ def makeDependentsFor(dds, parseOptions, connection):
 
 	# note that the original DD is the first item in the build sequence,
 	# and we don't want to re-make it here
-	for dd in buildSequence[1:]:
-		base.ui.notifyInfo("Making dependent %s"%dd.id)
-		makeData(dd, parseOptions=parseOptions, connection=connection)
+	if parseOptions.metaOnly:
+		if len(buildSequence)>1:
+			base.ui.notifyWarning("Only importing metadata, not rebulding"
+				" dependencies.  Depending on your changes, it may be"
+				" necessary to manually re-make one of these: %s"%
+				", ".join(dd.id for dd in buildSequence[1:]))
+	else:
+		for dd in buildSequence[1:]:
+			base.ui.notifyInfo("Making dependent %s"%dd.id)
+			makeData(dd, parseOptions=parseOptions, connection=connection)
 
 
 def makeDataById(ddId, parseOptions=common.parseNonValidating,

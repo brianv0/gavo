@@ -116,7 +116,7 @@ def TTtoTAI(tdt):
 
 @utils.document
 def TAItoTT(tai):
-	"""returns TAI for a (datetime.datetime) TDT.
+	"""returns TDT for a (datetime.datetime) TAI.
 	"""
 	return tai-_TDTminusTAI
 

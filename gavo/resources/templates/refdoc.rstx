@@ -1276,7 +1276,7 @@ the RDs that had failed tests for closer inspection.
 
 It is recommended to run something like::
   
-  ``gavo val -tv ALL``
+  gavo val -tv ALL
 
 before committing changes into your inputs repository.  That way,
 regressions should be caught.
