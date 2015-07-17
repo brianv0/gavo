@@ -152,12 +152,19 @@ def _getErrorInfo(votString):
 	"""returns the message from a TAP error VOTable.
 
 	if votString is not a TAP error VOTable, it is returned verbatim.
+
+	TODO: For large responses, this may take a while.  It's probably
+	not worth it in such cases.  Or at all.  Maybe we should  hunt
+	for the INFO somewhere else?
 	"""
 	try:
 		for el in parser.parseString(votString, watchset=[V.INFO]):
 			if isinstance(el, V.INFO):
 				if el.name=="QUERY_STATUS" and el.value=="ERROR":
 					return el.text_
+			else:
+				# it's data, which we want to skip quickly
+				for _ in el: pass
 	except Exception:
 		# votString's not a suitable VOTable, fall through to return votString
 		pass

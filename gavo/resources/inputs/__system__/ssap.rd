@@ -958,10 +958,6 @@
 				description='Only return the TOP "best" records (on this service,
 					this usually is equivalent to MAXREC, so no ranking is implied).' 
 					std="True"/>
-			<inputKey name="MAXREC" type="integer" tablehead="Limit"
-				multiplicity="single"
-				description="Do not return more than MAXREC records"
-				std="True">\\getConfig{ivoa}{dalDefaultLimit}</inputKey>
 			<inputKey name="COMPRESS" type="boolean" tablehead="Compress?"
 				multiplicity="single"
 				description="Return compressed results?"
@@ -970,6 +966,7 @@
 				multiplicity="single"
 				description="An identifier for a certain run.  Opaque to the service"
 				std="True"/>
+			<FEED source="//pql#DALIPars"/>
 			<phraseMaker> <!-- done by the core code for these -->
 				<code>
 					if False:

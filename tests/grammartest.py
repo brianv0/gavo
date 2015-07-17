@@ -592,7 +592,7 @@ class DirectGrammarTest(testhelpers.VerboseTest):
 		src = directgrammar.getSource("data/dgs#bin")
 		self._assertCommonItems(src)
 		self.failUnless('#define FIXED_RECORD_SIZE 50' in src)
-		self.failUnless('MAKE_INT(fi_i, *(int32_t*)(line+));' in src)
+		self.failUnless('MAKE_INT(fi_i, *(int32_t*)(inputLine+));' in src)
 		self.failUnless('bytesRead = fread(inputLine, 1, FIXED_RECORD_SIZE, inF);' 
 			in src)
 

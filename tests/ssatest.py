@@ -617,21 +617,55 @@ class MetaKeyTest(_WithSSATableTest):
 				{"rEQueST": "queryData", "mtime": "/%s"%aMinuteAgo}))
 		self.assertEqual(len(res.original.getPrimaryTable()), 0)
 
-	def testMetadata(self):
-		res = self.runService("s",
+
+class _RenderedSSAMetadata(testhelpers.TestResource):
+	resources = [("ssatable", tresc.ssaTestTable)]
+
+	def make(self, deps):
+		res = getRD().getById("s").run("ssap.xml",
 			{"REQUEST": "queryData", "FORMAT": "Metadata"})
-		self.assertEqual(res.original[0], "application/x-votable+xml")
-		val = res.original[1]
-		self.failUnless("<VOTABLE" in val)
-		self.failUnless('name="INPUT:SIZE"' in val)
-		self.failUnless("ize of the region of interest around POS" in val)
-		self.failUnless(re.search('<FIELD[^>]*name="accref"', val))
-		self.failUnless(re.search('<FIELD[^>]*name="excellence"', val))
-		self.failUnless(re.search(
-			'<FIELD[^>]*utype="ssa:Curation.PublisherDID"', val))
-		self.failUnless("DaCHS test suite" in re.search(
-			'<PARAM[^>]*utype="ssa:DataID.Instrument"[^>]*>', 
-			val).group(0))
+		assert res.original[0]=="application/x-votable+xml"
+		rawVOT = res.original[-1]
+		return rawVOT, testhelpers.getXMLTree(rawVOT, debug=False)
+
+class SSAMetaResponseTest(testhelpers.VerboseTest):
+	resources = [("meta", _RenderedSSAMetadata())]
+
+	def testIsVOTable(self):
+		self.assertTrue("<VOTABLE" in self.meta[0])
+	
+	def testSizeInput(self):
+		matches = self.meta[1].xpath("//PARAM[@name='INPUT:SIZE']")
+		self.assertEqual(len(matches), 1)
+		par = matches[0]
+		self.assertEqual(par[0].text,
+			"Size of the region of interest around POS")
+
+	def testStandardFieldPresent(self):
+		self.assertTrue(re.search('<FIELD[^>]*name="accref"', self.meta[0]))
+
+	def testCustomFieldPresent(self):
+		self.assertTrue(re.search('<FIELD[^>]*name="excellence"', self.meta[0]))
+	
+	def testUtypeGiven(self):
+		matches = self.meta[1].xpath("//FIELD[@utype='ssa:Curation.PublisherDID']")
+		self.assertEqual(len(matches), 1)
+	
+	def testInstrumentDefined(self):
+		matches = self.meta[1].xpath("//PARAM[@utype='ssa:DataID.Instrument']")
+		self.assertEqual(matches[0].get("value"), "DaCHS test suite")
+	
+	def testMAXREC(self):
+		matches = self.meta[1].xpath("//PARAM[@name='INPUT:MAXREC']")
+		self.assertEqual(len(matches), 1)
+		self.assertEqual(matches[0].get("datatype"), "int")
+	
+	def testVERB(self):
+		matches = self.meta[1].xpath("//PARAM[@name='INPUT:VERB']")
+		self.assertEqual(len(matches), 1)
+		self.assertEqual(
+			matches[0].xpath("VALUES/OPTION[@value='1']")[0].get("name"),
+			"terse")
 
 
 class CoreFailuresTest(_WithSSATableTest):

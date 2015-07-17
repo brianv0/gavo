@@ -383,7 +383,7 @@ class _CodeGenerator(object):
 	def getPrototype(self):
 		"""returns the prototype of the getTuple function.
 		"""
-		return "Field *getTuple(char *inputLine)"
+		return "Field *getTuple(char *inputLine, int recNo)"
 
 	def getFooter(self):
 		"""returns the code for the createDumpfile method.
@@ -494,17 +494,17 @@ class BinCodeGenerator(_CodeGenerator):
 	def getItemParser(self, item, index):
 		t = item.type
 		if t=="integer":
-			pline = "%s(%s, *(int32_t*)(line+));"
+			pline = "%s(%s, *(int32_t*)(inputLine+));"
 		elif t=="smallint":
-			pline = "%s(%s, *(int16_t*)(line+ ));"
+			pline = "%s(%s, *(int16_t*)(inputLine+ ));"
 		elif t=="double precision":
-			pline = "%s(%s, *(double*)(line+ ));"
+			pline = "%s(%s, *(double*)(inputLine+ ));"
 		elif t=="real":
-			pline = "%s(%s, *(float*)(line+ ));"
+			pline = "%s(%s, *(float*)(inputLine+ ));"
 		elif t=="char":
-			pline = "%s(%s, *(double*)(line+ ), '<nil>');"
+			pline = "%s(%s, *(char*)(inputLine+ ), '<nil>');"
 		elif t=="bytea":
-			pline = "%s(%s, *(double*)(line+ ), '<nil>');"
+			pline = "%s(%s, *(double*)(inputLine+ ), '<nil>');"
 		else:
 			pline = "%s %s"
 		return ["/* %s (%s) */"%(item.description, t), 

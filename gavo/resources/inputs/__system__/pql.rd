@@ -128,7 +128,7 @@ vodal-based services interpret. -->
 			ucd="meta.code.mime"
 			tablehead="Output Format"
 			description="File format requested for output."
-			multiplicity="single">
+			multiplicity="single" std="True">
 			<property key="notForRenderer">form</property>
 			<values>
 				<LOOP>
@@ -151,9 +151,25 @@ vodal-based services interpret. -->
 			tablehead="Match limit"
 			description="Maximum number of records returned.  Pass 0 to
 				 retrieve service parameters."
-			multiplicity="single">
+			multiplicity="single" std="True">
 			<property key="notForRenderer">form</property>
 		</inputKey>
+
+		<inputKey name="VERB" type="integer"
+			tablehead="Verbosity"
+			description="Exhaustiveness of column selection.  VERB=1 only
+				returns the most important columns, VERB=2 selects the columns
+				deemed useful to the average user, VERB=3 returns a table
+				with all available columns."
+			multiplicity="single" std="True">
+			<property key="notForRenderer">form</property>
+			<values>
+				<option title="terse">1</option>
+				<option title="normal">2</option>
+				<option title="everything">3</option>
+			</values>
+		</inputKey>
+
 	</NXSTREAM>
 	
 </resource>

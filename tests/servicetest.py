@@ -479,7 +479,7 @@ class InputFieldSelectionTest(testhelpers.VerboseTest):
 			<FEED source="//pql#DALIPars"/></service>""")
 		self.assertEqual([],
 			[k.name for k in svc.getInputKeysFor("form")])
-		self.assertEqual(["RESPONSEFORMAT", "MAXREC"],
+		self.assertEqual(["RESPONSEFORMAT", "MAXREC", "VERB"],
 			[k.name for k in svc.getInputKeysFor("api")])
 
 
