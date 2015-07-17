@@ -33,7 +33,8 @@ from gavo.base import (getConfig, setConfig,
 	makeStruct,
 	parseUnit,
 	getMetaText, makeMetaValue,
-	ui)
+	ui,
+	resolveCrossId)
 
 from gavo.formats import formatData, getFormatted
 from gavo.formats.votablewrite import (writeAsVOTable, getAsVOTable,

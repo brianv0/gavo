@@ -15,6 +15,18 @@ from gavo.protocols import tap
 from gavo.user import common
 
 
+def restoreObscore(conn):
+	"""sees if this system should have an obscore table and re-creates
+	it if it's missing.
+	"""
+	q = base.UnmanagedQuerier(conn)
+	if q.tableExists("ivoa._obscoresources"):
+		n = list(q.query("SELECT count(*) from ivoa._obscoresources"))[0][0]
+		if n>1: # ivoa.emptyobscore doesn't count
+			api.makeData(api.resolveCrossId("//obscore#create"),
+				connection=conn)
+
+
 def _do_dropTable(tableName, conn):
 	"""deletes rows generated from tableName from the DC's metadata
 	(and tableName itself).
@@ -36,11 +48,13 @@ def _do_dropTable(tableName, conn):
 	if q.viewExists(tableName):
 		q.query("drop view "+tableName)
 	elif q.tableExists(tableName):
-		q.query("drop table "+tableName)
+		# warning: this will drop ivoa.obscore if defined (the "cascade").
+		# We manually re-create obscore after this is run if necessary.
+		q.query("drop table "+tableName+" cascade")
 
 
 def dropTable():
-	"""tries to "manually" purge a table from the DC's memory.
+	"""tries to "manually" purge a table from the DC's memories.
 
 	This is a "toplevel" function inteded to be called by cli directly.
 	"""
@@ -59,6 +73,7 @@ def dropTable():
 			_do_dropTable(tableName, conn)
 		conn.execute("DELETE FROM dc.products WHERE sourcetable=%(t)s",
 			{'t': tableName})
+		restoreObscore(conn)
 
 
 def _do_dropRD(opts, rdId, selectedIds=()):
@@ -108,6 +123,8 @@ def _do_dropRD(opts, rdId, selectedIds=()):
 					querier.query(
 						"delete from %s where sourceRd=%%(sourceRD)s"%tableName,
 						{"sourceRD": rdId})
+
+		restoreObscore(querier.connection)
 
 
 def dropRD():
