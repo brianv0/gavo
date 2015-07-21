@@ -829,7 +829,8 @@ class Service(base.Structure, base.ComputedMetaMixin,
 			return self._hackInputTableFromPreparsed(renderer, args, core=core)
 		else:
 			return rsc.makeData(self.getInputDDFor(renderer, core=core),
-				parseOptions=rsc.parseValidating, forceSource=args
+				parseOptions=rsc.parseValidating, forceSource=args,
+				connection=base.NullConnection()
 					).getPrimaryTable()
 
 	def _runWithInputTable(self, core, inputTable, queryMeta):

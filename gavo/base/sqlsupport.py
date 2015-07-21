@@ -278,6 +278,25 @@ class DebugConnection(GAVOConnection):
 		return pid
 
 
+class NullConnection(object):
+	"""A standin to pass whereever a function wants a connection but
+	doesn't actually need one in a particular situation.
+
+	This, in particular, concerns makeData.
+
+	To be accomodating to careful code, we'll allow commit and rollback
+	on these, but we'll raise on anything else.
+	"""
+	def __getattr__(self, name):
+		raise ValueError("Attempt to use NullConnection (attribute %s)"%name)
+	
+	def commit(self):
+		pass
+	
+	def rollback(self):
+		pass
+
+
 def getDBConnection(profile, debug=debug, autocommitted=False):
 	"""returns a slightly instrumented connection through profile.
 

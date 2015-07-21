@@ -67,6 +67,7 @@ from gavo.base.sqlsupport import (getDBConnection,
 	savepointOn,
 	connectionConfiguration,
 	getUntrustedConn,
+	NullConnection,
 	getTableConn, getAdminConn, getUntrustedConn,
 	getWritableTableConn, getWritableAdminConn, getWritableUntrustedConn,
 	setDBMeta, getDBMeta)

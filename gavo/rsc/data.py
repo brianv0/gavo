@@ -450,6 +450,7 @@ def makeData(dd, parseOptions=common.parseNonValidating,
 
 	if connection is None:
 		connection = base.getDBConnection("admin")
+
 	if data is None:
 		res = Data.create(dd, parseOptions, connection=connection)
 	else:
