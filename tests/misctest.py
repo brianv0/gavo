@@ -973,5 +973,29 @@ class GavoTableValTest(testhelpers.VerboseTest):
 			"")
 
 
+from gavo.web import examplesrender
+
+class RSTExtensionTest(testhelpers.VerboseTest):
+	def testWorkingExamples(self):
+		ex = examplesrender._Example(
+			base.makeMetaValue("Here is a :genparam:`par(example, no?)` "
+				"example for genparam.""", name="_example", title="Working genparam"))
+		res = ex._getTranslatedHTML()
+		self.assertTrue('<div property="generic-parameter" typeof="keyval">'
+			in res)
+		self.assertTrue('<span property="key" class="genparam-key">par</span>'
+			in res)
+		self.assertTrue('<pre property="value" class="genparam-value">'
+			'example, no?</pre>' in res)
+	
+	def testFailingExample(self):
+		ex = examplesrender._Example(
+			base.makeMetaValue("Here is a :genparam:`parfoo` "
+				"example for genparam.""", name="_example", title="Working genparam"))
+		res = ex._getTranslatedHTML()
+		self.assertTrue("parfoo does not" in res)
+		self.assertTrue('<span class="problematic"' in res)
+
+
 if __name__=="__main__":
 	testhelpers.main(KVLMakeTest)

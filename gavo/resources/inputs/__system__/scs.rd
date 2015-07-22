@@ -361,11 +361,7 @@
 		<condDesc original="//scs#humanInput"/>
 		<condDesc original="//scs#protoInput"/>
 		<condDesc silent="True">
-			<inputKey name="MAXREC" type="integer" tablehead="Limit"
-				description="Do not return more than MAXREC records"
-				multiplicity="single"
-					>\\getConfig{ivoa}{dalDefaultLimit}
-					<property name="onlyForRenderer">scs.xml</property></inputKey>
+			<FEED source="//pql#DALIPars"/>
 		</condDesc>
 	</STREAM>
 

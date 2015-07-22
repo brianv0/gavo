@@ -189,3 +189,31 @@ del _TAPQuery
 ### ...for datalink
 
 misctricks.RSTExtensions.makeTextRole("dl-id")
+
+### ...for DALI-style generic parameters
+
+def _genparamRoleFunc(name, rawText, text, lineno, inliner,
+		options={}, content=[]):
+	mat = re.match(r"([^(]+)\(([^)]*)\)$", text)
+	if not mat:
+		msg = inliner.reporter.error(
+			"genparam content must have the form key(value); %s does not."%text)
+		return [inliner.problematic(rawText, rawText, msg)], [msg]
+			
+	key, value = mat.groups()
+
+	formatted = """<div property="generic-parameter" typeof="keyval">
+		<span property="key" class="genparam-key">%s</span>
+		<pre property="value" class="genparam-value">%s</pre>
+		</div>"""%(
+			utils.escapePCDATA(rstutils.unescape(key, 1)),
+			utils.escapePCDATA(rstutils.unescape(value, 1)))
+	res = nodes.raw(
+		rawsource=rawText,
+		text=formatted,
+		format='html')
+	return [res], []
+
+misctricks.RSTExtensions.makeTextRole("genparam", _genparamRoleFunc)
+del _genparamRoleFunc
+
