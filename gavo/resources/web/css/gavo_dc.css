@@ -166,6 +166,20 @@ table.results {
 	top: -100px;
 }
 
+span.generic-parameter {
+	display: inline-block;
+	border: 1pt solid #999;
+	padding: 2pt;
+}
+
+span.genparam-key {
+	color: #f55;
+}
+
+span.genparam-value {
+	font-family: monospace;
+}
+
 div#header, div#chdr {
 	background: #899dbf;
 	margin-bottom: 34px;

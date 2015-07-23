@@ -885,3 +885,14 @@ class Service(base.Structure, base.ComputedMetaMixin,
 
 		return ", ".join("%s from the %s schema"%(", ".join(tables), schema)
 			for schema, tables in schemas.iteritems())
+	
+	def _meta_examplesLink(self):
+		"""returns a link to a examples for this service if any
+		are available.
+		"""
+		try:
+			self.getMeta("_example", raiseOnFail=True)
+			return base.makeMetaValue(self.getURL("examples", False),
+				type="link", title="DALI examples")
+		except base.NoMetaKey:
+			return None

@@ -202,10 +202,11 @@ def _genparamRoleFunc(name, rawText, text, lineno, inliner,
 			
 	key, value = mat.groups()
 
-	formatted = """<div property="generic-parameter" typeof="keyval">
-		<span property="key" class="genparam-key">%s</span>
-		<pre property="value" class="genparam-value">%s</pre>
-		</div>"""%(
+	formatted = """<span property="generic-parameter" typeof="keyval"
+		class="generic-parameter">
+		<span property="key" class="genparam-key">%s</span> =
+		<span property="value" class="genparam-value">%s</span>
+		</span>"""%(
 			utils.escapePCDATA(rstutils.unescape(key, 1)),
 			utils.escapePCDATA(rstutils.unescape(value, 1)))
 	res = nodes.raw(

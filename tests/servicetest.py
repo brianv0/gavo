@@ -465,9 +465,10 @@ class InputFieldSelectionTest(testhelpers.VerboseTest):
 		service = testhelpers.getTestRD("cores").getById("cstest")
 		self.assertEqual(
 			[(k.name, k.type) for k in service.getInputKeysFor("scs.xml")],
-			[('RA', 'double precision'), ('DEC', 'double precision'), 
-				('SR', 'real'), ('MAXREC', 'integer'),
-				("mag", "pql-float"), (u'rV', u'vexpr-float')])
+			 [(u'RA', u'double precision'), (u'DEC', u'double precision'), 
+			 	(u'SR', 'real'), (u'RESPONSEFORMAT', u'text'), 
+			 	(u'MAXREC', u'integer'), (u'VERB', u'integer'), 
+			 	(u'mag', 'pql-float'), (u'rV', u'vexpr-float')])
 
 	def testSSAPPrune(self):
 		svc = base.caches.getRD("data/ssatest").getById("d")
