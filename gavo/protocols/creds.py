@@ -17,17 +17,10 @@ from __future__ import with_statement
 
 from gavo import base
 
+from gavo.utils import AllSet
 
 # this should only be changed for unit tests
 adminProfile = "admin"
-
-
-class AllSet(set):
-	def __repr__(self):
-		return "<all encompassing set>"
-
-	def __contains__(*args):
-		return True
 
 
 def getGroupsForUser(username, password):

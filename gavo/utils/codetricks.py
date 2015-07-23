@@ -293,6 +293,13 @@ class AllEncompassingSet(set):
 		return True
 
 
+class AllSet(set):
+	def __repr__(self):
+		return "<all encompassing set>"
+
+	def __contains__(*args):
+		return True
+
 
 def iterDerivedClasses(baseClass, objects):
 	"""iterates over all subclasses of baseClass in the sequence objects.

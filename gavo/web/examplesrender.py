@@ -96,7 +96,7 @@ class _Example(rend.DataFactory, base.MetaMixin):
 	
 
 class Examples(grend.CustomTemplateMixin, grend.ServiceBasedPage):
-	"""A renderer for examples for service usage.
+	r"""A renderer for examples for service usage.
 
 	This renderer formats _example meta items in its service.  Its output
 	is XHTML compliant to VOSI examples; clients can parse it to, 
@@ -119,13 +119,17 @@ class Examples(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 	``.. directive-name ::`` (the blanks before and after the
 	directive name are significant).
 
-	Here's a the custom interpreted text roles:
+	Here's the custom interpreted text roles:
 
 	* *dl-id*: An publisher DID a service returns data for (used in 
 	  datalink examples)
 	* *table*: A (fully qualified) table name a TAP example query is
 	  (particularly) relevant for; in HTML, this is also a link
 	  to the table description.
+	* *genparam*: A "generic parameter" as defined by DALI.  The values
+	  of these have the form param(value), e.g., :genparam:\`POS(32,4)\`.
+	  Right now, not parantheses are allowed in the value.  Complain
+	  if this bites you.
 	
 	These are the custom directives:
 

@@ -257,6 +257,19 @@ class CapabilityMaker(object):
 		return self._makeCapability(publication)
 
 
+class PlainCapabilityMaker(CapabilityMaker):
+	"""A capability maker for gerneric VR.capabilities.
+
+	These essentially just set standardId. in addition to what
+	the plain capabilities do.
+	"""
+	standardId = None
+
+	def _makeCapability(self, publication):
+		return CapabilityMaker._makeCapability(self, publication)(
+			standardID=self.standardId)
+
+
 class APICapabilityMaker(CapabilityMaker):
 	renderer = "api"
 
@@ -418,14 +431,6 @@ class TAPCapabilityMaker(CapabilityMaker):
 		return res
 
 
-class TAPExCapabilityMaker(CapabilityMaker):
-	renderer = "examples"
-	capabilityClass = VOG.capability
-	def _makeCapability(self, publication):
-		return CapabilityMaker._makeCapability(self, publication)(
-			standardID="ivo://org.gavo.dc/misc/tapexamples")
-			
-
 class RegistryCapabilityMaker(CapabilityMaker):
 	renderer = "pubreg.xml"
 	capabilityClass = VOG.Harvest
@@ -434,27 +439,27 @@ class RegistryCapabilityMaker(CapabilityMaker):
 			VOG.maxRecords[str(base.getConfig("ivoa", "oaipmhPageSize"))]]
 
 
-class VOSICapabilityMaker(CapabilityMaker):
+class VOSICapabilityMaker(PlainCapabilityMaker):
 	# A common parent for the VOSI cap. makers.  All of those are
 	# parallel and only differ by standardID
 	capabilityClass = VOG.capability
 
-	def _makeCapability(self, publication):
-		return CapabilityMaker._makeCapability(self, publication)(
-			standardID=self.standardID)
-
 
 class VOSIAvCapabilityMaker(VOSICapabilityMaker):
 	renderer = "availability"
-	standardID = "ivo://ivoa.net/std/VOSI#availability"
+	standardId = "ivo://ivoa.net/std/VOSI#availability"
 
 class VOSICapCapabilityMaker(VOSICapabilityMaker):
 	renderer = "capabilities"
-	standardID = "ivo://ivoa.net/std/VOSI#capabilities"
+	standardId = "ivo://ivoa.net/std/VOSI#capabilities"
 
 class VOSITMCapabilityMaker(VOSICapabilityMaker):
 	renderer = "tableMetadata"
-	standardID = "ivo://ivoa.net/std/VOSI#tables"
+	standardId = "ivo://ivoa.net/std/VOSI#tables"
+
+class ExamplesCapabilityMaker(PlainCapabilityMaker):
+	renderer = "examples"
+	standardId = "ivo://ivoa.net/std/DALI#examples-1.0"
 
 class SOAPCapabilityMaker(CapabilityMaker):
 	renderer = "soap"

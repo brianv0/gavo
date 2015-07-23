@@ -163,7 +163,7 @@ class _TAPCapabilityElement(testhelpers.TestResource):
 			).getById("run").publications[0]
 		res = vosi.CAP.capabilities[
 			capabilities.getCapabilityElement(publication)].render()
-		return res, testhelpers.getXMLTree(res, debug=False)
+		return res, testhelpers.getXMLTree(res, debug=True)
 
 
 class TAPCapabilityTest(testhelpers.VerboseTest):
@@ -628,6 +628,8 @@ class _ServiceVORRecord(testhelpers.TestResource):
 			<meta name="source">1989AGAb....2...33W</meta>
 			<meta name="type">Other</meta>
 			<meta name="type">Simulation</meta>
+			<meta name="_example" title="ex1">No text</meta>
+			<meta name="_example" title="ex2">Even less</meta>
 			<service id="glonk">
 				<nullCore/>
 				<outputTable>
@@ -656,6 +658,15 @@ class ServiceRecordTest(testhelpers.VerboseTest):
 			"Other")
 		self.assertEqual(self.rec.xpath("content/type")[1].text,
 			"Simulation")
+	
+	def testExamplesCap(self):
+		cap = self.rec.xpath("//capability[@standardID='ivo://ivoa.net/std"
+			"/DALI#examples-1.0']")[0]
+		self.assertEqual(cap.xpath("interface")[0].get(
+			"{http://www.w3.org/2001/XMLSchema-instance}type"),
+			"vr:WebBrowser")
+		self.assertTrue(cap.xpath("interface/accessURL")[0].text.endswith(
+			"/funky/town/glonk/examples"))
 
 
 class _TableVORRecord(testhelpers.TestResource):

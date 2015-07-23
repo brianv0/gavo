@@ -30,7 +30,8 @@ from gavo.utils.codetricks import (silence, ensureExpression, compileFunction,
 	importModule, loadInternalObject, printFrames, memoizeOn, sandbox,
 	in_dir, memoizedMethod, getTracebackAsString,
 	Infimum, Supremum, NullObject,
-	stealVar)
+	stealVar,
+	AllSet)
 
 from gavo.utils.excs import *
 

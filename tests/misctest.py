@@ -981,12 +981,12 @@ class RSTExtensionTest(testhelpers.VerboseTest):
 			base.makeMetaValue("Here is a :genparam:`par(example, no?)` "
 				"example for genparam.""", name="_example", title="Working genparam"))
 		res = ex._getTranslatedHTML()
-		self.assertTrue('<div property="generic-parameter" typeof="keyval">'
+		self.assertTrue('<span property="generic-parameter" typeof="keyval"'
 			in res)
 		self.assertTrue('<span property="key" class="genparam-key">par</span>'
 			in res)
-		self.assertTrue('<pre property="value" class="genparam-value">'
-			'example, no?</pre>' in res)
+		self.assertTrue('<span property="value" class="genparam-value">'
+			'example, no?</span>' in res)
 	
 	def testFailingExample(self):
 		ex = examplesrender._Example(

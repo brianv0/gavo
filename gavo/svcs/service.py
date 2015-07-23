@@ -509,6 +509,15 @@ class Service(base.Structure, base.ComputedMetaMixin,
 				base.makeStruct(Publication, render="tableMetadata", sets=vosiSet,
 					parent_=self),
 			))
+
+		try:
+			self.getMeta("_example", raiseOnFail=True)
+			res.append(
+				base.makeStruct(Publication, render="examples", sets=utils.AllSet(),
+					parent_=self))
+		except base.NoMetaKey:
+			pass
+
 		return res
 
 	def getURL(self, rendName, absolute=True, **kwargs):
