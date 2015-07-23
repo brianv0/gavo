@@ -311,6 +311,7 @@ class FormMixin(formal.ResourceMixin):
 					" in the internal or generated field '%s': %s"%(
 						failure.value.colName, failure.getErrorMessage())))
 		else:
+			base.ui.notifyFailure(failure)
 			return failure
 		return self.form.errors
 

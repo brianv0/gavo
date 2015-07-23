@@ -73,10 +73,15 @@ class ParamMixin(object):
 		"""
 		self._params.getColumnByName(parName).set(value)
 	
-	def getParam(self, parName):
+	def getParam(self, parName, default=base.NotGiven):
 		"""retrieves a parameter (python) value.
 		"""
-		return self._params.getColumnByName(parName).value
+		try:
+			return self._params.getColumnByName(parName).value
+		except base.NotFoundError:
+			if default is not base.NotGiven:
+				return default
+			raise
 
 	def getParamByName(self, parName):
 		return self._params.getColumnByName(parName)

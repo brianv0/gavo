@@ -273,7 +273,7 @@ class SSAPCore(svcs.DBCore):
 			return self._makeMetadata(service)
 
 		limits = [q for q in 
-				(inputTable.getParam("MAXREC"), inputTable.getParam("TOP"))
+				(inputTable.getParam("MAXREC", None), inputTable.getParam("TOP"))
 			if q]
 		if not limits:
 			limits = [base.getConfig("ivoa", "dalDefaultLimit")]
