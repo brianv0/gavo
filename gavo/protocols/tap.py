@@ -12,11 +12,9 @@ from __future__ import with_statement
 
 import datetime
 import os
-import threading
 
 from gavo import base
 from gavo import rsc
-from gavo import svcs
 from gavo import utils
 from gavo.imp.pyparsing import ParseException
 from gavo.protocols import uws
@@ -450,10 +448,9 @@ class PlanAction(uwsactions.JobAction):
 				"href='/static/xsl/plan-to-html.xsl' type='text/xsl'?>")
 
 
-class TAPUWS(uws.UWS):
-	# processQueueDirty is set by TAPTransitions whenever it's likely
-	# QUEUED jobs could be promoted to executing.
-	_processQueueDirty = False
+class TAPUWS(uws.UWSWithQueueing):
+	"""The UWS responsible for processing async TAP requests.
+	"""
 	_baseURLCache = None
 
 	joblistPreamble = ("<?xml-stylesheet href='/static"
@@ -462,130 +459,9 @@ class TAPUWS(uws.UWS):
 		"tap-job-to-html.xsl' type='text/xsl'?>")
 
 	def __init__(self):
-		# processQueue shouldn't need a lock, but it's wasteful to
-		# run more unqueuers, so we only run one at a time.
-		self._processQueueLock = threading.Lock()
-		uws.UWS.__init__(self, TAPJob, uwsactions.JobActions(
+		self.runcountGoal = base.getConfig("async", "maxTAPRunning")
+		uws.UWSWithQueueing.__init__(self, TAPJob, uwsactions.JobActions(
 			PlanAction))
-
-	def _makeMoreStatements(self, statements, jobsTable):
-		td = jobsTable.tableDef
-
-		countField = base.makeStruct(
-			svcs.OutputField, name="count", type="integer", select="count(*)")
-
-		statements["countQueuedBefore"] = jobsTable.getQuery(
-			[countField],
-			"phase='QUEUED' and destructionTime<=%(dt)s",
-			{"dt": None})
-
-		statements["getIdsScheduledNext"] = jobsTable.getQuery(
-			[jobsTable.tableDef.getColumnByName("jobId")],
-			"phase='QUEUED'",
-			limits=('ORDER BY destructionTime ASC', {}))
-
-		statements["getHungCandidates"] = jobsTable.getQuery([
-			td.getColumnByName("jobId"),
-			td.getColumnByName("pid")],
-			"phase='EXECUTING'")
-
-	def scheduleProcessQueueCheck(self):
-		"""tells the TAP UWS to try and dequeue jobs next time checkProcessQueue
-		is called.
-
-		This function exists since during the TAPTransistions there's
-		a writable job and processing the queue might deadlock.  So, rather
-		than processing right away, we just note something may need to be
-		done.
-		"""
-		self._processQueueDirty = True
-
-	def checkProcessQueue(self):
-		"""sees if any QUEUED process can be made EXECUTING.
-
-		This must be called while you're not holding any changeableJob.
-		"""
-		if self._processQueueDirty:
-			self._processQueueDirty = False
-			self._processQueue()
-
-	def _processQueue(self):
-		"""tries to take jobs from the queue.
-
-		This function is called from checkProcessQueue when we think
-		from EXECUTING so somewhere else.
-
-		Currently, the jobs with the earliest destructionTime are processed
-		first.  That's, of course, completely ad-hoc.
-		"""
-		if not self._processQueueLock.acquire(False):
-			# There's already an unqueuer running, don't need a second one
-			# Note that other processes (taprunner!) might still be manipulating
-			# the jobs table, so don't rely on the tables not changing here.
-			return
-		else:
-			try:
-				if self.countQueuedJobs()==0:
-					return
-				runcountGoal = base.getConfig("async", "maxTAPRunning")
-
-				try:
-					started = 0
-					with base.getTableConn() as conn:
-						toStart = [row["jobId"] for row in
-							self.runCanned('getIdsScheduledNext', {}, conn)]
-					while toStart:
-						if self.countRunningJobs()>=runcountGoal:
-							break
-						self.changeToPhase(toStart.pop(0), uws.EXECUTING)
-						started += 1
-					
-					if started==0:
-						# No jobs could be started.  This may be fine when long-runnning
-						# jobs  block job submission, but for catastrophic taprunner
-						# failures we want to make sure all jobs we think are executing
-						# actually are.  If they've silently died, we log that and
-						# push them to error.
-						# We only want to do that if we're the server -- any other
-						# process couldn't see the pids anyway.
-						if base.IS_DACHS_SERVER:
-							self._ensureJobsAreRunning()
-				except Exception:
-					base.ui.notifyError("Error during queue processing, TAP"
-						" is probably botched now.")
-			finally:
-				self._processQueueLock.release()
-
-	def _ensureJobsAreRunning(self):
-		"""pushes all executing jobs that silently died to ERROR.
-		"""
-		with base.getTableConn() as conn:
-			for row in self.runCanned("getHungCandidates", {}, conn):
-				jobId, pid = row["jobId"], row["pid"]
-
-				if pid is None:
-					self.changeToPhase(jobId, "ERROR",
-						uws.UWSError("EXECUTING job %s had no pid."%jobId, jobId))
-					base.ui.notifyError("Stillborn taprunner %s"%jobId)
-				else:
-					pass
-# We should be checking if the process is still running.  Alas,
-# there's serious syncing issues here that need to be investigated.
-# Let's rely on the taprunners cleaning up behind themselves.
-#					try:
-#						os.waitpid(pid, os.WNOHANG)
-#					except os.error, ex: # child presumably is dead
-#						# the following doesn't hurt if the job has gone to COMPLETED
-#						# in the meantime -- we don't transition *from* COMPLETED.
-#						self.changeToPhase(jobId, "ERROR",
-#							uws.UWSError("EXECUTING job %s has silently died."%jobId, jobId))
-#						base.ui.notifyError("Zombie taprunner: %s"%jobId)
-	
-	def changeToPhase(self, jobId, newPhase, input=None, timeout=10):
-		"""overridden here to hook in queue management.
-		"""
-		uws.UWS.changeToPhase(self, jobId, newPhase, input, timeout)
-		self.checkProcessQueue()
 
 	def getParamsFromRequest(self, wjob, request, service):
 		"""Feeds parameters from request into wjob.

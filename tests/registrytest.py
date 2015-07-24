@@ -163,7 +163,7 @@ class _TAPCapabilityElement(testhelpers.TestResource):
 			).getById("run").publications[0]
 		res = vosi.CAP.capabilities[
 			capabilities.getCapabilityElement(publication)].render()
-		return res, testhelpers.getXMLTree(res, debug=True)
+		return res, testhelpers.getXMLTree(res, debug=False)
 
 
 class TAPCapabilityTest(testhelpers.VerboseTest):
