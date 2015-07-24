@@ -124,7 +124,7 @@ def listusers(querier, args):
 	help="remove expired UWS jobs")
 def cleantap(querier, args):
 	from gavo.protocols import tap
-	tap.workerSystem.cleanupJobsTable(includeFailed=args.includeFailed,
+	tap.WORKER_SYSTEM.cleanupJobsTable(includeFailed=args.includeFailed,
 		includeCompleted=args.includeCompleted,
 		includeAll=args.includeAll,
 		includeForgotten=args.includeForgotten)
@@ -137,7 +137,7 @@ def cleantap(querier, args):
 def tapabort(querier, args):
 	from gavo.protocols import tap
 
-	tap.workerSystem.changeToPhase(args.jobId, uws.ERROR, 
+	tap.WORKER_SYSTEM.changeToPhase(args.jobId, uws.ERROR, 
 			"Job aborted by an administrator, probably because the query\n"
 			" should be written differently to be less of a resource hog.\n"
 			"  Here's what the administrator had to say:\n\n"+args.helpMsg+

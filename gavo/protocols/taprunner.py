@@ -208,7 +208,7 @@ def _hangIfMagic(jobId, parameters, timeout):
 # Test intrumentation. There are more effective ways to DoS me.
 	if parameters.get("query")=="JUST HANG around":
 		time.sleep(timeout)
-		with tap.workerSystem.changeableJob(jobId) as job:
+		with tap.WORKER_SYSTEM.changeableJob(jobId) as job:
 			job.change(phase=uws.COMPLETED,
 				endTime=datetime.datetime.utcnow())
 		sys.exit()
@@ -253,7 +253,7 @@ def runTAPJobNoState(parameters, jobId, queryProfile, timeout):
 		parameters, jobId, queryProfile, timeout))
 
 	try:
-		job = tap.workerSystem.getJob(jobId)
+		job = tap.WORKER_SYSTEM.getJob(jobId)
 		destF = job.openResult(
 			formats.getMIMEFor(format, job.parameters.get("format")), "result")
 		writeResultTo(format, res, destF)
@@ -268,7 +268,7 @@ def runTAPJobNoState(parameters, jobId, queryProfile, timeout):
 def runTAPJob(jobId, queryProfile="untrustedquery"):
 	"""executes a TAP job defined by parameters and job id.
 	"""
-	with tap.workerSystem.changeableJob(jobId) as job:
+	with tap.WORKER_SYSTEM.changeableJob(jobId) as job:
 		# actually, job should already be in executing when we see this,
 		# but it should be ok for clients to let us set it
 		job.change(phase=uws.EXECUTING,
@@ -279,9 +279,9 @@ def runTAPJob(jobId, queryProfile="untrustedquery"):
 		runTAPJobNoState(parameters, jobId, queryProfile, timeout)
 	except Exception, ex:
 		base.ui.notifyError("While executing TAP job %s: %s"%(jobId, ex))
-		tap.workerSystem.changeToPhase(jobId, uws.ERROR, ex)
+		tap.WORKER_SYSTEM.changeToPhase(jobId, uws.ERROR, ex)
 	else:
-		tap.workerSystem.changeToPhase(jobId, uws.COMPLETED, None)
+		tap.WORKER_SYSTEM.changeToPhase(jobId, uws.COMPLETED, None)
 
 
 ############### CLI
@@ -302,7 +302,7 @@ def setINTHandler(jobId):
 def _killWorker(jobId):
 	"""tries to kill the postgres worker for this job.
 	"""
-	with tap.workerSystem.changeableJob(jobId) as wjob:
+	with tap.WORKER_SYSTEM.changeableJob(jobId) as wjob:
 		wjob.change(phase=uws.ABORTED)
 
 	if _WORKER_PID:
@@ -375,7 +375,7 @@ def main():
 			base.ui.notifyError("taprunner %s major failure"%jobId)
 			# try to push job into the error state -- this may well fail given
 			# that we're quite hosed, but it's worth the try
-			with tap.workerSystem.changeableJob(jobId) as wjob:
+			with tap.WORKER_SYSTEM.changeableJob(jobId) as wjob:
 				wjob.changeToPhase(uws.ERROR, ex)
 			raise
 	finally:

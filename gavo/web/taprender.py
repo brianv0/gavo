@@ -47,16 +47,16 @@ class TAPQueryResource(rend.Page):
 		rend.Page.__init__(self)
 
 	def _doRender(self, ctx):
-		jobId = tap.workerSystem.getNewIdFromRequest(
+		jobId = tap.WORKER_SYSTEM.getNewIdFromRequest(
 			inevow.IRequest(ctx), self.service)
 
 		try:
-			with tap.workerSystem.changeableJob(jobId) as job:
+			with tap.WORKER_SYSTEM.changeableJob(jobId) as job:
 				job.change(executionDuration=
 					base.getConfig("async", "defaultExecTimeSync"))
 			taprunner.runTAPJob(jobId)
 
-			job = tap.workerSystem.getJob(jobId)
+			job = tap.WORKER_SYSTEM.getJob(jobId)
 			if job.phase==uws.COMPLETED:
 				# This is TAP, so there's exactly one result
 				res = job.getResults()[0]
@@ -75,7 +75,7 @@ class TAPQueryResource(rend.Page):
 			else:
 				raise uws.UWSError("Internal error.  Invalid UWS phase.", jobId)
 		finally:
-			tap.workerSystem.destroy(jobId)
+			tap.WORKER_SYSTEM.destroy(jobId)
 
 	def renderHTTP(self, ctx):
 		try:

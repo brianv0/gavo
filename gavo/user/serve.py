@@ -46,7 +46,7 @@ def setupServer(rootPage):
 		# best going to be confusing.  However, at least TAP cleanup needs
 		# to run now and then
 		from gavo.protocols import tap
-		tap.workerSystem.cleanupJobsTable()
+		tap.WORKER_SYSTEM.cleanupJobsTable()
 	else:
 		cron.registerScheduleFunction(_Scheduler.scheduleJob)
 

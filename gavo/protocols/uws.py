@@ -1125,7 +1125,7 @@ class ProcessBasedUWSTransitions(SimpleUWSTransitions):
 	it must return a command (suitable for reactor.spawnProcess and
 	os.execlp and a list of arguments suitable for reactor.spawnProcess.
 
-	The must also implement some sort of queue management.  The the simplest
+	They must also implement some sort of queue management.  The the simplest
 	case, override queueJob and start the job from there (but set
 	to QUEUED in there anyway).
 	"""

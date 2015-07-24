@@ -615,5 +615,3 @@ class TAPUWS(uws.UWS):
 		return "%s/%s/%s"%(self.baseURL, "async", jobId)
 
 WORKER_SYSTEM = TAPUWS()
-# TODO: deprecated name, fix this and delete the alias
-workerSystem = WORKER_SYSTEM

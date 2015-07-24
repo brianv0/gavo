@@ -74,17 +74,17 @@ class PlainJobCreationTest(testhelpers.VerboseTest):
 # yet another huge, sequential test.  Ah well, better than nothing, I guess.
 
 	def _createJob(self):
-		return tap.workerSystem.getNewJobId(parameters={"foo": "bar"})
+		return tap.WORKER_SYSTEM.getNewJobId(parameters={"foo": "bar"})
 
 	def _deleteJob(self, jobId):
-		return tap.workerSystem.destroy(jobId)
+		return tap.WORKER_SYSTEM.destroy(jobId)
 
 	def _assertJobCreated(self, jobId):
 		res = list(base.UnmanagedQuerier(self.conn).query(
 			"SELECT jobId FROM tap_schema.tapjobs WHERE"
 				" jobId=%(jobId)s", locals()))
 		self.assertEqual(len(res), 1)
-		job = tap.workerSystem.getJob(jobId)
+		job = tap.WORKER_SYSTEM.getJob(jobId)
 		self.assertEqual(job.getSerializedPar("foo"), "bar")
 		self.failUnless(os.path.exists(job.getWD()))
 
@@ -93,7 +93,7 @@ class PlainJobCreationTest(testhelpers.VerboseTest):
 			"SELECT destructiontime FROM tap_schema.tapjobs"
 			" WHERE jobId=%(jobId)s", locals()))
 		self.assertEqual(len(res), 0)
-		self.assertRaises(base.NotFoundError, tap.workerSystem.getJob, jobId)
+		self.assertRaises(base.NotFoundError, tap.WORKER_SYSTEM.getJob, jobId)
 		self.failIf(os.path.exists(os.path.join(base.getConfig("uwsWD"), jobId)))
 
 	def testBigAndUgly(self):
@@ -106,10 +106,10 @@ class PlainJobCreationTest(testhelpers.VerboseTest):
 class _UWSJobResource(testhelpers.TestResource):
 # just a UWS job.  Don't manipulate it.  Too badly.
 	def make(self, ignored):
-		return tap.workerSystem.getNewJobId()
+		return tap.WORKER_SYSTEM.getNewJobId()
 	
 	def clean(self, jobId):
-		tap.workerSystem.destroy(jobId)
+		tap.WORKER_SYSTEM.destroy(jobId)
 
 _uwsJobResource = _UWSJobResource()
 
@@ -118,27 +118,27 @@ class TAPParametersTest(testhelpers.VerboseTest):
 	resources = [("jobId", _uwsJobResource)]
 
 	def testRunidInsensitive(self):
-		with tap.workerSystem.changeableJob(self.jobId) as job:
+		with tap.WORKER_SYSTEM.changeableJob(self.jobId) as job:
 			job.setSerializedPar("runId", "bac")
-		job = tap.workerSystem.getJob(self.jobId)
+		job = tap.WORKER_SYSTEM.getJob(self.jobId)
 		self.assertEqual(job.getSerializedPar("RUNID"), "bac")
 		self.assertEqual(job.parameters["runid"], "bac")
 	
 	def testTAPMaxrec(self):
-		with tap.workerSystem.changeableJob(self.jobId) as job:
+		with tap.WORKER_SYSTEM.changeableJob(self.jobId) as job:
 			job.setSerializedPar("maxRec", "20")
-		job = tap.workerSystem.getJob(self.jobId)
+		job = tap.WORKER_SYSTEM.getJob(self.jobId)
 		self.assertEqual(job.parameters["maxrec"], 20)
 	
 	def testBadLangRejected(self):
-		with tap.workerSystem.changeableJob(self.jobId) as job:
+		with tap.WORKER_SYSTEM.changeableJob(self.jobId) as job:
 			self.assertRaises(base.ValidationError,
 				job.setSerializedPar, "LANG", "German")
 
 	def testUploadSerialization(self):
-		with tap.workerSystem.changeableJob(self.jobId) as job:
+		with tap.WORKER_SYSTEM.changeableJob(self.jobId) as job:
 			job.setSerializedPar("UPLOAD", "bar,http://127.0.0.1/root")
-		job = tap.workerSystem.getJob(self.jobId)
+		job = tap.WORKER_SYSTEM.getJob(self.jobId)
 		self.assertEqual(job.parameters["upload"], 
 			[('bar', 'http://127.0.0.1/root')])
 
@@ -147,12 +147,12 @@ class UWSResponsesValidTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 	resources = [("jobId", _uwsJobResource)]
 
 	def testJobRes(self):
-		job = tap.workerSystem.getJob(self.jobId)
+		job = tap.WORKER_SYSTEM.getJob(self.jobId)
 		self.assertValidates(uwsactions.RootAction().doGET(job, None),
 			leaveOffending=True)
 
 	def testJobList(self):
-		self.assertValidates(uwsactions.getJobList(tap.workerSystem), 
+		self.assertValidates(uwsactions.getJobList(tap.WORKER_SYSTEM), 
 			leaveOffending=True)
 
 
@@ -162,26 +162,26 @@ class BlockingTest(testhelpers.VerboseTest):
 	resources = [("jobId", _uwsJobResource)]
 
 	def testIndexDoesNotBlock(self):
-		with tap.workerSystem.changeableJob(self.jobId):
-			self.failUnless("uws:jobs" in uwsactions.getJobList(tap.workerSystem))
+		with tap.WORKER_SYSTEM.changeableJob(self.jobId):
+			self.failUnless("uws:jobs" in uwsactions.getJobList(tap.WORKER_SYSTEM))
 
 	def testGetPhaseDoesNotBlock(self):
 		req = TAPFakeRequest()
-		with tap.workerSystem.changeableJob(self.jobId):
+		with tap.WORKER_SYSTEM.changeableJob(self.jobId):
 			self.assertEqual(
-				uwsactions.doJobAction(tap.workerSystem, req, (self.jobId, "phase")),
+				uwsactions.doJobAction(tap.WORKER_SYSTEM, req, (self.jobId, "phase")),
 				"PENDING")
 
 	def testPostPhaseDoesBlock(self):
 		req = TAPFakeRequest(args={"PHASE": ["RUN"]})
 		req.method = "POST"
 		uwsactions.PhaseAction.timeout = 0.05
-		with tap.workerSystem.changeableJob(self.jobId):
+		with tap.WORKER_SYSTEM.changeableJob(self.jobId):
 			self.assertRaisesWithMsg(base.ReportableError,
 				"Could not access the jobs table. This probably means"
 				" there is a stale lock on it.  Please notify the service operators.",
 				uwsactions.doJobAction,
-				(tap.workerSystem, req, (self.jobId, "phase")))
+				(tap.WORKER_SYSTEM, req, (self.jobId, "phase")))
 
 
 class QueueTest(testhelpers.VerboseTest):
@@ -190,17 +190,17 @@ class QueueTest(testhelpers.VerboseTest):
 		tick = datetime.timedelta(minutes=15)
 		jobs = []
 		try:
-			jobId = tap.workerSystem.getNewJobId()
-			with tap.workerSystem.changeableJob(jobId) as wjob:
+			jobId = tap.WORKER_SYSTEM.getNewJobId()
+			with tap.WORKER_SYSTEM.changeableJob(jobId) as wjob:
 				wjob.change(phase=uws.QUEUED, destructionTime=now+10*tick)
 			jobs.append(jobId)
 
-			testJob = tap.workerSystem.getJob(jobId)
+			testJob = tap.WORKER_SYSTEM.getJob(jobId)
 			# don't fail just because jobs are left in the queue
 			baseDelay = testJob.quote-now
 
-			jobId = tap.workerSystem.getNewJobId()
-			with tap.workerSystem.changeableJob(jobId) as wjob:
+			jobId = tap.WORKER_SYSTEM.getNewJobId()
+			with tap.WORKER_SYSTEM.changeableJob(jobId) as wjob:
 				wjob.change(phase=uws.QUEUED, destructionTime=now+9*tick)
 			jobs.append(jobId)
 			
@@ -209,8 +209,8 @@ class QueueTest(testhelpers.VerboseTest):
 			self.assertEqual((testJob.quote-now-baseDelay).seconds/10, 
 				tap.EST_TIME_PER_JOB.seconds/10)
 
-			jobId = tap.workerSystem.getNewJobId()
-			with tap.workerSystem.changeableJob(jobId) as wjob:
+			jobId = tap.WORKER_SYSTEM.getNewJobId()
+			with tap.WORKER_SYSTEM.changeableJob(jobId) as wjob:
 				wjob.change(phase=uws.QUEUED, destructionTime=now+11*tick)
 			jobs.append(jobId)
 
@@ -221,21 +221,21 @@ class QueueTest(testhelpers.VerboseTest):
 
 		finally:
 			for jobId in jobs:
-				tap.workerSystem.destroy(jobId)
+				tap.WORKER_SYSTEM.destroy(jobId)
 
 
 class TAPTransitionsTest(testhelpers.VerboseTest):
 	def testAbortPending(self):
 		jobId = None
 		try:
-			jobId = tap.workerSystem.getNewJobId(
+			jobId = tap.WORKER_SYSTEM.getNewJobId(
 				parameters={"query": "bogus", "request": "doQuery",
 				"LANG": "ADQL"})
-			tap.workerSystem.changeToPhase(jobId, uws.ABORTED)
-			self.assertEqual(tap.workerSystem.getJob(jobId).phase, 
+			tap.WORKER_SYSTEM.changeToPhase(jobId, uws.ABORTED)
+			self.assertEqual(tap.WORKER_SYSTEM.getJob(jobId).phase, 
 				uws.ABORTED)
 		finally:
-			tap.workerSystem.destroy(jobId)
+			tap.WORKER_SYSTEM.destroy(jobId)
 
 
 class UploadSyntaxOKTest(testhelpers.VerboseTest):
@@ -274,37 +274,37 @@ class CapabilitiesTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 
 class TAPSchemaTest(testhelpers.VerboseTest):
 	def setUp(self):
-		self.jobId = tap.workerSystem.getNewJobId(parameters={
+		self.jobId = tap.WORKER_SYSTEM.getNewJobId(parameters={
 				"query": "SELECT TOP 1 * FROM TAP_SCHEMA.tables",
 				"request": "doQuery",
 				"lang": "ADQL"})
 	
 	def tearDown(self):
-		tap.workerSystem.destroy(self.jobId)
+		tap.WORKER_SYSTEM.destroy(self.jobId)
 
 	def testTAP_tables(self):
 		taprunner.runTAPJob(self.jobId)
-		job = tap.workerSystem.getJob(self.jobId)
+		job = tap.WORKER_SYSTEM.getJob(self.jobId)
 		self.assertEqual(job.phase, uws.COMPLETED)
 		res = open(job.getResult("result")[0]).read()
 		self.failUnless('<RESOURCE type="results">' in res)
 
 
 def _getUnparsedQueryResult(query):
-	jobId = tap.workerSystem.getNewJobId(parameters={
+	jobId = tap.WORKER_SYSTEM.getNewJobId(parameters={
 			"query": query,
 			"request": "doQuery",
 			"lang": "ADQL"})
 	try:
 		taprunner.runTAPJob(jobId)
-		job = tap.workerSystem.getJob(jobId)
+		job = tap.WORKER_SYSTEM.getJob(jobId)
 		if job.phase==uws.ERROR:
 			raise Exception("Job died with msg %s"%job.error)
 		name, mime = job.getResult("result")
 		with open(name) as f:
 			res = f.read()
 	finally:
-		tap.workerSystem.destroy(jobId)
+		tap.WORKER_SYSTEM.destroy(jobId)
 	return res
 
 def _getQueryResult(query):
@@ -324,14 +324,14 @@ class SimpleRunnerTest(testhelpers.VerboseTest):
 		self.tableName = self.ds.tables["adql"].tableDef.getQName()
 
 	def testSimpleJob(self):
-		jobId = tap.workerSystem.getNewJobId(parameters={
+		jobId = tap.WORKER_SYSTEM.getNewJobId(parameters={
 			"query": "SELECT * FROM %s"%self.tableName,
 			"request": "doQuery",
 			"lang": "ADQL"})
 		try:
-			job = tap.workerSystem.getJob(jobId)
+			job = tap.WORKER_SYSTEM.getJob(jobId)
 			self.assertEqual(job.phase, uws.PENDING)
-			tap.workerSystem.changeToPhase(jobId, uws.QUEUED, None)
+			tap.WORKER_SYSTEM.changeToPhase(jobId, uws.QUEUED, None)
 		
 			runningPhases = set([uws.QUEUED, uws.UNKNOWN, uws.EXECUTING])
 			# let things run, but bail out if nothing happens 
@@ -349,7 +349,7 @@ class SimpleRunnerTest(testhelpers.VerboseTest):
 			self.failUnless((datetime.datetime.utcnow()-job.endTime).seconds<1)
 
 		finally:
-			job = tap.workerSystem.destroy(jobId)
+			job = tap.WORKER_SYSTEM.destroy(jobId)
 		self.failUnless('xmlns="http://www.ivoa.net/xml/VOTable/' in result)
 
 	def testColumnNames(self):
@@ -450,15 +450,15 @@ class TAPTableMetaTest(testhelpers.VerboseTest):
 
 class JobMetaTest(testhelpers.VerboseTest):
 	def setUp(self):
-		self.jobId = tap.workerSystem.getNewJobId()
+		self.jobId = tap.WORKER_SYSTEM.getNewJobId()
 	
 	def tearDown(self):
-		tap.workerSystem.destroy(self.jobId)
+		tap.WORKER_SYSTEM.destroy(self.jobId)
 
 	def _postRedirectCheck(self, req, segments, method="POST"):
 		req.method = method
 		try:
-			return uwsactions.doJobAction(tap.workerSystem, req,
+			return uwsactions.doJobAction(tap.WORKER_SYSTEM, req,
 				segments=(self.jobId,)+segments)
 		except svcs.WebRedirect:
 			pass # that's the 303 expected
@@ -466,7 +466,7 @@ class JobMetaTest(testhelpers.VerboseTest):
 			self.fail("POSTing didn't redirect")
 
 	def testExecD(self):
-		res = uwsactions.doJobAction(tap.workerSystem, TAPFakeRequest(),
+		res = uwsactions.doJobAction(tap.WORKER_SYSTEM, TAPFakeRequest(),
 			segments=(self.jobId, "executionduration"))
 		self.assertEqual(res, "3600")
 	
@@ -474,7 +474,7 @@ class JobMetaTest(testhelpers.VerboseTest):
 		self._postRedirectCheck(
 			TAPFakeRequest(args={"EXECUTIONDURATION": ["300"]}),
 			("executionduration",))
-		res = uwsactions.doJobAction(tap.workerSystem, TAPFakeRequest(),
+		res = uwsactions.doJobAction(tap.WORKER_SYSTEM, TAPFakeRequest(),
 			segments=(self.jobId, "executionduration"))
 		self.assertEqual(res, "300")
 
@@ -482,18 +482,18 @@ class JobMetaTest(testhelpers.VerboseTest):
 		self._postRedirectCheck(
 			TAPFakeRequest(args={"DESTRuction": ["2000-10-10T10:12:13"]}),
 			("destruction",))
-		res = uwsactions.doJobAction(tap.workerSystem, TAPFakeRequest(),
+		res = uwsactions.doJobAction(tap.WORKER_SYSTEM, TAPFakeRequest(),
 			segments=(self.jobId, "destruction"))
 		self.assertEqual(res, "2000-10-10T10:12:13Z")
 	
 	def testQuote(self):
-		res = uwsactions.doJobAction(tap.workerSystem, TAPFakeRequest(),
+		res = uwsactions.doJobAction(tap.WORKER_SYSTEM, TAPFakeRequest(),
 			segments=(self.jobId, "quote"))
 		# just make sure it's an iso date
 		utils.parseISODT(res)
 
 	def testNullError(self):
-		res = uwsactions.doJobAction(tap.workerSystem, TAPFakeRequest(),
+		res = uwsactions.doJobAction(tap.WORKER_SYSTEM, TAPFakeRequest(),
 			segments=(self.jobId, "error"))
 		self.assertEqual(res, "")
 
@@ -502,12 +502,12 @@ class JobMetaTest(testhelpers.VerboseTest):
 			TAPFakeRequest(args={"QUERY": ["Nicenice"]}),
 			("parameters",))
 
-		res = uwsactions.doJobAction(tap.workerSystem, TAPFakeRequest(),
+		res = uwsactions.doJobAction(tap.WORKER_SYSTEM, TAPFakeRequest(),
 			segments=(self.jobId, "parameters"))
 		self.failUnless("Nicenice" in res.render())
 
 	def testOwner(self):
-		res = uwsactions.doJobAction(tap.workerSystem, TAPFakeRequest(),
+		res = uwsactions.doJobAction(tap.WORKER_SYSTEM, TAPFakeRequest(),
 			segments=(self.jobId, "owner"))
 		self.assertEqual(res, "")
 
@@ -516,7 +516,7 @@ class JobMetaTest(testhelpers.VerboseTest):
 			TAPFakeRequest(args={"QUERY": "SELECT * from TAP_SCHEMA.tables",
 				"request": "doQuery", "lang": "ADQL"}),
 			segments=("parameters",))
-		res = uwsactions.doJobAction(tap.workerSystem, TAPFakeRequest(),
+		res = uwsactions.doJobAction(tap.WORKER_SYSTEM, TAPFakeRequest(),
 			segments=(self.jobId, "plan"))
 		self.assertTrue("SELECT TAP_SCHEMA.tables.schema_name, TAP_SCHEMA.tables.table_name, TAP_SCHEMA.tables.table_type, TAP_SCHEMA.tables.description, TAP_SCHEMA.tables.utype, TAP_SCHEMA.tables.sourcerd FROM TAP_SCHEMA.tables LIMIT 2000"
 			in res)
