@@ -1,5 +1,6 @@
 """
-Cores wrapping some external program.
+Cores wrapping some external program directly, or having some
+python code doing things.
 """
 
 #c Copyright 2008-2015, the GAVO project
@@ -54,6 +55,9 @@ class ComputedCore(core.Core):
 	
 	The output is the primary table of parsing the program's output with
 	the data child.
+
+	While in principle more declarative than PythonCores, these days I'd
+	say rather use one of those.
 	"""
 	name_ = "computedCore"
 
@@ -136,3 +140,39 @@ class ComputedCore(core.Core):
 		res = rsc.makeData(self.resultParse,
 			forceSource=StringIO(self._runAndCapture(inputTable)))
 		return res.getPrimaryTable()
+
+
+class CoreProc(rscdef.ProcApp):
+	"""A definition of a pythonCore's functionalty.
+
+	This is a procApp complete with setup and code; you could inherit
+	between these.
+
+	coreProcs see the embedding service, the input table passed, and the
+	query metadata as service, inputTable, and queryMeta, respectively.
+
+	The core itself is available as self.
+	"""
+	name_ = "coreProc"
+	requiredType = "coreProc"
+	formalArgs = "self, service, inputTable, queryMeta"
+
+	additionalNamesForProcs = {
+		"rsc": rsc
+	}
+
+
+class PythonCore(core.Core):
+	"""A core doing computation using a piece of python.
+
+	See `Python Cores instead of Custom Cores`_ in the reference.
+	"""
+	name_ = "pythonCore"
+
+	_computer = base.StructAttribute("coreProc", default=base.Undefined,
+		childFactory=CoreProc, 
+		description="Code making the outputTable from the inputTable.",
+		copyable=True)
+	
+	def run(self, service, inputTable, queryMeta):
+		return self.coreProc.compile()(self, service, inputTable, queryMeta)

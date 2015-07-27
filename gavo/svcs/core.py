@@ -67,6 +67,7 @@ CORE_REGISTRY = {
 	"fixedQueryCore": ("svcs.standardcores", "FixedQueryCore"),
 	"nullCore": ("svcs.standardcores", "NullCore"),
 	"productCore": ("protocols.products", "ProductCore"),
+	"pythonCore": ("svcs.computedcore", "PythonCore"),
 	"registryCore": ("registry.oaiinter", "RegistryCore"),
 	"scsCore": ("protocols.scs", "SCSCore"),
 	"sdmCore": ("protocols.sdm", "SDMCore"),
@@ -92,7 +93,7 @@ def getCore(name):
 
 
 class _OutputTableFactory(object):
-	"""The childFactory for the ssap core's outputTable.
+	"""The childFactory for a core's outputTable.
 
 	On call, it will return a slightly amended copy of the 
 	queried table.

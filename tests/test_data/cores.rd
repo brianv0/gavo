@@ -197,4 +197,48 @@
 		<nullCore/>
 		<property name="staticData">data</property>
 	</service>
+
+	<service id="pc" allowed="api,form">
+		<pythonCore>
+			<inputTable>
+				<inputKey name="opre" description="Operand, real part"
+					required="True"/>
+				<inputKey name="opim" description="Operand, imaginary part"
+					required="True"/>
+				<inputKey name="powers" description="Powers to compute"
+					type="integer" multiplicity="multiple"/>
+			</inputTable>
+			<outputTable>
+				<outputField name="re" description="Result, real part"/>
+				<outputField name="im" description="Result, imaginary part"/>
+				<outputField name="log"
+					description="real part of logarithm of result"/>
+			</outputTable>
+
+			<coreProc>
+				<setup>
+					<code>
+						import cmath
+					</code>
+				</setup>
+				<code>
+					powers = inputTable.getParam("powers")
+					if powers is None:
+						powers = [1,2]
+					op = complex(inputTable.getParam("opre"),
+						inputTable.getParam("opim"))
+
+					rows = []
+					for p in powers:
+						val = op**p
+						rows.append({
+							"re": val.real,
+							"im": val.imag,
+							"log": cmath.log(val).real})
+					
+					return rsc.TableForDef(self.outputTable, rows=rows)
+				</code>
+			</coreProc>
+		</pythonCore>
+	</service>
 </resource>

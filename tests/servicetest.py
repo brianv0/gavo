@@ -672,5 +672,30 @@ class ConeSearchTest(testhelpers.VerboseTest):
 		res = svc.run("form", {"id": "0"}).original.getPrimaryTable()
 		self.assertTrue(res.rows[0]["_r"]!=res.rows[0]["_r"]) # isNaN
 
+
+class PythonCoreTest(testhelpers.VerboseTest):
+	def testBasic(self):
+		svc = base.resolveCrossId("data/cores#pc")
+		res = svc.run("form", {"opre": "1", "opim": 1, "powers": [2,3,4]}
+			).original.getPrimaryTable()
+		self.assertEqual(res.rows[0]["re"], 0)
+		self.assertEqual(res.rows[1]["im"], 2.0)
+		self.assertAlmostEqual(res.rows[2]["log"], 1.3862943611198906)
+		self.assertEqual(len(res.rows), 3)
+
+	def testDefaulting(self):
+		svc = base.resolveCrossId("data/cores#pc")
+		res = svc.run("form", {"opre": "1", "opim": 1}
+			).original.getPrimaryTable()
+		self.assertEqual(len(res), 2)
+
+	def testMissing(self):
+		svc = base.resolveCrossId("data/cores#pc")
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Field opre: Value is required but was not provided",
+			svc.run,
+			("form", {"opim": 1, "powers": [2,3,4]}))
+
+
 if __name__=="__main__":
 	testhelpers.main(ComputedServiceTest)

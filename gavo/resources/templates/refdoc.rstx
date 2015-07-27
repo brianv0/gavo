@@ -2436,6 +2436,11 @@ parameters in, something table-like out.  For these cases, use custom
 cores (if even this does not provide sufficent functionality, write a
 custom renderer).
 
+For simple cases, rather than having the code in a separate module it's
+nicer to keep everything together in the RD.  This is very similar;
+`Python Cores instead of Custom Cores`_ explains the differences.
+
+
 
 Defining a Custom Core
 ''''''''''''''''''''''
@@ -2445,6 +2450,7 @@ for those is in the bin/ subdirectory of the resource directory.
 
 You will usually want to inherit from core::
 
+  from gavo import rsc
   from gavo.svcs import core
 
   class Core(core.Core):
@@ -2527,6 +2533,34 @@ you simply find the inputKey values in the table's parameters::
 
   val = inputTable.getParam("fileSrc")
 
+This val will be a simple value if the ``inputKey`` has multiplicity
+``single`` or ``force-single``, a list if it has multiplicity
+``multiple``.  It will be None if a non-required parameter is missing.
+
+As said above, you could return finished documents from your custom
+core.  It's usually friendlier and more flexible if you return
+tables.  To build a table matching the output table, use the core's
+``outputTable`` (which is actually a table definition).  This could
+look like this::
+
+  res = rsc.TableForDef(self.outputTable)
+  res.addRow({"foo": 3, "bar": 8})
+
+The rows are rowdicts as genrated by rowmakers (which you could
+use, too).  In many cases, it may be more convenient to collect the data
+up front and then create the output table with ready-made rows:
+
+  rows = [{"foo": 3, "bar": 8}]
+  return rsc.TableForDef(self.outputTable, rows=rows)
+
+Lastly, if there's parsing involved in coming up with the output table,
+it's probably a good idea to simply write a normal data item and arrange
+for whatever you come up with to be parsed.  For a data item
+``resparser``, this would then look like this::
+
+  with open("myFile") as src:
+    return rsc.makeData(rd.getById("resparser"), forceSource=src)
+
 
 
 Errors
@@ -2573,6 +2607,60 @@ Inheriting from TableBasedCore
 ''''''''''''''''''''''''''''''
 
 TBD (This does not work right now; complain if you need to do it)
+
+Python Cores instead of Custom Cores
+''''''''''''''''''''''''''''''''''''
+
+If you only have a couple of lines of python, you don't have to have a
+separate module.  Instead, use a python core.  In it, you essentially
+have the ``run`` method as discussed in `Giving the Core Functionality`_
+in a standard ``procApp``.  The advantage is that interface and
+implementation is nicely bundled together.  The following example should
+illustrate the use  of such python cores; note that ``rsc`` already is
+in the procApp's namespace::
+
+	<pythonCore>
+		<inputTable>
+			<inputKey name="opre" description="Operand, real part"
+				required="True"/>
+			<inputKey name="opim" description="Operand, imaginary part"
+				required="True"/>
+			<inputKey name="powers" description="Powers to compute"
+				type="integer" multiplicity="multiple"/>
+		</inputTable>
+		<outputTable>
+			<outputField name="re" description="Result, real part"/>
+			<outputField name="im" description="Result, imaginary part"/>
+			<outputField name="log"
+				description="real part of logarithm of result"/>
+		</outputTable>
+
+		<coreProc>
+			<setup>
+				<code>
+					import cmath
+				</code>
+			</setup>
+			<code>
+				powers = inputTable.getParam("powers")
+				if powers is None:
+					powers = [1,2]
+				op = complex(inputTable.getParam("opre"),
+					inputTable.getParam("opim"))
+
+				rows = []
+				for p in powers:
+					val = op**p
+					rows.append({
+						"re": val.real,
+						"im": val.imag,
+						"log": cmath.log(val).real})
+				
+				return rsc.TableForDef(self.outputTable, rows=rows)
+			</code>
+		</coreProc>
+	</pythonCore>
+
 
 
 Manufacturing Spectra
