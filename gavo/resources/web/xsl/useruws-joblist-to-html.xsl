@@ -15,7 +15,7 @@
 		<xsl:template match="uws:jobref">
 			<li>
 				<a>
-					<xsl:attribute name="href">dlasync/<xsl:value-of select="@id"/>
+					<xsl:attribute name="href">uws.xml/<xsl:value-of select="@id"/>
 					</xsl:attribute>
 					<xsl:value-of select="@id"/>
 				</a>

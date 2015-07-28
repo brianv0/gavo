@@ -106,7 +106,7 @@ on verbal permission here. -->
             <xsl:attribute name="size">23</xsl:attribute>
           </input> </form> </p>
        <p>
-        <a href="../dlasync">List of known jobs</a></p>
+        <a href="../uws.xml">List of known jobs</a></p>
   </xsl:template>
 </xsl:stylesheet>
 <!-- vi:et:sw=2:sta 
