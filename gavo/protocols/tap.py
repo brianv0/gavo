@@ -217,7 +217,7 @@ class TAPTransitions(uws.ProcessBasedUWSTransitions):
 	def queueJob(self, newState, wjob, ignored):
 		"""puts a job on the queue.
 		"""
-		uws.SimpleUWSTransitions.queueJob(self, newState, wjob, ignored)
+		uws.ProcessBasedUWSTransitions.queueJob(self, newState, wjob, ignored)
 		wjob.uws.scheduleProcessQueueCheck()
 
 	def errorOutJob(self, newPhase, wjob, ignored):

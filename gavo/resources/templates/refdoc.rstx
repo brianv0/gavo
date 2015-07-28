@@ -2662,6 +2662,46 @@ in the procApp's namespace::
 	</pythonCore>
 
 
+Custom UWSes
+============
+
+Universal Worker Systems (UWSes) allow the asynchronous operation of
+services, i.e., the server runs a job on behalf of the user without the
+need for a persistent connection.
+
+DaCHS supports async operations of TAP and datalink out of the box.
+If you want to run async services defined by your own code, there are a
+few things to keep in mind.
+
+(1) You'll need to prepare your database to keep track of your custom
+jobs (just once)::
+  
+  gavo imp //uws enable_useruws
+
+(2) You'll have to allow the ``uws.xml`` renderer on the service in
+question.
+
+(3) Things running within a UWS are fairly hard to debug in DaCHS right
+now.  Until we have good ideas on how to make these things a bit more
+accessible, it's a good idea to at least for debugging also allow
+synchronous renderers, for instance, ``form`` or ``api``.  If something
+goes wrong, you can do a sync query that then drops you in a debugger
+in the usual manner (see the debugging chapter in the tutorial).
+
+(4) For now, the usual queryMeta is not pushed into the uws handler
+(there's no good reason for that).  We do, however, transport on
+DALI-type RESPONSEFORMAT.  To enable that on automatic results (see
+below), say::
+
+	<inputKey name="responseformat" description="Preferred
+		output format" type="text"/>
+
+in your input table.
+
+(5) All UWS parameters are lowercased and only available in lowercased
+form to server-side code.  To allow cores to run in both sync and async
+without further worries, just have lowercase-only parameters.
+
 
 Manufacturing Spectra
 =====================

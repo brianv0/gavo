@@ -37,6 +37,9 @@ _ATOMIC_TYPES = [
 	(datetime.datetime, {"datatype": "char", 
 		"arraysize": "20",
 		"xtype": "adql:TIMESTAMP"}),
+	(datetime.date, {"datatype": "char", 
+		"arraysize": "20",
+		"xtype": "dachs:DATE"}),
 	(pgsphere.SPoint, {"datatype": "char", 
 		"arraysize": "*",
 		"xtype": "adql:POINT"}),]

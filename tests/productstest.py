@@ -500,7 +500,7 @@ class DLInterfaceTest(testhelpers.VerboseTest):
 
 	def testbraindeadREQUESTbombs(self):
 		self.assertRaisesWithMsg(base.ValidationError, 
-			"Field REQUEST: u'getFoobar' is not a valid value for REQUEST",
+			"Field REQUEST: 'getFoobar' is not a valid value for REQUEST",
 			self.svc.run,
 			("dlmeta", {"request": ["getFoobar"],
 				"ID": rscdef.getStandardPubDID("data/b.imp")}))

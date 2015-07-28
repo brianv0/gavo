@@ -10,7 +10,7 @@ Coding and decoding from tabledata.
 
 import re #noflake: used by generated code
 
-from gavo.utils import parseDefaultDatetime  #noflake: used by generated code
+from gavo.base.literals import parseDefaultDatetime, parseDefaultDate #noflake: used by generated code
 from gavo.votable import coding
 from gavo.votable import common
 from gavo.votable.model import VOTable
@@ -147,6 +147,11 @@ def _makeXtypeDecoder(field):
 	elif field.xtype=="adql:TIMESTAMP":
 		src.extend([
 			"  val = parseDefaultDatetime(val)"])
+
+	# GAVO-specific extension for consistency in our type systems
+	elif field.xtype=="dachs:DATE":
+		src.extend([
+			"  val = parseDefaultDate(val)"])
 	
 	else:
 		# unknown xtype, just don't touch it (issue a warning?)

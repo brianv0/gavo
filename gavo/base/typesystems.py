@@ -127,6 +127,8 @@ class ToVOTableConverter(FromSQLConverter):
 			return "char", length, None
 		elif length!=1 and length!='1' and type=="bytea":
 			return ("unsignedByte", '*', None)
+		elif type=="text" and str(length)!='1':
+			return ("char", ".x*", None)
 		elif type in self.simpleMap:
 			return self.simpleMap[type][0], length, None
 

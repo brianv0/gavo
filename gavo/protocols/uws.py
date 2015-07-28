@@ -478,6 +478,7 @@ class UWSWithQueueing(UWS):
 					with base.getTableConn() as conn:
 						toStart = [row["jobId"] for row in
 							self.runCanned('getIdsScheduledNext', {}, conn)]
+
 					while toStart:
 						if self.countRunningJobs()>=self.runcountGoal:
 							break
@@ -589,7 +590,7 @@ class JobParameter(object):
 	since (get|set)SerializedPar falls back to the base class.
 
 	CAUTION: Do *not* say job.parameters[bla] = "ab" -- your changes
-	will get lost because serialisation of the parameters dictioanry must
+	will get lost because serialisation of the parameters dictionary must
 	be initiated manually.  Always manipulate the parameters dictionary
 	by using cls.updatePar(name, value, job) or a suitable
 	facade (job.setPar, job.setSerializedPar)
@@ -646,11 +647,11 @@ class BaseUWSJob(object):
 	"""An abstract UWS job.
 
 	UWS jobs are always instanciated with a row from the associated
-	jobs table (i.e. a dictionary giving all the uws parameters).  You
+	jobs table (i.e. a dictionary giving all the uws properties).  You
 	can read the properties as attributes.  UWSJobs also keep
 	a (weak) reference to the UWS that made them.
 
-	To alter uws parameters, use the change method.  This will fail unless
+	To alter uws properties, use the change method.  This will fail unless
 	the job was created giving writable=True.
 
 	To make it concrete, you need to define:

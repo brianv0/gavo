@@ -136,15 +136,22 @@ class InputKey(column.ParamBase):
 		"""
 		self._parse(literal)
 
-	def _unparse(self, value):
-		# we need to override this as ContextGrammar is currently
-		# written to require lists to go through unchanged.  We
-		# should really fix this.
-		if isinstance(value, (list, tuple, set)):
-			return value
+	def _getVOTableType(self):
+		"""returns the VOTable type for the param.
 
-		else:
-			return column.ParamBase._unparse(self, value)
+		The reason this is overridden is that historically, we've been
+		cavalier about letting in multiple values for a single param
+		(as in enumerated values and such).
+
+		It's probably too late to fix this now, so for InputKeys with
+		multiplicity multiple we're allowing arrays, too.
+		"""
+		type, arraysize, xtype = column.ParamBase._getVOTableType(self)
+
+		if self.multiplicity=="multiple" and arraysize=='1':
+			arraysize = "*"
+
+		return type, arraysize, xtype
 
 	@classmethod
 	def fromColumn(cls, column, **kwargs):
@@ -225,6 +232,13 @@ class InputTable(rscdef.TableDef):
 
 class ContextRowIterator(grammars.RowIterator):
 	"""is a row iterator over "contexts", i.e. single dictionary-like objects.
+
+	This whole thing is messy because we foolishly decided to have one
+	thing that does both  pre-parsed parameter sets coming out of nevow
+	formal and the raw dict-of-array thing nevow has in its request.
+	That single decision messed up much of this *and* of the param code.
+
+	Ah well.
 	"""
 	def __init__(self, grammar, sourceToken, **kwargs):
 		self.locator = "(internal)"
@@ -395,14 +409,12 @@ _OPTIONS_FOR_MULTIS = {
 def makeAutoParmaker(inputTable):
 	"""returns a default parmaker for an inputTable.
 
-	The default parmaker feeds all parameters the inputTable wants, taking
-	into account the multiplicity.
+	The default action is to just fix multipliticies.
 	"""
 	maps = []
 	for par in inputTable.params:
-		makeValue = "getHTTPPar(vars['%s'], lambda a: %s%s)"%(
+		makeValue = "getHTTPPar(vars['%s'], identity%s)"%(
 			par.name,
-			base.sqltypeToPythonCode(par.type)%"a", 
 			_OPTIONS_FOR_MULTIS[par.multiplicity])
 
 		maps.append(MS(rscdef.MapRule, dest=par.name, content_=makeValue))

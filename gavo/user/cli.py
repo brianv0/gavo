@@ -47,6 +47,7 @@ functions = [
 	("totesturl", ("rscdef.regtest", "urlToURL")),
 	("validate", ("user.validation", "main")),
 	("upgrade", ("user.upgrade", "main")),
+	("uwsrun", ("protocols.useruws", "main")),
 # init is special cased, but we want it in here for help generation
 	("init", ("initdachs.info", "main")),
 ]

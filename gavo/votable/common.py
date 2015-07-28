@@ -99,6 +99,11 @@ def getXtypeCode(field):
 			"if isinstance(val, datetime.datetime):",
 			"  val = utils.formatISODT(val)"]
 
+	elif field.xtype=="dachs:DATE":
+		return [
+			"if isinstance(val, datetime.date):",
+			"  val = val.isoformat()"]
+		
 	elif field.xtype in ["adql:POINT", "adql:REGION"]:
 		return [
 			"if isinstance(val, pgsphere.PgSAdapter):",

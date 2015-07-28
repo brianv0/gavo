@@ -18,6 +18,7 @@ from gavo.helpers import testhelpers
 
 from gavo import base
 from gavo import rscdesc # for base.caches registration
+from gavo.protocols import useruws
 from gavo.protocols import uws
 from gavo.protocols import uwsactions
 
@@ -277,6 +278,55 @@ class JobHandlingTest(TestWithUWSJob):
 				timesOut,
 				(self.job.jobId,))
 
+
+def _makeUWSRequest(inArgs):
+	class RequestStandin(object):
+		args = inArgs
+	return RequestStandin
+
+
+class UserUWSTest(testhelpers.VerboseTest):
+	def testJobClassMaking(self):
+		cls = useruws.makeUserUWSJobClass("data/cores#pc")
+		self.assertTrue(hasattr(cls._parameter_opim, "addPar"))
+
+	def testBasicJob(self):
+		_uws_originating_service ="data/cores#pc"
+		job = useruws.USER_WORKER.getNewJob()
+		try:
+			self.assertEqual(job.jobClass, "data/cores#pc")
+			with job.getWritable() as wjob:
+				wjob.setPar("opre", 2.5)
+				wjob.setPar("powers", [1,2,3])
+			job.update()
+			self.assertEqual(job.parameters["opre"], 2.5)
+			self.assertEqual(job.parameters["powers"], [1,2,3])
+		finally:
+			useruws.USER_WORKER.destroy(job.jobId)
+
+	def testFloatParameter(self):
+		_uws_originating_service ="data/cores#pc"
+		jobId = useruws.USER_WORKER.getNewIdFromRequest(
+			_makeUWSRequest({"opre": ["2.5"], "opim": ["3.5"]}),
+				base.resolveCrossId(_uws_originating_service))
+		try:
+			job = useruws.USER_WORKER.getJob(jobId)
+			self.assertEqual(job.getSerializedPar("opre"), "2.5")
+			self.assertEqual(job.parameters["opre"], 2.5)
+		finally:
+			useruws.USER_WORKER.destroy(jobId)
+
+	def testArrayParameter(self):
+		_uws_originating_service ="data/cores#pc"
+		jobId = useruws.USER_WORKER.getNewIdFromRequest(
+			_makeUWSRequest({"powers": ["2", "4", "78"]}),
+				base.resolveCrossId(_uws_originating_service))
+		try:
+			job = useruws.USER_WORKER.getJob(jobId)
+			self.assertEqual(job.getSerializedPar("powers"), "2 4 78")
+			self.assertEqual(job.parameters["powers"], (2, 4, 78))
+		finally:
+			useruws.USER_WORKER.destroy(jobId)
 
 if __name__=="__main__":
 	testhelpers.main(JobHandlingTest)

@@ -560,6 +560,17 @@ class Column(ColumnBase):
 					pass
 
 
+def _isStringList(ob):
+	"""returns true if ob is a list consisting of strings exclusively.
+
+	We need this for a hack in param magic.  We shouldn't have that
+	hack, and there shouldn't be more of this.
+	"""
+	if isinstance(ob, list):
+		return set(isinstance(l, basestring) for l in ob)==set([True])
+	return False
+
+
 class ParamBase(ColumnBase):
 	"""A basic parameter.
 
@@ -571,12 +582,24 @@ class ParamBase(ColumnBase):
 		copyable=True, expand=True)
 
 	_valueCache = base.Undefined
+	__contentStore = base.NotGiven
 
 	nullLiteral = ""
 
 	def __repr__(self):
 		return "<%s %s=%s>"%(self.__class__.__name__, 
 			repr(self.name), repr(self.content_))
+
+	def __set_content(self, val):
+		self.__contentStore = val
+	
+	def __get_content(self):
+		if (self.__contentStore is base.NotGiven 
+				and self._valueCache is not base.Undefined):
+			self.__contentStore = self._unparse(self._valueCache)
+		return self.__contentStore
+	
+	content_ = property(__get_content, __set_content)
 
 	def expand(self, value):
 		"""hands up macro expansion requests to a parent, if there is one
@@ -618,7 +641,7 @@ class ParamBase(ColumnBase):
 		This is what would reproduce the value if embedded in an XML
 		serialisation of the param.
 		"""
-		return self.content_
+		return self.content_ 
 
 	def set(self, val):
 		"""sets this parameter's value.
@@ -631,30 +654,30 @@ class ParamBase(ColumnBase):
 		raised and the item's value will be Undefined.
 		"""
 		if isinstance(val, basestring):
-			self._valueCache = base.Undefined
+			self.content_ = val
 		else:
-			self._valueCache = base.Undefined
-			try:
-				val = self._unparse(val)
-			except Exception:
-				base.ui.notifyWarning("Unserializable param value: %s"%repr(
-					val))
-				self.content_ = "(Not representable)"
-
+			self.content_ = base.NotGiven
 		self._valueCache = self._parse(val)
-		self.content_ = val
 
-	def _parse(self, literal):
+	def _parse(self, literal, atom=False):
 		"""parses literal using the default value parser for this param's
 		type.
 
-		If literal is not a string, it will be returned unchanged.
+		If literal is not a string or a list of strings, it will be returned
+		unchanged.
+
+		In lists of strings, each element will be treated individually,
+		and the result will be our value.  This is mainly a service
+		for InputKeys fed from nevow args.
 
 		The method also makes sure literal matches any constraints
 		set by a values child and raises a ValidationError if not.
 		"""
 		if not isinstance(literal, basestring):
-			value = literal
+			if _isStringList(literal):
+				value = [self._parse(l, atom=True) for l in literal]
+			else:
+				value = literal
 		
 		elif self.type=="raw":
 			value = literal
@@ -671,7 +694,10 @@ class ParamBase(ColumnBase):
 				value = None
 			else:
 				try:
-					type, arraysize, xtype = base.sqltypeToVOTable(self.type)
+					type, arraysize, xtype = self._getVOTableType()
+					if atom:
+						arraysize = None
+
 					value = paramval.getVOTParser(type, arraysize, 
 						self.xtype or xtype)(literal)
 					# make NaNs NULL here for consistent VOTable practice
@@ -691,6 +717,17 @@ class ParamBase(ColumnBase):
 
 		return value
 
+	def _getVOTableType(self):
+		"""returns the VOTable type, arraysize and xtype for this
+		param.
+		"""
+		type, arraysize, xtype = base.sqltypeToVOTable(self.type)
+
+		if self.type=="date":
+			xtype = "dachs:DATE"
+		
+		return type, arraysize, xtype
+		
 	def _unparse(self, value):
 		"""returns a string representation of value appropriate for this
 		type.
@@ -707,7 +744,7 @@ class ParamBase(ColumnBase):
 		if value is None:
 			return ""
 		else:
-			type, arraysize, xtype = base.sqltypeToVOTable(self.type)
+			type, arraysize, xtype = self._getVOTableType()
 			return paramval.getVOTSerializer(type, arraysize, 
 				self.xtype or xtype)(value)
 

@@ -1,5 +1,8 @@
 """
-A UWS-based interface to datalink
+A UWS-based interface to datalink.
+
+TODO: There's quite a bit of parallel between this and useruws.  This
+should probably be reformulated along the lines of useruws.
 """
 
 #c Copyright 2008-2015, the GAVO project
@@ -38,6 +41,7 @@ class ServiceIdParameter(uws.JobParameter):
 	"""A fully qualified id of the DaCHS service to execute the datalink
 	request.
 	"""
+
 
 class ArgsParameter(uws.JobParameter):
 	"""all parameters passed to the datalink job as a request.args dict.
@@ -161,7 +165,7 @@ def _doRender(page, ctx):
 
 
 class FakeRequest(testutil.AccumulatingFakeRequest):
-	"""A Request for testing purpuses.
+	"""A nevow Request for local data accumulation.
 
 	We have a version of our own for this since nevow's has a 
 	registerProducer that produces an endless loop with push

@@ -218,7 +218,7 @@ class InputTableGenTest(testhelpers.VerboseTest):
 	def testEnumeratedBadValues(self):
 		service = testhelpers.getTestRD("cores").getById("enums")
 		self.assertRaisesWithMsg(base.ValidationError,
-			"Field b: [3] is not a valid value for b",
+			"Field b: '3' is not a valid value for b",
 			service._makeInputTableFor,
 			(renderers.getRenderer("form"), {'b':"3"}))
 

@@ -10,7 +10,10 @@ Tests for various parts of the server infrastructure, using trial.
 
 from cStringIO import StringIO
 import atexit
+import time
 import os
+
+from twisted.internet import reactor
 
 import trialhelpers
 
@@ -478,7 +481,7 @@ class APIRenderTest(trialhelpers.ArchiveTest):
 	def testServiceParametersValidated(self):
 		return self.assertGETHasStrings("/data/cores/scs/api", 
 			{"RESPONSEFORMAT": "fantastic junk"}, 
-				["Field RESPONSEFORMAT: u'fantastic junk' is not a valid value for"
+				["Field RESPONSEFORMAT: 'fantastic junk' is not a valid value for"
 					" RESPONSEFORMAT</INFO>"])
 
 
@@ -507,6 +510,93 @@ class TestExamples(trialhelpers.ArchiveTest):
 			'ivo://org.gavo.dc/~?bla/foo/qua</em>',
 			'resource="#Example2"',
 			'<p>This is another example for examples.</p>'])
+
+
+def _nukeHostPart(uri):
+	return "/"+uri.split("/", 3)[-1]
+
+
+class TestUserUWS(trialhelpers.ArchiveTest):
+	def testWorkingLifecycle(self):
+		def assertDeleted(result, jobURL):
+			self.assertEqual(result[1].code, 303)
+			next = _nukeHostPart(result[1].headers["location"])
+			jobId = next.split("/")[-1]
+			return self.assertGETLacksStrings(next, {}, ['jobref id="%s"'%jobId]
+			).addCallback(lambda res: reactor.disconnectAll())
+
+		def delete(jobURL):
+			return trialhelpers.runQuery(self.renderer, "DELETE", jobURL, {}
+			).addCallback(assertDeleted, jobURL)
+
+		def checkResult(result, jobURL):
+			self.assertTrue("<TR><TD>1.0</TD><TD>3.0</TD><TD>1.151292" in result[0])
+			return delete(jobURL)
+
+		def checkFinished(result, jobURL):
+			self.assertTrue("phase>COMPLETED" in result[0])
+			self.assertTrue('xlink:href="http://' in result[0])
+			return trialhelpers.runQuery(self.renderer, "GET", 
+				jobURL+"/results/result", {}
+				).addCallback(checkResult, jobURL)
+
+		def waitForResult(result, jobURL, ct=0):
+			if ct>20:
+				raise AssertionError("user UWS job doesn't COMPLETE or ERROR")
+			time.sleep(0.5)
+			if "phase>COMPLETED" in result[0] or "phase>ERROR" in result[0]:
+				if "phase>ERROR" in result[0]:
+					raise AssertionError("UWS user test job failed with %s"%result[0])
+				return checkFinished(result, jobURL)
+			else:
+				return trialhelpers.runQuery(self.renderer, "GET", jobURL, {}
+				).addCallback(waitForResult, jobURL, ct+1)
+
+		def assertStarted(lastRes, jobURL):
+			req = lastRes[1]
+			self.assertEqual(req.code, 303)
+			self.assertTrue(req.headers["location"].endswith(jobURL))
+			return trialhelpers.runQuery(self.renderer, "GET", jobURL, {}
+			).addCallback(waitForResult, jobURL)
+
+		def checkPosted(result):
+			request = result[1]
+			self.assertEqual(request.code, 303)
+			jobURL = _nukeHostPart(request.headers["location"])
+			self.assertTrue(jobURL.startswith("/data/cores/pc/uws.xml/"))
+			return trialhelpers.runQuery(self.renderer, "POST", 
+				jobURL+"/phase", {"PHASE": "RUN"}
+			).addCallback(assertStarted, jobURL)
+
+		# See the same thing in test_tap.  What can I do?
+		return trialhelpers.runQuery(self.renderer, "POST", 
+			"/data/cores/pc/uws.xml", {
+				"opre": ["1"], "opim": ["3"], "powers": ["1", "2", "3"],
+				"responseformat": "application/x-votable+xml;serialization=TABLEDATA",
+			}
+		).addCallback(checkPosted)
+	
+	def testParameterSetting(self):
+		def assertParamsAndDelete(result, jobURL):
+			self.assertTrue(
+				'<uws:parameters><uws:parameter id="opim">3.0</uws:parameter>'
+				'<uws:parameter id="powers">1 2 3</uws:parameter>'
+				'<uws:parameter id="opre">1.0</uws:parameter></uws:parameters>'
+				in result[0])
+			return trialhelpers.runQuery(self.renderer, "DELETE", jobURL, {}
+			).addCallback(lambda res: reactor.disconnectAll())
+
+		def checkParameters(result):
+			jobURL = _nukeHostPart(result[1].headers["location"])
+			return trialhelpers.runQuery(self.renderer, "GET", 
+				jobURL, {}
+			).addCallback(assertParamsAndDelete, jobURL)
+
+		return trialhelpers.runQuery(self.renderer, "POST", 
+			"/data/cores/pc/uws.xml", {
+				"opre": ["1"], "opim": ["3"], "powers": ["1", "2", "3"]
+			}
+		).addCallback(checkParameters)
 
 
 atexit.register(trialhelpers.provideRDData("test", "import_fitsprod"))

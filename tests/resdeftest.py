@@ -521,6 +521,11 @@ class ParamTest(testhelpers.VerboseTest):
 			'<param name="u" type="timestamp">1969-04-06T04:20:23</param>')
 		self.assertEqual(res.value, datetime.datetime(1969, 4, 6, 4, 20, 23))
 
+	def testDate(self):
+		res = base.parseFromString(rscdef.Param,
+			'<param name="u" type="date">1969-04-06</param>')
+		self.assertEqual(res.value, datetime.date(1969, 4, 6))
+
 	def testEmptyNotreq(self):
 		res = base.parseFromString(rscdef.Param,
 			'<param name="u" type="timestamp"/>')
@@ -563,6 +568,24 @@ class ParamTest(testhelpers.VerboseTest):
 			'<param name="foo" type="text" xtype="adql:POINT">'
 				'position ICRS 10 12</param>')
 		self.assertAlmostEqual(par.value.x, 0.1745329251994)
+
+	def testIntArray(self):
+		par = base.parseFromString(rscdef.Param,
+			'<param name="foo" type="integer[]">'
+				'10 12 -130</param>')
+		self.assertEqual(par.value, (10, 12, -130))
+
+	def testParseFromArray(self):
+		par = base.parseFromString(rscdef.Param,
+			'<param name="foo" type="integer[]"/>')
+		par.set(['10', '12', '-130'])
+		self.assertEqual(par.value, [10, 12, -130])
+
+	def testParseFromStringArray(self):
+		par = base.parseFromString(rscdef.Param,
+			'<param name="foo" type="text[]"/>')
+		par.set(['a10', 'b12', 'c-130'])
+		self.assertEqual(par.value, ['a10', 'b12', 'c-130'])
 
 
 class GroupTest(testhelpers.VerboseTest):

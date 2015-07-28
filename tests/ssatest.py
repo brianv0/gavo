@@ -372,7 +372,7 @@ class GetDataTest(_WithSSATableTest):
 
 	def testBadCalib(self):
 		self.assertRaisesWithMsg(base.ValidationError,
-			"Field FLUXCALIB: u'ferpotschket' is not a valid value for FLUXCALIB",
+			"Field FLUXCALIB: 'ferpotschket' is not a valid value for FLUXCALIB",
 			self.runService,
 			("c", {"REQUEST": "getData", "PUBDID": 'ivo://test.inv/test1', 
 				"FORMAT": "text/plain", 
@@ -542,7 +542,7 @@ class SDMDatalinkTest(_WithSSATableTest):
 
 	def testBadCalib(self):
 		self.assertRaisesWithMsg(base.ValidationError,
-			"Field FLUXCALIB: u'ferpotschket' is not a valid value for FLUXCALIB",
+			"Field FLUXCALIB: 'ferpotschket' is not a valid value for FLUXCALIB",
 			self.runService,
 			("dl", {"ID": 'ivo://test.inv/test1', 
 				"FORMAT": "text/plain", 
@@ -689,8 +689,7 @@ class CoreFailuresTest(_WithSSATableTest):
 
 	def testMalformedSize(self):
 		self.assertRaisesWithMsg(api.ValidationError,
-			"Field SIZE: While building SIZE in parameter parser:"
-			" could not convert string to float: all",
+			"Field SIZE: 'all' is not a valid literal for SIZE",
 			self.runService,
 			("s", {"REQUEST": "queryData", "POS": "0,0", "SIZE": "all"}))
 
@@ -932,7 +931,7 @@ class SDM2TableTest(testhelpers.VerboseTest):
 		res = self._getUniqueByXPath(
 			"//PARAM[@utype='spec2:Char.SpatialAxis.Coverage.Location.Value']")
 		self.assertEqual(res.get('value'), 
-			'10.9999999989 14.0000000012')
+			'10.999999998889821 14.0000000011914')
 
 	def testParameterSet(self):
 		res = self._getUniqueByXPath(

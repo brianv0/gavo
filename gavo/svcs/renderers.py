@@ -51,6 +51,7 @@ RENDERER_REGISTRY = {
 	'tablenote': ("web.metarender", "TableNoteRenderer"),
 	'tap': ("web.taprender", "TAPRenderer"),
 	'upload': ("web.uploadservice", "Uploader"),
+	'uws.xml': ("web.vodal", "UWSAsyncRenderer"),
 }
 
 

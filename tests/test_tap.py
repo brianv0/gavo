@@ -291,7 +291,7 @@ class SimpleAsyncTest(TAPRenderTest):
 		return self.assertGETHasStrings("/async/23/phase", {},
 			['<VOTABLE ', 'ERROR">UWS job \'23\' could not'])
 
-	def testLifeCycle(self):
+	def testLifecycle(self):
 		"""tests job creation, redirection, phase, and deletion.
 		"""
 		# This one is too huge and much too slow for a unit test.  Still

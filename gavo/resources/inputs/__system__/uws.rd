@@ -71,4 +71,27 @@
 			</script>
 		</make>
 	</data>
+
+
+	<table id="userjobs" system="True">
+		<meta name="description">The jobs table for user-defined UWS
+		jobs. As the jobs can come from all kinds of services, this
+		must encode the jobClass (as the id of the originating service).
+		</meta>
+
+		<FEED source="uwsfields"/>
+		<column name="pid" type="integer" 
+				description="A unix pid to kill to make the job stop">
+			<values nullLiteral="-1"/>
+		</column>
+		<column name="jobClass" type="text"
+			description="Key for the job class to use here.  This is,
+				as an implementation detail, simply the cross-id of the service
+				processing this."/>
+	</table>
+
+	<data id="enable_useruws" auto="False">
+		<make table="userjobs"/>
+	</data>
+
 </resource>

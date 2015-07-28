@@ -26,6 +26,8 @@ from gavo import svcs
 from gavo import utils
 from gavo import votable
 from gavo.protocols import dali
+from gavo.protocols import dlasync
+from gavo.protocols import useruws
 from gavo.svcs import streaming
 from gavo.votable import V
 from gavo.web import common
@@ -572,18 +574,16 @@ class DatalinkGetMetaRenderer(_DatalinkRendererBase):
 	resultType = "application/x-votable+xml;content=datalink"
 
 
-class DatalinkAsyncRenderer(grend.ServiceBasedPage):
-	"""A renderer for asynchronous datalink.
-	"""
-# TODO: I suspect this should go somewhere else, presumably together
-# with the stripped-down TAP renderer.
-	name = "dlasync"
+class AsyncRendererBase(grend.ServiceBasedPage):
+	"""An abstract renderer for things running in a UWS.
 
+	To make these concrete, they need a name and a workerSystem attribute.
+	"""
 	def renderHTTP(self, ctx):
 		return self.locateChild(ctx, ())[0]
 
 	def locateChild(self, ctx, segments):
-		from gavo.protocols import dlasync, uwsactions
+		from gavo.protocols import uwsactions
 		from gavo.web import asyncrender
 
 		# no trailing slashes here, ever (there probably should be central
@@ -593,11 +593,33 @@ class DatalinkAsyncRenderer(grend.ServiceBasedPage):
 			newSegments = "/".join(segments[:-1])
 			if newSegments:
 				newSegments = "/"+newSegments
-			raise svcs.WebRedirect(self.service.getURL("dlasync")+newSegments)
+			raise svcs.WebRedirect(self.service.getURL(self.name)+newSegments)
 
 		uwsactions.lowercaseProtocolArgs(inevow.IRequest(ctx).args)
-		return asyncrender.getAsyncResource(ctx, dlasync.DL_WORKER,
-			"dlasync", self.service, segments), ()
+		return asyncrender.getAsyncResource(ctx, 
+			self.workerSystem,
+			self.name, 
+			self.service, 
+			segments), ()
+
+
+class DatalinkAsyncRenderer(AsyncRendererBase):
+	"""A renderer for asynchronous datalink.
+	"""
+# TODO: I suspect this should go somewhere else, presumably together
+# with the stripped-down TAP renderer.
+	name = "dlasync"
+	workerSystem = dlasync.DL_WORKER
+
+
+class UWSAsyncRenderer(AsyncRendererBase):
+	"""A renderer for "user-uws" services.
+
+	I suspect this should be merged into a generic "async" render that
+	would work for TAP-async and datalink-async, too.
+	"""
+	name = "uws.xml"
+	workerSystem = useruws.USER_WORKER
 
 
 def _test():

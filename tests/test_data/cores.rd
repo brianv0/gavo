@@ -198,7 +198,7 @@
 		<property name="staticData">data</property>
 	</service>
 
-	<service id="pc" allowed="api,form">
+	<service id="pc" allowed="api,form,uws.xml">
 		<pythonCore>
 			<inputTable>
 				<inputKey name="opre" description="Operand, real part"
@@ -206,7 +206,9 @@
 				<inputKey name="opim" description="Operand, imaginary part"
 					required="True"/>
 				<inputKey name="powers" description="Powers to compute"
-					type="integer" multiplicity="multiple"/>
+					type="integer[]" multiplicity="multiple"/>
+				<inputKey name="responseformat" description="Preferred
+						output format" type="text"/>
 			</inputTable>
 			<outputTable>
 				<outputField name="re" description="Result, real part"/>
@@ -227,7 +229,6 @@
 						powers = [1,2]
 					op = complex(inputTable.getParam("opre"),
 						inputTable.getParam("opim"))
-
 					rows = []
 					for p in powers:
 						val = op**p
