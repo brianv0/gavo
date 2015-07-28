@@ -111,6 +111,11 @@ class UserUWS(uws.UWSWithQueueing):
 	parameters.  To make this happen, we'll need to override some of the
 	common UWS functions.
 	"""
+	joblistPreamble = ("<?xml-stylesheet href='/static"
+		"/xsl/useruws-joblist-to-html.xsl' type='text/xsl'?>")
+	jobdocPreamble = ("<?xml-stylesheet href='/static/xsl/"
+		"useruws-job-to-html.xsl' type='text/xsl'?>")
+
 	jobClass = UserUWSJobBase
 
 	def getURLForId(self, jobId):
