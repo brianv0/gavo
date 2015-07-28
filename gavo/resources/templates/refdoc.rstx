@@ -2661,6 +2661,10 @@ in the procApp's namespace::
 		</coreProc>
 	</pythonCore>
 
+As an additional service, DaCHS executes your python cores in a sandbox
+directory, so you can create temporary files to your heart's
+delight; they will be torn down once the core is finished.
+
 
 Custom UWSes
 ============
