@@ -203,8 +203,9 @@
 			<inputTable>
 				<inputKey name="opre" description="Operand, real part"
 					required="True"/>
-				<inputKey name="opim" description="Operand, imaginary part"
-					required="True"/>
+				<inputKey name="opim" description="Operand, imaginary part">
+					<values default="1.0"/>
+				</inputKey>
 				<inputKey name="powers" description="Powers to compute"
 					type="integer[]" multiplicity="multiple"/>
 				<inputKey name="responseformat" description="Preferred

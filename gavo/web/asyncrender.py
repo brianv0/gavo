@@ -95,9 +95,6 @@ class JoblistResource(MethodAwareResource, UWSErrorMixin):
 		return res
 	
 	def _doPOST(self, ctx, request):
-		# see useruws.UserUWSJobType for the following gross hack.
-		_uws_originating_service = self.service.getFullId() #noflake: for stealing
-
 		jobId = self.workerSystem.getNewIdFromRequest(request, self.service)
 		return UWSRedirect(self.service.getURL(
 			self.renderer), str(jobId))

@@ -1,5 +1,7 @@
 """
 Support for UWSes defined in user RDs.
+
+To understand this, start at makeUWSForService.
 """
 
 #c Copyright 2008-2015, the GAVO project
@@ -7,13 +9,14 @@ Support for UWSes defined in user RDs.
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
 
+import cPickle as pickle
 import datetime
+import weakref
 
 from gavo import base
 from gavo import formats
 from gavo import rsc
 from gavo import rscdesc #noflake: for registration
-from gavo import utils
 from gavo.protocols import uws
 from gavo.protocols import uwsactions
 
@@ -37,47 +40,6 @@ class UserUWSTransitions(uws.ProcessBasedUWSTransitions):
 		return "gavo", args
 
 
-class UserUWSJobType(uws.UWSJobType):
-	"""A metaclass for the base of UserUWSJobs.
-
-	We need this as UserUWSJobBase's constructor has to return
-	specialised classes depending on the service.  Now, we could
-	have used a factory function, but I wanted to keep the class
-	attributes.
-
-	Worse, the UWS doesn't really know the originating service either.
-	So, we're resorting to criminality (stealVar): If it's possible
-	that a user UWS job is created, somewhere in the stack there
-	needs to be a local variable called __uws_originating_service
-	with the id of the service.
-	"""
-	userUWSJobClasses = {}
-
-	def __call__(self, properties, workerSystem, writable):
-		if properties["jobClass"] is None:
-			jobClass = utils.stealVar("_uws_originating_service")
-			properties["jobClass"] = jobClass
-		else:
-			jobClass = properties["jobClass"]
-
-		if jobClass not in self.userUWSJobClasses:
-			self.userUWSJobClasses[jobClass] = makeUserUWSJobClass(jobClass)
-		return self.userUWSJobClasses[jobClass](
-			properties, workerSystem, writable)
-
-
-class UserUWSJobBase(uws.UWSJobWithWD):
-	"""A UWS job performing a job specified by a core.
-
-	This only has the rudimentary basic parameters for UWS jobs.
-	UserUWS creates extra classes by service from this.
-	"""
-	__metaclass__ = UserUWSJobType
-
-	_jobsTDId = "//uws#userjobs"
-	_transitions = UserUWSTransitions()
-
-
 def makeUWSJobParameterFor(inputKey):
 	"""returns a uws.JobParameter instance for inputKey.
 	"""
@@ -88,18 +50,40 @@ def makeUWSJobParameterFor(inputKey):
 	return SomeParameter
 
 
-def makeUserUWSJobClass(svcId):
-	"""returns a class object for representing UWS jobs processing requests
-	for the service at svcId.
-	"""
-	svc = base.resolveCrossId(svcId)
-	
-	class UserUWSJob(uws.UWSJobWithWD):
-		_transitions = UserUWSJobBase._transitions
+class UserUWSJobBase(uws.UWSJobWithWD):
+	"""The base class for the service-specific user UWS jobs.
 
-	for key in svc.getInputKeysFor("uws.xml"):
-		setattr(UserUWSJob, "_parameter_"+key.name,
-			makeUWSJobParameterFor(key))
+	(i.e., the things that the UserUWSJobFactory spits out)
+	"""
+	_transitions = UserUWSTransitions()
+	_jobsTDId = "//uws#userjobs"
+
+
+def makeUserUWSJobClass(service):
+	"""returns a class object for representing UWS jobs processing requests
+	for service
+	"""
+	class UserUWSJob(UserUWSJobBase):
+		pass
+
+	defaults = {}
+	for ik in service.getInputKeysFor("uws.xml"):
+		setattr(UserUWSJob, "_parameter_"+ik.name,
+			makeUWSJobParameterFor(ik))
+		if ik.values.default:
+			defaults[ik.name] = ik.values.default
+		else:
+			defaults[ik.name] = None
+
+	defaultStr = pickle.dumps(defaults, protocol=2
+		).encode("zlib").encode("base64")
+	del defaults
+	def _(cls):
+		return defaultStr
+	
+	UserUWSJob._default_parameters = classmethod(_)
+	UserUWSJob._default_jobClass = classmethod(
+		lambda _, v=service.getFullId(): v)
 	
 	return UserUWSJob
 
@@ -116,17 +100,35 @@ class UserUWS(uws.UWSWithQueueing):
 	jobdocPreamble = ("<?xml-stylesheet href='/static/xsl/"
 		"useruws-job-to-html.xsl' type='text/xsl'?>")
 
-	jobClass = UserUWSJobBase
+	def __init__(self, service, jobActions):
+		self.service = weakref.proxy(service)
+		uws.UWSWithQueueing.__init__(self, 
+			makeUserUWSJobClass(service), jobActions)
 
 	def getURLForId(self, jobId):
-		return base.resolveCrossId(self.getJob(jobId).jobClass).getURL(
-			"uws.xml")+"/"+jobId
+		return self.service.getURL("uws.xml")+"/"+jobId
 
 	def getParamsFromRequest(self, wjob, request, service):
+		# TODO: For consistency, it'd be cool if we had some way
+		# to run ContextGrammar/InputDD here.  Or we should change
+		# that combo to what we have here?
 		for key, value in request.args.iteritems():
 			wjob.setSerializedPar(key, " ".join(value))
 
-USER_WORKER = UserUWS(UserUWSJobBase, uwsactions.JobActions())
+
+def makeUWSForService(service):
+	"""returns a UserUWS instance tailored to service.
+
+	All these share a jobs table, but the all have different job
+	classes with the parameters custom-made for the service's core.
+
+	A drawback of this is that each UWS created in this way runs the
+	job table purger again.  That shouldn't be a problem per se but
+	may become cumbersome at some point.  We can always introduce a
+	class Attribute on UserUWS to keep additional UWSes from starting
+	cron jobs of their own.
+	"""
+	return UserUWS(service, uwsactions.JobActions())
 
 
 ####################### CLI
@@ -142,8 +144,14 @@ def parseCommandLine():
 def main():
 	args = parseCommandLine()
 	jobId = args.jobId
+	with base.getTableConn() as conn:
+		svcId = list(
+			conn.query("SELECT jobclass FROM uws.userjobs WHERE jobId=%(jobId)s",
+				{"jobId": jobId}))[0][0]
+	service = base.resolveCrossId(svcId)
+
 	try:
-		job = USER_WORKER.getJob(jobId)
+		job = service.getUWS().getJob(jobId)
 		with job.getWritable() as wjob:
 			wjob.change(phase=uws.EXECUTING, startTime=datetime.datetime.utcnow())
 
@@ -187,5 +195,5 @@ def main():
 		base.ui.notifyError("UWS runner %s major failure"%jobId)
 		# try to push job into the error state -- this may well fail given
 		# that we're quite hosed, but it's worth the try
-		USER_WORKER.changeToPhase(jobId, uws.ERROR, ex)
+		service.getUWS().changeToPhase(jobId, uws.ERROR, ex)
 		raise

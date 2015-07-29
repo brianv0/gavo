@@ -581,6 +581,7 @@ class TestUserUWS(trialhelpers.ArchiveTest):
 			self.assertTrue(
 				'<uws:parameters><uws:parameter id="opim">3.0</uws:parameter>'
 				'<uws:parameter id="powers">1 2 3</uws:parameter>'
+				'<uws:parameter id="responseformat"/>'
 				'<uws:parameter id="opre">1.0</uws:parameter></uws:parameters>'
 				in result[0])
 			return trialhelpers.runQuery(self.renderer, "DELETE", jobURL, {}

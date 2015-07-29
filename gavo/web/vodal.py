@@ -27,7 +27,6 @@ from gavo import utils
 from gavo import votable
 from gavo.protocols import dali
 from gavo.protocols import dlasync
-from gavo.protocols import useruws
 from gavo.svcs import streaming
 from gavo.votable import V
 from gavo.web import common
@@ -619,7 +618,10 @@ class UWSAsyncRenderer(AsyncRendererBase):
 	would work for TAP-async and datalink-async, too.
 	"""
 	name = "uws.xml"
-	workerSystem = useruws.USER_WORKER
+
+	@property
+	def workerSystem(self):
+		return self.service.getUWS()
 
 
 def _test():

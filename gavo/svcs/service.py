@@ -474,6 +474,15 @@ class Service(base.Structure, base.ComputedMetaMixin,
 					os.path.join(self.rd.resdir, tp))
 		return self._loadedTemplates[key]
 
+	def getUWS(self):
+		"""returns a user UWS instance for this service.
+
+		This is a service for the UWSAsyncRenderer.
+		"""
+		if not hasattr(self, "uws"):
+			from gavo.protocols import useruws
+			self.uws = useruws.makeUWSForService(self)
+		return self.uws
 
 	################### Registry and related methods.
 

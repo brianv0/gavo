@@ -18,7 +18,6 @@ from gavo.helpers import testhelpers
 
 from gavo import base
 from gavo import rscdesc # for base.caches registration
-from gavo.protocols import useruws
 from gavo.protocols import uws
 from gavo.protocols import uwsactions
 
@@ -279,20 +278,22 @@ class JobHandlingTest(TestWithUWSJob):
 				(self.job.jobId,))
 
 
-def _makeUWSRequest(inArgs):
+def _makeUWSRequest(inArgs, inMethod="GET"):
 	class RequestStandin(object):
 		args = inArgs
+		method = inMethod
+
+		@classmethod
+		def setHeader(cls, key, value):
+			pass
+
 	return RequestStandin
 
 
 class UserUWSTest(testhelpers.VerboseTest):
-	def testJobClassMaking(self):
-		cls = useruws.makeUserUWSJobClass("data/cores#pc")
-		self.assertTrue(hasattr(cls._parameter_opim, "addPar"))
-
 	def testBasicJob(self):
-		_uws_originating_service ="data/cores#pc"
-		job = useruws.USER_WORKER.getNewJob()
+		worker = base.resolveCrossId("data/cores#pc").getUWS()
+		job = worker.getNewJob()
 		try:
 			self.assertEqual(job.jobClass, "data/cores#pc")
 			with job.getWritable() as wjob:
@@ -302,31 +303,45 @@ class UserUWSTest(testhelpers.VerboseTest):
 			self.assertEqual(job.parameters["opre"], 2.5)
 			self.assertEqual(job.parameters["powers"], [1,2,3])
 		finally:
-			useruws.USER_WORKER.destroy(job.jobId)
+			worker.destroy(job.jobId)
 
 	def testFloatParameter(self):
-		_uws_originating_service ="data/cores#pc"
-		jobId = useruws.USER_WORKER.getNewIdFromRequest(
+		worker = base.resolveCrossId("data/cores#pc").getUWS()
+		jobId = worker.getNewIdFromRequest(
 			_makeUWSRequest({"opre": ["2.5"], "opim": ["3.5"]}),
-				base.resolveCrossId(_uws_originating_service))
+				worker.service)
 		try:
-			job = useruws.USER_WORKER.getJob(jobId)
+			job = worker.getJob(jobId)
 			self.assertEqual(job.getSerializedPar("opre"), "2.5")
 			self.assertEqual(job.parameters["opre"], 2.5)
 		finally:
-			useruws.USER_WORKER.destroy(jobId)
+			worker.destroy(jobId)
 
 	def testArrayParameter(self):
-		_uws_originating_service ="data/cores#pc"
-		jobId = useruws.USER_WORKER.getNewIdFromRequest(
+		worker = base.resolveCrossId("data/cores#pc").getUWS()
+		jobId = worker.getNewIdFromRequest(
 			_makeUWSRequest({"powers": ["2", "4", "78"]}),
-				base.resolveCrossId(_uws_originating_service))
+				worker.service)
 		try:
-			job = useruws.USER_WORKER.getJob(jobId)
+			job = worker.getJob(jobId)
 			self.assertEqual(job.getSerializedPar("powers"), "2 4 78")
 			self.assertEqual(job.parameters["powers"], (2, 4, 78))
 		finally:
-			useruws.USER_WORKER.destroy(jobId)
+			worker.destroy(jobId)
+
+	def parametersTest(self):
+		worker = base.resolveCrossId("data/cores#pc").getUWS()
+		job = worker.getNewJob()
+		try:
+			res = uwsactions.doJobAction(worker, _makeUWSRequest({}),
+				(job.jobId,))
+			tree = testhelpers.getXMLTree(res, debug=False)
+			self.assertEqual(len(tree.xpath("//parameter")), 4)
+			self.assertEqual(tree.xpath("//parameter[@id='opim']")[0].text,
+				"1.0")
+		finally:
+			worker.destroy(job.jobId)
+
 
 if __name__=="__main__":
 	testhelpers.main(JobHandlingTest)

@@ -116,6 +116,7 @@ class UWS(object):
 		_name_a_type = "xlink:type"
 
 	class parameter(UWSElement):
+		_mayBeEmpty = True
 		_a_byReference = None
 		_a_id = None
 		_a_isPost = None
