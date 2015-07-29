@@ -18,6 +18,7 @@ import os
 import random
 import re
 import threading
+import warnings
 
 import numpy
 
@@ -953,8 +954,11 @@ def _initPsycopg(conn):
 # collect all DB setup in this function.  XXX TODO: in particular, the
 # Box mess from coords (if we still want it)
 	global _PSYCOPG_INITED
-	from gavo.utils import pgsphere
-	pgsphere.preparePgSphere(conn)
+	try:
+		from gavo.utils import pgsphere
+		pgsphere.preparePgSphere(conn)
+	except:
+		warnings.warn("pgsphere missing -- ADQL, ps-SIAP, and SSA will not work")
 	_PSYCOPG_INITED = True
 
 
