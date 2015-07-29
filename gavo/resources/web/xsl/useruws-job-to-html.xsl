@@ -19,11 +19,26 @@ on verbal permission here. -->
 
     <xsl:template match="uws:parameter">
       <dt><xsl:value-of select="@id"/></dt>
-      <dd><xsl:value-of select="text()"/></dd>
+      <dd><input type="test">
+        <xsl:attribute name="name">
+          <xsl:value-of select="@id"/>
+        </xsl:attribute>
+        <xsl:attribute name="value">
+          <xsl:value-of select="text()"/>
+        </xsl:attribute>
+      </input></dd>
     </xsl:template>
 
     <xsl:template match="uws:parameters">
-      <dl><xsl:apply-templates/></dl>
+      <dl>
+        <form method="POST">
+          <xsl:attribute name="action">
+            <xsl:value-of select="//uws:jobId"
+              />/parameters</xsl:attribute>
+          <xsl:apply-templates/>
+          <input type="submit" value="Update"/>
+        </form>
+      </dl>
     </xsl:template>
 
     <xsl:template match="/">
