@@ -207,7 +207,9 @@
 					<values default="1.0"/>
 				</inputKey>
 				<inputKey name="powers" description="Powers to compute"
-					type="integer[]" multiplicity="multiple"/>
+					type="integer[]" multiplicity="multiple">
+					<values default="1 2 3"/>
+				</inputKey>
 				<inputKey name="responseformat" description="Preferred
 						output format" type="text"/>
 			</inputTable>
@@ -226,8 +228,6 @@
 				</setup>
 				<code>
 					powers = inputTable.getParam("powers")
-					if powers is None:
-						powers = [1,2]
 					op = complex(inputTable.getParam("opre"),
 						inputTable.getParam("opim"))
 					rows = []

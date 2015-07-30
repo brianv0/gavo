@@ -70,10 +70,7 @@ def makeUserUWSJobClass(service):
 	for ik in service.getInputKeysFor("uws.xml"):
 		setattr(UserUWSJob, "_parameter_"+ik.name,
 			makeUWSJobParameterFor(ik))
-		if ik.values.default:
-			defaults[ik.name] = ik.values.default
-		else:
-			defaults[ik.name] = None
+		defaults[ik.name] = ik.values.default
 
 	defaultStr = pickle.dumps(defaults, protocol=2
 		).encode("zlib").encode("base64")

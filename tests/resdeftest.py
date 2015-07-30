@@ -184,6 +184,11 @@ class ValuesTest(testhelpers.VerboseTest):
 		self.assertRaises(base.ValidationError, col.validateValue, 
 			(datetime.date(1999, 1, 1),))
 
+	def testArrayDefault(self):
+		col = base.parseFromString(rscdef.Column,
+			'<column name="foo" type="integer[3]"><values default="1 2 3"/></column>')
+		self.assertEqual(col.values.default, (1, 2, 3))
+
 
 class ScriptTest(testhelpers.VerboseTest):
 	"""tests for script elements 

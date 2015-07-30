@@ -280,6 +280,11 @@ class Values(base.Structure):
 					" literal gives what value will be used for null values"
 					" when serializing to VOTables and the like.")
 
+		if self.default and isinstance(self.default, basestring):
+			type, arraysize, xtype = dataField._getVOTableType()
+			self.default = paramval.getVOTParser(type, arraysize, xtype)(
+				self.default)
+
 	def validateOptions(self, value):
 		"""returns false if value isn't either in options or doesn't consist of
 		items in options.
@@ -513,7 +518,19 @@ class ColumnBase(base.Structure, base.MetaMixin):
 		if self.tablehead is not None:
 			return self.tablehead
 		return self.name.capitalize()
+
+	def _getVOTableType(self):
+		"""returns the VOTable type, arraysize and xtype for this
+		column-like thing.
+		"""
+		type, arraysize, xtype = base.sqltypeToVOTable(self.type)
+
+		if self.type=="date":
+			xtype = "dachs:DATE"
 		
+		return type, arraysize, xtype
+		
+
 
 class Column(ColumnBase):
 	"""A database column.
@@ -586,6 +603,8 @@ class ParamBase(ColumnBase):
 
 	nullLiteral = ""
 
+	unprocessedTypes = set(["raw", "file"])
+
 	def __repr__(self):
 		return "<%s %s=%s>"%(self.__class__.__name__, 
 			repr(self.name), repr(self.content_))
@@ -641,6 +660,8 @@ class ParamBase(ColumnBase):
 		This is what would reproduce the value if embedded in an XML
 		serialisation of the param.
 		"""
+		if self.type in self.unprocessedTypes:
+			return "(Unrepresentable %s)"%self.type
 		return self.content_ 
 
 	def set(self, val):
@@ -673,15 +694,15 @@ class ParamBase(ColumnBase):
 		The method also makes sure literal matches any constraints
 		set by a values child and raises a ValidationError if not.
 		"""
-		if not isinstance(literal, basestring):
+		if self.type in self.unprocessedTypes:
+			return literal
+
+		elif not isinstance(literal, basestring):
 			if _isStringList(literal):
 				value = [self._parse(l, atom=True) for l in literal]
 			else:
 				value = literal
 		
-		elif self.type=="raw":
-			value = literal
-
 		elif literal=="__NULL__" or literal=="":
 			value = None
 
@@ -717,17 +738,6 @@ class ParamBase(ColumnBase):
 
 		return value
 
-	def _getVOTableType(self):
-		"""returns the VOTable type, arraysize and xtype for this
-		param.
-		"""
-		type, arraysize, xtype = base.sqltypeToVOTable(self.type)
-
-		if self.type=="date":
-			xtype = "dachs:DATE"
-		
-		return type, arraysize, xtype
-		
 	def _unparse(self, value):
 		"""returns a string representation of value appropriate for this
 		type.
@@ -738,7 +748,7 @@ class ParamBase(ColumnBase):
 		Plus, right now, for sequences we're not doing anything.  We probably
 		should; but we'll need to be much more careful in ContextGramar then.
 		"""
-		if self.type=="raw":
+		if self.type in self.unprocessedTypes:
 			return value
 
 		if value is None:

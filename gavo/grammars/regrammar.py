@@ -104,25 +104,33 @@ class REGrammar(Grammar, FileRowAttributes):
 	rowIterator = REIterator
 
 	_til = base.IntAttribute("topIgnoredLines", default=0, description=
-		"Skip this many lines at the top of each source file.")
+		"Skip this many lines at the top of each source file.",
+		copyable=True)
 	_stopPat = REAttribute("stopPat", default=None,
 		description="Stop parsing when a record *matches* this RE (this"
-		" is for skipping non-data footers")
+		" is for skipping non-data footers",
+		copyable=True)
 	_recordSep = REAttribute("recordSep", default=re.compile("\n"), 
-		description="RE for separating two records in the source.")
+		description="RE for separating two records in the source.",
+		copyable=True)
 	_fieldSep = REAttribute("fieldSep", default=re.compile(r"\s+"), 
-		description="RE for separating two fields in a record.")
+		description="RE for separating two fields in a record.",
+		copyable=True)
 	_commentPat = REAttribute("commentPat", default=None,
 		description="RE inter-record material to be ignored (note: make this"
 		" match the entire comment, or you'll get random mess from partly-matched"
-		" comments.  Use '(?m)^#.*$' for beginning-of-line hash-comments.")
+		" comments.  Use '(?m)^#.*$' for beginning-of-line hash-comments.",
+		copyable=True)
 	_recordCleaner = REAttribute("recordCleaner", default=None,
 		description="A regular expression matched against each record."
 			" The matched groups in this RE are joined by blanks and used"
 			" as the new pattern.  This can be used for simple cleaning jobs;"
-			" However, records not matching recordCleaner are rejected.")
+			" However, records not matching recordCleaner are rejected.",
+			copyable=True)
 	_names = base.StringListAttribute("names", description=
 		"Names for the parsed fields, in matching sequence.  You can"
-		r" use macros here, e.g., \\colNames{someTable}.", expand=True)
+		r" use macros here, e.g., \\colNames{someTable}.", expand=True,
+		copyable=True)
 	_lax = base.BooleanAttribute("lax", description="allow more or less"
-		" fields in source records than there are names", default=False)
+		" fields in source records than there are names", default=False,
+		copyable=True)

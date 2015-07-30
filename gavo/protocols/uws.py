@@ -606,6 +606,8 @@ class JobParameter(object):
 		# this is a bit magic because job.parameters is only re-encoded
 		# on demand
 		parameters = job.parameters
+		if isinstance(value, basestring):
+			value = cls._deserialize(value)
 		parameters[name] = value
 		# see our docstring
 		job.change(parameters=parameters)

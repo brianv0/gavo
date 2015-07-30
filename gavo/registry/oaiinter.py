@@ -411,5 +411,5 @@ class RegistryCore(svcs.Core, base.RestrictionMixin):
 		"""returns an ElementTree containing a OAI-PMH response for the query 
 		described by pars.
 		"""
-		args = inputTable.getParam("args")
+		args = inputTable.getParam("args")[0]
 		return self.runWithPMHDict(args)

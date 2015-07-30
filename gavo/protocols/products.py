@@ -884,9 +884,15 @@ class ProductCore(svcs.DBCore):
 		keysList = [RAccref.fromString(r["accref"])
 			for r in inputTable.rows if "accref" in r]
 		try:
-			param = inputTable.getParam("accref")
-			if param is not None:
-				keysList.append(RAccref.fromString(param))
+			parVal = inputTable.getParam("accref")
+			# Unfortunately, there's no telling if we're getting in a list or
+			# a raw value at this point.  We probably should forbid atomic
+			# inputs for consistency.
+			if not isinstance(parVal, list):
+				parVal = [parVal]
+
+			for v in parVal:
+				keysList.append(RAccref.fromString(v))
 		except base.NotFoundError: # "tar case", accrefs in rows
 			pass
 		return keysList

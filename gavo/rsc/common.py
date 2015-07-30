@@ -69,7 +69,7 @@ class ParamMixin(object):
 		directly.  Trying to write to non-existing params will raise a
 		NotFoundError.
 
-		Do now write to params directly, you'll break things.
+		Do not write to params directly, you'll break things.
 		"""
 		self._params.getColumnByName(parName).set(value)
 	

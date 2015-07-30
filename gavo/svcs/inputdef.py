@@ -92,7 +92,7 @@ class InputKey(column.ParamBase):
 			" if multiple input values are given),"
 			" forced-single to have an atomic value"
 			" and raise an exception if multiple values come in, or"
-			" emit to receive lists.  On the form renderer, this is"
+			" multiple to receive lists.  On the form renderer, this is"
 			" ignored, and the values are what nevow formal passes in."
 			" If not given, it is single unless there is a values element with"
 			" options, in which case it's multiple.")
@@ -264,6 +264,10 @@ class ContextRowIterator(grammars.RowIterator):
 			else:
 				val = self.grammar.defaults.get(ik.name, None)
 
+			# TODO: we probably should avoid having tuples here in the first place
+			if isinstance(val, tuple):
+				val = list(val)
+
 			if val is not None and not isinstance(val, list):
 				val = [val]
 
@@ -413,9 +417,12 @@ def makeAutoParmaker(inputTable):
 	"""
 	maps = []
 	for par in inputTable.params:
-		makeValue = "getHTTPPar(vars['%s'], identity%s)"%(
-			par.name,
-			_OPTIONS_FOR_MULTIS[par.multiplicity])
+		if par.type in par.unprocessedTypes:
+			makeValue = "vars['%s']"%par.name
+		else:
+			makeValue = "getHTTPPar(vars['%s'], identity%s)"%(
+				par.name,
+				_OPTIONS_FOR_MULTIS[par.multiplicity])
 
 		maps.append(MS(rscdef.MapRule, dest=par.name, content_=makeValue))
 

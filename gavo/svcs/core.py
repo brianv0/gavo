@@ -207,7 +207,7 @@ class DebugCore(Core):
 	def run(self, service, inputData, queryMeta):
 		rows = []
 		for par in inputData.iterParams():
-			if isinstance(par.value, tuple): # formal-style file upload
+			if par.type=="file":
 				value = par.value[1].read()
 			else:
 				value = par.value

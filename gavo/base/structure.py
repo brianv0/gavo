@@ -227,13 +227,15 @@ class StructureBase(object):
 		parent = kwargs.pop("parent_", self.parent)
 		attrs = self.getCopyableAttributes(kwargs)
 		attrs.update(kwargs)
-		return self.__class__(parent, **attrs).finishElement(None)
+		return self.__class__(parent, **attrs).finishElement(
+			parsecontext.ParseContext())
 
 	def copy(self, parent):
 		"""returns a deep copy of self, reparented to parent.
 		"""
 		return self.__class__(parent, 
-			**self.getCopyableAttributes()).finishElement(None)
+			**self.getCopyableAttributes()).finishElement(
+				parsecontext.ParseContext())
 
 	def adopt(self, struct):
 		struct.parent = self
@@ -452,4 +454,5 @@ def makeStruct(structClass, **kwargs):
 	parent = None
 	if "parent_" in kwargs:
 		parent = kwargs.pop("parent_")
-	return structClass(parent, **kwargs).finishElement(None)
+	return structClass(parent, **kwargs).finishElement(
+		parsecontext.ParseContext())

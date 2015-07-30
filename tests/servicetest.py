@@ -687,7 +687,7 @@ class PythonCoreTest(testhelpers.VerboseTest):
 		svc = base.resolveCrossId("data/cores#pc")
 		res = svc.run("form", {"opre": "1", "opim": 1}
 			).original.getPrimaryTable()
-		self.assertEqual(len(res), 2)
+		self.assertEqual(len(res), 3)
 
 	def testMissing(self):
 		svc = base.resolveCrossId("data/cores#pc")

@@ -2707,6 +2707,14 @@ form to server-side code.  To allow cores to run in both sync and async
 without further worries, just have lowercase-only parameters.
 
 
+Hint on debugging: ``gavo uwsrun`` doesn't check the state the job is
+in, it will just try to execute it anyway.  So, if your job went into
+error and you want to investicate why, just take its id and execute
+something like::
+
+  gavo --traceback uwsrun i1ypYX
+
+
 Manufacturing Spectra
 =====================
 
