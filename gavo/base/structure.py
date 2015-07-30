@@ -454,5 +454,4 @@ def makeStruct(structClass, **kwargs):
 	parent = None
 	if "parent_" in kwargs:
 		parent = kwargs.pop("parent_")
-	return structClass(parent, **kwargs).finishElement(
-		parsecontext.ParseContext())
+	return structClass(parent, **kwargs).finishElement()
