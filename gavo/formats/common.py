@@ -164,10 +164,13 @@ def formatData(formatName, table, outputFile, acquireSamples=True):
 	"""writes a table to outputFile in the format given by key.
 
 	Table may be a table or a Data instance.   formatName is a format shortcut
-	or a MIME type.
+	or a MIME type.  If you pass None, the default VOTable format will be
+	selected.
 
 	This raises a CannotSerializeIn exception if formatName is not recognized.
 	"""
+	if formatName is None:
+		formatName = base.votableType
 	getWriterFor(formatName)(table, outputFile, acquireSamples=acquireSamples)
 
 

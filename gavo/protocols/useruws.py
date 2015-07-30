@@ -154,6 +154,7 @@ def main():
 
 		service = base.resolveCrossId(job.jobClass)
 		inputTable = rsc.TableForDef(service.core.inputTable)
+		inputTable.job = job
 
 		for parName, value in job.parameters.iteritems():
 			inputTable.setParam(parName, value)

@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Shamelessly lifted from astrogrid dsa and then hacked.  Operating
-on verbal permission here. -->
 
 <xsl:stylesheet
     xmlns:uws="http://www.ivoa.net/xml/UWS/v1.0"
     xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+    xmlns:xlink="http://www.w3.org/1999/xlink"
     xmlns="http://www.w3.org/1999/xhtml"
     version="1.0">
     
@@ -53,6 +52,29 @@ on verbal permission here. -->
         </html>
     </xsl:template>
 
+    <xsl:template match="uws:parameters">
+      <dt>Parameters</dt>
+      <dd><xsl:apply-templates/></dd>
+    </xsl:template>
+
+    <xsl:template match="uws:result">
+      <li>
+        <a>
+          <xsl:attribute name="href">
+            <xsl:value-of select="@xlink:href"/>
+          </xsl:attribute>
+           <xsl:value-of select="@id"/>
+        </a>
+      </li>
+    </xsl:template>
+
+    <xsl:template match="uws:results">
+        <dt><xsl:text>Current results:</xsl:text></dt>
+        <dd><ul>
+          <xsl:apply-templates/>
+        </ul></dd>
+    </xsl:template>
+
     <xsl:template match="uws:job">
       <xsl:variable name="jobId"><xsl:value-of select="uws:jobId"/></xsl:variable>
       <xsl:variable name="phase"><xsl:value-of select="uws:phase"/></xsl:variable>
@@ -72,16 +94,9 @@ on verbal permission here. -->
         <dt><xsl:text>Destruction time:</xsl:text></dt>
         <dd><xsl:value-of select="uws:destruction"/></dd>
 
-        <dt>Parameters</dt>
-        <dd><xsl:apply-templates/></dd>
+        <xsl:apply-templates select="uws:parameters"/>
 
-        <xsl:if test="$phase='COMPLETED'">
-          <dt><xsl:text>Query results:</xsl:text></dt>
-          <dd><a>
-            <xsl:attribute name="href">
-              <xsl:value-of select="$jobId"/>/results/result</xsl:attribute>
-             Result</a></dd>
-        </xsl:if>
+        <xsl:apply-templates select="uws:results"/>
 
         <xsl:if test="$phase='ERROR'">
           <dt><xsl:text>Error message:</xsl:text></dt>

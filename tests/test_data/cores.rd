@@ -211,7 +211,9 @@
 					<values default="1 2 3"/>
 				</inputKey>
 				<inputKey name="responseformat" description="Preferred
-						output format" type="text"/>
+						output format" type="text">
+							<values default="application/x-votable+xml"/>
+				</inputKey>
 			</inputTable>
 			<outputTable>
 				<outputField name="re" description="Result, real part"/>
@@ -237,7 +239,11 @@
 							"re": val.real,
 							"im": val.imag,
 							"log": cmath.log(val).real})
-					
+				
+					if hasattr(inputTable, "job"):
+						with inputTable.job.getWritable() as wjob:
+							wjob.addResult("Hello World.\\n", "text/plain", "aux.txt")
+
 					return rsc.TableForDef(self.outputTable, rows=rows)
 				</code>
 			</coreProc>

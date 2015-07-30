@@ -985,8 +985,16 @@ class UWSJobWithWD(BaseUWSJob):
 
 	def _addResultInJobDir(self, mimeType, name):
 		resTable = self._loadResults()
-		resTable.append(
-			{'resultName': name, 'resultType': mimeType})
+		newRec = {'resultName': name, 'resultType': mimeType}
+
+		for index, res in enumerate(resTable):
+			if res["resultName"]==name:
+				resTable[index] = newRec
+				break
+		else:
+			resTable.append(
+				{'resultName': name, 'resultType': mimeType})
+
 		self._saveResults(resTable)
 
 	def fixTypeForResultName(self, resultName, mediaType):

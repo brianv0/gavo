@@ -174,7 +174,12 @@ class PythonCore(core.Core):
 		childFactory=CoreProc, 
 		description="Code making the outputTable from the inputTable.",
 		copyable=True)
-	
+
+	def expand(self, s):
+		# macro expansion should ideally take place in the service,
+		# but that's impossible in general because a core could be
+		# in use by several services.  Hence, we go ask the RD
+		return self.rd.expand(s)
 	def run(self, service, inputTable, queryMeta):
 		with utils.sandbox():
 			return self.coreProc.compile()(self, service, inputTable, queryMeta)

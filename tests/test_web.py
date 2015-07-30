@@ -529,9 +529,16 @@ class TestUserUWS(trialhelpers.ArchiveTest):
 			return trialhelpers.runQuery(self.renderer, "DELETE", jobURL, {}
 			).addCallback(assertDeleted, jobURL)
 
+		def checkOtherResult(result, jobURL):
+			self.assertEqual(result[1].headers["content-type"], "text/plain")
+			self.assertEqual(result[0], "Hello World.\n")
+			return delete(jobURL)
+
 		def checkResult(result, jobURL):
 			self.assertTrue("<TR><TD>1.0</TD><TD>3.0</TD><TD>1.151292" in result[0])
-			return delete(jobURL)
+			return trialhelpers.runQuery(self.renderer, "GET", 
+				jobURL+"/results/aux.txt", {}
+				).addCallback(checkOtherResult, jobURL)
 
 		def checkFinished(result, jobURL):
 			self.assertTrue("phase>COMPLETED" in result[0])
@@ -581,7 +588,7 @@ class TestUserUWS(trialhelpers.ArchiveTest):
 			self.assertTrue(
 				'<uws:parameters><uws:parameter id="opim">3.0</uws:parameter>'
 				'<uws:parameter id="powers">1 2 3</uws:parameter>'
-				'<uws:parameter id="responseformat"/>'
+				'<uws:parameter id="responseformat">application/x-votable+xml</uws:parameter>'
 				'<uws:parameter id="opre">1.0</uws:parameter></uws:parameters>'
 				in result[0])
 			return trialhelpers.runQuery(self.renderer, "DELETE", jobURL, {}
