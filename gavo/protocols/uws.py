@@ -29,6 +29,7 @@ from gavo import rscdef
 from gavo import svcs
 from gavo import utils
 from gavo.base import cron
+from gavo.protocols import dali
 
 # Ward against typos
 from gavo.votable.tapquery import ( #noflake: exported names
@@ -93,12 +94,6 @@ class UWS(object):
 
 	You must override the getURLForId(jobId) method in your concrete
 	implementation.
-
-	Also, you probably must override the 
-	getParamsFromRequest(wjob, request, service)
-	method that takes a writable job and a nevow-type request object and
-	fills the job parameters from the request.  The default implementation
-	does nothing, and you do not need to upcall.
 
 	You should also override jobdocPreamble and joblistPreamble.  This
 	is raw XML that is prepended to job and list documents.  This is primarily
@@ -220,20 +215,13 @@ class UWS(object):
 		Request has to be a newow request or similar, with request arguments in
 		request.args.
 
-		This calls getParamsFromRequest(wjob, request, service) to do the actual
+		This calls setParamsFromRequest(wjob, request) to do the actual
 		work; this latter method is what individual UWSes should override.
 		"""
 		jobId = self.getNewJobId()
 		with self.changeableJob(jobId) as wjob:
-			self.getParamsFromRequest(wjob, request, service)
+			wjob.setParamsFromRequest(request)
 		return jobId
-
-	def getParamsFromRequest(self, wjob, request, service):
-		"""should transfer "interesting" arguments from request to wjob.
-
-		The default implementation does nothing; override this in actual UWSes.
-		"""
-		return
 
 	def _getJob(self, jobId, conn, writable=False):
 		"""helps getJob and getNewJob.
@@ -626,6 +614,36 @@ class JobParameter(object):
 		return cls._serialize(job.parameters[name])
 
 
+class UploadParameter(JobParameter):
+	"""A generic DALI-style upload facility.
+
+	We add this to all UWS job classes.
+	"""
+	@classmethod
+	def _deserialize(cls, value):
+		if value is None:
+			return []
+		return value.split("/")
+
+	@classmethod
+	def _serialize(cls, value):
+		return "/".join(value)
+
+	@classmethod
+	def addPar(cls, name, value, job):
+		if not value.strip():
+			return
+
+		newVal = set(job.parameters.get("upload", []))
+		for newFName in dali.writeUploadBytesTo(
+				utils.stealVar("request"), job.getWD()):
+			newVal.add(newFName)
+
+		if newVal:
+			JobParameter.updatePar("upload", newVal, job)
+
+
+
 class UWSJobType(type):
 	"""The metaclass for UWS jobs.
 
@@ -677,11 +695,15 @@ class BaseUWSJob(object):
 	  id.  The default implementation does this, but if you want
 	  something in the file system, you probably don't want to
 	  use that.
+	- a method _setParamsFromDict(argDict), which takes a nevow-style
+	  request.args dictionary and sets the job parameters.  This is
+	  only necessary if you need extra mappings between names and such.
 
-	If have have non-string items in the job parameters dictionary, define
+	For every piece of the job parameters, define
 	class attributes _parameters_<parname.lower()> with JobParameter
-	values saying how they are serialized and deserialized.  You
-	do not need to do this for string parameters.
+	values saying how they are serialized and deserialized.   Only
+	parameters defined in this way are accepted and integrated
+	into the parameters dict.
 	
 	If you need to clean up before the job is torn down, redefine
 	the prepareForDestruction method.
@@ -857,6 +879,33 @@ class BaseUWSJob(object):
 		for key in self.parameters:
 			yield key, self.getSerializedPar(key)
 
+	def iterParameterNames(self):
+		"""iterates over the names of the parameters jobs accept:
+		"""
+		for n in dir(self):
+			if n.startswith("_parameter_"):
+				yield n[11:]
+
+	def _setParamsFromDict(self, argDict):
+		"""sets our parameters from a dictionary of string lists.
+
+		self must be writable for this to work.
+		"""
+		for key in self.iterParameterNames():
+			if key in argDict:
+				val = argDict[key]
+				if isinstance(val, list):
+					val = " ".join(val)
+				self.setSerializedPar(key, val)
+
+	def setParamsFromRequest(self, request):
+		"""sets our parameter dict from a nevow request.
+
+		This can be called on both writable and non-writable jobs.
+		"""
+		with self.getWritable() as wjob:
+			wjob._setParamsFromDict(request.args)
+
 	def getTransitionTo(self, newPhase):
 		"""returns the action prescribed to push self to newPhase.
 
@@ -916,7 +965,14 @@ class BaseUWSJob(object):
 
 		Changes will be written back at the end, and the job object itself
 		will be updated from the database.
+
+		If self already is writable, it is returned unchanged, and changes
+		are only persisted when the enclosing controlling block finishes.
 		"""
+		if self.writable:
+			yield self
+			return
+
 		with self.uws.changeableJob(self.jobId) as wjob:
 			yield wjob
 		self.update()

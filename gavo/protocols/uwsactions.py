@@ -291,9 +291,7 @@ class ParameterAction(JobAction):
 		return UWS.makeRoot(getParametersElement(job))
 	
 	def doPOST(self, job, request):
-		with job.getWritable() as wjob:
-			for key in request.args:
-				wjob.setSerializedPar(key, utils.getfirst(request.args, key, None))
+		job.setParamsFromRequest(request)
 		raise svcs.WebRedirect(job.jobId)
 
 JobActions.addStandardAction(ParameterAction)

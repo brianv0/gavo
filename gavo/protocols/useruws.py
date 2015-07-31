@@ -68,6 +68,11 @@ def makeUserUWSJobClass(service):
 
 	defaults = {}
 	for ik in service.getInputKeysFor("uws.xml"):
+		if ik.type=="file":
+			# these are handled by UPLOAD
+			setattr(UserUWSJob, "_parameter_upload", uws.UploadParameter())
+			continue
+
 		setattr(UserUWSJob, "_parameter_"+ik.name,
 			makeUWSJobParameterFor(ik))
 		defaults[ik.name] = ik.values.default
@@ -104,13 +109,6 @@ class UserUWS(uws.UWSWithQueueing):
 
 	def getURLForId(self, jobId):
 		return self.service.getURL("uws.xml")+"/"+jobId
-
-	def getParamsFromRequest(self, wjob, request, service):
-		# TODO: For consistency, it'd be cool if we had some way
-		# to run ContextGrammar/InputDD here.  Or we should change
-		# that combo to what we have here?
-		for key, value in request.args.iteritems():
-			wjob.setSerializedPar(key, " ".join(value))
 
 
 def makeUWSForService(service):

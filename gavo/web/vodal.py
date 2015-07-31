@@ -578,6 +578,8 @@ class AsyncRendererBase(grend.ServiceBasedPage):
 
 	To make these concrete, they need a name and a workerSystem attribute.
 	"""
+	parameterStyle = "pql"
+
 	def renderHTTP(self, ctx):
 		return self.locateChild(ctx, ())[0]
 

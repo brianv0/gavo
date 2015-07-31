@@ -361,6 +361,9 @@ class TAPJob(uws.UWSJobWithWD):
 	_parameter_maxrec = MaxrecParameter
 	_parameter_lang = LangParameter
 	_parameter_upload = UploadParameter
+	_parameter_request = uws.JobParameter
+	_parameter_query = uws.JobParameter
+	_parameter_format = uws.JobParameter
 
 	@property
 	def quote(self):
@@ -462,21 +465,6 @@ class TAPUWS(uws.UWSWithQueueing):
 		self.runcountGoal = base.getConfig("async", "maxTAPRunning")
 		uws.UWSWithQueueing.__init__(self, TAPJob, uwsactions.JobActions(
 			PlanAction))
-
-	def getParamsFromRequest(self, wjob, request, service):
-		"""Feeds parameters from request into wjob.
-
-		We assume uwsactions.lowercaseProtocolArgs has already been applied
-		to request.args.
-
-		For now everything in args, including protocol arguments, is stuffed 
-		into parameters; the only real UWS parameter we may want to look at 
-		is PHASE for when the job is to be queued immediately.
-		"""
-		for key, valueList in request.args.iteritems():
-			if valueList:
-				# TODO: deal with possible list-valued parameters.
-				wjob.setSerializedPar(key, valueList[0])
 
 	@property
 	def baseURL(self):

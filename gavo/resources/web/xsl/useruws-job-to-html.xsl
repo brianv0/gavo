@@ -52,11 +52,6 @@
         </html>
     </xsl:template>
 
-    <xsl:template match="uws:parameters">
-      <dt>Parameters</dt>
-      <dd><xsl:apply-templates/></dd>
-    </xsl:template>
-
     <xsl:template match="uws:result">
       <li>
         <a>
@@ -94,7 +89,8 @@
         <dt><xsl:text>Destruction time:</xsl:text></dt>
         <dd><xsl:value-of select="uws:destruction"/></dd>
 
-        <xsl:apply-templates select="uws:parameters"/>
+        <dt>Parameters</dt>
+        <dd><xsl:apply-templates select="uws:parameters"/></dd>
 
         <xsl:apply-templates select="uws:results"/>
 

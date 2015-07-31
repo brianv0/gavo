@@ -2706,6 +2706,51 @@ in your input table.
 form to server-side code.  To allow cores to run in both sync and async
 without further worries, just have lowercase-only parameters.
 
+(6) As usual, the core may return either a pair of (media type, content)
+or a data item, which then becomes a UWS result named ``result`` with
+the proper media type.  You can also return None (which will make the
+core incompatible with most other renderers).  That may be a smart thing
+to do if you're producing multiple files to be returned through UWS.  To
+do that, there's a ``job`` attribute on the inputTable that has an
+``addResult(source, mediatype, name)`` method.  Source can be a string
+(in which case the string will be the result) or a file open for reading
+(in which case the result will be the file's content).  Input tables
+of course don't have that attribute unless they come from the uws
+rendererer.  Hence, a typical pattern to use this would be::
+
+	if hasattr(inputTable, "job"):
+		with inputTable.job.getWritable() as wjob:
+			wjob.addResult("Hello World.\\n", "text/plain", "aux.txt")
+
+or, to take the results from a file that's already on-disk::
+
+	if hasattr(inputTable, "job"):
+		with inputTable.job.getWritable() as wjob:
+		  with open("other-result.txt") as src:
+  			wjob.addResult(src, "text/plain", "output.txt")
+
+Right now, there's no facility for writing directly to UWS result files.
+Ask if you need that.
+
+(7) UWS lets you add arbitrary files using standard DALI-style uploads.
+This is enabled if there are ``file``-typed inputKeys in the service's
+input table.  These inputKeys are otherwise ignored right now.
+See `DALI`_ for details on how these inputs work.  To create an
+inline upload from a python client (e.g., to write a test), it's most
+convenient to use the requests package, like this::
+
+  import requests
+
+  requests.post("http://localhost:8080/data/cores/pc/uws.xml/D2hFEJ/parameters",
+	  {"UPLOAD": "stuff,param:upl"},
+	  files = {"upl": open("zw.py")})
+
+From within your core, use the file name (the name of the input key) and
+pull the file from the UWS working directory::
+
+  with open(os.path.join(inputTable.job.getWD(), "mykey")) as f:
+    ...
+
 
 Hint on debugging: ``gavo uwsrun`` doesn't check the state the job is
 in, it will just try to execute it anyway.  So, if your job went into

@@ -13,11 +13,13 @@ If it's TAP we're talking about, use taptest.py.
 import datetime
 import Queue
 import threading
+from cStringIO import StringIO
 
 from gavo.helpers import testhelpers
 
 from gavo import base
 from gavo import rscdesc # for base.caches registration
+from gavo import svcs
 from gavo.protocols import uws
 from gavo.protocols import uwsactions
 
@@ -278,16 +280,23 @@ class JobHandlingTest(TestWithUWSJob):
 				(self.job.jobId,))
 
 
-def _makeUWSRequest(inArgs, inMethod="GET"):
+def _makeUWSRequest(inArgs, inMethod="GET", inFields={}):
 	class RequestStandin(object):
 		args = inArgs
 		method = inMethod
+		fields = inFields
 
 		@classmethod
 		def setHeader(cls, key, value):
 			pass
 
 	return RequestStandin
+
+
+class _FakeFS(object):
+	def __init__(self, content):
+		self.name, self.content = "debug field storage", content
+		self.file = StringIO(content)
 
 
 class UserUWSTest(testhelpers.VerboseTest):
@@ -336,9 +345,34 @@ class UserUWSTest(testhelpers.VerboseTest):
 			res = uwsactions.doJobAction(worker, _makeUWSRequest({}),
 				(job.jobId,))
 			tree = testhelpers.getXMLTree(res, debug=False)
+			# the file parameter is censored here; should there be UPLOAD?
 			self.assertEqual(len(tree.xpath("//parameter")), 4)
 			self.assertEqual(tree.xpath("//parameter[@id='opim']")[0].text,
 				"1.0")
+		finally:
+			worker.destroy(job.jobId)
+
+	def uploadTest(self):
+		worker = base.resolveCrossId("data/cores#pc").getUWS()
+		jobId = worker.getNewIdFromRequest(
+			_makeUWSRequest({"upload": ["bu,param:quux"]}, 
+					inFields={"quux": _FakeFS("gacker")}),
+				worker.service)
+		try:
+			job = worker.getJob(jobId)
+			with open(job.getWD()+"/bu") as f:
+				self.assertEqual(f.read(), "gacker")
+
+			try:
+				res = uwsactions.doJobAction(worker, _makeUWSRequest({
+						"upload": ["fa,param:foo"]}, inFields={"foo": _FakeFS("bigbig")},
+						inMethod="POST"),
+					(job.jobId, "parameters"))
+			except svcs.WebRedirect:
+				pass
+
+			with open(job.getWD()+"/fa") as f:
+				self.assertEqual(f.read(), "bigbig")
 		finally:
 			worker.destroy(job.jobId)
 

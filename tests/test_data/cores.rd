@@ -214,6 +214,7 @@
 						output format" type="text">
 							<values default="application/x-votable+xml"/>
 				</inputKey>
+				<inputKey name="stuff" type="file" description="Stuff to upload"/>
 			</inputTable>
 			<outputTable>
 				<outputField name="re" description="Result, real part"/>

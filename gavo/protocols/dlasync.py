@@ -17,6 +17,7 @@ import cPickle as pickle
 import datetime
 
 from gavo import base
+from gavo import utils
 from gavo import rscdesc #noflake: cache registration
 from gavo.protocols import products
 from gavo.protocols import uws
@@ -75,6 +76,16 @@ class DLJob(uws.UWSJobWithWD):
 	_parameter_serviceid = ServiceIdParameter
 	_parameter_datalinkargs = ArgsParameter
 
+	def _setParamsFromDict(self, args):
+		"""stores datalinkargs from args.
+
+		As there's only one common UWS for all dlasync services, we have
+		to steal the service object from upstack at the moment.  Let's see
+		if there's a way around that later.
+		"""
+		self.setPar("datalinkargs", args)
+		self.setPar("serviceid", utils.stealVar("service").getFullId())
+
 
 class DLUWS(uws.UWS):
 	"""the worker system for datalink jobs.
@@ -98,11 +109,6 @@ class DLUWS(uws.UWS):
 		"""
 		return "%s/%s"%(self.baseURL, jobId)
 
-	def getParamsFromRequest(self, wjob, request, service):
-		"""stores datalinkargs from request and the service from service.
-		"""
-		wjob.setPar("datalinkargs", request.args)
-		wjob.setPar("serviceid", service.getFullId())
 
 
 DL_WORKER = DLUWS()

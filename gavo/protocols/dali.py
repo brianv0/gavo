@@ -7,6 +7,7 @@ Common code supporting functionality described in DALI.
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
 
+import os
 
 from gavo import base
 from gavo import formats
@@ -86,6 +87,43 @@ class URLUpload(object):
 			f.close()
 
 
+def iterUploads(request):
+	"""iterates over DALI uploads in request.
+
+	This yields pairs of (file name, file object), where file name
+	is the file name requested (sanitized to have no slashes and non-ASCII).
+	The UPLOAD and inline-file keys are removed from request's args
+	member.  file object is a cgi-style thing with file, filename,
+	etc. attributes.
+	"""
+	# UWS auto-downcases things (it probably shouldn't)
+	uploads = request.args.pop("UPLOAD", [])+request.args.pop("upload", [])
+	if not uploads:
+		return
+		
+	for uploadString in uploads:
+		destName, uploadSource = parseUploadString(uploadString)
+		# mangle the future file name such that we hope it's representable
+		# in the file system
+		destName = str(destName).replace("/", "_")
+		try:
+			if uploadSource.startswith("param:"):
+				fileKey = uploadSource[6:]
+				upload = request.fields[fileKey]
+				# remove upload in string form from args to remove clutter
+				request.args.pop(fileKey, None) 
+			else:
+				upload = URLUpload(uploadSource, destName)
+
+			yield destName, upload
+		except (KeyError, AttributeError):
+			raise base.ui.logOldExc(base.ValidationError(
+				"%s references a non-existing"
+				" file upload."%uploadSource, "UPLOAD", 
+				hint="If you pass UPLOAD=foo,param:x,"
+				" you must pass a file upload under the key x."))
+
+
 def mangleUploads(request):
 	"""manipulates request to turn DALI UPLOADs into what nevow formal
 	produces for file uploads.
@@ -97,26 +135,21 @@ def mangleUploads(request):
 
 	ArgDict is manipulated in place.
 	"""
-	uploads = request.args.pop("UPLOAD", [])
-	if not uploads:
-		return
-		
-	for uploadString in uploads:
-		destName, uploadSource = parseUploadString(uploadString)
-		try:
-			if uploadSource.startswith("param:"):
-				fileKey = uploadSource[6:]
-				upload = request.fields[fileKey]
-				# remove upload in string form from args to remove clutter
-				request.args.pop(fileKey, None) 
-			else:
-				upload = URLUpload(uploadSource, destName)
+	for fName, fObject in iterUploads(request):
+		request.args[fName] = (fObject.filename, fObject.file)
 
-			request.args[destName] = (upload.filename, upload.file)
-		except (KeyError, AttributeError):
-			raise base.ui.logOldExc(base.ValidationError(
-				"%s references a non-existing"
-				" file upload."%uploadSource, "UPLOAD", 
-				hint="If you pass UPLOAD=foo,param:x,"
-				" you must pass a file upload under the key x."))
 
+def writeUploadBytesTo(request, destDir):
+	"""writes a file corresponding to a DALI upload to destDir.
+
+	For the sake uws.UploadParameter, we return the names of the
+	files we've been creating.
+	"""
+	created = []
+
+	for fName, fObject in iterUploads(request):
+		with open(os.path.join(destDir, fName), "w") as f:
+			utils.cat(fObject.file, f)
+		created.append(fName)
+
+	return created
