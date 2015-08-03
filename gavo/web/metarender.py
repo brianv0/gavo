@@ -224,6 +224,16 @@ class RendExplainer(object):
 			" without a specialized client."]
 
 	@classmethod
+	def _explain_uws_xml(cls, service):
+		return T.invisible["a user-defined UWS service."
+			" This service is best accessed using specialized clients"
+			" or libraries. Give those its base URL ",
+			T.a(href=service.getURL("uws.xml"))[service.getURL("uws.xml")],
+			".  Using an XSL-enabled web browser you can"
+			" also click on the link above and operate the service 'manually'."
+			" For parameters and the output schema, see below."]
+
+	@classmethod
 	def _explain_pubreg_xml(cls, service):
 		return T.invisible["an interface for the OAI-PMH protocol, typically"
 			" this site's publishing registry (but possibly some other"
