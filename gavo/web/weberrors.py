@@ -159,11 +159,7 @@ class ForbiddenPage(ErrorPage):
 		]])
 
 
-class RedirectPage(ErrorPage):
-	handles = svcs.WebRedirect
-	status = 301
-	titleMessage = "Redirect"
-
+class RedirectBase(ErrorPage):
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
 		# add request arguments if they are not already included in the
@@ -179,6 +175,12 @@ class RedirectPage(ErrorPage):
 	def render_destLink(self, ctx, data):
 		return ctx.tag(href=self.destURL)
 	
+
+class RedirectPage(RedirectBase):
+	handles = svcs.WebRedirect
+	status = 301
+	titleMessage = "Redirect"
+
 	docFactory = common.doctypedStan(T.html[
 		T.head(render=T.directive("commonhead"))[
 			T.title(render=T.directive("titlemessage"))],
@@ -190,6 +192,29 @@ class RedirectPage(ErrorPage):
 				T.a(render=T.directive("destLink"))[
 			 		"different URL"],
 				"."],
+			T.p["You should not see this page -- either your browser or"
+				" our site is broken.  Complain."],
+			ErrorPage._footer,
+		]])
+
+
+class SeeOtherPage(RedirectBase):
+	handles = svcs.SeeOther
+	status = 303
+	titleMessage = "Redirect"
+
+	
+	docFactory = common.doctypedStan(T.html[
+		T.head(render=T.directive("commonhead"))[
+			T.title(render=T.directive("titlemessage"))],
+		T.body[
+			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
+				"right:0pt"),
+			T.h1["See also (303)"],
+			T.p["Please turn to a ",
+				T.a(render=T.directive("destLink"))[
+			 		"different URL"],
+				" to go on."],
 			T.p["You should not see this page -- either your browser or"
 				" our site is broken.  Complain."],
 			ErrorPage._footer,

@@ -2735,7 +2735,7 @@ Ask if you need that.
 (7) UWS lets you add arbitrary files using standard DALI-style uploads.
 This is enabled if there are ``file``-typed inputKeys in the service's
 input table.  These inputKeys are otherwise ignored right now.
-See `DALI`_ for details on how these inputs work.  To create an
+See [DALI]_ for details on how these inputs work.  To create an
 inline upload from a python client (e.g., to write a test), it's most
 convenient to use the requests package, like this::
 
@@ -3264,4 +3264,5 @@ Bibliography
    "Referencing STC in VOTable", Version 2.0,
    http://www.ivoa.net/Documents/Notes/VOTableSTC/20100618/NOTE-VOTableSTC-2.0-20100618.pdf
 .. _the DaCHS tutorial: http://docs.g-vo.org/DaCHS/tutorial.html
+.. [DALI] Dowler, P, et al, "Data Access Layer Interface Version 1.0", http://ivoa.net/documents/DALI/20131129/
 .. |date| date::

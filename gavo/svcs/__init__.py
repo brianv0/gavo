@@ -21,7 +21,7 @@ structure carrying lots of information on the query being processed.
 # Not checked by pyflakes: API file with gratuitous imports
 
 from gavo.svcs.common import (Error, UnknownURI, ForbiddenURI, WebRedirect,
-	Authenticate, BadMethod,
+	SeeOther, Authenticate, BadMethod,
 	QueryMeta, emptyQueryMeta, getTemplatePath, loadSystemTemplate)
 
 from gavo.svcs.core import getCore, Core, CORE_REGISTRY

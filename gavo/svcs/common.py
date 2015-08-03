@@ -67,6 +67,16 @@ class WebRedirect(Error):
 		Error.__init__(self, "This is supposed to redirect to %s"%dest)
 
 
+class SeeOther(Error):
+	"""is raised when the user agent should look somwhere else.
+
+	SeeOthers are constructed with the destination URL that can be
+	relative (to webRoot) or absolute (starting with http).
+
+	They are essentially like WebRedirect, except they put out a 303 
+	instead of a 301.
+	"""
+
 def parseServicePath(serviceParts):
 	"""returns a tuple of resourceDescriptor, serviceName.
 

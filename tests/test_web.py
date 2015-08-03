@@ -559,12 +559,21 @@ class TestUserUWS(trialhelpers.ArchiveTest):
 				return trialhelpers.runQuery(self.renderer, "GET", jobURL, {}
 				).addCallback(waitForResult, jobURL, ct+1)
 
+		def checkParametersImmutable(result, jobURL):
+			self.assertTrue('<INFO name="QUERY_STATUS" value="ERROR">'
+				'Field phase: Parameters cannot be changed in phase EXECUTING'
+				in result[0])
+			self.assertEqual(result[1].code, 400)
+			return trialhelpers.runQuery(self.renderer, "GET", jobURL, {}
+			).addCallback(waitForResult, jobURL)
+
 		def assertStarted(lastRes, jobURL):
 			req = lastRes[1]
 			self.assertEqual(req.code, 303)
 			self.assertTrue(req.headers["location"].endswith(jobURL))
-			return trialhelpers.runQuery(self.renderer, "GET", jobURL, {}
-			).addCallback(waitForResult, jobURL)
+			return trialhelpers.runQuery(self.renderer, "POST", 
+				jobURL+"/parameters", {"opim": ["4"]}
+			).addCallback(checkParametersImmutable, jobURL)
 
 		def checkPosted(result):
 			request = result[1]

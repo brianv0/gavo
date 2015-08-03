@@ -291,6 +291,9 @@ class ParameterAction(JobAction):
 		return UWS.makeRoot(getParametersElement(job))
 	
 	def doPOST(self, job, request):
+		if job.phase!=uws.PENDING:
+			raise base.ValidationError(
+				"Parameters cannot be changed in phase %s"%job.phase, "phase")
 		job.setParamsFromRequest(request)
 		raise svcs.WebRedirect(job.jobId)
 
