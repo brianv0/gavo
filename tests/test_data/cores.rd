@@ -250,4 +250,22 @@
 			</coreProc>
 		</pythonCore>
 	</service>
+
+	<service id="uc" allowed="uws.xml">
+		<pythonCore>
+			<inputTable>
+				<inputKey name="stuff" type="file" description="Stuff to upload"/>
+				<inputKey name="other" type="file" 
+					description="More stuff to upload"/>
+			</inputTable>
+			<outputTable/>
+
+			<coreProc>
+				<code>
+					return None
+				</code>
+			</coreProc>
+		</pythonCore>
+	</service>
+
 </resource>

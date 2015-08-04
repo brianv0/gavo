@@ -563,7 +563,7 @@ class JobParameter(object):
 
 		- addPar(value, job) -> None -- parse value and perform some action
 			(typically, set an attribute) on job.  The default implementation
-			puts value into the parameters dictionary _deserialized.
+			puts a value into the parameters dictionary _deserialized.
 		- getPar(job) -> string -- infer a string representation of the
 			job parameter on job.  The default implementation gets
 			the value from the parameter from the parameters dictionary and
@@ -611,14 +611,23 @@ class JobParameter(object):
 
 	@classmethod
 	def getPar(cls, name, job):
-		return cls._serialize(job.parameters[name])
+		return cls._serialize(job.parameters.get(name))
 
 
 class UploadParameter(JobParameter):
 	"""A generic DALI-style upload facility.
 
-	We add this to all UWS job classes.
+	We add this to all UWS job classes when their underlying services have
+	a file-typed input key.  It will contain some somewhat arbitrary string
+	that lets people guess what they uploaded.  TAP does this a bit
+	differently from useruws, which tries a somewhat rationalised approach.
 	"""
+	# the implementation is messy -- as for inline uploads, two parameters
+	# are involved (UPLOAD and the file parameter) and the normal UWS parameter
+	# interface only passes the parameter to be processed, we need to steal
+	# the request from upstack.   This, admittedly, is ugly, but then
+	# the UPLOAD design is botched, so I feel entitled to play it dirty
+	# rather than spoil my design.
 	@classmethod
 	def _deserialize(cls, value):
 		if value is None:
@@ -627,6 +636,8 @@ class UploadParameter(JobParameter):
 
 	@classmethod
 	def _serialize(cls, value):
+		if value is None:
+			return ""
 		return "/".join(value)
 
 	@classmethod
@@ -634,15 +645,43 @@ class UploadParameter(JobParameter):
 		if not value.strip():
 			return
 
-		newVal = set(job.parameters.get("upload", []))
 		for newFName in dali.writeUploadBytesTo(
-				utils.stealVar("request"), job.getWD()):
-			newVal.add(newFName)
-
-		if newVal:
-			JobParameter.updatePar("upload", newVal, job)
+				utils.stealVar("request"), os.path.join(job.getWD())):
+			job.setPar(newFName, newFName)
 
 
+class FileParameter(JobParameter):
+	"""an uploaded file.
+
+	These are being created by posting to upload in the current design;
+	hence, we fail on an attempt to addPar those.  The serialisation
+	yields ParameterRefs.
+
+	Note that TAP uploads currently employ a different scheme since TAP
+	uploads don't match what DALI says.
+
+	The stored values are always URLs into our service, regardless of where
+	the upload came from.  For simplicity, we store the things in results.
+
+	TODO: We should preserve the media type of the upload where available.
+	"""
+	@classmethod
+	def _serialize(cls, value):
+		if value is None:
+			return ""
+		return ParameterRef(value)
+
+	@classmethod
+	def updatePar(cls, name, value, job):
+		# value is the file name (that happens to be the name of the input key;
+		# in DALI terms, it's what's in front of the comma.
+		JobParameter.updatePar(name, job.getURL()+"/results/"+value, job)
+
+	@classmethod
+	def addPar(self, name, value, job):
+		raise base.ValidationError("File parameters cannot be set by posting to"
+			" them.  Use DALI-style UPDATEs for them.", name)
+	
 
 class UWSJobType(type):
 	"""The metaclass for UWS jobs.
@@ -876,11 +915,11 @@ class BaseUWSJob(object):
 	def iterSerializedPars(self):
 		"""iterates over the serialized versions of the parameters.
 		"""
-		for key in self.parameters:
+		for key in self.iterParameterNames():
 			yield key, self.getSerializedPar(key)
 
 	def iterParameterNames(self):
-		"""iterates over the names of the parameters jobs accept:
+		"""iterates over the names of the parameters declared for the job.
 		"""
 		for n in dir(self):
 			if n.startswith("_parameter_"):
@@ -894,6 +933,7 @@ class BaseUWSJob(object):
 		for key in self.iterParameterNames():
 			if key in argDict:
 				val = argDict[key]
+				# TODO: handling multiple arguments must be way better thought out.
 				if isinstance(val, list):
 					val = " ".join(val)
 				self.setSerializedPar(key, val)

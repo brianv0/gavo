@@ -333,7 +333,7 @@ class UploadParameter(uws.JobParameter):
 
 	@classmethod
 	def getPar(cls, name, job):
-		return ";".join("%s,%s"%p for p in job.parameters["upload"])
+		return ";".join("%s,%s"%p for p in job.parameters.get("upload", ""))
 
 	@classmethod
 	def _cleanName(cls, rawName):

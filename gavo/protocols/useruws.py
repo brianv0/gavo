@@ -71,6 +71,7 @@ def makeUserUWSJobClass(service):
 		if ik.type=="file":
 			# these are handled by UPLOAD
 			setattr(UserUWSJob, "_parameter_upload", uws.UploadParameter())
+			setattr(UserUWSJob, "_parameter_"+ik.name, uws.FileParameter())
 			continue
 
 		setattr(UserUWSJob, "_parameter_"+ik.name,

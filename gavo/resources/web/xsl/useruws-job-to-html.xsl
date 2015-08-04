@@ -17,15 +17,28 @@
     <xsl:template match="text()"/>
 
     <xsl:template match="uws:parameter">
-      <dt><xsl:value-of select="@id"/></dt>
-      <dd><input type="test">
-        <xsl:attribute name="name">
-          <xsl:value-of select="@id"/>
-        </xsl:attribute>
-        <xsl:attribute name="value">
-          <xsl:value-of select="text()"/>
-        </xsl:attribute>
-      </input></dd>
+      <xsl:choose> 
+        <xsl:when test="@byReference">
+          <dt><xsl:value-of select="@id"/></dt>
+          <dd>
+            <a>
+              <xsl:attribute name="href">
+                <xsl:value-of select="."/>
+              </xsl:attribute>uploaded file</a>
+          </dd>
+        </xsl:when>
+        <xsl:otherwise>
+          <dt><xsl:value-of select="@id"/></dt>
+          <dd><input type="test">
+            <xsl:attribute name="name">
+              <xsl:value-of select="@id"/>
+            </xsl:attribute>
+            <xsl:attribute name="value">
+              <xsl:value-of select="text()"/>
+            </xsl:attribute>
+          </input></dd>
+        </xsl:otherwise>
+      </xsl:choose>
     </xsl:template>
 
     <xsl:template match="uws:parameters">

@@ -147,6 +147,9 @@ def writeUploadBytesTo(request, destDir):
 	"""
 	created = []
 
+	if not os.path.isdir(destDir):
+		os.mkdir(destDir)
+
 	for fName, fObject in iterUploads(request):
 		with open(os.path.join(destDir, fName), "w") as f:
 			utils.cat(fObject.file, f)

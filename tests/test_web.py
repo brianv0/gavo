@@ -12,6 +12,7 @@ from cStringIO import StringIO
 import atexit
 import time
 import os
+import re
 
 from twisted.internet import reactor
 
@@ -417,7 +418,12 @@ class _FakeUpload(object):
 	value = "abc, die Katze lief im Schnee.\n"
 	file = StringIO(value)
 	filename = "test.txt"
-	
+
+	def __init__(self, value=None):
+		if value is not None:
+			self.value = value
+			self.file = StringIO(self.value)
+
 	def __len__(self):
 		return len(self.value)
 	
@@ -593,27 +599,114 @@ class TestUserUWS(trialhelpers.ArchiveTest):
 		).addCallback(checkPosted)
 	
 	def testParameterSetting(self):
-		def assertParamsAndDelete(result, jobURL):
-			self.assertTrue(
-				'<uws:parameters><uws:parameter id="opim">3.0</uws:parameter>'
-				'<uws:parameter id="powers">1 2 3</uws:parameter>'
-				'<uws:parameter id="responseformat">application/x-votable+xml</uws:parameter>'
-				'<uws:parameter id="opre">1.0</uws:parameter></uws:parameters>'
-				in result[0])
+		def deleteJob(jobURL):
 			return trialhelpers.runQuery(self.renderer, "DELETE", jobURL, {}
 			).addCallback(lambda res: reactor.disconnectAll())
+
+		def assertParams(result, jobURL):
+			self.assertTrue(
+				'<uws:parameter id="opim">3.0</uws:parameter>' in result[0], "opim")
+			self.assertTrue(
+				'<uws:parameter id="powers">1 2 3</uws:parameter>' in result[0],
+				"powers")
+			self.assertTrue(
+				'<uws:parameter id="responseformat">application/x-votable+xml'
+				'</uws:parameter>' in result[0],
+				"responseformat")
+			self.assertTrue(
+				'<uws:parameter id="opre">1.0</uws:parameter>' in result[0],
+				"opre")
+			self.assertTrue(re.search('<uws:parameter byReference="True" id="stuff">'
+				'http://localhost:8080/data/cores/pc/uws.xml/[^/]*/results/stuff',
+				result[0]), "stuff from upload")
+			return deleteJob(jobURL)
 
 		def checkParameters(result):
 			jobURL = _nukeHostPart(result[1].headers["location"])
 			return trialhelpers.runQuery(self.renderer, "GET", 
 				jobURL, {}
-			).addCallback(assertParamsAndDelete, jobURL)
+			).addCallback(assertParams, jobURL)
 
 		return trialhelpers.runQuery(self.renderer, "POST", 
 			"/data/cores/pc/uws.xml", {
-				"opre": ["1"], "opim": ["3"], "powers": ["1", "2", "3"]
+				"opre": ["1"], "opim": ["3"], "powers": ["1", "2", "3"],
+				"UPLOAD": "stuff,param:foo", "foo": _FakeUpload()
 			}
 		).addCallback(checkParameters)
+
+	def testMultiUpload(self):
+		_, _, baseURL = trialhelpers.testhelpers.getServerInThread(
+			"Uploaded from URL.\n", onlyOnce=True)
+
+		def deleteJob(jobURL):
+			return trialhelpers.runQuery(self.renderer, "DELETE", jobURL, {}
+			).addCallback(lambda res: reactor.disconnectAll())
+
+		def assertFromURL(result, jobURL):
+			self.assertEqual(result[1].code, 200)
+			self.assertEqual("Uploaded from URL.\n", result[0])
+			return deleteJob(jobURL)
+
+		def retrieveFromURL(result, jobURL):
+			return trialhelpers.runQuery(self.renderer, "GET", 
+				jobURL+"/results/other", {}
+			).addCallback(assertFromURL, jobURL)
+
+		def assertOverwritten(result, jobURL):
+			self.assertEqual(result[1].code, 200)
+			self.assertEqual("overwritten", result[0])
+			return trialhelpers.runQuery(self.renderer, "POST", 
+				jobURL+"/parameters", {
+					"upload": "other,http://localhost:34000/doesnotmatter"}
+			).addCallback(retrieveFromURL, jobURL)
+
+		def retrieveOverwritten(result, jobURL):
+			return trialhelpers.runQuery(self.renderer, "POST", 
+				jobURL+"/results/stuff", {}
+			).addCallback(assertOverwritten, jobURL)
+
+		def assertFilePresent(result, jobURL):
+			self.assertEqual("abc, die Katze lief im Schnee.\n",
+				result[0])
+			return trialhelpers.runQuery(self.renderer, "POST", 
+				jobURL+"/parameters", {"upload": ["stuff,param:overwrite"],
+					"overwrite": _FakeUpload("overwritten")}
+			).addCallback(retrieveOverwritten, jobURL)
+
+		def assertNoPostingToFile(result, jobURL):
+			self.assertTrue("Field stuff: File parameters cannot be set by"
+				in result[0], "nopost-errmsg")
+			self.assertTrue(result[1].code, 400)
+			return trialhelpers.runQuery(self.renderer, "POST", 
+				jobURL+"/results/stuff", {}
+			).addCallback(assertFilePresent, jobURL)
+
+		def assertParams(result, jobURL):
+			self.assertTrue(re.search('<uws:parameter byReference="True"'
+				' id="stuff">http://localhost:8080/data/cores/uc/uws.xml/[^/]*/'
+				'results/stuff</uws:parameter>', result[0]), "stuff")
+			self.assertTrue(re.search('<uws:parameter byReference="True"'
+				' id="other">http://localhost:8080/data/cores/uc/uws.xml/[^/]*/'
+				'results/other</uws:parameter>', result[0]), "other")
+			self.assertTrue('<uws:parameter id="upload"/>' in result[0])
+			return trialhelpers.runQuery(self.renderer, "POST", 
+				jobURL+"/parameters", {"stuff": ["whatever"]}
+			).addCallback(assertNoPostingToFile, jobURL)
+
+		def getJobURL(result):
+			jobURL = _nukeHostPart(result[1].headers["location"])
+			return trialhelpers.runQuery(self.renderer, "GET", 
+				jobURL, {}
+			).addCallback(assertParams, jobURL)
+
+		return trialhelpers.runQuery(self.renderer, "POST", 
+			"/data/cores/uc/uws.xml", {
+				"UPLOAD": ["stuff,param:foo", "other,param:bar"],
+				"foo": _FakeUpload(),
+				"bar": _FakeUpload("Other stuff"),
+			}
+		).addCallback(getJobURL)
+
 
 
 atexit.register(trialhelpers.provideRDData("test", "import_fitsprod"))
