@@ -24,6 +24,11 @@ from gavo import api
 
 
 class SyncTest(trialhelpers.ArchiveTest):
+	def testInfoWorks(self):
+		return self.assertGETHasStrings("/data/cores/dl/info", {}, [
+			'<h2 class="section">Input Fields</h2>',
+			"<td>The pubisher DID of the dataset of interest</td>"])
+
 	def testErrorDocumentMetaGeneral(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlmeta", 
 			{"ID": "broken"},

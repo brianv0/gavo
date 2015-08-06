@@ -354,7 +354,7 @@ class ServiceInfoRenderer(MetaRenderer, utils.IdManagerMixin):
 		return "%s/%s"%(self.service.rd.sourceId, self.service.id)
 
 	def data_inputFields(self, ctx, data):
-		res = [f.asInfoDict() for f in self.service.getInputKeysFor("form")+
+		res = [f.asInfoDict() for f in self.service.getInputKeysFor("info")+
 				self.service.serviceKeys]
 		res.sort(key=lambda val: val["name"].lower())
 		return res

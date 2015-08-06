@@ -735,7 +735,7 @@ class DatalinkCore(DatalinkCoreBase):
 		though, e.g., if we want to allow retrieving multiple datasets
 		in a tar file?  Or to re-use the same service for all pubdids?
 		"""
-		# if we're not speaking real datalink, return right (this will
+		# if we're not speaking real datalink, return right away (this will
 		# be cached, so this must never happen for actual data)
 		if not renderer.name in self.datalinkAdaptingRenderers:
 			return self

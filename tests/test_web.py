@@ -416,13 +416,12 @@ class MetaPagesTest(trialhelpers.ArchiveTest):
 
 class _FakeUpload(object):
 	value = "abc, die Katze lief im Schnee.\n"
-	file = StringIO(value)
 	filename = "test.txt"
 
 	def __init__(self, value=None):
 		if value is not None:
 			self.value = value
-			self.file = StringIO(self.value)
+		self.file = StringIO(self.value)
 
 	def __len__(self):
 		return len(self.value)
