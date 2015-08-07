@@ -681,7 +681,7 @@ class FileParameter(JobParameter):
 	def addPar(self, name, value, job):
 		raise base.ValidationError("File parameters cannot be set by posting to"
 			" them.  Use DALI-style UPDATEs for them.", name)
-	
+
 
 class UWSJobType(type):
 	"""The metaclass for UWS jobs.

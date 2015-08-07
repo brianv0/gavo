@@ -618,6 +618,10 @@ class TestUserUWS(trialhelpers.ArchiveTest):
 			self.assertTrue(re.search('<uws:parameter byReference="True" id="stuff">'
 				'http://localhost:8080/data/cores/pc/uws.xml/[^/]*/results/stuff',
 				result[0]), "stuff from upload")
+
+			self.assertTrue('<uws:quote xsi:nil="true"></uws:quote>'
+				in result[0])
+
 			return deleteJob(jobURL)
 
 		def checkParameters(result):

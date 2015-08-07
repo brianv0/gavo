@@ -458,6 +458,7 @@ class RootAction(JobAction):
 			UWS.runId[job.runId],
 			UWS.ownerId[job.owner],
 			UWS.phase[job.phase],
+			UWS.quote[utils.formatISODT(job.quote)],
 			_serializeTime(UWS.startTime, job.startTime),
 			_serializeTime(UWS.endTime, job.endTime),
 			UWS.executionDuration[str(job.executionDuration)],

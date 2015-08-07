@@ -466,11 +466,15 @@ def formatISODT(dt):
 
 	The behaviour of this function for timezone-aware datetimes is undefined.
 
+	For convenience, None is returned as None
+
 	>>> formatISODT(datetime.datetime(2015, 10, 20, 12, 34, 22, 250))
 	'2015-10-20T12:34:22Z'
 	>>> formatISODT(datetime.datetime(1815, 10, 20, 12, 34, 22, 250))
 	'1815-10-20T12:34:22Z'
 	"""
+	if dt is None:
+		return None
 	return dt.replace(microsecond=0, tzinfo=None).isoformat()+"Z"
 
 
