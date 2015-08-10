@@ -573,10 +573,16 @@ def adaptInputKey(inputKey):
 	if inputKey.isEnumerated():
 		return inputKey
 
+	changes = {
+		"type": getVexprFor(inputKey.type),
+		"values": None}
+
+	if inputKey.displayHint.get("displayUnit") and \
+			inputKey.displayHint["displayUnit"]!=inputKey.unit:
+		changes["inputUnit"] = inputKey.displayHint["displayUnit"]
+
 	try:
-		return inputKey.change(
-			type=getVexprFor(inputKey.type),
-			values=None)
+		inputKey = inputKey.change(**changes)
 	except base.ConversionError:  # No vexpr type, leave things
 		pass
 	return inputKey
