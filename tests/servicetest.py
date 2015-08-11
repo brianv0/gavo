@@ -450,6 +450,18 @@ class InputKeyTest(testhelpers.VerboseTest):
 		self.assertEqual(outPars["pos0"].asSTCS("Junk"),
 			'Position Junk 23. -43.')
 
+	def testPlaceholder(self):
+		ftype, fwid, rendered = self._getKeyProps(
+			'<condDesc buildFrom="data/test#valSpec.numeric"/>')
+		self.assertEqual(rendered.children[0].attributes["placeholder"],
+			"10.0 .. 15.0")
+	
+	def testPlaceholderUnitconv(self):
+		ftype, fwid, rendered = self._getKeyProps(
+			'<condDesc buildFrom="data/test#adql.rV"/>')
+		self.assertEqual(rendered.children[0].attributes["placeholder"],
+			"-20.0 .. 200.0")
+
 
 class InputFieldSelectionTest(testhelpers.VerboseTest):
 	# Tests for renderer-dependent selection and adaptation of db core 

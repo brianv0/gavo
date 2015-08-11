@@ -104,7 +104,8 @@ class CondDesc(base.Structure):
 		copyable=True)
 
 	_buildFrom = base.ReferenceAttribute("buildFrom", 
-		description="A reference to an InputKey to define this CondDesc",
+		description="A reference to a column or an InputKey to define"
+			" this CondDesc",
 		default=None)
 
 	_phraseMaker = base.StructAttribute("phraseMaker", 

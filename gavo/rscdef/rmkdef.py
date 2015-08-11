@@ -286,7 +286,7 @@ class RowmakerMacroMixin(base.StandardMacroMixin):
 			'os.path.getmtime(vars["parser_"].sourceToken))')
 		
 	def macro_srcstem(self):
-		"""returns the name of the current source file with all extensions stripped.
+		"""returns python code for the stem of the source file currently parsed in a rowmaker.
 		
 		Example: if you're currently parsing /tmp/foo.bar.gz, the stem is foo.
 		"""

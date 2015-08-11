@@ -175,17 +175,32 @@ def _getFormalType(inputKey):
 	return sqltypeToFormal(inputKey.type)[0](required=inputKey.required)
 
 
+def _makeWithPlaceholder(origWidgetFactory, newPlaceholder):
+	"""helps _addPlaceholder to keep the namespaces sane.
+	"""
+	if newPlaceholder is None:
+		return origWidgetFactory
+
+	class widgetFactory(origWidgetFactory):
+		placeholder = newPlaceholder
+	return widgetFactory
+
+
 def _getWidgetFactory(inputKey):
 	if not hasattr(inputKey, "_widgetFactoryCache"):
 		widgetFactory = inputKey.widgetFactory
+
 		if widgetFactory is None:
 			if inputKey.isEnumerated():
 				widgetFactory = customwidgets.EnumeratedWidget(inputKey)
 			else:
 				widgetFactory = sqltypeToFormal(inputKey.type)[1]
+
 		if isinstance(widgetFactory, basestring):
 			widgetFactory = customwidgets.makeWidgetFactory(widgetFactory)
-		inputKey._widgetFactoryCache = widgetFactory
+
+		inputKey._widgetFactoryCache = _makeWithPlaceholder(widgetFactory,
+			inputKey.getProperty("placeholder", None))
 	return inputKey._widgetFactoryCache
 
 

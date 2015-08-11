@@ -514,7 +514,7 @@ class GrammarMacroMixin(base.StandardMacroMixin):
 		return 'datetime.utcfromtimestamp(os.path.getmtime(rowIter.sourceToken))'
 		
 	def macro_srcstem(self):
-		"""returns the stem of the source file currently parsed.
+		"""returns python code for the stem of the source file currently parsed in a rowmaker.
 		
 		Example: if you're currently parsing /tmp/foo.bar, the stem is foo.
 		"""

@@ -28,6 +28,7 @@ class TextInput(object):
 
     inputType = 'text'
     showValueOnFailure = True
+    placeholder = None
 
     def __init__(self, original):
         self.original = original
@@ -36,6 +37,8 @@ class TextInput(object):
         tag=T.input(type=self.inputType, name=key, id=render_cssid(key), value=value)
         if readonly:
             tag(class_='readonly', readonly='readonly')
+        if self.placeholder is not None:
+            tag(placeholder=self.placeholder)
         return tag
 
     def render(self, ctx, key, args, errors):

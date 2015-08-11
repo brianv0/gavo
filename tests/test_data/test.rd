@@ -157,7 +157,9 @@
 			description="A sample magnitude" verbLevel="15"/>
 		<column name="rV" unit="km/s" ucd="phys.veloc;pos.heliocentric"
 			description="A sample radial velocity"
-			type="double precision" verbLevel="25"/>
+			type="double precision" verbLevel="25" displayHint="displayUnit=Mm/s">
+			<values min="-20000" max="200000"/>
+		</column>
 		<column name="tinyflag" type="bytea" verbLevel="30">
 			<values nullLiteral="0"/>
 		</column>

@@ -559,6 +559,32 @@ def makeConeSearchFor(inputKey):
 			utils.escapeAttrVal(inputKey.name)))
 
 
+def getPlaceholderFor(inputKey, values):
+	"""returns a placeholder (suggested input) for inputKey, where values
+	is the original values element.
+
+	This will currently be None unless we do a numeric input.
+	"""
+	if inputKey.type!="vexpr-float" or not values:
+		return
+
+	scaling = inputKey.scaling or 1
+
+	if values.min is None:
+		if values.max is None:
+			placeholder = None
+		else:
+			placeholder = "< %s"%(values.max/scaling)
+	else:
+		if values.max is None:
+			placeholder = "> %s"%(values.min/scaling)
+		else:
+			placeholder = "%s .. %s"%(
+				values.min/scaling, values.max/scaling)
+
+	return placeholder
+
+
 def adaptInputKey(inputKey):
 	"""returns ik changed to generate SQL for Vizier-like expressions.
 
@@ -573,6 +599,8 @@ def adaptInputKey(inputKey):
 	if inputKey.isEnumerated():
 		return inputKey
 
+	oldValues = inputKey.values
+
 	changes = {
 		"type": getVexprFor(inputKey.type),
 		"values": None}
@@ -583,8 +611,11 @@ def adaptInputKey(inputKey):
 
 	try:
 		inputKey = inputKey.change(**changes)
+		inputKey.setProperty("placeholder", 
+			getPlaceholderFor(inputKey, oldValues))
 	except base.ConversionError:  # No vexpr type, leave things
 		pass
+	
 	return inputKey
 
 

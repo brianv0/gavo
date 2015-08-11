@@ -614,10 +614,12 @@ class DatalinkAsyncRenderer(AsyncRendererBase):
 
 
 class UWSAsyncRenderer(AsyncRendererBase):
-	"""A renderer for "user-uws" services.
+	"""A renderer speaking UWS.
 
-	I suspect this should be merged into a generic "async" render that
-	would work for TAP-async and datalink-async, too.
+	This is for asynchronous exection of larger jobs.  Operators will normally
+	use this together with a custom core or a python core.
+
+	See `Custom UWSes`_ for details.
 	"""
 	name = "uws.xml"
 
