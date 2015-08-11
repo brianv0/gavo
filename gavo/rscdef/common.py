@@ -252,12 +252,13 @@ class Registration(base.Structure):
 		"""adds servedBy and serviceFrom metadata to data, service pairs
 		in this registration.
 		"""
+		if self.publishedForADQL():
+			tapSvc = base.caches.getRD("//tap").getById("run")
+			if not tapSvc in self.services:
+				self.services.append(tapSvc)
+
 		for srv in self.services:
 			srv.declareServes(self.parent)
-
-		# Tables in ADQL are always published via TAP
-		if self.publishedForADQL():
-			base.caches.getRD("//tap").getById("run").declareServes(self.parent)
 
 
 class ColumnList(list):

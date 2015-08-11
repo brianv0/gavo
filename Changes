@@ -24,6 +24,11 @@ Version 0.9.5 (2015-)
 	  in your RDs, make sure the corresponding services still behave as
 	  expected.
 
+	* Generic UWS support: If you want to provide non-TAP UWS services
+		(like large server-side compute jobs and such), there's now the uws.xml
+		renderer (in combination with a pythonCore or customCore).
+		Details at http://docs.g-vo.org/DaCHS/ref.html#custom-uwses
+
 	* Sidebar style has changed; actually removed the old support code, so
 	  the old behaviour cannot be restored by templates and javascript alone,
 	  but I'd be happy to provide you with the necessary hooks.

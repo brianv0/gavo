@@ -640,6 +640,10 @@ class Service(base.Structure, base.ComputedMetaMixin,
 				base.getMetaText(data, "title", default="Anonymous"),
 				name="serviceFor",
 				ivoId=base.getMetaText(data, "identifier")))
+			data.addMeta("servedBy", base.makeMetaValue(
+				base.getMetaText(self, "title"),
+				name="servedBy",
+				ivoId=base.getMetaText(self, "identifier")))
 
 			# Since this is always initiated by the data, the dependency
 			# must show up in its RD to be properly added on publication
