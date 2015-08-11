@@ -601,15 +601,15 @@ def adaptInputKey(inputKey):
 
 	oldValues = inputKey.values
 
-	changes = {
-		"type": getVexprFor(inputKey.type),
-		"values": None}
-
-	if inputKey.displayHint.get("displayUnit") and \
-			inputKey.displayHint["displayUnit"]!=inputKey.unit:
-		changes["inputUnit"] = inputKey.displayHint["displayUnit"]
-
 	try:
+		changes = {
+			"type": getVexprFor(inputKey.type),
+			"values": None}
+
+		if inputKey.displayHint.get("displayUnit") and \
+				inputKey.displayHint["displayUnit"]!=inputKey.unit:
+			changes["inputUnit"] = inputKey.displayHint["displayUnit"]
+
 		inputKey = inputKey.change(**changes)
 		inputKey.setProperty("placeholder", 
 			getPlaceholderFor(inputKey, oldValues))
