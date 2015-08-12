@@ -524,8 +524,8 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 						inputKeys.append(item)
 			except Exception, ex:
 				if base.DEBUG:
-					base.ui.notifyError("Error in datalink meta generator %s"%(
-						metaMaker))
+					base.ui.notifyError("Error in datalink meta generator %s: %s"%(
+						metaMaker, repr(ex)))
 					base.ui.notifyError("Failing source: \n%s"%metaMaker.getFuncCode())
 				errors.append(DatalinkFault.Fault(descriptor.pubDID,
 					"Unexpected failure while creating"

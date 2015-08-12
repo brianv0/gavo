@@ -41,9 +41,10 @@ machinery -->
 				own previews based on MIME guessing, or a file name, or an URL."
 			verbLevel="40"/>
 		<column name="datalink" type="text"
-			description="RD id of the 'default' datalink service for this
-				file; this is to allow the global datalink service (sitting on the ~
-				resource and used by obscore) forward datalink requests globally."
+			description="A fully qualified URL of a datalink document for
+				this dataset.  This is to allow the global datalink service 
+				(sitting on the ~ resource and used by obscore) to
+				forward datalink requests globally."
 			verbLevel="40"/>
 		<column name="preview_mime" type="text"
 			description="MIME type of a preview (if any)"

@@ -623,10 +623,18 @@ class RegTest(procdef.ProcApp, unittest.TestCase):
 		one match; database-querying cores (which is where order is an
 		issue) also honor _DBOPTIONS_ORDER).
 		"""
-		data, metadata = votable.load(StringIO(self.data))
+		data, metadata = votable.loads(self.data)
 		for row in metadata.iterDicts(data):
 			return row
-			
+		
+	@utils.document
+	def getVOTableRows(self):
+		"""parses the first table in a result VOTable and returns the contents
+		as a sequence of dictionaries.
+		"""
+		data, metadata = votable.loads(self.data)
+		return list(metadata.iterDicts(data))
+
 
 class RegTestSuite(base.Structure):
 	"""A suite of regression tests.

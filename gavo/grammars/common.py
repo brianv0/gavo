@@ -485,6 +485,19 @@ class GrammarMacroMixin(base.StandardMacroMixin):
 			" urllib.quote_plus(getStandardPubDID(rowIter.sourceToken)))"%(
 				repr(baseURL)))
 
+	def macro_fullDLMetaURL(self, dlService):
+		r"""like fullDLURL, except it points to the datalink metadata.
+
+		This is intended for binding to //products#define's datalink
+		parameter.
+
+		If you need the value in a rowmaker, grab it from @prodtblDatalink.
+		"""
+		baseURL = self.rd.getById(dlService).getURL("dlmeta")
+		return ("'%%s?ID=%%s'%%(%s,"
+			" urllib.quote_plus(getStandardPubDID(rowIter.sourceToken)))"%(
+				repr(baseURL)))
+
 	def macro_standardPreviewPath(self):
 		"""returns an expression for the standard path for a custom preview.
 
