@@ -456,6 +456,12 @@ class NamePathAttribute(base.AtomicAttribute):
 					# try on real name path
 					pass
 
+			if hasattr(instance, "getByName"):
+				try:
+					return instance.getByName(id)
+				except base.NotFoundError:
+					pass
+
 			np = instance.namePath
 			if np is None and instance.parent:
 				np = getattr(instance.parent, "namePath", None)
