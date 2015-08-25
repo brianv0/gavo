@@ -34,6 +34,9 @@ class IncompatibleUnits(utils.Error):
 class BadUnit(utils.Error):
 	pass
 
+PLANCK_H = 6.626070040e-34
+LIGHT_C = 299792458.0
+
 
 # We can't yet restructure the tree, so we don't do SI-base-casting for
 # compound units.  Also, we don't change anything when a change of exponent
@@ -62,7 +65,7 @@ PLAIN_UNITS = units = {
 	"d": (3600*24, "s"), 
 	"deg": (math.pi/180., "rad"), 
 	"erg": (1e-7, "J"), 
-	"eV": (1.602177e-19, "J"), 
+	"eV": (1.6021766208e-19, "J"), 
 	"F": (1, "F"),        # C/V
 	"g": (1e-3, "kg"), 
 	"G": (1e-4, "T"), 
@@ -104,6 +107,15 @@ PLAIN_UNITS = units = {
 	"W": (1, "W"),        # kg.m2/s3 or A.V -- that's going to be a tough one
 	"Wb": (1, "Wb"), 
 	"yr": (3600*24*365.25, "s"), # This is the SI/julian year!
+}
+
+
+EXCEPTIONAL_CONVERSIONS = {
+	# tuple-form of units: conversions that are still linear but
+	# somehow ideosyncratic.
+
+	# wave number to energy
+	((('m', -1.0),), (('J', 1),)): PLANCK_H*LIGHT_C,
 }
 
 # These are the keys from PLAIN_UNITS that cannot take SI prefixes
@@ -412,7 +424,7 @@ def _buildTerm(s, pos, toks):
 def evalAll(s, p, toks):
 	"""a parse action evaluating the whole match as a python expression.
 
-	Obviously, this should only be added to carefully screened nonterminals.
+	Obviously, this should only be applied to carefully screened nonterminals.
 	"""
 	return eval("".join(str(tok) for tok in toks))
 
@@ -503,6 +515,14 @@ class getUnitGrammar(utils.CachedResource):
 				sym.setName(name)
 
 
+def asSequence(unitDict):
+	"""returns a sorted tuple of (si, power) for a result of getSI().
+
+	These should be more suitable for dimensional analysis.
+	"""
+	return tuple(sorted(unitDict.iteritems()))
+
+
 def parseUnit(unitStr, unitGrammar=getUnitGrammar()):
 	try:
 		return utils.pyparseString(unitGrammar, unitStr, parseAll=True)[0]
@@ -527,6 +547,13 @@ def computeConversionFactor(unitStr1, unitStr2):
 		return 1
 	factor1, powers1 = parseUnit(unitStr1).getSI()
 	factor2, powers2 = parseUnit(unitStr2).getSI()
+	powers1, powers2 = asSequence(powers1), asSequence(powers2)
+
+	if (powers1, powers2) in EXCEPTIONAL_CONVERSIONS:
+		return factor1/factor2*EXCEPTIONAL_CONVERSIONS[powers1, powers2]
+	if (powers2, powers1) in EXCEPTIONAL_CONVERSIONS:
+		return factor1/factor2/EXCEPTIONAL_CONVERSIONS[powers2, powers1]
+
 	if powers1!=powers2:
 		raise IncompatibleUnits("%s and %s do not have the same SI base"%(
 			unitStr1, unitStr2))
@@ -534,11 +561,11 @@ def computeConversionFactor(unitStr1, unitStr2):
 	# tuples as keys in powers come from non-polynomial function
 	# applications; in such cases, multiplication is not good enough
 	# for conversions, and thus we give up.
-	for u in powers1.iterkeys():
+	for u, _ in powers1:
 		if isinstance(u, tuple):
 			raise IncompatibleUnits("%s has a non-polynomial function. No"
 				" conversion by multiplication possible"%(unitStr1))
-	for u in powers2.iterkeys():
+	for u, _ in powers2:
 		if isinstance(u, tuple):
 			raise IncompatibleUnits("%s has a non-polynomial function. No"
 				" conversion by multiplication possible"%(unitStr2))

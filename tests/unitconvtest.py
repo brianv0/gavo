@@ -309,6 +309,15 @@ class ColumnConvTest(testhelpers.VerboseTest):
 		base.computeColumnConversions(self._mCL("km", "s"),
 			self._mCL("m", "h", "arcsec"))
 
+	def testWaveNumber(self):
+		self.assertAlmostEqual(unitconv.computeConversionFactor("cm**-1", "J"),
+			1.986445824e-23)
+
+	def testInverseWaveNumber(self):
+		self.assertAlmostEqual(
+			unitconv.computeConversionFactor("MeV", "m**-1")*1e-11,
+			8.065544005)
+
 
 if __name__=="__main__":
 	testhelpers.main(ColumnConvTest)
