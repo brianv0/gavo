@@ -117,9 +117,9 @@ class QueryMeta(dict):
 	# and the nevow infrastructure
 	metaKeys = set(["_FILTER", "_OUTPUT", "_charset_", "_ADDITEM",
 		"__nevow_form__", "_FORMAT", "_VERB", "_TDENC", "formal_data",
-		"_SET", "_TIMEOUT", "_VOTABLE_VERSION"])
+		"_SET", "_TIMEOUT", "_VOTABLE_VERSION", "FORMAT"])
 
-	# a set of keys that has sequences as values (needed for construction
+	# a set of keys that have sequences as values (needed for construction
 	# from nevow request.args)
 	listKeys = set(["_ADDITEM", "_DBOPTIONS_ORDER", "_SET"])
 
@@ -170,7 +170,11 @@ class QueryMeta(dict):
 	def _fillOutput(self, args):
 		"""interprets values left by the OutputFormat widget.
 		"""
-		self["format"] = args.get("_FORMAT", "HTML")
+		if "FORMAT" in args:
+			self["format"] = args["FORMAT"]
+		else:
+			self["format"] = args.get("_FORMAT", "HTML")
+
 		try:
 # prefer fine-grained "verbosity" over _VERB or VERB
 # Hack: malformed _VERBs result in None verbosity, which is taken to

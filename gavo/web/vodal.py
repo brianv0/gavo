@@ -77,8 +77,11 @@ class DALRenderer(grend.ServiceBasedPage):
 
 	def renderHTTP(self, ctx):
 		queryMeta = svcs.QueryMeta.fromContext(ctx)
-		if queryMeta["dbLimit"]==0:
-			return self._renderMetadata(ctx, queryMeta)
+		if queryMeta["dbLimit"]==0 or queryMeta["format"].lower()=="metadata":
+			# don't do the default metadata representation for ssap; it
+			# has extra rules.  Sigh.
+			if self.name!="ssap.xml":
+				return self._renderMetadata(ctx, queryMeta)
 
 		else:
 			return defer.maybeDeferred(self._runService, ctx, queryMeta
@@ -132,6 +135,14 @@ class DALRenderer(grend.ServiceBasedPage):
 
 	def _runService(self, ctx, queryMeta):
 		request = inevow.IRequest(ctx)
+
+# don't enable this for now.  If a validator actually starts validating
+# against the whole VERSION catastrophe, re-think this.
+#		if "VERSION" in request.args:
+#			if request.args["VERSION"]!=self.version:
+#				raise ValidationError("Version mismatch -- version supported by"
+#					" this service: %s"%self.version)
+
 		dali.mangleUploads(request)
 		return self.runService(request.args, queryMeta
 			).addCallback(self._formatOutput, ctx)
@@ -214,6 +225,7 @@ class SCSRenderer(DALRenderer):
 		within 0.001 degrees.
 	"""
 	name = "scs.xml"
+	version = "1.0"
 
 	def __init__(self, ctx, *args, **kwargs):
 		reqArgs = inevow.IRequest(ctx).args
@@ -296,6 +308,7 @@ class SIAPRenderer(DALRenderer):
 	"""
 # XXX TODO: put more functionality into the core and then use
 # UnifiedDALRenderer rather than siap.xml.
+	version = "1.0"
 	name = "siap.xml"
 
 	def __init__(self, ctx, *args, **kwargs):
@@ -405,7 +418,28 @@ class SSAPRenderer(UnifiedDALRenderer):
 	you set defaultRequest to querydata, such request will be processed
 	as if REQUEST were given.
 	"""
+	version = "1.04"
 	name = "ssap.xml"
+
+
+class SLAPRenderer(UnifiedDALRenderer):
+	"""A renderer for the simple line access protocol SLAP.
+
+	For registration, you must set the following metadata on services 
+	using the slap.xml renderer:
+
+	There's a mandatory metadata item for these:
+
+	- slap.dataSource -- one of observational/astrophysical, 
+	  observational/laboratory", "theoretical" 
+	
+	You should give
+
+	- slap.testQuery.queryDataCmd -- the query string of a query returning
+	  something, excluding REQUEST.
+	"""
+	version = "1.0"
+	name = "slap.xml"
 
 
 class APIRenderer(UnifiedDALRenderer):

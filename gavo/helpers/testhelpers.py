@@ -27,6 +27,9 @@ import unittest
 import warnings
 from cStringIO import StringIO
 
+from nevow import inevow
+from nevow.testutil import FakeRequest
+from twisted.python.components import registerAdapter
 
 # This sets up a test environment of the DaCHS software.
 #
@@ -509,6 +512,20 @@ def captureOutput(callable, args=(), kwargs={}):
 		outCont, errCont = sys.stdout.getvalue(), sys.stderr.getvalue()
 		sys.stdout, sys.stderr = realOut, realErr
 	return retVal, outCont, errCont
+
+
+class FakeContext(object):
+	"""A scaffolding class for testing renderers.
+
+	This will in general not be enough as most actions renderers do will
+	require a running reactor, so you need trial.  But sometimes it's
+	all synchronous and this will do.
+	"""
+	def __init__(self, **kwargs):
+		self.request = FakeRequest(args=kwargs)
+		self.args = kwargs
+
+registerAdapter(lambda ctx: ctx.request, FakeContext, inevow.IRequest)
 
 
 def trialMain(testClass):

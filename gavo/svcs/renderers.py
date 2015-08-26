@@ -43,6 +43,7 @@ RENDERER_REGISTRY = {
 	'rdinfo': ("web.metarender", "RDInfoRenderer"),
 	'scs.xml': ("web.vodal", "SCSRenderer"),
 	'siap.xml': ("web.vodal", "SIAPRenderer"),
+	'slap.xml': ("web.vodal", "SLAPRenderer"),
 	'soap': ("web.soaprender", "SOAPRenderer"),
 	'ssap.xml': ("web.vodal", "SSAPRenderer"),
 	'static': ("web.constantrender", "StaticRenderer"),

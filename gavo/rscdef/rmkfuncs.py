@@ -33,7 +33,9 @@ from gavo.base.literals import (identity, #noflake:exported names
 	parseInt, parseFloat, parseBooleanLiteral, parseUnicode,
 	parseDefaultDate, parseDefaultDatetime, parseDefaultTime, parseCooPair,
 	parseSPoint, getDefaultValueParsers)
-	
+
+from gavo.base.unitconv import ( #noflake: exported names
+	PLANCK_H, LIGHT_C)
 from gavo.rscdef.common import ( #noflake: exported names
 	getStandardPubDID, getAccrefFromStandardPubDID,
 	getInputsRelativePath)

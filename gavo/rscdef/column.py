@@ -595,7 +595,7 @@ class ParamBase(ColumnBase):
 	"""
 	_value = base.DataContent(description="The value of parameter."
 		" It is parsed according to the param's type using the default"
-		" parser for the type as in rowmakers.", default=base.NotGiven,
+		" parser for the type VOTable tabledata.", default=base.NotGiven,
 		copyable=True, expand=True)
 
 	_valueCache = base.Undefined
