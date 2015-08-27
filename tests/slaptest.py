@@ -11,6 +11,7 @@ from gavo.helpers import testhelpers
 
 from gavo import api
 from gavo import svcs
+from gavo.helpers import testtricks
 from gavo.web import vodal
 
 import tresc
@@ -119,6 +120,50 @@ class ServiceConstraintsTest(TestWithSLAPTable):
 		self.assertEqual(len(res), 2)
 		self.assertEqual(set(r["chemical_element"] for r in res), 
 			set(["Mo", "H"]))
+
+	def testMAXREC(self):
+		res = self.runService({"MAXREC": ["1"]}
+			).getPrimaryTable().rows
+		self.assertEqual(len(res), 1)
+
+
+class _SLAPRegistryRecord(testhelpers.TestResource):
+	def make(self, dependents):
+		from gavo.registry import capabilities
+		from gavo.web import vosi
+		publication = api.resolveCrossId("data/slaptest#s").publications[0]
+		res = vosi.CAP.capabilities[
+			capabilities.getCapabilityElement(publication)].render()
+		return testhelpers.getXMLTree(res, debug=False), res
+
+
+class CapabilityTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
+	resources = [("cap", _SLAPRegistryRecord())]
+
+	def testValid(self):
+		self.assertValidates(self.cap[1])
+
+	def testType(self):
+		self.assertEqual(self.cap[0][0].get(
+			"{http://www.w3.org/2001/XMLSchema-instance}type"),
+			"slap:SimpleLineAccess")
+
+	def testStandardId(self):
+		self.assertEqual(self.cap[0][0].get("standardID"),
+			"ivo://ivoa.net/std/SLAP")
+
+	def testComplianceLevel(self):
+		self.assertEqual(self.cap[0][0].xpath("complianceLevel")[0].text,
+			"full")
+
+	def testDataSource(self):
+		self.assertEqual(self.cap[0][0].xpath("dataSource")[0].text,
+			"theoretical")
+
+	def testTestQuery(self):
+		self.assertEqual(self.cap[0][0].xpath("testQuery/queryDataCmd")[0].text,
+			"MAXREC=1")
+
 
 
 if __name__=="__main__":

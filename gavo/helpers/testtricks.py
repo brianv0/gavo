@@ -123,6 +123,7 @@ VO_SCHEMATA = [
 		"OAI-PMH.xsd",
 		"RegistryInterface-v1.0.xsd",
 		"SIA-v1.1.xsd",
+		"SLAP-v1.0.xsd",
 		"SSA-v1.1.xsd",
 		"StandardsRegExt-1.0.xsd",
 		"stc-v1.30.xsd",
@@ -172,10 +173,6 @@ def getDefaultValidator(extraSchemata=[]):
 	"""returns a validator that knows the schemata typically useful within
 	the VO.
 
-	*Note*: This doesn't work right now since libxml2 insists on
-	loading schema files referenced in schema files' schemaLocations.
-	Until there's an improved API, this has to wait.
-
 	This will currently only work if DaCHS is installed from an SVN
 	checkout with setup.py develop.
 
@@ -189,8 +186,8 @@ def getDefaultValidator(extraSchemata=[]):
 def _makeLXMLValidator():
 	"""returns an lxml-based schema validating function for the VO XSDs
 
-	This is not happening at import time as it is time-consuming, and the server
-	probably doesn't even validate.
+	This is not happening at import time as it is time-consuming, and the 
+	DaCHS server probably doesn't even validate anything.
 
 	This is used below to build getXSDErrorsLXML.
 	"""

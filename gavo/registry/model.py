@@ -39,6 +39,8 @@ registerPrefix("cs", "http://www.ivoa.net/xml/ConeSearch/v1.0",
 	schemaURL("ConeSearch-v1.0.xsd"))
 registerPrefix("sia", "http://www.ivoa.net/xml/SIA/v1.1",
 	schemaURL("SIA-v1.1.xsd"))
+registerPrefix("slap", "http://www.ivoa.net/xml/SLAP/v1.0",
+	schemaURL("SLAP-v1.0.xsd"))
 registerPrefix("ssap", "http://www.ivoa.net/xml/SSA/v1.1",
 	schemaURL("SSA-v1.1.xsd"))
 registerPrefix("tr", "http://www.ivoa.net/xml/TAPRegExt/v1.0",
@@ -642,6 +644,29 @@ class SSAP(object):
 	class supportedFrame(SSAElement): pass
 	class testQuery(SSAElement): pass
 	class queryDataCmd(SSAElement): pass
+
+
+class SLAP(object):
+	"""A container for the elements of the SSA registry extension.
+	"""
+	class SLAPElement(Element):
+		_prefix = "slap"
+		_local = True
+	
+	class capability(VOR.capability):
+		_a_standardID = "ivo://ivoa.net/std/SLAP"
+		_a_xsi_type = "slap:SimpleLineAccess"
+		_additionalPrefixes = frozenset(["xsi", "vs"])
+
+	class interface(VOR.interface):
+		_a_role = "std"
+		_additionalPrefixes = frozenset(["vs", "xsi"])
+		_a_xsi_type = "vs:ParamHTTP"
+
+	class complianceLevel(SLAPElement): pass
+	class dataSource(SLAPElement): pass
+	class testQuery(SLAPElement): pass
+	class queryDataCmd(SLAPElement): pass
 
 
 class TR(object):

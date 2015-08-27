@@ -18,7 +18,7 @@ from gavo import svcs
 from gavo import utils
 from gavo.base import meta
 from gavo.base import typesystems
-from gavo.registry.model import (VOR, VOG, VS, SIA, SCS, SSAP, TR)
+from gavo.registry.model import (VOR, VOG, VS, SIA, SCS, SLAP, SSAP, TR)
 
 
 ###################### Helpers (TODO: Move to tableset, I guess)
@@ -139,6 +139,11 @@ class SCSInterface(InterfaceWithParams):
 class SSAPInterface(InterfaceWithParams):
 	renderer = "ssap.xml"
 	interfaceClass = SSAP.interface
+
+class SLAPInterface(InterfaceWithParams):
+	renderer = "slap.xml"
+	interfaceClass = SLAP.interface
+
 
 
 class APIInterface(InterfaceWithParams):
@@ -353,6 +358,22 @@ class SSACapabilityMaker(CapabilityMaker):
 			SSAP.testQuery[
 				SSAP.queryDataCmd[base.getMetaText(service, "ssap.testQuery", 
 					raiseOnFail=True)+"&REQUEST=queryData"]],
+		]
+
+
+class SLAPCapabilityMaker(CapabilityMaker):
+	renderer = "slap.xml"
+	capabilityClass = SLAP.capability
+
+	def _makeCapability(self, publication):
+		service = publication.parent
+		return CapabilityMaker._makeCapability(self, publication)[
+			SLAP.complianceLevel[
+				service.getMeta("slap.complianceLevel", default="full")], 
+			SSAP.dataSource[service.getMeta("slap.dataSource", raiseOnFail=True)],
+			SSAP.testQuery[
+				SSAP.queryDataCmd[base.getMetaText(service, "slap.testQuery", 
+					raiseOnFail=True)]],
 		]
 
 

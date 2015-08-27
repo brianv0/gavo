@@ -36,6 +36,10 @@
 	</data>
 
 	<service id="s" allowed="slap.xml">
+		<meta name="shortName">slap test</meta>
+		<meta name="slap.dataSource">theoretical</meta>
+		<meta name="slap.testQuery">MAXREC=1</meta>
+		<publish render="slap.xml" sets="ivo_managed"/>
 		<FEED source="//slap#servicePars"/>
 		<dbCore queriedTable="slaptest">
 			<FEED source="//slap#corePars"/>

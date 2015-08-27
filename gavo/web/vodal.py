@@ -428,15 +428,13 @@ class SLAPRenderer(UnifiedDALRenderer):
 	For registration, you must set the following metadata on services 
 	using the slap.xml renderer:
 
-	There's a mandatory metadata item for these:
+	There's two mandatory metadata items for these:
 
 	- slap.dataSource -- one of observational/astrophysical, 
-	  observational/laboratory", "theoretical" 
-	
-	You should give
-
-	- slap.testQuery.queryDataCmd -- the query string of a query returning
-	  something, excluding REQUEST.
+	  observational/laboratory, or theoretical 
+	- slap.testQuery -- parameters that lead to a non-empty response.
+	  The way things are written in DaCHS, MAXREC=1 should in general
+	  work.
 	"""
 	version = "1.0"
 	name = "slap.xml"
