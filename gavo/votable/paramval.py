@@ -13,17 +13,11 @@ import datetime
 
 from gavo import utils
 from gavo.utils import pgsphere
+from gavo.utils import serializers
 from gavo.votable import coding
 from gavo.votable import enc_tabledata
 from gavo.votable import dec_tabledata
 from gavo.votable.model import VOTable as V
-
-try:
-	from gavo.base import valuemappers
-except ImportError:
-	# TODO: provide some fallback in case someone uses this without
-	# the full distribution
-	valuemappers = utils.NotInstalledModuleStub("gavo base distribution")
 
 
 _SEQUENCE_TYPES = (tuple, list)
@@ -151,7 +145,7 @@ def _serializeNULL(param):
 
 
 class PrimitiveAnnotatedColumn(dict):
-	"""A stand-in for valuemappers.AnnotatedColumn.
+	"""A stand-in for serializers.AnnotatedColumn.
 
 	We don't want to use the full thing as it's too fat here, and
 	getVOTSerializer doesn't have the original param anyway (as
@@ -192,7 +186,7 @@ def getVOTSerializer(datatype, arraysize, xtype):
 			enc_tabledata.getLinesFor(V.PARAM(**locals()))+[
 			"return tokens[0]"], "  "))
 
-	mapper = valuemappers.defaultMFRegistry.getMapper(PrimitiveAnnotatedColumn(
+	mapper = serializers.defaultMFRegistry.getMapper(PrimitiveAnnotatedColumn(
 		datatype, arraysize, xtype))
 	env = enc_tabledata.getGlobals(None).copy()
 	env["mapper"] = mapper
