@@ -18,6 +18,7 @@ which is then added to the current dictionary.
 import datetime
 import itertools
 
+from gavo import utils
 from gavo.stc import common
 from gavo.stc import dm
 from gavo.stc import stcs
@@ -561,3 +562,24 @@ def getSpatialSystem(astRoot):
 	cst = stcs.removeDefaults({"space": _spatialToCST(astRoot)})
 	return _joinKeysWithNull(cst["space"], ["frame", 
 			"equinox", "refpos", "flavor", "epoch"], _commonFlatteners)
+
+
+def _boxMapperFactory(colDesc):
+	"""A factory for Boxes.
+	"""
+	if colDesc["dbtype"]!="box":
+		return
+
+	if colDesc.original.stc:
+		systemString = getSpatialSystem(colDesc.original.stc)
+	else:
+		systemString = "UNKNOWN"
+
+	def mapper(val):
+		if val is None:
+			return ""
+		else:
+			return "Box %s %s %s %s %s"%((systemString,)+val[0]+val[1])
+	colDesc["datatype"], colDesc["arraysize"] = "char", "*"
+	return mapper
+utils.registerDefaultMF(_boxMapperFactory)

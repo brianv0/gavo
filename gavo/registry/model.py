@@ -9,7 +9,6 @@ The schema and XML namespaces for OAI/VOR documents.
 
 
 from gavo import base
-from gavo.base import typesystems
 from gavo.utils.stanxml import Element, schemaURL, registerPrefix, xsiPrefix
 
 
@@ -475,7 +474,7 @@ def addBasicVSElements(baseNS, VSElement):
 			_a_xsi_type = "vs:VOTableType"
 
 			def _defineType(self, type):
-				typeName, arrLen, xtype = typesystems.toVOTableConverter.convert(type)
+				typeName, arrLen, xtype = base.sqltypeToVOTable(type)
 				self.text_ = typeName
 				self(arraysize=str(arrLen))
 

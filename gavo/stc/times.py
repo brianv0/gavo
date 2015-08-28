@@ -298,6 +298,69 @@ def getTransformFromSTC(fromSTC, toSTC):
 		return getTransformFromScales(fromScale, toScale)
 
 
+def datetimeMapperFactory(colDesc):
+	import time
+# This is too gruesome.  We want some other way of handling this...
+# Simplify this, and kick out all the mess we don't want.
+	if (colDesc["dbtype"]=="timestamp"
+			or colDesc["dbtype"]=="date"
+			# must look in original, as the one in colDesc comes from typesystems
+			or colDesc.original.xtype=="adql:TIMESTAMP"):
+		unit = colDesc["unit"]
+		if (
+				unit=="Y:M:D" 
+				or unit=="Y-M-D" 
+				or colDesc["displayHint"].get("format")=="humanDate"
+				or colDesc.original.xtype=="adql:TIMESTAMP"):
+			fun = lambda val: (val and val.isoformat()) or None
+			destType = ("char", "*")
+			colDesc["nullvalue"] = ""
+
+		elif (colDesc["ucd"] and "MJD" in colDesc["ucd"].upper()
+				) or colDesc["xtype"]=="mjd":
+			colDesc["unit"] = "d"
+			fun = lambda val: (val and dateTimeToMJD(val))
+			destType = ("double", '1')
+			colDesc["nullvalue"] = "NaN"
+			colDesc["xtype"] = None
+
+		elif unit=="yr" or unit=="a":
+			fun = lambda val: (val and dateTimeToJYear(val))
+			def fun(val):
+				return (val and dateTimeToJYear(val))
+				return str(val)
+			destType = ("double", '1')
+			colDesc["nullvalue"] = "NaN"
+			colDesc["xtype"] = None
+
+		elif unit=="d":
+			fun = lambda val: (val and dateTimeToJdn(val))
+			destType = ("double", '1')
+			colDesc["nullvalue"] = "NaN"
+			colDesc["xtype"] = None
+
+		elif unit=="s":
+			fun = lambda val: (val and time.mktime(val.timetuple()))
+			destType = ("double", '1')
+			colDesc["nullvalue"] = "NaN"
+			colDesc["xtype"] = None
+
+		elif unit=="iso":
+			fun = lambda val: (val and val.isoformat())
+			destType = ("char", "*")
+			colDesc["nullvalue"] = ""
+
+		else:   # Fishy, but not our fault
+			fun = lambda val: (val and dateTimeToJdn(val))
+			destType = ("double", '1')
+			colDesc["nullvalue"] = "NaN"
+			colDesc["xtype"] = None
+
+		colDesc["datatype"], colDesc["arraysize"] = destType
+		return fun
+utils.registerDefaultMF(datetimeMapperFactory)
+
+
 def _test():
 	import doctest
 	from gavo.stc import times

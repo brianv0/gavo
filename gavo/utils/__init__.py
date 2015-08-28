@@ -57,6 +57,8 @@ from gavo.utils.ostricks import (safeclose, urlopenRemote,
 
 from gavo.utils.plainxml import StartEndHandler, iterparse, traverseETree
 
+from gavo.utils.serializers import (defaultMFRegistry, registerDefaultMF)
+
 from gavo.utils.stanxml import (ElementTree, xmlrender, 
 	escapeAttrVal, escapePCDATA, registerPrefix, getPrefixInfo)
 

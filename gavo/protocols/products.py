@@ -58,7 +58,6 @@ from gavo import rscdef
 from gavo import svcs
 from gavo import utils
 from gavo.base import coords
-from gavo.base import valuemappers
 from gavo.protocols import creds
 from gavo.svcs import streaming
 from gavo.utils import imgtools
@@ -1150,4 +1149,4 @@ def _productMapperFactory(colDesc):
 				return makeProductLink(val, withHost=True)
 	return mapper
 
-valuemappers._registerDefaultMF(_productMapperFactory)
+utils.registerDefaultMF(_productMapperFactory)

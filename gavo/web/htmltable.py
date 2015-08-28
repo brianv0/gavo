@@ -29,10 +29,11 @@ from gavo import utils
 from gavo.base import valuemappers
 from gavo.protocols import products
 from gavo.rscdef import rmkfuncs
+from gavo.utils import serializers
 from gavo.web import common
 
 
-_htmlMFRegistry = valuemappers.ValueMapperFactoryRegistry()
+_htmlMFRegistry = serializers.ValueMapperFactoryRegistry()
 _registerHTMLMF = _htmlMFRegistry.registerFactory
 
 
@@ -147,7 +148,7 @@ def _stringWrapMF(baseMF):
 			return realHandler
 	return factory
 
-_registerHTMLMF(_stringWrapMF(valuemappers.datetimeMapperFactory))
+_registerHTMLMF(_stringWrapMF(stc.datetimeMapperFactory))
 
 
 def humanDatesFactory(colDesc):
@@ -371,7 +372,7 @@ def _booleanCheckmarkFactory(colDesc):
 _registerHTMLMF(_booleanCheckmarkFactory)
 
 
-_registerHTMLMF(valuemappers._pgSphereMapperFactory)
+_registerHTMLMF(serializers._pgSphereMapperFactory)
 
 #  Insert new, more specific factories here
 

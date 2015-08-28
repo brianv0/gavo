@@ -123,7 +123,7 @@ class Examples(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 
 	* *dl-id*: An publisher DID a service returns data for (used in 
 	  datalink examples)
-	* *table*: A (fully qualified) table name a TAP example query is
+	* *taptable*: A (fully qualified) table name a TAP example query is
 	  (particularly) relevant for; in HTML, this is also a link
 	  to the table description.
 	* *genparam*: A "generic parameter" as defined by DALI.  The values
@@ -133,7 +133,7 @@ class Examples(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 	
 	These are the custom directives:
 
-	* *query*: The query discussed in a TAP example.
+	* *tapquery*: The query discussed in a TAP example.
 	"""
 	name = "examples"
 	checkedRenderer = False
