@@ -304,8 +304,10 @@ def query(querier, query, timeout=15, metaProfile=None, tdsForUploads=[],
 
 	if len(table)==int(table.tableDef.setLimit):
 		table.addMeta("_warning", "Query result probably incomplete due"
-			" to the match limit kicking in.  Add a TOP clause"
-			" to your query and/or increase MAXREC to retrieve more data.")
+			" to the match limit kicking in.  Queries not providing a TOP"
+			" clause will be furnished with an automatic TOP %s by the machinery,"
+			" so adding a TOP clause with a higher number may help."%
+			base.getConfig("adql", "webDefaultLimit"))
 	return table
 
 
