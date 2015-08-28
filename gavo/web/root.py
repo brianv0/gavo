@@ -285,7 +285,7 @@ class ArchiveService(rend.Page):
 	def locateChild(self, ctx, segments):
 		_hackHostHeader(ctx)
 		if os.path.exists(self.maintFile):
-			return static.File(svcs.getTemplatePath("maintenance.html")), ()
+			return ifpages.ServiceUnavailable(), ()
 		if self.rootSegments:
 			if segments[:self.rootLen]!=self.rootSegments:
 				raise UnknownURI("Misconfiguration: Saw a URL outside of the server's"

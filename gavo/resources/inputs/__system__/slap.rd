@@ -8,7 +8,7 @@
 			with spectral lines.  It does not contain all "optional" columns,
 			hence the name basic.  We'd do "advanced", too, if there's demand.
 
-			Use the fillBasic procDef to populate such tables.
+			Use the `//slap#fillBasic`_ procDef to populate such tables.
 		</doc>
 		<events>
 			<column name="wavelength" type="double precision" required="True"
@@ -23,11 +23,6 @@
 				tablehead="Line"
 				description="Terse descriptor of the line"
 				verbLevel="1"/>
-			<column name="id_status" type="text"
-				ucd="meta.code"
-				tablehead="Id?"
-				description="Identification status of the line"
-				verbLevel="15"/>
 			<column name="chemical_element" type="text"
 				utype="ssldm:Line.species.name"
 				ucd="phys.atmol.element"
@@ -62,6 +57,11 @@
 				description="The publication this value orginated from."
 				verbLevel="15"
 				displayHint="type=bibcode"/>
+			<column name="id_status" type="text"
+				ucd="meta.code"
+				tablehead="Id?"
+				description="Identification status of the line"
+				verbLevel="15"/>
 			</events>
 	</mixinDef>
 

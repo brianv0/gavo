@@ -277,3 +277,24 @@ class RobotsTxt(rend.Page):
 
 	def locateChild(self, segments):
 		return None
+
+
+class ServiceUnavailable(rend.Page):
+	"""A page to be rendered in emergencies.
+
+	Essentially, this is a 503 with a text taken from stateDir/MAINT.
+
+	Root checks for the presence of that file before returning this
+	page, so (ignoring race conditions) this page assumes it's there.
+	"""
+	def renderHTTP(self, ctx):
+		request = inevow.IRequest(ctx)
+		request.setResponseCode(503)
+		request.setHeader("retry-after", "3600")
+		return rend.Page.renderHTTP(self, ctx)
+
+	def data_maintText(self, ctx, data):
+		with open(os.path.join(base.getConfig("stateDir"), "MAINT")) as f:
+			return f.read().decode("utf-8")
+	
+	docFactory = svcs.loadSystemTemplate("maintenance.html")

@@ -210,6 +210,13 @@ class RendExplainer(object):
 					"Validate"]]]
 
 	@classmethod
+	def _explain_slap_xml(cls, service):
+		return T.invisible["a standard SLAP interface as defined by the"
+			" IVOA to access spectral line data; SLAP clients (usually"
+			" spectral analysis programs)"
+			" use ", service.getURL("slap.xml"), " to access the service"]
+
+	@classmethod
 	def _explain_tap(cls, service):
 		return T.invisible["the interface to this site's Table Access Protocol"
 			" service.  This protocol is best accessed using specialized clients"

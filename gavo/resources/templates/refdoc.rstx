@@ -153,7 +153,8 @@ feeding the tables mixing in a given mixin.
 .. replaceWithResult getMixinDocs(docStructure, [
   "//products#table", "//scs#positions", "//scs#q3cindex",
   "//siap#bbox", "//siap#pgs", "//ssap#hcd", "//obscore#publish",
-  "//obscore#publishSIAP", "//ssap#sdm-instance", "//ssap#mixc",
+  "//obscore#publishSIAP", "//slap#basic",
+  "//ssap#sdm-instance", "//ssap#mixc",
   "//obscore#publishSSAPHCD", "//epntap#table"])
 
 
@@ -206,6 +207,7 @@ Procedures available for rowmaker apply
     "//siap#computePGS",
     "//siap#computeBbox", "//siap#setMeta", "//ssap#setMeta",
     "//siap#getBandFromFilter", "//ssap#setMixcMeta",
+    "//slap#fillBasic",
     "//epntap#populate",
     ])(docStructure)
 
