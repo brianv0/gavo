@@ -418,7 +418,8 @@ class VOTableMetaTest(testhelpers.VerboseTest):
 
 
 class TAPTableMetaTest(testhelpers.VerboseTest):
-	resources = [("conn", tresc.dbConnection), ("ot", tresc.obscoreTable)]
+	resources = [("conn", tresc.dbConnection), ("ot", tresc.obscoreTable),
+		("ssa", tresc.ssaTestTable)]
 
 	def testSingleSourceTableMetadataCopied(self):
 		res = taprunner.runTAPQuery(
@@ -428,8 +429,16 @@ class TAPTableMetaTest(testhelpers.VerboseTest):
 			base.getMetaText(res, "description"),
 			"The IVOA-defined obscore table, containing generic metadata for\n"
 			"datasets within this datacenter.")
-		list(res)
+		list(res) # exhaust the cursor
 	
+	def testSingleSourceTableParamsCopied(self):
+		res = taprunner.runTAPQuery(
+			"SELECT TOP 1 * FROM test.hcdtest", 1, self.conn, [], 1,
+			autoClose=False)
+		list(res) # exhaust the cursor
+		self.assertEqual(res.getParam("ssa_model"), "Spectrum-1.0")
+		self.assertEqual(res.getParam("ssa_specres"), 1e-10)
+
 	def testNoMetadataOnComplexQuery(self):
 		res = taprunner.runTAPQuery(
 			"SELECT TOP 1 * FROM (SELECT * from ivoa.obscore) as q", 

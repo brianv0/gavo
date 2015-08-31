@@ -6,7 +6,7 @@
 	<meta name="creator.name">Hendrix, J.; Page, J; et al.</meta>
 	<meta name="creator.name">The Master Tester</meta>
 
-	<table id="hcdtest" onDisk="True" primary="accref">
+	<table id="hcdtest" onDisk="True" primary="accref" adql="True">
 		<meta name="description">A boring and pointless test table</meta>
 		<mixin 
 			instrument="DaCHS test suite" 

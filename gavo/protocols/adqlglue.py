@@ -134,14 +134,17 @@ def _getTableDescForOutput(parsedTree):
 	resTable = base.makeStruct(rscdef.TableDef, columns=columns,
 		id=parsedTree.suggestAName())
 
-	# if this is a simple one-table query, take the metadata from that
-	# table.
+	# if this is a simple one-table query, take the metadata and params
+	# from that table.
 	fromNames = [t.qName
 		for t in parsedTree.fromClause.getAllTables()
 		if hasattr(t, "qName")]
 	if len(fromNames)==1:
 		try:
 			srcTable = base.caches.getMTH(None).getTableDefForTable(fromNames[0])
+			params = srcTable.params
+			if params:
+				resTable = resTable.change(params=params)
 			resTable.copyMetaFrom(srcTable)
 		except base.NotFoundError:
 			# Single source is not one of our tables, hence no metadata

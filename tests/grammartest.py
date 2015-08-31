@@ -512,6 +512,14 @@ class ReGrammarTest(testhelpers.VerboseTest):
 				{'a': '1', 'b': '2'},
 				{'a': '3', 'b': '4'}])
 
+	def testLineCount(self):
+		grammar = base.parseFromString(regrammar.REGrammar,
+			r"""<reGrammar names="a,b" recordSep="//" fieldSep=","/>""")
+		self.assertRaisesWithMsg(base.SourceParseError,
+			"At line 2: 1 fields found, expected 2",
+			list,
+			(grammar.parse(StringIO("a,b//c,d//e\n,f//g,h//j//\n1,d//\n")),))
+
 
 class FilteredInputTest(testhelpers.VerboseTest):
 	def testSimple(self):
