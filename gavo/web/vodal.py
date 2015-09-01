@@ -83,10 +83,9 @@ class DALRenderer(grend.ServiceBasedPage):
 			if self.name!="ssap.xml":
 				return self._renderMetadata(ctx, queryMeta)
 
-		else:
-			return defer.maybeDeferred(self._runService, ctx, queryMeta
-				).addErrback(self._handleInputErrors, ctx
-				).addErrback(self._handleRandomFailure, ctx)
+		return defer.maybeDeferred(self._runService, ctx, queryMeta
+			).addErrback(self._handleInputErrors, ctx
+			).addErrback(self._handleRandomFailure, ctx)
 
 	def _getMetadataData(self, queryMeta):
 		"""returns a SIAP-style metadata data item.

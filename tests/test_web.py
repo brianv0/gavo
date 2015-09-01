@@ -505,6 +505,13 @@ class SCSTest(trialhelpers.ArchiveTest):
 			'<sr>1</sr>'])
 
 
+class SSATest(trialhelpers.ArchiveTest):
+	def testMetadataFormat(self):
+		return self.assertGETHasStrings("/data/ssatest/c/ssap.xml",
+			{"FORMAT": "Metadata", "REQUEST": "queryData"},
+			["<VOTABLE", 'name="QUERY_STATUS" value="OK"', 'name="INPUT:SIZE"'])
+
+
 class TestExamples(trialhelpers.ArchiveTest):
 	def testBasic(self):
 		return self.assertGETHasStrings("/data/cores/dl/examples", 

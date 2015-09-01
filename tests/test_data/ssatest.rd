@@ -129,7 +129,7 @@
 		</data>
 	</sdmCore>
 
-	<service id="s">
+	<service id="s" allowed="ssap.xml">
 		<ssapCore queriedTable="hcdtest" id="foocore">
 			<FEED source="//ssap#hcd_condDescs"/>
 			<condDesc buildFrom="excellence"/>
