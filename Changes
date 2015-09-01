@@ -24,6 +24,21 @@ Version 0.9.5 (2015-)
 	  in your RDs, make sure the corresponding services still behave as
 	  expected.
 
+	* Column naming is now ADQL-compliant, which means that leading underscores
+	  are no longer considered ok for regular identifiers (though they are
+	  fine to postgres).  You should run a ``gavo val ALL`` and fix any warnings
+	  to the effect that something is not a "regular ADQL identifier" you may
+	  get.  Also read 
+	  http://docs.g-vo.org/DaCHS/commonproblems.html#column-tab-foo-is-not-a-regular-adql-identifier
+	  Since there's no harm, but it may automatically fix things, just run
+
+	  	gavo imp -m //tap
+	 	
+	 	after upgrading.
+
+	* SLAP support: If you have data on spectral lines, DaCHS now speaks
+		the protocol to distribute them.
+
 	* Generic UWS support: If you want to provide non-TAP UWS services
 		(like large server-side compute jobs and such), there's now the uws.xml
 		renderer (in combination with a pythonCore or customCore).
@@ -43,15 +58,6 @@ Version 0.9.5 (2015-)
 	  that fields you deemed unimportant might no longer show up in default
 	  answers.  To get them back, either lower their verbLevel or add
 	  a query parameter VERB=3.
-
-	* Column naming is now ADQL-compliant, which means that leading underscores
-	  are no longer considered ok for regular identifiers (though they are
-	  fine to postgres).  You should run a gavo val ALL and fix any warnings
-	  you may get.  Also read the corresponding piece in 
-	  http://docs.g-vo.org/DaCHS/commonproblems.html ("...is not a regular
-	  identifier").  At the very least, you'll have to run 
-
-	  	gavo imp -m //tap
 
 	* If you're using our logs/logs.rd for access logging, update it now
 	  and read the comment near the top of logs.rd.

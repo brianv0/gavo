@@ -518,7 +518,7 @@ class RowmakerMacroTest(testhelpers.VerboseTest):
 			sourceToken = dd.rd.getAbsPath('data/spec3.ssatest')
 
 		self.assertEqual(
-			mapper({"parser_": Parser}, None)['x'], 182)
+			mapper({"parser_": Parser}, None)['x'], 199)
 
 	def test_qName(self):
 		dd, td = makeDD('<column name="x" type="text" required="True"/>',

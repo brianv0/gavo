@@ -195,6 +195,18 @@ class Values(base.Structure):
 	This is quite like the values element in a VOTable.  In particular,
 	to accomodate VOTable usage, we require nullLiteral to be a valid literal
 	for the parent's type.
+
+	Note that DaCHS does not validate for contraints from values on
+	table import.  This is mainly because before ``gavo values`` has run,
+	values may not represent the new dataset in semiautomatic values.
+
+	With HTTP parameters, values validation does take place (but again,
+	that's mostly not too helpful because there are query languages
+	sitting in between most of the time).
+
+	Hence, the main utility of values is metadata declaration, both
+	in the form render (where they become placeholders) and in datalink
+	(where they are communicated as VOTable values).
 	"""
 	name_ = "values"
 
@@ -430,19 +442,21 @@ class ColumnBase(base.Structure, base.MetaMixin):
 					"Field %s is empty but non-optional"%self.name, self.name)
 			return
 
-		vals = self.values
-		if vals:
-			if vals.options:
-				if value and not vals.validateOptions(value):
-					raise base.ValidationError("Value %s not consistent with"
-						" legal values %s"%(value, vals.options), self.name)
-			else:
-				if vals.min and value<vals.min:
-					raise base.ValidationError("%s too small (must be at least %s)"%(
-						value, vals.min), self.name)
-				if vals.max and value>vals.max:
-					raise base.ValidationError("%s too large (must be less than %s)"%(
-						value, vals.max), self.name)
+		# Only validate these if we're not a database column
+		if not isinstance(self, Column):
+			vals = self.values
+			if vals:
+				if vals.options:
+					if value and not vals.validateOptions(value):
+						raise base.ValidationError("Value %s not consistent with"
+							" legal values %s"%(value, vals.options), self.name)
+				else:
+					if vals.min and value<vals.min:
+						raise base.ValidationError("%s too small (must be at least %s)"%(
+							value, vals.min), self.name)
+					if vals.max and value>vals.max:
+						raise base.ValidationError("%s too large (must be less than %s)"%(
+							value, vals.max), self.name)
 
 	def isIndexed(self):
 		"""returns a guess as to whether this column is part of an index.

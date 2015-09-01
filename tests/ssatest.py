@@ -85,6 +85,7 @@ class _SSATestRowmaker(testhelpers.TestResource):
 			"prodtblTable": "test.none",
 			"prodtblMime": "text/wirr",
 			"prodtblFsize": -23,
+			"redshift": None,
 		}
 
 		def wrappedRowmaker(updates):

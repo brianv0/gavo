@@ -108,8 +108,8 @@ class ColumnTest(testhelpers.VerboseTest):
 		self.failUnless(col.isPrimary() is None)
 
 	def testValidation(self):
-		col = base.parseFromString(rscdef.Column, '<column name="foo"'
-			' required="True"><values min="1" max="2"/></column>')
+		col = base.parseFromString(rscdef.Param, '<param name="foo"'
+			' required="True"><values min="1" max="2"/>1.5</param>')
 		self.assertRuns(col.validateValue, (1.5,))
 		self.assertRuns(col.validateValue, (1,))
 		self.assertRuns(col.validateValue, (2,))
@@ -175,9 +175,9 @@ class ValuesTest(testhelpers.VerboseTest):
 		col = base.parseFromString(rscdef.Column,
 			'<column name="foo"><values min="-1.5" max="13.75"/></column>')
 		self.assertEqual(col.values.min, -1.5)
-		col = base.parseFromString(rscdef.Column,
-			'<column name="foo" type="date"><values><option>'
-			'2000-01-01</option><option>2000-01-02</option></values></column>')
+		col = base.parseFromString(rscdef.Param,
+			'<param name="foo" type="date"><values><option>'
+			'2000-01-01</option><option>2000-01-02</option></values></param>')
 		self.assertEqual(col.values.validValues, 
 			set([datetime.date(2000, 1, 1), datetime.date(2000, 1, 2)]))
 		self.assertRuns(col.validateValue, (datetime.date(2000, 1, 1),))

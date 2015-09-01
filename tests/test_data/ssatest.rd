@@ -20,6 +20,18 @@
 		<column name="excellence" type="integer" description="random number">
 			<values nullLiteral="-1"/>
 		</column>
+		<column original="accsize">
+			<values 
+				min="0" 
+				max="0"/>
+		</column>
+		<column original="ssa_redshift">
+			<values 
+				min="0" max="0"/>
+		</column>
+		<column original="ssa_timeExt">
+			<values     max="0"     min="0"/>
+		</column>
 	</table>
 
 	<table id="mixctest" onDisk="True" primary="accref">
@@ -53,7 +65,7 @@
 				<apply procDef="//ssap#setMeta">
 					<bind name="pubDID">"ivo://test.inv/"+@id</bind>
 					<LOOP listItems="dstitle specstart specend bandpass alpha delta
-							dateObs">
+							dateObs redshift">
 						<events>
 							<bind name="\item">@\item</bind>
 						</events>

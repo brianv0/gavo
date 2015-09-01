@@ -121,38 +121,6 @@ class ValidationTest(testhelpers.VerboseTest):
 	def setUp(self):
 		self.rd = testhelpers.getTestRD()
 
-	def testNumeric(self):
-		"""tests for correct evaluation of numeric limits.
-		"""
-		recDef = self.rd.getTableDefById("valSpec")
-		self.assert_(recDef.validateRow({"numeric": 10,
-			"enum": None})==None)
-		self.assert_(recDef.validateRow({"numeric": 15,
-			"enum": None})==None)
-		self.assert_(recDef.validateRow({"numeric": 13,
-			"enum": None})==None)
-		self.assertRaises(base.ValidationError, 
-			recDef.validateRow, {"numeric": 16, "enum": None})
-		self.assertRaises(base.ValidationError, 
-			recDef.validateRow, {"numeric": 1, "enum": None})
-		try:
-			recDef.validateRow({"numeric": 1, "enum":None})
-		except base.ValidationError, ex:
-			self.assertEqual(ex.colName, "numeric")
-	
-	def testOptions(self):
-		"""tests for correct interpretation of values enumeration.
-		"""
-		recDef = self.rd.getTableDefById("valSpec")
-		self.assert_(recDef.validateRow({"numeric": 10, "enum": "bad"})==None)
-		self.assert_(recDef.validateRow({"numeric": 10, "enum": "gruesome"})==None)
-		self.assertRaises(base.ValidationError, recDef.validateRow, 
-			{"numeric": 10, "enum": "excellent"})
-		try:
-			recDef.validateRow({"numeric": 10, "enum": "terrible"})
-		except base.ValidationError, ex:
-			self.assertEqual(ex.colName, "enum")
-	
 	def testOptional(self):
 		"""tests for correct validation of non-optional values.
 		"""

@@ -38,7 +38,10 @@ class AnnotationMaker(object):
 		if not hasattr(self.column, "annotations"):
 			self.column.annotations = {}
 		self.propDests = {}
-	
+
+	def doesWork(self):
+		return self.propDests
+
 	def getOutputFieldFor(self, propName, propFunc, nameMaker):
 		"""returns an OutputField that will generate a propName annotation
 		from the propFunc function.
@@ -68,22 +71,49 @@ class AnnotationMaker(object):
 			self.column.annotations[destKey] = resultRow[srcKey]
 
 
-def annotateDBTable(td):
+def annotateDBTable(td, extended=True, requireValues=False):
+	"""returns the TableDef td with domain annotations for its columns.
+
+	td must be an existing on-Disk table.
+
+	The annotations come in a dictionary-valued attribute on each
+	column annotated.  Possible keys include "min", "max", "avg", and "hasnulls".
+	Only columns with the appropriate types (i.e., orderable, and, 
+	for avg, numeric) are annotated.
+
+	Without extended, only min and max are annotated.  With
+	requireValues, only numeric columns that already have a values child
+	are annotated.
+	"""
 	outputFields, annotators = [], []
 	nameMaker = base.VOTNameMaker()
 	for col in td:
 		annotator = AnnotationMaker(col)
+
 		if col.type in ORDERED_TYPES or col.type.startswith("char"):
+			if requireValues:
+				if (col.type not in NUMERIC_TYPES 
+						or not col.values
+						or col.values.min is None):
+					continue
+
 			outputFields.append(annotator.getOutputFieldFor("max",
 				"MAX(%(name)s)", nameMaker))
 			outputFields.append(annotator.getOutputFieldFor("min",
 				"MIN(%(name)s)", nameMaker))
-		if col.type in NUMERIC_TYPES:
-			outputFields.append(annotator.getOutputFieldFor("avg",
-				"AVG(%(name)s)", nameMaker))
-		outputFields.append(annotator.getOutputFieldFor("hasnulls",
-				"BOOL_OR(%(name)s IS NULL)", nameMaker))
-		annotators.append(annotator)
+		
+		if extended:
+			if col.type in NUMERIC_TYPES:
+				outputFields.append(annotator.getOutputFieldFor("avg",
+					"AVG(%(name)s)", nameMaker))
+			
+
+			outputFields.append(annotator.getOutputFieldFor("hasnulls",
+					"BOOL_OR(%(name)s IS NULL)", nameMaker))
+
+		if annotator.doesWork():
+			annotators.append(annotator)
+
 	table = api.TableForDef(td)
 
 	if not hasattr(table, "iterQuery"):

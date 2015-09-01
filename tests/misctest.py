@@ -1019,6 +1019,8 @@ lots
 """
 
 class RDManiTest(testhelpers.VerboseTest):
+	resources = [("ssaTable", tresc.ssaTestTable)]
+
 	def testTransparent(self):
 		self.assertEqual(XML_SAMPLE, rdmanipulator.processXML(
 			XML_SAMPLE, rdmanipulator.Manipulator()))
@@ -1031,7 +1033,7 @@ class RDManiTest(testhelpers.VerboseTest):
 
 			def gotElement(self, parseResult):
 				if parseResult[0][1]=="p":
-					parseResult = parseResult.asList()
+					parseResult = parseResult
 					parseResult[0][2:2] = [" manipulated='True'"]
 
 				elif parseResult[0][1]=="em":
@@ -1047,6 +1049,29 @@ class RDManiTest(testhelpers.VerboseTest):
 			"em content not replaced")
 		self.assertTrue("\t<em>lonely m</em>" in res,
 			"lonely em replaced")
+
+	def testGetChanges(self):
+		self.assertEqual(list(rdmanipulator.iterLimitsForTable(
+			self.ssaTable.tableDef)), [
+				(u'hcdtest', u'accsize', 199, 211), 
+				(u'hcdtest', u'ssa_redshift', -0.001, 0.7),
+				(u'hcdtest', u'ssa_timeExt', None, None)])
+
+	def testGetChangedRD(self):
+		res = rdmanipulator.getChangedRD(self.ssaTable.tableDef.rd.sourceId,
+			rdmanipulator.iterLimitsForTable(
+				self.ssaTable.tableDef))
+		self.assertTrue('\t<column name="excellence" type="integer"'
+			' description="random number">\n\t\t\t'
+			'<values nullLiteral="-1"/>\n\t\t</column>'
+			'\n\t\t<column original="accsize">\n\t\t\t'
+			'<values \n\t\t\t\tmin="199" \n\t\t\t\tmax="211"/>'
+			'\n\t\t</column>\n\t\t'
+			'<column original="ssa_redshift">\n\t\t\t'
+			'<values \n\t\t\t\tmin="-0.001" max="0.7"/>\n\t\t</column>\n'
+			'\t\t<column original="ssa_timeExt">\n'
+			'\t\t\t<values     max="0"     min="0"/>\n\t\t</column>\n'
+			in res)
 
 if __name__=="__main__":
 	testhelpers.main(KVLMakeTest)
