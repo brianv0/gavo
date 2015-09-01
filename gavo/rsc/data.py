@@ -548,6 +548,8 @@ def wrapTable(table, rdSource=None):
 
 	If table has no rd, you must pass rdSource, which must be an object having
 	and rd attribute (rds, tabledefs, etc, work).
+
+	This will grab info meta from the table.
 	"""
 	if isinstance(table, Data):
 		return table
@@ -561,8 +563,16 @@ def wrapTable(table, rdSource=None):
 		MS(rscdef.Make, table=table.tableDef, rowmaker=None)], parent_=rd)
 	if rdSource:
 		newDD.adopt(table.tableDef)
+
+	newDD.setMetaParent(table.tableDef.rd)
+
 	res = Data(newDD, tables={table.tableDef.id: table})
-	res.meta_ = table.meta_
+
+	for infoMeta in table.iterMeta("info"):
+		res.addMeta("info", infoMeta)
+	for mi in table.iterMeta("_votableRootAttributes", propagate=False):
+		res.addMeta("_votableRootAttributes", mi)
+
 	return res
 
 

@@ -682,7 +682,8 @@ def enableDebug(syms, debugNames=None):
 		if not ob.debug:
 			ob.setDebug(True)
 			ob.setName(name)
-	syms["sqlComment"].setDebug(False)
+	if "sqlComment" in syms:
+		syms["sqlComment"].setDebug(False)
 
 def enableTree(syms):
 	def makeAction(name):

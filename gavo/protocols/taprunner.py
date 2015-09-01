@@ -152,18 +152,13 @@ def runTAPQuery(query, timeout, connection, tdsForUploads, maxrec,
 	
 		result = rsc.QueryTable(tableTrunk.tableDef, pgQuery, connection,
 			autoClose=autoClose)
+		result.meta_ = tableTrunk.meta_
 		# XXX Hack: this is a lousy fix for postgres' seqscan love with
 		# limit.  See if we still want this with newer postgres...
 		result.configureConnection([("enable_seqscan", False)])
 		result.setTimeout(timeout)
 	except:
 		adqlglue.mapADQLErrors(*sys.exc_info())
-
-	# copy over info metas as applicable (result will receive more info
-	# metas later that will then obscure infos from tableTrunk)
-	for infoMeta in tableTrunk.iterMeta("info"):
-		result.addMeta("info", infoMeta)
-	result.setMetaParent(tableTrunk)
 
 	return result
 

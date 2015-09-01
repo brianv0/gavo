@@ -997,5 +997,56 @@ class RSTExtensionTest(testhelpers.VerboseTest):
 		self.assertTrue('<span class="problematic"' in res)
 
 
+from gavo.user import rdmanipulator
+
+XML_SAMPLE = """
+<?xml version="1.0"?>
+<!-- opening comment -->
+
+<root>
+<weird:element-has_name att="bla's attribute"
+
+	attB='
+lots
+
+  of whitespace'/>
+	<p style="foo:bar" class="upper"
+		>  There is 
+		<em>more</em> stuff	after the tab</p>
+		<em>lonely m</em>
+</root>
+<!-- final comment -->
+"""
+
+class RDManiTest(testhelpers.VerboseTest):
+	def testTransparent(self):
+		self.assertEqual(XML_SAMPLE, rdmanipulator.processXML(
+			XML_SAMPLE, rdmanipulator.Manipulator()))
+	
+	def testManipulation(self):
+		class Manipulator(rdmanipulator.Manipulator):
+			def __init__(self):
+				self.sharp = False
+				rdmanipulator.Manipulator.__init__(self)
+
+			def gotElement(self, parseResult):
+				if parseResult[0][1]=="p":
+					parseResult = parseResult.asList()
+					parseResult[0][2:2] = [" manipulated='True'"]
+
+				elif parseResult[0][1]=="em":
+					if self.hasParent("p"):
+						parseResult = ["<em>much more", "</em>"]
+
+				return parseResult
+
+		res = rdmanipulator.processXML(XML_SAMPLE, Manipulator())
+		self.assertTrue("\n\t<p manipulated='True' style=\"foo" in res,
+			"manipulated missing")
+		self.assertTrue("\t\t<em>much more</em>" in res,
+			"em content not replaced")
+		self.assertTrue("\t<em>lonely m</em>" in res,
+			"lonely em replaced")
+
 if __name__=="__main__":
 	testhelpers.main(KVLMakeTest)

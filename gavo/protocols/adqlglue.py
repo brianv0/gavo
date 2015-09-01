@@ -211,6 +211,11 @@ def _addTableMeta(query, tree, table):
 	"""adds various info items from query and its parsed tree to a
 	result table.
 	"""
+	# Copy over tableDef meta so it doesn't get obscured by what
+	# we're setting now.
+	for infoMeta in table.tableDef.iterMeta("info", propagate=False):
+		table.addMeta("info", infoMeta)
+
 	table.addMeta("info", meta.makeMetaValue(name="info",
 			infoName="server", infoValue=base.getConfig("web", "serverURL")))
 	table.addMeta("info", meta.makeMetaValue(name="info",
@@ -282,6 +287,7 @@ def morphADQL(query, metaProfile=None, tdsForUploads=[],
 
 	table.tableDef.setLimit = t.setLimit and int(t.setLimit)
 	_addTableMeta(query, t, table)
+
 	return query, table
 
 

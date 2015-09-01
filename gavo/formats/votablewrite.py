@@ -373,6 +373,7 @@ def _iterParams(ctx, dataSet):
 
 ####################### Tables and Resources
 
+
 _tableMetaBuilder = meta.ModelBasedBuilder([
 	('source', lambda content, localattrs: [V.INFO(name="source",
 			value=item, **localattrs) for item in content])])
