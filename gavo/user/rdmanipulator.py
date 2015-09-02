@@ -134,6 +134,9 @@ def getXMLGrammar(manipulator):
 		comment = (opener 
 			+ Literal("!--")
 			+ SkipTo("-->", include="True"))
+		cdataSection = (opener 
+			+ Literal("![CDATA[")
+			+ SkipTo("]]>", include="True"))
 
 		nonTagStuff = CharsNotIn("<", min=1)
 	
@@ -144,6 +147,7 @@ def getXMLGrammar(manipulator):
 		docItem << (element
 				| processingInstruction
 				| comment
+				| cdataSection
 				| nonTagStuff)
 
 		document = (ZeroOrMore(Optional(White()) + docItem) 

@@ -1010,6 +1010,10 @@ XML_SAMPLE = """
 lots
 
   of whitespace'/>
+  <![CDATA[
+  <lots of messy></stuff>
+  <p><em>ignored</em></p>
+  ]]>
 	<p style="foo:bar" class="upper"
 		>  There is 
 		<em>more</em> stuff	after the tab</p>
@@ -1072,6 +1076,7 @@ class RDManiTest(testhelpers.VerboseTest):
 			'\t\t<column original="ssa_timeExt">\n'
 			'\t\t\t<values     max="0"     min="0"/>\n\t\t</column>\n'
 			in res)
+		self.assertTrue('<em>ignored</em>' in res)
 
 if __name__=="__main__":
 	testhelpers.main(KVLMakeTest)
