@@ -16,6 +16,7 @@ import cStringIO
 
 from gavo import base
 from gavo import rsc
+from gavo import utils
 from gavo.formats import common
 
 
@@ -24,6 +25,18 @@ def _makeString(val):
 	if isinstance(val, basestring):
 		return repr(unicode(val))[2:-1]
 	return str(val)
+
+
+def renderAsColumns(table, target, acquireSamples=False):
+	"""writes a fixed-column representation of table to target.
+	"""
+	if isinstance(table, rsc.Data):
+		table = table.getPrimaryTable()
+	sm = base.SerManager(table, acquireSamples=acquireSamples)
+	target.write(utils.formatSimpleTable(
+			(_makeString(s) for s in row)
+		for row in sm.getMappedTuples()))
+	return ""
 
 
 def renderAsText(table, target, acquireSamples=True):
@@ -62,4 +75,6 @@ def readTSV(inFile):
 
 # NOTE: This will only serialize the primary table.
 common.registerDataWriter("tsv", renderAsText, "text/tab-separated-values",
-	"Tab separated values", "text/plain")
+	"Tab separated values")
+common.registerDataWriter("txt", renderAsColumns, "text/plain",
+	"Fixed-column plain text")

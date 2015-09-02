@@ -61,15 +61,18 @@ def makeEllipsis(aStr, maxLen):
 	return aStr
 
 
-def formatSimpleTable(data):
+def formatSimpleTable(data, stringify=True):
 	"""returns a string containing a text representation of tabular data.
 
 	All columns of data are simply stringified, then the longest member
 	determines the width of the text column.  The behaviour if data
 	does not contain rows of equal length is unspecified; data must
 	contain at least one row.
+
+	If you have serialised the values in data yourself, pass stringify=False.
 	"""
-	data = [[str(v) for v in row] for row in data]
+	if stringify:
+		data = [[str(v) for v in row] for row in data]
 	colWidthes = [max(len(row[colInd]) for row in data)
 		for colInd in range(len(data[0]))]
 	fmtStr = "  ".join("%%%ds"%w for w in colWidthes)

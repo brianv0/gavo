@@ -291,7 +291,19 @@ class FormatOutputTest(testhelpers.VerboseTest):
 			"Forbidded string '%s' found in output"%fragment)
 
 
-class TextOutputTest(FormatOutputTest):
+class TSVOutputTest(FormatOutputTest):
+	resources = [("output", _FormattedData("txt"))]
+	
+	def testNullSerialization(self):
+		self.assertEqual(self.output.split('\n')[1],
+			'None  None  None                                                                                        None       None                             None')
+	
+	def testValues(self):
+		self.assertEqual(self.output.split("\n")[0],
+			"   1  -2.0   3.0  W\\xe4re es da nicht besser,\\n die Regierung setzte das Volk ab\\tund w\\xe4hlte ein anderes?  2453130.5  Position UNKNOWNFrame 124. -30.' != '1\t-2.0\t3.0\tW\\xe4re es da nicht besser,\\n die Regierung setzte das Volk ab\\tund w\\xe4hlte ein anderes?\t2453130.5\tPosition UNKNOWNFrame 124. -30.")
+
+
+class TextColumnsOutputTest(FormatOutputTest):
 	resources = [("output", _FormattedData("tsv"))]
 	
 	def testNullSerialization(self):
@@ -303,6 +315,7 @@ class TextOutputTest(FormatOutputTest):
 			"1\t-2.0\t3.0\tW\\xe4re es da nicht besser,\\n die Regierung setzte"
 				" das Volk ab\\tund w\\xe4hlte ein anderes?\t2453130.5\t"
 				"Position UNKNOWNFrame 124. -30.")
+
 
 
 class CSVOutputTest(FormatOutputTest):

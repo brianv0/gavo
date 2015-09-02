@@ -131,7 +131,7 @@ class FITSTableResult(ServiceResult):
 		return request.deferred
 
 
-class TextResponse(ServiceResult):
+class TSVResponse(ServiceResult):
 	code = "TSV"
 	label = "Text (with Tabs)"
 
@@ -145,6 +145,25 @@ class TextResponse(ServiceResult):
 		request.setHeader("content-length", len(content))
 		request.write(content)
 		return ""
+
+
+class TextResponse(ServiceResult):
+	code = "txt"
+	label = "Text (fixed columns)"
+
+	@classmethod
+	def _formatOutput(cls, data, ctx):
+		request = inevow.IRequest(ctx)
+		request.setHeader('content-disposition', 
+			'attachment; filename=table.txt')
+		request.setHeader("content-type", "text/plain")
+		
+		def produceData(destFile):
+			formats.formatData("txt", data.original, 
+				request, acquireSamples=False)
+
+		return streaming.streamOut(produceData, request)
+
 
 
 class CSVResponse(ServiceResult):
