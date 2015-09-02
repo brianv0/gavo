@@ -19,6 +19,13 @@ Note that this will accept non-well-formed documents; don't use this except
 for the limited purpose of editing supposedly well-formed documents.
 """
 
+#c Copyright 2008-2015, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
+import os
 import sys
 
 from gavo import base
@@ -324,3 +331,40 @@ def getChangedRD(rdId, limits):
 	content = f.read()
 	f.close()
 	return processXML(content, _ValuesChanger(limits))
+
+
+def parseCmdLine():
+	from gavo.imp.argparse import ArgumentParser
+
+	parser = ArgumentParser(
+		description="Updates existing values min/max items in a referenced"
+			" table or RD.")
+	parser.add_argument("itemId", help="Cross-RD reference of a table or"
+		" RD to update, as in ds/q or ds/q#mytable; only RDs in inputsDir"
+		" can be updated.")
+	return parser.parse_args()
+
+
+def main():
+	from gavo import api
+	args = parseCmdLine()
+	item = api.getReferencedElement(args.itemId)
+
+	if isinstance(item, api.TableDef):
+		changes = iterLimitsForTable(item)
+		rd = item.rd
+
+	elif isinstance(item, api.RD):
+		changes = iterLimitsForRD(item)
+		rd = item
+
+	else:
+		raise base.ReportableError(
+			"%s references neither an RD nor a table definition"%args.itemId)
+	
+	newText = getChangedRD(rd.sourceId, changes)
+	destFName = os.path.join(
+		api.getConfig("inputsDir"), 
+		rd.sourceId+".rd")
+	with utils.safeReplaced(destFName) as f:
+		f.write(newText)

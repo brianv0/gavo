@@ -1053,6 +1053,7 @@ class RDManiTest(testhelpers.VerboseTest):
 			"em content not replaced")
 		self.assertTrue("\t<em>lonely m</em>" in res,
 			"lonely em replaced")
+		self.assertTrue('<em>ignored</em>' in res)
 
 	def testGetChanges(self):
 		self.assertEqual(list(rdmanipulator.iterLimitsForTable(
@@ -1076,7 +1077,7 @@ class RDManiTest(testhelpers.VerboseTest):
 			'\t\t<column original="ssa_timeExt">\n'
 			'\t\t\t<values     max="0"     min="0"/>\n\t\t</column>\n'
 			in res)
-		self.assertTrue('<em>ignored</em>' in res)
+
 
 if __name__=="__main__":
 	testhelpers.main(KVLMakeTest)
