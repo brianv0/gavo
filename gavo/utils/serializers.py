@@ -60,6 +60,13 @@ class ValueMapperFactoryRegistry(object):
 		else:
 			self.factories = factories[:]
 
+	def clone(self):
+		"""returns a clone of the factory.
+
+		This is a copy, i.e., factories added will not change the original.
+		"""
+		return self.__class__(self.factories)
+
 	def getFactories(self):
 		"""returns the list of factories.
 

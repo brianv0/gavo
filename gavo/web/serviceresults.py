@@ -154,8 +154,6 @@ class TextResponse(ServiceResult):
 	@classmethod
 	def _formatOutput(cls, data, ctx):
 		request = inevow.IRequest(ctx)
-		request.setHeader('content-disposition', 
-			'attachment; filename=table.txt')
 		request.setHeader("content-type", "text/plain")
 		
 		def produceData(destFile):

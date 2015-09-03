@@ -8,7 +8,6 @@ A renderer for Data to HTML/stan
 #c COPYING file in the source distribution.
 
 
-import datetime
 import itertools
 import os
 import re
@@ -24,218 +23,16 @@ from gavo import base
 from gavo import formats
 from gavo import rsc
 from gavo import svcs
-from gavo import stc
 from gavo import utils
 from gavo.base import valuemappers
+from gavo.formats import texttable
 from gavo.protocols import products
 from gavo.rscdef import rmkfuncs
-from gavo.utils import serializers
 from gavo.web import common
 
 
-_htmlMFRegistry = serializers.ValueMapperFactoryRegistry()
+_htmlMFRegistry = texttable.displayMFRegistry.clone()
 _registerHTMLMF = _htmlMFRegistry.registerFactory
-
-
-def _defaultMapperFactory(colDesc):
-	def coder(val):
-		if val is None:
-			return
-		return unicode(val)
-	return coder
-_registerHTMLMF(_defaultMapperFactory)
-
-
-# insert new general factories here
-
-floatTypes = set(["real", "float", "double", "double precision"])
-
-def _sfMapperFactory(colDesc):
-	if colDesc["dbtype"] not in floatTypes:
-		return
-	if colDesc["displayHint"].get("sf"):
-		fmtStr = "%%.%df"%int(colDesc["displayHint"].get("sf"))
-		def coder(val):
-			if val is None:
-				return "N/A"
-			else:
-				return fmtStr%val
-		return coder
-_registerHTMLMF(_sfMapperFactory)
-
-
-def _hmsMapperFactory(colDesc):
-	if colDesc["displayHint"].get("type")!="hms":
-		return
-	colDesc["unit"] = "h:m:s"
-	sepChar = colDesc["displayHint"].get("sepChar", " ")
-	sf = int(colDesc["displayHint"].get("sf", 2))
-	def coder(val):
-		if val is None:
-			return "N/A"
-		else:
-			return utils.degToHms(val, sepChar, sf)
-	return coder
-_registerHTMLMF(_hmsMapperFactory)
-
-
-def _dmsMapperFactory(colDesc):
-	if colDesc["displayHint"].get("type")!="dms":
-		return
-	colDesc["unit"] = "d:m:s"
-	sepChar = colDesc["displayHint"].get("sepChar", " ")
-	sf = int(colDesc["displayHint"].get("sf", 2))
-	def coder(val):
-		if val is None:
-			return "N/A"
-		return utils.degToDms(val, sepChar, sf)
-	return coder
-_registerHTMLMF(_dmsMapperFactory)
-
-
-def _unitMapperFactory(colDesc):
-	"""returns a factory that converts between units for fields that have
-	a displayUnit displayHint.
-
-	The stuff done here has to be done for all factories handling unit-based
-	floating point values.  Maybe we want to do "decorating" meta-factories?
-	"""
-	if colDesc["displayHint"].get("displayUnit") and \
-			colDesc["displayHint"]["displayUnit"]!=colDesc["unit"]:
-		try:
-			factor = base.computeConversionFactor(colDesc["unit"], 
-				colDesc["displayHint"]["displayUnit"])
-		except base.BadUnit:
-			# bad unit somewhere; ignore display hint
-			base.ui.notifyError("Bad unit while computing conversion factor.")
-			return None
-
-		colDesc["unit"] = colDesc["displayHint"]["displayUnit"]
-		fmtStr = "%%.%df"%int(colDesc["displayHint"].get("sf", 2))
-		
-		if "[" in colDesc["dbtype"]:
-			def coder(val):
-				return "[%s]"%", ".join("N/A" if item is None else fmtStr%(item*factor)
-					for item in val)
-
-		else:
-			def coder(val):
-				return "N/A" if val is None else fmtStr%(val*factor)
-
-		return coder
-_registerHTMLMF(_unitMapperFactory)
-
-
-def _stringWrapMF(baseMF):
-	"""returns a factory that that stringifies floats and makes N/A from
-	Nones coming out of baseMF and passes everything else through.
-	"""
-	def factory(colDesc):
-		handler = baseMF(colDesc)
-		if colDesc["displayHint"].get("sf", None):
-			fmtstr = "%%.%df"%int(colDesc["displayHint"]["sf"])
-		fmtstr = "%s"
-		if handler:
-			def realHandler(val):
-				res = handler(val)
-				if isinstance(res, float):
-					return fmtstr%res
-				else:
-					if res is None:
-						return "N/A"
-					else:
-						return res
-			return realHandler
-	return factory
-
-_registerHTMLMF(_stringWrapMF(stc.datetimeMapperFactory))
-
-
-def humanDatesFactory(colDesc):
-	format, unit = {"humanDate": ("%Y-%m-%d %H:%M:%S", ""),
-		"humanDay": ("%Y-%m-%d", "") }.get(
-			colDesc["displayHint"].get("type"), (None, None))
-	if format and colDesc["dbtype"] in ("date", "timestamp"):
-		colDesc["unit"] = unit
-		def coder(val):
-			if val is None:
-				return "N/A"
-			else:
-				colDesc["datatype"], colDesc["arraysize"] = "char", "*"
-				colDesc["xtype"] = "adql:TIMESTAMP"
-				colDesc["unit"] = ""
-				try:
-					return val.strftime(format)
-				except ValueError:  # probably too old a date, fall back to a hack
-					return val.isoformat()
-		return coder
-_registerHTMLMF(humanDatesFactory)
-
-
-def humanTimesFactory(colDesc):
-	if colDesc["displayHint"].get("type")=="humanTime":
-		sf = int(colDesc["displayHint"].get("sf", 0))
-		fmtStr = "%%02d:%%02d:%%0%d.%df"%(sf+3, sf)
-		def coder(val):
-			if val is None:
-				return "N/A"
-			else:
-				if isinstance(val, (datetime.time, datetime.datetime)):
-					return fmtStr%(val.hours, val.minutes, val.second)
-				elif isinstance(val, datetime.timedelta):
-					hours = val.seconds//3600
-					minutes = (val.seconds-hours*3600)//60
-					seconds = (val.seconds-hours*3600-minutes*60)+val.microseconds/1e6
-					return fmtStr%(hours, minutes, seconds)
-		return coder
-_registerHTMLMF(humanTimesFactory)
-
-
-def jdMapperFactory(colDesc):
-	"""maps JD, MJD, unix timestamp, and julian year columns to 
-	human-readable datetimes.
-
-	MJDs are caught by inspecting the UCD.
-	"""
-	if (colDesc["displayHint"].get("type")=="humanDate"
-			and colDesc["dbtype"] in ("double precision", "real")):
-
-		if colDesc["unit"]=="d":
-			if "mjd" in colDesc["ucd"].lower() or colDesc["xtype"]=="mjd":
-				converter = stc.mjdToDateTime
-			else:
-				converter = stc.jdnToDateTime
-		elif colDesc["unit"]=="s":
-			converter = datetime.datetime.utcfromtimestamp
-		elif colDesc["unit"]=="yr":
-			converter = stc.jYearToDateTime
-		else:
-			return None
-
-		def fun(val):
-			if val is None:
-				return "N/A"
-			return utils.formatISODT(converter(val))
-		colDesc["datatype"], colDesc["arraysize"] = "char", "*"
-		colDesc["xtype"] = "adql:TIMESTAMP"
-		colDesc["unit"] = ""
-		return fun
-_registerHTMLMF(jdMapperFactory)
-
-
-def _sizeMapperFactory(colDesc):
-	"""is a factory for formatters for file sizes and similar.
-	"""
-	if colDesc["unit"]!="byte":
-		return
-	sf = int(colDesc["displayHint"].get("sf", 1))
-	def coder(val):
-		if val is None:
-			return "N/A"
-		else:
-			return utils.formatSize(val, sf)
-	return coder
-_registerHTMLMF(_sizeMapperFactory)
 
 
 def _barMapperFactory(colDesc):
@@ -371,8 +168,6 @@ def _booleanCheckmarkFactory(colDesc):
 	return coder
 _registerHTMLMF(_booleanCheckmarkFactory)
 
-
-_registerHTMLMF(serializers._pgSphereMapperFactory)
 
 #  Insert new, more specific factories here
 

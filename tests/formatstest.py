@@ -291,24 +291,24 @@ class FormatOutputTest(testhelpers.VerboseTest):
 			"Forbidded string '%s' found in output"%fragment)
 
 
-class TSVOutputTest(FormatOutputTest):
+class TextOutputTest(FormatOutputTest):
 	resources = [("output", _FormattedData("txt"))]
 	
 	def testNullSerialization(self):
 		self.assertEqual(self.output.split('\n')[1],
-			'None  None  None                                                                                        None       None                             None')
+			'N/A   N/A  N/A                                                                                         N/A        N/A                              N/A')
 	
 	def testValues(self):
 		self.assertEqual(self.output.split("\n")[0],
-			"   1  -2.0   3.0  W\\xe4re es da nicht besser,\\n die Regierung setzte das Volk ab\\tund w\\xe4hlte ein anderes?  2453130.5  Position UNKNOWNFrame 124. -30.' != '1\t-2.0\t3.0\tW\\xe4re es da nicht besser,\\n die Regierung setzte das Volk ab\\tund w\\xe4hlte ein anderes?\t2453130.5\tPosition UNKNOWNFrame 124. -30.")
+			"  1  -2.0  3.0  W\\xe4re es da nicht besser,\\n die Regierung setzte das Volk ab\\tund w\\xe4hlte ein anderes?  2453130.5  Position UNKNOWNFrame 124. -30.")
 
 
-class TextColumnsOutputTest(FormatOutputTest):
+class TSVColumnsOutputTest(FormatOutputTest):
 	resources = [("output", _FormattedData("tsv"))]
 	
 	def testNullSerialization(self):
 		self.assertEqual(self.output.split('\n')[1],
-			'None\tNone\tNone\tNone\tNone\tNone')
+			'N/A\tN/A\tN/A\tN/A\tN/A\tN/A')
 	
 	def testValues(self):
 		self.assertEqual(self.output.split("\n")[0],
@@ -550,7 +550,7 @@ class ExplicitNullValueTest(testhelpers.VerboseTest):
 
 	def testTSV(self):
 		def assertion(data):
-			self.assertEqual('None\tNone\tNone', data.strip())
+			self.assertEqual('N/A\tN/A\tN/A', data.strip())
 		self._runTestForFormat("tsv", assertion)
 
 
