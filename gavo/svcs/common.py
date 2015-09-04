@@ -17,6 +17,7 @@ from nevow import loaders
 import pkg_resources
 
 from gavo import base
+from gavo import utils
 
 
 class Error(base.Error):
@@ -129,6 +130,7 @@ class QueryMeta(dict):
 		self.ctxArgs = initArgs
 		self["formal_data"] = {}
 		self["user"] = self["password"] = None
+		self["accept"] = {}
 		self._fillOutput(initArgs)
 		self._fillDbOptions(initArgs)
 		self._fillSet(initArgs)
@@ -158,6 +160,7 @@ class QueryMeta(dict):
 		also sets user and password.
 		"""
 		res = cls.fromNevowArgs(request.args)
+		res["accept"] = utils.parseAccept(request.getHeader("accept"))
 		res["user"], res["password"] = request.getUser(), request.getPassword()
 		return res
 	

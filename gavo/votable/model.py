@@ -15,10 +15,14 @@ from gavo.utils.stanxml import (
 
 
 NAMESPACES = {
+	"1.3": "http://www.ivoa.net/xml/VOTable/v1.3",
 	"1.2": "http://www.ivoa.net/xml/VOTable/v1.2",
 	"1.1": "http://www.ivoa.net/xml/VOTable/v1.1",
 }
 
+# WARNING: if you change the default version of the VOTables generated,
+# you'll probably have to adapt them in resources/xsl, too.
+#registerPrefix("vot", NAMESPACES["1.3"], schemaURL("VOTable-1.3.xsd"))
 registerPrefix("vot", NAMESPACES["1.2"], schemaURL("VOTable-1.2.xsd"))
 registerPrefix("vot1", NAMESPACES["1.1"], schemaURL("VOTable-1.1.xsd"))
 	

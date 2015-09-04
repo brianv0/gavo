@@ -623,6 +623,35 @@ def safe_str(val):
 		return str(val)
 
 
+def parseAccept(aString):
+	"""parses an RFC 2616 accept header and returns a dict mapping media
+	type patterns to their (unparsed) parameters.
+
+	If aString is None, an empty dict is returned
+
+	If we ever want to do fancy things with http content negotiation, this
+	will be further wrapped to provide something implementing the complex
+	RFC 2616 rules; this primitive interface really is intended for telling
+	apart browsers (which accept text/html) from other clients (which
+	hopefully do not) at this point.
+
+	>>> sorted(parseAccept("text/html, text/*; q=0.2; level=3").items())
+	[('text/*', 'q=0.2; level=3'), ('text/html', '')]
+	>>> parseAccept(None)
+	{}
+	"""
+	res = {}
+	if aString is not None:
+		for item in aString.split(","):
+			if ";" in item:
+				key, params = item.split(";", 1)
+			else:
+				key, params = item, ""
+			res[key.strip()] = params.strip()
+	
+	return res
+
+
 def _test():
 	import doctest, texttricks
 	doctest.testmod(texttricks)

@@ -782,11 +782,18 @@ class DatalinkCore(DatalinkCoreBase):
 				self.getDatalinksResource(ctx, service), 
 				self._iterAccessResources(ctx, service)]
 
-		destMime = str(inputTable.getParam("RESPONSEFORMAT") or self.datalinkType)
+		if "text/html" in queryMeta["accept"]:
+			# we believe it's a web browser; let it do stylesheet magic
+			destMime = "text/xml"
+		else:
+			destMime = self.datalinkType
+
+		destMime = str(inputTable.getParam("RESPONSEFORMAT") or destMime)
 		if destMime=="votable":
 			destMime = self.datalinkType
 			
-		return (destMime, vot.render())
+		return (destMime, "<?xml-stylesheet href='/static/xsl/"
+			"datalink-to-html.xsl' type='text/xsl'?>"+vot.render())
 
 	def runForData(self, service, inputTable, queryMeta):
 		"""returns a data set processed according to inputTable's parameters.

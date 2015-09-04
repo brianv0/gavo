@@ -64,7 +64,7 @@ from gavo.utils.stanxml import (ElementTree, xmlrender,
 
 from gavo.utils.texttricks import (formatSize, makeEllipsis, floatRE, 
 	dateRE, datetimeRE, identifierPattern,
-	datetimeToRFC2616, parseDefaultDatetime,
+	datetimeToRFC2616, parseDefaultDatetime, parseAccept,
 	isoTimestampFmt, isoTimestampFmtNoTZ, parseISODT, formatISODT,
 	formatRFC2616Date, parseRFC2616Date,
 	fixIndentation, parsePercentExpression, hmsToDeg, dmsToDeg,
