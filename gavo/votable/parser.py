@@ -181,7 +181,6 @@ def readRaw(inFile):
 	return el
 
 
-
 def parseString(string, watchset=DEFAULT_WATCHSET):
 	"""returns an iterator yielding pairs of (table definition, row iterator).
 

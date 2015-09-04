@@ -20,6 +20,8 @@ log them in some form appropriate to the client.
 import contextlib
 import sys
 
+from gavo import utils
+
 
 class DispatcherType(type):
 	"""is a metaclass for dispatching of messages.
@@ -128,11 +130,11 @@ class EventDispatcher(object):
 		As side effects, the curSource attribute is set to this value.
 		"""
 		if isinstance(sourceToken, basestring):
-			sourceName = sourceToken
+			sourceName = utils.makeEllipsis(sourceToken)
 		else:
-			sourceName = repr(sourceToken)[:40]
+			sourceName = utils.makeEllipsis(repr(sourceToken))
 		self.curSource = sourceName
-		self.sourceStack.append(sourceToken)
+		self.sourceStack.append(sourceName)
 		return sourceName
 
 	def notifySourceError(self):

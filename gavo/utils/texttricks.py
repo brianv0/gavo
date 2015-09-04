@@ -55,7 +55,7 @@ def formatSize(val, sf=1):
 		return "%.*fGiB"%(sf, val/1024./1024./1024)
 
 
-def makeEllipsis(aStr, maxLen):
+def makeEllipsis(aStr, maxLen=60):
 	if len(aStr)>maxLen:
 		return aStr[:maxLen-3]+"..."
 	return aStr
