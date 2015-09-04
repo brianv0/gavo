@@ -72,6 +72,9 @@
 
     <xsl:template match="vot:TR">
         <tr>
+        <xsl:attribute name="class">
+            <xsl:value-of select="substring(vot:TD[$semantics_index], 2)"/>
+        </xsl:attribute>
         <td>
             <xsl:apply-templates select="vot:TD[$access_url_index]"
                 mode="access_url"/>
@@ -135,12 +138,12 @@
     <!-- ################################### utility, top-level -->
 
     <xsl:template name="fetch_preview">
-        <xsl:variable name="preview_row" 
-            select="//vot:TR[vot:TD[$semantics_index]='#preview']"/>
-        <xsl:if test="$preview_row">
+        <xsl:variable name="preview_url" 
+            select="//vot:TR[vot:TD[$semantics_index]='#preview']/vot:TD[$access_url_index]"/>
+        <xsl:if test="$preview_url">
             <img alt="[PREVIEW]">
                 <xsl:attribute name="src">
-                    <xsl:value-of select="$preview_row[$access_url_index]"/>
+                    <xsl:value-of select="$preview_url"/>
                 </xsl:attribute>
             </img>
         </xsl:if>
@@ -178,6 +181,23 @@
     	  p.description {
     	      max-width: 20em;
         }
+
+        tr.science {
+            background: #AAFFAA;
+        }
+
+        tr.calib {
+            background: #FFFFAA;
+        }
+
+        tr.unknown{
+            color: #777777;
+        }
+
+        tr.this{
+            font-weight: bold;
+        }
+
     	</style>
     	</head>
     	<body>
