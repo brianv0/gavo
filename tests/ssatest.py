@@ -701,7 +701,7 @@ class _RenderedSSAResponse(testhelpers.TestResource):
 	def make(self, deps):
 		res = getRD().getById("c").run("ssap.xml",
 			{"REQUEST": "queryData", "TOP": "4", "MAXREC": "4",
-				"FORMAT": "votable", "_DBOPTIONS_ORDER": ["ssa_targname"]})
+				"FORMAT": "votable", "_DBOPTIONS_ORDER": ["-ssa_targname"]})
 		rawVOT = res.original[-1]
 		return rawVOT, testhelpers.getXMLTree(rawVOT, debug=False)
 

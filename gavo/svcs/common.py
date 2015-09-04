@@ -251,6 +251,10 @@ class QueryMeta(dict):
 			direction = "DESC"
 			if sortKeys==["_r"]:
 				direction = "ASC"
+			if sortKeys[0].startswith("-"):
+				sortKeys[0] = sortKeys[0][1:]
+				direction = "ASC"
+
 			# Ok, we need to do some emergency securing here.  There should be
 			# pre-validation that we're actually seeing a column key, but
 			# just in case let's make sure we're seeing an SQL identifier.
