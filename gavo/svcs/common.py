@@ -239,13 +239,22 @@ class QueryMeta(dict):
 		frag, pars = [], {}
 		sortKeys = self["dbSortKeys"]
 		dbLimit = self["dbLimit"]
+# TODO: Sorting needs a thorough redesign, presumably giving column instance
+# as column keys.  These could carry "default up" or "default down" in
+# properties.  Meanwhile, there should be a UI to let users decide on
+# sort direction.
+# Meanwhile, let's to an emergency hack.
 		if sortKeys:
+			direction = "DESC"
+			if sortKeys==["_r"]:
+				direction = "ASC"
 			# Ok, we need to do some emergency securing here.  There should be
 			# pre-validation that we're actually seeing a column key, but
 			# just in case let's make sure we're seeing an SQL identifier.
 			# (We can't rely on dbapi's escaping since we're not talking values here)
-			frag.append("ORDER BY %s"%(",".join(
-				re.sub("[^A-Za-z0-9_]+", "", key) for key in sortKeys)))
+			frag.append("ORDER BY %s %s"%(",".join(
+					re.sub('[^A-Za-z0-9"_]+', "", key) for key in sortKeys),
+				direction))
 		if dbLimit:
 			frag.append("LIMIT %(_matchLimit)s")
 			pars["_matchLimit"] = int(dbLimit)+1
