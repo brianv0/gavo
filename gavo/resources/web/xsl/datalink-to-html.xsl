@@ -70,7 +70,9 @@
       </table>
     </xsl:template>
 
-    <xsl:template match="vot:TR">
+    <xsl:template name="normal_row">
+        <!-- a datalink table row not requring extra processing
+        (e.g., not #access) -->
         <tr>
         <xsl:attribute name="class">
             <xsl:value-of select="substring(vot:TD[$semantics_index], 2)"/>
@@ -95,6 +97,17 @@
         </td>
 
         </tr>
+    </xsl:template>
+
+    <xsl:template match="vot:TR">
+        <xsl:choose>
+            <xsl:when test="vot:TD[$semantics_index]='#access'">
+            <!-- services not formatted so far -->
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:call-template name="normal_row"/>
+            </xsl:otherwise>
+        </xsl:choose>
     </xsl:template>
 
     <xsl:template match="vot:TD" mode="id">
