@@ -98,9 +98,11 @@
     </xsl:template>
 
     <xsl:template match="vot:TD" mode="id">
+        <span class="ivoid-container">
             <span class="ivoid">
                 <xsl:value-of select="."/>
             </span>
+        </span>
     </xsl:template>
 
     <xsl:template match="vot:TD" mode="semantics">
@@ -141,11 +143,11 @@
         <xsl:variable name="preview_url" 
             select="//vot:TR[vot:TD[$semantics_index]='#preview']/vot:TD[$access_url_index]"/>
         <xsl:if test="$preview_url">
-            <img alt="[PREVIEW]">
+            <p><img alt="[PREVIEW]">
                 <xsl:attribute name="src">
                     <xsl:value-of select="$preview_url"/>
                 </xsl:attribute>
-            </img>
+            </img></p>
         </xsl:if>
     </xsl:template>
 
@@ -166,15 +168,19 @@
     	      border-right: 2pt solid grey;
     	  }
 
-    	  span.ivoid {
+    	  span.ivoid-container {
     	      display:inline-block;
-    	      max-width: 10em;
-    	      overflow:hidden;
+    	      width: 20em;
+    	      overflow: hidden;
+    	  }
+
+    	  span.ivoid {
+    	      padding: 2pt;
     	      white-space: nowrap;
     	      background-color: white;
     	  }
 
-    	  span.ivoid:hover {
+    	  span.ivoid-container:hover {
     	      overflow: visible;
     	  }
 
@@ -194,9 +200,23 @@
             color: #777777;
         }
 
+        tr.calibration{
+            background: #DDDDDD;
+        }
+
         tr.this{
             font-weight: bold;
+            background-color: #FFAAAA;
         }
+
+        tr.preview, tr.preview-image {
+            background: #FFDDDD;
+        }
+
+        tr.access {
+            color: #999999;
+        }
+
 
     	</style>
     	</head>
