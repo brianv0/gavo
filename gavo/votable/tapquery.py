@@ -501,7 +501,8 @@ def request(host, path, data="", customHeaders={}, method="GET",
 		parts = urlparse.urlparse(resp.getheader("location"))
 		assert parts.scheme=="http"
 		return request(parts.netloc, parts.path+'?'+parts.query, 
-			data, customHeaders, method, expectedStatus)
+			data, customHeaders, method, expectedStatus, 
+			followRedirects=followRedirects-1)
 
 	if expectedStatus is not None:
 		if resp.status!=expectedStatus:
@@ -802,7 +803,7 @@ class ADQLSyncJob(_WithEndpoint):
 	
 	def postToService(self, params):
 		return request(self.destHost, self.destPath+"/sync", params,
-			method="POST", followRedirects=True, expectedStatus=200,
+			method="POST", followRedirects=3, expectedStatus=200,
 			setResponse=self._setErrorFromServer, timeout=self.timeout)
 
 	def delete(self, usePOST=None):
