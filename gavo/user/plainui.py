@@ -28,7 +28,7 @@ class StingyPlainUI(ObserverBase):
 
 	@listensTo("SourceError")
 	def announceSourceError(self, srcString):
-		self.showMsg("Failed %s"%srcString)
+		self.showMsg("Failed source %s"%srcString)
 
 	@listensTo("Error")
 	def printErrMsg(self, errMsg):
