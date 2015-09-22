@@ -80,9 +80,10 @@ class SCSCore(svcs.DBCore):
 		elif pars.get("hscs_pos") is not None:
 			try:
 				return base.parseCooPair(pars["hscs_pos"])
-			except ValueError, ex:
-				raise base.ui.logOldExc(base.ValidationError(str(ex),
-					"hscs_pos"))
+			except ValueError:
+				# This could be simbad-resolvable or something.  We should
+				# probably use hscs_pos's condDesc, but for now just give up
+				return None
 		else:
 			return None
 
@@ -90,10 +91,14 @@ class SCSCore(svcs.DBCore):
 		"""returns an outputField selecting the distance of the match
 		object to the cone center.
 		"""
-		return self.distCol.change(
-			select="degrees(spoint(radians(%s), radians(%s)) <-> %s)"%(
-			self.raColumn.name, self.decColumn.name,
-			"spoint '(%fd,%fd)'"%destPos))
+		if destPos is None:
+			select = "NULL"
+		else:
+			select = "degrees(spoint(radians(%s), radians(%s)) <-> %s)"%(
+				self.raColumn.name, self.decColumn.name,
+				"spoint '(%fd,%fd)'"%destPos)
+
+		return self.distCol.change(select=select)
 
 	def _fixupQueryColumns(self, destPos, baseColumns):
 		"""returns the output columns from baseColumns for a query
@@ -104,7 +109,7 @@ class SCSCore(svcs.DBCore):
 		"""
 		res = []
 		for col in baseColumns:
-			if col.name=="_r" and destPos:
+			if col.name=="_r":
 				res.append(self._getDistColumn(destPos))
 			else:
 				res.append(col)
@@ -112,6 +117,7 @@ class SCSCore(svcs.DBCore):
 
 	def _makeResultTableDef(self, service, inputTable, queryMeta):
 		destPos = self._guessDestPos(inputTable)
+
 		outCols = self._fixupQueryColumns(destPos,
 			self.getQueryCols(service, queryMeta))
 

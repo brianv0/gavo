@@ -682,7 +682,7 @@ class ConeSearchTest(testhelpers.VerboseTest):
 	def testNoRadiusWithoutPos(self):
 		svc = base.resolveCrossId("data/cores#scs")
 		res = svc.run("form", {"id": "0"}).original.getPrimaryTable()
-		self.assertTrue(res.rows[0]["_r"]!=res.rows[0]["_r"]) # isNaN
+		self.assertTrue(res.rows[0]["_r"] is None)
 
 
 class PythonCoreTest(testhelpers.VerboseTest):

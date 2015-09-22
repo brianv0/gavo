@@ -102,6 +102,8 @@ else:
 				base.caches.getRD("data/ssatest").getById("test_import"))
 			rsc.makeData(
 				base.caches.getRD("//obscore").getById("create"))
+			rsc.makeData(
+				base.resolveCrossId("//uws#enable_useruws"))
 		except:
 			traceback.print_exc()
 			sys.stderr.write("Creation of test environment failed.  Remove %s\n"

@@ -591,7 +591,7 @@ def computeColumnConversions(newColumns, oldColumns):
 		if not newCol.name in oldColumns:
 			raise utils.DataError(
 				"Request for column %s from %s cannot be satisfied in %s"%(
-					newCol.name, oldColumns, newColumns))
+					newCol.name, newColumns, oldColumns))
 		oldCol = oldColumns.getColumnByName(newCol.name)
 		try:
 			if newCol.unit!=oldCol.unit:
