@@ -200,7 +200,7 @@ class Publication(base.Structure, base.ComputedMetaMixin):
 			" capability corresponding to this publication.  This is"
 			" mainly when there is a vs:WebBrowser service accompanying a VO"
 			" protocol service, and this other service should be published"
-			" in the same resource record.  See also the operator's guite.",
+			" in the same resource record.  See also the operator's guide.",
 			copyable="True")
 	_auxiliary = base.BooleanAttribute("auxiliary", default=False,
 		description="Auxiliary publications are for capabilities"

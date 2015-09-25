@@ -112,12 +112,16 @@ def iterSvcRecs(service, keepTimestamp=False):
 		except AttributeError:  # service is not a ServiceBasedPage
 			browseable = False
 
+		pubService = service
+		if pub.service:
+			pubService = pub.service
+
 		intfRec = {
 			"sourceRD": rec["sourceRD"],
 			"resId": rec["resId"],
 			"renderer": pub.render,
-			"accessURL":  service.getURL(pub.render, absolute=False),
-			"referenceURL": base.getMetaText(service, "referenceURL"),
+			"accessURL":  pubService.getURL(pub.render, absolute=False),
+			"referenceURL": base.getMetaText(pubService, "referenceURL"),
 			"browseable": browseable,
 			"deleted": False}
 		yield ("interfaces", intfRec)

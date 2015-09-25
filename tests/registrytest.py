@@ -1072,13 +1072,17 @@ class _OtherServiceRRTree(testhelpers.TestResource):
 		rd = base.parseFromString(rscdesc.RD, """
 			<resource schema="test">
 				<meta name="datetimeUpdated">2000-00-00T00:00:00</meta>
+				<meta name="creationDate">2000-00-00T00:00:00</meta>
 				<meta name="referenceURL">http://faked</meta>
+				<meta name="description">All Faked</meta>
+				<meta name="subject">Fakes</meta>
 				<service id="web">
 					<meta name="title">Web service</meta>
 					<publish render="form" sets="local"/>
 					<nullCore/></service>
 				<service id="scs" allowed="scs.xml">
 					<meta name="title">SCS service</meta>
+					<meta name="shortName">test prot</meta>
 					<meta name="testQuery.ra">1</meta>
 					<meta name="testQuery.dec">1</meta>
 					<meta name="testQuery.sr">1</meta>
@@ -1087,23 +1091,46 @@ class _OtherServiceRRTree(testhelpers.TestResource):
 					<nullCore/></service></resource>
 				""")
 		rd.sourceId = "k"
-		return testhelpers.getXMLTree(
-			builders.getVOResourceElement(rd.services[1]).render(), debug=False)
+
+		from gavo.registry import publication
+		recs = [recs for key, recs in list(publication.iterSvcRecs(rd.services[1]))
+			if key=="interfaces"]
+
+		return (testhelpers.getXMLTree(
+				builders.getVOResourceElement(rd.services[1]).render(), debug=False),
+			recs)
 
 
 class OtherServiceTest(testhelpers.VerboseTest):
 # tests for having a service attribute in a publish record
-	resources = [("tree", _OtherServiceRRTree())]
+	resources = [("treeAndRecs", _OtherServiceRRTree())]
 
 	def testSCSCapability(self):
-		self.assertEqual(self.tree.xpath("//capability[1]/interface/accessURL"
-				)[0].text,
+		self.assertEqual(self.treeAndRecs[0].xpath(
+				"//capability[1]/interface/accessURL")[0].text,
 			"http://localhost:8080/k/scs/scs.xml?")
 
 	def testWebCapability(self):
-		self.assertEqual(self.tree.xpath("//capability[2]/interface/accessURL"
-				)[0].text,
+		self.assertEqual(self.treeAndRecs[0].xpath(
+				"//capability[2]/interface/accessURL")[0].text,
 			"http://localhost:8080/k/web/form")
+	
+	def testDBFormLink(self):
+		webIntf = [r for r in self.treeAndRecs[1] if r["browseable"]]
+		assert len(webIntf)==1
+		self.assertEqual(webIntf[0]["referenceURL"],
+			"http://localhost:8080/k/web/info")
+		self.assertEqual(webIntf[0]["accessURL"],
+			"/k/web/form")
+
+	def testDBCSLink(self):
+		csIntf = [r for r in self.treeAndRecs[1] if not r["browseable"]]
+		assert len(csIntf)==1
+		self.assertEqual(csIntf[0]["referenceURL"],
+			"http://localhost:8080/k/scs/info")
+		self.assertEqual(csIntf[0]["accessURL"],
+			"/k/scs/scs.xml?")
+
 
 
 if __name__=="__main__":
