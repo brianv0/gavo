@@ -503,13 +503,16 @@ class Service(base.Structure, base.ComputedMetaMixin,
 	def getPublicationsForSet(self, names):
 		"""returns publications for set names in names.
 
-		names must be a set.  If ivo_managed is in names and there is any
-		publication at all, artificial VOSI publications are added.
+		names must be a set.  If ivo_managed is in names, there is any
+		publication at all, and the service has a useful core, artificial 
+		VOSI publications are added.
 		"""
 		res = [pub for pub in self.publications if pub.sets & names]
 		vosiSet = set(["ivo_managed"])
 
-		if res and "ivo_managed" in names:
+		if (res 
+				and "ivo_managed" in names 
+				and not isinstance(self.core, core.getCore("nullCore"))):
 			res.extend((
 				base.makeStruct(Publication, render="availability", sets=vosiSet,
 					parent_=self),

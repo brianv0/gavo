@@ -837,6 +837,42 @@ class DataGetRecordTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 		self.assertEqual(len(capChildren), 1)
 
 
+class _ExternalRecordRes(testhelpers.TestResource):
+	def make(self, ignored):
+		rd = base.parseFromString(rscdesc.RD, """
+		<resource schema="gvo">
+	<meta name="title">NMDB: Real-time Measurements</meta>
+	<meta name="description">NMDB serves the data</meta>
+	<meta name="creationDate">2015-09-17T11:45:00</meta>
+	<meta name="subject">Cosmic ray</meta>
+	<meta name="creator.name">Steigies, C.</meta>
+	<service id="run" allowed="external">
+		<nullCore/>
+		<meta name="shortName">nmdb web</meta>
+		<publish render="external" sets="ivo_managed">
+		<meta
+			name="accessURL">http://nest.nmdb.eu</meta>
+		</publish>
+	</service>
+</resource>
+		""")
+		rd.sourceId = "funky/town"
+		return getGetRecordResponse(rd.services[0])
+
+
+class ExternalRecordTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
+	resources = [("srcAndTree", _ExternalRecordRes())]
+
+	def testWebInterface(self):
+		intf = self.srcAndTree[1].xpath("//capability/interface")[0]
+		self.assertEqual(intf.xpath("accessURL")[0].text, "http://nest.nmdb.eu")
+	
+	def testNoVOSI(self):
+		self.assertFalse("ivoa.net/std/VOSI" in self.srcAndTree[0])
+
+	def testValid(self):
+		self.assertValidates(self.srcAndTree[0])
+
 class _ProductServiceRecord(testhelpers.TestResource):
 	def make(self, ignored):
 		return getGetRecordResponse(api.getRD("//products").getById("p"))
