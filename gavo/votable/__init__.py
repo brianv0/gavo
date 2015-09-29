@@ -30,3 +30,4 @@ from gavo.votable.tablewriter import (
 	DelayedTable, OverflowElement, asString, write)
 
 from gavo.votable.tapquery import ADQLTAPJob, ADQLSyncJob
+from gavo.votable.tapquery import Error as TAPQueryError
