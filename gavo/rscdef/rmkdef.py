@@ -290,7 +290,8 @@ class RowmakerMacroMixin(base.StandardMacroMixin):
 		
 		Example: if you're currently parsing /tmp/foo.bar.gz, the stem is foo.
 		"""
-		return 'os.path.basename(vars["parser_"].sourceToken).split(".")[0]'
+		return ('os.path.splitext(os.path.basename(vars["parser_"].'
+			'sourceToken))[0]')
 
 	def macro_lastSourceElements(self, numElements):
 		"""returns an expression calling rmkfuncs.lastSourceElements on
