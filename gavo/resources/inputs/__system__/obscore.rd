@@ -126,7 +126,9 @@
 		</column>
 
 		<column name="target_class" type="text" 
-			description="Class of the target object (star, QSO, ...)"
+			description="Class of the target object (star, QSO, ...; use Simbad object
+			classification http://simbad.u-strasbg.fr/simbad/sim-display?data=otypes
+			if at all possible)"
 			utype="obscore:target.class" ucd="src.class"
 			verbLevel="20">
 			<property name="std">1</property>

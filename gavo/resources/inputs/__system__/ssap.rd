@@ -61,7 +61,9 @@
 		<column name="ssa_targclass" type="text"
 			utype="ssa:Target.Class" ucd="src.class"
 			tablehead="Ob. cls" verbLevel="15"
-			description="Object class (star, QSO,...)"/>
+			description="Object class (star, QSO,...; use Simbad object
+			classification http://simbad.u-strasbg.fr/simbad/sim-display?data=otypes
+			if at all possible)"/>
 		<column name="ssa_redshift" 
 			utype="ssa:Target.Redshift" ucd="src.redshift"
 			tablehead="z" verbLevel="15"

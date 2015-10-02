@@ -240,15 +240,18 @@ class ScriptingMixin(object):
 		copyable=True)
 
 	def getRunner(self):
-		runnersByPhase = {}
-		for rawScript in self.scripts:
-			runner = RUNNER_CLASSES[rawScript.lang](rawScript)
-			runnersByPhase.setdefault(rawScript.type, []).append(runner)
-			
-		def runScripts(table, phase, **kwargs):
-			for runner in runnersByPhase.get(phase, []):
-				if runner.notify:
-					base.ui.notifyScriptRunning(runner)
-				runner.run(table, **kwargs)
-		
-		return runScripts
+		if not hasattr(self, "_runScriptsCache"):
+			runnersByPhase = {}
+			for rawScript in self.scripts:
+				runner = RUNNER_CLASSES[rawScript.lang](rawScript)
+				runnersByPhase.setdefault(rawScript.type, []).append(runner)
+				
+			def runScripts(table, phase, **kwargs):
+				for runner in runnersByPhase.get(phase, []):
+					if runner.notify:
+						base.ui.notifyScriptRunning(runner)
+					runner.run(table, **kwargs)
+
+			self._runScriptsCache = runScripts
+
+		return self._runScriptsCache
