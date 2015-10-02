@@ -528,6 +528,7 @@ class RowmakerMacroTest(testhelpers.VerboseTest):
 		self.assertEqual(
 			mapper({}, None)['x'], 'test.foo')
 
+
 class IgnoreOnTest(testhelpers.VerboseTest):
 	"""tests for working ignoreOn clauses.
 	"""

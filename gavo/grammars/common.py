@@ -531,7 +531,7 @@ class GrammarMacroMixin(base.StandardMacroMixin):
 		
 		Example: if you're currently parsing /tmp/foo.bar, the stem is foo.
 		"""
-		return 'os.path.splitext(os.path.basename(rowIter.sourceToken))[0]'
+		return 'getFileStem(rowIter.sourceToken)'
 
 	def macro_lastSourceElements(self, numElements):
 		"""returns an expression calling rmkfuncs.lastSourceElements on

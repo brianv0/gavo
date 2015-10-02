@@ -61,6 +61,29 @@ def makeEllipsis(aStr, maxLen=60):
 	return aStr
 
 
+@codetricks.document
+def getFileStem(fPath):
+	"""returns the file stem of a file path.
+
+	The base name is what remains if you take the base name and split off
+	extensions.  The extension here starts with the last dot in the file name,
+	except up to one of some common compression extensions (.gz, .xz, .bz2, 
+	.Z, .z) is stripped off the end if present before determining the extension.
+
+	>>> getFileStem("/foo/bar/baz.x.y")
+	'baz.x'
+	>>> getFileStem("/foo/bar/baz.x.gz")
+	'baz'
+	>>> getFileStem("/foo/bar/baz")
+	'baz'
+	"""
+	for ext in [".gz", ".xz", ".bz2", ".Z", ".z"]:
+		if fPath.endswith(ext):
+			fPath = fPath[:-len(ext)]
+			break
+	return os.path.splitext(os.path.basename(fPath))[0]
+	
+
 def formatSimpleTable(data, stringify=True):
 	"""returns a string containing a text representation of tabular data.
 
