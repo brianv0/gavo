@@ -531,7 +531,7 @@ class ColumnBase(base.Structure, base.MetaMixin):
 		"""
 		if self.tablehead is not None:
 			return self.tablehead
-		return self.name.capitalize()
+		return str(self.name).capitalize()
 
 	def _getVOTableType(self):
 		"""returns the VOTable type, arraysize and xtype for this

@@ -12,12 +12,13 @@ etc)
 from twisted.python import components
 
 from nevow import tags as T
-# makeWidgetFactory below relies on this
+from nevow import flat
 
 from zope.interface import implements
 
 from gavo import base
 from gavo import rscdef
+from gavo import utils
 from gavo.imp import formal
 from gavo.imp.formal import iformal
 from gavo.imp.formal import types as formaltypes
@@ -333,4 +334,7 @@ class ToFormalAdapter(object):
 
 components.registerAdapter(ToFormalAdapter, column.Option, iformal.ILabel)
 components.registerAdapter(ToFormalAdapter, column.Option, iformal.IKey)
+
+
+flat.registerFlattener(lambda original, ctx: str(original), utils.QuotedName)
 

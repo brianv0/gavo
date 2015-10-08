@@ -295,7 +295,7 @@ class OutputFormat(object):
 				self.availableFields, key=lambda p:p[0].name):
 			fields.append(T.tr[
 				T.td[
-					T.input(type="checkbox", name="_ADDITEM", value=column.name,
+					T.input(type="checkbox", name="_ADDITEM", value=column.key,
 						style="width:auto",
 						checked=checkLiterals[checked])],
 				T.td(style="vertical-align:middle")[
