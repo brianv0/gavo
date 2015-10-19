@@ -232,15 +232,7 @@ class AuthenticatePage(ErrorPage):
 			'Basic realm="%s"'%str(self.failure.value.realm))
 		return ErrorPage.renderHTTP(self, ctx)
 	
-	docFactory = common.doctypedStan(T.html[
-		T.head(render=T.directive("commonhead"))[
-			T.title(render=T.directive("titlemessage"))],
-		T.body[
-			T.p["The resource you are trying to access is protected."
-				"  Please enter your credentials (by reloading this page), contact"
-				" the data center staff or go back to ",
-				T.a(href="/", render=T.directive("rootlink"))["the root page"],
-				"."]]])
+	docFactory = svcs.loadSystemTemplate("unauth.html")
 
 
 class BadMethodPage(ErrorPage):
