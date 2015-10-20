@@ -442,6 +442,8 @@ function insertPreview(node, width) {
 		joiner = "&";
 	}
 
+	// IE9 workaround: defuse onmouseover before removing it.
+	node.setAttribute("onmouseover", "");
 	node.removeAttribute("onmouseover");
 	var jqNode = $(node);
 	jqNode.addClass("busy");
