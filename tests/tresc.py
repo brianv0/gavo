@@ -228,6 +228,14 @@ class RandomDataTable(testhelpers.TestResource):
 randomDataTable = RandomDataTable()
 
 
+class FITSTable(RDDataResource):
+	"""at least one FITS file in the products table.
+	"""
+	dataId = "import_fitsprod"
+
+fitsTable = FITSTable()
+
+
 class FileResource(testhelpers.TestResource):
 	"""An "abstract" resource that represents a temporary file within
 	the root directory with a given name and content.

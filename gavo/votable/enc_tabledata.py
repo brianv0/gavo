@@ -114,7 +114,9 @@ def _makeCharEncoder(field):
 			src.extend(common.getXtypeCode(field))
 			src.extend([
 				'if isinstance(val, unicode):',
-				'  val = val.encode("ascii", "replace")'])
+				'  val = val.encode("ascii", "replace")',
+				'elif isinstance(val, list):', # that's really a bug upstream
+				'  val = "".join(val)'])
 
 		src.extend([
 			"tokens.append(stanxml.escapePCDATA(val))"])

@@ -738,7 +738,7 @@ def adaptInputKey(inputKey):
 	try:
 		return inputKey.change(
 			type=getPQLTypeFor(inputKey.type),
-			values=None)
+			values=None, parent_=None)
 	except base.ConversionError:  # No vexpr type, leave things
 		pass
 	return inputKey

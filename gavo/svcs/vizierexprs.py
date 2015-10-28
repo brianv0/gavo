@@ -595,7 +595,7 @@ def adaptInputKey(inputKey):
 	if inputKey.type=='spoint':
 		raise base.Replace(makeConeSearchFor(inputKey))
 	if inputKey.xtype=="mjd":
-		return inputKey.change(type="vexpr-mjd", unit="")
+		return inputKey.change(type="vexpr-mjd", unit="", parent_=None)
 	if inputKey.isEnumerated():
 		return inputKey
 
@@ -604,7 +604,8 @@ def adaptInputKey(inputKey):
 	try:
 		changes = {
 			"type": getVexprFor(inputKey.type),
-			"values": None}
+			"values": None,
+			"parent_": None}
 
 		if inputKey.displayHint.get("displayUnit") and \
 				inputKey.displayHint["displayUnit"]!=inputKey.unit:

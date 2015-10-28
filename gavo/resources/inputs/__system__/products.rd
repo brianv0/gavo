@@ -115,6 +115,13 @@ machinery -->
 			and preview_mime if DaCHS can't do previews of your stuff 
 			automatically.  datalink is there if you have  a datalink
 			thing.  What's left is for special situations.
+
+			This will create the keys prodblAccref, prodtblOwner, prodtblEmbargo,
+			prodtblPath, prodtblFsize, prodtblTable, prodtblMime, prodtblPreview,
+			prodtbleMime, and prodtblDatalink keys in rawdict -- you can
+			refer to them in the usual @foo way, which is sometimes useful
+			even outside products processing proper (in particular for
+			prodtblAccref).
 		</doc>
 		<setup>
 			<par key="table" description="the table this product is managed in.

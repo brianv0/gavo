@@ -436,7 +436,7 @@ class HTMLResultRenderMixin(object):
 
 
 class CustomTemplateMixin(object):
-	"""is a mixin providing for customized templates.
+	"""a mixin providing for customized templates.
 
 	This works by making docFactory a property first checking if
 	the instance has a customTemplate attribute evaluating to true.

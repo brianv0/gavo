@@ -35,6 +35,8 @@ from gavo.web import weberrors
 from gavo.svcs import (Error, UnknownURI, WebRedirect)
 
 
+MEM_DEBUG = False
+
 class VanityLineError(Error):
 	"""parse error in vanity file.
 	"""
@@ -283,6 +285,15 @@ class ArchiveService(rend.Page):
 			return rendC(ctx, service), segments[srvInd+2:]
 
 	def locateChild(self, ctx, segments):
+		if MEM_DEBUG:
+			from gavo.utils import codetricks
+			import gc
+			gc.collect()
+			if hasattr(base, "getNewStructs"):
+				ns = base.getNewStructs()
+				print ">>>>>> new structs:", len(ns)
+			base.getNewStructs = codetricks.getMemDiffer()
+
 		_hackHostHeader(ctx)
 		if os.path.exists(self.maintFile):
 			return ifpages.ServiceUnavailable(), ()

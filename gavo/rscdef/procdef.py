@@ -383,6 +383,11 @@ class ProcApp(ProcDef):
 				rd=rd,
 				**self.additionalNamesForProcs)
 
+	def breakCircles(self):
+		# overridden to undo additional memoization
+		ProcDef.breakCircles(self)
+		utils.forgetMemoized(self)
+
 	def compile(self, parent=None):
 		"""returns a callable for this procedure application.
 

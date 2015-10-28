@@ -1417,7 +1417,11 @@ class ParserElement(object):
             self.myException = ret = self.getException();
             return ret;
         else:
-            raise AttributeError("no such attribute " + aname)
+            if aname=='name':
+        				# otherwise gc is in trouble
+        		    return ""
+            else:
+                raise AttributeError("no such attribute " + aname)
 
     def __eq__(self,other):
         if isinstance(other, ParserElement):

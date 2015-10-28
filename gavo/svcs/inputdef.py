@@ -61,7 +61,7 @@ class InputKey(column.ParamBase):
 	  presumably right for almost everyone, having to delete stuff
 	  you don't want over and over is really annoying).
 	* adaptToRenderer -- any non-empty value here causes the param
-	  to be adapted for the renderer (e.g., float becomes vizierexpr-float).
+	  to be adapted for the renderer (e.g., float could become vizierexpr-float).
 		You'll usually not want this, because the expressions are 
 		generally evaluated by the database, and the condDescs do the
 		adaptation themselves.  This is mainly for rare situations like
@@ -225,7 +225,7 @@ class InputTable(rscdef.TableDef):
 				getRendererAdaptor(renderer)))
 
 		if newParams!=self.params:
-			return self.change(params=newParams)
+			return self.change(params=newParams, parent_=self)
 		else:
 			return self
 

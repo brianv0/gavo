@@ -9,6 +9,7 @@ Some tests around the SSAP infrastructure.
 
 
 import datetime
+import gc
 import re
 import tempfile
 
@@ -24,7 +25,7 @@ from gavo.formats import votablewrite
 from gavo.protocols import products
 from gavo.protocols import sdm
 from gavo.protocols import ssap
-from gavo.utils import DEG, ElementTree, pyfits
+from gavo.utils import DEG, ElementTree, pyfits, codetricks
 
 import tresc
 
@@ -562,6 +563,18 @@ class SDMDatalinkTest(_WithSSATableTest):
 			self.runService,
 			("dl", {"ID": 'ivo://test.inv/test1', 
 				"warp": "infinity"}))
+
+	def testCoreForgetting(self):
+		gns = codetricks.getMemDiffer()
+		res = self.runService("dl",
+			{"ID": ['ivo://test.inv/test1'], 
+				"FORMAT": ["text/plain"], "LAMBDA_MIN": ["1.762e-7"],
+				"LAMBDA_MAX": ["1.764e-7"]})
+		del res
+
+		gc.collect()
+		ns = gns()
+		self.assertEqual(ns, [], "Spectrum cutout left garbage.")
 
 
 class CoreNullTest(_WithSSATableTest):

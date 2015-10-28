@@ -10,6 +10,7 @@ More on this in "Datalink Cores" in the reference documentation.
 #c COPYING file in the source distribution.
 
 
+import itertools
 import os
 
 from gavo import base
@@ -765,7 +766,6 @@ class DatalinkCore(DatalinkCoreBase):
 					utils.safe_str(ex)))
 
 		return self.adaptForDescriptors(renderer, descriptors)
-
 	
 	def _iterAccessResources(self, ctx, service):
 		"""iterates over the VOTable RESOURCE elements necessary for
@@ -777,44 +777,67 @@ class DatalinkCore(DatalinkCoreBase):
 	def runForMeta(self, service, inputTable, queryMeta):
 		"""returns a rendered VOTable containing the datalinks.
 		"""
-		ctx = votablewrite.VOTableContext(tablecoding="td")
-		vot = V.VOTABLE[
-				self.getDatalinksResource(ctx, service), 
-				self._iterAccessResources(ctx, service)]
+		try:
+			ctx = votablewrite.VOTableContext(tablecoding="td")
+			vot = V.VOTABLE[
+					self.getDatalinksResource(ctx, service), 
+					self._iterAccessResources(ctx, service)]
 
-		if "text/html" in queryMeta["accept"]:
-			# we believe it's a web browser; let it do stylesheet magic
-			destMime = "text/xml"
-		else:
-			destMime = self.datalinkType
+			if "text/html" in queryMeta["accept"]:
+				# we believe it's a web browser; let it do stylesheet magic
+				destMime = "text/xml"
+			else:
+				destMime = self.datalinkType
 
-		destMime = str(inputTable.getParam("RESPONSEFORMAT") or destMime)
-		if destMime=="votable":
-			destMime = self.datalinkType
-			
-		return (destMime, "<?xml-stylesheet href='/static/xsl/"
-			"datalink-to-html.xsl' type='text/xsl'?>"+vot.render())
+			destMime = str(inputTable.getParam("RESPONSEFORMAT") or destMime)
+			if destMime=="votable":
+				destMime = self.datalinkType
+				
+			res = (destMime, "<?xml-stylesheet href='/static/xsl/"
+				"datalink-to-html.xsl' type='text/xsl'?>"+vot.render())
+			return res
+		finally:
+			self.finalize()
 
 	def runForData(self, service, inputTable, queryMeta):
 		"""returns a data set processed according to inputTable's parameters.
 		"""
-		args = inputTable.getParamDict()
-		if not self.dataFunctions:
-			raise base.DataError("This datalink service cannot process data")
+		try:
+			args = inputTable.getParamDict()
+			if not self.dataFunctions:
+				raise base.DataError("This datalink service cannot process data")
 
-		descriptor = self.descriptors[-1]
-		self.dataFunctions[0].compile(self)(descriptor, args)
+			descriptor = self.descriptors[-1]
+			self.dataFunctions[0].compile(self)(descriptor, args)
 
-		if descriptor.data is None:
-			raise base.ReportableError("Internal Error: a first data function did"
-				" not create data.")
+			if descriptor.data is None:
+				raise base.ReportableError("Internal Error: a first data function did"
+					" not create data.")
 
-		for func in self.dataFunctions[1:]:
-			try:
-				func.compile(self)(descriptor, args)
-			except FormatNow:
-				break
-			except DeliverNow:
-				return descriptor.data
+			for func in self.dataFunctions[1:]:
+				try:
+					func.compile(self)(descriptor, args)
+				except FormatNow:
+					break
+				except DeliverNow:
+					return descriptor.data
 
-		return self.dataFormatter.compile(self)(descriptor, args)
+			res = self.dataFormatter.compile(self)(descriptor, args)
+			return res
+		finally:
+			self.finalize()
+	
+	def finalize(self):
+		"""breaks circular references to make the garbage collector's job
+		easier.
+
+		The core will no longer function once this has been called.
+		"""
+		utils.forgetMemoized(self)
+		for proc in itertools.chain(self.metaMakers, self.dataFunctions):
+			utils.forgetMemoized(proc)
+		utils.forgetMemoized(self.descriptorGenerator)
+		if self.dataFormatter:
+			utils.forgetMemoized(self.dataFormatter)
+		self.breakCircles()
+		self.run = None

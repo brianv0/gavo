@@ -227,8 +227,20 @@ class StructureBase(object):
 		parent = kwargs.pop("parent_", self.parent)
 		attrs = self.getCopyableAttributes(kwargs)
 		attrs.update(kwargs)
-		return self.__class__(parent, **attrs).finishElement(
+
+		newInstance = self.__class__(parent, **attrs).finishElement(
 			parsecontext.ParseContext())
+
+		# reparent things without a parent to newInstance.  We don't want to do
+		# this unconditionally since we unwisely share some structs.
+		for _, value in kwargs.iteritems():
+			if not isinstance(value, list):
+				value = [value]
+			for item in value:
+				if hasattr(item, "parent") and item.parent is None:
+					item.parent = newInstance
+
+		return newInstance
 
 	def copy(self, parent):
 		"""returns a deep copy of self, reparented to parent.
@@ -258,6 +270,23 @@ class StructureBase(object):
 			for att in oldStructure.attrSeq])
 		return cls(newParent, **consArgs)
 
+	def breakCircles(self):
+		"""removes the parent attributes from all child structures recusively.
+		
+		The struct will probably be broken after this, but this is sometimes
+		necessary to help the python garbage collector.
+
+		In case you're asking: parent cannot be a weak reference with the current
+		parse architecture, as it usually is the only reference to the embedding
+		object.  Yes, we should probably change that.
+		"""
+		for child in self.iterChildren():
+			# we don't want to touch structs that aren't our children
+			if hasattr(child, "parent") and child.parent is self:
+				if hasattr(child, "breakCircles"):
+					child.breakCircles()
+				delattr(child, "parent")
+		
 
 class ParseableStructure(StructureBase, common.Parser):
 	"""is a base class for Structures parseable from EventProcessors (and

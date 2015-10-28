@@ -769,8 +769,9 @@ class ParamBase(ColumnBase):
 			return ""
 		else:
 			type, arraysize, xtype = self._getVOTableType()
-			return paramval.getVOTSerializer(type, arraysize, 
+			val = paramval.getVOTSerializer(type, arraysize, 
 				self.xtype or xtype)(value)
+			return val
 
 
 class Param(ParamBase):

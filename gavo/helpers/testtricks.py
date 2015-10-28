@@ -24,6 +24,7 @@ import unittest
 from lxml import etree
 
 from gavo import base
+from gavo import utils
 
 
 def getXSDErrorsXerces(data, leaveOffending=False):
@@ -246,6 +247,29 @@ class XSDTestMixin(object):
 		xercMsgs = getXSDErrors(xmlSource, leaveOffending)
 		if xercMsgs:
 			raise AssertionError(xercMsgs)
+
+
+def debugReferenceChain(ob):
+	"""a sort-of-interactive way to investigate where ob is referenced.
+	"""
+	import gc
+	while True:
+		print repr(ob)
+		refs = gc.get_referrers(ob)
+		while refs:
+			nob = refs.pop()
+			print len(refs), utils.makeEllipsis(repr(nob))
+			res = raw_input()
+
+			if res=="d":
+				import ipdb;ipdb.set_trace()
+
+			elif res=="x":
+				return
+
+			elif res:
+				ob = nob
+				break
 
 
 @contextlib.contextmanager

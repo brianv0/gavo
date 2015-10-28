@@ -136,6 +136,11 @@ class _DataFeeder(table._Feeder):
 			feeder.__enter__()
 		return self
 
+	def _breakCycles(self):
+		del self.feeders
+		del self.add
+		del self.addParameters
+
 	def _exitFailing(self, *excInfo):
 		"""calls all subordinate exit methods when there was an error in
 		the controlled block.
@@ -154,6 +159,7 @@ class _DataFeeder(table._Feeder):
 					" on error.")
 		if self.connection and self.runCommit:
 			self.connection.rollback()
+		self._breakCycles()
 	
 	def _exitSuccess(self):
 		"""calls all subordinate exit methods when the controlled block
@@ -177,6 +183,7 @@ class _DataFeeder(table._Feeder):
 		if self.connection and self.runCommit:
 			self.connection.commit()
 
+		self._breakCycles()
 		if affected:
 			self.nAffected = max(affected)
 

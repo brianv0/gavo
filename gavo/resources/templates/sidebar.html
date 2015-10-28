@@ -18,6 +18,7 @@ Use renderers from grend.GavoRenderMixin here -->
 	<div n:render="ifdata" class="sidebaritem" n:data="meta _related">
 		<h3>Related</h3>
 		<n:invisible n:render="metahtml">_related</n:invisible></div>
+
 	<div class="sidebaritem">
 		<h3>Metadata</h3>
 		<n:invisible title="Examples" 
@@ -32,6 +33,7 @@ Use renderers from grend.GavoRenderMixin here -->
 		<n:invisible n:render="explodableMeta">copyright</n:invisible>
 		<n:invisible n:render="explodableMeta">source</n:invisible>
 		<n:invisible title="Reference URL" n:render="explodableMeta">referenceURL</n:invisible></div>
+
 	<div class="sidebarnote">
 		<a href="/adql">Try ADQL</a> to query our data.</div>
 	<div class="sidebarmicro">

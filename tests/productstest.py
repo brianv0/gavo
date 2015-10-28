@@ -10,6 +10,7 @@ Tests for the products infrastructure.
 
 from cStringIO import StringIO
 import datetime
+import gc
 import os
 import struct
 import tarfile
@@ -26,6 +27,7 @@ from gavo import votable
 from gavo.helpers import testtricks
 from gavo.protocols import datalink
 from gavo.protocols import products
+from gavo.utils import codetricks
 from gavo.utils import fitstools
 from gavo.utils import pyfits
 from gavo.web import producttar
@@ -280,14 +282,6 @@ class ProductsCoreTest(_TestWithProductsTable):
 			"sdec=4.0&dec=4.0&ra=3.0&sra=2.0>")
 
 
-class _FITSTable(tresc.RDDataResource):
-	"""at least one FITS file in the products table.
-	"""
-	dataId = "import_fitsprod"
-
-_fitsTable = _FITSTable()
-
-
 class StaticPreviewTest(testhelpers.VerboseTest):
 
 	resources = [('conn', tresc.prodtestTable), ('users', tresc.testUsers)]
@@ -306,7 +300,7 @@ class StaticPreviewTest(testhelpers.VerboseTest):
 
 class AutoPreviewTest(testhelpers.VerboseTest):
 
-	resources = [('fits', _fitsTable)]
+	resources = [('fits', tresc.fitsTable)]
 
 	def testAutoPreviewMiss(self):
 		prod = products.getProductForRAccref("data/ex.fits?preview=True")
@@ -323,7 +317,7 @@ class AutoPreviewTest(testhelpers.VerboseTest):
 
 
 class MangledFITSProductsTest(testhelpers.VerboseTest):
-	resources = [("fitsTable", _fitsTable)]
+	resources = [("fitsTable", tresc.fitsTable)]
 
 	def testScaledFITS(self):
 		prod = products.getProductForRAccref("data/ex.fits?scale=3")
@@ -665,6 +659,33 @@ class DatalinkMetaMakerTest(testhelpers.VerboseTest):
 			set([p.get("value") 
 				for p in tree.xpath("//PARAM[@name='standardID']")]))
 
+	def testCoreForgetting(self):
+		from gavo.svcs import renderers
+		args = {"ID": rscdef.getStandardPubDID("data/ex.fits")}
+		svc = base.caches.getRD("data/cores").getById("dl")
+		renderer = renderers.getRenderer("dlmeta")
+		gns = codetricks.getMemDiffer()
+		core = svc.core.adaptForRenderer(renderer)
+
+		class _Sentinel(object):
+			pass
+		s = _Sentinel()
+		core.ref = s
+
+		coreId = id(core.__dict__)
+		self.assertTrue(coreId in set(id(r) for r in gc.get_referrers(s)))
+		it = svc._makeInputTableFor(renderer, args, core=core)
+		core.runForMeta(svc, it, svcs.emptyQueryMeta)
+		core.finalize()
+		core.inputTable.breakCircles()
+		del core
+		del it
+		gc.collect()
+
+		ns = gns()
+		self.assertEqual(len(ns), 0, "Uncollected garbage: %s"%ns)
+		self.assertFalse(coreId in set(id(r) for r in gc.get_referrers(s)),
+			"core still lives and references s")
 
 
 class _MetaMakerTestRows(testhelpers.TestResource):
@@ -779,7 +800,7 @@ def _dissectDLFile(datalinkFile):
 
 
 class DatalinkFITSTest(testhelpers.VerboseTest):
-	resources = [("fitsTable", _fitsTable)]
+	resources = [("fitsTable", tresc.fitsTable)]
 
 	def testNotFound(self):
 		svc = base.parseFromString(svcs.Service, """<service id="foo"
@@ -1018,7 +1039,7 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 
 
 class DatalinkSTCTest(testhelpers.VerboseTest):
-	resources = [("fitsTable", _fitsTable)]
+	resources = [("fitsTable", tresc.fitsTable)]
 
 	def testSTCDefsPresent(self):
 		svc = base.parseFromString(svcs.Service, """<service id="foo"
@@ -1133,7 +1154,7 @@ class FileIntfTest(ProductsCoreTest):
 
 
 class _GlobalFITSLinks(testhelpers.TestResource):
-	resources = [("fitsTable", _fitsTable)]
+	resources = [("fitsTable", tresc.fitsTable)]
 
 	def make(self, deps):
 		svc = api.getRD("//products").getById("dl")

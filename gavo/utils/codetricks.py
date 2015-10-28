@@ -540,6 +540,8 @@ def compileFunction(src, funcName, useGlobals=None, debug=False):
 	try:
 		exec src+"\n" in useGlobals, locals
 	except Exception, ex:
+		misctricks.sendUIEvent("Warning", "The code that failed to compile was:"
+			"\n%s"%src)
 		raise misctricks.logOldExc(excs.BadCode(src, "function", ex))
 
 	if debug:
@@ -666,6 +668,7 @@ def memoized(origFun):
 		if args not in cache:
 			cache[args] = origFun(*args)
 		return cache[args]
+	fun._cache = cache
 	return functools.update_wrapper(fun, origFun)
 
 
@@ -767,6 +770,22 @@ def memoizeOn(onObject, generatingObject, generatingFunction, *args):
 	return getattr(onObject, cacheName)
 
 
+def forgetMemoized(ob):
+	"""clears things memoizeOn-ed on ob or @utils.memoize-ed.
+
+	This is sometimes necessary to let the garbage collector free
+	ob, e.g., when closures have been memoized.
+	"""
+	for n in dir(ob):
+		child = getattr(ob, n)
+		# this is for @memoized things
+		if hasattr(child, "_cache"):
+			child._cache.clear()
+		# this is for memoizedOn-ed things
+		if n.startswith("_cache"):
+			delattr(ob, n)
+
+
 def stealVar(varName):
 	"""returns the first local variable called varName in the frame stack
 	above my caller.
@@ -800,6 +819,27 @@ def getTracebackAsString():
 	f = StringIO()
 	traceback.print_exc(file=f)
 	return f.getvalue()
+
+
+def getMemDiffer():
+	"""returns a function to call that returns a list of new DaCHS structures
+	since this was called.
+	"""
+	import gc
+	from gavo import base
+
+	gc.collect()
+	seen_ids = set(id(ob) for ob in gc.get_objects()
+		if isinstance(ob, base.Structure))
+	
+	def getNewStructs():
+		newStructs = []
+		for ob in gc.get_objects():
+			if isinstance(ob, base.Structure) and id(ob) not in seen_ids:
+				newStructs.append(ob)
+		return newStructs
+	
+	return getNewStructs
 
 
 def _test():

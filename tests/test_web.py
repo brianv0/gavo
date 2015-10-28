@@ -504,6 +504,11 @@ class SCSTest(trialhelpers.ArchiveTest):
 			'<name>SR</name>',
 			'<sr>1</sr>'])
 
+	def testSCSWeb(self):
+		return self.assertGETHasStrings("/data/cores/scs/form", {
+			"hscs_pos": "1.2,2", "hscs_sr": "90",
+			"__nevow_form__": "genForm"}, ["Dist", "1808.96"])
+
 
 class SSATest(trialhelpers.ArchiveTest):
 	def testMetadataFormat(self):
