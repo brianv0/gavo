@@ -320,5 +320,15 @@ class ColumnConvTest(testhelpers.VerboseTest):
 			8.065544005)
 
 
+class NoGarbargeTest(testhelpers.VerboseTest):
+	def testNoGarbage(self):
+		md = testhelpers.getMemDiffer(allItems=True)
+		foundFactor, foundPowers = unitconv.parseUnit("mas/yr").getSI()
+		md = testhelpers.getMemDiffer(allItems=True)
+		foundFactor, foundPowers = unitconv.parseUnit("mas/yr").getSI()
+		no = md()
+		self.assertEqual(len(no), 4)
+		
+
 if __name__=="__main__":
 	testhelpers.main(ColumnConvTest)

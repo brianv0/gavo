@@ -25,7 +25,7 @@ from gavo.formats import votablewrite
 from gavo.protocols import products
 from gavo.protocols import sdm
 from gavo.protocols import ssap
-from gavo.utils import DEG, ElementTree, pyfits, codetricks
+from gavo.utils import DEG, ElementTree, pyfits
 
 import tresc
 
@@ -565,7 +565,7 @@ class SDMDatalinkTest(_WithSSATableTest):
 				"warp": "infinity"}))
 
 	def testCoreForgetting(self):
-		gns = codetricks.getMemDiffer()
+		gns = testhelpers.getMemDiffer()
 		res = self.runService("dl",
 			{"ID": ['ivo://test.inv/test1'], 
 				"FORMAT": ["text/plain"], "LAMBDA_MIN": ["1.762e-7"],

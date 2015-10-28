@@ -249,6 +249,33 @@ class XSDTestMixin(object):
 			raise AssertionError(xercMsgs)
 
 
+def getMemDiffer(allItems=False):
+	"""returns a function to call that returns a list of new DaCHS structures
+	since this was called.
+
+	With allItems=True, this returns all items, including frames and stuff
+	from the function call itself.  That's only useful if you have an idea
+	what you're looking for.
+	"""
+	import gc
+	from gavo import base
+
+	gc.collect()
+	seen_ids = set(id(ob) for ob in gc.get_objects()
+		if allItems or isinstance(ob, base.Structure))
+	seen_ids.add(id(seen_ids))
+
+	def getNewObjects():
+		newObjects = []
+		for ob in gc.get_objects():
+			if id(ob) not in seen_ids and (
+					allItems or isinstance(ob, base.Structure)):
+				newObjects.append(ob)
+		return newObjects
+	
+	return getNewObjects
+
+
 def debugReferenceChain(ob):
 	"""a sort-of-interactive way to investigate where ob is referenced.
 	"""

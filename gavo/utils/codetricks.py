@@ -821,27 +821,6 @@ def getTracebackAsString():
 	return f.getvalue()
 
 
-def getMemDiffer():
-	"""returns a function to call that returns a list of new DaCHS structures
-	since this was called.
-	"""
-	import gc
-	from gavo import base
-
-	gc.collect()
-	seen_ids = set(id(ob) for ob in gc.get_objects()
-		if isinstance(ob, base.Structure))
-	
-	def getNewStructs():
-		newStructs = []
-		for ob in gc.get_objects():
-			if isinstance(ob, base.Structure) and id(ob) not in seen_ids:
-				newStructs.append(ob)
-		return newStructs
-	
-	return getNewStructs
-
-
 def _test():
 	import doctest, codetricks
 	doctest.testmod(codetricks)

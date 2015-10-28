@@ -594,7 +594,9 @@ try:
 		"""parses a string using a pyparsing grammar thread-safely.
 		"""
 		with _PYPARSE_LOCK:
-			return grammar.parseString(string, **kwargs)
+			res = grammar.parseString(string, **kwargs)
+			grammar.resetCache()
+			return res
 
 	def pyparseTransform(grammar, string, **kwargs):
 		"""calls grammar's transformString method thread-safely.

@@ -27,7 +27,6 @@ from gavo import votable
 from gavo.helpers import testtricks
 from gavo.protocols import datalink
 from gavo.protocols import products
-from gavo.utils import codetricks
 from gavo.utils import fitstools
 from gavo.utils import pyfits
 from gavo.web import producttar
@@ -664,7 +663,7 @@ class DatalinkMetaMakerTest(testhelpers.VerboseTest):
 		args = {"ID": rscdef.getStandardPubDID("data/ex.fits")}
 		svc = base.caches.getRD("data/cores").getById("dl")
 		renderer = renderers.getRenderer("dlmeta")
-		gns = codetricks.getMemDiffer()
+		gns = testhelpers.getMemDiffer()
 		core = svc.core.adaptForRenderer(renderer)
 
 		class _Sentinel(object):

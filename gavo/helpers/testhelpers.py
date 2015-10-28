@@ -123,7 +123,8 @@ else:
 
 from gavo.imp import testresources
 from gavo.imp.testresources import TestResource  #noflake: exported name
-from gavo.helpers.testtricks import XSDTestMixin, testFile #noflake: exp. name
+from gavo.helpers.testtricks import (  #noflake: exported names
+	XSDTestMixin, testFile, getMemDiffer) 
 
 # Here's the deal on TestResource: When setting up complicated stuff for
 # tests (like, a DB table), define a TestResource for it.  Override
