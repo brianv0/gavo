@@ -44,10 +44,6 @@ class DataStreamer(threading.Thread):
 	let your function return.
 
 	writeStream will be run in a thread to avoid blocking the reactor.
-	This thread will be halted if the consumer calls stopProducing.  Since
-	python threads cannot be halted from outside, this works by the
-	consumer's thread acquiring the writeLock and only releasing it
-	on resumeProducing.
 	"""
 
 	implements(IPushProducer)
@@ -131,7 +127,6 @@ class DataStreamer(threading.Thread):
 		if self.connectionLive:
 			self.consumer.unregisterProducer()
 			self.consumer.finish()
-		self.consumer = None
 
 	def run(self):
 		try:
@@ -194,4 +189,6 @@ def streamVOTable(request, data, **contextOpts):
 		votablewrite.writeAsVOTable(
 			data.original, outputFile,
 			ctx=votablewrite.VOTableContext(**contextOpts))
+		return ""
+
 	return streamOut(writeVOTable, request)

@@ -293,7 +293,6 @@ class ArchiveService(rend.Page):
 				ns = base.getNewStructs()
 				print ">>>>>> new structs:", len(ns)
 				if len(ns)==90:
-					from gavo.helpers import testtricks
 					import ipdb;ipdb.set_trace()
 					ob = ns[0]
 					del ns

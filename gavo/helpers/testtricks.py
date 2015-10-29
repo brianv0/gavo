@@ -287,8 +287,11 @@ def debugReferenceChain(ob):
 			nob = refs.pop()
 			print len(refs), utils.makeEllipsis(repr(nob))
 			res = raw_input()
+			
+			if res=="h":
+				print "d,x,<empty>,g"
 
-			if res=="d":
+			elif res=="d":
 				import ipdb;ipdb.set_trace()
 
 			elif res=="x":
