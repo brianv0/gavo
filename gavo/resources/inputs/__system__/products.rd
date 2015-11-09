@@ -26,6 +26,18 @@ machinery -->
 
 	<table id="products" primary="accref" system="True" onDisk="True"
 			dupePolicy="overwrite" forceUnique="True">
+		<meta name="description">
+			The products table keeps information on "products", i.e. datasets
+			delivered to the users.  
+			
+			It is normally fed through the products#define rowfilter and a mixin
+			like products#table (or other mixins using it like siap#pgs or 
+			ssap#mixc).
+
+			/getproducts inspects this table before handing out data to enforce
+			embargoes and similar restrictions, and this is also where it figures
+			out where to go for previews.
+		</meta>
 		<!-- Warning: column names and table structure are reflected at least
 		in protocols.products, so be careful if you change things here. -->
 		<FEED source="basicColumns"/>

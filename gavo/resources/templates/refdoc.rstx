@@ -3257,6 +3257,34 @@ Examples Endpoints
 TBD
 
 
+System Tables
+=============
+
+DaCHS uses a number of tables to manage services and implement
+protocols.  Operators should not normally be concerned with them, but
+sometimes having a glimpse into them helps with debugging.
+
+If you find yourself wanting to change these tables' content, please
+post to `dachs-support`_ first describing what you're trying to do.
+There should really be commands that do what you want, and it's
+relatively easy to introduce subtle problems by manipulating system
+tables without going through those.
+
+Having said that, here's a list of the system tables together with brief
+descriptions of their role and the columns contained.  Note that your
+installation might not have all of those; some only appear after a ``gavo
+imp`` of the RD they are defined in -- which you of course only should
+do if you know you want to enable the functionality provided.
+
+The documentation given here is extracted from the resource descriptors,
+which, again, you can read in source using ``gavo admin dumpDF
+//<rd-name>``.
+
+.. replaceWithResult makeSystemTablesList(docStructure)
+
+.. _dachs-support: http://lists.g-vo.org/cgi-bin/mailman/listinfo/dachs-support
+
+
 Bibliography
 ============
 

@@ -19,19 +19,52 @@
 
 	<table system="True" id="resources" forceUnique="True" onDisk="True"
 			dupePolicy="overwrite" primary="sourceRD,resId">
+		<meta name="description">
+			The table of published "resources" (i.e., services, tables,
+			data collections) within this data center.  There are separate
+			tables of the interfaces these resources have, their authors,
+			subjects, and the sets they belong to.
+			
+			Manipulate through gavo pub; to remove entries from this table, remove
+			the publication element of the service or table in question
+			and re-run gavo pub on the resource descriptor.
+		</meta>
+
 		<column name="sourceRD" type="text"
-			tablehead="Source RD" required="True"/>
+			tablehead="Source RD" required="True"
+			description="Id of the RD (essentially, the inputsDir-relative
+			path, with the .rd cut off)."/>
 		<column name="resId" type="text"
-			tablehead="RD-relative id" displayHint="type=hidden"/>
+			tablehead="RD-relative id" displayHint="type=hidden"
+			description="Id of the service, data or table within the RD.
+			Together with the RD id, this uniquely identifies the resource
+			to DaCHS."/>
 		<column name="shortName" type="text"
+			description="The content of the service's shortName metadata.
+				This is not currently used by the root pages delivered with
+				DaCHS, so this column essentially is ignored."
 			tablehead="Short"/>
-		<column name="title" type="text" required="True"/>
-		<column name="description" type="text"/>
-		<column name="owner" type="text"/>
-		<column name="dateUpdated" type="timestamp" unit="a"/>
+		<column name="title" type="text" required="True"
+				description="The content of the service's title metadata
+				(gavo pub will fall back to the resource's title if
+				the service doesn't have a description of its own)."/>
+		<column name="description" type="text"
+			description="The content of the service's description metadata
+				(gavo pub will fall back to the resource's description if
+				the service doesn't have a description of its own)."/>
+		<column name="owner" type="text" description="NULL for public
+			services, otherwise whatever is in limitTo.  The root pages delivered
+			with DaCHS put a [P] in front of services with a non-NULL owner."/>
+		<column name="dateUpdated" type="timestamp" unit="a"
+			description="Date of last update on the resource itself (i.e.,
+				run of gavo imp)."/>
 		<column name="recTimestamp" type="timestamp"
 			description="UTC of gavo publish run on the source RD"/>
-		<column name="deleted" type="boolean" required="True"/>
+		<column name="deleted" type="boolean" required="True"
+			description="True if the service is deleted.  On deletion,
+				services are not removed from the resources and sets tables
+				so the OAI-PMH service can notify incremental harvesters that
+				a resource is gone."/>
 		<column name="ivoid" type="text" description="The full ivo-id of
 			the resource.  This is usually ivo://auth/rdid/frag but may
 			be overridden (you should probably not create records for
@@ -42,47 +75,104 @@
 
 	<table system="True" id="interfaces" forceUnique="True" onDisk="True"
 			primary="accessURL" namePath="resources">
+		<meta name="description">
+			A table that has "interfaces", i.e., actual URLs under which
+			services are accessible.  This is in a separate table, as services
+			can have multiple interfaces (e.g., SCS and form).
+			
+			Manipulate through gavo pub; to remove entries from this table, remove
+			the publication element of the service or table in question
+			and re-run gavo pub on the resource descriptor.
+		</meta>
+
 		<column original="sourceRD"/>
 		<column original="resId"/>
-		<column name="accessURL" type="text"/>
-		<column name="referenceURL" type="text"/>
-		<column name="browseable" type="boolean" required="True"/>
-		<column name="renderer" type="text"/>
+		<column name="accessURL" type="text" description="The URL
+			this service with the given renderer can be accessed under."/>
+		<column name="referenceURL" type="text" description="The URL
+				this interface is explained at.  In DaCHS, as in VOResource,
+				this column should actually be in dc.resources, but we don't consider
+				that wart bad enough to risk any breakage."/>
+		<column name="browseable" type="boolean" required="True"
+			description="True if this interface can sensibly be operated
+				with a web browser (e.g., form, but not scs.xml; browseable
+				service interfaces are eligible for being put below the
+				'Use this service with your browser' button on the service
+				info page."/>
+		<column name="renderer" type="text" description="The renderer
+			used for this interface."/>
 	</table>
 
 	<table system="True" id="sets" forceUnique="True" onDisk="True"
 			dupePolicy="overwrite" 
 			primary="sourceRD, resId, renderer, setName"
 			namePath="resources">
+		<meta name="description">
+			A table that contains set membership of published resources.
+			For DaCHS, the sets ivo_managed ("publish to the VO") and local
+			("show on a generated root page" if using one of the shipped
+			root pages) have a special role.
+			
+			Manipulate through gavo pub; to remove entries from this table, remove
+			the publication element of the service or table in question
+			and re-run gavo pub on the resource descriptor.
+		</meta>
+
 		<column original="sourceRD"/>
 		<column original="resId"/>
 		<column name="setName" type="text" tablehead="Set name"
-			description="Name of an OAI set.  Here, probably only 'local' 
-				and 'ivo_managed' will yield anything."/>
-		<column name="renderer" type="text"/>
-		<column name="deleted" type="boolean" required="True"/>
+			description="Name of an OAI set."/>
+		<column name="renderer" type="text" description="The renderer
+			used for the publication belonging to this set.  Typically,
+			protocol renderers (e.g., scs.xml) will be used in VO publications,
+			whereas form and friends might be both in local and ivo_managed"/>
+		<column original="deleted"/>
 	</table>
 			
 	<table system="True" id="subjects" forceUnique="True" onDisk="True"
 			primary="sourceRD, resId, subject" namePath="resources">
+		<meta name="description">
+			A table that contains the subject metadata for published services.  It is
+			used by the shipped templates of the root pages ("...by subject").
+			
+			Manipulate through gavo pub; to remove entries from this table, remove
+			the publication element of the service or table in question
+			and re-run gavo pub on the resource descriptor.
+		</meta>
+
 		<column original="sourceRD"/>
 		<column original="resId"/>
-		<column name="subject" type="text"/>
+		<column name="subject" type="text" description="A subject heading.
+			Terms should ideally come from the IVOA thesaurus."/>
 	</table>
 
 	<table system="True" id="authors" forceUnique="True"
 			onDisk="True" primary="sourceRD, resId, author">
+		<meta name="description">
+			A table that contains the (slightly processed) creator.name
+			metadata from published services.  It is used by the shipped
+			templates of the root pages.
+			
+			Manipulate through gavo pub; to remove entries from this table, remove
+			the publication element of the service or table in question
+			and re-run gavo pub on the resource descriptor.
+		</meta>
 		<foreignKey inTable="resources" source="sourceRD,resId"/>
 		<column original="resources.sourceRD"/>
 		<column original="resources.resId"/>
-		<column name="author" type="unicode"/>
+		<column name="author" type="unicode"
+			description="An author name taken from creator.name; DaCHS assumes
+				this to be in the form Last, I."/>
 	</table>
 
 	<table system="True" id="res_dependencies" forceUnique="True"
 			onDisk="True" primary="rd, prereq" dupePolicy="overwrite">
 		<meta name="description">An RD-level map of dependencies, meaning
 		that before generating resource records from rd, requisite should
-		be imported.</meta>
+		be imported.
+		
+		This is managed by gavo pub and used in the OAI-PMH interface.
+		</meta>
 		<column name="rd" type="text" description="id of an RD"/>
 		<column name="prereq" type="text" description="id of an RD that
 			should be imported before records from rd are generated."/>
@@ -155,13 +245,11 @@
 		</make>
 	</data>
 
-	<data id="upgrade_0.6.3_0.7" auto="False">
-		<make table="res_dependencies">
-			<script original="deleteByRDId"/>
-		</make>
-	</data>
-
 	<table id="resources_join" namePath="resources" onDisk="true">
+		<meta name="description">
+			A join of resources, interfaces, and sets used internally.
+		</meta>
+
 		<column original="sourceRD"/>
 		<column original="resId"/>
 		<column original="title"/>
@@ -189,6 +277,10 @@
 	</table>
 
 	<table id="subjects_join" namePath="resources" onDisk="true">
+		<meta name="description">
+			A join of resources, subjects, and sets used internally.
+		</meta>
+
 		<column original="subjects.subject"/>
 		<column original="sourceRD"/>
 		<column original="resId"/>

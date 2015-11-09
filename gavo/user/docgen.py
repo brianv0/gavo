@@ -86,6 +86,12 @@ class RSTFragment(object):
 		self.content.append(textwrap.fill(content, initial_indent=initialIndent,
 			subsequent_indent=" "*len(initialIndent))+"\n")
 
+	def addDLItem(self, term, definition):
+		self.content.append("**%s**\n"%term)
+		self.content.append(textwrap.fill(definition, 
+			initial_indent="  ", subsequent_indent="  "))
+		self.content.append("\n")
+
 	def addDefinition(self, defHead, defBody):
 		"""adds a definition list-style item .
 
@@ -422,7 +428,7 @@ def _getModuleFunctionDocs(module):
 	res = []
 	for name in dir(module):
 		if name.startswith("_"):
-			# ignore all privat attributes, whatever else happens
+			# ignore all private attributes, whatever else happens
 			continue
 
 		ob = getattr(module, name)
@@ -468,6 +474,38 @@ def _makeProcsDocumenter(idList):
 		return _getProcdefDocs([(id, base.resolveId(None, id))
 			for id in sorted(idList)])
 	return buildDocs
+
+
+def _makeTableDoc(tableDef):
+	content = RSTFragment()
+	content.addHead1(tableDef.getQName())
+	content.addNormalizedPara("Defined in %s"%
+		tableDef.rd.sourceId.replace("__system__", "/"))
+	content.addNormalizedPara(base.getMetaText(tableDef, 
+		"description", default="UNDOCUMENTED"))
+	content.makeSpace()
+	for col in tableDef:
+		content.addDLItem(col.name,
+			"(%s) -- %s"%(col.type, col.description))
+	content.makeSpace()
+	return "".join(content.content)
+
+
+def makeSystemTablesList(docStructure):
+	parts = []
+	for rdName in pkg_resources.resource_listdir(
+			"gavo", "resources/inputs/__system__"):
+		if not rdName.endswith(".rd"):
+			continue
+
+		try:
+			for tableDef in base.caches.getRD("//"+rdName).tables:
+				if tableDef.onDisk:
+					parts.append((tableDef.getQName(), _makeTableDoc(tableDef)))
+		except base.Error:
+			base.ui.notifyError("Bad system RD: %s"%rdName)
+	
+	return "\n".join(content for _, content in sorted(parts))
 
 
 def getStreamsDoc(idList):

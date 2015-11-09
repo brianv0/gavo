@@ -423,6 +423,12 @@ class TableDef(base.Structure, base.ComputedMetaMixin, common.PrivilegesMixin,
 		except base.NotFoundError:
 			return False
 		return True
+	
+	def __repr__(self):
+		try:
+			return "<Table definition of %s>"%self.getQName()
+		except base.Error:
+			return "<Non-RD table %s>"%self.id
 
 	def completeElement(self, ctx):
 		# we want a meta parent as soon as possible, and we always let it

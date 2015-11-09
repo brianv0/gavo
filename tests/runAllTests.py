@@ -87,7 +87,8 @@ def runTrialTests():
 def runAllTests(includeDoctests=True):
 	pyunitSuite = testresources.TestLoader().loadTestsFromNames(
 		[n[:-3] for n in glob.glob("*test.py")])
-	runner = unittest.TextTestRunner(verbosity=1)
+	runner = unittest.TextTestRunner(
+		verbosity=int(os.environ.get("TEST_VERBOSITY", 1)))
 	if includeDoctests:
 		pyunitSuite = unittest.TestSuite([pyunitSuite, getDoctests()])
  	runner.run(pyunitSuite)

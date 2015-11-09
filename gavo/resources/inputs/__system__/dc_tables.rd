@@ -17,8 +17,15 @@ tables and the RDs the tables come from. -->
 			dupePolicy="overwrite">
 		<meta name="description">A table mapping table names and schemas to
 			the resource descriptors they come from and whether they are open
-			to ADQL queries.  This table is primarily used for the table info
-			services defined below.</meta>
+			to ADQL queries.
+
+			This is used wherever DaCHS needs to go from a database name to the
+			resource description, e.g., when generating tableinfo.
+
+			The table is maintained through gavo imp; to force things out
+			of here, there's gavo drop (for RDs; use -f if the RD is gone or
+			meoved away) or gavo purge (for single tables).
+			</meta>
 
 		<primary>tableName, sourceRD</primary>
 
@@ -45,6 +52,15 @@ tables and the RDs the tables come from. -->
 			pairs.  Key starting with an underscore are for use by user RDs.
 
 			Only one pair per key is supported, newer keys overwrite older ones.
+
+			Currently, this is only used for schemaversion, the version of
+			the DaCHS system tables as used by gavo upgrade to figure out
+			what to change.  gavo upgrade manages this.
+
+			From your code, you can use base.getDBMeta(key) and
+			base.setDBMeta(connection, key, value) to put persistent, string-valued
+			metadata in here; if you use this, would you tell us your
+			use case?
 		</meta>
 
 		<column name="quoted/key" type="text" description="A key; everything that
