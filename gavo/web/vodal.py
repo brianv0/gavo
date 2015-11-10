@@ -505,8 +505,7 @@ class RegistryRenderer(grend.ServiceBasedPage):
 		return OAI.PMH[
 			OAI.responseDate[datetime.datetime.utcnow().strftime(
 				utils.isoTimestampFmt)],
-			OAI.request(verb=pars.get("verb", ["Identify"])[0], 
-					metadataPrefix=pars.get("metadataPrefix", [None])[0]),
+			OAI.request(metadataPrefix=pars.get("metadataPrefix", [None])[0]),
 			OAI.error(code=code)[
 				message
 			]
