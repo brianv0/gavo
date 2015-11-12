@@ -38,6 +38,8 @@ machinery -->
 			embargoes and similar restrictions, and this is also where it figures
 			out where to go for previews.
 		</meta>
+		<index columns="sourceTable"/>
+
 		<!-- Warning: column names and table structure are reflected at least
 		in protocols.products, so be careful if you change things here. -->
 		<FEED source="basicColumns"/>

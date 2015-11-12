@@ -328,7 +328,6 @@ class InternalServerErrorPage(ErrorPage):
 	titleMessage = "Uncaught Exception"
 
 	def data_excname(self, ctx, data):
-		log.err(self.failure, _why="Uncaught exception")
 		return self.failure.value.__class__.__name__
 
 	def renderInnerException(self, ctx):

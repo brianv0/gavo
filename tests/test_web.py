@@ -124,20 +124,24 @@ class StaticTest(trialhelpers.ArchiveTest):
 			'<title>Directory listing for //data/cores/rds/static/</title>'])
 	
 	def testRendererInferred(self):
-		def assertRightURL(failure):
-			self.assertTrue("http://localhost:8080/data/cores/rds/static/"
-				in failure.getErrorMessage())
+		def assertRedirected(result):
+			self.assertEqual(result[1].code, 301)
+			self.assertTrue(result[1].headers["location"],
+				"http://localhost:8080/data/cores/rds/static/")
 
-		return self.assertGETRaises("/data/cores/rds", {}, 
-			svcs.WebRedirect, alsoCheck=assertRightURL)
+		return trialhelpers.runQuery(self.renderer, "GET",
+			"/data/cores/rds", {}
+			).addCallback(assertRedirected)
 
 	def testSlashAdded(self):
-		def assertRightURL(failure):
-			self.assertTrue("http://localhost:8080/data/cores/rds/static/"
-				in failure.getErrorMessage())
+		def assertRedirected(result):
+			self.assertEqual(result[1].code, 301)
+			self.assertTrue(result[1].headers["location"],
+				"http://localhost:8080/data/cores/rds/static/")
 
-		return self.assertGETRaises("/data/cores/rds/static", {}, 
-			svcs.WebRedirect, alsoCheck=assertRightURL)
+		return trialhelpers.runQuery(self.renderer, "GET",
+			"/data/cores/rds/static", {}
+			).addCallback(assertRedirected)
 	
 	def testStaticFile(self):
 		return self.assertGETHasStrings("/data/cores/rds/static/ex.fits", {}, [

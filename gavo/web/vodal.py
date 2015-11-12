@@ -565,7 +565,12 @@ class _DatalinkRendererBase(grend.ServiceBasedPage):
 			return data
 
 	def _reportError(self, failure, request):
+		# For a while, at least: Have the main code handle exceptions.
+		# This was done so redirects and similar tricks work.
+		# If we want text/plain handling again (and I think the standard
+		# warmly recommends it), at least handle redirects here.
 		failure.raiseException()
+
 		base.ui.notifyFailure(failure)
 		request.setHeader("content-type", "text/plain")
 		if isinstance(failure.value, base.Error):

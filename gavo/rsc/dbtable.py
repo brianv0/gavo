@@ -557,6 +557,12 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 		return self
 	
 	def drop(self, what="TABLE"):
+		"""drops the table.
+
+		Avoid calling this directly, as this bypasses running beforeDrop
+		scripts.  Instead, construct the enclosing data element and drop
+		that.
+		"""
 		if self.exists():
 			self.runScripts("beforeDrop")
 			self.query("DROP %s %s CASCADE"%(what, self.tableName))

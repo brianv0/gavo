@@ -7,6 +7,14 @@ to see the gory details.  If anything not mentioned here breaks something
 for you, we'd consider it a severe bug, though.
 
 
+Version 0.9.6 (XXXX-XX-XX)
+
+  * Several new indices are now created by default; you probably want them,
+    too.  Run "gavo imp -I //products". Similarly, gavo imp -I <rd-id> on all
+    RDs that have SSA tables with datalink services (if you don't know what
+    that is, you don't have it)
+
+
 Version 0.9.5 (2015-10-07)
 
 	* **RD breakage**: The old DaCHS implemenation got the meaning of

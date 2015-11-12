@@ -39,17 +39,16 @@ class SyncTest(trialhelpers.ArchiveTest):
 			{"ID": "ivo://not.here"},
 			["<TD>NotFoundFault: Not a pubDID from this site.</TD>"])
 
-	@unittest.skip("Make trialhelpers.ArchiveTest use DCExceptionHandler")
 	def testErrorDocumentAccess(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlget", 
 			{"ID": "broken"},
 			["global name 'ddt' is not defined"])
 
-	@unittest.skip("Make trialhelpers.ArchiveTest use DCExceptionHandler")
 	def testErrorStatus(self):
-		return self.assertStatus("/data/cores/dl/dlget", 422)
+		# This should probably be something else when we do custom
+		# datalink errors again.
+		return self.assertStatus("/data/cores/dl/dlget", 500)
 
-	@unittest.skip("Make trialhelpers.ArchiveTest use DCExceptionHandler")
 	def testWithoutId(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlmeta", {}, [
 			"<TABLEDATA></TABLEDATA>",
@@ -78,13 +77,12 @@ class SyncTest(trialhelpers.ArchiveTest):
 			['<DESCRIPTION>The latitude coordinate, lower limit</DESCRIPTION>'
 				'<VALUES><MIN value="30.9831815872">',])
 
-	@unittest.skip("Make trialhelpers.ArchiveTest use DCExceptionHandler")
 	def testInvalidRespformat(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlmeta", {
 				"ID": "ivo://x-unregistred/~?data/excube.fits",
 				"RESPONSEFORMAT": "vnd-microsoft/xls"
 			},
-			["ValidationError: Field RESPONSEFORMAT: u'vnd-microsoft/xls'"
+			["Field RESPONSEFORMAT: 'vnd-microsoft/xls'"
 				" is not a valid value for RESPONSEFORMAT"])
 
 	def testMetadataError(self):

@@ -230,22 +230,20 @@ class ProductsBadNameTest(testhelpers.VerboseTest):
 		("don't want quotes", False),]
 
 
-@unittest.skip("Depending on testresource's cleanup of prodtestTable;"
-	" make a test case with deterministic dropping and run this again.")
 class CleanedupTest(RowsetTest):
 	"""tests for cleanup after table drop (may fail if other tests failed).
 	"""
-	resources = [("conn", tresc.dbConnection)]
+	resources = [("conn", tresc.dbConnection), ("table", tresc.prodtestTable)]
 
 	def tearDown(self):
 		self.conn.rollback()
 
 	def testNotInProducts(self):
+		rsc.Data.drop(testhelpers.getTestRD().getById("productimport"), 
+			connection=self.conn)
 		self.assertQueryReturns(
 			"select * from dc.products where sourceTable='test.prodtest'",
 			[])
-
-	def testNotInDc_tables(self):
 		self.assertQueryReturns(
 			"select * from dc.tablemeta where tableName='test.prodtest'",
 			[])

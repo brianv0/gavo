@@ -50,16 +50,15 @@ def _requestDone(result, request, ctx):
 
 
 def _renderCrashAndBurn(failure, ctx):
-	return failure
+	return _renderException(failure, ctx)
 
 
 def _renderException(failure, ctx):
-	return util.maybeDeferred(
-		weberrors.DCExceptionHandler().renderHTTP_exception, ctx, failure
-		).addCallback(_requestDone, inevow.IRequest(ctx), ctx)
+	return _doRender(
+		weberrors.getDCErrorPage(failure), ctx, formatExcs=False)
 
 
-def _doRender(page, ctx):
+def _doRender(page, ctx, formatExcs=True):
 	request = inevow.IRequest(ctx)
 	if not hasattr(page, "renderHTTP"):
 		return _requestDone(page, request, ctx)
@@ -69,7 +68,8 @@ def _doRender(page, ctx):
 			tag=page, parent=context.RequestContext(tag=request)))
 
 	d.addCallback(_requestDone, request, ctx)
-	d.addErrback(_renderCrashAndBurn, ctx)
+	if formatExcs:
+		d.addErrback(_renderCrashAndBurn, ctx)
 	return d
 
 
@@ -80,8 +80,12 @@ def _deferredRender(res, ctx):
 			ctx, segments
 			).addCallback(_deferredRender, ctx
 			).addErrback(_renderException, ctx)
+
 	else:
-		return _doRender(page, ctx)
+		try:
+			return _doRender(page, ctx)
+		except:
+			assert False, "Exceptions should not escape from _doRender"
 
 
 class FakeFieldStorage(object):
