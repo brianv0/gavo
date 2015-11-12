@@ -166,7 +166,7 @@ class CommonRenderers(object):
 		# in particular to jquery; thus, this stuff must be as early as possible.
 		originalChildren = ctx.tag.children[:]
 		ctx.tag.clear()
-		return ctx.tag[
+		res = ctx.tag[
 			T.meta(**{"http-equiv": "Content-type",
 				"content": "text/html;charset=UTF-8"}),
 			T.link(rel="stylesheet", href=base.makeSitePath("/formal.css"),
@@ -181,6 +181,11 @@ class CommonRenderers(object):
 				type="text/javascript"),
 			originalChildren,
 		]
+		if base.getConfig("web", "operatorCSS"):
+			res[
+				T.link(rel="stylesheet", type="text/css",
+					href=base.getConfig("web", "operatorCSS"))]
+		return res
 
 	def render_urlescape(self, ctx, data):
 		"""renders data as a url-escaped string.

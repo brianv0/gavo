@@ -430,6 +430,9 @@ _config = Configuration(
 			" that should run regularly)."),
 		BooleanConfigItem("jsSource", "False", "If True, Javascript"
 			" will not be minified on delivery (this is for debugging)"),
+		StringConfigItem("operatorCSS", "", "URL of an operator-specific"
+			" CSS.  This is included as the last item and can therefore"
+			" override rules in the distributed CSS."),
 	),
 
 	Section('adql', "Settings concerning the built-in ADQL core",
