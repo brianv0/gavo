@@ -120,6 +120,28 @@ else:
 	testsDir = TEST_BASE
 
 
+class FakeSimbad(object):
+	"""we monkeypatch simbadinterface such that we don't query simbad during
+	tests.
+
+	Also, we don't persist cached Simbad responses.  It's a bit sad that
+	that functionality therefore doesn't get exercised.
+	"""
+	simbadData = {'Aldebaran': {'RA': 68.98016279,
+  	'dec': 16.50930235,
+  	'oname': 'Aldebaran',
+  	'otype': 'LP?'},
+ 	 u'M1': {'RA': 83.63308333, 'dec': 22.0145, 'oname': 'M1', 'otype': 'SNR'},
+ 	 'Wozzlfoo7xx': None}
+
+	def __init__(self, *args, **kwargs):
+		pass
+	
+	def query(self, ident):
+		return self.simbadData.get(ident)
+
+
+
 
 from gavo.imp import testresources
 from gavo.imp.testresources import TestResource  #noflake: exported name

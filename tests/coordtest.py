@@ -264,7 +264,7 @@ class SpolyTest(testhelpers.VerboseTest):
 		(_d(CD1_1=-0.0028, CD1_2=-8.57e-5, CD2_1=-3.198e-4, CD2_2=-0.0028), 
 			0.076569163),
 	]
-		
+
 
 if __name__=="__main__":
 	testhelpers.main(SpolyTest)

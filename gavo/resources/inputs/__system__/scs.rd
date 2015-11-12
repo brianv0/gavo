@@ -317,27 +317,12 @@
 			<phraseMaker>
 				<setup>
 					<code>
-						from gavo.protocols import simbadinterface
-						
-						def getRADec(inPars, sqlPars):
-							"""tries to guess coordinates from inPars.
-
-							(for human SCS condition).
-							"""
-							pos = inPars["pos_\matchColumn"]
-							try:
-								return base.parseCooPair(pos)
-							except ValueError:
-								data = base.caches.getSesame("web").query(pos)
-								if not data:
-									raise base.ValidationError("%s is neither a RA,DEC"
-									" pair nor a simbad resolvable object"%
-									inPars["pos_\matchColumn"], "pos_\matchColumn")
-								return float(data["RA"]), float(data["dec"])
+						from gavo.protocols import scs
 					</code>
 				</setup>
 				<code><![CDATA[
-					ra, dec = getRADec(inPars, outPars)
+					ra, dec = scs.parseHumanSpoint(inPars["pos_\matchColumn"], 
+						"pos_\matchColumn")
 					try:
 						sr = float(inPars["sr_\matchColumn"])/60.
 					except ValueError: # in case we're not running behind forms

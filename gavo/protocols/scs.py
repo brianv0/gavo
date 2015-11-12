@@ -10,6 +10,7 @@ IVOA cone search: Helper functions, a core, and misc.
 
 from gavo import base
 from gavo import svcs
+from gavo.protocols import simbadinterface  #noflake: for registration
 from gavo.svcs import outputdef
 
 
@@ -42,6 +43,25 @@ def findNClosest(alpha, delta, tableDef, n, fields, searchRadius=5):
 						raField, decField),
 			locals()).fetchall()
 		return res
+
+
+def parseHumanSpoint(cooSpec, colName=None):
+	"""tries to interpret cooSpec as some sort of cone center.
+
+	Attempted interpretations include various forms of coordinate pairs
+	and simbad objects; hence, this will in general cause network traffic.
+
+	If no sense can be made, a ValidationError on colName is raised.
+	"""
+	try:
+		cooPair = base.parseCooPair(cooSpec)
+	except ValueError:
+		simbadData = base.caches.getSesame("web").query(cooSpec)
+		if not simbadData:
+			raise base.ValidationError("%s is neither a RA,DEC"
+				" pair nor a simbad resolvable object."%cooSpec, colName)
+		cooPair = simbadData["RA"], simbadData["dec"]
+	return cooPair
 
 
 class SCSCore(svcs.DBCore):
@@ -79,10 +99,10 @@ class SCSCore(svcs.DBCore):
 			return pars["RA"], pars["DEC"]
 		elif pars.get("hscs_pos") is not None:
 			try:
-				return base.parseCooPair(pars["hscs_pos"])
+				return parseHumanSpoint(pars["hscs_pos"])
 			except ValueError:
-				# This could be simbad-resolvable or something.  We should
-				# probably use hscs_pos's condDesc, but for now just give up
+				# We do not want to fail for this fairly unimportant thing.  
+				# If the core actually needs the position, it should fail itself.
 				return None
 		else:
 			return None

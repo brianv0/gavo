@@ -28,6 +28,7 @@ from gavo import svcs
 from gavo import utils
 from gavo.imp import formal
 from gavo.imp.formal import iformal
+from gavo.protocols import scs
 from gavo.svcs import renderers
 from gavo.web import formrender
 from gavo.web import vodal
@@ -663,7 +664,8 @@ class _ConecatTable(tresc.RDDataResource):
 
 
 class ConeSearchTest(testhelpers.VerboseTest):
-	resources = [("cstable", _ConecatTable())]
+	resources = [("cstable", _ConecatTable()),
+		("fs", tresc.fakedSimbad)]
 
 	def testRadiusAddedSCS(self):
 		svc = base.resolveCrossId("data/cores#scs")
@@ -678,6 +680,12 @@ class ConeSearchTest(testhelpers.VerboseTest):
 		res = svc.run("form", {"hscs_pos": "1, 2", "hscs_sr": 3*60}
 			).original.getPrimaryTable()
 		self.assertAlmostEqual(res.rows[0]["_r"], 0.5589304685425)
+
+	def testRadiusAddedFormObjectres(self):
+		svc = base.resolveCrossId("data/cores#scs")
+		res = svc.run("form", {"hscs_pos": "Aldebaran", "hscs_sr": 180*60}
+			).original.getPrimaryTable()
+		self.assertAlmostEqual(res.rows[0]["_r"], 67.9075866114036)
 
 	def testNoRadiusWithoutPos(self):
 		svc = base.resolveCrossId("data/cores#scs")
@@ -707,6 +715,32 @@ class PythonCoreTest(testhelpers.VerboseTest):
 			"Field opre: Value is required but was not provided",
 			svc.run,
 			("form", {"opim": 1, "powers": [2,3,4]}))
+
+
+class HumanCoordParseTest(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	resources = [("fs", tresc.fakedSimbad)]
+
+	def _runTest(self, sample):
+		literal, parsed = sample
+		self.assertEqual(scs.parseHumanSpoint(literal), parsed)
+	
+	samples = [
+		("23.5, -21.75", (23.5, -21.75)),
+		("23.5 -21.75", (23.5, -21.75)),
+		("23 30, 11 15 30.6", (352.5, 11.2585)),
+		("23:30:45, 11:15:30.6", (352.6875, 11.2585)),
+		("Aldebaran",  (68.9375, 16.46875)),]
+
+	def testException(self):
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Unidentified Field: $&& zefixx is neither a RA,DEC pair nor"
+			" a simbad resolvable object.",
+			scs.parseHumanSpoint,
+			("$&& zefixx",))
+
+
 
 
 if __name__=="__main__":

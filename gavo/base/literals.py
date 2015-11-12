@@ -138,7 +138,7 @@ def parseCooPair(soup):
 		if mat:
 			return float(mat.group(1)), float(mat.group(2))
 
-	def parseTimeangleDms(soup):
+	def parseSexa(soup):
 		timeangleRE = r"(?:\d+\s+)?(?:\d+\s+)?\d+(?:\.\d*)?"
 		dmsRE = "[+-]?\s*(?:\d+\s+)?(?:\d+\s+)?\d+(?:\.\d*)?"
 		mat = re.match("(%s)\s*[\s,/]?\s*(%s)$"%(timeangleRE, dmsRE), soup)
@@ -149,7 +149,18 @@ def parseCooPair(soup):
 			except utils.Error, msg:
 				raise utils.logOldExc(ValueError(str(msg)))
 
-	for func in [parseFloatPair, parseTimeangleDms]:
+	def parseSexaColon(soup):
+		timeangleRE = r"(?:\d+:)?(?:\d+:)?\d+(?:\.\d*)?"
+		dmsRE = "[+-]?\s*(?:\d+:)?(?:\d+:)?\d+(?:\.\d*)?"
+		mat = re.match("(%s)\s*[\s,/]?\s*(%s)$"%(timeangleRE, dmsRE), soup)
+		if mat:
+			try:
+				return (utils.hmsToDeg(mat.group(1), sepChar=":"), 
+					utils.dmsToDeg(mat.group(2), sepChar=":"))
+			except utils.Error, msg:
+				raise utils.logOldExc(ValueError(str(msg)))
+
+	for func in [parseFloatPair, parseSexa, parseSexaColon]:
 		res = func(soup)
 		if res:
 			return res

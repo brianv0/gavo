@@ -143,7 +143,10 @@ class ValidationError(Error):
 		recStr = ""
 #		if self.row:
 #			recStr = ", found in: row %s"%repr(self.row)
-		return "Field %s: %s%s"%(self.colName, self.msg, recStr)
+		if self.colName:
+			return "Field %s: %s%s"%(self.colName, self.msg, recStr)
+		else:
+			return "Unidentified Field: %s%s"%(self.msg, recStr)
 	
 	__unicode__ = __str__
 

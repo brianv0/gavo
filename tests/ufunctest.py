@@ -174,6 +174,8 @@ class BuiltinUfuncTest(testhelpers.VerboseTest):
 class RegionTest(unittest.TestCase):
 	"""tests for sane parsing of our default region expressions.
 	"""
+	resources = [("fs", tresc.fakedSimbad)]
+
 	def testRaising(self):
 		"""tests for plausible exceptions.
 		"""
@@ -188,11 +190,11 @@ class RegionTest(unittest.TestCase):
 		"""
 		t = adql.parseToTree("SELECT x FROM y WHERE 1=CONTAINS("
 			"REGION('simbad Aldebaran'), CIRCLE('ICRS', 10, 10, 1))")
-		# Simbad applies proper motions to objects.  Let's just
-		# use REs to check, this will be ok for a few years.
-		self.assert_(re.match("SELECT x FROM y WHERE 1 ="
-			r" CONTAINS\(POINT\(68.98.*, 16.50.*\)"
-			", CIRCLE\(10, 10, 1\)\)", adql.flatten(t)))
+		# Positions of Aldebaran in the test bed are constant, as we're
+		# not actually asking simbad.  Also, they have exact binary representations
+		# -- so, don't do this test with the actual sesame.
+		self.assertEqual('SELECT x FROM y WHERE 1 = CONTAINS('
+			'POINT(68.9375, 16.46875), CIRCLE(10, 10, 1))', adql.flatten(t))
 		self.assertRaises(adql.RegionError, adql.parseToTree,
 			"SELECT x FROM y WHERE 1=CONTAINS("
 			"REGION('simbad Wozzlfoo7xx'), CIRCLE('ICRS', 10, 10, 1))")

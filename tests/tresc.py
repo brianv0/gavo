@@ -255,3 +255,46 @@ class FileResource(testhelpers.TestResource):
 	
 	def clean(self, rsc):
 		os.unlink(self.absPath)
+
+
+class _FakeSimbad(object):
+	"""test instrumentation to avoid querying simbad in unit/regression
+	tests.
+	"""
+	simbadData = {'Aldebaran': {'RA': 68.9375,
+  	'dec': 16.46875,
+  	'oname': 'Aldebaran',
+  	'otype': 'LP?'},
+ 	 u'M1': {'RA': 83.65625, 'dec': 22.0145, 'oname': 'M1', 'otype': 'SNR'},
+ 	 'Wozzlfoo7xx': None}
+
+	def __init__(self, *args, **kwargs):
+		pass
+	
+	def query(self, ident):
+		return self.simbadData.get(ident)
+
+	def getPositionFor(self, identifier):
+		data = self.query(identifier)
+		if not data:
+			raise KeyError(identifier)
+		return float(data["RA"]), float(data["dec"])
+
+
+class FakedSimbad(testhelpers.TestResource):
+	"""installs a non-querying, fake simbad resolver with constant answers.
+
+	This should be a resource whenever protocol.simbadinterface is used,
+	except perhps when exercising that module itself.
+	"""
+	def make(self, deps):
+		from gavo.protocols import simbadinterface
+		self.realCache = base.caches.getSesame
+		fs = _FakeSimbad()
+		base.caches.getSesame = lambda *args: fs
+	
+	def cleanup(self, deps):
+		base.caches.getSesame = self.realCache
+
+
+fakedSimbad = FakedSimbad()
