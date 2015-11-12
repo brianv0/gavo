@@ -4,6 +4,8 @@
 
 <resource resdir="__system" schema="dc">
 	<STREAM id="base_columns"> 
+		<index columns="ssa_pubDID"/>
+
 		<!-- a table containing columns required for all SSA tables.
 		
 		There is only minimal CoordSys metadata here; we assume 

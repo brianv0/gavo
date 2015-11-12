@@ -29,7 +29,27 @@ from gavo.user import cli
 import tresc
 
 
+class CommittedConnection(testhelpers.TestResource):
+	"""like tresc.dbConnection, only committed when this is created.
+
+	This is for robustness with tests leaving behind uncommitted transactions,
+	when there's forking going on.
+
+	NOTE: This only works when it's *not* shared between test classes.
+	"""
+	resources = [("conn", tresc.dbConnection)]
+
+	def make(self, deps):
+		deps["conn"].commit()
+		return deps["conn"]
+	
+	def cleanup(self, deps):
+		deps["conn"].rollback()
+
+
 class MiscCLITest(testhelpers.VerboseTest):
+	resources = [("conn", CommittedConnection())]
+
 	def testUnhandledException(self):
 		self.assertOutput(cli.main, argList=["raise"], 
 			expectedStderr=lambda msg: "Unhandled exception" in msg,
