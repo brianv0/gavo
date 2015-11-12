@@ -506,7 +506,8 @@ class _MetaMakerTestData(testhelpers.TestResource):
 
 	def make(self, dependents):
 		svc = base.parseFromString(svcs.Service, """
-		<service id="foo" allowed="dlget,dlmeta">
+		<service id="foo" allowed="dlget,dlmeta,static">
+			<property key="staticData">data</property>
 			<datalinkCore>
 				<metaMaker>
 					<code>
@@ -535,6 +536,18 @@ class _MetaMakerTestData(testhelpers.TestResource):
 						if descriptor.pubDID.endswith("b.imp"):
 							yield DatalinkFault.NotFoundFault("ivo://not.asked.for",
 								"Cannot locate other mess")
+					</code>
+				</metaMaker>
+				<metaMaker>
+					<code>
+						yield LinkDef.fromFile("no.such.file", "An unrelated nothing",
+							"http://www.g-vo.org/dl#unrelated", self.parent)
+					</code>
+				</metaMaker>
+				<metaMaker>
+					<code>
+						yield LinkDef.fromFile("data/map1.map", "Some mapping",
+							"http://www.g-vo.org/dl#related", self.parent)
 					</code>
 				</metaMaker>
 				<dataFunction procDef="//datalink#generateProduct"/>
@@ -705,7 +718,7 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 		("serviceResult", _metaMakerTestData)]
 
 	def testAllLinks(self):
-		self.assertEqual(len(self.rows), 11)
+		self.assertEqual(len(self.rows), 15)
 		for r in self.rows.values():
 			self.assertEqual(len(r), 1)
 	
@@ -740,7 +753,10 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 	def testSemantics(self):
 		self.assertEqual(set(r[1] for r in self.rows), 
 			set(['#access', '#this', '#alternative', '#calibration', '#preview',
-				"http://dc.g-vo.org/datalink#other"]))
+				"http://dc.g-vo.org/datalink#other",
+				'http://www.g-vo.org/dl#related',
+				'http://www.g-vo.org/dl#unrelated',
+				]))
 
 	def testSizes(self):
 		self.assertEqual(self.rows[('ivo://x-unregistred/~?data/a.imp', 
@@ -783,6 +799,22 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 			"http://localhost:8080/getproduct/data/a.imp?preview=True")
 		self.assertEqual(previewRow["content_type"],
 			"text/plain")
+	
+	def testFromNonExistingFile(self):
+		errRow = self.rows[('ivo://x-unregistred/~?data/b.imp', 
+			'http://www.g-vo.org/dl#unrelated')][0]
+		self.assertEqual(errRow["error_message"], 
+			"NotFoundFault: No file for linked item")
+		self.assertEqual(errRow["description"],
+			"An unrelated nothing")
+
+	def testFromFile(self):
+		row = self.rows[('ivo://x-unregistred/~?data/b.imp', 
+			'http://www.g-vo.org/dl#related')][0]
+		self.assertEqual(row["error_message"], None)
+		self.assertEqual(row["content_length"], 8)
+		self.assertEqual(row["description"], "Some mapping")
+		self.assertEqual(row["content_type"], "application/octet-stream")
 
 
 def _dissectDLFile(datalinkFile):

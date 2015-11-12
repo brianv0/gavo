@@ -103,16 +103,19 @@ class DatalinkFault(object):
 	all of which take the pubDID that caused the failure and a human-oriented
 	error message.
 	"""
-	def __init__(self, code, pubDID, message, exceptionClass, semantics):
+	def __init__(self, code, pubDID, message, exceptionClass, semantics,
+			description=None):
 		self.code, self.pubDID, self.message = code, pubDID, message
 		self.semantics = semantics
 		self.exceptionClass = exceptionClass
+		self.description = description
 	
 	@classmethod
-	def _addErrorMaker(cls, errCode, exceptionClass, 
-			semantics=DEFAULT_SEMANTICS):
-		def meth(inner, pubDID, message):
-			return inner(errCode, pubDID, message, exceptionClass, semantics)
+	def _addErrorMaker(cls, errCode, exceptionClass):
+		def meth(inner, pubDID, message, semantics=DEFAULT_SEMANTICS,
+				description=None):
+			return inner(errCode, pubDID, message, exceptionClass, semantics,
+				description)
 		setattr(cls, errCode, classmethod(meth))
 
 	def asDict(self):
@@ -120,7 +123,8 @@ class DatalinkFault(object):
 		"""
 		return {"ID": self.pubDID, "error_message":
 			"%s: %s"%(self.code, self.message),
-			"semantics": self.semantics}
+			"semantics": self.semantics,
+			"description": self.description}
 
 	def raiseException(self):
 		raise self.exceptionClass(self.message+" (pubDID: %s)"%self.pubDID)
@@ -216,6 +220,52 @@ class LinkDef(object):
 		ID = pubDID #noflake: used in locals()
 		del pubDID
 		self.dlRow = locals()
+
+	@classmethod
+	def fromFile(cls, localPath, description, semantics, 
+			service, contentType=None):
+		"""constructs a LinkDef based on a local file.
+		
+		You must give localPath (which may be resdir-relative), description and
+		semantics are mandatory.  ContentType and contentSize will normally be
+		determined by DaCHS.
+
+		You must also pass in the service used to retrieve the file.  This
+		must allow the static renderer and have a staticData property.  It should
+		normally be the datalink service itself, which in a metaMaker
+		is accessible as self.parent.parent.  It is, however, legal
+		to reference other suitable services (use self.parent.rd.getById or 
+		base.resolveCrossId)
+		"""
+		baseDir = service.rd.resdir
+		localPath = os.path.join(baseDir, localPath)
+		pubDID = utils.stealVar("descriptor").pubDID
+		staticPath = os.path.join(baseDir,
+			service.getProperty("staticData"))
+
+		if not os.path.isfile(localPath):
+			return DatalinkFault.NotFoundFault(pubDID, "No file"
+				" for linked item", semantics=semantics, description=description)
+		elif not os.access(localPath, os.R_OK):
+			return DatalinkFault.AutorizationFault(pubDID, "Linked"
+				" item not readable", semantics=semantics, description=description)
+		
+		try:
+			svcPath = utils.getRelativePath(localPath, staticPath)
+		except ValueError:
+			return LinkDef(pubDID, errorMessage="FatalFault: Linked item"
+				" not accessible through the given service", 
+				semantics=semantics, description=description)
+
+		ext = os.path.splitext(localPath)[-1]
+		contentType = (contentType 
+			or static.File.contentTypes.get(ext, "application/octet-stream"))
+
+		return cls(pubDID, 
+			service.getURL("static")+"/"+svcPath,
+			description=description, semantics=semantics,
+			contentType=contentType, 
+			contentLength=os.path.getsize(localPath))
 
 	def asDict(self):
 		"""returns the link definition in a form suitable for ingestion
