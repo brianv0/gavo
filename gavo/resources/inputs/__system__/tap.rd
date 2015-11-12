@@ -208,6 +208,10 @@
 			forceUnique="True" dupePolicy="overwrite" system="True">
 		<meta name="description">
 			Standard data models supported by this service.
+
+			This is a non-standard tap_schema table used by DaCHS in the creation
+			of registry records.  It is manipulated through gavo imp on tables
+			with supportsModel and supportsModelURI properties.
 		</meta>
 		<column original="tables.sourceRD"/>
 		<column name="dmname" type="text"
@@ -445,6 +449,15 @@
 <!--********************* TAP UWS job table ******************-->
 
 <table id="tapjobs" system="True">
+	<meta name="description">
+		A non-standard (and not tap-accessible) table used for managing
+		asynchronous TAP jobs.  It is manipulated through TAP job creation
+		and destruction internally.  Under very special circumstances, operators
+		can use the gavo admin cleantap command to purge jobs from this table.
+
+		Note that such jobs have corresponding directories in $STATEDIR/uwsjobs,
+		which will be orphaned if this table is manipulated through SQL.
+	</meta>
 	<FEED source="//uws#uwsfields"/>
 	<column name="pid" type="integer" 
 			description="A unix pid to kill to make the job stop">
