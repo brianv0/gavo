@@ -25,7 +25,7 @@ class GuardedFunctionFactory(object):
 	"""a class for making functions safe for cron-like executions.
 
 	The main method is makeGuarded.  It introduces a lock protecting against
-	double execution (if that would happen, the execution is suppressed with a
+	double execution (if that were to happen, the execution is suppressed with a
 	warning; of course, if you fork something into the background, that mechanism
 	no longer works). The stuff is run in a thread, and exceptions caught.  If
 	anything goes wrong during execution, a mail is sent to the administrator.
@@ -65,6 +65,7 @@ class GuardedFunctionFactory(object):
 		def innerFunction():
 			try:
 				try:
+					execDef.outputAccum = []
 					callable(execDef.rd, execDef)
 				except Exception:
 					base.ui.notifyError("Uncaught exception in timed job %s."
@@ -73,6 +74,10 @@ class GuardedFunctionFactory(object):
 						"".join(traceback.format_exception(*sys.exc_info())))
 			finally:
 				serializingLock.release()
+			if execDef.debug and execDef.outputAccum:
+				cron.sendMailToAdmin("Debug output of DaCHS Job %s"%execDef.jobName,
+					"\n".join(execDef.outputAccum))
+				del execDef.outputAccum
 
 		def cronFunction():
 			self._reapOldThreads()
@@ -87,6 +92,8 @@ class GuardedFunctionFactory(object):
 
 			with self.activeListLock:
 				self.threadsCurrentlyActive.append(t)
+
+			return t
 
 		return cronFunction
 
@@ -171,6 +178,14 @@ class Execute(base.Structure, base.ExpansionDelegator):
 		description="The code to run.",
 		copyable=True,)
 
+	_debug = base.BooleanAttribute("debug",
+		description="If true, on execution of external processes (span or"
+			" spawnPython), the output will be accumulated and mailed to"
+			" the administrator.  Note that output of the actual cron job"
+			" itself is not caught (it might turn up in serverStderr)."
+			" You could use execDef.outputAccum.append(<stuff>) to have"
+			" information from within the code included.", default=False)
+
 	_properties = base.PropertyAttribute()
 
 	_rd = common.RDAttribute()
@@ -194,6 +209,11 @@ class Execute(base.Structure, base.ExpansionDelegator):
 			cron.sendMailToAdmin("A process spawned by %s failed with %s"%(
 				self.title, p.returncode),
 				"Output of %s:\n\n%s"%(cliList, childOutput))
+
+		elif self.debug:
+			self.outputAccum.append("\n\n%s -> %s\n"%(cliList, p.returncode))
+			self.outputAccum.append(childOutput)
+
 		return p.returncode
 	
 	def spawnPython(self, pythonFile):
@@ -249,16 +269,15 @@ class Execute(base.Structure, base.ExpansionDelegator):
 			for literal in self.at:
 				self.parsedAt.append(self._parseAt(literal, ctx))
 
-
 	def onElementComplete(self):
 		self._onElementCompleteNext(Execute)
 
 		self.jobName = "%s#%s"%(self.rd.sourceId, self.title)
 
-		callable = _guardedFunctionFactory.makeGuardedThreaded(
+		self.callable = _guardedFunctionFactory.makeGuardedThreaded(
 			self.job.compile(), self)
 
 		if self.at is not base.NotGiven:
-			cron.repeatAt(self.parsedAt, self.jobName, callable)
+			cron.repeatAt(self.parsedAt, self.jobName, self.callable)
 		else:
-			cron.runEvery(self.every, self.jobName, callable)
+			cron.runEvery(self.every, self.jobName, self.callable)

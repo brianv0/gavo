@@ -270,8 +270,10 @@ def indexStatements(querier, args):
 	help="Execute the contents of an RD execute element.  You must"
 	" give that element an explicit id in order to make this work.")
 def execute(querier, args):
+	from gavo.user import logui
+	logui.LoggingUI(base.ui)
 	execEl = base.resolveId(None, args.execId)
-	execEl.job.compile()(execEl.rd, execEl)
+	execEl.callable().join()
 
 
 @exposedFunction([Arg(help="Package resource path"

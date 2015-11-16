@@ -87,7 +87,7 @@ class MiscCLITest(testhelpers.VerboseTest):
 	def testExecute(self):
 		self.assertOutput(cli.main, argList=["admin", "exec", 
 			"data/regtest#silly"],
-			expectedStdout="Silly\n")
+			expectedStdout="Spawning thread for cron job Do silly things\nSilly\n")
 
 	def testCleanTAPPending(self):
 		self.assertOutput(cli.main, argList=["admin", "cleantap", "-p"],
