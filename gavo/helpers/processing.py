@@ -559,6 +559,18 @@ class AnetHeaderProcessor(HeaderProcessor):
 
 
 class PreviewMaker(FileProcessor):
+	"""A file processor for generating previews.
+
+	For these, define a method getPreviewData(accref) -> string returning
+	the raw preview data.
+	"""
+	@staticmethod
+	def addOptions(optParser):
+		FileProcessor.addOptions(optParser)
+		optParser.add_option("--force", help="Generate previews even"
+			" where they already exist", action="store_true",
+			dest="force", default=False)
+
 	def _createAuxiliaries(self, dd):
 		self.previewDir = dd.rd.getAbsPath(
 			dd.getProperty("previewDir"))
@@ -571,6 +583,9 @@ class PreviewMaker(FileProcessor):
 			rscdef.getFlatName(accref))
 
 	def classify(self, accref):
+		if self.opts.force:
+			return "without"
+
 		if os.path.exists(self.getPreviewPath(accref)):
 			return "with"
 		else:

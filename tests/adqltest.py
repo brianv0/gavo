@@ -1034,7 +1034,7 @@ class ExprColTest(ColumnTest):
 			"in_unit error: km and rad do not have the same SI base",
 			self._getColSeq,
 			("select IN_UNIT(height, 'rad') from spatial",))
-	
+
 
 class DelimitedColResTest(ColumnTest):
 	"""tests for column resolution with delimited identifiers.
@@ -1094,6 +1094,7 @@ class DelimitedColResTest(ColumnTest):
 		cols = self._getColSeq('select "ra1" from spatial')
 		self._assertColumns(cols, [
 			("real", 'deg', "pos.eq.ra", False)])
+
 
 class JoinColResTest(ColumnTest):
 	def testJoin(self):
