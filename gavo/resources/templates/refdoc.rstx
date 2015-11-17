@@ -1562,6 +1562,11 @@ itself will usually be more efficient, sometimes much so (e.g., sums
 being computed within a database rather than in a filter after all the
 data had to go through the interface of the database).
 
+Incidentally (we mention it here for lack of a better place) DaCHS
+automatically adds links for the dataset itself (semantics #this) and a
+preview of the dataset (semantics #this) whenever sensible.  There are
+exotic situations in which that is unwelcome.  If you end up in such a
+situation, in a metaMaker say ``descriptor.suppressAutoLinks = True``.
 
 Descriptors Generators
 '''''''''''''''''''''''

@@ -605,6 +605,9 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 			# available through the data access, possibly also adding a preview.
 			if not isinstance(d, ProductDescriptor):
 				continue
+			if hasattr(d, "suppressAutoLinks"):
+				continue
+
 			internalLinks.append(LinkDef(d.pubDID, 
 				products.makeProductLink(d.accref),
 				description="The full dataset.",
