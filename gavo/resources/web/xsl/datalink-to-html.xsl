@@ -143,12 +143,33 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
                </xsl:attribute>Link</a>
     </xsl:template>
 
+    <xsl:template name="format-file-size">
+        <xsl:param name="file-size"/>
+        <xsl:choose>
+            <xsl:when test="$file-size&lt;2000">
+                <xsl:value-of select="$file-size"/> Bytes</xsl:when>
+            <xsl:when test="$file-size&lt;1500000">
+                <xsl:value-of select="round($file-size div 102.4) div 10"
+                    /> kiB</xsl:when>
+            <xsl:when test="$file-size&lt;1500000000">
+                <xsl:value-of select="round($file-size div 10485.76) div 100"
+                    /> MiB</xsl:when>
+            <xsl:when test="$file-size&lt;20e9">
+                <xsl:value-of select="round($file-size div 10737418.24) div 100"
+                    /> GiB</xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="$file-size"/> Bytes</xsl:otherwise>
+        </xsl:choose>
+    </xsl:template>
+
     <xsl:template match="vot:TD" mode="content_length">
-            <xsl:if test=". and number(.) != -1">
-                 <span class="size">
-                      (<xsl:value-of select="."/> Bytes)
-                  </span>
-            </xsl:if>
+        <xsl:if test=". and number(.)!=-1">
+            <span class="size">
+                (<xsl:call-template name="format-file-size">
+                    <xsl:with-param name="file-size" select="number(.)"/>
+                </xsl:call-template>)
+            </span>
+        </xsl:if>
     </xsl:template>
 
     <xsl:template match="vot:TD" mode="error_message">
