@@ -84,6 +84,7 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
       </table>
     </xsl:template>
 
+
     <xsl:template name="normal_row">
         <!-- a datalink table row not requring extra processing
         (e.g., not #access) -->
@@ -146,15 +147,15 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
     <xsl:template name="format-file-size">
         <xsl:param name="file-size"/>
         <xsl:choose>
-            <xsl:when test="$file-size&lt;2000">
+            <xsl:when test="$file-size &lt; 2000">
                 <xsl:value-of select="$file-size"/> Bytes</xsl:when>
-            <xsl:when test="$file-size&lt;1500000">
+            <xsl:when test="$file-size &lt; 1500000">
                 <xsl:value-of select="round($file-size div 102.4) div 10"
                     /> kiB</xsl:when>
-            <xsl:when test="$file-size&lt;1500000000">
+            <xsl:when test="$file-size &lt; 1500000000">
                 <xsl:value-of select="round($file-size div 10485.76) div 100"
                     /> MiB</xsl:when>
-            <xsl:when test="$file-size&lt;20e9">
+            <xsl:when test="$file-size &lt; 20000000000">
                 <xsl:value-of select="round($file-size div 10737418.24) div 100"
                     /> GiB</xsl:when>
             <xsl:otherwise>
