@@ -88,6 +88,8 @@ def parseBooleanLiteral(literal):
 def parseUnicode(literal):
 	if literal is None:
 		return
+	if isinstance(literal, str):
+		literal = literal.decode("ascii", "replace")
 	return unicode(literal)
 
 
