@@ -63,7 +63,7 @@ class StaticRenderer(grend.ServiceBasedPage):
 		basePath = request.uri.split("?")[0]
 		if basePath.endswith("static/"):
 			if self.indexFile:
-				return static.File(self.indexFile)
+				return ifpages.StaticFile(self.indexFile, self.rd)
 			else:
 				return static.File(self.staticPath).directoryListing()
 

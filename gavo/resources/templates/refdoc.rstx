@@ -672,9 +672,6 @@ checkmark
 displayUnit
   use the value of this hint as the unit to display a value in.
 
-humanTime
-  display values as h:m:s.
-
 nopreview
   if this key is present with any value, no HTML code to generate
   previews when mousing over a link will be generated.
@@ -704,6 +701,9 @@ type
 
   humanDay
     display a timestamp or date value as an ISO string without time.
+
+  humanTime
+    display values as h:m:s.
 
   keephtml
     lets you include raw HTML.  In VOTables, tags are removed.

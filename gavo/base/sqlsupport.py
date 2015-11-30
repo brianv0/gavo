@@ -787,8 +787,6 @@ class QuerierMixin(PostgresQueryMixin, StandardQueryMixin):
 			if isinstance(ex, OperationalError) and self.connection.fileno()==-1:
 				if not self._reconnecting:
 					return self._queryReconnecting(query, data)
-			utils.sendUIEvent("Info", "Failed db query: '%s'"%
-				getattr(cursor, "query", query))
 			raise
 		return cursor
 

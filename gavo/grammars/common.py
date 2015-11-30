@@ -174,9 +174,12 @@ class Rowfilter(procdef.ProcApp):
 
 	Macros are expanded within the embedding grammar.
 
-	The procedure definition must result in a generator, i.e., there must
-	be at least one yield.  Otherwise, it may swallow or create as many
-	rows as desired.
+	The procedure definition *must* result in a generator, i.e., there must
+	be at least one yield; in general, this will typically be a ``yield row``,
+	but a rowfilter may swallow or create as many rows as desired.
+
+	If you forget to have a yield in the rowfilter source, you'll get a
+	"NoneType is not iterable" error that's a bit hard to understand.
 
 	Here, you can only access whatever comes from the grammar.  You can
 	access grammar keys in late parameters as row[key] or, if key is 

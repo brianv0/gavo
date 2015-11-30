@@ -515,10 +515,12 @@ class FormMixin(formal.ResourceMixin):
 				not self.service.getCurOutputFields(queryMeta)):
 			raise base.ValidationError("These output settings yield no"
 				" output fields", "_OUTPUT")
-		if queryMeta["format"]=="HTML":
+
+		if queryMeta["format"] in ("HTML", ""):
 			resultWriter = self
 		else:
 			resultWriter = serviceresults.getFormat(queryMeta["format"])
+
 		if resultWriter.compute:
 			d = self.runService(svcs.PreparsedInput(data), queryMeta)
 		else:
