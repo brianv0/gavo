@@ -176,14 +176,8 @@ class _TAPQuery(rst.Directive):
 
 	def run(self):
 		body = "\n".join(self.content)
-		formatted = """<div property="generic-parameter" typeof="keyval">
-			<span property="key" class="invisible">QUERY</span>
-			<pre property="value" class="samplequery">%s</pre>
-			</div>"""%utils.escapePCDATA(rstutils.unescape(body, 1))
-		res = nodes.raw(
-			rawsource=self.content,
-			text=formatted,
-			format='html')
+		res = nodes.literal_block(body, body)
+		res["classes"] = ["dachs-ex-tapquery"]
 		return [res]
 
 misctricks.RSTExtensions.addDirective("tapquery", _TAPQuery)

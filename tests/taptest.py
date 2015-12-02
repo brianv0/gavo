@@ -617,21 +617,13 @@ class TAPExampleTest(testhelpers.VerboseTest):
 		self.assertEqual(tableLink.get("content"), "amanda.nucand")
 		self.assertEqual(tableLink.get("href"), "/tableinfo/amanda.nucand")
 	
-	def testPropertyContainer(self):
-		propcon = self.tree.xpath("//*[@property='generic-parameter']")[0]
-		self.assertEqual(propcon.get("typeof"), "keyval")
-		self.assertEqual(len(propcon), 2)
+	def testQueryPresent(self):
+		queryEl = self.tree.xpath("//*[@property='tapquery']")[0]
+		self.assertEqual(queryEl.text.strip(),
+			"SELECT *\n  FROM amanda.nucand\nWHERE atmonusubset='True' and foo<20")
+		self.assertEqual(queryEl.attrib["class"],
+			'dachs-ex-tapquery literal-block')
 	
-	def testParamKey(self):
-		keyEl = self.tree.xpath("//*[@property='key']")[0]
-		self.assertEqual(keyEl.get("class"), "invisible")
-		self.assertEqual(keyEl.text, "QUERY")
-
-	def testParamValue(self):
-		valEl = self.tree.xpath("//*[@property='value']")[0]
-		self.assertEqual(valEl.get("class"), "samplequery")
-		self.assertTrue(valEl.text.startswith("SELECT *\n  FROM amanda.nu"))
-
 
 if __name__=="__main__":
 	testhelpers.main(JobMetaTest)
