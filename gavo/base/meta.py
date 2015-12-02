@@ -785,6 +785,15 @@ class MetaValue(MetaMixin):
 
 ################## individual meta types (factor out to a new module)
 
+class IncludesChildren(unicode):
+	"""a formatted result that already includes all meta children.
+
+	This is returned from some of the special meta types' HTML formatters
+	to keep the HTMLMetaBuilder from adding meta items that are already
+	included in their HTML.
+	"""
+
+
 class MetaURL(MetaValue):
 	"""A meta value containing a link and optionally a title
 
@@ -856,39 +865,48 @@ class NewsMeta(MetaValue):
 	"""A meta value representing a "news" items.
 
 	The content is the body of the news.  In addition, they have
-	date and author children.  In plain text, you would write::
+	date, author, and role children.  In plain text, you would write::
 
 	  _news: Frobnicated the quux.
 	  _news.author: MD
 	  _news.date: 2009-03-06
+	  _news.role: updated
 	
 	In XML, you would usually write::
 
 	  <meta name="_news" author="MD" date="2009-03-06">
 	    Frobnicated the quux.
 	  </meta>
+	
+	_news items become serialised into Registry records despite their
+	leading underscores.  role then becomes the date's role.  	
 	"""
-	def __init__(self, url, format="plain", author=None, 
-			date="Unspecified time"):
-		MetaValue.__init__(self, url, format)
-		self.initArgs = url, format, author, date
-		self.author = author
-		self.date = date
+	discardChildrenInHTML = True
+
+	def __init__(self, content, format="plain", author=None, 
+			date=None, role=None):
+		MetaValue.__init__(self, content, format)
+		self.initArgs = format, author, date, role
+		for key in ["author", "date", "role"]:
+			val = locals()[key]
+			if val is not None:
+				self._addMeta([key], MetaValue(val))
 
 	def _getContentAsHTML(self, content):
 		authorpart = ""
 		if self.author:
 			authorpart = " (%s)"%self.author
-		return '<span class="newsitem">%s%s: %s</span>'%(self.date, authorpart,
-			content)
+		return IncludesChildren('<span class="newsitem">%s%s: %s</span>'%(
+			self.date, authorpart, content))
 	
 	def _addMeta(self, atoms, metaValue):
 		if atoms[0]=="author":
 			self.author = metaValue.content
 		elif atoms[0]=="date":
 			self.date = metaValue.content
-		else:
-			MetaValue._addMeta(self, atoms, metaValue)
+		elif atoms[0]=="role":
+			self.role = metaValue.content
+		MetaValue._addMeta(self, atoms, metaValue)
 
 
 class NoteMeta(MetaValue):
@@ -1169,7 +1187,7 @@ class MetaBuilder(object):
 	Builders are passed to a MetaItem's traverse method or to MetaMixin's
 	buildRepr method to build representations of the meta information.
 
-	You can either override startKey, endKey, and enterValue.  If you are
+	You can override startKey, endKey, and enterValue.  If you are
 	not doing anything fancy, you can get by by just overriding enterValue
 	and inspecting curAtoms[-1] (which contains the last meta key).
 
@@ -1247,7 +1265,8 @@ class ModelBasedBuilder(object):
 		- a meta key and a callable,
 		- this, and a sequence of child nodes
 		- this, and a dictionary mapping argument names for the callable
-			to meta keys of the node.
+			to meta keys of the node; the arguments extracted in this way
+			are passed in a single dictionary localattrs.
 	
 	The callable can also be None, which causes the corresponding items
 	to be inlined into the parent (this is for flattening nested meta

@@ -65,6 +65,15 @@ def _build_source(children, localattrs=None):
 	return VOR.source(**attrs)[src]
 
 
+def _build_dateFromNews(children, localattrs={}):
+# _news was designed to be non-VOResource, but it turned out it's
+# really useful to specify dates.  So, contrary to our principle, there's
+# an underscore-starting meta here, anyway.
+	if utils.dateRE.match(localattrs.get("date", "")):
+		return [VOR.date(role=localattrs.get("role", "updated"))[
+			localattrs["date"]]]
+
+
 _vrResourceBuilder = meta.ModelBasedBuilder([
 	('title', SF(VOR.title)),
 	('shortName', SF(VOR.shortName)),
@@ -84,6 +93,9 @@ _vrResourceBuilder = meta.ModelBasedBuilder([
 		('datetimeUpdated', SF(VOR.date, role="updated")),
 		('date', SF(VOR.date), (), {
 				"role": "role"}),
+		('_news', _build_dateFromNews, (), {
+				"role": "role",
+				"date": "date"}),
 		('version', SF(VOR.version)),
 		('contact', SF(VOR.contact), [
 			('name', SF(VOR.name), (), {

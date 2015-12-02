@@ -86,6 +86,11 @@ class HTMLMetaBuilder(meta.MetaBuilder):
 		val = value.getContent("html", self.macroPackage)
 		if val:
 			self.resultTree[-1].append(T.xml(val))
+		# for meta items rendering their children themselves (which return
+		# in IncludesChildren object), do not fold in rendered children
+		# (the None sentinel is handed in endKey)
+		if isinstance(val, meta.IncludesChildren):
+			self.resultTree[-1].append(None)
 
 	def _isCompound(self, childItem):
 		"""should return true some day for compound meta items that should
@@ -94,7 +99,12 @@ class HTMLMetaBuilder(meta.MetaBuilder):
 		return False
 
 	def endKey(self, atom):
-		children = self.resultTree.pop()
+		children = [c for c in self.resultTree.pop() if c]
+		# see enterValue on why we're doing this
+		if (self.resultTree[-1] 
+				and self.resultTree[-1][-1] is None):
+			return
+
 		if len(children)>1:
 			childElements = []
 			for c in children:

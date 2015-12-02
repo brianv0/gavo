@@ -427,6 +427,11 @@ class _DocRec(testhelpers.TestResource):
 			uses.ivoId: ivo://useful/sample1
 			uses: Crapola junkyard bad example
 			uses.ivoId: ivo://crapola/work
+			_news: Cool date
+			_news.date: 2010-10-10
+			_news.role: silly
+			_news: Cooler date
+			_news.date: 2011-11-11
 			""")
 		return getGetRecordResponse(container)
 	
@@ -463,7 +468,18 @@ class DocumentResTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 		self.assertEqual(ids[0].text, "Sample useful resource")
 		self.assertEqual(ids[1].attrib["ivo-id"], "ivo://crapola/work")
 
+	def testNewsRenderingWithRole(self):
+		sillyDates = self.srcAndTree[1].xpath("//date[@role='silly']")
+		self.assertEqual(len(sillyDates), 1)
+		self.assertEqual(sillyDates[0].text, "2010-10-10")
+	
+	def testNewsRenderingDefaultRole(self):
+		upDates = self.srcAndTree[1].xpath("//date[@role='updated']")
+		# (it's 2 updates because DaCHS makes one based on the RD timestamp)
+		self.assertEqual(len(upDates), 2)
+		self.assertTrue("2011-11-11" in set(e.text for e in upDates))
 
+	
 class DataPublicationMetaTest(testhelpers.VerboseTest):
 # Tests concerning metadata handling with the table data registry interface
 	resources = [("conn", tresc.dbConnection)]

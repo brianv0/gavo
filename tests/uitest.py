@@ -29,26 +29,8 @@ from gavo.user import cli
 import tresc
 
 
-class CommittedConnection(testhelpers.TestResource):
-	"""like tresc.dbConnection, only committed when this is created.
-
-	This is for robustness with tests leaving behind uncommitted transactions,
-	when there's forking going on.
-
-	NOTE: This only works when it's *not* shared between test classes.
-	"""
-	resources = [("conn", tresc.dbConnection)]
-
-	def make(self, deps):
-		deps["conn"].commit()
-		return deps["conn"]
-	
-	def cleanup(self, deps):
-		deps["conn"].rollback()
-
-
 class MiscCLITest(testhelpers.VerboseTest):
-	resources = [("conn", CommittedConnection())]
+	resources = [("conn", tresc.dbConnection)]
 
 	def testUnhandledException(self):
 		self.assertOutput(cli.main, argList=["raise"], 
@@ -81,6 +63,7 @@ class MiscCLITest(testhelpers.VerboseTest):
 				"AstroCoordSystem.SpaceFrame.CoordRefFrame" in msg)
 
 	def testCleanTAP(self):
+		self.conn.commit()
 		self.assertOutput(cli.main, argList=["admin", "cleantap"],
 			expectedRetcode=0)
 
@@ -90,6 +73,7 @@ class MiscCLITest(testhelpers.VerboseTest):
 			expectedStdout="Spawning thread for cron job Do silly things\nSilly\n")
 
 	def testCleanTAPPending(self):
+		self.conn.commit()
 		self.assertOutput(cli.main, argList=["admin", "cleantap", "-p"],
 			expectedRetcode=0, expectedStderr="")
 
@@ -114,7 +98,9 @@ class MiscCLITest(testhelpers.VerboseTest):
 
 
 class ImportTest(testhelpers.VerboseTest):
+	resources = [("conn", tresc.dbConnection)]
 	def testLifecycle(self):
+		self.conn.commit()
 		with base.AdhocQuerier() as querier:
 			self.assertOutput(cli.main, 
 				argList=["--suppress-log",
@@ -151,6 +137,7 @@ class ImportTest(testhelpers.VerboseTest):
 	def testMetaImportAndPurge(self):
 		self.assertOutput(cli.main, argList=["purge", "test.adql"])
 		# make sure the test schema before running the test exists
+		self.conn.commit()
 		self.assertOutput(cli.main, 
 			argList=["imp", "data/test", "productimport-skip"])
 		try:

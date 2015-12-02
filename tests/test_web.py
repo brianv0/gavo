@@ -513,6 +513,17 @@ class SCSTest(trialhelpers.ArchiveTest):
 			"hscs_pos": "1.2,2", "hscs_sr": "90",
 			"__nevow_form__": "genForm"}, ["Dist", "1808.96"])
 
+	def testMAXREC(self):
+
+		def assertMaxrecHonored(res):
+			self.assertEqual(res[0].count("<TR>"), 1)
+
+		return self.assertGETHasStrings("/data/cores/scs/scs.xml", 
+			{"RA": ["1"], "DEC": ["2"], "SR": ["180"], "RESPONSEFORMAT": "votabletd",
+				"MAXREC": "1"},
+			['name="warning"', 'query limit was reached']
+			).addCallback(assertMaxrecHonored)
+
 
 class SSATest(trialhelpers.ArchiveTest):
 	def testMetadataFormat(self):

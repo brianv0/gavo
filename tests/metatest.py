@@ -405,7 +405,8 @@ class TestSpecials(testhelpers.VerboseTest):
 			'<a href="http://some.oth.er">Link 2</a>')
 
 	def testNews(self):
-		m = parseMetaXML("""<meta name="_news" date="2009-03-06" author="MD">
+		m = parseMetaXML("""<meta name="_news" date="2009-03-06" author="MD"
+				role="metadataUpdated">
 			Added News Meta</meta>""")
 		builder = webcommon.HTMLMetaBuilder()
 		self.assertEqual(flat.flatten(m.buildRepr("_news", builder)), 
