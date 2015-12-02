@@ -118,6 +118,12 @@ class SyncTest(trialhelpers.ArchiveTest):
 			'/data/cores/dl/dlmeta</accessURL>',
 			'<ucd>meta.id;meta.main</ucd>'])
 
+	def testNoExtraSegments(self):
+		return self.assertGETHasStrings("/data/ssatest/dl/dlget/inv.test2", {
+				"ID": "ivo://test.inv/test2"},
+			["Resource Not Found (404)",
+			"'dlget' has no child"])
+
 	def testCleanedup(self):
 		# this doesn't do any queries, it just makes sure that
 		# the datalink services above cleaned up after themselves
@@ -127,6 +133,7 @@ class SyncTest(trialhelpers.ArchiveTest):
 			os.path.join(api.getConfig("tempDir"), "fitstable*"))
 		self.assertFalse(pooLeft, "Something left fitstable temporaries"
 			" in tempDir")
+
 
 def killLocalhost(url):
 	"""should delete the host part from url.

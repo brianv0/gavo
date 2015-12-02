@@ -712,7 +712,10 @@ class ServiceBasedPage(ResourceBasedPage):
 		if segments==("",):
 			raise svcs.WebRedirect(url.URL.fromContext(ctx))
 		else:
-			return ResourceBasedPage.locateChild(self, ctx, segments)
+			res = ResourceBasedPage.locateChild(self, ctx, segments)
+			if res[0] is None:
+				raise svcs.UnknownURI("%s has no child resources"%repr(self.name))
+			return res
 
 
 if __name__=="__main__":
