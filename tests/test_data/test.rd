@@ -165,6 +165,8 @@
 		</column>
 	</table>
 
+	<table original="adql" id="csdata" onDisk="True"/>
+
 	<data id="ADQLTest">
 		<sources pattern="data/adqlin.txt"/>
 		<rowmaker id="AT_adql" idmaps="alpha,delta,mag,rV">
@@ -177,7 +179,7 @@
 	<data id="csTestTable">
 		<sources pattern="data/cstestin.txt"/>
 		<reGrammar names="alpha,delta,mag,rv"/>
-		<make table="adql"/>
+		<make table="csdata"/>
 	</data>
 
 	<table id="valSpec" onDisk="True">

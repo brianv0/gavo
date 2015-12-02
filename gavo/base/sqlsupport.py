@@ -19,6 +19,7 @@ import random
 import re
 import threading
 import warnings
+import weakref
 
 import numpy
 
@@ -964,13 +965,35 @@ class CustomConnectionPool(psycopg2.pool.ThreadedConnectionPool):
 	"""A threaded connection pool that returns connections made via
 	profileName.
 	"""
+	# we keep weak references to pools we've created so we can invalidate
+	# them all on a server restart to avoid having stale connections
+	# around.
+	knownPools = []
+
 	def __init__(self, minconn, maxconn, profileName, autocommitted=True):
 # make sure no additional arguments come in, since we don't
 # support them.
 		self.profileName = profileName
 		self.autocommitted = autocommitted
+		self.stale = False
 		psycopg2.pool.ThreadedConnectionPool.__init__(
 			self, minconn, maxconn)
+		self.knownPools.append(weakref.ref(self))
+	
+	@classmethod
+	def serverRestarted(cls):
+		utils.sendUIEvent("Warning", "Suspecting a database restart."
+			"  Discarding old connection pools, asking to create new ones.")
+
+		for pool in cls.knownPools:
+			try:
+				pool().stale = True
+			except AttributeError:
+				# already gone
+				pass
+		# we risk a race condition here; this is used rarely enough that this
+		# shouldn't matter.
+		cls.knownPools = []
 
 	def _connect(self, key=None):
 		"""creates a new trustedquery connection and assigns it to
@@ -1008,16 +1031,12 @@ def _cleanupAfterDBError(ex, conn, pool, poolLock):
 
 	This is a helper for getConnFromPool below.
 	"""
-	if isinstance(ex, OperationalError) and conn.fileno()==-1: 
+	if isinstance(ex, OperationalError) and ex.pgcode is None:
 		# this is probably a db server restart.  Invalidate all connections
 		# immediately.
-		utils.sendUIEvent("Warning", "Suspecting a database restart."
-			"  Discarding old connection pool, making a new one.")
 		with poolLock:
 			if pool:
-				pool[0].closeall()
-				pool.pop()
-				return
+				pool[0].serverRestarted()
 
 	# Make sure the connection is closed; something bad happened
 	# in it, so we don't want to re-use it
@@ -1039,14 +1058,22 @@ def _makeConnectionManager(profileName, minConn=5, maxConn=20,
 	pool = []
 	poolLock = threading.Lock()
 
+	def makePool():
+		with poolLock:
+			pool.append(CustomConnectionPool(minConn, maxConn, profileName,
+				autocommitted))
+
 	def getConnFromPool():
 		# we delay pool creation since these functions are built during
 		# sqlsupport import.  We probably don't have profiles ready
 		# at that point.
 		if not pool:
-			with poolLock:
-				pool.append(CustomConnectionPool(minConn, maxConn, profileName,
-					autocommitted))
+			makePool()
+
+		if pool[0].stale:
+			pool[0].closeall()
+			pool.pop()
+			makePool()
 
 		conn = pool[0].getconn()
 		try:
@@ -1060,8 +1087,7 @@ def _makeConnectionManager(profileName, minConn=5, maxConn=20,
 			# no exception raised, commit if not autocommitted
 			if not autocommitted:
 				conn.commit()
-
-
+		
 		try:
 			pool[0].putconn(conn, close=conn.closed)
 		except InterfaceError:

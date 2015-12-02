@@ -200,6 +200,16 @@ class UWS(object):
 		the db.
 		"""
 		timeout = kws.pop("timeout", _DEFAULT_LOCK_TIMEOUT)
+
+		try:
+			with base.getWritableTableConn() as conn:
+				# We fire off a quick pointless query to catch server restarts;
+				# if this fails, the connection pools are cleared and the next
+				# queries will run again.
+				conn.execute("SELECT table_name FROM TAP_SCHEMA.tables LIMIT 1")
+		except base.DBError:
+				pass
+
 		with base.getWritableTableConn() as conn:
 			with base.connectionConfiguration(conn, timeout=timeout):
 				props = self.jobClass.getDefaults(conn)

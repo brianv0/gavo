@@ -27,6 +27,7 @@ from gavo.adql import nodes
 from gavo.adql import tree
 from gavo.imp import pyparsing
 from gavo.protocols import adqlglue
+from gavo.protocols import tap
 from gavo.stc import tapstc
 
 import tresc
@@ -47,12 +48,13 @@ adqlQuerier = _ADQLQuerier()
 
 
 class _ADQLTestTable(testhelpers.TestResource):
-	resources = [("adqlQuerier", adqlQuerier)]
+	resources = [("conn", tresc.dbConnection)]
 
 	def make(self, deps):
 		self.rd = testhelpers.getTestRD()
 		ds = rsc.makeData(self.rd.getById("ADQLTest"),
-				connection=deps["adqlQuerier"].connection).commitAll()
+				connection=deps["conn"])
+		tap.publishToTAP(self.rd, deps["conn"])
 		return ds
 	
 	def clean(self, ds):

@@ -212,7 +212,7 @@ class FormTest(trialhelpers.ArchiveTest):
 					" a search radius"])
 
 	def testJSONOnForm(self):
-		return self.assertGETHasStrings("/data/cores/cstest/form", {
+		return self.assertGETHasStrings("/data/cores/scs/form", {
 				"hscs_sr": "2000", "hscs_pos": "2,14", "rV": "", "__nevow_form__": 
 				"genForm", "VERB": 3, "_FORMAT": "JSON"}, 
 				['"queryStatus": "Ok"', '"dbtype": "real"'])

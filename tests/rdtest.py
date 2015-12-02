@@ -774,7 +774,7 @@ class CombiningDataTest(testhelpers.VerboseTest):
 
 	def testTablesIterating(self):
 		names = [t.tableDef.id for t in self.data]
-		self.assertEqual(names, ['randomDataTable', 'adql'])
+		self.assertEqual(names, ['randomDataTable', 'csdata'])
 	
 	def testMetaFromBasis(self):
 		self.assertEqual(base.getMetaText(self.data.dd, "onData"), "present")

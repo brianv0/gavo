@@ -65,7 +65,7 @@
 	</service>
 
 	<service id="cstest" allowed="form, scs.xml">
-		<dbCore id="cscore" queriedTable="data/test#adql">
+		<dbCore id="cscore" queriedTable="data/test#csdata">
 			<FEED source="//scs#coreDescs"/>
 			<condDesc buildFrom="mag"/>
 			<condDesc>
