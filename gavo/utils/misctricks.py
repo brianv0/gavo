@@ -62,21 +62,27 @@ try:
 		It must, however, add a dachs-ex-<roleName> class to the node. The
 		default funtion produces a nodes.emphasis item with the proper class.
 
+		In a pinch, you can pass a propertyName argument to addRole if the
+		desired property name is distinct from the role name in the RST.
+		This is used by tapquery and taprole since we didn't want to change
+		our examples when the standard changed.
+
 		To add a directive, say::
 
 			RSTExtensions.addDirective(dirName, dirClass)
 
-		In HTML, these classes become properties named like the role name.
+		In HTML, these classes become properties named like the role name
+		(except you can again use propertyName in a pinch).
 		"""
 		classToProperty = {}
 
 		@classmethod
-		def addDirective(cls, name, implementingClass):
+		def addDirective(cls, name, implementingClass, propertyName=None):
 			directives.register_directive(name, implementingClass)
-			cls.classToProperty["dachs-ex-"+name] = name
+			cls.classToProperty["dachs-ex-"+name] = propertyName or name
 
 		@classmethod
-		def makeTextRole(cls, roleName, roleFunc=None):
+		def makeTextRole(cls, roleName, roleFunc=None, propertyName=None):
 			"""creates a new text role for roleName.
 
 			See class docstring.
@@ -84,7 +90,7 @@ try:
 			if roleFunc is None:
 				roleFunc = cls._makeDefaultRoleFunc(roleName)
 			roles.register_local_role(roleName, roleFunc)
-			cls.classToProperty["dachs-ex-"+roleName] = roleName
+			cls.classToProperty["dachs-ex-"+roleName] = propertyName or roleName
 		
 		@classmethod
 		def _makeDefaultRoleFunc(cls, roleName):

@@ -168,7 +168,8 @@ def _taptableRoleFunc(name, rawText, text, lineno, inliner,
 	node["classes"] = ["dachs-ex-taptable"]
 	return [node], []
 
-misctricks.RSTExtensions.makeTextRole("taptable", _taptableRoleFunc)
+misctricks.RSTExtensions.makeTextRole("taptable", _taptableRoleFunc,
+	propertyName="table")
 del _taptableRoleFunc
 
 class _TAPQuery(rst.Directive):
@@ -180,7 +181,8 @@ class _TAPQuery(rst.Directive):
 		res["classes"] = ["dachs-ex-tapquery"]
 		return [res]
 
-misctricks.RSTExtensions.addDirective("tapquery", _TAPQuery)
+misctricks.RSTExtensions.addDirective("tapquery", _TAPQuery,
+	propertyName="query")
 del _TAPQuery
 
 

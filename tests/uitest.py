@@ -99,6 +99,7 @@ class MiscCLITest(testhelpers.VerboseTest):
 
 class ImportTest(testhelpers.VerboseTest):
 	resources = [("conn", tresc.dbConnection)]
+
 	def testLifecycle(self):
 		self.conn.commit()
 		with base.AdhocQuerier() as querier:

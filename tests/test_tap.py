@@ -84,10 +84,10 @@ class SyncMetaTest(TAPRenderTest):
 	def testExamples(self):
 		return self.assertGETHasStrings("/examples", {}, [
 			'resource="#tap_schemaexample"',
-			'property="taptable"',
+			'property="table"',
 			'content="tap_schema.columns"',
 			'10\xc2\xb5m',
-			'property="tapquery"',
+			'property="query"',
 			"LIKE '%em.IR.8-15um%'\n</pre>",
 			'vocab="ivo://ivoa.net/std/DALI-examples#"'])
 			

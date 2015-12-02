@@ -611,14 +611,14 @@ class TAPExampleTest(testhelpers.VerboseTest):
 		self.assertTrue(para.text.startswith("Some tables"))
 	
 	def testTableLink(self):
-		tableLink = self.tree.xpath("//*[@property='taptable']")[0]
+		tableLink = self.tree.xpath("//*[@property='table']")[0]
 		self.assertEqual(len(tableLink), 0)
 		self.assertEqual(tableLink.text, "amanda.nucand")
 		self.assertEqual(tableLink.get("content"), "amanda.nucand")
 		self.assertEqual(tableLink.get("href"), "/tableinfo/amanda.nucand")
 	
 	def testQueryPresent(self):
-		queryEl = self.tree.xpath("//*[@property='tapquery']")[0]
+		queryEl = self.tree.xpath("//*[@property='query']")[0]
 		self.assertEqual(queryEl.text.strip(),
 			"SELECT *\n  FROM amanda.nucand\nWHERE atmonusubset='True' and foo<20")
 		self.assertEqual(queryEl.attrib["class"],
