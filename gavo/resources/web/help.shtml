@@ -31,15 +31,18 @@ about access.</p>
 
 <p>In addition to web-based services, the data center also
 provides services accessible through IVOA standard protocols like SIAP (for
-images) and SCS (supporting cone searches).  These can be located through 
-a <a href="http://nvo.stsci.edu/voregistry/index.aspx">Virtual Observatory registry</a> or 
+images), SCS (allowing simple queries against catalogs of astronomical
+objects), SSAP (for spectra), and TAP (allowing complex queries against
+database tables of all sorts).
+These can be located through Virtual Observatory registry interface
+(e.g., <a href="http://dc.g-vo.org/WIRR">WIRR</a>) or 
 <a href="http://www.g-vo.org/www/External/Tools">common VO tools</a>.</p>
 
 <h2>Search forms</h2>
 
 <h3>Query Fields</h3>
 
-<p>Services not using customized interfaces have standard query forms.  These
+<p>Services not using customised interfaces have standard query forms.  These
 consist of a series of input fields that either take</p>
 <ul>
 <li>numeric expressions -- you can recognize those from the little "[?num. expr.]" tag 
@@ -67,7 +70,7 @@ should come with a short explanation.</li>
 
 <h3>Query Modifiers</h3>
 
-<p>For most queries, you will have a "Table" query field near the bottom of the
+<p>In most forms, you will have a "Table" query field near the bottom of the
 form.  You can set sorting and limit options there.  Note that depending on the
 query, selecting a column to sort on may slow down the answer dramatically.
 This is because your query may match large amounts of data, and even if only
@@ -78,12 +81,6 @@ without a sort option, i.e., you may get a different set of, say, 100 items for
 identical query parameters at two different times.  The services
 warn you about this fact when they return truncated results.</p>
 
-<p>In cases in which the match limits provided by the form do not suit you, you
-can override the match limit by editing the result link (see below).  You want
-to substitute your value into _DBOPTIONS_LIMIT=100.  The system has has
-hardcoded match limit that you cannot override in this way, but it is unlikely
-that it will hurt you.</p>
-
 <p>You can usually select an output format.  
 <a name="outformats">Options here include</a></p>
 <ul>
@@ -92,7 +89,7 @@ columns in your output from an input field that pops down when you mouse over
 it.</li>
 <li>VOTable -- data is returned in IVOA's standard data format, the VOTable.
 This is XML that can be human-readable but is really intended to be consumed
-by tools like <a href="http://www.star.bris.ac.uk/~mbt/topcat/">Topcat</a>.
+by tools like <a href="http://www.star.bris.ac.uk/~mbt/topcat/">TOPCAT</a>.
 You can select a "verbosity" specifying the fields present in the output, with
 1 standing for a minimal set of information, 2 for what the service author
 deemed useful for the average astronomer, 3 for (almost) all fields
@@ -101,13 +98,11 @@ Furthermore, you can choose between a "human-readable" VOTable
 (select this to process your data with standard XML or text-based
 tools or peruse it with the naked eye) and a binary version that you
 should use for larger data sets since it is much more efficient.</li>
-<li>VOPlot -- starts up IndiaVO's VOPlot utility in your browser.  This lets
-you visualize the returned data without any software on your
-side (besides a java-capable browser).</li>
 <li>FITS -- this returns FITS tables.  The data is in the first
-extension.  This contains much less meta information than a VOTable of the
+extension.  This contains a good deal less meta information than a VOTable of the
 same data and thus should only be used if your backend tools do not understand
-VOTables.</li>
+VOTables or if the ability to memory-map the data contents matters in
+your application.</li>
 <li>TSV -- tab separated files.  If in a desperate pinch, you can get the 
 table contents as an ASCII file.  The fields a separated by tabs.  All metadata
 is lost.  Nullvalues are (almost) always rendered as the string "None".
@@ -121,6 +116,10 @@ etc (note: don't use Excel to process astronomical data.
 <a href="http://www.star.bris.ac.uk/~mbt/topcat/">TOPCAT</a> is so
 much nicer, and it has built-in VO support).  Null values are mostly
 rendered as empty fields, but float NULLs are NaNs.</li>
+<li>JSON -- the JSON returned by DaCHS mimics the VOTable in structure
+and contains relatively rich metadata.  Use this if you want to process
+query results with Javascript or in environments that do not understand
+VOTable.</li>
 <li>tar -- if the service contains "products" (usually FITS files of some
 kind), you can download all matching items in a tar file.</li>
 </ul>
@@ -128,7 +127,7 @@ kind), you can download all matching items in a tar file.</li>
 <p>Next to the output format selection, there are two links.  The one labeled
 "[Result link]" reflects your current query as a copyable URL.  You could use
 this to send a query result to colleagues, but it is particularly useful with
-the VOTable output format -- you can drag and drop that link into Topcat's
+the VOTable output format -- you can drag and drop that link into TOPCAT's
 "Open" dialogue, for example.</p>
 
 <p>The star (<img src="/static/img/bookmark.png"/>) lets you
@@ -143,9 +142,8 @@ for this to work.</p>
 <h3>The sidebar</h3>
 
 <p>The sidebar on form and result pages contains ancillary information for the
-resource the data comes from.  In the Metadata section, only metadata titles
-are shown.  You can view the content by clicking on "&gt;&gt;" and hide it
-again by clicking on "&lt;&lt;".</p> 
+resource the data comes from.  To save space, the individual items are
+"folded in" by default.  Mouse over them to see the full entries.</p> 
 
 <p>The "Created" metadata item shown refers to the creation of the resource
 descriptor, i.e., is related to the service rather than the data.  The "Data 
@@ -193,12 +191,11 @@ If you can provide those, log in and try again.</p>
 
 <h2>Software availability</h2>
 
-<p>The software driving this site is not really finished
-enough for a "real" release.  If that does not scare you, you are
-welcome to a
-<a href="http://vo.ari.uni-heidelberg.de/soft">download</a>.  All our
-code is released under the GPLv3 (even if it doesn't say so in all places
-yet).</p>
+<p>The software driving this site is available for download and
+inspection. For details see the
+<a href="http://docs.g-vo.org/DaCHS/install.html">DaCHS installation
+guide</a>.  All our
+code is released under the GPL.</p>
 
 <h2>Acknowledgements</h2>
 
@@ -211,11 +208,7 @@ see <a href="http://lnfm1.sai.msu.ru/~math/docs/adass_proceedings2005.pdf">2006A
 
 <h2>Privacy</h2>
 
-<p>As put down in our <a href="/static/doc/privpol.shtml">privacy policy</a>,
-we try to respect your privacy and store as little data as possible.  If you
-want us to by default delete all log entries, bring the funding agencies and
-others to sense.  Access data is no measure for usefulness.  But who's
-even reading this?</p>
+<p>See our <a href="/static/doc/privpol.shtml">privacy policy</a>.</p>
 
 </body>
 </html>

@@ -126,7 +126,7 @@ def validateServices(rd, args):
 			base.validateStructure(svc)
 		except api.MetaValidationError, ex:
 			validSoFar = False
-			outputWarning(rd.sourceId, "Missing metadata for publication of"
+			outputError(rd.sourceId, "Missing metadata for publication of"
 				" service %s:\n%s"%(svc.id, str(ex)))
 			continue # further checks will just add verbosity
 
@@ -141,11 +141,11 @@ def validateServices(rd, args):
 			registryRecord = builders.getVORMetadataElement(svc)
 		except stc.STCSParseError, msg:
 			validSoFar = False
-			outputWarning(rd.sourceId, "Invalid STC-S (probably in coverage meta)"
+			outputError(rd.sourceId, "Invalid STC-S (probably in coverage meta)"
 				": %s"%str(msg))
 		except:
 			validSoFar = False
-			outputWarning(rd.sourceId, "Error when producing registry record"
+			outputError(rd.sourceId, "Error when producing registry record"
 				" of service %s:"%svc.id, True)
 
 		if registryRecord:
@@ -154,7 +154,7 @@ def validateServices(rd, args):
 					registryRecord.render(), leaveOffending=True)
 			except AssertionError, msg:
 				validSoFar = False
-				outputWarning(rd.sourceId, "Invalid registry record for service"
+				outputError(rd.sourceId, "Invalid registry record for service"
 					" %s:\n%s"%(svc.id, str(msg)))
 
 	return validSoFar
@@ -174,7 +174,6 @@ def validateRST(rd, args):
 					outputWarning(rd.sourceId, 
 						"%s metadata on %s (%s) has an RST problem: %s"%(
 							key, el, utils.makeEllipsis(content, 80), msg))
-					validSoFar = False
 		
 		for child in el.iterChildren():
 			if child:
@@ -324,7 +323,9 @@ def parseCommandLine():
 		help="RD identifier or file system path.  Use magic value ALL to"
 		" check all reachable RDs.")
 	parser.add_argument("-p", "--pre-publication", help="Validate"
-		" as if services were IVOA published even if they are not.",
+		" as if all services were IVOA published even if they are not"
+		" (this may produce spurious errors if unpublished services are in"
+		" the RD).",
 		action="store_true", dest="prePublication")
 	parser.add_argument("-v", "--verbose", help="Talk while working",
 		action="store_true", dest="verbose")
