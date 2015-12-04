@@ -809,14 +809,20 @@ class DatalinkCore(DatalinkCoreBase):
 		for pubDID in pubDIDs:
 			try:
 				descriptors.append(descGen(pubDID, args))
-			except base.NotFoundError, ex:
-				descriptors.append(DatalinkFault.NotFoundFault(pubDID,
-					utils.safe_str(ex)))
 			except Exception, ex:
-				if base.DEBUG:
-					base.ui.notifyError("Error in datalink descriptor generator")
-				descriptors.append(DatalinkFault.Fault(pubDID,
-					utils.safe_str(ex)))
+				# non-dlmeta exception should go right through to let people redirect
+				# (and also because messages might be better).
+				if renderer.name!="dlmeta":
+					raise
+				else:
+					if isinstance(ex, base.NotFoundError):
+						descriptors.append(DatalinkFault.NotFoundFault(pubDID,
+							utils.safe_str(ex)))
+					else:
+						if base.DEBUG:
+							base.ui.notifyError("Error in datalink descriptor generator")
+						descriptors.append(DatalinkFault.Fault(pubDID,
+							utils.safe_str(ex)))
 
 		return self.adaptForDescriptors(renderer, descriptors)
 	

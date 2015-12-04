@@ -998,7 +998,7 @@ def _getRunnerForSingle(testId, runnerArgs):
 	elif isinstance(testElement, RegTest):
 		runner = TestRunner.fromTest(testElement, **runnerArgs)
 	else:
-		raise base.ReportableError("%s is not a testable element.",
+		raise base.ReportableError("%s is not a testable element."%testId,
 			hint="Only RDs, regSuites, or regTests are eligible for testing.")
 	return runner
 

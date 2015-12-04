@@ -565,18 +565,11 @@ class _DatalinkRendererBase(grend.ServiceBasedPage):
 			return data
 
 	def _reportError(self, failure, request):
-		# For a while, at least: Have the main code handle exceptions.
-		# This was done so redirects and similar tricks work.
-		# If we want text/plain handling again (and I think the standard
-		# warmly recommends it), at least handle redirects here.
-		failure.raiseException()
-
-		base.ui.notifyFailure(failure)
+		# Do not trap svcs.WebRedirect here!
+		failure.trap(base.ValidationError)
 		request.setHeader("content-type", "text/plain")
-		if isinstance(failure.value, base.Error):
-			request.setResponseCode(422)
-		else:
-			request.setResponseCode(500)
+		request.setResponseCode(422)
+
 		return "%s: %s\n"%(
 			failure.value.__class__.__name__, 
 			utils.safe_str(failure.value))

@@ -119,9 +119,16 @@
 		<meta name="title">Hollow Datalink</meta>
 		<datalinkCore>
 			<descriptorGenerator procDef="//datalink#fits_genDesc">
+				<setup>
+					<code>
+						from gavo import svcs
+					</code>
+				</setup>
 				<code>
 					if pubDID=="broken":
 						ddt
+					elif pubDID=="somewhereelse":
+						raise svcs.WebRedirect("http://some.whereel.se/there")
 					return getFITSDescriptor(pubDID)
 				</code>
 			</descriptorGenerator>

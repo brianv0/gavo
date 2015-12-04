@@ -45,9 +45,7 @@ class SyncTest(trialhelpers.ArchiveTest):
 			["global name 'ddt' is not defined"])
 
 	def testErrorStatus(self):
-		# This should probably be something else when we do custom
-		# datalink errors again.
-		return self.assertStatus("/data/cores/dl/dlget", 500)
+		return self.assertStatus("/data/cores/dl/dlget", 422)
 
 	def testWithoutId(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlmeta", {}, [
@@ -78,12 +76,26 @@ class SyncTest(trialhelpers.ArchiveTest):
 				'<VALUES><MIN value="30.9831815872">',])
 
 	def testInvalidRespformat(self):
+		def assertStatus422(res):
+			self.assertEqual(res[1].code, 422)
+
 		return self.assertGETHasStrings("/data/cores/dl/dlmeta", {
 				"ID": "ivo://x-unregistred/~?data/excube.fits",
 				"RESPONSEFORMAT": "vnd-microsoft/xls"
 			},
 			["Field RESPONSEFORMAT: 'vnd-microsoft/xls'"
-				" is not a valid value for RESPONSEFORMAT"])
+				" is not a valid value for RESPONSEFORMAT"]).addCallback(
+				assertStatus422)
+
+	def testRedirection(self):
+		def assertStatus301(res):
+			self.assertEqual(res[1].code, 301)
+
+		return self.assertGETHasStrings("/data/cores/dl/dlget", {
+				"ID": "somewhereelse",
+			},
+			['<a href="http://some.whereel.se/there">different URL']).addCallback(
+				assertStatus301)
 
 	def testMetadataError(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlmeta", 
