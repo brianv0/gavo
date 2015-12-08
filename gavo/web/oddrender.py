@@ -92,6 +92,8 @@ class JpegRenderer(formrender.FormMixin, grend.ServiceBasedPage,
 		else:
 			lines = [rec["data"].decode("base64") 
 				for rec in data.original.getPrimaryTable()]
+		lines.reverse()
+
 		img = Image.fromstring("L", (len(lines[0]), len(lines)),
 			"".join(pixLine for pixLine in lines))
 		if pars.get("palette"):
