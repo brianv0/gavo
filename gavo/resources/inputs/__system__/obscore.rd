@@ -339,8 +339,17 @@
 
 	<!-- another helper script for the publish mixin that gets added to
 	obscore#published tables.  -->
-	<script id="removeTableFromObscoreSources" lang="SQL" type="beforeDrop">
-		DELETE FROM ivoa._obscoresources WHERE tableName='\qName'
+	<script id="removeTableFromObscoreSources" lang="python" type="beforeDrop"
+			name="remove table from obscore sources">
+		from gavo import rsc
+		table.query(
+			"DELETE FROM ivoa._obscoresources WHERE tableName='\qName'")
+		# importing this table may take a long time, and we don't want
+		# to have obscore offline for so long; so, we immediately recreate
+		# it.
+		rsc.makeData(base.caches.getRD("//obscore").getById("create"),
+			connection=table.connection)
+		table.commit()
 	</script>
 
 	<STREAM id="_publishCommon">

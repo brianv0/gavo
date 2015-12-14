@@ -96,6 +96,10 @@ def formatSimpleTable(data, stringify=True):
 	"""
 	if stringify:
 		data = [[str(v) for v in row] for row in data]
+
+	if not data:
+		return ""
+
 	colWidthes = [max(len(row[colInd]) for row in data)
 		for colInd in range(len(data[0]))]
 	fmtStr = "  ".join("%%%ds"%w for w in colWidthes)

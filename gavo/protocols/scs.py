@@ -73,6 +73,13 @@ class SCSCore(svcs.DBCore):
 
 	If any of the conditions for adding _r aren't met, this will silently
 	degrade to a plain DBCore.
+
+	You will almost certainly want a::
+
+		<FEED source="//scs#coreDescs"/>
+	
+	in the body of this (in addition to whatever other custom conditions
+	you may have).
 	"""
 	name_ = "scsCore"
 
