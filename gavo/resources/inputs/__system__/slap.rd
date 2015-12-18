@@ -43,12 +43,12 @@
 				verbLevel="15"/>
 			<column name="initial_level_energy" type="double precision"
 				unit="J" ucd="phys.energy;phys.atmol.initial;phys.atmol.level"
-				tablehead="E_i"
+				tablehead="E_init"
 				description="Energy of the level the atom or molecule starts in."
 				verbLevel="15"/>
 			<column name="final_level_energy" type="double precision"
 				unit="J" ucd="phys.energy;phys.atmol.final;phys.atmol.level"
-				tablehead="E_f"
+				tablehead="E_final"
 				description="Energy of the level the atom or molecule ends up in."
 				verbLevel="15"/>
 			<column name="pub" type="text"
