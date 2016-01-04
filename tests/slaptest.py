@@ -2,10 +2,11 @@
 Tests for slap tables and services
 """
 
-#c Copyright 2008-2015, the GAVO project
+#c Copyright 2008-2016, the GAVO project
 #c
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
+
 
 from gavo.helpers import testhelpers
 
