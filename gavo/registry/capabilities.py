@@ -17,29 +17,29 @@ from gavo import base
 from gavo import svcs
 from gavo import utils
 from gavo.base import meta
-from gavo.base import typesystems
+from gavo.registry import tableset
 from gavo.registry.model import (VOR, VOG, VS, SIA, SCS, SLAP, SSAP, TR)
 
 
 ###################### Helpers (TODO: Move to tableset, I guess)
 
+
 def _getParamFromColumn(column, rootElement, typeFactory):
 	"""helper for get[Table|Input]ParamFromColumn.
 	"""
-	type, length, xtype = typesystems.sqltypeToVOTable(column.type)
 	return rootElement[
 			VS.name[column.name],
 			VS.description[column.description],
 			VS.unit[column.unit],
 			VS.ucd[column.ucd],
-			typeFactory(type, length)]
+			typeFactory(column.type)]
 
 
 def getInputParamFromColumn(column, rootElement=VS.param):
 	"""returns a InputParam element for a rscdef.Column.
 	"""
 	return _getParamFromColumn(column, rootElement,
-		lambda type, length: VS.simpleDataType[type])(
+		tableset.simpleDataTypeFactory)(
 			std=(column.std and "true") or "false")
 
 

@@ -21,6 +21,30 @@ from gavo import utils
 from gavo.registry.model import VS
 
 
+_VOTABLE_TO_SIMPLE_TYPE_MAP = {
+	"char": "char",
+	"bytea": "char",
+	"unicodeChar": "char",
+	"short": "integer",
+	"int": "integer",
+	"long": "integer",
+	"float": "real",
+	"double": "real",
+}
+
+def simpleDataTypeFactory(dbType):
+	type, length, xtype = base.sqltypeToVOTable(dbType)
+	if length=='1':
+		length = None
+	return VS.dataType(arraysize=length)[
+		_VOTABLE_TO_SIMPLE_TYPE_MAP.get(type, "char")]
+
+
+def voTableDataTypeFactory(dbType):
+	type, length, xtype = base.sqltypeToVOTable(dbType)
+	return VS.voTableDataType(arraysize=length)[type]
+
+
 def getSchemaForRD(rd):
 	"""returns a VS.schema instance for an rd.
 
@@ -53,12 +77,14 @@ def getForeignKeyForForeignKey(fk, namesInSet):
 			for fromColName,toColName in zip(fk.source, fk.dest)]]
 
 
-def getTableColumnFromColumn(column, typeElement):
+def getTableColumnFromColumn(column, typeFactory):
 	"""returns a VS.column instance for an rscdef.Column instance.
 
 	typeElement is a factory for types that has to accept an internal (SQL)
 	type as child and generate whatever is necessary from that.
-	VS.voTableDataType is an example for such a factory.
+	
+	This module contains simpleDataTypeFactory, voTableDataTypeFactory,
+	and should soon contain tapTypeFactory.
 	"""
 	if isinstance(column.name, utils.QuotedName):
 		colName = str(column.name)
@@ -79,7 +105,7 @@ def getTableColumnFromColumn(column, typeElement):
 		VS.unit[column.unit],
 		VS.ucd[column.ucd],
 		VS.utype[column.utype],
-		typeElement[column.type],
+		typeFactory(column.type),
 		[VS.flag[f] for f in flags]]
 
 
@@ -115,7 +141,7 @@ def getTableForTableDef(tableDef, namesInSet):
 		VS.title[base.getMetaText(tableDef, "title", propagate=False)],
 		VS.description[base.getMetaText(tableDef, "description", propagate=True)],
 		VS.utype[base.getMetaText(tableDef, "utype")], [
-			getTableColumnFromColumn(col, VS.voTableDataType)
+			getTableColumnFromColumn(col, voTableDataTypeFactory)
 				for col in tableDef], [
 			getForeignKeyForForeignKey(fk, namesInSet)
 				for fk in tableDef.foreignKeys]]

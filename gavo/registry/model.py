@@ -446,38 +446,16 @@ def addBasicVSElements(baseNS, VSElement):
 			_a_extendedSchema = None
 			_a_extendedType = None
 
-			def addChild(self, item):
-				assert isinstance(item, basestring)
-				self._defineType(item)
+		class dataType(dataType):
+			name_ = "dataType"
 
-			def _defineType(self, item):
-				self.text_ = item
-
-		class simpleDataType(dataType):
-			name_ = "dataType"  # dataType with vs:SimpleDataType sounds so stupid
-				# that I must have misunderstood something.
-			
-			typeMap = {
-				"char": "string",
-				"unicodeChar": "string",
-				"short": "integer",
-				"int": "integer",
-				"long": "integer",
-				"float": "real",
-				"double": "real",
-			}
-
-			def _defineType(self, type):
-				self.text_ = self.typeMap.get(type, type)
-		
 		class voTableDataType(dataType):
+			name_ = "dataType"
 			_a_xsi_type = "vs:VOTableType"
 
-			def _defineType(self, type):
-				typeName, arrLen, xtype = base.sqltypeToVOTable(type)
-				self.text_ = typeName
-				self(arraysize=str(arrLen))
-
+		class tapType(dataType):
+			name_ = "dataType"
+			_a_xsi_type = "vs:TAPType"
 
 	return TNS
 

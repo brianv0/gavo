@@ -631,7 +631,9 @@ class DatalinkMetaMakerTest(testhelpers.VerboseTest):
 				self.assertEqual(el.xpath("ucd")[0].text, "meta.id;meta.main")
 
 			elif parName=="RESPONSEFORMAT":
-				self.assertEqual(el.xpath("dataType")[0].text, "string")
+				datatype = el.xpath("dataType")[0]
+				self.assertEqual(datatype.text, "char")
+				self.assertEqual(datatype.get("arraysize"), "*")
 
 			elif parName=="REQUEST":
 				self.assertEqual(el.xpath("description")[0].text, 

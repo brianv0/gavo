@@ -206,6 +206,7 @@
 	</service>
 
 	<service id="pc" allowed="api,form,uws.xml">
+		<publish sets="ivo_managed" render="api"/>
 		<pythonCore>
 			<inputTable>
 				<inputKey name="opre" description="Operand, real part"

@@ -27,6 +27,7 @@ from gavo.registry import capabilities
 from gavo.registry import nonservice
 from gavo.registry import oaiinter
 from gavo.registry import publication
+from gavo.registry import tableset
 from gavo.utils import ElementTree
 from gavo.registry.model import OAI
 from gavo.web import vosi
@@ -52,15 +53,15 @@ class RegistryModelTest(testhelpers.VerboseTest):
 		self.assertEqual(model.VS.ucd()._prefix, "vs")
 
 	def testVOTableDataType(self):
-		from gavo.registry import model
 		self.assertEqual(
-			testhelpers.cleanXML(model.VS.voTableDataType["char"].render()),
+			testhelpers.cleanXML(tableset.voTableDataTypeFactory("char").render()),
 			'<dataType arraysize="1" xsi:type="vs:VOTableType">char</dataType>')
 		self.assertEqual(
-			testhelpers.cleanXML(model.VS.voTableDataType["text"].render()),
+			testhelpers.cleanXML(tableset.voTableDataTypeFactory("text").render()),
 			'<dataType arraysize="*" xsi:type="vs:VOTableType">char</dataType>')
 		self.assertEqual(
-			testhelpers.cleanXML(model.VS.voTableDataType["integer[20]"].render()),
+			testhelpers.cleanXML(tableset.voTableDataTypeFactory(
+				"integer[20]").render()),
 			'<dataType arraysize="20" xsi:type="vs:VOTableType">int</dataType>')
 
 
@@ -683,6 +684,26 @@ class ServiceRecordTest(testhelpers.VerboseTest):
 			"vr:WebBrowser")
 		self.assertTrue(cap.xpath("interface/accessURL")[0].text.endswith(
 			"/funky/town/glonk/examples"))
+
+
+class _UWSVORRecord(testhelpers.TestResource):
+	def make(self, ignored):
+		tree = testhelpers.getXMLTree(
+			builders.getVOResourceElement(base.resolveCrossId("data/cores#pc")
+				).render(), debug=False)
+		return tree.xpath("metadata/Resource")[0]
+
+_uwsVORRecord = _UWSVORRecord()
+
+
+class UWSRecordTest(testhelpers.VerboseTest):
+	resources = [("rec", _uwsVORRecord)]
+
+	def testFileDeclaration(self):
+		fileParam = self.rec.xpath("//param[name='stuff']")[0]
+		dataType = fileParam.xpath("dataType")[0]
+		self.assertEqual(dataType.text, "char")
+		self.assertEqual(dataType.get("arraysize"), "*")
 
 
 class _TableVORRecord(testhelpers.TestResource):
