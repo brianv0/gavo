@@ -54,6 +54,8 @@ def flatten(arg):
 	"""
 	if isinstance(arg, basestring):
 		return arg
+	elif isinstance(arg, (int, float)):
+		return str(arg)
 	elif isinstance(arg, pyparsing.ParseResults):
 		return " ".join(flatten(c) for c in arg)
 	else:
@@ -720,6 +722,20 @@ class Having(TransparentNode):
 class OrderBy(TransparentNode):
 	type = "sortSpecification"
 
+class OffsetSpec(ADQLNode):
+	type = "offsetSpec"
+
+	_a_offset = None
+
+	@classmethod
+	def _getInitKWs(cls, _parseResult):
+		return {"offset": int(_parseResult[1])}
+	
+	def flatten(self):
+		if self.offset is not None:
+			return "OFFSET %d"%self.offset
+		return ""
+
 
 class SelectNoParens(ColumnBearingNode): 
 	type = "selectNoParens"
@@ -779,7 +795,7 @@ class SelectNoParens(ColumnBearingNode):
 			("", "whereClause"),
 			("", "groupby"),
 			("", "having"),
-			("", "orderBy"),)
+			("", "orderBy"))
 
 	def suggestAName(self):
 		"""returns a string that may or may not be a nice name for a table
@@ -886,6 +902,7 @@ class QuerySpecification(SetOperationNode):
 	type = "querySpecification"
 
 	_a_setLimit = None
+	_a_offset= None
 
 	def getSelectClauses(self):
 		for child in self.children:
@@ -902,6 +919,11 @@ class QuerySpecification(SetOperationNode):
 			limits = [int(s) for s in limits if s]
 			if limits:
 				self.setLimit = max(limits)
+	
+		for child in self.children:
+			if isinstance(child, OffsetSpec) and child.offset is not None:
+				self.offset = child.offset
+				child.offset = None
 
 	def __getattr__(self, attrName):
 		return getattr(self.children[0], attrName)

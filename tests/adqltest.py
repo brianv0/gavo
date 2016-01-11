@@ -519,7 +519,7 @@ class ParseErrorTest(testhelpers.VerboseTest):
 	def _runTest(self, sample):
 		query, msgFragment = sample
 		try:
-			adql.getGrammar().parseString(query)
+			res = adql.getGrammar().parseString(query, parseAll=True)
 		except (adql.ParseException, adql.ParseSyntaxException), ex:
 			msg = unicode(ex)
 			self.failUnless(msgFragment in msg,
@@ -560,6 +560,11 @@ class ParseErrorTest(testhelpers.VerboseTest):
 			"xpected coordinate system literal (ICRS, GALACTIC,...) (at char 13)"),
 		("SELECT * from a join b on foo",
 			"Expected comparison operator (at char 29"),
+# 20
+		("SELECT * from a OFFSET 20 join b on foo",
+			"Expected end of text (at char 26)"),
+		("SELECT * from a natural join b OFFSET banana",
+			"Expected unsigned integer (at char 38)"),
 	]
 
 
@@ -1576,8 +1581,8 @@ class PQMorphTest(testhelpers.VerboseTest):
 		self.assertEqualIgnoringAliases(nodes.flatten(t), stOut)
 
 	def testSyntax(self):
-		self._testMorph("select distinct top 10 x, y from foo", 
-			'SELECT DISTINCT x, y FROM foo LIMIT 10')
+		self._testMorph("select distinct top 10 x, y from foo offset 3", 
+			'SELECT DISTINCT x, y FROM foo  LIMIT 10 OFFSET 3')
 
 	def testWhitespace(self):
 		self._testMorph("select\t distinct top\n\r\n    10 x, y from foo", 
@@ -1722,12 +1727,12 @@ class PQMorphTest(testhelpers.VerboseTest):
 
 	def testStarWithSubquery(self):
 		tree = adql.parseToTree("select * from spatial join "
-			" (select ra1+dec, dist-2 as foo, dec from spatial2) as q"
+			" (select ra1+dec, dist-2 as foo, dec from spatial2 offset 0) as q"
 			" ON ( width = dec )")
 		adql.annotate(tree, _sampleFieldInfoGetter)
 		status, t = adql.morphPG(tree)
 		flattened = nodes.flatten(t)
-		self.assertTrue(re.match(r'SELECT spatial.dist, spatial.width, spatial.height, spatial.ra1, spatial.ra2, q.([a-z]*), q.foo, q.dec FROM spatial JOIN \(SELECT ra1 \+ dec AS \1, dist - 2 AS foo, dec FROM spatial2\) AS q ON \( width = dec \)$', flattened))
+		self.assertTrue(re.match(r'SELECT spatial.dist, spatial.width, spatial.height, spatial.ra1, spatial.ra2, q.([a-z]*), q.foo, q.dec FROM spatial JOIN \(SELECT ra1 \+ dec AS \1, dist - 2 AS foo, dec FROM spatial2  OFFSET 0\) AS q ON \( width = dec \)$', flattened))
 
 	def testSetLimitIntegrated(self):
 		self._testMorph("select top 3 * from x union (select top 40 a from y"

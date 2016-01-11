@@ -324,7 +324,6 @@ class _PGSC(nodes.SelectNoParens):
 	"""A modifield selectNoParens that fixes the syntactic differences
 	between ADQL and postgres.
 	"""
-	_a_offset = None
 	def flatten(self):
 		return nodes.flattenKWs(self,
 			("SELECT", None),
@@ -335,8 +334,7 @@ class _PGSC(nodes.SelectNoParens):
 			("", "groupby"),
 			("", "having"),
 			("", "orderBy"),
-			("LIMIT", "setLimit"),
-			("OFFSET", "offset"))
+			("LIMIT", "setLimit"))
 
 
 class _PGQS(nodes.ADQLNode):
@@ -350,27 +348,19 @@ class _PGQS(nodes.ADQLNode):
 	type = "postgres query specification"
 	_a_original = None
 	_a_setLimit = None
+	_a_offset = None
 
 	def flatten(self):
 		return nodes.flattenKWs(self,
 			("", "original"),
-			("LIMIT", "setLimit"))
+			("LIMIT", "setLimit"),
+			("OFFSET", "offset"))
 
 
 def _insertPGSC(node, state):
 	"""wraps a select clause into something that serializes to postgres.
-	
-	This will turn TOP and ALL into LIMIT and OFFSET 0.
-
-	Turning ALL into OFFSET 0 is a bad hack, but we need some way to let
-	people specify the OFFSET 0, and this is probably the least intrusive
-	one.
 	"""
-	offset = None
-	if node.setQuantifier and node.setQuantifier.lower()=="all":
-		offset = "0"
-	res = _PGSC.cloneFrom(node, offset=offset)
-	return res
+	return _PGSC.cloneFrom(node)
 
 
 def _expandStars(node, state):
@@ -422,8 +412,11 @@ def _fixSetLimit(node, state):
 	"""
 	for n in node.getSelectClauses():
 		n.setLimit = None
-
-	return _PGQS(node, node.setLimit and str(node.setLimit))
+	offset = node.offset
+	node.offset = None
+	return _PGQS(original=node, 
+		setLimit=node.setLimit and str(node.setLimit),
+		offset=offset)
 
 
 _syntaxMorphers = {

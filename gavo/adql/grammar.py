@@ -153,7 +153,8 @@ adqlReservedWords = set([ "ABS", "ACOS", "AREA", "ASIN", "ATAN", "ATAN2",
 	"EXP", "FLOOR", "INTERSECTS", "LATITUDE", "LOG", "LOG10", "COORD1",
 	"COORD2", "COORDSYS", "BOX",
 	"MOD", "PI", "POINT", "POLYGON", "POWER", "RADIANS", "REGION",
-	"RAND", "ROUND", "SIN", "SQUARE", "SQRT", "TOP", "TAN", "TRUNCATE",])
+	"RAND", "ROUND", "SIN", "SQUARE", "SQRT", "TOP", "TAN", "TRUNCATE",
+	"OFFSET"])
 
 sqlReservedWords = set([
 	"ABSOLUTE", "ACTION", "ADD", "ALL", "ALLOCATE", "ALTER", "AND", "ANY",
@@ -532,6 +533,7 @@ def getADQLGrammarCopy():
 		setQuantifier = (CaselessKeyword( "DISTINCT" ) 
 			| CaselessKeyword( "ALL" ))("setQuantifier")
 		setLimit = CaselessKeyword( "TOP" ) - unsignedInteger("setLimit")
+		offsetSpec = CaselessKeyword( "OFFSET" )- unsignedInteger("offset")
 		qualifiedStar = qualifier + "." + "*"
 		selectSublist = (qualifiedStar | derivedColumn
 			).setResultsName("fieldSel", listAllMatches=True)
@@ -626,8 +628,10 @@ def getADQLGrammarCopy():
 # FROM fragments and such
 		fromClause = ( CaselessKeyword("FROM") 
 			+ tableReference )("fromClause")
-		tableExpression = (fromClause + Optional( whereClause ) 
-			+ Optional( groupByClause )  + Optional( havingClause ) 
+		tableExpression = (fromClause 
+			+ Optional( whereClause ) 
+			+ Optional( groupByClause )  
+			+ Optional( havingClause ) 
 			+ Optional( orderByClause ))
 
 # toplevel select clause and set operators
@@ -663,7 +667,8 @@ def getADQLGrammarCopy():
 			firstSetTerm
 			+ ZeroOrMore(
 				additiveSetOperator
-				+ setTerm))
+				+ setTerm )
+			+  Optional( offsetSpec ))
 		statement = querySpecification + Optional( White() ) + StringEnd()
 
 # comment
