@@ -521,22 +521,13 @@ def getStreamsDoc(idList):
 	return content.content
 
 
-def getMetaTypeDocs():
+def getMetaKeyDocs():
 	from gavo.base import meta
 	content = RSTFragment()
-	d = meta._metaTypeRegistry
-	for typeName in sorted(d):
-		content.addDefinition(typeName,
-			d[typeName].__doc__ or "NOT DOCUMENTED")
-	return content.content
-
-
-def getMetaTypedNames():
-	from gavo.base import meta
-	content = RSTFragment()
-	d = meta._typesForKeys
+	d = meta.META_CLASSES_FOR_KEYS
 	for metaKey in sorted(d):
-		content.addDefinition(metaKey, d[metaKey])
+		content.addDefinition(metaKey,
+			d[metaKey].__doc__ or "NOT DOCUMENTED")
 	return content.content
 
 

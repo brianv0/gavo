@@ -365,20 +365,18 @@ Typed Meta Elements
 '''''''''''''''''''
 
 While generally the DC software does not care what you put into meta
-items and views them all as strings, certain elements are treated
-specially.  The following meta element "types" are currently defined:
+items and views them all as strings, certain keys are treated
+specially.  The following meta keys trigger some special behaviour:
 
-.. replaceWithResult getMetaTypeDocs()
+.. replaceWithResult getMetaKeyDocs()
 
-While in XML meta, you can explicitely set the type of a meta item
-(using the type attribute), it is more common to just use the inferred
-type by the meta name.  Currently, the following meta keys imply types:
+Additionally, there is ``creator``, which is really special (at least
+for now).  When you set creator to a string, the string will be split at
+semicolons, and for each substring a creator item with the respective
+name is generated.  This may sound complicated but really does about
+what your would expect when you write::
 
-.. replaceWithResult getMetaTypedNames()
-
-For type inference, only the last component of a meta path is
-significant, i.e., both creator.logo and publisher.logo are of type
-logo.
+  <meta name="creator">Last, J; First, B; Middle, I.</meta>
 
 
 Metadata in Standard Renderers
