@@ -41,7 +41,7 @@ class KeyTest(testhelpers.VerboseTest):
 	def testBadPrimary(self):
 		"""tests for correct rejection of bad meta keys.
 		"""
-		for shouldFail in ["", "abc7", ".foo", "???"]:
+		for shouldFail in ["", "abc+7", ".foo", "???"]:
 			self.assertRaisesVerbose(base.MetaSyntaxError, meta.getPrimary, 
 				(shouldFail,), "%s returned primary meta but shouldn't have"%shouldFail)
 
@@ -56,7 +56,7 @@ class KeyTest(testhelpers.VerboseTest):
 			self.assertEqualForArgs(meta.parseKey, result, key)
 
 	def testBadKey(self):
-		for shouldFail in ["", "abc7", ".foo", "???", "coverage.x7", "foo..bar"]:
+		for shouldFail in ["", "abc+7", ".foo", "???", "coverage.x/7", "foo..bar"]:
 			self.assertRaisesVerbose(base.MetaSyntaxError, meta.parseKey, 
 				(shouldFail,), "%s returned primary meta but shouldn't have"%shouldFail)
 
@@ -436,6 +436,29 @@ class TestSpecials(testhelpers.VerboseTest):
 			parseMetaXML,
 			("""<meta name="_example">``seriously technical``</meta>""",))
 
+	def testNameSplit(self):
+		m = parseMetaXML("""
+			<meta name="creator.name">Name-Grabowski, Xavier</meta>
+			<meta name="creator">Last, J.; Goodman, B.
+			</meta><meta name="creator"/>
+			<meta name="creator.name">Miller, G.</meta>
+			""")
+		c = m.getMeta("creator")
+		self.assertEqual(len(c), 4)
+		self.assertEqual(c[2].getMeta("name").getContent("text"), "Goodman, B.")
+
+	def testNameSplitStream(self):
+		m = parseMetaXML("""
+			<meta>
+				creator.name: Name-Grabowski, Xavier
+				creator: Last, J.; Goodman, B.
+				creator:
+				creator.name: Miller, G.
+			</meta>""")
+		c = m.getMeta("creator")
+		self.assertEqual(len(c), 4)
+		self.assertEqual(c[2].getMeta("name").getContent("text"), "Goodman, B.")
+
 
 def getRadioMeta():
 	m = base.MetaMixin()
@@ -658,6 +681,29 @@ class XMLTest(testhelpers.VerboseTest):
 		self.assertEqual(base.getMetaText(mc, "contact.email"), 
 			'invalid@whereever.else')
 
+	def testDeepNesting(self):
+		mc = parseMetaXML("""<meta name="stuff">
+			<meta name="level1">on level 1
+				<meta name="level2" format="rst">This is RST</meta>
+				<meta name="level2" format="literal">This is literal</meta>
+			</meta>
+			<meta name="level1">once more on level 1
+				<meta name="level2">in the second thing</meta>
+			</meta>
+			<meta name="level1.level2">again in thing 2</meta>
+			<meta name="level1">
+				<meta name="level2">and a third thing</meta>
+			</meta>
+		</meta>""")
+		thing1, thing2, thing3 = mc.getMeta("stuff.level1")
+		self.assertEqual(thing1.getMeta("level2")[0].format, "rst")
+		self.assertEqual(thing1.getMeta("level2")[1].format, "literal")
+		self.assertEqual(thing2.getMeta("level2")[1].getContent("text"), 
+			"again in thing 2")
+		self.assertEqual(thing2.getContent("text"), "once more on level 1")
+		self.assertEqual(thing3.getContent("text"), "")
+		self.assertEqual(thing3.getMeta("level2").getContent("text"), 
+			"and a third thing")
 
 class MacroExpansionText(testhelpers.VerboseTest):
 	def testUnexpanded(self):

@@ -619,7 +619,7 @@ def main(testClass, methodPrefix=None):
 		base.DEBUG = True
 		from gavo.user import logui
 		logui.LoggingUI(base.ui)
-
+	
 	try:
 		# two args: first one is class name, locate it in caller's globals
 		# and ignore anything before any dot for cut'n'paste convenience

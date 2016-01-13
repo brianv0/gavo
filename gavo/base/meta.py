@@ -82,8 +82,8 @@ def metaRstToHtml(inputString):
 	return utils.rstxToHTML(inputString)
 
 
-_metaPat = re.compile(r"([a-zA-Z_-]+)(?:\.([a-zA-Z_-]+))*$")
-_primaryPat = re.compile(r"([a-zA-Z_-]+)(\.|$)")
+_metaPat = re.compile(r"([a-zA-Z_][\w-]*)(?:\.([a-zA-Z_][\w-]*))*$")
+_primaryPat = re.compile(r"([a-zA-Z_][\w-]*)(\.|$)")
 
 
 def getPrimary(metaKey):
@@ -163,8 +163,11 @@ class MetaParser(common.Parser):
 		self.children = []  # containing key, metaValue pairs
 		self.next = None
 
-	def addMeta(self, *value):
-		self.children.append(value)
+	def addMeta(self, *addMetaArgs):
+		# this parse can be a temporary meta parent for children; we
+		# record them here an play them back when we have created
+		# the meta value itself
+		self.children.append(addMetaArgs)
 
 	def start_(self, ctx, name, value):
 		if name=="meta":
@@ -180,31 +183,34 @@ class MetaParser(common.Parser):
 			self.attrs[str(self.next)] = value
 		return self
 
-	def _getMetaValue(self):
+	def _doAddMeta(self):
 		content = self.attrs.pop("content_", "")
 		if not self.attrs: # content only, parse this as a meta stream
 			parseMetaStream(self.container, content)
-			return None, None
+
 		else:
 			try:
 				content = utils.fixIndentation(content, "", 1).rstrip()
 			except common.Error, ex:
 				raise utils.logOldExc(common.StructureError("Bad text in meta value"
 					" (%s)"%ex))
-			mv = makeMetaValue(content, **self.attrs)
 			if not "name" in self.attrs:
 				raise common.StructureError("meta elements must have a"
 					" name attribute")
-			return self.attrs.pop("name"), mv
+			metaKey = self.attrs.pop("name")
+			self.container.addMeta(metaKey, content, self.attrs)
+
+			# meta elements can have children; add these, properly fudging
+			# their keys
+			for child in self.children:
+				key = "%s.%s"%(metaKey, child[0])
+				self.container.addMeta(key, *child[1:])
 
 	def end_(self, ctx, name, value):
 		if name=="meta":
-			key, mv = self._getMetaValue()
-			for child in self.children:
-				mv.addMeta(*child)
-			if key is not None:
-				self.container.addMeta(key, mv)
+			self._doAddMeta()
 			return self.nextParser
+
 		else:
 			self.next = None
 			return self
@@ -283,8 +289,10 @@ class MetaMixin(object):
 			current one.  m has to have the Meta mixin as well.
 		- getMeta(key, propagate=True, raiseOnFail=False, default=None) -- returns 
 			meta information for key or default.
-		- addMeta(key, metaItem) -- adds a piece of meta information here.  Key
-			may be a compound.
+		- addMeta(key, metaItem, moreAttrs) -- adds a piece of meta information 
+		  here.  Key may be a compound, metaItem may be a text, in which
+		  case it will be turned into a proper MetaValue taking key and
+		  moreAttrs into account.
 		- setMeta(key, metaItem) -- like addMeta, only previous value(s) are
 			overwritten
 		- delMeta(key) -- removes a meta value(s) for key.
@@ -437,16 +445,25 @@ class MetaMixin(object):
 			self.meta_[primary] = MetaItem.fromAtoms(
 				atoms[1:], metaValue, primary)
 
-	def addMeta(self, key, metaValue):
+	def addMeta(self, key, metaValue, moreAttrs={}):
 		"""adds metaItem to self under key.
+
+		moreAttrs can be additional keyword arguments; these are used by
+		the XML constructor to define formats or to pass extra items
+		to special meta types.
+
+		For convenience, this returns the meta container.
 		"""
+		if doMetaOverride(self, key, metaValue, moreAttrs):
+			return
+
 		try:
-			if isinstance(metaValue, basestring):
-				metaValue = makeMetaValue(metaValue, name=key)
-			self._addMeta(parseKey(key), metaValue)
+			self._addMeta(parseKey(key), ensureMetaValue(metaValue, moreAttrs))
 		except MetaError, ex:
 			ex.carrier = self
 			raise
+
+		return self
 
 	def _delMeta(self, atoms):
 		if atoms[0] not in self.meta_:
@@ -578,6 +595,9 @@ class MetaItem(object):
 	def __len__(self):
 		return len(self.children)
 
+	def __getitem__(self, index):
+		return self.children[index]
+
 	def isEmpty(self):
 		return len(self)==0
 
@@ -701,7 +721,7 @@ class MetaValue(MetaMixin):
 		return self.getContent()
 
 	def _preprocessContent(self):
-		if self.format=="plain":
+		if self.format=="plain" and self.content is not None:
 			self.content = "\n\n".join(self.plainWrapper.fill(
 					self.consecutiveWSPat.sub(" ", para))
 				for para in self.paragraphPat.split(self.content))
@@ -965,7 +985,7 @@ class InfoItem(MetaValue):
 
 
 class LogoMeta(MetaValue):
-	"""A MetaItem corresponding to a small image.
+	"""A MetaValue corresponding to a small image.
 
 	These are rendered as little images in HTML.  In XML meta, you can
 	say::
@@ -978,7 +998,7 @@ class LogoMeta(MetaValue):
 
 
 class BibcodeMeta(MetaValue):
-	"""A MetaItem that may contain bibcodes, which are rendered as links
+	"""A MetaValue that may contain bibcodes, which are rendered as links
 	into ADS.
 	"""
 	bibcodePat = re.compile("\d\d\d\d\w[^ ]{14}$")
@@ -1000,7 +1020,7 @@ class BibcodeMeta(MetaValue):
 
 
 class VotLinkMeta(MetaValue):
-	"""A MetaItem serialized into VOTable links (or, ideally,
+	"""A MetaValue serialized into VOTable links (or, ideally,
 	analoguous constructs).
 
 	This exposes the various attributes of VOTable LINKs as href
@@ -1027,7 +1047,7 @@ class VotLinkMeta(MetaValue):
 
 
 class ExampleMeta(MetaValue):
-	"""A MetaItem to keep VOSI examples in.
+	"""A MetaValue to keep VOSI examples in.
 
 	All of these must have a title, which is also used to generate
 	references.
@@ -1051,6 +1071,8 @@ class ExampleMeta(MetaValue):
 		self._addMeta(["title"], MetaValue(title))
 
 
+# this lets people "cast" meta items.  We should do away with this,
+# types should be implied by the keys directly.
 _metaTypeRegistry = {
 	"link": MetaURL,
 	"relResource": RelatedResourceMeta,
@@ -1064,22 +1086,41 @@ _metaTypeRegistry = {
 }
 
 _typesForKeys = {
-	"_related": "link",
-	"_example": "example",
-	"servedBy": "relResource",
-	"serviceFor": "relResource",
-	"relatedTo": "relResource",
-	"mirrorOf": "relResource",
-	"derivedFrom": "relResource",
-	"uses": "relResource",
-	"_news": "news",
-	"referenceURL": "link",
-	"info": "info",
-	"logo": "logo",
-	"source": "bibcodes",
-	"note": "note",
-	"votlink": "votlink",
+	"_related": MetaURL,
+	"_example": ExampleMeta,
+	"servedBy": RelatedResourceMeta,
+	"serviceFor": RelatedResourceMeta,
+	"relatedTo": RelatedResourceMeta,
+	"mirrorOf": RelatedResourceMeta,
+	"derivedFrom": RelatedResourceMeta,
+	"uses": RelatedResourceMeta,
+	"_news": NewsMeta,
+	"referenceURL": MetaURL,
+	"info": InfoItem,
+	"logo": LogoMeta,
+	"source": BibcodeMeta,
+	"note": NoteMeta,
+	"votlink": VotLinkMeta,
 }
+
+
+def _doCreatorMetaOverride(container, value):
+	"""handles the adding of the creator meta.
+
+	value is empty or a parsed meta value, this does nothing (which will cause
+	addMeta to do its default operation).
+
+	If value is a non-empty string, it will be split along semicolons
+	to produce individual creator metas with names .
+	"""
+	if not value or isinstance(value, MetaValue):
+		return None
+
+	for authName in (s.strip() for s in value.split(";")):
+		container.addMeta("creator", 
+		 MetaValue().addMeta("name", authName))
+	
+	return True
 
 
 def printMetaTree(metaContainer, curKey=""):
@@ -1087,9 +1128,18 @@ def printMetaTree(metaContainer, curKey=""):
 	md = metaContainer.meta_
 	for childName in md:
 		childKey = curKey+"."+childName
-		print childKey
-		for item in md[childName]:
-			printMetaTree(item, childKey)
+		for child in md[childName]:
+			print childKey, child.getContent("text")
+			printMetaTree(child, childKey)
+
+
+def ensureMetaValue(val, moreAttrs={}):
+	"""makes a MetaValue out of val and a dict moreAttrs unless val already 
+	is a MetaValue.
+	"""
+	if isinstance(val, MetaValue):
+		return val
+	return MetaValue(val, **moreAttrs)
 
 
 def makeMetaValue(value="", **kwargs):
@@ -1125,8 +1175,10 @@ def makeMetaValue(value="", **kwargs):
 		lastKey = parseKey(kwargs["name"])[-1]
 		if lastKey in _typesForKeys and not "type" in kwargs and not (
 				kwargs.get("format")=="rst"):
-			kwargs["type"] = _typesForKeys[lastKey]
+			cls = _typesForKeys[lastKey]
 		del kwargs["name"]
+	
+	# deprecated.  See where it is used, fix that and kill this.
 	if "type" in kwargs:
 		if kwargs["type"] is not None:
 			try:
@@ -1155,6 +1207,28 @@ def makeMetaItem(value="", **kwargs):
 			res.addChild(makeMetaValue(atom, **kwargs))
 		return res
 	return MetaItem(makeMetaValue(value, **kwargs))
+
+
+def doMetaOverride(container, metaKey, metaValue, extraArgs={}):
+	"""creates the representation of metaKey/metaValue in container.
+
+	If metaKey does not need any special action, this returns None.
+
+	This is what we should move the entire type/name magic in makeMetaValue
+	to.  It gets called from one central point in MetaMixin.addMeta.
+	And we can have any sort of twisted logic we might need in here.
+	"""
+	if metaKey in _typesForKeys and not isinstance(metaValue, MetaValue):
+		container.addMeta(metaKey, 
+			_typesForKeys[metaKey](metaValue, **extraArgs))
+		return True
+
+	# let's see if there's some way to rationalise this kind of thing
+	# later.
+	if metaKey=="creator":
+		return _doCreatorMetaOverride(container, metaValue)
+
+	# fallthorugh: let addMeta do its standard thing.
 
 
 def getMetaText(ob, key, default=None, **kwargs):
