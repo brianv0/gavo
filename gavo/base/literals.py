@@ -15,15 +15,14 @@ base.typesystems.ToPythonCodeConverter.
 #c COPYING file in the source distribution.
 
 
-import datetime
 import re
-import time
 
 from gavo import utils
 from gavo.stc import parseSimpleSTCS
 from gavo.utils import pgsphere
 from gavo.utils import identity #noflake: exported name
-from gavo.utils import parseDefaultDatetime #noflake: exported name
+from gavo.utils import (parseDefaultDatetime,  #noflake: exported names
+	parseDefaultDate, parseDefaultTime)
 
 @utils.document
 def parseInt(literal):
@@ -91,18 +90,6 @@ def parseUnicode(literal):
 	if isinstance(literal, str):
 		literal = literal.decode("ascii", "replace")
 	return unicode(literal)
-
-
-def parseDefaultDate(literal):
-	if literal is None or isinstance(literal, datetime.date):
-		return literal
-	return datetime.date(*time.strptime(literal, '%Y-%m-%d')[:3])
-
-
-def parseDefaultTime(literal):
-	if literal is None or isinstance(literal, datetime.time):
-		return literal
-	return datetime.time(*time.strptime(literal, '%H:%M:%S')[3:6])
 
 
 def parseCooPair(soup):

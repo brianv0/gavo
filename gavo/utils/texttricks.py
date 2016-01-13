@@ -485,6 +485,18 @@ def parseDefaultDatetime(literal):
 	return parseISODT(literal)
 
 
+def parseDefaultDate(literal):
+	if literal is None or isinstance(literal, datetime.date):
+		return literal
+	return datetime.date(*time.strptime(literal, '%Y-%m-%d')[:3])
+
+
+def parseDefaultTime(literal):
+	if literal is None or isinstance(literal, datetime.time):
+		return literal
+	return datetime.time(*time.strptime(literal, '%H:%M:%S')[3:6])
+
+
 def formatISODT(dt):
 	"""returns some ISO8601 representation of a datetime instance.
 
