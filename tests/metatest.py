@@ -68,8 +68,8 @@ class CompoundTest(testhelpers.VerboseTest):
 		"""tests for correct buildup of MetaItems from text keys.
 		"""
 		m = base.MetaMixin()
-		m.addMeta("creator.name", meta.makeMetaValue("F. Bar"))
-		m.addMeta("creator.address", meta.makeMetaValue("21 Foo Street, Bar 02147"))
+		m.addMeta("creator.name", meta.MetaValue("F. Bar"))
+		m.addMeta("creator.address", meta.MetaValue("21 Foo Street, Bar 02147"))
 		self.assertEqual(len(m.getMeta("creator").children), 1)
 		self.assertEqual(m.getMeta("creator.name").children[0].content, "F. Bar")
 		self.assertEqual(m.getMeta("creator.address").children[0].content, 
@@ -97,9 +97,9 @@ class CompoundTest(testhelpers.VerboseTest):
 	def testFromItems(self):
 		"""tests for correct buildup of MetaItems from meta items.
 		"""
-		mv = meta.makeMetaValue()
-		mv.addMeta("name", meta.makeMetaValue("Foo B."))
-		mv.addMeta("address", meta.makeMetaValue("homeless"))
+		mv = meta.MetaValue()
+		mv.addMeta("name", meta.MetaValue("Foo B."))
+		mv.addMeta("address", meta.MetaValue("homeless"))
 		m = base.MetaMixin()
 		m.addMeta("creator", mv)
 		self.assertEqual(len(m.getMeta("creator").children), 1)
@@ -157,15 +157,15 @@ class SequenceTest(testhelpers.VerboseTest):
 		"""tests for correct buildup of meta information through object embedding
 		"""
 		m = base.MetaMixin()
-		alc = meta.makeMetaValue("50%")
-		org = meta.makeMetaValue("grape")
-		stuff = meta.makeMetaValue("fusel")
+		alc = meta.MetaValue("50%")
+		org = meta.MetaValue("grape")
+		stuff = meta.MetaValue("fusel")
 		stuff.addMeta("alc", alc)
 		stuff.addMeta("org", org)
 		m.addMeta("stuff", stuff)
-		alc = meta.makeMetaValue("70%")
-		org = meta.makeMetaValue("rye")
-		stuff = meta.makeMetaValue("fusel")
+		alc = meta.MetaValue("70%")
+		org = meta.MetaValue("rye")
+		stuff = meta.MetaValue("fusel")
 		stuff.addMeta("alc", alc)
 		stuff.addMeta("org", org)
 		m.addMeta("stuff", stuff)
@@ -310,18 +310,18 @@ class ContentTest(testhelpers.VerboseTest):
 # and content, though
 	def testLiteral(self):
 		m = base.MetaMixin()
-		m.addMeta("brasel", meta.makeMetaValue("quox \n  ab   c", format="literal"))
+		m.addMeta("brasel", meta.MetaValue("quox \n  ab   c", format="literal"))
 		self.assertEqual(m.getMeta("brasel").getContent(), "quox \n  ab   c")
 		self.assertEqual(m.getMeta("brasel").getContent("html"),
 			'<span class="literalmeta">quox \n  ab   c</span>')
 	
 	def testPlain(self):
 		m = base.MetaMixin()
-		m.addMeta("brasel", meta.makeMetaValue("ab\ncd   foo"))
+		m.addMeta("brasel", meta.MetaValue("ab\ncd   foo"))
 		self.assertEqual(m.getMeta("brasel").getContent(), "ab cd foo")
 		self.assertEqual(m.getMeta("brasel").getContent("html"), 
 			'<span class="plainmeta">ab cd foo</span>')
-		m.addMeta("long", meta.makeMetaValue("ab\ncd   foo\n\nnk\n * ork"))
+		m.addMeta("long", meta.MetaValue("ab\ncd   foo\n\nnk\n * ork"))
 		self.assertEqual(m.getMeta("long").getContent(), 
 			'ab cd foo\n\nnk * ork')
 		self.assertEqual(m.getMeta("long").getContent("html"), 
@@ -330,7 +330,7 @@ class ContentTest(testhelpers.VerboseTest):
 
 	def testRst(self):
 		m = base.MetaMixin()
-		m.addMeta("brasel", meta.makeMetaValue(unicode("`foo <http://foo.org>`__"),
+		m.addMeta("brasel", meta.MetaValue(unicode("`foo <http://foo.org>`__"),
 			format="rst"))
 		self.assertEqual(m.getMeta("brasel").getContent(), 
 			'`foo <http://foo.org>`__')
@@ -339,7 +339,7 @@ class ContentTest(testhelpers.VerboseTest):
 
 	def testRstExtension(self):
 		m = base.MetaMixin()
-		m.addMeta("brasel", meta.makeMetaValue(
+		m.addMeta("brasel", meta.MetaValue(
 			"See also :bibcode:`2011AJ....142....3H` .", format="rst"))
 		self.assertTrue(
 			'href="http://ads.ari.uni-heidelberg.de/abs/2011AJ....142....3H"'
@@ -370,28 +370,23 @@ class TestSpecials(testhelpers.VerboseTest):
 		self.assertEqual(val.infoValue, None)
 		self.assertEqual(val.content, "foo")
 		m = base.MetaMixin()
-		m.addMeta("info", meta.makeMetaValue("info content", infoName="testInfo",
-			infoValue="WORKING", name="info"))
+		m.addMeta("info", meta.META_CLASSES_FOR_KEYS["info"](
+			"info content", infoName="testInfo",
+			infoValue="WORKING"))
 		self.assertEqual(m.getMeta("info").getContent(), "info content")
 		self.assertEqual(m.getMeta("info").children[0].infoName, "testInfo")
 		self.assertEqual(m.getMeta("info").children[0].infoValue, "WORKING")
-		m.addMeta("test", meta.makeMetaValue("info content", infoName="testInfo",
-			infoValue="WORKING", type="info"))
+		m.addMeta("test", meta.META_CLASSES_FOR_KEYS["info"](
+			"info content", infoName="testInfo",
+			infoValue="WORKING"))
 		self.assertEqual(m.getMeta("test").getContent(), "info content")
 		self.assertEqual(m.getMeta("test").children[0].infoName, "testInfo")
 		self.assertEqual(m.getMeta("test").children[0].infoValue, "WORKING")
 
-	def testBadInfos(self):
-		m = base.MetaMixin()
-		m.addMeta("info", meta.makeMetaValue("no info", name="info",
-			type=None))
-		self.assert_(not hasattr(m.getMeta("info").children[0], "infoName"),
-			"Names override types, which they shouldn't")
-
 	def testBadArgs(self):
 		m = base.MetaMixin()
-		self.assertRaises(meta.MetaError, meta.makeMetaValue, "_news", 
-			foo="x")
+		self.assertRaises(meta.MetaError, m.addMeta, "_news", 
+			"olds", foo="x")
 
 	def testLinks(self):
 		m = base.MetaMixin()
@@ -399,10 +394,6 @@ class TestSpecials(testhelpers.VerboseTest):
 		m.addMeta("_related.title", "Link 1")
 		self.assertEqual(m.getMeta("_related").children[0].getContent("html"),
 			'<a href="http://anythi.ng">Link 1</a>')
-		m.addMeta("weirdLink", meta.makeMetaValue("http://some.oth.er",
-			title="Link 2", type="link"))
-		self.assertEqual(m.getMeta("weirdLink").children[0].getContent("html"),
-			'<a href="http://some.oth.er">Link 2</a>')
 
 	def testNews(self):
 		m = parseMetaXML("""<meta name="_news" date="2009-03-06" author="MD"

@@ -899,8 +899,8 @@ class HackMetaTest(testhelpers.VerboseTest):
 
 	def testInfoMeta(self):
 		table = self._getTestTable()
-		table.addMeta("info", base.makeMetaValue("Info from meta", 
-			type="info", infoValue="bar", infoName="fromMeta", infoId="x_x"))
+		table.addMeta("info", "Info from meta", 
+			infoValue="bar", infoName="fromMeta", infoId="x_x")
 		root = ElementTree.fromstring(votablewrite.getAsVOTable(table,
 			votablewrite.VOTableContext(suppressNamespace=True)))
 		mat = root.findall("RESOURCE/INFO")

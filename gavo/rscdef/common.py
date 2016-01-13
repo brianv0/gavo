@@ -146,8 +146,9 @@ class IVOMetaMixin(object):
 	the definition of tabledefs.
 	"""
 	def _meta_referenceURL(self):
-		return base.makeMetaItem(self.getURL("info"),
-			type="link", title="Service info")
+		return base.META_CLASSES_FOR_KEYS["referenceURL"](
+			self.getURL("info"),
+			title="Service info")
 
 	def _meta_identifier(self):
 		if "identifier" in self.meta_:
@@ -173,17 +174,14 @@ class IVOMetaMixin(object):
 			res = list(curs)
 		if res:
 			self.__dbRecord = {
-				"sets": base.makeMetaItem(list(set(row[2] for row in res)), 
-					name="sets"),
-				"recTimestamp": base.makeMetaItem(res[0][1].strftime(
-					utils.isoTimestampFmt), name="recTimestamp"),
+				"sets": list(set(row[2] for row in res)),
+				"recTimestamp": res[0][1].strftime(utils.isoTimestampFmt)
 			}
 		else:
 			self.__dbRecord = {
 				'sets': ['unpublished'],
-				'recTimestamp': base.makeMetaItem(
-					datetime.datetime.utcnow().strftime(
-						utils.isoTimestampFmt), name="recTimestamp"),
+				'recTimestamp': datetime.datetime.utcnow().strftime(
+						utils.isoTimestampFmt)
 				}
 		return self.__getFromDB(metaKey)
 	

@@ -13,7 +13,10 @@ Version 0.9.6 (XXXX-XX-XX)
     too.  Run "gavo imp -I //products". Similarly, gavo imp -I <rd-id> on all
     RDs that have SSA tables with datalink services (if you don't know what
     that is, you don't have it)
-
+  * API change: base.makeMetaItem and makeMetaValue were a pain.  They
+		have simply gone in the expectation that nobody has actually used them.
+		Protest if we're wrong.  Also there is no type attribute on meta
+		any more.
 
 Version 0.9.5 (2015-10-07)
 

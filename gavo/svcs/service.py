@@ -639,14 +639,12 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		This is used by adql and the publish element on data.
 		"""
 		if data.registration:
-			self.addMeta("serviceFor", base.makeMetaValue(
+			self.addMeta("serviceFor", 
 				base.getMetaText(data, "title", default="Anonymous"),
-				name="serviceFor",
-				ivoId=base.getMetaText(data, "identifier")))
-			data.addMeta("servedBy", base.makeMetaValue(
+				ivoId=base.getMetaText(data, "identifier"))
+			data.addMeta("servedBy", 
 				base.getMetaText(self, "title"),
-				name="servedBy",
-				ivoId=base.getMetaText(self, "identifier")))
+				ivoId=base.getMetaText(self, "identifier"))
 
 			# Since this is always initiated by the data, the dependency
 			# must show up in its RD to be properly added on publication
@@ -913,7 +911,8 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		"""
 		try:
 			self.getMeta("_example", raiseOnFail=True)
-			return base.makeMetaValue(self.getURL("examples", False),
-				type="link", title="DALI examples")
+			return base.META_CLASSES_FOR_KEYS["_example"](
+				self.getURL("examples", False),
+				title="DALI examples")
 		except base.NoMetaKey:
 			return None

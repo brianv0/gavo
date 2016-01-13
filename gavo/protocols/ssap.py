@@ -132,10 +132,8 @@ class SSAPCore(svcs.DBCore):
 			dd.feedObject("param", inP.change(name="INPUT:"+inP.name))
 
 		dd.setMeta("_type", "meta")
-		dd.addMeta("info", base.makeMetaValue(
-			"", name="info", infoName="QUERY_STATUS", infoValue="OK"))
-		dd.addMeta("info", base.makeMetaValue(
-			"SSAP", name="info", infoName="SERVICE_PROTOCOL", infoValue="1.04"))
+		dd.addMeta("info", "", infoName="QUERY_STATUS", infoValue="OK")
+		dd.addMeta("info", "SSAP", infoName="SERVICE_PROTOCOL", infoValue="1.04")
 
 		data = rsc.makeData(dd)
 		

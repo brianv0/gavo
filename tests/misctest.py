@@ -978,8 +978,9 @@ from gavo.web import examplesrender
 class RSTExtensionTest(testhelpers.VerboseTest):
 	def testWorkingExamples(self):
 		ex = examplesrender._Example(
-			base.makeMetaValue("Here is a :genparam:`par(example, no?)` "
-				"example for genparam.""", name="_example", title="Working genparam"))
+			base.META_CLASSES_FOR_KEYS["_example"](
+				"Here is a :genparam:`par(example, no?)` "
+				"example for genparam.""", title="Working genparam"))
 		res = ex._getTranslatedHTML()
 		self.assertTrue('<span property="generic-parameter" typeof="keyval"'
 			in res)
@@ -990,8 +991,8 @@ class RSTExtensionTest(testhelpers.VerboseTest):
 	
 	def testFailingExample(self):
 		ex = examplesrender._Example(
-			base.makeMetaValue("Here is a :genparam:`parfoo` "
-				"example for genparam.""", name="_example", title="Working genparam"))
+			base.META_CLASSES_FOR_KEYS["_example"]("Here is a :genparam:`parfoo` "
+				"example for genparam.""", title="Working genparam"))
 		res = ex._getTranslatedHTML()
 		self.assertTrue("parfoo does not" in res)
 		self.assertTrue('<span class="problematic"' in res)

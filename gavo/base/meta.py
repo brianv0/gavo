@@ -163,11 +163,11 @@ class MetaParser(common.Parser):
 		self.children = []  # containing key, metaValue pairs
 		self.next = None
 
-	def addMeta(self, *addMetaArgs):
+	def addMeta(self, key, content="", **kwargs):
 		# this parse can be a temporary meta parent for children; we
 		# record them here an play them back when we have created
 		# the meta value itself
-		self.children.append(addMetaArgs)
+		self.children.append((key, content, kwargs))
 
 	def start_(self, ctx, name, value):
 		if name=="meta":
@@ -198,13 +198,13 @@ class MetaParser(common.Parser):
 				raise common.StructureError("meta elements must have a"
 					" name attribute")
 			metaKey = self.attrs.pop("name")
-			self.container.addMeta(metaKey, content, self.attrs)
+			self.container.addMeta(metaKey, content, **self.attrs)
 
 			# meta elements can have children; add these, properly fudging
 			# their keys
-			for child in self.children:
-				key = "%s.%s"%(metaKey, child[0])
-				self.container.addMeta(key, *child[1:])
+			for key, content, kwargs in self.children:
+				fullKey = "%s.%s"%(metaKey, key)
+				self.container.addMeta(fullKey, content, **kwargs)
 
 	def end_(self, ctx, name, value):
 		if name=="meta":
@@ -442,10 +442,9 @@ class MetaMixin(object):
 		if primary in self.meta_:
 			self.meta_[primary]._addMeta(atoms[1:], metaValue)
 		else:
-			self.meta_[primary] = MetaItem.fromAtoms(
-				atoms[1:], metaValue, primary)
+			self.meta_[primary] = MetaItem.fromAtoms(atoms[1:], metaValue)
 
-	def addMeta(self, key, metaValue, moreAttrs={}):
+	def addMeta(self, key, metaValue, **moreAttrs):
 		"""adds metaItem to self under key.
 
 		moreAttrs can be additional keyword arguments; these are used by
@@ -527,7 +526,7 @@ configMeta = MetaMixin()
 
 
 class ComputedMetaMixin(MetaMixin):
-	"""is a MetaMixin for classes that want to implement defaults for
+	"""A MetaMixin for classes that want to implement defaults for
 	unresolvable meta items.
 
 	If getMeta would return a NoMetaKey, this mixin's getMeta will check
@@ -535,21 +534,21 @@ class ComputedMetaMixin(MetaMixin):
 	and, if it exists, returns whatever it returns.  Otherwise, the
 	exception will be propagated.
 
-	The _meta_<key> methods can return MetaItems; if something else
-	is returned, it is automatically packed into one.
+	The _meta_<key> methods should return MetaItems; if something else
+	is returned, an appropriate MetaValue  will be 
 	"""
 	def _getFromAtom(self, atom):
 		try:
 			return MetaMixin._getFromAtom(self, atom)
 		except NoMetaKey:
+
 			methName = "_meta_"+atom
 			if hasattr(self, methName):
 				res = getattr(self, methName)()
 				if res is None:
 					raise
-				if not isinstance(res, MetaItem):
-					res = makeMetaItem(res, name=atom)
-				return res
+				return ensureMetaItem(res)
+
 			raise
 
 
@@ -558,7 +557,10 @@ class MetaItem(object):
 
 	All MetaValues within a MetaItem have the same key.
 
-	A MetaItem contains a list of children MetaValues.
+	A MetaItem contains a list of children MetaValues; it is usually
+	constructed with just one MetaValue, though.  Use the alternative
+	constructor formSequence if you already have a sequence of
+	MetaValues.  Or, better, use the ensureMetaItem utility function.
 
 	The last added MetaValue is the "active" one that will be changed
 	on _addMeta calls.
@@ -567,16 +569,26 @@ class MetaItem(object):
 		self.children = [val]
 
 	@classmethod
-	def fromAtoms(cls, atoms, metaValue, key):
+	def fromSequence(cls, seq):
+		res = cls(seq[0])
+		for item in seq[1:]:
+			res.addChild(item)
+		return res
+
+	@classmethod
+	def fromAtoms(cls, atoms, metaValue):
 		if len(atoms)==0:  # This will become my child.
 			return cls(metaValue)
+
 		elif len(atoms)==1:  # Create a MetaValue with the target as child
-			mv = makeMetaValue(name=key)
-			mv._setForAtom(atoms[0], cls(metaValue))
+			mv = MetaValue()
+			mv._setForAtom(atoms[0], cls(ensureMetaValue(metaValue)))
 			return cls(mv)
+
 		else:   # Create a MetaValue with an ancestor of the target as child
-			mv = makeMetaValue(name=key)
-			mv._setForAtom(atoms[0], cls.fromAtoms(atoms[1:], metaValue, atoms[0]))
+			mv = MetaValue()
+			mv._setForAtom(atoms[0], cls.fromAtoms(atoms[1:], 
+				ensureMetaValue(metaValue)))
 			return cls(mv)
 
 	def __str__(self):
@@ -611,7 +623,7 @@ class MetaItem(object):
 			self.children = []
 			delattr(self, "copied")
 		if metaValue is None:
-			metaValue = makeMetaValue(name=key)
+			metaValue = MetaValue(None)
 		assert isinstance(metaValue, MetaValue)
 		self.children.append(metaValue)
 
@@ -792,7 +804,7 @@ class MetaValue(MetaMixin):
 			# Case 3.2: metaItem is on a branch that needs yet to be created.
 			else:
 				self._setForAtom(primary, MetaItem.fromAtoms(atoms[1:], 
-					metaValue, primary))
+					metaValue))
 
 	def copy(self):
 		"""returns a deep copy of self.
@@ -1071,21 +1083,7 @@ class ExampleMeta(MetaValue):
 		self._addMeta(["title"], MetaValue(title))
 
 
-# this lets people "cast" meta items.  We should do away with this,
-# types should be implied by the keys directly.
-_metaTypeRegistry = {
-	"link": MetaURL,
-	"relResource": RelatedResourceMeta,
-	"info": InfoItem,
-	"logo": LogoMeta,
-	"bibcodes": BibcodeMeta,
-	"news": NewsMeta,
-	"note": NoteMeta,
-	"votlink": VotLinkMeta,
-	"example": ExampleMeta,
-}
-
-_typesForKeys = {
+META_CLASSES_FOR_KEYS = {
 	"_related": MetaURL,
 	"_example": ExampleMeta,
 	"servedBy": RelatedResourceMeta,
@@ -1142,86 +1140,42 @@ def ensureMetaValue(val, moreAttrs={}):
 	return MetaValue(val, **moreAttrs)
 
 
-def makeMetaValue(value="", **kwargs):
-	"""returns a MetaValue instance depending on kwargs.
+def ensureMetaItem(thing, moreAttrs={}):
+	"""ensures that thing is a MetaItem.
 
-	Basically, with kwargs["type"] you can select various "special"
-	MetaValue-derived types, for example InfoItems, MetaLinks, etc.
+	If it is not, thing is turned into a sequence of MetaValues, which is
+	then packed into a MetaItem.
 
-	These should always work as "normal" meta items but may provide
-	special functionality or attributes, e.g. in HTML serializing (Links
-	include a title, InfoItems provide additional attributes for VOTables.
-
-	In general, it's preferable to use plain MetaValues and, e.g., add
-	a title meta to a URL.  However, for the most common "structured" values
-	it's more convenient to use specialized classes.
-
-	In addition, you can pass the name the MetaValue will eventually have.
-	If you do that, a type may automatically be added (but not overridden)
-	from the _typesForKeys dictionary.
-
-	If what you pass in already is a MetaValue, it is returned unchanged
-	(this is mainly a convenience for makeMetaItem).
+	Essentially, if thing is not a MetaValue, it is made into one with
+	moreAttrs.  If thing is a list, this recipe is used for all its items.
 	"""
-# nB: it was foolish that type, format, and name are passed in just like
-# special constructor arguments -- this blocks these atoms for specially
-# constructed meta items.  Changing this is a bit nasty because
-# this is sort-of-exposed in RD XML (see MetaAttribute above).
-# Maybe the change should be done anyway?
-	if isinstance(value, MetaValue):
-		return value
-	cls = MetaValue
-	if "name" in kwargs:
-		lastKey = parseKey(kwargs["name"])[-1]
-		if lastKey in _typesForKeys and not "type" in kwargs and not (
-				kwargs.get("format")=="rst"):
-			cls = _typesForKeys[lastKey]
-		del kwargs["name"]
+	if isinstance(thing, MetaItem):
+		return thing
 	
-	# deprecated.  See where it is used, fix that and kill this.
-	if "type" in kwargs:
-		if kwargs["type"] is not None:
-			try:
-				cls = _metaTypeRegistry[kwargs["type"]]
-			except KeyError:
-				raise utils.logOldExc(
-					MetaError("No such meta value type: %s"%kwargs["type"]))
-		del kwargs["type"]
-	try:
-		return cls(value, **kwargs)
-	except TypeError:
-		raise utils.logOldExc(MetaError(
-			"Invalid arguments for %s meta items: %s"%(cls.__name__, str(kwargs)),
-			None))
-
-
-def makeMetaItem(value="", **kwargs):
-	"""returns a meta item.
-
-	The kwargs are as for makeMetaValue, except it can be a list, in
-	which case a series of MetaValues will be generated within the MetaItem.
-	"""
-	if isinstance(value, list):
-		res = MetaItem(makeMetaValue(value[0], **kwargs))
-		for atom in value[1:]:
-			res.addChild(makeMetaValue(atom, **kwargs))
-		return res
-	return MetaItem(makeMetaValue(value, **kwargs))
-
+	if isinstance(thing, list):
+		return MetaItem.fromSequence(
+			[ensureMetaValue(item, moreAttrs) for item in thing])
+	
+	return MetaItem(ensureMetaValue(thing, moreAttrs))
+	
 
 def doMetaOverride(container, metaKey, metaValue, extraArgs={}):
 	"""creates the representation of metaKey/metaValue in container.
 
 	If metaKey does not need any special action, this returns None.
 
-	This is what we should move the entire type/name magic in makeMetaValue
-	to.  It gets called from one central point in MetaMixin.addMeta.
-	And we can have any sort of twisted logic we might need in here.
+	This gets called from one central point in MetaMixin.addMeta, and 
+	essentially all magic involved should be concentrated here.
 	"""
-	if metaKey in _typesForKeys and not isinstance(metaValue, MetaValue):
-		container.addMeta(metaKey, 
-			_typesForKeys[metaKey](metaValue, **extraArgs))
-		return True
+	if metaKey in META_CLASSES_FOR_KEYS and not isinstance(metaValue, MetaValue):
+		try:
+			container.addMeta(metaKey, 
+				META_CLASSES_FOR_KEYS[metaKey](metaValue, **extraArgs))
+			return True
+		except TypeError:
+			raise utils.logOldExc(MetaError(
+				"Invalid arguments for %s meta items: %s"%(metaKey,
+					utils.safe_str(extraArgs)), None))
 
 	# let's see if there's some way to rationalise this kind of thing
 	# later.

@@ -18,7 +18,6 @@ from gavo import rscdef
 from gavo import stc
 from gavo import svcs
 from gavo import utils
-from gavo.base import meta
 
 
 def makeFieldInfo(column):
@@ -216,10 +215,9 @@ def _addTableMeta(query, tree, table):
 	for infoMeta in table.tableDef.iterMeta("info", propagate=False):
 		table.addMeta("info", infoMeta)
 
-	table.addMeta("info", meta.makeMetaValue(name="info",
-			infoName="server", infoValue=base.getConfig("web", "serverURL")))
-	table.addMeta("info", meta.makeMetaValue(name="info",
-			infoName="query", infoValue=query))
+	table.addMeta("info", "", infoName="server", 
+		infoValue=base.getConfig("web", "serverURL"))
+	table.addMeta("info", "", infoName="query", infoValue=query)
 
 	copyrights = set()
 	sources = set()
@@ -227,17 +225,15 @@ def _addTableMeta(query, tree, table):
 	for tableName in tree.getContributingNames():
 		try:
 			sourceTD = mth.getTableDefForTable(tableName)
-			table.addMeta("info", meta.makeMetaValue(
+			table.addMeta("info", 
 				base.getMetaText(sourceTD.rd, "description", ""),
-				name="info",
 				infoName="src_res", 
-				infoValue="Contains traces from resource %s"%(sourceTD.rd.sourceId)))
-			table.addMeta("info", meta.makeMetaValue(
+				infoValue="Contains traces from resource %s"%(sourceTD.rd.sourceId))
+			table.addMeta("info", 
 				base.getMetaText(sourceTD, "description", "", propagate=False),
-				name="info",
 				infoName="src_table", 
 				infoValue="Contains traces from table %s"%(
-					sourceTD.getQName())))
+					sourceTD.getQName()))
 			copyrights.add(
 				(sourceTD.rd.sourceId, base.getMetaText(sourceTD, "copyright")))
 			sources.add(base.getMetaText(sourceTD, "source"))
@@ -251,12 +247,11 @@ def _addTableMeta(query, tree, table):
 
 	for rdId, rightsText in copyrights:
 		if rightsText:
-			table.addMeta("info", meta.makeMetaValue(
+			table.addMeta("info",
 					rightsText,
-					name="info",
 					infoName="copyright", 
 					infoValue="Content from %s has rights note (see INFO content)"%(
-						rdId)))
+						rdId))
 
 
 def morphADQL(query, metaProfile=None, tdsForUploads=[], 

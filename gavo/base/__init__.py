@@ -48,7 +48,8 @@ from gavo.base.meta import (
 	InfoItem as MetaInfoItem,
 	MetaMixin, ComputedMetaMixin,
 	MetaBuilder,
-	getMetaText, makeMetaValue, makeMetaItem)
+	META_CLASSES_FOR_KEYS,
+	getMetaText)
 
 from gavo.base.metavalidation import MetaValidationError, validateStructure
 

@@ -112,12 +112,12 @@ class DALRenderer(grend.ServiceBasedPage):
 		data = rsc.makeData(dataDesc)
 		data.tables["result"].votCasts = self._outputTableCasts
 		data.setMeta("_type", "results")
-		data.addMeta("info", base.makeMetaValue("OK", type="info", 
-			infoName="QUERY_STATUS", infoValue="OK"))
-		data.addMeta("info", base.makeMetaValue(
+		data.addMeta("info", "OK",
+			infoName="QUERY_STATUS", infoValue="OK")
+		data.addMeta("info", 
 			base.getMetaText(self.service, "title") or "Unnamed",
-			type="info", infoName="serviceInfo", 
-			infoValue=str(self.service.getURL(self.name))))
+			infoName="serviceInfo", 
+			infoValue=str(self.service.getURL(self.name)))
 		
 		return data
 
@@ -161,8 +161,8 @@ class DALRenderer(grend.ServiceBasedPage):
 		return "\n"
 
 	def _formatOutput(self, data, ctx):
-		data.original.addMeta("info", base.makeMetaValue(type="info", 
-			infoName="QUERY_STATUS", infoValue="OK"))
+		data.original.addMeta("info", "", infoName="QUERY_STATUS", 
+			infoValue="OK")
 
 		request = inevow.IRequest(ctx)
 		if "RESPONSEFORMAT" in request.args:

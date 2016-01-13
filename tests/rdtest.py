@@ -108,8 +108,9 @@ class MetaTest(unittest.TestCase):
 		"""tests for handling of complex meta items.
 		"""
 		data = self.rd.getById("metatest")
-		data.addMeta("testStatus", meta.makeMetaValue("I'm so well I could cry",
-			infoValue="OK", type="info"))
+		data.addMeta("testStatus", base.META_CLASSES_FOR_KEYS["info"](
+			"I'm so well I could cry",
+			infoValue="OK"))
 		self.assert_(isinstance(data.getMeta("testStatus").children[0], 
 			meta.InfoItem))
 		self.assertEqual(data.getMeta("testStatus").children[0].infoValue, "OK")

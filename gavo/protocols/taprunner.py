@@ -105,8 +105,8 @@ def _makeDataFor(resultTable):
 	additional metadata.
 	"""
 	resData = rsc.wrapTable(resultTable)
-	resData.addMeta("info", base.makeMetaValue("Query successful",
-		name="info", infoName="QUERY_STATUS", infoValue="OK"))
+	resData.addMeta("info", "Query successful",
+		infoName="QUERY_STATUS", infoValue="OK")
 	resData.addMeta("_type", "results")
 	# setLimit is the effective maximum number of rows returned
 	# as determined by adqlglue.morphADQL (or similar functions)
