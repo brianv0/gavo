@@ -25,7 +25,7 @@ try:
 		"float": numpy.float32,
 		"double": numpy.float64,
 		"boolean": numpy.bool,
-		"char": str,
+		"char": numpy.str_,
 		"floatComplex": numpy.complex64,
 		"doubleComplex": numpy.complex128,
 		"unsignedByte": numpy.uint8,
@@ -75,8 +75,16 @@ class TableMetadata(object):
 			yield dict(zip(names, row))
 
 
-def makeDtype(tableMetadata):
+def makeDtype(tableMetadata, defaultStringLength=20):
 	"""returns an record array datatype for a given table metadata.
+
+	defaultStringLength lets you specify a length for char(*) fields;
+	since makeDtype has no access to the tabular data and numpy insists on
+	having string length, DaCHS needs to guess here.
+
+	If this isn't fine-grained enough for you, you can always path tableMetadata,
+	replacing * arraysizes with more appropriate values in individual
+	cases.
 	"""
 	dtypes = []
 	seen = set()
@@ -87,7 +95,22 @@ def makeDtype(tableMetadata):
 		seen.add(name)
 		shape = f.getShape()
 		if shape is None:
-			dtypes.append((name, numpyType[f.datatype]))
+
+			# Perhaps stupidly, the library interprets 1D char array as
+			# atoms; numpy doesn't, so we have a special case.
+			if f.datatype=="char":
+					# as far as numpy recarray are concerned; TODO: unicodeChar?
+				if f.arraysize=="*":
+					dtypes.append((name, "a", defaultStringLength))
+				elif f.arraysize is None:
+					dtypes.append((name, "a", 1))
+				else:
+					# anything weird leads to non-NULL shape
+					dtypes.append((name, "a", int(f.arraysize)))
+			
+			else:
+				dtypes.append((name, numpyType[f.datatype]))
+
 		else:
 			dtypes.append((
 				name,

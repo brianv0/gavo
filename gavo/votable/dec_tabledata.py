@@ -162,10 +162,14 @@ def _makeXtypeDecoder(field):
 	return src
 
 
-def _makeCharDecoder(field, emptyIsNull=True):
+def _makeCharDecoder(field, emptyIsNull=True, fallbackEncoding="iso-8859-1"):
 	"""parseString enables return of empty string (as opposed to None).
 	"""
-# Elementtree already makes sure we're only seeing unicode strings here
+# Elementtree makes sure we're only seeing unicode strings here
+# However, char corresponds to byte strings, so we have to 
+# encode things before shipping out.  In theory, there should only
+# be ASCII in tabledata.  In practice, people do dump all kinds of
+# things in there.
 	src = []
 	if emptyIsNull:
 		src.extend([
@@ -175,17 +179,25 @@ def _makeCharDecoder(field, emptyIsNull=True):
 		src.extend([
 			'if val is None:',
 			'  val = ""'])	
+
 	nullvalue = coding.getNullvalue(field, str, "")
+	decoder = ""
+	if fallbackEncoding:
+		decoder = '.encode("%s", "ignore")'%fallbackEncoding
 
 	if nullvalue:
 		src.extend([
 			'if val==%s:'%repr(nullvalue),
 			'  row.append(None)',
 			'else:',
-			'  row.append(val)'])
+			'  row.append(val and val%s)'%decoder])
 	else:
-		src.append('row.append(val)')
+		src.append('row.append(val and val%s)'%decoder)
 	return src
+
+
+def _makeUnicodeDecoder(field, emptyIsNull=True):
+	return _makeCharDecoder(field, emptyIsNull, fallbackEncoding=None)
 
 
 def _makeBooleanDecoder(field):
@@ -201,7 +213,7 @@ _decoders = {
 	'bit': _makeBitDecoder,
 	'unsignedByte': lambda v: _makeIntDecoder(v, 256),
 	'char': _makeCharDecoder,
-	'unicodeChar': _makeCharDecoder,  # heavy lifting done by the xml parser
+	'unicodeChar': _makeUnicodeDecoder,  # heavy lifting done by the xml parser
 	'short': lambda v: _makeIntDecoder(v, 32767),
 	'int': lambda v: _makeIntDecoder(v, 2147483647),
 	'long': lambda v: _makeIntDecoder(v, 9223372036854775807L),
@@ -225,8 +237,10 @@ def _getArrayDecoderLines(field):
 	if field.xtype:
 		return _makeXtypeDecoder(field)
 
-	if type=='char' or type=='unicodeChar':
+	if type=='char':
 		return _makeCharDecoder(field, emptyIsNull=True)
+	elif type=='unicodeChar':
+		return _makeUnicodeDecoder(field, emptyIsNull=True)
 
 	src = [ # OMG.  I'm still hellbent on not calling functions here.
 		'arrayLiteral = val',

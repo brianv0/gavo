@@ -16,10 +16,6 @@ All native representation is in rad.
 import math
 import re
 
-import psycopg2
-from psycopg2.extensions import (register_adapter, AsIs, register_type,
-	new_type)
-
 from gavo.utils import codetricks
 from gavo.utils import excs
 from gavo.utils import mathtricks
@@ -296,30 +292,40 @@ class SBox(PgSAdapter):
 			SPoint(maxX, maxY),
 			SPoint(maxX, minY)))
 
+try:
+	import psycopg2
+	from psycopg2.extensions import (register_adapter, AsIs, register_type,
+		new_type)
 
-_getPgSClass = codetricks.buildClassResolver(PgSAdapter, globals().values(),
-	key=lambda obj: obj.pgType, default=PgSAdapter)
+	_getPgSClass = codetricks.buildClassResolver(PgSAdapter, globals().values(),
+		key=lambda obj: obj.pgType, default=PgSAdapter)
 
 
-def preparePgSphere(conn):
-	if hasattr(psycopg2, "_pgsphereLoaded"):
-		return
-	try:
-		oidmap = _query(conn, 
-			"SELECT typname, oid"
-			" FROM pg_type"
-			" WHERE typname ~ '^s(point|trans|circle|line|ellipse|poly|path|box)'")
-		for typeName, oid in oidmap:
-			cls = _getPgSClass(typeName)
-			if cls is not PgSAdapter:  # base class is null value
-				register_adapter(cls, cls._adaptToPgSphere)
-				register_type(
-					new_type((oid,), "spoint", cls._castFromPgSphere))
-			psycopg2._pgsphereLoaded = True
-		conn.commit()
-	except:
-		psycopg2._pgsphereLoaded = False
-		raise
+	def preparePgSphere(conn):
+		if hasattr(psycopg2, "_pgsphereLoaded"):
+			return
+		try:
+			oidmap = _query(conn, 
+				"SELECT typname, oid"
+				" FROM pg_type"
+				" WHERE typname ~ '^s(point|trans|circle|line|ellipse|poly|path|box)'")
+			for typeName, oid in oidmap:
+				cls = _getPgSClass(typeName)
+				if cls is not PgSAdapter:  # base class is null value
+					register_adapter(cls, cls._adaptToPgSphere)
+					register_type(
+						new_type((oid,), "spoint", cls._castFromPgSphere))
+				psycopg2._pgsphereLoaded = True
+			conn.commit()
+		except:
+			psycopg2._pgsphereLoaded = False
+			raise
+
+except ImportError:
+	# psycopg2 not installed.  Since preparsePgSphere can only be
+	# called from code depending on psycopg2, there's not harm if
+	# we don't define it.
+	pass
 
 
 def _test():

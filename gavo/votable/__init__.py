@@ -24,7 +24,7 @@ from gavo.votable.paramval import guessParamAttrsForValue, serializeToParam
 
 from gavo.votable.parser import parse, parseString, readRaw
 
-from gavo.votable.simple import load, loads, save
+from gavo.votable.simple import load, loads, save, makeDtype
 
 from gavo.votable.tablewriter import (
 	DelayedTable, OverflowElement, asString, write)

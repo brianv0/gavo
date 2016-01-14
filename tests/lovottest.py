@@ -13,6 +13,8 @@ import re
 import struct
 from cStringIO import StringIO
 
+from numpy import rec
+
 from gavo.helpers import testhelpers
 
 from gavo import base
@@ -222,7 +224,7 @@ class TabledataReadTest(testhelpers.VerboseTest):
 		), (
 			'<FIELD name="x" datatype="char"/>',
 			[[''],   ['a'], ['&apos;'], [u'\xe4'], ['&#xe4;'], ['']],
-			[[None], ['a'], ["'"],      [u'\xe4'], [u'\xe4'], [None]],
+			[[None], ['a'], ["'"],      ['\xe4'], ['\xe4'], [None]],
 		), (
 			'<FIELD name="x" datatype="short"><VALUES null="0"/></FIELD>'
 			'<FIELD name="y" datatype="int"/>'
@@ -251,7 +253,7 @@ class TabledataReadTest(testhelpers.VerboseTest):
 		), (
 			'<FIELD name="x" datatype="char" arraysize="4"/>',
 			[[''], ['auto'], ['&apos;xx&quot;'], [u'\xe4'], ['&#xe4;'], ['']],
-			[[None], ['auto'], ["'xx\""], [u'\xe4'], [u'\xe4'], [None]],
+			[[None], ['auto'], ["'xx\""], ['\xe4'], ['\xe4'], [None]],
 		), (
 			'<FIELD name="x" datatype="short" arraysize="*"><VALUES null="0"/></FIELD>',
 			[['1 2 3 0 1'], [""]], 
@@ -267,7 +269,12 @@ class TabledataReadTest(testhelpers.VerboseTest):
 		), (
 			'<FIELD name="x" datatype="float"/>',
 			[['NaN'], ['']],
-			[[None],  [None]]),
+			[[None],  [None]]
+		), (
+			'<FIELD datatype="unicodeChar" arraysize="*"/>',
+			[[u'\xe4'], [""]],
+			[[u'\xe4'], [None]]
+		),
 	]
 
 
@@ -957,6 +964,35 @@ class SimpleInterfaceTest(testhelpers.VerboseTest):
 		self.failUnless("QFILtsN2C/ZAGBY4hllK" in content)
 		self.failUnless('name="n_VHB"' in content)
 		self.failUnless('Right Ascension (J2000)</DESCRIPTION>' in content)
+
+
+class RecordArrayTest(testhelpers.VerboseTest):
+	def testPlain(self):
+		data, metadata = votable.loads("""<VOTABLE>
+			<RESOURCE><TABLE>
+				<FIELD name="a" datatype="int"/>
+				<FIELD name="b" datatype="double"/>
+				<FIELD name="c" datatype="char" arraysize="4"/>
+				<DATA><TABLEDATA>
+					<TR><TD>1</TD><TD>23.25</TD><TD>abcd</TD></TR>
+					<TR><TD>2</TD><TD>-2e6</TD><TD>x</TD></TR>
+				</TABLEDATA></DATA></TABLE></RESOURCE></VOTABLE>""")
+		arr = rec.array(data, dtype=votable.makeDtype(metadata))
+		self.assertEqual(tuple(arr[0]), (1, 23.25, 'abcd'))
+		self.assertEqual(tuple(arr[1]),  (2, -2000000.0, 'x'))
+
+	def testVarLengthStrings(self):
+		data, metadata = votable.loads("""<VOTABLE>
+			<RESOURCE><TABLE>
+				<FIELD name="a" datatype="short"/>
+				<FIELD name="c" datatype="char" arraysize="*"/>
+				<DATA><TABLEDATA>
+					<TR><TD>1</TD><TD>short string</TD></TR>
+					<TR><TD>2</TD><TD>A long, long string that will have to be trunc...</TD></TR>
+				</TABLEDATA></DATA></TABLE></RESOURCE></VOTABLE>""")
+		arr = rec.fromrecords(data, dtype=votable.makeDtype(metadata))
+		self.assertEqual(arr[0][1], 'short string')
+		self.assertEqual(arr[1][1], 'A long, long string ')
 
 
 class StanXMLText(testhelpers.VerboseTest):
