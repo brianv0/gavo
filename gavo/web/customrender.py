@@ -23,7 +23,7 @@ class CustomRenderer(grend.ServiceBasedPage):
 	class MainPage inheriting from gavo.web.ServiceBasedPage.
 
 	This class basically is a nevow resource, i.e., you can define
-	docFactroy, locateChild, renderHTTP, and so on.
+	docFactory, locateChild, renderHTTP, and so on.
 
 	To use it, you have to define a service with the resdir-relative path
 	to the module in the customPage attribute and probably a nullCore.  You

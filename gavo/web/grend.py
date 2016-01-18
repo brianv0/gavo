@@ -441,7 +441,7 @@ class CustomTemplateMixin(object):
 	This works by making docFactory a property first checking if
 	the instance has a customTemplate attribute evaluating to true.
 	If it has and it is referring to a string, its content is used
-	as an absolute path to a nevow XML template.  If it has and
+	as a resdir-relative path to a nevow XML template.  If it has and
 	it is not a string, it will be used as a template directly
 	(it's already "loaded"), else defaultDocFactory attribute of
 	the instance is used.
@@ -452,9 +452,10 @@ class CustomTemplateMixin(object):
 		if not self.customTemplate:
 			return self.defaultDocFactory
 		elif isinstance(self.customTemplate, basestring):
-			if not os.path.exists(self.customTemplate):
+			tplPath = self.rd.getAbsPath(self.customTemplate)
+			if not os.path.exists(tplPath):
 				return self.defaultDocFactory
-			return loaders.xmlfile(self.customTemplate)
+			return loaders.xmlfile(tplPath)
 		else:
 			return self.customTemplate
 	

@@ -2865,6 +2865,28 @@ already results from filling out the form, it will execute what your
 registred in ``addAction`` -- in this case, it's the ``submitAction``
 method.
 
+*Important*: anything you do within ``addAction`` runs within the
+(cooperative) server thread.  If it blocks or performs a long
+computation, the server is blocked.  You will therefore want to do
+non-trivial things either using asynchronous patterns or using
+``deferToThread``.  The latter is less desirable but also easier, so
+here's how this looks like::
+
+	def submitAction(self, ctx, form, data):
+		return threads.deferToThread(
+			runRegistrationFor, data["ivoid"]
+			).addCallback(self._renderResponse
+			).addErrback(self._renderErrors)
+	
+	def _renderResponse(self, result):
+		# do something to render a success message (or return Redirect)
+		return self
+
+	def _renderErrors(self, failure):
+		# do something to render an error message, e.g., from
+		# failure.getErrorMessage()
+		return self
+
 
 .. _templating guide: http://docs.g-vo.org/DaCHS/templating.html
 

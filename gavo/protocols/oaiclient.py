@@ -11,11 +11,16 @@ that can serve as bases for more specialized parsers.
 #c COPYING file in the source distribution.
 
 
+import cPickle as pickle
+import hashlib
+import os
 import urllib
+from cStringIO import StringIO
 from xml import sax
-
+from xml.sax import saxutils
 
 from gavo import base
+from gavo import svcs
 from gavo import utils
 
 
@@ -25,6 +30,123 @@ class FailedQuery(Exception):
 
 class NoRecordsMatch(Exception):
 	pass
+
+
+# Canonical prefixes, i.e., essentially fixed prefixes for certain
+# namespaces.  This is all an ugly nightmare, but this is what you
+# get for having namespace prefixes in attributes.
+
+class PrefixIsTaken(Exception):
+	pass
+
+
+class CanonicalPrefixes(object):
+	"""a self-persisting dictionary of the prefixes we use in our
+	OAI interface.
+
+	CanonicalPrefixes objects are constructed with the name of a
+	pickle file containing a list of (prefix, uri) pairs.
+
+	This reproduces some code from stanxml.NSRegistry, but we want that
+	stuff as instance method here, not as class method.
+	"""
+	def __init__(self, pickleName):
+		self.pickleName = pickleName
+		self._registry = {}
+		self._reverseRegistry = {}
+		self._loadData()
+
+	def registerPrefix(self, prefix, ns, save=True):
+		if prefix in self._registry:
+			if ns!=self._registry[prefix]:
+				raise PrefixIsTaken(prefix)
+			return
+		self._registry[prefix] = ns
+		if ns in self._reverseRegistry and self._reverseRegistry[ns]!=prefix:
+			raise ValueError("Namespace %s already has prefix %s, will"
+				" not clobber with %s"%(ns, self._reverseRegistry[ns], prefix))
+		self._reverseRegistry[ns] = prefix
+		if save:
+			self._saveData()
+	
+	def registerPrefixOrMakeUp(self, prefix, ns):
+		"""registers prefix for ns or, if prefix is already taken, makes
+		up a new prefix for the namespace URI ns.
+		"""
+		try:
+			self.registerPrefix(prefix, ns)
+		except PrefixIsTaken:
+			origPrefix, uniquer = prefix, 0
+			while True:
+				try:
+					prefix = origPrefix+str(uniquer)
+					self.registerPrefix(prefix, ns)
+				except PrefixIsTaken:
+					uniquer += 1
+				else:
+					break
+
+	def getPrefixForNS(self, ns):
+		try:
+			return self._reverseRegistry[ns]
+		except KeyError:
+			raise svcs.NotFoundError(ns, "XML namespace",
+				"registry of XML namespaces.")
+
+	def haveNS(self, ns):
+		return self._reverseRegistry.has_key(ns)
+
+	def getNSForPrefix(self, prefix):
+		try:
+			return self._registry[prefix]
+		except KeyError:
+			raise svcs.NotFoundError(prefix, "XML namespace prefix",
+				"registry of prefixes.")
+
+	def iterNS(self):
+		return self._registry.iteritems()
+
+	def _fillFromPairs(self, pairs):
+		"""fills the instance from a list of prefix, uri pairs.
+
+		Pairs is what is stored in the pickle.
+		"""
+		for prefix, uri in pairs:
+			self.registerPrefix(prefix, uri, save=False)
+		
+	def _bootstrap(self):
+		"""sets up our canonical prefixes from DaCHS' (stanxml) namespace 
+		registry.
+		"""
+		from gavo import api  #noflake: hope most prefixes are registred after that
+		from gavo.utils import stanxml
+		self._fillFromPairs(stanxml.NSRegistry._registry.iteritems())
+		self._saveData()
+
+	def _loadData(self):
+		try:
+			with open(self.pickleName) as f:
+				self._fillFromPairs(pickle.load(f))
+		except IOError: # most likely, the file does not exist yet
+			import traceback
+			traceback.print_exc()
+			base.ui.notifyWarning("Starting new canonical prefixes")
+			self._bootstrap()
+
+	def _saveData(self):
+		toPersist = list(sorted(self._registry.iteritems()))
+		try:
+			with open(self.pickleName+".tmp", "w") as f:
+				pickle.dump(toPersist, f)
+			os.rename(self.pickleName+".tmp", self.pickleName)
+		except IOError, msg:
+			base.ui.notifyWarning("Could not persist canonical prefixes: %s"%
+				msg)
+
+
+def getCanonicalPrefixes():
+	return CanonicalPrefixes(os.path.join(base.getConfig("cacheDir"),
+		"rrOaiPrefixes.pickle"))
 
 
 class OAIErrorMixin(object):
@@ -102,6 +224,212 @@ class RecordParser(IdParser, OAIErrorMixin):
 
 	def _end_accessURL(self, name, attrs, content):
 		self.recs[-1].setdefault(name, []).append(content)
+
+
+class OAIRecordsParser(sax.ContentHandler):
+	"""a SAX ContentHandler generating tuples of some record-level metadata
+	and pre-formatted XML of simple implementation of the OAI interface.
+
+	canonicalPrefixes is a CanonicalPrefixesInstance built from
+	res/canonicalPrefixes.pickle
+
+	Note that we *require* that records actually carry ivo_vor metadata.
+	That's necessary because rr.resource only has records with
+	ivo_vor metadata and the oairecs table has a foreign key there.  It's
+	probably also desirable so we don't ingest any noise that may happen
+	to end up in registries.
+	"""
+	# attribute names the values of which should be disambiguated to
+	# reduce the likelihood of clashes when ids are reused between documents.
+	# (see _normalizeAttrs)
+	_referringAttributeNames = set(["id", "ref",
+		"coord_system_id"])
+
+	resumptionToken = None
+
+	def __init__(self, canonicalPrefixes=None):
+		self.canonicalPrefixes = canonicalPrefixes or getCanonicalPrefixes()
+		sax.ContentHandler.__init__(self)
+		self.buffer = None
+		self.writer = None
+		self.rowdicts = []
+		self.prefixMap = {}
+		self.prefixesToTranslate = {}
+
+	def startPrefixMapping(self, prefix, uri):
+		self.prefixMap.setdefault(prefix, []).append(uri)
+
+		# Here, we make sure we find a globally unique prefix for every
+		# namespace URI.  canonicalPrefixes makes sure this unique prefix
+		# is persistent and later available to the OAI interface
+		if not self.canonicalPrefixes.haveNS(uri):
+			self.canonicalPrefixes.registerPrefixOrMakeUp(prefix, uri)
+		
+		canonPrefix = self.canonicalPrefixes.getPrefixForNS(uri)
+		if prefix!=canonPrefix or prefix in self.prefixesToTranslate:
+			self.prefixesToTranslate.setdefault(prefix, []).append(canonPrefix)
+	
+	def endPrefixMapping(self, prefix):
+		self.prefixMap[prefix].pop()
+		if prefix in self.prefixesToTranslate:
+			self.prefixesToTranslate[prefix].pop()
+			if not self.prefixesToTranslate[prefix]:
+				del self.prefixesToTranslate[prefix]
+
+	def startElementNS(self, namePair, ignored, attrs):
+		ns, name = namePair
+		if ns is not None:
+			name = self.canonicalPrefixes.getPrefixForNS(ns)+":"+name
+		if attrs:
+			attrs = self._normalizeAttrs(attrs)
+
+		if name in self.startHandlers:
+			self.startHandlers[name](self, name, attrs)
+
+		if self.writer:
+			self.writer.startElement(name, attrs)
+
+		self._lastChars = []
+	
+	def endElementNS(self, namePair, name):
+		ns, name = namePair
+		if ns is not None:
+			name = self.canonicalPrefixes.getPrefixForNS(ns)+":"+name
+		if self.writer:
+			self.writer.endElement(name)
+		if name in self.endHandlers:
+			self.endHandlers[name](self, name)
+	
+	def characters(self, stuff):
+		if self.writer:
+			self.writer.characters(stuff)
+		# Hack, see _getLastContent
+		self._lastChars.append(stuff)
+
+	def normalizeNamespace(self, name):
+		"""fixes the namespace prefix of name if necessary.
+
+		name must be a qualified name, i.e., contain exactly one colon.
+
+		"normalize" here means make sure the prefix matches our canonical prefix
+		and change it to the canonical one if necessary.
+/		"""
+		prefix, base = name.split(":")
+		if prefix not in self.prefixesToTranslate:
+			return name
+		return self.prefixesToTranslate[prefix][-1]+":"+base
+
+	def _normalizeAttrs(self, attrs):
+		"""fixes attribute name and attribute value namespaces if necessary.
+
+		It also always checks for xsi:type and fixes namespaced attribute
+		values as necessary.
+
+		See also normalizeNamespace.
+		"""
+		newAttrs = {}
+		for ns, name in attrs.keys():
+			value = attrs[(ns, name)]
+			if ns is None:
+				newName = name
+			else:
+				newName = self.canonicalPrefixes.getPrefixForNS(ns)+":"+name
+
+			if newName=="xsi:type":
+				if ":" in value:
+					value = self.normalizeNamespace(value)
+			
+			# to uniqueify id/ref-pairs, prepend an md5-digest of the ivoid
+			# to selected ids.  This isn't guaranteed to always work, but
+			# if someone is devious enough to cause collisions here, they
+			# deserve no better.
+			if newName in self._referringAttributeNames:
+				value = hashlib.md5(self.ivoid).hexdigest()+value
+
+			newAttrs[newName] = value
+
+		return newAttrs
+
+	def _getLastContent(self):
+		"""returns the entire character content since the last XML event.
+		"""
+		return "".join(self._lastChars)
+
+	def notifyError(self, err):
+		self._errorOccurred = True
+
+	def shipout(self, role, record):
+		# see _end_identifier for an explanation of the following condition
+		if self.ivoid is None:
+			return
+		# see our docstring on why we need the following
+		if not self.metadataSeen:
+			return
+		if self._errorOccurred:
+			return
+
+		# _start_header sets _isDeleted
+		if self._isDeleted:
+			return
+		self.rowdicts.append((role, record))
+
+	def _start_oai_header(self, name, attrs):
+		self._isDeleted = attrs.get("status", "").lower()=="deleted"
+
+	def _start_oai_record(self, name, attrs):
+		self._errorOccurred = False
+		self.curXML = StringIO()
+		self.writer = saxutils.XMLGenerator(self.curXML, "utf-8")
+		self.writer.startDocument()
+		self.ivoid, self.updated = None, None
+		self.metadataSeen = False
+		self.oaiSets = set()
+
+	def _start_ri_Resource(self, anme, attrs):
+		self.metadataSeen = True
+
+	def _end_oai_record(self, name):
+		if self.writer is not None:
+			self.writer.endDocument()
+			# yeah, we decode the serialized result right away; it's easier
+			# to store character streams in the DB the way I'm doing things.
+			oaixml = self.curXML.getvalue().decode("utf-8")
+			# unfortunately, XMLGenerator insists on adding an XML declaration,
+			# which I can't have here.  I remove it manually
+			if oaixml.startswith("<?xml"):
+				oaixml = oaixml[oaixml.index("?>")+2:]
+			self.shipout("oairecs", {
+				"ivoid": self.ivoid,
+				"updated": self.updated,
+				"oaixml": oaixml})
+		self.writer = None
+		self.curXML = None
+
+	def _end_oai_setSpec(self, name):
+		self.oaiSets.add(self._getLastContent())
+
+	def _end_oai_identifier(self, name):
+		self.ivoid = self._getLastContent().lower()
+
+	def _end_oai_resumptionToken(self, name):
+		self.resumptionToken = self._getLastContent()
+
+	def getResult(self):
+		return self.rowdicts
+
+	startHandlers = {
+		"oai:record": _start_oai_record,
+		"oai:header": _start_oai_header,
+		"ri:Resource": _start_ri_Resource,
+	}
+	endHandlers = {
+		"oai:record": _end_oai_record,
+		"oai:setSpec": _end_oai_setSpec,
+		"oai:resumptionToken": _end_oai_resumptionToken,
+		"oai:identifier": _end_oai_identifier,
+
+	}
+
 
 
 class ServerProperties(object):
@@ -184,11 +512,12 @@ class OAIQuery(object):
 	maxRecords = None
 
 	def __init__(self, registry, verb, startDate=None, endDate=None, set=None,
-			metadataPrefix="ivo_vor", contentCallback=None, 
+			metadataPrefix="ivo_vor", identifier=None, contentCallback=None, 
 			granularity=None):
 		self.registry = registry
 		self.verb, self.set = verb, set
 		self.startDate, self.endDate = startDate, endDate
+		self.identifier = identifier
 		self.metadataPrefix = metadataPrefix
 		self.contentCallback = contentCallback
 		self.granularity = granularity
@@ -217,6 +546,9 @@ class OAIQuery(object):
 			kws["set"] = self.set
 		if self.maxRecords:
 			kws["maxRecords"] = str(self.maxRecords)
+
+		if self.identifier:
+			kws["identifier"] = self.identifier
 
 		if "resumptionToken" in kws:
 			kws = {"resumptionToken": kws["resumptionToken"],
@@ -252,7 +584,10 @@ class OAIQuery(object):
 		res = self.doHTTP(verb=self.verb)
 		handler = parserClass()
 		try:
-			sax.parseString(res, handler)
+			xmlReader = sax.make_parser()
+			xmlReader.setFeature(sax.handler.feature_namespaces, True)
+			xmlReader.setContentHandler(handler)
+			xmlReader.parse(StringIO(res))
 			if self.contentCallback:
 				self.contentCallback(res)
 		except NoRecordsMatch:
@@ -295,6 +630,11 @@ def getRecords(registry, startDate=None, endDate=None, set=None,
 	q = OAIQuery(registry, verb="ListRecords", startDate=startDate,
 		endDate=endDate, set=set, granularity=granularity)
 	return q.talkOAI(RecordParser)
+
+
+def getRecord(registry, identifier):
+	q = OAIQuery(registry, verb="GetRecord", identifier=identifier)
+	return q.talkOAI(OAIRecordsParser)
 
 
 def getServerProperties(registry):

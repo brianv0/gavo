@@ -10,4 +10,5 @@ Code for talking to http clients.
 
 # Not checked by pyflakes: API file with gratuitous imports
 
-from gavo.web.grend import GavoRenderMixin, ServiceBasedPage
+from gavo.web.grend import (GavoRenderMixin, ServiceBasedPage, 
+	CustomTemplateMixin)
