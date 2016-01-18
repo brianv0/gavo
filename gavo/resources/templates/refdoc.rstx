@@ -2553,7 +2553,7 @@ look like this::
 
 The rows are rowdicts as genrated by rowmakers (which you could
 use, too).  In many cases, it may be more convenient to collect the data
-up front and then create the output table with ready-made rows:
+up front and then create the output table with ready-made rows::
 
   rows = [{"foo": 3, "bar": 8}]
   return rsc.TableForDef(self.outputTable, rows=rows)
@@ -2764,6 +2764,109 @@ something like::
 
   gavo --traceback uwsrun i1ypYX
 
+
+Custom Pages
+============
+
+While DaCHS isn't actually intended to be an all-purpose server for web
+applications, sometimes you want to have some gadget for the browser
+that doesn't need VO protocols.  For that, there is customPage, which is
+essentially a bare-bones nevow page.  Hence, all (admittedly sparse)
+nevow documentation applies.  Nevertheless, here are some hints on how
+to write a custom page.
+
+First, in the RD, define a service allowing a custom page.  These
+normally have no cores (the customPage renderer will ignore the core)::
+
+	<service id="ui" core="null" allowed="custom" 
+		customPage="res/registration.py">
+		<meta name="shortName">DOI registration</meta>
+		<meta name="title">VOiDOI DOI registration web service</meta>
+	</service>
+
+The python module referred to in customPage must define a ``MainPage``
+nevow resource.  The recommended pattern is like this::
+
+  from nevow import tags as T
+
+  from gavo import web
+  from gavo.imp import formal
+
+
+  class MainPage(
+		  formal.ResourceMixin, 
+		  web.CustomTemplateMixin,
+		  web.ServiceBasedPage):
+
+	  name = "custom"
+	  customTemplate = "res/registration.html"
+
+	  workItems = None
+
+	  @classmethod
+	  def isBrowseable(self, service):
+		  return True
+
+	  def form_ivoid(self, ctx, data={}):
+	    form = formal.Form()
+	    form.addField("ivoid", formal.String(required=True), label="IVOID",
+		    description="An IVOID for a registred VO resource"),
+	    form.addAction(self.submitAction, label="Next")
+	    return form
+
+	  def render_workItems(self, ctx, data):
+		  if self.workItems:
+			  return ctx.tag[T.li[[m for m in self.workItems]]]
+		  return ""
+
+	  def submitAction(self, ctx, form, data):
+		  self.workItems = ["Working on %s"%data["ivoid"]]
+		  return self
+		  
+The ``formal.ResourceMixin`` lets you define and interpret forms.  The
+``web.ServiceBasedPage`` does all the interfacing to the DaCHS (e.g.,
+credential checking and the like).  The ``web.CustomTemplateMixin`` lets
+you get your template from a DaCHS template (cf. `templating guide`_)
+from a resdir-relative directory given in the ``customTemplate``
+attribute.  For widely distributed code, you should additionaly provide
+some embedded stan fallback in the ``defaultDocFactory`` attribute -- of
+course, you can also give the template in stan in the first place.
+
+On ``form_invoid`` and ``submitAction`` see below.
+
+This template could, for this service, look like this::
+
+  <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+		  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+  <html xmlns="http://www.w3.org/1999/xhtml"
+	  xmlns:n="http://nevow.com/ns/nevow/0.1">
+  <head>
+	  <title>VOiDOI: Registration</title>
+	  <n:invisible n:render="commonhead"/>
+  </head>
+  <body n:render="withsidebar">
+	  <h1>VOiDOI: Register your VO resource</h1>
+	  <ul n:render="workItems"/>
+	  <p>VOiDOI lets you obtain DOIs for registered VO services.</p>
+
+	  <p>In the form below, enter the IVOID of the resource you want a DOI for.
+	  If the resource is known to our registry but has no DOI yet, the registred
+	  contact will be sent an e-mail to confirm DOI creation.</p>
+	  <n:invisible n:render="form ivoid"/>
+  </body>
+  </html>
+
+Most of the details are explained in the `templating guide`_.  The
+exception is the ``form ivoid``.  This makes the
+``formal.ResourceMixin`` call the ``form_ivoid`` in ``MainPage`` and put
+in whatever HTML/stan that returns.  If nevow detects that the request
+already results from filling out the form, it will execute what your
+registred in ``addAction`` -- in this case, it's the ``submitAction``
+method.
+
+
+.. _templating guide: http://docs.g-vo.org/DaCHS/templating.html
 
 Manufacturing Spectra
 =====================
