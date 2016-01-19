@@ -29,13 +29,13 @@ import calendar
 import datetime
 import heapq
 import sys
-import subprocess
 import time
 import threading
 import traceback
 
 from gavo import utils
 from gavo.base import config
+from gavo.base import osinter
 
 
 def sendMailToAdmin(subject, message):
@@ -48,20 +48,14 @@ def sendMailToAdmin(subject, message):
 			" maintainerAddress is given"%subject)
 		return
 
-	pipe = subprocess.Popen(config.get("sendmail"), shell=True,
-		stdin=subprocess.PIPE)
-	pipe.stdin.write("\n".join(["To: "+config.get("maintainerAddress"),
+	osinter.sendMail(
+		"\n".join(["To: "+config.get("maintainerAddress"),
 		"Subject: "+subject,
 		"From: DaCHS server <%s>"%config.get("maintainerAddress"),
 		"Content-Type: text/plain",
 		"",
 		utils.safe_str(message)]))
-	pipe.stdin.close()
 
-	if pipe.wait():
-		utils.sendUIEvent("Error", "Wanted to send mail with subject"
-			"'%s', but sendmail returned an error message"
-			" (check the [general]sendmail setting)."%subject)
 
 
 class AbstractJob(object):

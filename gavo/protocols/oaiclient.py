@@ -195,10 +195,17 @@ class IdParser(utils.StartEndHandler, OAIErrorMixin):
 
 class RecordParser(IdParser, OAIErrorMixin):
 	"""A simple parser for ivo_vor records.
+
+	This only pulls out a number of the most salient items; more will 
+	probably follow as needed.
 	"""
 	def _end_title(self, name, attrs, content):
 		if self.getParentTag()=="Resource":
 			self.recs[-1][name] = content
+
+	def _end_email(self, name, attrs, content):
+		if self.getParentTag()=="contact":
+			self.recs[-1]["contact.email"] = content
 
 	def _end_name(self, name, attrs, content):
 		if self.getParentTag()=="creator":
@@ -315,7 +322,7 @@ class OAIRecordsParser(sax.ContentHandler, OAIErrorMixin):
 
 		"normalize" here means make sure the prefix matches our canonical prefix
 		and change it to the canonical one if necessary.
-/		"""
+		"""
 		prefix, base = name.split(":")
 		if prefix not in self.prefixesToTranslate:
 			return name
@@ -642,7 +649,23 @@ def getRecords(registry, startDate=None, endDate=None, set=None,
 
 def getRecord(registry, identifier):
 	q = OAIQuery(registry, verb="GetRecord", identifier=identifier)
-	return q.talkOAI(OAIRecordsParser)
+	res = q.talkOAI(OAIRecordsParser)
+	dest, row = res[0]
+	assert dest=='oairecs'
+	return row["oaixml"]
+
+
+def parseRecord(recordXML):
+	"""returns some main properties from an XML-encoded VOResource record.
+
+	recordXML can be an OAI-PMH response or just a naked record.  If multiple
+	records are contained in recordXML, only the first will be returned.
+
+	What's coming back is a dictionary as produced by RecordParser.
+	"""
+	handler = RecordParser()
+	sax.parseString(recordXML, handler)
+	return handler.recs[0]
 
 
 def getServerProperties(registry):

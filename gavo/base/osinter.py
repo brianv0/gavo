@@ -11,7 +11,16 @@ Basic OS interface/utility functions that depend on our configuration.
 
 
 import grp
+import re
 import os
+import subprocess
+import time
+from email import charset
+from email import utils as emailutils
+from email.header import Header
+from email.parser import Parser
+from email.mime.nonmultipart import MIMENonMultipart
+
 
 import pkg_resources
 
@@ -123,3 +132,53 @@ def getVersion():
 	return pkg_resources.require("gavodachs")[0].version
 
 
+def formatMail(mailText):
+	"""returns a mail with headers and content properly formatted as
+	a bytestring and MIME.
+
+	mailText must be a unicode instance or pure ASCII
+	"""
+	rawHeaders, rawBody = mailText.split("\n\n", 1)
+	cs = charset.Charset("utf-8")
+	cs.body_encoding = charset.QP
+	cs.header_encoding = charset.QP
+	# they've botched MIMEText so bad it can't really generate 
+	# quoted-printable UTF-8 any more.  So, let's forget MIMEText:
+	msg = MIMENonMultipart("text", "plain", charset="utf-8")
+	msg.set_payload(rawBody, charset=cs)
+
+	for key, value in Parser().parsestr(rawHeaders.encode("utf-8")).items():
+		if re.match("[ -~]*$", value):
+			# it's plain ASCII, don't needlessly uglify output
+			msg[key] = value
+		else:
+			msg[key] = Header(value, cs)
+	msg["Date"] = emailutils.formatdate(time.time(), 
+		localtime=False, usegmt=True)
+	msg["X-Mailer"] = "DaCHS VO Server"
+	return msg.as_string()
+
+
+def sendMail(mailText):
+	"""sends mailText (which has to have all the headers) via sendmail.
+
+	(which is configured in [general]sendmail).
+
+	This will return True when sendmail has accepted the mail, False 
+	otherwise.
+	"""
+	mailText = formatMail(mailText)
+
+	pipe = subprocess.Popen(config.get("sendmail"), shell=True,
+		stdin=subprocess.PIPE)
+	pipe.stdin.write(mailText)
+	pipe.stdin.close()
+
+	if pipe.wait():
+		utils.sendUIEvent("Error", "Wanted to send mail starting with"
+			" '%s', but sendmail returned an error message"
+			" (check the [general]sendmail setting)."%
+				utils.makeEllipsis(mailText, 300))
+		return False
+	
+	return True

@@ -44,6 +44,10 @@ class _ADQLQuerier(testhelpers.TestResource):
 
 	def make(self, deps):
 		return base.UnmanagedQuerier(deps["conn"])
+	
+	def cleanup(self, deps):
+		deps["conn"].rollback()
+
 adqlQuerier = _ADQLQuerier()
 
 

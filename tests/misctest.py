@@ -15,6 +15,7 @@ import datetime
 import httplib
 import new
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -892,6 +893,27 @@ class OSInterTest(testhelpers.VerboseTest):
 		finally:
 			os.rmdir(path)
 
+	def testMailFormat(self):
+		res = osinter.formatMail(u"""From: "Foo Bar\xdf" <foo@bar.com>
+To: gnubbel@somewhere.org
+Subject: Test Mail
+X-Testing: Yes
+
+This is normal text with shitty characters: '\xdf\xe4i\xdf\xe4'.
+
+Send it, anyway.
+
+Cheers,
+
+       Foo.
+""")
+		self.assertTrue(isinstance(res, str))
+		self.assertTrue("MIME-Version: 1.0" in res)
+		self.assertTrue(" characters: '=C3=9F=" in res)
+		self.assertTrue("From: =?utf-8?q?=22Foo_Bar=C3=9F=2" in res)
+		self.assertTrue("X-Testing: Yes" in res)
+		self.assertTrue("Subject: Test Mail" in res)
+		self.assertTrue(re.search("Date: .*GMT", res))
 
 import lxml
 from gavo.helpers import testtricks
