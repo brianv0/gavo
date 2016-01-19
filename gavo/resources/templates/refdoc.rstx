@@ -2573,8 +2573,8 @@ Errors
 
 To bail out from processing, raise a validation error.  Construct it
 with a message and the name of an input key.  At least for the form
-renderer, this causes a sensible error message with some hint as the the
-originating input field::
+renderer, this causes a sensible error message with some hint as the
+originating input field, next to the offending input field::
 
   raise base.ValidationError("Invalid file name", "rdsrc")
 

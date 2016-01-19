@@ -25,7 +25,9 @@ from gavo import utils
 
 
 class FailedQuery(Exception):
-	pass
+	def __init__(self, msg, code="?", value="?"):
+		Exception.__init__(self, msg)
+		self.code, self.value = code, value
 
 
 class NoRecordsMatch(Exception):
@@ -154,7 +156,7 @@ class OAIErrorMixin(object):
 		if attrs["code"]=="noRecordsMatch":
 			raise NoRecordsMatch()
 		raise FailedQuery("Registry bailed with code %s, value %s"%(
-			attrs["code"], content))
+			attrs["code"], content), attrs["code"], content)
 
 
 class IdParser(utils.StartEndHandler, OAIErrorMixin):
@@ -226,7 +228,7 @@ class RecordParser(IdParser, OAIErrorMixin):
 		self.recs[-1].setdefault(name, []).append(content)
 
 
-class OAIRecordsParser(sax.ContentHandler):
+class OAIRecordsParser(sax.ContentHandler, OAIErrorMixin):
 	"""a SAX ContentHandler generating tuples of some record-level metadata
 	and pre-formatted XML of simple implementation of the OAI interface.
 
@@ -414,6 +416,12 @@ class OAIRecordsParser(sax.ContentHandler):
 	def _end_oai_resumptionToken(self, name):
 		self.resumptionToken = self._getLastContent()
 
+	def _start_oai_error(self, name, attrs):
+		self._errorAttrs = attrs
+
+	def _end_oai_error(self, name):
+		self._end_error(name, self._errorAttrs, self._getLastContent())
+
 	def getResult(self):
 		return self.rowdicts
 
@@ -421,15 +429,15 @@ class OAIRecordsParser(sax.ContentHandler):
 		"oai:record": _start_oai_record,
 		"oai:header": _start_oai_header,
 		"ri:Resource": _start_ri_Resource,
+		"oai:error": _start_oai_error,
 	}
 	endHandlers = {
 		"oai:record": _end_oai_record,
 		"oai:setSpec": _end_oai_setSpec,
 		"oai:resumptionToken": _end_oai_resumptionToken,
 		"oai:identifier": _end_oai_identifier,
-
+		"oai:error": _end_oai_error,
 	}
-
 
 
 class ServerProperties(object):
