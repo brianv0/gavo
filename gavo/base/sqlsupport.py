@@ -258,6 +258,29 @@ class GAVOConnection(psycopg2.extensions.connection):
 		finally:
 			cursor.close()
 
+	@contextlib.contextmanager
+	def savepoint(self):
+		"""sets up a section protected by a savepoint that will be released
+		after use.
+
+		If an exception happens in the controlled section, the connection
+		will be rolled back to the savepoint.
+		"""
+		savepointName = "auto_%s"%(random.randint(0, 2147483647))
+		self.execute("SAVEPOINT %s"%savepointName)
+		try:
+			yield
+		except:
+			self.execute("ROLLBACK TO SAVEPOINT %s"%savepointName)
+			raise
+		finally:
+			self.execute("RELEASE SAVEPOINT %s"%savepointName)
+
+
+def savepointOn(conn):
+	raise NotImplementedError("Don't use the savepointOn function any more;"
+		" use connection.savepoint.")
+
 
 class DebugConnection(GAVOConnection):
 	def cursor(self, *args, **kwargs):
@@ -877,24 +900,6 @@ def getDBMeta(key):
 			raise KeyError(key)
 		return res[0][0]
 
-
-@contextlib.contextmanager
-def savepointOn(connection):
-	"""sets up a section protected by a savepoint that will be released
-	after use.
-
-	If an exception happens in the controlled section, the connection
-	will be rolled back to the savepoint.
-	"""
-	savepointName = "auto_%s"%(random.randint(0, 2147483647))
-	connection.execute("SAVEPOINT %s"%savepointName)
-	try:
-		yield
-		connection.execute("RELEASE SAVEPOINT %s"%savepointName)
-	except:
-		connection.execute("ROLLBACK TO SAVEPOINT %s"%savepointName)
-		connection.execute("RELEASE SAVEPOINT %s"%savepointName)
-		raise
 
 
 @contextlib.contextmanager

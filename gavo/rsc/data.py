@@ -417,7 +417,7 @@ def processSource(data, source, feeder, opts, connection=None):
 			raise base.ReportableError("Can only ignore source errors"
 				" with an explicit connection", hint="This is a programming error.")
 		try:
-			with base.savepointOn(connection):
+			with connection.savepoint():
 				_processSourceReal(data, source, feeder, opts)
 			feeder.flush()
 		except Exception, ex:

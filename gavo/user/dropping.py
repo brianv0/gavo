@@ -106,7 +106,7 @@ def _do_dropRD(opts, rdId, selectedIds=()):
 				tap.unpublishFromTAP(rd, querier.connection)
 
 			try:
-				with base.savepointOn(querier.connection):
+				with querier.connection.savepoint():
 					querier.query("drop schema %s"%rd.schema)
 			except Exception, msg:
 				api.ui.notifyWarning("Cannot drop RD %s's schema %s because:"

@@ -29,7 +29,10 @@ class DBConnection(testhelpers.TestResource):
 	setUpCost = 0.1
 
 	def make(self, ignored):
-		return base.getDBConnection("admin")
+		conn = base.getDBConnection("admin")
+		print "Main querier now:", list(
+			conn.queryToDicts("SELECT pg_backend_pid()"))[0]["pg_backend_pid"]
+		return conn
 	
 	def clean(self, conn):
 		if not conn.closed:

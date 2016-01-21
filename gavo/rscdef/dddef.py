@@ -64,7 +64,7 @@ class IgnoreSpec(base.Structure):
 
 		if self.fromdb and connection is not None:
 			try:
-				with base.savepointOn(connection):
+				with connection.savepoint():
 					self.ignoredSet |= set(r[0] 
 						for r in connection.query(self.fromdb))
 			except base.DBError: # table probably doesn't exist yet.

@@ -913,6 +913,7 @@ Cheers,
 		self.assertTrue("From: =?utf-8?q?=22Foo_Bar=C3=9F=2" in res)
 		self.assertTrue("X-Testing: Yes" in res)
 		self.assertTrue("Subject: Test Mail" in res)
+		self.assertTrue("To: gnubbel@somewhere.org" in res)
 		self.assertTrue(re.search("Date: .*GMT", res))
 
 import lxml
