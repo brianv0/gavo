@@ -22,7 +22,7 @@ getRD = base.caches.getRD
 RD = rscdesc.RD
 
 from gavo.base import (getConfig, setConfig,
-	getDBConnection,
+	getDBConnection, DBError,
 	UnmanagedQuerier, AdhocQuerier, 
 	getTableConn, getAdminConn, getUntrustedConn,
 	getWritableAdminConn,
@@ -52,6 +52,9 @@ from gavo.rscdef import TableDef, getFlatName, getReferencedElement
 
 from gavo.stc import (dateTimeToJYear, dateTimeToJdn, dateTimeToMJD,
 	jYearToDateTime, jdnToDateTime, mjdToDateTime, parseISODT)
+
+from gavo.svcs import (UnknownURI, ForbiddenURI, Authenticate, 
+	WebRedirect, SeeOther)
 
 from gavo.user.logui import LoggingUI
 

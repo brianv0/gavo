@@ -2887,6 +2887,35 @@ here's how this looks like::
 		# failure.getErrorMessage()
 		return self
 
+The embedding RD is available in the custom pages's global namespace as
+``RD``.  Thus, the standard pattern for creating a read only table is::
+  
+  with api.getTableConn() as conn: table =
+    api.TableForDef(RD.getById("my_table"), connection=conn)
+
+If you need write access, you would write::
+
+  with api.getWritableAdminConn() as conn:
+    table = api.TableForDef(RD.getById("my_table"), connection=conn)
+
+The ``RD`` attribute is *not* avalailable during module import.  This is
+a bit annoying if you want to load resources from an RD-dependent place;
+this, in particular, applies to importing dependent modules.  To provide
+a workaround, DaCHS calls a method ``initModule(**kwargs)`` after
+loading the module.  You should accept arbitrary keyword arguments here
+so you code doesn't fail if we find we want to give ``initModule`` some
+further information.
+
+The common case of importing a module from some RD-dependent place thus
+becomes::
+
+  from gavo import utils
+
+  def initModule(**kwargs):
+	  global oai2datacite
+	  modName = RD.getAbsPath("doitransfrom/oai2datacite")
+	  oai2datacite, _ = utils.loadPythonModule(modName)
+
 
 .. _templating guide: http://docs.g-vo.org/DaCHS/templating.html
 

@@ -451,6 +451,8 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		if self.customPage:
 			try:
 				modNs, moddesc = utils.loadPythonModule(self.customPage)
+				modNs.RD = self.rd
+				getattr(modNs, "initModule", lambda: None)()
 				page = modNs.MainPage
 			except ImportError:
 				raise base.ui.logOldExc(
