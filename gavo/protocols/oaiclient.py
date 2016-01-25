@@ -14,6 +14,7 @@ that can serve as bases for more specialized parsers.
 import cPickle as pickle
 import hashlib
 import os
+import re
 import urllib
 from cStringIO import StringIO
 from xml import sax
@@ -34,13 +35,12 @@ class NoRecordsMatch(Exception):
 	pass
 
 
-# Canonical prefixes, i.e., essentially fixed prefixes for certain
-# namespaces.  This is all an ugly nightmare, but this is what you
-# get for having namespace prefixes in attributes.
-
 class PrefixIsTaken(Exception):
 	pass
 
+# Canonical prefixes, i.e., essentially fixed prefixes for certain
+# namespaces.  This is all an ugly nightmare, but this is what you
+# get for having namespace prefixes in attributes.
 
 class CanonicalPrefixes(object):
 	"""a self-persisting dictionary of the prefixes we use in our
@@ -102,7 +102,7 @@ class CanonicalPrefixes(object):
 		try:
 			return self._registry[prefix]
 		except KeyError:
-			raise svcs.NotFoundError(prefix, "XML namespace prefix",
+			raise base.NotFoundError(prefix, "XML namespace prefix",
 				"registry of prefixes.")
 
 	def iterNS(self):
@@ -647,12 +647,41 @@ def getRecords(registry, startDate=None, endDate=None, set=None,
 	return q.talkOAI(RecordParser)
 
 
+def _addCanonicalNSDecls(xmlLiteral):
+	"""adds XML namespace declarations for namespace prefixes we
+	suspect in xmlLiteral.
+	
+	This is an ugly hack based on REs necessary because in the OAIRecordsParser
+	we discard the namespace declarations.  It won't work with CDATA
+	sections, and it'll make a hash of things if namespace declarations are
+	already present.  However, for the use case of making the mutilated
+	resource records coming out of the OAIRecordsParser valid, it will just
+	do.
+
+	Without an XML schema and a full parse (which of course is impossible
+	without the necessary declarations), this is, really, not possible.  But
+	the whole idea of canonical namespace prefixes is a mess, and so we
+	hack along; in particular, we accept any string of the form \w+: within
+	what looks like an XML tag as a namespace.  Oh my.
+	"""
+	prefixesUsed = set()
+	for elementContent in re.finditer("<[^>]+>", xmlLiteral):
+		prefixesUsed |= set(re.findall("([a-zA-Z_]\w*):[a-zA-Z_]", 
+			elementContent.group()))
+
+	cp = getCanonicalPrefixes()
+	nsDecls = " ".join('xmlns:%s=%s'%(
+			pref, utils.escapeAttrVal(cp.getNSForPrefix(pref)))
+		for pref in prefixesUsed)
+	return re.sub("<([\w:-]+)", r"<\1 "+nsDecls, xmlLiteral, 1)
+	
+
 def getRecord(registry, identifier):
 	q = OAIQuery(registry, verb="GetRecord", identifier=identifier)
 	res = q.talkOAI(OAIRecordsParser)
 	dest, row = res[0]
 	assert dest=='oairecs'
-	return row["oaixml"]
+	return _addCanonicalNSDecls(row["oaixml"])
 
 
 def parseRecord(recordXML):
