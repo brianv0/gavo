@@ -549,7 +549,7 @@ def getStandardPubDID(path):
 
 	return "ivo://%s/~?%s"%(
 		base.getConfig("ivoa", "authority"), 
-		getInputsRelativePath(path, liberalChars=False))
+		getInputsRelativePath(path, liberalChars=True))
 
 
 @utils.document

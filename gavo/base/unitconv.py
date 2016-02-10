@@ -605,5 +605,5 @@ def computeColumnConversions(newColumns, oldColumns):
 if __name__=="__main__":
 	getUnitGrammar.enableDebuggingOutput()
 	g = getUnitGrammar()
-	res = g.parseString("log(Hz)", parseAll=True)[0]
+	res = g.parseString("10**28 s", parseAll=True)[0]
 	print res

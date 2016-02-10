@@ -1,5 +1,5 @@
 """
-A micro-framework for regression tests within RDs.
+A framework for regression tests within RDs.
 
 The basic idea is that there's small pieces of python almost-declaratively
 defining tests for a given piece of data.	These things can then be

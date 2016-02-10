@@ -110,7 +110,8 @@ class FITSProdGrammar(Grammar):
 		"Use a hack to read the FITS header more quickly.  This only"
 		" works for the primary HDU")
 	_hduIndex = base.IntAttribute("hdu", default=0,
-		description="Take the header from this HDU")
+		description="Take the header from this HDU.  You must say qnd='False'"
+		" for this to take effect.")
 	_mapKeys = base.StructAttribute("mapKeys", childFactory=MapKeys,
 		default=None, copyable=True, description="Prescription for how to"
 		" map header keys to grammar dictionary keys")

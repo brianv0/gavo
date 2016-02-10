@@ -1158,7 +1158,7 @@ displayed with the failure message) and fix the attribute name;
 most private url attributes start with ``http``.  If you really need
 to pass a parameter named like one of url's private attributes, pass it
 in the URL if you can.  If you can't because you're posting, spank us.
-After teat, we'll work out something not too abominable .
+After that, we'll work out something not too abominable .
 
 If you have services requiring authentication, use url's ``httpAuthKey``
 attribute.  We've introduced this to avoid having credentials in the RD,
