@@ -4,6 +4,7 @@ alpha: 10.1
 delta: 15.2
 specstart: 4e-7
 specend: 5e-7
+specext: 1e-7
 bandpass: B
 dateObs: 2020-12-20T13:00:01
 mime:image/jpeg

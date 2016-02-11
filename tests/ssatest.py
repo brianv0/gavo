@@ -74,6 +74,7 @@ class _SSATestRowmaker(testhelpers.TestResource):
 			"id": "f",
 			"specstart": 10,
 			"specend": 20,
+			"specext": 10,
 			"bandpass": "ultracool",
 			"alpha": 1,
 			"delta": -81.,
@@ -1059,10 +1060,29 @@ class SDMFITSTest(testhelpers.VerboseTest):
 		self.assertEqual(hdr["TUTYP1"], 'spec:spectrum.data.spectralaxis.value')
 		self.assertEqual(hdr["TUTYP2"], 'spec:spectrum.data.fluxaxis.value')
 
+	def testColumnComment(self):
+		hdr = self.hdus[1].header
+		self.assertEqual(hdr.ascard["TTYPE1"].comment, "Wavelength")
+
 	def testValues(self):
 		wl, flux = self.hdus[1].data[1]
 		self.assertAlmostEqual(wl, 1755.)
 		self.assertAlmostEqual(flux, 1753.)
+
+	def testLimits(self):
+		hdr = self.hdus[1].header
+		self.assertEqual(hdr["TDMIN1"], 4e-7)
+		self.assertEqual(hdr.cards["TDMIN1"].comment, "[m]")
+
+	def testCalibration(self):
+		hdr = self.hdus[1].header
+		self.assertEqual(hdr["FLUX_CAL"], "UNCALIBRATED")
+
+	def testBandwidthUnit(self):
+		hdr = self.hdus[1].header
+		card = hdr.ascard["SPEC_BW"]
+		self.assertEqual(card.value, 1e-7)
+		self.assertEqual(card.comment, "[m]")
 
 
 class _RenderedSEDResponse(testhelpers.TestResource):

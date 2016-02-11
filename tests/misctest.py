@@ -1082,7 +1082,7 @@ class RDManiTest(testhelpers.VerboseTest):
 	def testGetChanges(self):
 		self.assertEqual(list(rdmanipulator.iterLimitsForTable(
 			self.ssaTable.tableDef)), [
-				(u'hcdtest', u'accsize', 199, 211), 
+				(u'hcdtest', u'accsize', 213, 225), 
 				(u'hcdtest', u'ssa_redshift', -0.001, 0.7),
 				(u'hcdtest', u'ssa_timeExt', None, None)])
 
@@ -1094,7 +1094,7 @@ class RDManiTest(testhelpers.VerboseTest):
 			' description="random number">\n\t\t\t'
 			'<values nullLiteral="-1"/>\n\t\t</column>'
 			'\n\t\t<column original="accsize">\n\t\t\t'
-			'<values \n\t\t\t\tmin="199" \n\t\t\t\tmax="211"/>'
+			'<values \n\t\t\t\tmin="213" \n\t\t\t\tmax="225"/>'
 			'\n\t\t</column>\n\t\t'
 			'<column original="ssa_redshift">\n\t\t\t'
 			'<values \n\t\t\t\tmin="-0.001" max="0.7"/>\n\t\t</column>\n'

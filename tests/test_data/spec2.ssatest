@@ -4,6 +4,7 @@ alpha: 11
 delta: 14
 specstart: 5e-7
 specend: 6e-7
+specext: 1e-7
 bandpass: V
 dateObs: 2020-12-20T13:01:01
 mime:application/x-votable+xml

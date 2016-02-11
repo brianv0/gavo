@@ -4,6 +4,7 @@ alpha:
 delta:
 specstart: 7e-7
 specend: 8e-7
+specext: 1e-7
 bandpass: R
 dateObs: 2020-12-21T13:00:01
 mime:text/csv

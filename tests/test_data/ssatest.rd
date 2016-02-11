@@ -65,7 +65,7 @@
 				<apply procDef="//ssap#setMeta">
 					<bind name="pubDID">"ivo://test.inv/"+@id</bind>
 					<LOOP listItems="dstitle specstart specend bandpass alpha delta
-							dateObs redshift">
+							dateObs redshift specext">
 						<events>
 							<bind name="\item">@\item</bind>
 						</events>

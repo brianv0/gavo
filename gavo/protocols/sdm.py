@@ -29,7 +29,6 @@ from gavo import votable
 from gavo.formats import fitstable
 from gavo.formats import votablewrite
 from gavo.protocols import products
-from gavo.utils import pyfits
 
 
 # MIME types we can generate *from* SDM-compliant data; the values are
@@ -303,6 +302,37 @@ def _add_location_cards(header, par):
 	header.update("DEC", par.value[1])
 
 
+def getColIndForUtype(header, colUtype):
+	"""returns the fits field index that has colUtype as its utype within
+	header.
+
+	If no such field exists, this raises a KeyError
+	"""
+	nCols = header.get("TFIELDS", 0)
+	for colInd in range(1, nCols+1):
+		key = "TUTYP%d"%colInd
+		if header.get(key, None)==colUtype:
+			return colInd
+	else:
+		raise KeyError(colUtype)
+
+
+def _make_limits_func(colUtype, keyBase):
+	"""returns a _SDM_HEADER_MAPPING for declaring TDMIN/MAXn and friends.
+
+	colUtype determines the n here.
+	"""
+	def func(header, par):
+		try:
+			key = keyBase+str(getColIndForUtype(header, colUtype))
+			header.update(key, par.value, comment="[%s]"%par.unit)
+		except KeyError:
+			# no field for utype
+			pass
+
+	return func
+
+
 # A mapping from utypes to the corresponding FITS keywords
 # There are some more complex cases, for which a function is a value
 # here; the funciton is called with the FITS header and the parameter
@@ -381,6 +411,10 @@ _SDM_HEADER_MAPPING = {
 	"char.spectralaxis.calibration": "SPEC_CAL",
 	"char.spectralaxis.coverage.location.value": "SPEC_VAL",
 	"char.spectralaxis.coverage.bounds.extent": "SPEC_BW",
+	"char.spectralaxis.coverage.bounds.start": 
+		_make_limits_func("spec:spectrum.data.spectralaxis.value", "TDMIN"),
+	"char.spectralaxis.coverage.bounds.stop": 
+		_make_limits_func("spec:spectrum.data.spectralaxis.value", "TDMAX"),
 	"char.spectralaxis.samplingprecision.": None,
 	"samplingprecisionrefval.fillfactor": "SPEC_FIL",
 	"char.spectralaxis.samplingprecision.SampleExtent": "SPEC BIN",
@@ -416,16 +450,13 @@ _SDM_HEADER_MAPPING = {
 	"char.spatialaxis.coverage.location.value": _add_location_cards,
 }
 
-def makeBasicSDMHeader(sdmData):
-	"""returns a pyfits header containing the SDM header fields common to
-	standard and image serialization.
+def makeBasicSDMHeader(sdmData, header):
+	"""updates the fits header header with the params from sdmData.
 	"""
-	header = pyfits.Header()
-
 	for par in sdmData.getPrimaryTable().iterParams():
 		if par.value is None or par.utype is None:
 			continue
-		
+	
 		mapKey = par.utype.lower().split(":")[-1]
 		if mapKey.startswith("spectrum."):  # WTF?
 			mapKey = mapKey[9:]
@@ -440,7 +471,7 @@ def makeBasicSDMHeader(sdmData):
 			if par.unit:
 				comment = str("[%s]"%par.unit)
 
-			# Use our serialising infrastructure here?
+			# TODO: use our serialising infrastructure here
 			value = par.value
 			if isinstance(value, unicode):
 				value = value.encode("ascii", "ignore")
@@ -449,8 +480,6 @@ def makeBasicSDMHeader(sdmData):
 
 			header.update(destKey, value, comment)
 	
-	return header
-
 
 def makeSDMFITS(sdmData):
 	"""returns sdmData in an SDM-compliant FITS.
@@ -461,8 +490,7 @@ def makeSDMFITS(sdmData):
 	sdmData.getPrimaryTable().IgnoreTableParams = None
 	hdus = fitstable.makeFITSTable(sdmData)
 	sdmHdr = hdus[1].header
-	for card in makeBasicSDMHeader(sdmData).ascardlist():
-		sdmHdr.update(card.key, card.value, card.comment)
+	makeBasicSDMHeader(sdmData, sdmHdr)
 	srcName = fitstable.writeFITSTableFile(hdus)
 	with open(srcName) as f:
 		data = f.read()

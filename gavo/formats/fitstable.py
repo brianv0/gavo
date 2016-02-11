@@ -110,8 +110,10 @@ def _makeExtension(serMan):
 	values = list(serMan.getMappedTuples())
 	columns = []
 	utypes = []
+	descriptions = []
 
 	for colInd, colDesc in enumerate(serMan):
+		descriptions.append(colDesc["description"])
 		if colDesc["datatype"]=="char" or colDesc["datatype"]=="unicodeChar":
 			makeArray = _makeStringArray
 		else:
@@ -132,6 +134,10 @@ def _makeExtension(serMan):
 	hdu = pyfits.new_table(pyfits.ColDefs(columns))
 	for colInd, utype in utypes:
 		hdu.header.update("TUTYP%d"%(colInd+1), utype)
+	
+	cards = hdu.header.ascard
+	for colInd, desc in enumerate(descriptions):
+		cards["TTYPE%d"%(colInd+1)].comment = desc.encode("ascii", "ignore")
 
 	if not hasattr(serMan.table, "IgnoreTableParams"):
 		for param in serMan.table.iterParams():
