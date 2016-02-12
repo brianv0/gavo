@@ -26,6 +26,8 @@ an example that shows how that would look like.
 
 from __future__ import with_statement
 
+from gavo.stc import mjdToDateTime
+
 
 plusInfinity = float("Inf")
 minusInfinity = float("-Inf")
@@ -89,6 +91,12 @@ def _getSQLForSequence(field, val, sqlPars):
 		set(val), sqlPars))
 
 
+def _convertIfFinite(val, converter):
+	if minusInfinity<val<plusInfinity:
+		return converter(val)
+	return val
+
+
 def _getSQLForInterval(field, val, sqlPars):
 	"""returns SQL for DALI intervals.
 
@@ -97,12 +105,18 @@ def _getSQLForInterval(field, val, sqlPars):
 	"""
 	if len(val)!=2:
 		return ""
+
+	if field.hasProperty("database-column-is-date"):
+		val = [_convertIfFinite(v, mjdToDateTime) for v in val]
+
 	if val[1]==plusInfinity:
 		return "%s > %%(%s)s"%(field.name, getSQLKey(field.name,
 		val[0], sqlPars))
+
 	elif val[0]==minusInfinity:
 		return "%s < %%(%s)s"%(field.name, getSQLKey(field.name,
 		val[1], sqlPars))
+
 	else:
 		return "%s BETWEEN %%(%s)s AND %%(%s)s"%(field.name, 
 			getSQLKey(field.name, val[0], sqlPars),

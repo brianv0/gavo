@@ -174,7 +174,7 @@ class RDDataResource(testhelpers.TestResource):
 
 	def make(self, deps):
 		self.conn = deps["conn"]
-		print "Importing %s %s using %s:"%(self.rdID, self.dataId, list(
+		print "Importing %s %s using %s:"%(self.rdName, self.dataId, list(
 			self.conn.queryToDicts("SELECT pg_backend_pid()"))[0]["pg_backend_pid"])
 		dd = base.caches.getRD(self.rdName).getById(self.dataId)
 		self.dataCreated = rsc.makeData(dd, connection=self.conn)

@@ -355,5 +355,16 @@ class DALISQLTest(testhelpers.VerboseTest):
 			[('test0', set(["ab", "cd", "ef"]))]),
 		]
 
+	def testMJDOnDatetime(self):
+		ik = dalipars.adaptInputKey(
+			MS(svcs.InputKey, name="test", type="timestamp"))
+		ik.set("-Inf 57429")
+		inPars, outPars = {ik.name: ik.value}, {}
+		fragment = base.getSQLForField(ik, inPars, outPars)
+		self.assertEqual(fragment, "test < %(test0)s")
+		self.assertEqual(outPars["test0"], 
+			datetime.datetime(2016, 2, 11, 0, 0, 0, 1))
+
+
 if __name__=="__main__":
 	testhelpers.main(CoversTest)

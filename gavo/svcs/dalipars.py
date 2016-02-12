@@ -35,8 +35,10 @@ def adaptInputKey(inputKey):
 		return inputKey
 
 	if inputKey.type in ["timestamp", "date"]:
-		return inputKey.change(unit="d", xtype="interval",
+		res = inputKey.change(unit="d", xtype="interval",
 			type="double precision[2]", multiplicity="single")
+		res.setProperty("database-column-is-date", "")
+		return res
 
 	if inputKey.type in INTERVAL_TYPES:
 		if not inputKey.isEnumerated():
