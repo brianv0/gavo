@@ -580,11 +580,23 @@ class ParamTest(testhelpers.VerboseTest):
 				'10 12 -130</param>')
 		self.assertEqual(par.value, (10, 12, -130))
 
+	def testFloatArray(self):
+		par = base.parseFromString(rscdef.Param,
+			'<param name="foo" type="real[2]">'
+				'10. 12.</param>')
+		self.assertEqual(par.value, (10., 12.))
+
 	def testParseFromArray(self):
 		par = base.parseFromString(rscdef.Param,
 			'<param name="foo" type="integer[]"/>')
 		par.set(['10', '12', '-130'])
 		self.assertEqual(par.value, [10, 12, -130])
+
+	def testParseFromFloatArray(self):
+		par = base.parseFromString(rscdef.Param,
+			'<param name="foo" type="real[2]"/>')
+		par.set('10. 12.')
+		self.assertEqual(par.value, (10., 12.))
 
 	def testParseFromStringArray(self):
 		par = base.parseFromString(rscdef.Param,

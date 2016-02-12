@@ -52,7 +52,6 @@ class DALRenderer(grend.ServiceBasedPage):
 	implements(inevow.ICanHandleException)
 
 	resultType = base.votableType
-	parameterStyle = "pql"
 	urlUse = "base"
 
 	def __init__(self, ctx, *args, **kwargs):
@@ -225,6 +224,7 @@ class SCSRenderer(DALRenderer):
 	"""
 	name = "scs.xml"
 	version = "1.0"
+	parameterStyle = "pql"
 
 	def __init__(self, ctx, *args, **kwargs):
 		reqArgs = inevow.IRequest(ctx).args
@@ -309,6 +309,7 @@ class SIAPRenderer(DALRenderer):
 # UnifiedDALRenderer rather than siap.xml.
 	version = "1.0"
 	name = "siap.xml"
+	parameterStyle = "pql"
 
 	def __init__(self, ctx, *args, **kwargs):
 		reqArgs = inevow.IRequest(ctx).args
@@ -353,6 +354,7 @@ class SIAPRenderer(DALRenderer):
 					str(msg)]]]
 
 
+
 class UnifiedDALRenderer(DALRenderer):
 	"""A renderer for new-style simple DAL protocols.
 
@@ -366,7 +368,6 @@ class UnifiedDALRenderer(DALRenderer):
 	(plus _outputTableCasts if necessary).  Also, explain any protocol-specific
 	metadata in the docstring.
 	"""
-	parameterStyle = "pql"
 
 	_outputTableCasts = {}
 
@@ -388,6 +389,16 @@ class UnifiedDALRenderer(DALRenderer):
 			V.RESOURCE(type="results")[
 				V.INFO(name="QUERY_STATUS", value=queryStatus)[
 					str(msg)]]]
+
+
+class SIAP2Renderer(UnifiedDALRenderer):
+	"""A renderer for SIAv2.
+
+	This really must run on top of a Siap2Core, which in turn needs
+	a source table mixing in obscore.
+	"""
+	parameterStyle = "dali"
+	name = "siap2.xml"
 
 
 class SSAPRenderer(UnifiedDALRenderer):
@@ -419,6 +430,7 @@ class SSAPRenderer(UnifiedDALRenderer):
 	"""
 	version = "1.04"
 	name = "ssap.xml"
+	parameterStyle = "pql"
 
 
 class SLAPRenderer(UnifiedDALRenderer):
@@ -437,6 +449,7 @@ class SLAPRenderer(UnifiedDALRenderer):
 	"""
 	version = "1.0"
 	name = "slap.xml"
+	parameterStyle = "pql"
 
 
 class APIRenderer(UnifiedDALRenderer):
@@ -451,6 +464,7 @@ class APIRenderer(UnifiedDALRenderer):
 	These will return basic serice metadata if passed MAXREC=0.
 	"""
 	name = "api"
+	parameterStyle = "dali"
 
 
 class RegistryRenderer(grend.ServiceBasedPage):

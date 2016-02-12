@@ -27,6 +27,10 @@ an example that shows how that would look like.
 from __future__ import with_statement
 
 
+plusInfinity = float("Inf")
+minusInfinity = float("-Inf")
+
+
 def joinOperatorExpr(operator, operands):
 	"""filters empty operands and joins the rest using operator.
 
@@ -85,18 +89,43 @@ def _getSQLForSequence(field, val, sqlPars):
 		set(val), sqlPars))
 
 
+def _getSQLForInterval(field, val, sqlPars):
+	"""returns SQL for DALI intervals.
+
+	This presumes that val is a 2-array of numbers and will return
+	an empty condition otherwise.
+	"""
+	if len(val)!=2:
+		return ""
+	if val[1]==plusInfinity:
+		return "%s > %%(%s)s"%(field.name, getSQLKey(field.name,
+		val[0], sqlPars))
+	elif val[0]==minusInfinity:
+		return "%s < %%(%s)s"%(field.name, getSQLKey(field.name,
+		val[1], sqlPars))
+	else:
+		return "%s BETWEEN %%(%s)s AND %%(%s)s"%(field.name, 
+			getSQLKey(field.name, val[0], sqlPars),
+			getSQLKey(field.name, val[1], sqlPars))
+
+
 def _getSQLForSimple(field, val, sqlPars):
 	return "%s=%%(%s)s"%(field.name, getSQLKey(field.name,
 		val, sqlPars))
 
 
-def _getSQLFactory(type, value):
-	"""returns an SQL factory for matching columns of type against value.
+def _getSQLFactory(field, value):
+	"""returns an SQL factory for matching field's values against value.
 	"""
-	if isinstance(value, (list, tuple)):
+	if field.xtype=="interval":
+		return _getSQLForInterval
+
+	elif isinstance(value, (list, tuple)):
 		return _getSQLForSequence
-	elif type in _REGISTRED_SQL_FACTORIES:
-		return _REGISTRED_SQL_FACTORIES[type]
+
+	elif field.type in _REGISTRED_SQL_FACTORIES:
+		return _REGISTRED_SQL_FACTORIES[field.type]
+
 	else:
 		return _getSQLForSimple
 
@@ -119,7 +148,7 @@ def getSQLForField(field, inPars, sqlPars):
 	if isinstance(val, (list, set, tuple)) and len(val)==1:
 		val = val[0]
 
-	factory = _getSQLFactory(field.type, val)
+	factory = _getSQLFactory(field, val)
 	return factory(field, val, sqlPars)
 
 

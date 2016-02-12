@@ -497,6 +497,69 @@ class InputFieldSelectionTest(testhelpers.VerboseTest):
 			[k.name for k in svc.getInputKeysFor("api")])
 
 
+class _DALIParameters(testhelpers.TestResource):
+	def make(self, deps):
+		svc = base.parseFromString(svcs.Service, """<service id="x">
+			<dbCore queriedTable="data/test#typesTable">
+				<condDesc buildFrom="anint"/>
+				<condDesc buildFrom="afloat"/>
+				<condDesc buildFrom="adouble"/>
+				<condDesc buildFrom="atext"/>
+				<condDesc>
+					<inputKey name="enum" type="smallint" multiplicity="single">
+						<values>
+							<option>1</option>
+							<option>2</option>
+						</values>
+					</inputKey>
+				</condDesc>
+				<condDesc>
+					<inputKey name="single"/>
+				</condDesc>
+				<condDesc buildFrom="data/test#abcd.e"/>
+				<condDesc>
+					<inputKey name="arr">
+						<property key="adaptToRenderer">True</property>
+					</inputKey>
+				</condDesc>
+			</dbCore>
+			<FEED source="//pql#DALIPars"/></service>""")
+		keys = dict((k.name, k) for k in svc.getInputKeysFor("api"))
+		return keys
+
+
+class DALIAdaptationTest(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	resources = [('pars', _DALIParameters())]
+
+	def _runTest(self, sample):
+		parName, attrName, expectedValue = sample
+		self.assertEqual(getattr(self.pars[parName], attrName), expectedValue)
+	
+	samples = [
+		('enum', 'xtype', None),
+		('enum', 'type', 'smallint'),
+		('enum', 'multiplicity', 'single'),
+		('MAXREC', 'type', 'integer'),
+		('MAXREC', 'xtype', None),
+# 5
+		('anint', 'xtype', 'interval'),
+		('anint', 'type', 'integer[2]'),
+		('afloat', 'xtype', 'interval'),
+		('afloat', 'type', 'real[2]'),
+		('single', 'type', 'real'),
+# 10
+		('arr', 'type', 'real[2]'),
+		('arr', 'xtype', 'interval'),
+		('e', 'type', 'double precision[2]'),
+		('e', 'unit', 'd'),
+		('e', 'xtype', 'interval'),
+# 15
+		('atext', 'type', 'unicode'),
+	]
+
+
 class GroupingTest(testhelpers.VerboseTest):
 	def _renderForm(self, svc):
 		from gavo.imp.formal.form import FormRenderer

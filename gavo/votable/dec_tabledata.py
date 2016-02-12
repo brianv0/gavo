@@ -130,11 +130,16 @@ def _makeXtypeDecoder(field):
 	"""returns a decoder for fields with non-empty xtypes.
 
 	All of these come in strings and are NULL if empty.
+
+	This function may return None for "ignore the xtype".
 	"""
 	src = [
 		"if not val:",
 		"  val = None",
 		"else:"]
+
+	if field.xtype=="interval":
+		return None
 
 	if field.xtype=="adql:POINT":
 		src.extend([
@@ -152,7 +157,7 @@ def _makeXtypeDecoder(field):
 	elif field.xtype=="dachs:DATE":
 		src.extend([
 			"  val = parseDefaultDate(val)"])
-	
+
 	else:
 		# unknown xtype, just don't touch it (issue a warning?)
 		src.extend([
@@ -235,7 +240,9 @@ def _getArrayDecoderLines(field):
 	type = field.datatype
 
 	if field.xtype:
-		return _makeXtypeDecoder(field)
+		res = _makeXtypeDecoder(field)
+		if res is not None:
+			return res
 
 	if type=='char':
 		return _makeCharDecoder(field, emptyIsNull=True)

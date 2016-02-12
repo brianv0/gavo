@@ -434,13 +434,13 @@ class _FakeUpload(object):
 class APIRenderTest(trialhelpers.ArchiveTest):
 	def testResonseKey(self):
 		return self.assertGETHasStrings("/data/cores/scs/api", 
-			{"id": ["/0"], "RESPONSEFORMAT": "tsv"},
+			{"id": ["-1000 0"], "RESPONSEFORMAT": "tsv"},
 			["0\t1.25\t2.5\n"],
 			customTest=lambda tx: self.assertFalse("1\t23.0" in tx))
 
 	def testResponseMIME(self):
 		return self.assertGETHasStrings("/data/cores/scs/api", 
-			{"id": ["/0"], "RESPONSEFORMAT": 
+			{"id": ["-1000 0"], "RESPONSEFORMAT": 
 				["application/x-votable+xml;serialization=BINARY2"]},
 			["<BINARY2>", "gH/4AAAAAAAAAAAAAD+g"],
 			customTest=lambda tx: self.assertFalse("1\t23.0" in tx))

@@ -21,6 +21,7 @@ from gavo import grammars
 from gavo import rscdef
 from gavo import utils
 from gavo.rscdef import column
+from gavo.svcs import dalipars
 from gavo.svcs import pql
 from gavo.svcs import vizierexprs
 
@@ -30,6 +31,7 @@ MS = base.makeStruct
 _RENDERER_ADAPTORS = {
 	'form': vizierexprs.adaptInputKey,
 	'pql': pql.adaptInputKey,
+	'dali': dalipars.adaptInputKey,
 }
 
 def getRendererAdaptor(renderer):
@@ -60,7 +62,7 @@ class InputKey(column.ParamBase):
 	  (be stingy with those; while it's nice to not have to set things
 	  presumably right for almost everyone, having to delete stuff
 	  you don't want over and over is really annoying).
-	* adaptToRenderer -- any non-empty value here causes the param
+	* adaptToRenderer -- a true boolean literal here causes the param
 	  to be adapted for the renderer (e.g., float could become vizierexpr-float).
 		You'll usually not want this, because the expressions are 
 		generally evaluated by the database, and the condDescs do the
@@ -191,7 +193,8 @@ def filterInputKeys(keys, rendName, adaptor=None):
 			if key.getProperty("notForRenderer")==rendName:
 				continue
 
-		if key.getProperty("adaptToRenderer", None) and adaptor:
+		if base.parseBooleanLiteral(key.getProperty("adaptToRenderer", "False")
+				) and adaptor:
 			key = adaptor(key)
 
 		yield key

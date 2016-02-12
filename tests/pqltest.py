@@ -1,5 +1,5 @@
 """
-Tests for "PQL" expressions.
+Tests for "PQL" and new-style DALI expressions.
 """
 
 #c Copyright 2008-2016, the GAVO project
@@ -12,8 +12,10 @@ import datetime
 
 from gavo.helpers import testhelpers
 
-from gavo import api
+from gavo import base
+from gavo import svcs
 from gavo.base import literals
+from gavo.svcs import dalipars
 from gavo.svcs import pql
 from gavo.utils import pgsphere, DEG
 
@@ -21,6 +23,7 @@ from gavo.utils import pgsphere, DEG
 
 P = pql.PQLPar
 PR = pql.PQLRange
+MS = base.makeStruct
 
 
 class PQLParsesTest(testhelpers.VerboseTest):
@@ -51,7 +54,7 @@ class PQLLiteralParseErrorsTest(testhelpers.VerboseTest):
 
 	def _runTest(self, sample):
 		literal, msg = sample
-		self.assertRaisesWithMsg(api.LiteralParseError,
+		self.assertRaisesWithMsg(base.LiteralParseError,
 			msg,
 			pql.PQLPar.fromLiteral,
 			(literal, "pqlExpr"))
@@ -77,7 +80,7 @@ class PQLParsedLiteralTest(testhelpers.VerboseTest):
 
 	def testBadInt(self):
 		self.assertRaisesWithMsg(
-			api.LiteralParseError,
+			base.LiteralParseError,
 			"At 3: '11/1u' is not a valid value for range within pqlExpr",
 			pql.PQLIntPar.fromLiteral,
 			("10,11/1u,50/100/5;schnarch", "pqlExpr"))
@@ -139,19 +142,19 @@ class PQLClausesTest(testhelpers.VerboseTest):
 
 class PQLPositionsTest(testhelpers.VerboseTest):
 	def testNoStep(self):
-		self.assertRaisesWithMsg(api.ValidationError,
+		self.assertRaisesWithMsg(base.ValidationError,
 			"Field POS: Ranges are not allowed as cone centers",
 			pql.PQLPositionPar.fromLiteral("12,12/14", "POS").getConeSQL,
 			("POS", {}, 0.1))
 
 	def testRequiresTwo(self):
-		self.assertRaisesWithMsg(api.ValidationError,
+		self.assertRaisesWithMsg(base.ValidationError,
 			"Field POS: PQL position values must be lists of length divisible by 2.",
 			pql.PQLPositionPar.fromLiteral("12", "POS").getConeSQL,
 			("POS", {}, 0.1))
 	
 	def testWhackoFrameRejected(self):
-		self.assertRaisesWithMsg(api.ValidationError,
+		self.assertRaisesWithMsg(base.ValidationError,
 			"Field POS: Cannot match against coordinates given in WHACKO frame",
 			pql.PQLPositionPar.fromLiteral("12,13;WHACKO", "POS").getConeSQL,
 			("POS", {}, 0.1))
@@ -184,7 +187,7 @@ class PQLPositionsTest(testhelpers.VerboseTest):
 
 class PQLFloatTest(testhelpers.VerboseTest):
 	def testNoStep(self):
-		self.assertRaisesWithMsg(api.LiteralParseError,
+		self.assertRaisesWithMsg(base.LiteralParseError,
 			"'1/5/0.5' is not a valid value for range within VAL",
 			pql.PQLFloatPar.fromLiteral,
 			("1/5/0.5", "VAL"))
@@ -255,6 +258,7 @@ class PQLIRTest(testhelpers.VerboseTest):
 		self.assertEqual(sql, 'foo = %(foo0)s')
 		self.assertEqual(sqlPars, {"foo0": "abc ef/urgl"})
 
+
 class CoversTest(testhelpers.VerboseTest):
 	def testSimpleStringTrue(self):
 		cs = pql.PQLPar.fromLiteral("ABC", "quack")
@@ -317,6 +321,39 @@ class CoversTest(testhelpers.VerboseTest):
 		self.assertEqual(cs.covers(6.5), False)
 
 
+class DALISQLTest(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		ikAttrs, inVal, expectedFragment, outAsserts = sample
+		args = {"name": "test"}
+		args.update(ikAttrs)
+		ik = MS(svcs.InputKey, **args)
+		ik.set(inVal)
+		inPars, outPars = {ik.name: ik.value}, {}
+		fragment = base.getSQLForField(ik, inPars, outPars)
+		self.assertEqual(expectedFragment, fragment)
+		for key, val in outAsserts:
+			self.assertEqual(outPars[key], val)
+
+	samples = [
+		(dict(xtype="interval", type="real[2]"),
+			"10 20",
+			"test BETWEEN %(test0)s AND %(test1)s",
+			[('test1', 20.0)]),
+		(dict(xtype="interval", type="real[2]"),
+			"-Inf 20",
+			"test < %(test0)s",
+			[('test0', 20.0)]),
+		(dict(xtype="interval", type="real[2]"),
+			"10 Inf",
+			"test > %(test0)s",
+			[('test0', 10.0)]),
+		(dict(type="text"),
+			["ab", "cd", "ef"],
+			"test IN %(test0)s",
+			[('test0', set(["ab", "cd", "ef"]))]),
+		]
 
 if __name__=="__main__":
 	testhelpers.main(CoversTest)
