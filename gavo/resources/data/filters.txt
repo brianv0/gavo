@@ -141,4 +141,12 @@ i.MP9701	680	778	870
 r.MP9601	550	628	695
 u.MP9301	330	374	420
 z.MP9801	810	1170	1200
-# vim:noet
+#
+# Private communication from Christian Westhues <christian.westhues@rub.de>
+#
+Brγ 	2067	2067	2067
+H2 S(1)	2137	2137	2137
+He I	2180	2180	2180 
+K-cont	2270	2270	2270
+CO	2300	2300	2300
+# vim:noet:ts=12

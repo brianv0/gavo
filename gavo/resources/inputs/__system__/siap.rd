@@ -375,7 +375,7 @@
 
 				def parseFilterMap():
 					with base.openDistFile("data/filters.txt") as f:
-						for line in f:
+						for index, line in enumerate(f):
 							if not line:
 								break
 							line = line.strip()
@@ -388,8 +388,12 @@
 								for p in parts[1:]:
 									_aliases[p.strip()] = primary
 							else:
-								_filterMap[primary] = (
-									float(parts[1])*NM, float(parts[2])*NM, float(parts[3])*NM)
+								try:
+									_filterMap[primary] = (
+										float(parts[1])*NM, float(parts[2])*NM, float(parts[3])*NM)
+								except IndexError:
+									base.ui.notifyWarning("Bad filtermap (filters.txt)"
+										" line %d."%(index+1))
 							
 				def setBandpass(result, filterId):
 					if not _filterMap:
