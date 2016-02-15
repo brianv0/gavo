@@ -23,8 +23,14 @@ class RowIterator(common.FileRowIterator):
 	def _iterRecords(self):
 		curPos, buffer = 0, ""
 		recPat = self.grammar.rowProduction
+
+		if self.grammar.ignoreJunk:
+			getNext = recPat.search
+		else:
+			getNext = recPat.match
+
 		while True:
-			mat = recPat.match(buffer, curPos)
+			mat = getNext(buffer, curPos)
 			if not mat:  # no match, fetch new stuff.
 				newStuff = self.inputFile.read(self.chunkSize)
 				if not newStuff:  # file exhausted
@@ -37,7 +43,7 @@ class RowIterator(common.FileRowIterator):
 			curPos = mat.end()
 			self.curLine += res.count("\n")
 		buffer = buffer[curPos:]
-		if not _onlyWhitespaceLeft.match(buffer):
+		if not self.grammar.ignoreJunk and not _onlyWhitespaceLeft.match(buffer):
 			raise common.ParseError("Junk at end of file", self.getLocator(),
 				buffer)
 
@@ -83,4 +89,6 @@ class FreeREGrammar(common.Grammar):
 		description="RE containing named groups matching a record")
 	_stripTokens = base.BooleanAttribute("stripTokens", default=False,
 		description="Strip whitespace from result tokens?")
+	_ignoreJunk = base.BooleanAttribute("ignoreJunk", default=False,
+		description="Ignore everything outside of the row production")
 	rowIterator = RowIterator

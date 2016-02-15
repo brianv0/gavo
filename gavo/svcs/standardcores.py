@@ -514,10 +514,13 @@ class DBCore(TableBasedCore):
 		if not resultTableDef.columns:
 			raise base.ValidationError("No output columns with these settings."
 				"_OUTPUT")
+
 		sortKeys = None
 		if self.sortKey:
 			sortKeys = self.sortKey.split(",")
-		queryMeta.overrideDbOptions(limit=self.limit, sortKeys=sortKeys)
+
+		queryMeta.overrideDbOptions(limit=self.limit, sortKeys=sortKeys,
+			sortFallback=self.getProperty("defaultSortKey", None))
 		try:
 			fragment, pars = self._getSQLWhere(inputTable, queryMeta)
 		except base.LiteralParseError, ex:

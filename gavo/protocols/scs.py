@@ -96,6 +96,9 @@ class SCSCore(svcs.DBCore):
 		self.outputTable = self.outputTable.change(
 			columns=[self.distCol]+self.outputTable.columns)
 
+		if not self.hasProperty("defaultSortKey"):
+			self.setProperty("defaultSortKey", self.distCol.name)
+
 	def _guessDestPos(self, inputTable):
 		"""returns RA and Dec for a cone search possibly contained in inputTable.
 

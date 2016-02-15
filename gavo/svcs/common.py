@@ -78,6 +78,7 @@ class SeeOther(Error):
 	instead of a 301.
 	"""
 
+
 def parseServicePath(serviceParts):
 	"""returns a tuple of resourceDescriptor, serviceName.
 
@@ -230,9 +231,11 @@ class QueryMeta(dict):
 		except (ValueError, KeyError):
 			self["timeout"] = base.getConfig("web", "sqlTimeout")
 
-	def overrideDbOptions(self, sortKeys=None, limit=None):
+	def overrideDbOptions(self, sortKeys=None, limit=None, sortFallback=None):
 		if sortKeys is not None:
 			self["dbSortKeys"] = sortKeys
+		if not self["dbSortKeys"] and sortFallback is not None:
+			self["dbSortKeys"] = sortFallback.split(",")
 		if limit is not None:
 			self["dbLimit"] = int(limit)
 
