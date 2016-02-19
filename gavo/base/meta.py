@@ -1099,6 +1099,8 @@ META_CLASSES_FOR_KEYS = {
 	"source": BibcodeMeta,
 	"note": NoteMeta,
 	"votlink": VotLinkMeta,
+	"creator.logo": LogoMeta,
+	"logo": LogoMeta,
 }
 
 

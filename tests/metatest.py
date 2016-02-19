@@ -120,6 +120,18 @@ class CompoundTest(testhelpers.VerboseTest):
 		self.assertEqual(str(m.getMeta("testQuery.size.dec")), "1")
 		self.assertEqual(str(m.getMeta("testQuery.size.ra")), "0.5")
 
+	def testFromXMLSequence(self):
+		m = parseMetaXML("""
+			<meta name="creator">
+				<meta name="name">Maturi, M.</meta>
+				<meta name="logo"
+					>http://dc.g-vo.org/carsarcs/q/s/static/arcs-logo_letters.png</meta>
+			</meta>
+			""")
+		self.assertEqual(base.getMetaText(m, "creator.name"), "Maturi, M.")
+		self.assertEqual(base.getMetaText(m, "creator.logo"), 
+			"http://dc.g-vo.org/carsarcs/q/s/static/arcs-logo_letters.png")
+
 
 class SequenceTest(testhelpers.VerboseTest):
 	"""tests for correct buildup of sequence-like meta items.
