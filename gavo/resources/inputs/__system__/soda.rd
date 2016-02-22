@@ -7,12 +7,12 @@ This is a temporary location for procDefs and friends complying to
 <resource resdir="__system" schema="dc">
 
 
-<!-- ********************* generic datalink procs -->
+<!-- ********************* generic SODA procs -->
 
 	<procDef type="descriptorGenerator" id="fromStandardPubDID">
-		<doc>A descriptor generator for datalink that builds a 
+		<doc>A descriptor generator for SODA that builds a 
 		ProductDescriptor for PubDIDs that have been built by getStandardsPubDID
-		(i.e., the path part of the IVORN is a tilda, with the
+		(i.e., the path part of the IVORN is a tilde, with the
 		products table accref as the query part).
 		</doc>
 		<code>
@@ -23,11 +23,11 @@ This is a temporary location for procDefs and friends complying to
 	</procDef>
 
 	<procDef type="dataFormatter" id="trivialFormatter">
-		<doc>The tivial formatter for datalink processed data -- it just
+		<doc>The tivial formatter for SODA processed data -- it just
 		returns descriptor.data, which will only work it it works as a
 		nevow resource.
 
-		If you do not give any dataFormatter yourself in a datalink core,
+		If you do not give any dataFormatter yourself in a SODA core,
 		this is what will be used.
 		</doc>
 		<code>
@@ -36,10 +36,10 @@ This is a temporary location for procDefs and friends complying to
 	</procDef>
 
 
-	<!-- ********************* datalink interface to generic products -->
+	<!-- ********************* SODA interface to generic products -->
 
 	<procDef type="dataFunction" id="generateProduct">
-		<doc>A data function for datalink that returns a product instance.
+		<doc>A data function for SODA that returns a product instance.
 		You can restrict the mime type of the product requested so the
 		following filters have a good idea what to expect.
 		</doc>
@@ -63,10 +63,10 @@ This is a temporary location for procDefs and friends complying to
 	</procDef>
 
 
-	<!-- ********************* datalink interface to SDM spectra -->
+	<!-- ********************* SODA interface to SDM spectra -->
 
 	<procDef type="descriptorGenerator" id="sdm_genDesc">
-		<doc>A data function for datalink returning the product row
+		<doc>A data function for SODA returning the product row
 		corresponding to a PubDID within an SSA table.
 
 		The descriptors generated have an ssaRow attribute containing
@@ -102,7 +102,7 @@ This is a temporary location for procDefs and friends complying to
 	</procDef>
 
 	<procDef type="dataFunction" id="sdm_genData">
-		<doc>A data function for datalink returning a spectral data model
+		<doc>A data function for SODA returning a spectral data model
 		compliant table that later data functions can then work on.
 		As usual for generators, it uses the implicit PUBDID argument.
 		</doc>
@@ -126,7 +126,7 @@ This is a temporary location for procDefs and friends complying to
 		<doc>A stream inserting a data function and its metadata generator to
 		do select flux calibrations in SDM data.  This expects
 		sdm_generate (or at least parameters.data as an SDM data instance)
-		as the generating function within the datalink core.
+		as the generating function within the SODA core.
 
 		Clients can select "RELATIVE" as FLUXCALIB, which does a
 		normalization to max(flux)=1 here.  Everything else is rejected
@@ -171,39 +171,34 @@ This is a temporary location for procDefs and friends complying to
 		<doc>A stream inserting a data function and its metaMaker to
 		do cutouts in SDM data. This expects sdm_generate (or at least
 		parameters.data as an SDM data instance) as the generating function 
-		within the datalink core.
+		within the SODA core.
 
 		The cutout limits are always given in meters, regardless of
 		the spectrum's actual units (as in SSAP's BAND parameter).
 		</doc>
 
   	<metaMaker>
-    	<setup>
-      	<code>
-        	parSTC = stc.parseQSTCS('SpectralInterval "LAMBDA_MIN" "LAMBDA_MAX"')
-      	</code>
-    	</setup>
-    	<code>
-				for ik in genLimitKeys(MS(InputKey, name="LAMBDA",
-					unit="m", stc=parSTC, ucd="em.wl", 
+     	<code>
+				yield MS(InputKey, type="double precision[2]", xtype="interval",
+					name="BAND",
+					unit="m", ucd="em.wl", 
 					description="Spectral cutout interval",
 					values=MS(Values, 
 						min=descriptor.ssaRow["ssa_specstart"],
-						max=descriptor.ssaRow["ssa_specend"]))):
-					yield ik
+						max=descriptor.ssaRow["ssa_specend"]))
     	</code>
   	</metaMaker>
 
 		<dataFunction>
 			<code>
-				if not args.get("LAMBDA_MIN") and not args.get("LAMBDA_MAX"):
+				if args.get("BAND") is None:
 					return
 
 				from gavo.protocols import sdm
 				# table is modified in place
 				sdm.mangle_cutout(
 					descriptor.data.getPrimaryTable(),
-					args["LAMBDA_MIN"] or -1, args["LAMBDA_MAX"] or 1e308)
+					args["BAND"][0], args["BAND"][1])
 			</code>
 		</dataFunction>
 	</STREAM>
@@ -246,10 +241,10 @@ This is a temporary location for procDefs and friends complying to
 	</STREAM>
 
 
-	<!-- ********************* datalink interface for generic FITS 
+	<!-- ********************* SODA interface for generic FITS 
 		manipulations -->
 	<procDef type="descriptorGenerator" id="fits_genDesc">
-		<doc>A data function for datalink returning the a fits descriptor.
+		<doc>A data function for SODA returning the a fits descriptor.
 
 		This has, in addition to the standard stuff, a hdr attribute containing
 		the primary header as pyfits structure.
@@ -267,9 +262,9 @@ This is a temporary location for procDefs and friends complying to
 						return DatalinkFault.NotFoundFault(pubDID,
 							"Not a pubDID from this site.")
 
-					if accrefStart and not accref.startswith(accrefStart):
+					if accrefPrefix and not accref.startswith(accrefPrefix):
 						return DatalinkFault.AuthenticationFault(pubDID,
-							"This datalink service not available"
+							"This SODA service not available"
 							" with this pubDID")
 
 					descriptor = ProductDescriptor.fromAccref(pubDID, accref)
@@ -284,8 +279,8 @@ This is a temporary location for procDefs and friends complying to
 					return descriptor
 			</code>
 
-			<par key="accrefStart" description="A start of accrefs the parent
-				datalink service works of.  Procedures on all other accrefs
+			<par key="accrefPrefix" description="A prefix for the accrefs 
+				the parent SODA service works on.  Calls on all other accrefs
 				will be rejected with a 403 forbidden.  You should always
 				include a restriction like this when you make assumptions
 				about the FITSes (e.g., what axes are available).">None</par>
@@ -317,7 +312,7 @@ This is a temporary location for procDefs and friends complying to
 		If individual metadata in the header are wrong or to give better
 		metadata, use axisMetaOverrides.  This will not generate standard
 		parameters for non-spatial axis (LAMBDA and friends).  There are
-		other datalink streams for those.
+		other //soda streams for those.
 		</doc>
 		<setup>
 			<par key="stcs" description="A QSTC expression describing the
@@ -383,11 +378,11 @@ This is a temporary location for procDefs and friends complying to
 							if name in axisMetaOverrides:
 								paramArgs.update(axisMetaOverrides[name])
 
-							for ik in genLimitKeys(MS(InputKey,  multiplicity="single",
-									stc=parSTC,
-									values=MS(Values, min=min(vertexCoos), max=max(vertexCoos)),
-									**paramArgs)):
-								yield ik
+							yield MS(InputKey,  multiplicity="single",
+								type="double precision[2]", xtype="interval",
+								stc=parSTC,
+								values=MS(Values, min=min(vertexCoos), max=max(vertexCoos)),
+								**paramArgs)
 							descriptor.axisNames[name] = cutoutName
 
 				def iterOtherKeys(descriptor, spatialAxes):
@@ -414,10 +409,10 @@ This is a temporary location for procDefs and friends complying to
 						if fitsAxis in axisMetaOverrides:
 							paramArgs.update(axisMetaOverrides[fitsAxis])
 
-						for ik in genLimitKeys(MS(InputKey,  multiplicity="single",
+						yield MS(InputKey,  multiplicity="single",
+							type="double precision[2]",
 							values=MS(Values, min=minPhys, max=maxPhys),
-							**paramArgs)):
-							yield ik
+							**paramArgs)
 
 				if stcs is None:
 					parSTC = None
@@ -501,8 +496,8 @@ This is a temporary location for procDefs and friends complying to
 				[min(footprint[:,1]), max(footprint[:,1])]]
 			limitsChanged = False
 
-			for parBase, fitsAxis in descriptor.axisNames.iteritems():
-				if args[parBase+"_MIN"] is None and args[parBase+"_MAX"] is None:
+			for parName, fitsAxis in descriptor.axisNames.iteritems():
+				if args[parName] is None:
 					continue
 				limitsChanged = True
 
@@ -515,16 +510,13 @@ This is a temporary location for procDefs and friends complying to
 					else:
 						assert False
 
-					if args[parBase+"_MIN"] is not None:
-						cooLimits[0] = max(cooLimits[0], args[parBase+"_MIN"])
-					if args[parBase+"_MAX"] is not None:
-						cooLimits[1] = min(cooLimits[1], args[parBase+"_MAX"])
+					cooLimits[0] = max(cooLimits[0], args[parName][0])
+					cooLimits[1] = min(cooLimits[1], args[parName][1])
 					
 				else:
 					# 1-d axis
 					transform = fitstools.WCSAxis.fromHeader(descriptor.hdr, fitsAxis)
-					axMin = args[parBase+"_MIN"]
-					axMax = args[parBase+"_MAX"]
+					axMin, axMax = args[parName]
 					slices.append((fitsAxis, 
 						transform.physToPix(axMin), transform.physToPix(axMax)))
 	
@@ -571,7 +563,7 @@ This is a temporary location for procDefs and friends complying to
 	</procDef>
 
 	<STREAM id="fits_genKindPar">
-		<doc>This stream should be included in FITS-handling datalink services;
+		<doc>This stream should be included in FITS-handling SODA services;
 		it adds parameter and code to just retrieve the FITS header to the
 		core.
 		
@@ -606,7 +598,7 @@ This is a temporary location for procDefs and friends complying to
 	</STREAM>
 
 	<STREAM id="fits_genPixelPar">
-		<doc>This stream should be included  in FITS-handling datalink services;
+		<doc>This stream should be included  in FITS-handling SODA services;
 		it add parameters and code to perform cut-outs along pixel coordinates.
 		</doc>
 		<metaMaker name="genPixelPars">
@@ -617,12 +609,11 @@ This is a temporary location for procDefs and friends complying to
 					if maxVal==minVal:
 						continue
 
-					for ik in genLimitKeys(MS(InputKey, name="PIXEL_%s"%fitsInd,
-							type="integer", unit="",
-							description="Pixel coordinate along axis %s"%fitsInd,
-							ucd="pos.cartesian;instr.pixel", multiplicity="single",
-							values=MS(Values, min=minVal, max=maxVal))):
-						yield ik
+					yield MS(InputKey, name="PIXEL_%s"%fitsInd,
+						type="integer[2]", unit="", xtype="interval",
+						description="Pixel coordinate along axis %s"%fitsInd,
+						ucd="pos.cartesian;instr.pixel", multiplicity="single",
+						values=MS(Values, min=minVal, max=maxVal))
 			</code>
 		</metaMaker>
 
@@ -631,10 +622,11 @@ This is a temporary location for procDefs and friends complying to
 				from gavo.utils import fitstools
 				slices = []
 				for fitsInd in range(1, descriptor.hdr["NAXIS"]+1):
-					parBase = "PIXEL_%s"%fitsInd
-					axMin, axMax = args[parBase+"_MIN"], args[parBase+"_MAX"]
-					if axMin is not None or axMax is not None:
-						slices.append([fitsInd, axMin, axMax])
+					parName = "PIXEL_%s"%fitsInd
+					if args[parName] is None:
+						continue
+					axMin, axMax = args[parName]
+					slices.append([fitsInd, axMin, axMax])
 
 				if slices:
 					descriptor.dataIsPristine = False
@@ -671,13 +663,13 @@ This is a temporary location for procDefs and friends complying to
 			descriptor.lambdaAxisIndex = fitsAxis
 
 			minPhys, maxPhys = descriptor.lambdaAxis.getLimits()
-			for ik in genLimitKeys(MS(InputKey, name="LAMBDA", unit="m",
-				ucd="em.wl", description="Spectral wavelength",
+			yield MS(InputKey, name="BAND", unit="m",
+				type="double precision[2]", xtype="interval",
+				ucd="em.wl", description="Vacuum wavelength limits",
 				multiplicity="single",
 				values=MS(Values, 
 					min=minPhys*descriptor.lambdaToMeterFactor, 
-					max=maxPhys*descriptor.lambdaToMeterFactor))):
-				yield ik
+					max=maxPhys*descriptor.lambdaToMeterFactor))
 		</code>
 	</procDef>
 
@@ -691,14 +683,11 @@ This is a temporary location for procDefs and friends complying to
 			so this really only makes sense together with it.
 		</doc>
 		<code>
-			if not args.get("LAMBDA_MIN") and not args.get("LAMBDA_MAX"):
+			if args.get("BAND") is None:
 				return
-			axMax = args["LAMBDA_MAX"]
-			if axMax is not None:
-				axMax /= descriptor.lambdaToMeterFactor
-			axMin = args["LAMBDA_MIN"]
-			if axMin is not None:
-				axMin /= descriptor.lambdaToMeterFactor
+			axMin, axMax = args["BAND"]
+			axMax /= descriptor.lambdaToMeterFactor
+			axMin /= descriptor.lambdaToMeterFactor
 		
 			transform = descriptor.lambdaAxis
 			descriptor.slices.append(
@@ -719,37 +708,37 @@ This is a temporary location for procDefs and friends complying to
 			bad or missing).
 		</doc>
 
-		<metaMaker procDef="//datalink#fits_makeLambdaMeta">
+		<metaMaker procDef="//soda#fits_makeLambdaMeta">
 			<bind key="fitsAxis">\spectralAxis</bind>
 			<bind key="wavelengthUnit">\wavelengthUnit</bind>
 		</metaMaker>
-		<dataFunction procDef="//datalink#fits_makeLambdaSlice"/>
+		<dataFunction procDef="//soda#fits_makeLambdaSlice"/>
 	</STREAM>
 
 	<STREAM id="fits_standardDLFuncs">
 		<doc>
-			Pulls in all "standard" datalink functions for FITSes, including
+			Pulls in all "standard" SODA functions for FITSes, including
 			cutouts and header retrieval.
 
 			You must give both an stcs attribute (for fits_makeWCSParams) and an
-			accrefStart attribute (for fits_genDesc).  Both can be empty,
+			accrefPrefix attribute (for fits_genDesc).  Both can be empty,
 			however (but if you think you should be leaving them empty you
 			should probably think again).
 
 			Do *not* add quotes to them, even though the proc parameters
 			have them; the STREAM already puts in single quotes.
 		</doc>
-		<descriptorGenerator procDef="//datalink#fits_genDesc" name="genFITSDesc">
-			<bind key="accrefStart">'\accrefStart'</bind>
+		<descriptorGenerator procDef="//soda#fits_genDesc" name="genFITSDesc">
+			<bind key="accrefPrefix">'\accrefPrefix'</bind>
 		</descriptorGenerator>
-		<metaMaker procDef="//datalink#fits_makeWCSParams" name="getWCSParams">
+		<metaMaker procDef="//soda#fits_makeWCSParams" name="getWCSParams">
 			<bind key="stcs">'\stcs'</bind>
 		</metaMaker>
-		<dataFunction procDef="//datalink#fits_makeHDUList" name="makeHDUList"/>
-		<dataFunction procDef="//datalink#fits_doWCSCutout" name="doWCSCutout"/>
-		<FEED source="//datalink#fits_genPixelPar"/>
-		<FEED source="//datalink#fits_genKindPar"/>
-		<dataFormatter procDef="//datalink#fits_formatHDUs" name="formatHDUs"/>
+		<dataFunction procDef="//soda#fits_makeHDUList" name="makeHDUList"/>
+		<dataFunction procDef="//soda#fits_doWCSCutout" name="doWCSCutout"/>
+		<FEED source="//soda#fits_genPixelPar"/>
+		<FEED source="//soda#fits_genKindPar"/>
+		<dataFormatter procDef="//soda#fits_formatHDUs" name="formatHDUs"/>
 	</STREAM>
 
 

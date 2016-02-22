@@ -195,6 +195,22 @@
 		</datalinkCore>
 	</service>
 
+	<!-- feed that back into dl when we do away with the old non-DALI SODA
+	code -->
+	<service id="dlnew" allowed="dlget,dlmeta">
+		<datalinkCore>
+			<descriptorGenerator procDef="//soda#sdm_genDesc">
+				<bind name="ssaTD">"\rdId#hcdtest"</bind>
+			</descriptorGenerator>
+			<dataFunction procDef="//soda#sdm_genData">
+				<bind name="builder">"\rdId#datamaker"</bind>
+			</dataFunction>
+			<FEED source="//soda#sdm_plainfluxcalib"/>
+			<FEED source="//soda#sdm_cutout"/>
+			<FEED source="//soda#sdm_format"/>
+		</datalinkCore>
+	</service>
+
 	<service id="c" original="s">
 		<meta name="description">An SSAP service supporting getData 
 			and datalink.</meta>

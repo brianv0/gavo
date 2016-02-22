@@ -281,6 +281,33 @@ class ProductsCoreTest(_TestWithProductsTable):
 			"sdec=4.0&dec=4.0&ra=3.0&sra=2.0>")
 
 
+class _FakeProduct(products.ProductBase):
+	def iterData(self):
+		yield "1234"
+		yield "1234"
+		yield "    "*10
+		yield "end"
+
+
+class FileIntfTest(ProductsCoreTest):
+	def testFallbackBuffering(self):
+		p = _FakeProduct(products.RAccref.fromString("data/a.imp"))
+		self.assertEqual(p.read(1), "1")
+		self.assertEqual(p.read(1), "2")
+		self.assertEqual(p.read(7), "341234 ")
+		rest = p.read()
+		self.assertEqual(len(rest), 42)
+		self.assertEqual(rest[-4:], " end")
+		p.close()
+	
+	def testNativeRead(self):
+		p = self._getProductFor("data/a.imp")
+		self.assertEqual(p.read(10), "alpha: 23 ")
+		self.failUnless(isinstance(p._openedInputFile, file))
+		p.close()
+		self.assertEqual(p._openedInputFile, None)
+
+
 class StaticPreviewTest(testhelpers.VerboseTest):
 
 	resources = [('conn', tresc.prodtestTable), ('users', tresc.testUsers)]
@@ -349,475 +376,51 @@ class MangledFITSProductsTest(testhelpers.VerboseTest):
 		self.assertTrue("JFIF" in stuff)
 
 
-class DatalinkElementTest(testhelpers.VerboseTest):
-	resources = [("prodtestTable", tresc.prodtestTable)]
-	parent = None
+class _GlobalFITSLinks(testhelpers.TestResource):
+	resources = [("fitsTable", tresc.fitsTable)]
+
+	def make(self, deps):
+		svc = api.getRD("//products").getById("dl")
+		data, metadata = votable.loads(svc.run("dlmeta", {
+			"ID": [rscdef.getStandardPubDID("data/excube.fits")]}).original[1])
+		res = {}
+		for link in metadata.iterDicts(data):
+			res.setdefault(link["semantics"], []).append(link)
+		return res
+
+
+class GlobalDatalinkTest(testhelpers.VerboseTest):
+	resources = [("links", _GlobalFITSLinks())]
+
+	def testNumberOfLinks(self):
+		self.assertEqual(sum(len(r) for r in self.links.values()), 2)
 	
-	def testStandardDescGenWorks(self):
-		ivoid = rscdef.getStandardPubDID(
-			os.path.join(base.getConfig("inputsDir"), 
-				"data/a.imp"))
-		dg = base.parseFromString(datalink.DescriptorGenerator,
-			'<descriptorGenerator procDef="//datalink#fromStandardPubDID"/>'
-			).compile(self)
-		res = dg(ivoid, {})
-		self.assertEqual(res.accref, "data/a.imp")
-		self.assertEqual(res.owner, "X_test")
-		self.assertEqual(res.mime, "text/plain")
-		self.assertEqual(res.accessPath, "data/a.imp")
-
-	def testProductsGenerator(self):
-		svc = base.parseFromString(svcs.Service, """<service id="foo"
-				allowed="dlget">
-			<datalinkCore>
-				<dataFunction procDef="//datalink#generateProduct"/>
-				<metaMaker><code>yield MS(InputKey, name="ignored")</code></metaMaker>
-				</datalinkCore>
-			</service>""")
-		res = svc.run("form", {"ID": rscdef.getStandardPubDID(
-			"data/b.imp"), "ignored": 0.4}).original
-		self.assertEqual("".join(res.iterData()), 'alpha: 03 34 33.45'
-			'\ndelta: 42 34 59.7\nobject: michael\nembargo: 2003-12-31\n')
-
-	def testProductsGeneratorMimecheck(self):
-		svc = base.parseFromString(svcs.Service, """<service id="foo" 
-				allowed="dlget">
-			<datalinkCore>
-				<dataFunction procDef="//datalink#generateProduct">
-					<bind name="requireMimes">["image/fits"]</bind></dataFunction>
-					<metaMaker><code>yield MS(InputKey, name="ignored")</code></metaMaker>
-				</datalinkCore>
-			</service>""")
-		self.assertRaisesWithMsg(base.ValidationError,
-			"Field PUBDID: Document type not supported: text/plain",
-			svc.run,
-			("form", {"ID": rscdef.getStandardPubDID("data/b.imp"),
-				"ignored": 0.5}))
-
-	def testProductsGeneratorFailure(self):
-		svc = base.parseFromString(svcs.Service, """<service id="foo"
-				allowed="dlget">
-			<datalinkCore>
-				<dataFunction procDef="//datalink#generateProduct">
-					<code>descriptor.data = None
-					</code></dataFunction>
-					<metaMaker><code>yield MS(InputKey, name="ignored")
-					</code></metaMaker>
-				</datalinkCore>
-			</service>""")
-		self.assertRaisesWithMsg(base.ReportableError,
-			"Internal Error: a first data function did not create data.",
-			svc.run,
-			("form", {"ID": rscdef.getStandardPubDID("data/b.imp"),
-				"ignored": 0.4}))
-
-	def testProductsMogrifier(self):
-		svc = base.parseFromString(svcs.Service, """<service id="foo">
-			<datalinkCore>
-				<dataFunction procDef="//datalink#generateProduct"/>
-				<inputKey name="addto" type="integer" multiplicity="single"/>
-				<dataFunction>
-					<setup>
-						<code>
-							from gavo.protocols import products
-							class MogrifiedProduct(products.ProductBase):
-								def __init__(self, input, offset):
-									self.input, self.offset = input, offset
-									products.ProductBase.__init__(self, input.rAccref)
-
-								def iterData(self):
-									for chunk in self.input.iterData():
-										yield "".join(chr(ord(c)+self.offset)
-											for c in chunk)
-						</code>
-					</setup>
-					<code>
-						descriptor.data = MogrifiedProduct(descriptor.data,
-							args["addto"])
-					</code>
-				</dataFunction></datalinkCore>
-			</service>""")
-		res = "".join(svc.run("form", {
-			"ID": [rscdef.getStandardPubDID("data/b.imp")], 
-			"addto": ["4"]}).original.iterData())
-		self.assertEqual(res, 
-			"eptle>$47$78$77289\x0ehipxe>$86$78$9=2;\x0e"
-			"sfnigx>$qmgleip\x0eiqfevks>$6447156175\x0e")
-
-	def testAccrefFilter(self):
-		svc = base.parseFromString(svcs.Service, """<service id="uh">
-			<datalinkCore>
-				<descriptorGenerator procDef="//datalink#fits_genDesc">
-					<bind key="accrefStart">"test"</bind>
-				</descriptorGenerator>
-			</datalinkCore></service>""")
-
-		self.assertRaisesWithMsg(svcs.ForbiddenURI,
-			"This datalink service not available with this pubDID"
-			" (pubDID: ivo://x-unregistred/~?goo/boo)",
-			svc.run,
-			("dlget", {"ID": [rscdef.getStandardPubDID("goo/boo")]}))
-
-		self.assertRaisesWithMsg(svcs.UnknownURI,
-			"Not a pubDID from this site. (pubDID: ivo://great.scott/goo/boo)",
-			svc.run,
-			("dlget", {"ID": ["ivo://great.scott/goo/boo"]}))
-
-
-class _DumbDLService(testhelpers.TestResource):
-	resources = [("prodtestTable", tresc.prodtestTable)]
-
-	def make(self, dependents):
-		svc = base.parseFromString(svcs.Service, """<service id="uh" 
-			allowed="dlget">
-			<datalinkCore>
-			</datalinkCore></service>""")
-		svc.parent = testhelpers.getTestRD()
-		return svc
-
-
-class DLInterfaceTest(testhelpers.VerboseTest):
-	resources = [("svc", _DumbDLService())]
-
-	def testIDNecessary(self):
-		self.assertRaisesWithMsg(base.ValidationError,
-			"Field ID: ID is mandatory with dlget",
-			self.svc.run,
-			("dlget", {"REQUEST": ["getLinks"]}))
-
-	def testREQUESTLegal(self):
-		dlResp = self.svc.run("dlmeta", {"request": ["getLinks"],
-			"ID": rscdef.getStandardPubDID("data/b.imp")}).original[1]
-		self.failUnless("TD>http://localhost:8080/getproduct/data/b.imp</TD>"
-			in dlResp)
-
-	def testbraindeadREQUESTbombs(self):
-		self.assertRaisesWithMsg(base.ValidationError, 
-			"Field REQUEST: 'getFoobar' is not a valid value for REQUEST",
-			self.svc.run,
-			("dlmeta", {"request": ["getFoobar"],
-				"ID": rscdef.getStandardPubDID("data/b.imp")}))
-
-
-class _MetaMakerTestData(testhelpers.TestResource):
-# test data for datalink metadata generation 
-	resources = [
-		("prodtestTable", tresc.prodtestTable)]
-
-	def make(self, dependents):
-		svc = base.parseFromString(svcs.Service, """
-		<service id="foo" allowed="dlget,dlmeta,static">
-			<property key="staticData">data</property>
-			<datalinkCore>
-				<metaMaker>
-					<code>
-					yield MS(InputKey, name="format", type="text",
-						ucd="meta.format",
-						description="Output format desired",
-						values=MS(Values,
-							options=[MS(Option, content_=descriptor.mime),
-								MS(Option, content_="application/fits")]))
-					</code>
-				</metaMaker>
-
-				<metaMaker>
-					<code>
-					yield LinkDef(descriptor.pubDID, "http://foo/bar", 
-						contentType="test/junk", 
-						semantics="#alternative",
-						contentLength=500002)
-					yield LinkDef(descriptor.pubDID, "http://foo/baz", 
-						contentType="test/gold", 
-						semantics="#calibration")
-					</code>
-				</metaMaker>
-				<metaMaker>
-					<code>
-						if descriptor.pubDID.endswith("b.imp"):
-							yield DatalinkFault.NotFoundFault("ivo://not.asked.for",
-								"Cannot locate other mess")
-					</code>
-				</metaMaker>
-				<metaMaker>
-					<code>
-						yield LinkDef.fromFile("no.such.file", "An unrelated nothing",
-							"http://www.g-vo.org/dl#unrelated", self.parent)
-					</code>
-				</metaMaker>
-				<metaMaker>
-					<code>
-						yield LinkDef.fromFile("data/map1.map", "Some mapping",
-							"http://www.g-vo.org/dl#related", self.parent)
-					</code>
-				</metaMaker>
-				<dataFunction procDef="//datalink#generateProduct"/>
-			</datalinkCore>
-			<publish render="dlmeta" sets="ivo_managed"/>
-			</service>""")
-		svc.parent = testhelpers.getTestRD()
-
-		mime, data = svc.run("dlmeta", {
-			"ID": [
-				rscdef.getStandardPubDID("data/a.imp"),
-				rscdef.getStandardPubDID("data/b.imp"),
-				]}).original
-
-		from gavo.registry import capabilities
-		capEl = capabilities.getCapabilityElement(svc.publications[0])
-
-		return (mime, 
-			testhelpers.getXMLTree(data, debug=False),
-			list(votable.parseString(data).next()),
-			testhelpers.getXMLTree(capEl.render(), debug=False))
-
-_metaMakerTestData = _MetaMakerTestData()
-
-
-class DatalinkMetaMakerTest(testhelpers.VerboseTest):
-	resources = [("serviceResult", _metaMakerTestData),
-		("prodtestTable", tresc.prodtestTable)]
-
-	def testMimeOk(self):
-		self.assertEqual(self.serviceResult[0], 
-			"application/x-votable+xml;content=datalink")
-
-	def testUCDPresent(self):
-		tree = self.serviceResult[1]
-		self.assertEqual(
-			tree.xpath("//PARAM[@name='format']")[0].get("ucd"),
-			"meta.format")
+	def testDatasetMeta(self):
+		r, = self.links["#this"]
+		self.assertEqual(tuple(r[s] for s in 
+			"content_length description error_message content_type ID".split()),
+			(5760, "The full dataset.", None, "image/fits",
+				"ivo://x-unregistred/~?data/excube.fits"))
 	
-	def testTypeTranslationWorks(self):
-		tree = self.serviceResult[1]
-		self.assertEqual(
-			tree.xpath("//PARAM[@name='format']")[0].get("arraysize"),
-			"*")
+	def testDatasetURL(self):
+		self.assertEqual(self.links["#this"][0]["access_url"],
+			"http://localhost:8080/getproduct/data/excube.fits")
 
-	def testOptionsRepresented(self):
-		tree = self.serviceResult[1]
-		self.assertEqual(
-			tree.xpath("//PARAM[@name='format']/VALUES/OPTION")[0].get("value"),
-			"text/plain")
-		self.assertEqual(
-			tree.xpath("//PARAM[@name='format']/VALUES/OPTION")[1].get("value"),
-			"application/fits")
-
-	def testAccessURLPresent(self):
-		tree = self.serviceResult[1]
-		self.assertEqual(
-			tree.xpath("//PARAM[@name='accessURL']")[0].get("value"),
-			"http://localhost:8080/data/test/foo/dlget")
-
-	def testCapability(self):
-		intfEl = self.serviceResult[3].xpath("//interface")[0]
-		self.assertEqual(
-			intfEl.attrib["{http://www.w3.org/2001/XMLSchema-instance}type"],
-			"vs:ParamHTTP")
-		self.assertEqual(intfEl.xpath("queryType")[0].text, "GET")
-		self.assertEqual(intfEl.xpath("resultType")[0].text, 
-			'application/x-votable+xml;content=datalink')
-		self.assertEqual(intfEl.xpath("accessURL")[0].text, 
-			'http://localhost:8080/data/test/foo/dlmeta')
-
-		self.assertEqual(self.serviceResult[3].xpath("/capability")[0].attrib[
-			"standardID"], "ivo://ivoa.net/std/DataLink#links-1.0")
-
-	def testCapabilityParameters(self):
-		intfEl = self.serviceResult[3].xpath("//interface")[0]
-		for el in intfEl.xpath("param"):
-			parName = el.xpath("name")[0].text
-			if parName=="ID":
-				self.assertEqual(el.attrib["std"], "true")
-				self.assertEqual(el.xpath("ucd")[0].text, "meta.id;meta.main")
-
-			elif parName=="RESPONSEFORMAT":
-				datatype = el.xpath("dataType")[0]
-				self.assertEqual(datatype.text, "char")
-				self.assertEqual(datatype.get("arraysize"), "*")
-
-			elif parName=="REQUEST":
-				self.assertEqual(el.xpath("description")[0].text, 
-					"Request type (must be getLinks)")
-
-			else:
-				raise AssertionError("Unexpected Parameter %s"%parName)
-
-	def testAsyncDeclared(self):
-		svc = base.parseFromString(svcs.Service, """
-		<service id="foo" allowed="dlget,dlasync,dlmeta">
-			<datalinkCore>
-				<metaMaker>
-					<code>
-						yield MS(InputKey, name="PAR", type="text")
-					</code>
-				</metaMaker>
-				<dataFunction procDef="//datalink#generateProduct"/>
-			</datalinkCore>
-			</service>""")
-		svc.parent = testhelpers.getTestRD()
-
-		mime, data = svc.run("dlmeta", {
-			"ID": [
-				rscdef.getStandardPubDID("data/a.imp"),
-				]}).original
-
-		tree = testhelpers.getXMLTree(data, debug=False)
-
-		self.assertEqual(len(tree.xpath("//TR")), 4)
-		self.assertEqual(
-			set(['http://localhost:8080/data/test/foo/dlget', 
-				'http://localhost:8080/data/test/foo/dlasync']),
-			set([p.get("value") for p in tree.xpath("//PARAM[@name='accessURL']")]))
-		self.assertEqual(
-			set(['ivo://ivoa.net/std/SSDP#async','ivo://ivoa.net/std/SSDP#sync']),
-			set([p.get("value") 
-				for p in tree.xpath("//PARAM[@name='standardID']")]))
-
-	def testCoreForgetting(self):
-		from gavo.svcs import renderers
-		args = {"ID": rscdef.getStandardPubDID("data/ex.fits")}
-		svc = base.caches.getRD("data/cores").getById("dl")
-		renderer = renderers.getRenderer("dlmeta")
-		gns = testhelpers.getMemDiffer()
-		core = svc.core.adaptForRenderer(renderer)
-
-		class _Sentinel(object):
-			pass
-		s = _Sentinel()
-		core.ref = s
-
-		coreId = id(core.__dict__)
-		self.assertTrue(coreId in set(id(r) for r in gc.get_referrers(s)))
-		it = svc._makeInputTableFor(renderer, args, core=core)
-		core.runForMeta(svc, it, svcs.emptyQueryMeta)
-		core.finalize()
-		core.inputTable.breakCircles()
-		del core
-		del it
-		gc.collect()
-
-		ns = gns()
-		self.assertEqual(len(ns), 0, "Uncollected garbage: %s"%ns)
-		self.assertFalse(coreId in set(id(r) for r in gc.get_referrers(s)),
-			"core still lives and references s")
-
-
-class _MetaMakerTestRows(testhelpers.TestResource):
-	resources = [
-		("serviceResult", _metaMakerTestData)]
-
-	def make(self, dependents):
-		td = base.resolveCrossId("//datalink#dlresponse", None)
-		rows = {}
-		for tuple in dependents["serviceResult"][2]:
-			row = td.makeRowFromTuple(tuple)
-			rows.setdefault((row["ID"], row["semantics"]), []).append(row)
-		return rows
-
-
-class DatalinkMetaRowsTest(testhelpers.VerboseTest):
-	resources = [("rows", _MetaMakerTestRows()),
-		("serviceResult", _metaMakerTestData)]
-
-	def testAllLinks(self):
-		self.assertEqual(len(self.rows), 15)
-		for r in self.rows.values():
-			self.assertEqual(len(r), 1)
+	def testPreviewMeta(self):
+		r, = self.links["#preview"]
+		self.assertEqual(tuple(r[s] for s in 
+			"content_length description error_message content_type ID".split()),
+			(None, "A preview for the dataset.", None, None,
+				"ivo://x-unregistred/~?data/excube.fits"))
 	
-	def testAllWithId(self):
-		self.assertEqual(set(r[0] for r in self.rows), 
-			set(['ivo://x-unregistred/~?data/b.imp',
-				'ivo://x-unregistred/~?data/a.imp',
-				'ivo://not.asked.for']))
-	
-	def testAccessURLStatic(self):
-		self.assertEqual(self.rows[
-			('ivo://x-unregistred/~?data/b.imp', '#alternative')][0]["access_url"], 
-			'http://foo/bar')
+	def testPreviewURL(self):
+		self.assertEqual(self.links["#preview"][0]["access_url"],
+			"http://localhost:8080/getproduct/data/excube.fits?preview=True")
 
-	def testAccessURLAccess(self):
-		self.assertEqual(self.rows[
-			('ivo://x-unregistred/~?data/b.imp', '#access')][0]["access_url"],
-			'http://localhost:8080/data/test/foo/dlget')
 
-	def testAccessURLSelf(self):
-		self.assertEqual(self.rows[
-			('ivo://x-unregistred/~?data/b.imp', '#this')][0]["access_url"],
-				"http://localhost:8080/getproduct/data/b.imp")
-		self.assertEqual(self.rows[
-			('ivo://x-unregistred/~?data/a.imp', '#this')][0]["access_url"],
-				"http://localhost:8080/getproduct/data/a.imp")
-	
-	def testMimes(self):
-		self.assertEqual(self.rows[('ivo://x-unregistred/~?data/a.imp', 
-			'#calibration')][0]["content_type"], 'test/gold')
-	
-	def testSemantics(self):
-		self.assertEqual(set(r[1] for r in self.rows), 
-			set(['#access', '#this', '#alternative', '#calibration', '#preview',
-				"http://dc.g-vo.org/datalink#other",
-				'http://www.g-vo.org/dl#related',
-				'http://www.g-vo.org/dl#unrelated',
-				]))
-
-	def testSizes(self):
-		self.assertEqual(self.rows[('ivo://x-unregistred/~?data/a.imp', 
-			'#alternative')][0]["content_length"], 500002) 
-		self.assertEqual(self.rows[('ivo://x-unregistred/~?data/a.imp', 
-			'#calibration')][0]["content_length"], None) 
-
-	def testServiceLink(self):
-		svcRow = self.rows[('ivo://x-unregistred/~?data/a.imp', 
-			'#access')][0]
-		resId = svcRow["service_def"]
-		for res in self.serviceResult[1].xpath("//RESOURCE"):
-			if res.attrib.get("ID")==resId:
-				break
-		else:
-			self.fail("Processing service not in datalink links")
-		self.assertEqual(res.attrib.get("type"), "meta")
-		self.assertEqual(res.attrib.get("utype"), "adhoc:service")
-
-	def testSelfMeta(self):
-		selfRow = self.rows[('ivo://x-unregistred/~?data/b.imp', '#this')][0]
-		self.assertEqual(selfRow["content_type"], "text/plain")
-		self.assertEqual(selfRow["content_length"], 73)
-
-	def testMetaError(self):
-		errors = self.rows[('ivo://not.asked.for', datalink.DEFAULT_SEMANTICS)]
-		self.assertEqual(errors[0]["error_message"],
-			'NotFoundFault: Cannot locate other mess')
-
-	def testPreviewMetaURL(self):
-		previewRow = self.rows[('ivo://x-unregistred/~?data/b.imp', '#preview')][0]
-		self.assertEqual(previewRow["access_url"],
-			"http://example.com/borken.jpg")
-		self.assertEqual(previewRow["content_type"],
-			"image/jpeg")
-
-	def testPreviewMetaAuto(self):
-		previewRow = self.rows[('ivo://x-unregistred/~?data/a.imp', '#preview')][0]
-		self.assertEqual(previewRow["access_url"],
-			"http://localhost:8080/getproduct/data/a.imp?preview=True")
-		self.assertEqual(previewRow["content_type"],
-			"text/plain")
-	
-	def testFromNonExistingFile(self):
-		errRow = self.rows[('ivo://x-unregistred/~?data/b.imp', 
-			'http://www.g-vo.org/dl#unrelated')][0]
-		self.assertEqual(errRow["error_message"], 
-			"NotFoundFault: No file for linked item")
-		self.assertEqual(errRow["description"],
-			"An unrelated nothing")
-
-	def testFromFile(self):
-		row = self.rows[('ivo://x-unregistred/~?data/b.imp', 
-			'http://www.g-vo.org/dl#related')][0]
-		self.assertEqual(row["error_message"], None)
-		self.assertEqual(row["content_length"], 8)
-		self.assertEqual(row["description"], "Some mapping")
-		self.assertEqual(row["content_type"], "application/octet-stream")
-
+# Most datalink/SODA tests now in sodatest.py.  We should drop
+# legacy (atomic parameters) datalink support and remove everything
+# from here to EOF then.
 
 def _dissectDLFile(datalinkFile):
 	"""returns mime and content for a datalink File.
@@ -1158,74 +761,6 @@ class DatalinkSTCTest(testhelpers.VerboseTest):
 			for id in ids)
 		self.assertEqual(names, set(["DEC_MAX", "BET_MAX"]))
 
-
-class _FakeProduct(products.ProductBase):
-	def iterData(self):
-		yield "1234"
-		yield "1234"
-		yield "    "*10
-		yield "end"
-
-
-class FileIntfTest(ProductsCoreTest):
-	def testFallbackBuffering(self):
-		p = _FakeProduct(products.RAccref.fromString("data/a.imp"))
-		self.assertEqual(p.read(1), "1")
-		self.assertEqual(p.read(1), "2")
-		self.assertEqual(p.read(7), "341234 ")
-		rest = p.read()
-		self.assertEqual(len(rest), 42)
-		self.assertEqual(rest[-4:], " end")
-		p.close()
-	
-	def testNativeRead(self):
-		p = self._getProductFor("data/a.imp")
-		self.assertEqual(p.read(10), "alpha: 23 ")
-		self.failUnless(isinstance(p._openedInputFile, file))
-		p.close()
-		self.assertEqual(p._openedInputFile, None)
-
-
-class _GlobalFITSLinks(testhelpers.TestResource):
-	resources = [("fitsTable", tresc.fitsTable)]
-
-	def make(self, deps):
-		svc = api.getRD("//products").getById("dl")
-		data, metadata = votable.loads(svc.run("dlmeta", {
-			"ID": [rscdef.getStandardPubDID("data/excube.fits")]}).original[1])
-		res = {}
-		for link in metadata.iterDicts(data):
-			res.setdefault(link["semantics"], []).append(link)
-		return res
-
-
-class GlobalDatalinkTest(testhelpers.VerboseTest):
-	resources = [("links", _GlobalFITSLinks())]
-
-	def testNumberOfLinks(self):
-		self.assertEqual(sum(len(r) for r in self.links.values()), 2)
-	
-	def testDatasetMeta(self):
-		r, = self.links["#this"]
-		self.assertEqual(tuple(r[s] for s in 
-			"content_length description error_message content_type ID".split()),
-			(5760, "The full dataset.", None, "image/fits",
-				"ivo://x-unregistred/~?data/excube.fits"))
-	
-	def testDatasetURL(self):
-		self.assertEqual(self.links["#this"][0]["access_url"],
-			"http://localhost:8080/getproduct/data/excube.fits")
-
-	def testPreviewMeta(self):
-		r, = self.links["#preview"]
-		self.assertEqual(tuple(r[s] for s in 
-			"content_length description error_message content_type ID".split()),
-			(None, "A preview for the dataset.", None, None,
-				"ivo://x-unregistred/~?data/excube.fits"))
-	
-	def testPreviewURL(self):
-		self.assertEqual(self.links["#preview"][0]["access_url"],
-			"http://localhost:8080/getproduct/data/excube.fits?preview=True")
 
 
 if __name__=="__main__":
