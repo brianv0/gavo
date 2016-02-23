@@ -9,12 +9,14 @@ Support code for the Simple Image Access Protocol.
 
 
 import math
+import re
 import urllib
 
 import numpy
 
 from gavo import base
 from gavo import svcs
+from gavo import utils
 from gavo.base import coords
 from gavo.protocols import products
 from gavo.utils import DEG
@@ -22,6 +24,68 @@ from gavo.utils import pgsphere
 
 MS = base.makeStruct
 
+####################### SIAPv2 magic
+
+def parseSIAP2Geometry(aString, fieldName="POS"):
+	"""parses a SIAPv2 geometry spec to a pgsphere object.
+
+	Parse errors raise validation errors for fieldName.
+	"""
+	mat = re.match("(CIRCLE|RANGE|POLYGON) (.*)", aString)
+	if not mat:
+		raise base.ValidationError("Invalid SIAPv2 geometry: '%s'"
+			" (expected a SIAPv2 shape name)"%utils.makeEllipsis(aString, 20), 
+			fieldName)
+	
+	geoName = mat.group(1)
+	try:
+		args = [float(s) for s in mat.group(2).split()]
+	except ValueError:
+		raise base.ValidationError("Invalid SIAPv2 coordinates: '%s'"
+			" (bad floating point literal '%s')"%(
+				utils.makeEllipsis(mat.group(2), 20), s),
+			fieldName)
+	
+	if geoName=="CIRCLE":
+		if len(args)!=3:
+			raise base.ValidationError("Invalid SIAPv2 CIRCLE: '%s'"
+				" (need exactly three numbers)"%(
+					utils.makeEllipsis(aString, 20)),
+				fieldName)
+		return pgsphere.SCircle(pgsphere.SPoint.fromDegrees(args[0], args[1]),
+			args[2]*utils.DEG)
+	
+	elif geoName=="RANGE":
+		# SBox isn't really RANGE, but RANGE shouldn't have been
+		# part of the standard and people that use it deserve
+		# to get bad results.
+		if len(args)!=4:
+			raise base.ValidationError("Invalid SIAPv2 RANGE: '%s'"
+				" (need exactly four numbers)"%(
+					utils.makeEllipsis(aString, 20)),
+				fieldName)
+		if args[0]>args[1] or args[2]>args[3]:
+			raise base.ValidationError("Invalid SIAPv2 RANGE: '%s'"
+				" (lower limits must be smaller than upper limits)"%(
+					utils.makeEllipsis(aString, 20)),
+				fieldName)
+		return pgsphere.SBox(
+			pgsphere.SPoint.fromDegrees(args[0], args[2]),
+			pgsphere.SPoint.fromDegrees(args[1], args[3]))
+	
+	elif geoName=="POLYGON":
+		if len(args)<6 or len(args)%2:
+			raise base.ValidationError("Invalid SIAPv2 POLYGON: '%s'"
+				" (need more than three coordinate *pairs*)"%(
+					utils.makeEllipsis(mat.group(2), 20)),
+				fieldName)
+		return pgsphere.SPoly([
+				pgsphere.SPoint.fromDegrees(*pair)
+			for pair in utils.iterConsecutivePairs(args)])
+	
+	else:
+		assert False
+	
 
 ####################### bboxSIAP mixin
 

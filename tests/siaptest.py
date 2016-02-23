@@ -498,5 +498,71 @@ class ScaleHeaderTest(testhelpers.VerboseTest):
 		self.assertEqual(halfHdr["BITPIX"], -32)
 
 
+class SIAP2GeometryStringTest(testhelpers.VerboseTest):
+	def testEmpty(self):
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Field POS: Invalid SIAPv2 geometry: '' (expected a SIAPv2 shape name)",
+			siap.parseSIAP2Geometry,
+			("",))
+
+	def testBadShape(self):
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Field POS: Invalid SIAPv2 geometry: 'Trash 13 14 1 4'"
+			" (expected a SIAPv2 shape name)",
+			siap.parseSIAP2Geometry,
+			("Trash 13 14 1 4",))
+
+	def testBadCoo(self):
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Field POS: Invalid SIAPv2 coordinates: 'depp 12 13'"
+			" (bad floating point literal 'depp')",
+			siap.parseSIAP2Geometry,
+			("CIRCLE depp 12 13",))
+
+	def testGoodCircle(self):
+		res = siap.parseSIAP2Geometry("CIRCLE 143 82 13")
+		self.assertEqual(res.asSTCS("Unknown"),
+			"Circle Unknown 143. 82. 13.")
+
+	def testBadCircle(self):
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Field POS: Invalid SIAPv2 CIRCLE: 'CIRCLE 12 13'"
+			" (need exactly three numbers)",
+			siap.parseSIAP2Geometry,
+			("CIRCLE 12 13",))
+
+	def testGoodRange(self): # as if there  were such a thing
+		res = siap.parseSIAP2Geometry("RANGE 345 355 -13 13")
+		self.assertEqual(res.asSTCS("Unknown"),
+			"PositionInterval Unknown 345. -13. 355. 13.")
+
+	def testBadRange1(self):
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Field POS: Invalid SIAPv2 RANGE: 'RANGE 345 355 -13'"
+				" (need exactly four numbers)",
+			siap.parseSIAP2Geometry,
+			("RANGE 345 355 -13",))
+
+	def testBadRange2(self):
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Field POS: Invalid SIAPv2 RANGE: 'RANGE 345 355 13 -13'"
+				" (lower limits must be smaller than upper limits)",
+			siap.parseSIAP2Geometry,
+			("RANGE 345 355 13 -13",))
+
+	def testGoodPolygon(self): # as if there  were such a thing
+		res = siap.parseSIAP2Geometry("POLYGON 12 13 34 -34 35 12")
+		self.assertEqual(res.asSTCS("Unknown"),
+			"Polygon Unknown 12. 13. 34. -34. 35. 12.")
+
+	def testBadPolygon(self):
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Field POS: Invalid SIAPv2 POLYGON: '12 13 34 -34 35 1...' (need"
+				" more than three coordinate *pairs*)",
+			siap.parseSIAP2Geometry,
+			("POLYGON 12 13 34 -34 35 12 22.3290032",))
+
+
+
 if __name__=="__main__":
 	testhelpers.main(ImportTest)
