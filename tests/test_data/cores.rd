@@ -276,4 +276,10 @@
 		</pythonCore>
 	</service>
 
+	<service id="s2" allowed="siap2.xml">
+		<dbCore queriedTable="//obscore#ObsCore">
+			<FEED source="//siap2#POSpar"/>
+			<FEED source="//siap2#BANDpar"/>
+		</dbCore>
+	</service>
 </resource>

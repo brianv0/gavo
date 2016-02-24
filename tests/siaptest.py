@@ -94,7 +94,6 @@ class PixelScaleTest(testhelpers.VerboseTest):
 		self.failIf(rasz>1)
 
 
-
 class TestWCSBbox(unittest.TestCase):
 	"""Tests for conversion from WCS coordinates to bboxes and box relations.
 
@@ -221,7 +220,7 @@ def computeWCSKeys(pos, size, cutCrap=False):
 		"CTYPE2": 'DEC--TAN-SIP',
 		"LONPOLE": 180.}
 	if not cutCrap:
-		res.update({"imageTitle": "test image",
+		res.update({"imageTitle": "test image at %s"%repr(pos),
 			"instId": None,
 			"dateObs": None,
 			"refFrame": None,
@@ -229,11 +228,11 @@ def computeWCSKeys(pos, size, cutCrap=False):
 			"bandpassId": None,
 			"bandpassUnit": None,
 			"bandpassRefval": None,
-			"bandpassHi": None,
-			"bandpassLo": None,
+			"bandpassLo": pos[0],
+			"bandpassHi": pos[0]+size[0],
 			"pixflags": None,
-			"accref": "image%s%s"%(pos, size),
-			"accsize": None,
+			"accref": "image/%s/%s"%(pos, size),
+			"accsize": 30+int(pos[0]+pos[1]+size[0]+size[1]),
 			"embargo": None,
 			"owner": None,
 		})
@@ -393,7 +392,7 @@ class ImportTest(testhelpers.VerboseTest):
 			res = list(table.iterQuery(
 				[table.tableDef.getColumnByName("accref")], ""))
 			self.assertEqual(res, 
-				[{u'accref': u'uu'}, {u'accref': u'image(34, 67)(0.25, 0.5)'}])
+				[{u'accref': u'uu'}, {u'accref': u'image/(34, 67)/(0.25, 0.5)'}])
 		finally:
 			data.dropTables(rsc.parseNonValidating)
 			self.conn.commit()
@@ -562,6 +561,60 @@ class SIAP2GeometryStringTest(testhelpers.VerboseTest):
 			siap.parseSIAP2Geometry,
 			("POLYGON 12 13 34 -34 35 12 22.3290032",))
 
+
+class SIAP2ServiceTest(testhelpers.VerboseTest):
+	resources = [("data", _siapTestTable)]
+
+	def _doQuery(self, params):
+		return base.resolveCrossId("data/cores#s2").run(
+			"siap2.xml", params).original.getPrimaryTable()
+
+	def testBasicCooQuery(self):
+		res = self._doQuery({"POS": ["CIRCLE 4 44 0.5"]})
+		self.assertEqual(len(res.rows), 1)
+		self.assertEqual(res.rows[0]["access_estsize"], 81)
+		self.assertEqual(res.rows[0]["access_url"], 
+			"http://localhost:8080/getproduct?key=image/(1, 45)/(4.1, 1.1)")
+		for info in res.getMeta("info"):
+			if info.infoName=="queryPars":
+				self.assertEqual(info.getContent(), 
+					"{'pos0': <pgsphere Circle Unknown 4. 44. 0.5>}")
+				self.assertEqual(info.infoValue, 
+					's_region &&%(pos0)s')
+				break
+
+	def testDualCooQuery(self):
+		res = self._doQuery({"POS": ["CIRCLE 4 44 0.5", "RANGE 250 260 89 90"]})
+		for info in res.getMeta("info"):
+			if info.infoName=="queryPars":
+				self.assertEqual(info.infoValue, 
+					'(s_region &&%(pos0)s) OR (s_region &&%(pos1)s)')
+				self.assertEqual(info.getContent(), 
+					"{'pos0': <pgsphere Circle Unknown 4. 44. 0.5>, 'pos1':"
+					" <pgsphere\nPositionInterval Unknown 250. 89. 260. 90.>}")
+				break
+		self.assertEqual(len(res.rows), 2)
+
+	def testBANDQuery(self):
+		res = self._doQuery({"BAND": ["-Inf 0.5", "40 60", "165 +Inf"]})
+		self.assertEqual(len(res.rows), 5)
+		for info in res.getMeta("info"):
+			if info.infoName=="queryPars":
+				self.assertEqual(info.infoValue, 
+					'(%(BAND1)s < em_max AND %(BAND0)s > em_min)'
+					' OR (%(BAND3)s < em_max AND %(BAND2)s > em_min)'
+					' OR (%(BAND5)s < em_max AND %(BAND4)s > em_min)')
+
+	def testCombinedQuery(self):
+		res = self._doQuery({"BAND": ["-Inf 0.5", "40 60"],
+			"POS": ["CIRCLE 4 44 0.5", "RANGE 250 260 89 90"]})
+		for info in res.getMeta("info"):
+			if info.infoName=="queryPars":
+				self.assertEqual(info.infoValue, 
+					'((s_region &&%(pos0)s) OR (s_region &&%(pos1)s)) AND'
+					' ((%(BAND1)s < em_max AND %(BAND0)s > em_min) OR'
+					' (%(BAND3)s < em_max AND %(BAND2)s > em_min))')
+		self.assertEqual(len(res.rows), 1)
 
 
 if __name__=="__main__":

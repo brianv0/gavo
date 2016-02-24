@@ -354,7 +354,6 @@ class SIAPRenderer(DALRenderer):
 					str(msg)]]]
 
 
-
 class UnifiedDALRenderer(DALRenderer):
 	"""A renderer for new-style simple DAL protocols.
 
@@ -392,10 +391,10 @@ class UnifiedDALRenderer(DALRenderer):
 
 
 class SIAP2Renderer(UnifiedDALRenderer):
-	"""A renderer for SIAv2.
+	"""A renderer for SIAPv2.
 
-	This really must run on top of a Siap2Core, which in turn needs
-	a source table mixing in obscore.
+	In general, if you want a SIAP2 service, you'll need something like the
+	obscore view in the underlying table.
 	"""
 	parameterStyle = "dali"
 	name = "siap2.xml"

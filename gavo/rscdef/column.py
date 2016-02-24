@@ -712,8 +712,14 @@ class ParamBase(ColumnBase):
 			return literal
 
 		elif not isinstance(literal, basestring):
+			# the awful atom thing is for when array-like things are
+			# specified in multiple HTTP parameters rather than
+			# using VOTable serialisation.  It's probably wrong
+			# to accept that in the first place, except of  course
+			# we have that with strings.  Perhaps only turn arrays off
+			# for strings?
 			if _isStringList(literal):
-				value = [self._parse(l, atom=True) for l in literal]
+				value = [self._parse(l, atom=self.xtype!="interval") for l in literal]
 			else:
 				value = literal
 		
@@ -732,7 +738,7 @@ class ParamBase(ColumnBase):
 					type, arraysize, xtype = self._getVOTableType()
 					if atom:
 						arraysize = None
-
+					
 					value = paramval.getVOTParser(type, arraysize, 
 						self.xtype or xtype)(literal)
 					# make NaNs NULL here for consistent VOTable practice

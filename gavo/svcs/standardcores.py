@@ -128,6 +128,12 @@ class CondDesc(base.Structure):
 			" interesting for web forms, where this grouping is shown graphically;"
 			" Set the style property to compact to have a one-line group there)")
 
+	_joiner = base.UnicodeAttribute("joiner",
+		default="OR",
+		description="When yielding multiple fragments, join them"
+			" using this operator (probably the only thing besides OR is"
+			" AND).")
+
 	_original = base.OriginalAttribute()
 	
 	def __init__(self, parent, **kwargs):
@@ -244,9 +250,9 @@ class CondDesc(base.Structure):
 			return ""
 		res = list(self.makePhrase(
 			self, self.inputKeys, inPars, sqlPars, self.parent))
-		sql = base.joinOperatorExpr("AND", res)
+		sql = base.joinOperatorExpr(self.joiner, res)
 		if self.fixedSQL:
-			sql = base.joinOperatorExpr("AND", [sql, self.fixedSQL])
+			sql = base.joinOperatorExpr(self.joiner, [sql, self.fixedSQL])
 		return sql
 
 	def adaptForRenderer(self, renderer):
@@ -481,6 +487,11 @@ class DBCore(TableBasedCore):
 			queriedTable = rsc.TableForDef(self.queriedTable, nometa=True,
 				create=False, connection=conn)
 			queriedTable.setTimeout(queryMeta["timeout"])
+
+			if fragment and pars:
+				resultTableDef.addMeta("info", repr(pars),
+					infoName="queryPars", infoValue=fragment)
+
 			iqArgs = {"limits": queryMeta.asSQL(), "distinct": self.distinct,
 				"groupBy": self.groupBy}
 			iqArgs.update(kwargs)

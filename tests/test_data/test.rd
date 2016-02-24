@@ -9,7 +9,12 @@
 	<meta name="creator.name">John C. Testwriter</meta>
 
 	<table id="bbox_siaptable" mixin="//siap#bbox" onDisk="True"/>
-	<table id="pgs_siaptable" mixin="//siap#pgs" onDisk="True"/>
+	<table id="pgs_siaptable" mixin="//siap#pgs" onDisk="True">
+		<mixin
+  		sResolution="0.5"
+  		calibLevel="2"
+  		>//obscore#publishSIAP</mixin>
+	</table>
 
 	<service id="pgsiapsvc">
 		<publish render="siap.xml" sets="testing"/>
@@ -52,6 +57,8 @@
 				<bind key="instrument">@instId</bind>
 				<bind key="dateObs">@dateObs</bind>
 				<bind key="bandpassId">@bandpassId</bind>
+				<bind key="bandpassLo">@bandpassLo</bind>
+				<bind key="bandpassHi">@bandpassHi</bind>
 			</apply>
 		</rowmaker>
 	</data>

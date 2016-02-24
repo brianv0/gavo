@@ -13,6 +13,7 @@ from gavo.helpers import testhelpers
 from gavo import utils
 from gavo.utils import algotricks
 from gavo.utils import stanxml
+from gavo.utils import typeconversions
 
 
 class TopoSortTest(testhelpers.VerboseTest):
@@ -146,6 +147,13 @@ continuation\\""") as fName:
 					"At line 3: File ends with a backslash",
 					lambda f: list(utils.iterSimpleText(f)),
 					(f,))
+
+
+class TypeConversionTest(testhelpers.VerboseTest):
+	def testDPArray(self):
+		self.assertEqual(
+			typeconversions.sqltypeToVOTable("double precision[2]"),
+			 ('double', '2', None))
 
 
 if __name__=="__main__":

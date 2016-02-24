@@ -9,6 +9,7 @@ for you, we'd consider it a severe bug, though.
 
 Version 0.9.6 (XXXX-XX-XX)
 
+	* SIAPv2 support.
   * Several new indices are now created by default; you probably want them,
     too.  Run "gavo imp -I //products". Similarly, gavo imp -I <rd-id> on all
     RDs that have SSA tables with datalink services (if you don't know what
@@ -17,6 +18,9 @@ Version 0.9.6 (XXXX-XX-XX)
 		have simply gone in the expectation that nobody has actually used them.
 		Protest if we're wrong.  Also there is no type attribute on meta
 		any more.
+	* API change: When CondDescs yielded more than one fragement,
+	  the fragments were combined with AND so far.  Now, it's OR by
+	  default (you can restore the previoius behaviour using condDesc/@joiner)
 
 Version 0.9.5 (2015-10-07)
 

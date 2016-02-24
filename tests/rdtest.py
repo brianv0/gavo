@@ -213,12 +213,14 @@ class TAP_SchemaTest(testhelpers.VerboseTest):
 		tables = set(r[0] for r in
 			(q.query("select table_name from TAP_SCHEMA.tables where sourcerd"
 			" = %(rdid)s", {"rdid": self.rd.sourceId})))
-		self.assertEqual(tables, set(['test.adqltable', 'test.adql']))
+		self.assertEqual(tables, set([
+			'test.adqltable', 'test.adql', 'test.pgs_siaptable']))
 		columns = set(r[0] for r in
 			(q.query("select column_name from TAP_SCHEMA.columns where sourcerd"
 			" = %(rdid)s", {"rdid": self.rd.sourceId})))
-		self.assertEqual(columns, 
-			set([u'alpha', u'rv', u'foo', u'mag', u'delta', u'tinyflag']))
+		self.assertTrue(
+			set([u'alpha', u'rv', u'foo', u'mag', u'delta', u'tinyflag']
+				).issubset(columns), "adql columns not in TAP_SCHEMA")
 		fkeys = set(q.query("select from_table, target_table"
 				" from TAP_SCHEMA.keys where sourcerd"
 				" = %(rdid)s", {"rdid": self.rd.sourceId}))

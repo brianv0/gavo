@@ -74,6 +74,9 @@ class PgSAdapter(object):
 	def __ne__(self, other):
 		return not self==other
 
+	def __repr__(self):
+		return "<pgsphere %s>"%self.asSTCS("Unknown")
+
 	def asPoly(self):
 		raise ValueError("%s objects cannot be turned into polygons."%
 			self.__class__)
@@ -217,9 +220,6 @@ class SBox(PgSAdapter):
 
 	def __init__(self, corner1, corner2):
 		self.corner1, self.corner2 = corner1, corner2
-
-	def __repr__(self):
-		return "sbox(%r,%r)"%(self.corner1, self.corner2)
 
 	@staticmethod
 	def _adaptToPgSphere(sbox):
