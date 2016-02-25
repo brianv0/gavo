@@ -6,6 +6,8 @@
 Assumptions on document content beyond conforming datalink content:
 
 (1) null value of content_length is -1
+(2) VOTable namespace is 1.2 (as long as you know what version you're handing
+    out, just fix xmlns:vot below)
 
 
 Copyright 2015 The GAVO Project, Moenchhofstr. 12-14, D-69120 Heidelberg;
@@ -20,8 +22,6 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
    	xmlns="http://www.w3.org/1999/xhtml"
     version="1.0">
    
-   	<xsl:include href="dachs-xsl-config.xsl"/>
-    
     <!-- ############################################## Global behaviour -->
 
     <xsl:output method="xml" 
@@ -83,7 +83,6 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
         <xsl:apply-templates/>
       </table>
     </xsl:template>
-
 
     <xsl:template name="normal_row">
         <!-- a datalink table row not requring extra processing
@@ -147,15 +146,15 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
     <xsl:template name="format-file-size">
         <xsl:param name="file-size"/>
         <xsl:choose>
-            <xsl:when test="$file-size &lt; 2000">
+            <xsl:when test="$file-size&lt;2000">
                 <xsl:value-of select="$file-size"/> Bytes</xsl:when>
-            <xsl:when test="$file-size &lt; 1500000">
+            <xsl:when test="$file-size&lt;1500000">
                 <xsl:value-of select="round($file-size div 102.4) div 10"
                     /> kiB</xsl:when>
-            <xsl:when test="$file-size &lt; 1500000000">
+            <xsl:when test="$file-size&lt;1500000000">
                 <xsl:value-of select="round($file-size div 10485.76) div 100"
                     /> MiB</xsl:when>
-            <xsl:when test="$file-size &lt; 20000000000">
+            <xsl:when test="$file-size&lt;20e9">
                 <xsl:value-of select="round($file-size div 10737418.24) div 100"
                     /> GiB</xsl:when>
             <xsl:otherwise>
@@ -185,6 +184,79 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
             </p>
     </xsl:template>
 
+    <!-- ################################### service interface -->
+
+    <xsl:template match="vot:RESOURCE" utype="adhoc:service">
+        <xsl:if test="vot:PARAM[@name='standardID']/@value=
+           'ivo://ivoa.net/std/SODA#sync-1.0'">
+            <form class="service-interface" method="GET">
+                <xsl:attribute name="action">
+                    <xsl:value-of select="vot:PARAM[@name='accessURL']"/>
+                </xsl:attribute>
+                <dl class="inputpars">
+                    <xsl:apply-templates select="vot:GROUP[@name='inputParams']"
+                        mode="build-inputs"/>
+                </dl>
+            </form>
+        </xsl:if>
+    </xsl:template>
+
+    <xsl:template match="vot:PARAM[vot:VALUES/vot:MIN]" mode="build-inputs">
+        <dt><xsl:value-of select="@name"/></dt>
+        <dd>
+            <input type="text">
+                <xsl:attribute name="name">
+                    <xsl:value-of select="@name"/>
+                </xsl:attribute>
+                <xsl:attribute name="placeholder">
+                    <xsl:value-of select="vot:VALUES/vot:MIN/@value"/>
+                </xsl:attribute>
+            </input>
+            <p class="range">Range between
+                <span class="min">
+                    <xsl:value-of select="vot:VALUES/vot:MIN/@value"/>
+                </span>
+                and
+                <span class="max">
+                    <xsl:value-of select="vot:VALUES/vot:MAX/@value"/>
+                </span>
+            </p>
+            <p class="param-description">
+                <xsl:value-of select="vot:DESCRIPTION"/>
+            </p>
+        </dd>
+    </xsl:template>
+
+    <xsl:template match="vot:PARAM[vot:VALUES/vot:OPTION]" mode="build-inputs">
+        <dt><xsl:value-of select="@name"/></dt>
+        <dd>
+            <select multiple="multiple">
+                <xsl:attribute name="name">
+                    <xsl:value-of select="@name"/>
+                </xsl:attribute>
+                <xsl:apply-templates select="vot:VALUES" mode="build-inputs"/>
+            </select>
+            <p class="param-description">
+                <xsl:value-of select="vot:DESCRIPTION"/>
+            </p>
+        </dd>
+    </xsl:template>
+
+    <xsl:template match="vot:OPTION" mode="build-inputs">
+        <option>
+            <xsl:attribute name="value">
+                <xsl:value-of select="@value"/>
+            </xsl:attribute>
+            <xsl:choose>
+                <xsl:when test="@name">
+                    <xsl:value-of select="@name"/>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:value-of select="."/>
+                </xsl:otherwise>
+            </xsl:choose>
+        </option>
+    </xsl:template>
 
     <!-- ################################### utility, top-level -->
 

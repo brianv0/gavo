@@ -287,11 +287,20 @@ class _ServiceDescriptor(object):
 
 	These are serialized into service resources in VOTables.
 	Basically, these collect input keys, a pubDID, as well as any other
-	data we might need in service definitioin.
+	data we might need in service definition.
 	"""
 	def __init__(self, pubDID, inputKeys, rendName):
 		self.pubDID, self.inputKeys = pubDID, inputKeys
 		self.rendName = rendName
+		if self.pubDID:
+		# if we're fixed to a specific pubDID, reflect that in the ID
+		# field -- this is how clients know which dataset to pull
+		# from datalink documents.
+			for index, ik in enumerate(self.inputKeys):
+				if ik.name=="ID":
+					ik = ik.copy(None)
+					ik.set(pubDID)
+					self.inputKeys[index] = ik
 
 	def asVOT(self, ctx, accessURL, linkIdTo=None):
 		"""returns VOTable stanxml for a description of this service.
@@ -322,8 +331,8 @@ class _ServiceDescriptor(object):
 				value=accessURL)]
 
 		standardId = {
-			"dlasync": "ivo://ivoa.net/std/SSDP#async",
-			"dlget": "ivo://ivoa.net/std/SSDP#sync"}.get(self.rendName)
+			"dlasync": "ivo://ivoa.net/std/SODA#async-1.0",
+			"dlget": "ivo://ivoa.net/std/SODA#sync-1.0"}.get(self.rendName)
 		if standardId:
 			res[
 				V.PARAM(arraysize="*", datatype="char",
@@ -336,10 +345,7 @@ class _ServiceDescriptor(object):
 			param = votablewrite._addID(ik,
 				votablewrite.makeFieldFromColumn(ctx, V.PARAM, ik), ctx)
 			if linkIdTo and ik.name=="ID":
-				# TODO: Kill the LINK child (older proposal implemented by some
-				# splat betas) some time after June 2014
-				param = param(ref=linkIdTo)[
-					V.LINK(content_role="ddl:id-source", value="#"+linkIdTo)]
+				param = param(ref=linkIdTo)
 			inputParams[param]
 
 		return res
@@ -581,7 +587,7 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 				errors.append(DatalinkFault.Fault(descriptor.pubDID,
 					"Unexpected failure while creating"
 					" datalink: %s"%utils.safe_str(ex)))
-	
+
 		return linkDefs, inputKeys, errors
 
 	def getDatalinksResource(self, ctx, service):

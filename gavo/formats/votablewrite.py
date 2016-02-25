@@ -287,6 +287,14 @@ def defineField(ctx, element, colDesc):
 	xtype = colDesc.get("xtype")
 	if ctx.version>(1,1):
 		element(xtype=xtype)
+	
+	if isinstance(element, V.PARAM):
+		if hasattr(colDesc.original, "getStringValue"):
+			try:
+				element(value=str(colDesc.original.getStringValue()))
+			except:
+				# there's too much that can legitimately go wrong here to bother:
+				pass
 
 	element(**dict((key, colDesc.get(key)) for key in _voFieldCopyKeys))[
 		V.DESCRIPTION[colDesc["description"]],

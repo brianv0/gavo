@@ -256,6 +256,16 @@ class DatalinkMetaMakerTest(testhelpers.VerboseTest):
 	resources = [("serviceResult", _metaMakerTestData),
 		("prodtestTable", tresc.prodtestTable)]
 
+	def testIDSet(self):
+		svc1 = self.serviceResult[1].xpath("//RESOURCE[@utype='adhoc:service']")[0]
+		self.assertEqual(
+			svc1.xpath("GROUP/PARAM[@name='ID']")[0].get("value"),
+			"ivo://x-unregistred/~?data/a.imp")
+		svc2 = self.serviceResult[1].xpath("//RESOURCE[@utype='adhoc:service']")[1]
+		self.assertEqual(
+			svc2.xpath("GROUP/PARAM[@name='ID']")[0].get("value"),
+			"ivo://x-unregistred/~?data/b.imp")
+
 	def testMimeOk(self):
 		self.assertEqual(self.serviceResult[0], 
 			"application/x-votable+xml;content=datalink")
@@ -348,7 +358,8 @@ class DatalinkMetaMakerTest(testhelpers.VerboseTest):
 				'http://localhost:8080/data/test/foo/dlasync']),
 			set([p.get("value") for p in tree.xpath("//PARAM[@name='accessURL']")]))
 		self.assertEqual(
-			set(['ivo://ivoa.net/std/SSDP#async','ivo://ivoa.net/std/SSDP#sync']),
+			set(['ivo://ivoa.net/std/SODA#async-1.0',
+				'ivo://ivoa.net/std/SODA#sync-1.0']),
 			set([p.get("value") 
 				for p in tree.xpath("//PARAM[@name='standardID']")]))
 
