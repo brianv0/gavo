@@ -191,15 +191,19 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
            'ivo://ivoa.net/std/SODA#sync-1.0'">
             <form class="service-interface" method="GET">
                 <xsl:attribute name="action">
-                    <xsl:value-of select="vot:PARAM[@name='accessURL']"/>
+                    <xsl:value-of select="vot:PARAM[@name='accessURL']/@value"/>
                 </xsl:attribute>
                 <dl class="inputpars">
                     <xsl:apply-templates select="vot:GROUP[@name='inputParams']"
                         mode="build-inputs"/>
                 </dl>
+                <input type="submit" value="Retrieve data"/>
             </form>
         </xsl:if>
     </xsl:template>
+
+    <!-- ...non-interval params having min and max get pre-filled with the
+        min -->
 
     <xsl:template match="vot:PARAM[vot:VALUES/vot:MIN]" mode="build-inputs">
         <dt><xsl:value-of select="@name"/></dt>
@@ -212,7 +216,7 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
                     <xsl:value-of select="vot:VALUES/vot:MIN/@value"/>
                 </xsl:attribute>
             </input>
-            <p class="range">Range between
+            <p class="range">A value between
                 <span class="min">
                     <xsl:value-of select="vot:VALUES/vot:MIN/@value"/>
                 </span>
@@ -226,6 +230,8 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
             </p>
         </dd>
     </xsl:template>
+
+    <!-- ... params with options become a select box -->
 
     <xsl:template match="vot:PARAM[vot:VALUES/vot:OPTION]" mode="build-inputs">
         <dt><xsl:value-of select="@name"/></dt>
@@ -256,6 +262,18 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
                 </xsl:otherwise>
             </xsl:choose>
         </option>
+    </xsl:template>
+
+    <!-- ...params with a value become hidden -->
+    <xsl:template match="vot:PARAM[@value!='']" mode="build-inputs">
+        <input type="hidden">
+            <xsl:attribute name="name">
+                <xsl:value-of select="@name"/>
+            </xsl:attribute>
+            <xsl:attribute name="value">
+                <xsl:value-of select="@value"/>
+            </xsl:attribute>
+        </input>
     </xsl:template>
 
     <!-- ################################### utility, top-level -->
