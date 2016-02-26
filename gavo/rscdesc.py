@@ -341,6 +341,24 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 			".. image:: /static/img/ccby.png\n\n"
 			)%stuffDesignation
 
+	def macro_RSTcc0(self, stuffDesignation):
+		"""expands to a declaration that stuffDesignation is available under
+		CC-0.
+		
+		This only works in reStructured text (though it's still almost
+		readable as source).
+		"""
+		return ("To the extent possible under law, the publisher has"
+			" waived all copyright and related or neighboring rights to %s."
+			"  For details, see the `Creative Commons CC0 1.0"
+			" Public Domain dedication"
+			" <http://creativecommons.org/publicdomain/zero/1.0/>`_.  Of course,"
+			" you should still give proper credit when using this data as"
+			" required by good scientific practice.\n\n"
+			".. image:: /static/img/cc0.png\n\n"
+			)%stuffDesignation
+
+
 
 class RDParseContext(base.ParseContext):
 	"""is a parse context for RDs.
