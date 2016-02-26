@@ -748,7 +748,7 @@
 		<doc>
 			The full condDescs for matching HCD SSA services.
 		</doc>
-		<condDesc id="coneCond" combining="True">
+		<condDesc id="coneCond" combining="True" joiner="AND">
 			<!-- condCond is combining to let the client specify SIZE but
 			not POS (as splat does); pql#coneParameter can handle that. -->
 			<inputKey name="POS" type="text" description="ICRS position of target
@@ -948,7 +948,7 @@
 			</events>
 		</LOOP>
 
-		<condDesc combining="True">
+		<condDesc combining="True" joiner="AND">
 			<!-- meta keys not (directly) entering the query -->
 			<inputKey name="REQUEST" type="text" tablehead="Request type"
 				description='This is queryData for the default operation; some

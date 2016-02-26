@@ -251,7 +251,7 @@
 		</phraseMaker>
 	</condDesc>
 
-	<condDesc id="humanInput" combining="True">
+	<condDesc id="humanInput" combining="True" joiner="AND">
 		<inputKey id="hscs_pos" 
 			name="hscs_pos" type="text"
 			multiplicity="single"

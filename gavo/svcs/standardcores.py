@@ -132,7 +132,8 @@ class CondDesc(base.Structure):
 		default="OR",
 		description="When yielding multiple fragments, join them"
 			" using this operator (probably the only thing besides OR is"
-			" AND).")
+			" AND).",
+		copyable=True)
 
 	_original = base.OriginalAttribute()
 	

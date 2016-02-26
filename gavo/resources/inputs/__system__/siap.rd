@@ -418,7 +418,7 @@
 		</code>
 	</procDef>
 
-	<condDesc id="siapCondBase">
+	<condDesc id="siapCondBase" joiner="AND">
 		<!-- This just contains some components the real SIAP conditions build
 		upon.  Do not inherit from this, do not instanciate it. -->
 		<phraseMaker>
@@ -492,7 +492,7 @@
 		</inputKey>
 	</condDesc>
 
-	<condDesc id="protoInput" required="True">
+	<condDesc id="protoInput" required="True" joiner="AND">
 		<inputKey original="base_POS" required="True" std="True">
 			<property name="onlyForRenderer">siap.xml</property>
 		</inputKey>
@@ -514,7 +514,7 @@
 		</phraseMaker>
 	</condDesc>
 
-	<condDesc id="humanInput">
+	<condDesc id="humanInput" joiner="AND">
 		<inputKey original="base_POS" name="hPOS"
 			description="ICRS Position, RA,DEC, or Simbad object (e.g., 234.234,-32.45)">
 			<property name="notForRenderer">siap.xml</property>

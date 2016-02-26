@@ -271,7 +271,7 @@ class _ValuesChanger(Manipulator):
 			if val is not None:
 				try:
 					values.getAttribute(attName)[2] = utils.escapeAttrVal(str(val))
-				except KeyError:
+				except (AttributeError, KeyError):
 					# user didn't put this limit into RD; let's assume for a reason
 					pass
 

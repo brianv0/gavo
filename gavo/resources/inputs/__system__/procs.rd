@@ -417,7 +417,7 @@ Core phrase makers and friends -->
 		"Upper bound of".  Do not include a concluding period.
 	</doc>
 
-	<condDesc combining="True">
+	<condDesc combining="True" joiner="AND">
 		<inputKey name="\name\+_min" original="\name"
 				tablehead="Min \grouplabel"
 				description="Lower bound of \groupdesc">
