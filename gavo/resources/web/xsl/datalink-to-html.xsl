@@ -202,21 +202,46 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
         </xsl:if>
     </xsl:template>
 
-    <!-- ...non-interval params having min and max get pre-filled with the
-        min -->
+    <!-- **vot:PARAM -> html:input translation**: we match with various
+        templates and control conflicts through priority.  Please
+        sort rules by descending priority. 
+        
+        Priorities >=200 are for protocol-specified cases.
+        Priorities ]100, 200[ are for 3-factor semantics 
+        Priorities <=100 are for heuristics. -->
 
-    <xsl:template match="vot:PARAM[vot:VALUES/vot:MIN]" mode="build-inputs">
+
+    <!-- params with a value always become hidden -->
+    <xsl:template match="vot:PARAM[@value!='']" mode="build-inputs"
+            priority="200">
+        <input type="hidden">
+            <xsl:attribute name="name">
+                <xsl:value-of select="@name"/>
+            </xsl:attribute>
+            <xsl:attribute name="value">
+                <xsl:value-of select="@value"/>
+            </xsl:attribute>
+        </input>
+    </xsl:template>
+
+    <!-- interval-valued params get an interval-valued placeholder -->
+
+    <xsl:template match="vot:PARAM[@xtype='interval']" mode="build-inputs"
+            priority="100">
         <dt><xsl:value-of select="@name"/></dt>
         <dd>
-            <input type="text">
+            <input type="text" class="interval-input">
                 <xsl:attribute name="name">
                     <xsl:value-of select="@name"/>
                 </xsl:attribute>
                 <xsl:attribute name="placeholder">
                     <xsl:value-of select="vot:VALUES/vot:MIN/@value"/>
+                    <xsl:text> </xsl:text>
+                    <xsl:value-of select="vot:VALUES/vot:MAX/@value"/>
                 </xsl:attribute>
             </input>
-            <p class="range">A value between
+            <p class="range">An interval (space-separated pair of numbers),
+                where the limits have to be between
                 <span class="min">
                     <xsl:value-of select="vot:VALUES/vot:MIN/@value"/>
                 </span>
@@ -231,9 +256,12 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
         </dd>
     </xsl:template>
 
-    <!-- ... params with options become a select box -->
+    <!-- ... params with options become a select box.  Yes, this
+    collides with the interval priority.  We'll resolve this when
+    we see an interval-valued enumerated parameter. -->
 
-    <xsl:template match="vot:PARAM[vot:VALUES/vot:OPTION]" mode="build-inputs">
+    <xsl:template match="vot:PARAM[vot:VALUES/vot:OPTION]" mode="build-inputs"
+            priority="100">
         <dt><xsl:value-of select="@name"/></dt>
         <dd>
             <select multiple="multiple">
@@ -264,17 +292,38 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
         </option>
     </xsl:template>
 
-    <!-- ...params with a value become hidden -->
-    <xsl:template match="vot:PARAM[@value!='']" mode="build-inputs">
-        <input type="hidden">
-            <xsl:attribute name="name">
-                <xsl:value-of select="@name"/>
-            </xsl:attribute>
-            <xsl:attribute name="value">
-                <xsl:value-of select="@value"/>
-            </xsl:attribute>
-        </input>
+    <!-- ...non-interval params having min and max get pre-filled with the
+        min -->
+
+    <xsl:template match="vot:PARAM[vot:VALUES/vot:MIN]" mode="build-inputs"
+        priority="50">
+        <dt><xsl:value-of select="@name"/></dt>
+        <dd>
+            <input type="text">
+                <xsl:attribute name="name">
+                    <xsl:value-of select="@name"/>
+                </xsl:attribute>
+                <xsl:attribute name="placeholder">
+                    <xsl:value-of select="vot:VALUES/vot:MIN/@value"/>
+                </xsl:attribute>
+            </input>
+            <p class="range">A value between
+                <span class="min">
+                    <xsl:value-of select="vot:VALUES/vot:MIN/@value"/>
+                </span>
+                and
+                <span class="max">
+                    <xsl:value-of select="vot:VALUES/vot:MAX/@value"/>
+                </span>
+            </p>
+            <p class="param-description">
+                <xsl:value-of select="vot:DESCRIPTION"/>
+            </p>
+        </dd>
     </xsl:template>
+
+
+
 
     <!-- ################################### utility, top-level -->
 
