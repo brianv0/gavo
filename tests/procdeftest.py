@@ -11,6 +11,7 @@ Tests for function definitions and applications.
 from gavo.helpers import testhelpers
 
 from gavo import base
+from gavo import utils
 from gavo.base import macros
 from gavo.rscdef import procdef
 
@@ -269,6 +270,20 @@ class TypeSafetyTest(testhelpers.VerboseTest):
 				" are required.",
 			base.parseFromString,
 			(Foo, '<foo><testApp procDef="//datalink#trivialFormatter"/></foo>'))
+
+
+class SourceKeepingTest(testhelpers.VerboseTest):
+	def testSourceAccess(self):
+		f = base.parseFromString(Foo, "<foo><testApp><code>"
+			"res = 1+1\n"
+			"this = broken\n"
+#			"import ipdb;ipdb.set_trace()\n"
+			"dest['res'] = res"
+			"</code></testApp></foo>")
+		try:
+			f.runApps()
+		except Exception, ex:
+			self.assertTrue("this = broken" in utils.getTracebackAsString())
 
 
 if __name__=="__main__":

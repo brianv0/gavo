@@ -325,11 +325,15 @@ class DBTableQueryTest(tresc.TestWithDBConnection):
 
 class FixupTest(tresc.TestWithDBConnection):
 	def testInvalidFixup(self):
-		self.assertRaisesWithMsg(base.BadCode, 
-			'At [<table id="test"><column na...], (1, 50):'
-			" Bad source code in function (invalid syntax (<string>, line 2))",
-			base.parseFromString, (rscdef.TableDef, 
-			'<table id="test"><column name="ab" fixup="9m+5s"/></table>'))
+		try:
+			base.parseFromString(rscdef.TableDef, 
+			'<table id="test"><column name="ab" fixup="9m+5s"/></table>')
+		except base.BadCode, ex:
+			self.assertTrue(
+				'At [<table id="test"><column na...], (1, 50): Bad source code in'
+				in str(ex), "Unexcepted error message: %s"%ex)
+			return
+		self.fail("Exception not raised")
 	
 	def testSimpleFixup(self):
 		td = base.parseFromString(rscdef.TableDef, 

@@ -18,6 +18,7 @@ import imp
 import itertools
 import inspect
 import functools
+import linecache
 import os
 import re
 import shutil
@@ -523,44 +524,72 @@ def runInSandbox(setUp, func, tearDown, *args, **kwargs):
 	return result
 
 
-def compileFunction(src, funcName, useGlobals=None, debug=False):
-	"""runs src through exec and returns the item funcName from the resulting
-	namespace.
+class _FunctionCompiler(object):
+	"""A singleton to keep compileFunction's state somewhat localised.
 
-	This is typically used to define functions, like this:
-
-	>>> resFunc = compileFunction("def f(x): print x", "f")
-	>>> resFunc(1); resFunc("abc")
-	1
-	abc
+	The state currently is a counter used to build unique ids for
+	stuff compiled.
 	"""
-	locals = {}
-	if useGlobals is None:
-		useGlobals = globals()
-	try:
-		exec src+"\n" in useGlobals, locals
-	except Exception, ex:
-		misctricks.sendUIEvent("Warning", "The code that failed to compile was:"
-			"\n%s"%src)
-		raise misctricks.logOldExc(excs.BadCode(src, "function", ex))
+	compiledCount = 0
 
-	if debug:
-		debugLocals = {}
-		embSrc = "\n".join([
-			"def compileFunctionDebugWrapper(*args, **kwargs):",
-			"  try:",
-			"    return %s(*args, **kwargs)"%funcName,
-			"  except:",
-			'    notify("Failing source:\\n%s"%src)',
-			"    raise"])
-		debugLocals["src"] = src
-		debugLocals["notify"] = lambda msg: misctricks.sendUIEvent("Warning", msg)
-		debugLocals[funcName] = locals[funcName]
-		exec embSrc+"\n" in debugLocals
-		return debugLocals["compileFunctionDebugWrapper"]
-			
+	@classmethod
+	def _compile(cls, src, funcName, useGlobals=None, debug=False):
+		"""runs src through exec and returns the item funcName from the resulting
+		namespace.
 
-	return locals[funcName]
+		This is typically used to define functions, like this:
+
+		>>> resFunc = compileFunction("def f(x): print x", "f")
+		>>> resFunc(1); resFunc("abc")
+		1
+		abc
+		"""
+		if isinstance(src, unicode):
+			src = src.encode("utf-8")
+		src = src+"\n"
+
+		locals = {}
+		if useGlobals is None:
+			useGlobals = globals()
+
+		uniqueName = "<generated code %s>"%cls.compiledCount
+		cls.compiledCount += 1
+
+		try:
+			code = compile(src, uniqueName, 'exec')
+			exec code in useGlobals, locals
+		except Exception, ex:
+			misctricks.sendUIEvent("Warning", "The code that failed to compile was:"
+				"\n%s"%src)
+			raise misctricks.logOldExc(excs.BadCode(src, "function", ex))
+		func = locals[funcName]
+
+		# this makes our compiled lines available to the traceback writer.
+		# we might want to do sys.excepthook = traceback.print_exception
+		# somewhere so the post mortem dumper uses this, too.  Let's see
+		# if it's worth the added rist of breaking things.
+		linecache.cache[uniqueName] = len(src), None, src.split("\n"), uniqueName
+		func._cleanup = weakref.ref(func, 
+			lambda _, key=uniqueName: linecache.cache.pop(key, None))
+
+		if debug:
+			debugLocals = {}
+			embSrc = "\n".join([
+				"def compileFunctionDebugWrapper(*args, **kwargs):",
+				"  try:",
+				"    return %s(*args, **kwargs)"%funcName,
+				"  except:",
+				'    notify("Failing source:\\n%s"%src)',
+				"    raise"])
+			debugLocals["src"] = src
+			debugLocals["notify"] = lambda msg: misctricks.sendUIEvent("Warning", msg)
+			debugLocals[funcName] = func
+			exec embSrc+"\n" in debugLocals
+			return debugLocals["compileFunctionDebugWrapper"]
+				
+		return func
+
+compileFunction = _FunctionCompiler._compile
 
 
 def ensureExpression(expr, errName="unknown"):

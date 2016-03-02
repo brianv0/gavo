@@ -193,11 +193,17 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
                 <xsl:attribute name="action">
                     <xsl:value-of select="vot:PARAM[@name='accessURL']/@value"/>
                 </xsl:attribute>
+                <h2>SODA data access</h2>
+                <p>In the parameters below, leave everything you do not
+                want constrained empty.</p>
+                <div style="text-align:right">
+                    <input type="submit" value="Retrieve data"
+                        style="width:14em;height:8ex"/>
+                </div>
                 <dl class="inputpars">
                     <xsl:apply-templates select="vot:GROUP[@name='inputParams']"
                         mode="build-inputs"/>
                 </dl>
-                <input type="submit" value="Retrieve data"/>
             </form>
         </xsl:if>
     </xsl:template>
@@ -208,8 +214,29 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
         
         Priorities >=200 are for protocol-specified cases.
         Priorities ]100, 200[ are for 3-factor semantics 
-        Priorities <=100 are for heuristics. -->
+        Priorities <=100 are for heuristics. 
+   
+        Also, there's a common template for assembling the tree fragments
+        that should be used for consistency if at all possible.
+    -->
 
+    <xsl:template name="format-an-input-key">
+        <xsl:param name="key"/>
+        <xsl:param name="typedesc"/>
+        <xsl:param name="widget"/>
+        <xsl:param name="description"/>
+        <dt>
+            <span class="param-name"><xsl:copy-of select="$key"/></span>
+            <xsl:text> </xsl:text>
+            <span class="typedesc"><xsl:copy-of select="$typedesc"/></span>
+        </dt>
+        <dd>
+            <p class="widget"><xsl:copy-of select="$widget"/></p>
+            <p class="param-description">
+                <xsl:copy-of select="$description"/>
+            </p>
+        </dd>
+    </xsl:template>
 
     <!-- params with a value always become hidden -->
     <xsl:template match="vot:PARAM[@value!='']" mode="build-inputs"
@@ -228,32 +255,37 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
 
     <xsl:template match="vot:PARAM[@xtype='interval']" mode="build-inputs"
             priority="100">
-        <dt><xsl:value-of select="@name"/></dt>
-        <dd>
-            <input type="text" class="interval-input">
-                <xsl:attribute name="name">
-                    <xsl:value-of select="@name"/>
-                </xsl:attribute>
-                <xsl:attribute name="placeholder">
-                    <xsl:value-of select="vot:VALUES/vot:MIN/@value"/>
-                    <xsl:text> </xsl:text>
-                    <xsl:value-of select="vot:VALUES/vot:MAX/@value"/>
-                </xsl:attribute>
-            </input>
-            <p class="range">An interval (space-separated pair of numbers),
+        <xsl:call-template name="format-an-input-key">
+            <xsl:with-param name="key">
+                <xsl:value-of select="@name"/>
+            </xsl:with-param>
+            <xsl:with-param name="typedesc">An interval 
+                (space-separated pair of numbers),
                 where the limits have to be between
-                <span class="min">
+                <span class="limit">
                     <xsl:value-of select="vot:VALUES/vot:MIN/@value"/>
                 </span>
                 and
-                <span class="max">
+                <span class="limit">
                     <xsl:value-of select="vot:VALUES/vot:MAX/@value"/>
                 </span>
-            </p>
-            <p class="param-description">
+            </xsl:with-param>
+            <xsl:with-param name="widget">
+                <input type="text" class="interval-input">
+                    <xsl:attribute name="name">
+                        <xsl:value-of select="@name"/>
+                    </xsl:attribute>
+                    <xsl:attribute name="placeholder">
+                        <xsl:value-of select="vot:VALUES/vot:MIN/@value"/>
+                        <xsl:text> </xsl:text>
+                        <xsl:value-of select="vot:VALUES/vot:MAX/@value"/>
+                    </xsl:attribute>
+                </input>
+            </xsl:with-param>
+            <xsl:with-param name="description">
                 <xsl:value-of select="vot:DESCRIPTION"/>
-            </p>
-        </dd>
+            </xsl:with-param>
+        </xsl:call-template>
     </xsl:template>
 
     <!-- ... params with options become a select box.  Yes, this
@@ -262,18 +294,25 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
 
     <xsl:template match="vot:PARAM[vot:VALUES/vot:OPTION]" mode="build-inputs"
             priority="100">
-        <dt><xsl:value-of select="@name"/></dt>
-        <dd>
-            <select multiple="multiple">
-                <xsl:attribute name="name">
-                    <xsl:value-of select="@name"/>
-                </xsl:attribute>
-                <xsl:apply-templates select="vot:VALUES" mode="build-inputs"/>
-            </select>
-            <p class="param-description">
+        <xsl:call-template name="format-an-input-key">
+            <xsl:with-param name="key">
+                <xsl:value-of select="@name"/>
+            </xsl:with-param>
+            <xsl:with-param name="typedesc"
+                >Select zero, one, or possibly more options</xsl:with-param>
+            <xsl:with-param name="widget">
+                <select multiple="multiple">
+                    <xsl:attribute name="name">
+                        <xsl:value-of select="@name"/>
+                    </xsl:attribute>
+                    <xsl:apply-templates select="vot:VALUES" 
+                        mode="build-inputs"/>
+                </select>
+            </xsl:with-param>
+            <xsl:with-param name="description">
                 <xsl:value-of select="vot:DESCRIPTION"/>
-            </p>
-        </dd>
+            </xsl:with-param>
+        </xsl:call-template>
     </xsl:template>
 
     <xsl:template match="vot:OPTION" mode="build-inputs">
@@ -296,30 +335,34 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
         min -->
 
     <xsl:template match="vot:PARAM[vot:VALUES/vot:MIN]" mode="build-inputs"
-        priority="50">
-        <dt><xsl:value-of select="@name"/></dt>
-        <dd>
-            <input type="text">
-                <xsl:attribute name="name">
-                    <xsl:value-of select="@name"/>
-                </xsl:attribute>
-                <xsl:attribute name="placeholder">
-                    <xsl:value-of select="vot:VALUES/vot:MIN/@value"/>
-                </xsl:attribute>
-            </input>
-            <p class="range">A value between
-                <span class="min">
+            priority="50">
+        <xsl:call-template name="format-an-input-key">
+            <xsl:with-param name="key">
+                <xsl:value-of select="@name"/>
+            </xsl:with-param>
+            <xsl:with-param name="typedesc"
+                >A value between
+                <span class="limit">
                     <xsl:value-of select="vot:VALUES/vot:MIN/@value"/>
                 </span>
                 and
-                <span class="max">
+                <span class="limit">
                     <xsl:value-of select="vot:VALUES/vot:MAX/@value"/>
-                </span>
-            </p>
-            <p class="param-description">
+                </span></xsl:with-param>
+            <xsl:with-param name="widget">
+                <input type="text">
+                    <xsl:attribute name="name">
+                        <xsl:value-of select="@name"/>
+                    </xsl:attribute>
+                    <xsl:attribute name="placeholder">
+                        <xsl:value-of select="vot:VALUES/vot:MIN/@value"/>
+                    </xsl:attribute>
+                </input>
+            </xsl:with-param>
+            <xsl:with-param name="description">
                 <xsl:value-of select="vot:DESCRIPTION"/>
-            </p>
-        </dd>
+            </xsl:with-param>
+        </xsl:call-template>
     </xsl:template>
 
 
@@ -405,7 +448,37 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
             color: #999999;
         }
 
+        form.service-interface {
+            margin-top: 3ex;
+            max-width: 50em;
+            background: #EEEE99;
+            border: 2pt solid #DDDD88;
+            margin-left:auto;
+            margin-right:auto;
+            padding-left: 0.5ex;
+        }
 
+        form.service-interface dt {
+            border-top: 1pt solid #DDDD88;
+        }
+
+        .param-name {
+            font-weight: bold;
+            font-size: 130%;
+        }
+
+        .typedesc {
+            font-size: 70%;
+        }
+
+        .typedesc .limit {
+            font-size: 100%;
+            font-weight: bold;
+        }
+
+        input.interval-input {
+            width:40em;
+        }
     	</style>
     	</head>
     	<body>

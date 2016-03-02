@@ -190,7 +190,7 @@ class DALRenderer(grend.ServiceBasedPage):
 			return streaming.streamVOTable(request, data)
 
 	def _handleRandomFailure(self, failure, ctx):
-		if not isinstance(failure, base.ValidationError):
+		if base.DEBUG:
 			base.ui.notifyFailure(failure)
 		return self._writeErrorTable(ctx,
 			"Unexpected failure, error message: %s"%failure.getErrorMessage(),
@@ -203,8 +203,6 @@ class DALRenderer(grend.ServiceBasedPage):
 			inevow.IRequest(ctx).setResponseCode(400)
 			queryStatus = "EMPTY"
 
-		if base.DEBUG:
-			base.ui.notifyFailure(failure)
 		return self._writeErrorTable(ctx, failure.getErrorMessage(),
 			queryStatus=queryStatus)
 
