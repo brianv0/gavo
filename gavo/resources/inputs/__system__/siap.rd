@@ -282,7 +282,12 @@
 			def addCoverage(vars, wcs, result):
 				result["coverage"] = coords.getSpolyFromWCSFields(wcs)
 
-			addWCS(vars, result, additionalKeys, addCoverage)
+			try:
+				addWCS(vars, result, additionalKeys, addCoverage)
+			except KeyError:
+				# presumably some basic FITS keyword missing
+				if missingIsError:
+					raise
 		</code>
 	</procDef>
 
