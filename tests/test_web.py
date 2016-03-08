@@ -22,6 +22,7 @@ from gavo import api
 from gavo import base
 from gavo import svcs
 from gavo import utils
+from gavo import votable
 from gavo.imp import formal
 
 base.DEBUG = True
@@ -368,7 +369,6 @@ class TemplatingTest(trialhelpers.ArchiveTest):
 				"<p>N/A</p>"], render="form")
 
 
-
 class PathResoutionTest(trialhelpers.ArchiveTest):
 	def testDefaultRenderer(self):
 		return self.assertGETHasStrings("/data/cores/impgrouptest", {},
@@ -523,6 +523,28 @@ class SCSTest(trialhelpers.ArchiveTest):
 				"MAXREC": "1"},
 			['name="warning"', 'query limit was reached']
 			).addCallback(assertMaxrecHonored)
+
+	def testSCSDefaultSort(self):
+		def assertSorted(res):
+			self.assertEqual([r[1] for r in votable.parseString(res[0]).next()],
+				['0', '1'])
+
+		return trialhelpers.runQuery(self.renderer, "GET",
+			"/data/cores/scs/scs.xml", 
+			{"RA": ["1"], "DEC": ["2"], "SR": ["180"], 
+				"RESPONSEFORMAT": "votabletd"}
+			).addCallback(assertSorted)
+
+	def testSCSDirectionOverride(self):
+		def assertSorted(res):
+			self.assertEqual([r[1] for r in votable.parseString(res[0]).next()],
+				['1', '0'])
+
+		return trialhelpers.runQuery(self.renderer, "GET",
+			"/data/cores/scs/scs.xml", 
+			{"RA": ["1"], "DEC": ["2"], "SR": ["180"], 
+				"RESPONSEFORMAT": "votabletd", "_DBOPTIONS_DIR": "DESC"}
+			).addCallback(assertSorted)
 
 
 class SSATest(trialhelpers.ArchiveTest):

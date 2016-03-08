@@ -221,6 +221,9 @@ class QueryMeta(dict):
 		self["dbSortKeys"] = [s.strip() 
 			for s in args.get("_DBOPTIONS_ORDER", []) if s.strip()]
 
+		self["direction"] = {"ASC": "ASC", "DESC": "DESC"}[
+			args.get("_DBOPTIONS_DIR", "ASC")]
+
 		try:
 			self["dbLimit"] = int(args["MAXREC"])
 		except (ValueError, KeyError):
@@ -231,13 +234,16 @@ class QueryMeta(dict):
 		except (ValueError, KeyError):
 			self["timeout"] = base.getConfig("web", "sqlTimeout")
 
-	def overrideDbOptions(self, sortKeys=None, limit=None, sortFallback=None):
+	def overrideDbOptions(self, sortKeys=None, limit=None, sortFallback=None,
+			direction=None):
 		if sortKeys is not None:
 			self["dbSortKeys"] = sortKeys
 		if not self["dbSortKeys"] and sortFallback is not None:
 			self["dbSortKeys"] = sortFallback.split(",")
 		if limit is not None:
 			self["dbLimit"] = int(limit)
+		if direction is not None:
+			self["direction"] = direction
 
 	def asSQL(self):
 		"""returns the dbLimit and dbSortKey values as an SQL fragment.
@@ -251,20 +257,13 @@ class QueryMeta(dict):
 # sort direction.
 # Meanwhile, let's to an emergency hack.
 		if sortKeys:
-			direction = "DESC"
-			if sortKeys==["_r"]:
-				direction = "ASC"
-			if sortKeys[0].startswith("-"):
-				sortKeys[0] = sortKeys[0][1:]
-				direction = "ASC"
-
 			# Ok, we need to do some emergency securing here.  There should be
 			# pre-validation that we're actually seeing a column key, but
 			# just in case let's make sure we're seeing an SQL identifier.
 			# (We can't rely on dbapi's escaping since we're not talking values here)
 			frag.append("ORDER BY %s %s"%(",".join(
 					re.sub('[^A-Za-z0-9"_]+', "", key) for key in sortKeys),
-				direction))
+				self["direction"]))
 		if dbLimit:
 			frag.append("LIMIT %(_matchLimit)s")
 			pars["_matchLimit"] = int(dbLimit)+1

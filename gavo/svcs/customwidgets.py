@@ -47,6 +47,7 @@ class DBOptions(object):
 		self.typeOb = typeOb
 		if getattr(self.service.core, "sortKey", None) is None:
 			self.sortWidget = self._makeSortWidget(service, queryMeta)
+			self.directionWidget = self._makeDirectionWidget(service, queryMeta)
 		if getattr(self.service.core, "limit", None) is None:
 			self.limitWidget = self._makeLimitWidget(service)
 		
@@ -64,7 +65,12 @@ class DBOptions(object):
 		else:
 			return SelectChoice(formaltypes.String(),
 				options=[(field.name, field.getLabel()) for field in fields])
-	
+
+	def _makeDirectionWidget(self, service, queryMeta):
+		return SelectChoice(formaltypes.String(), 
+			options=[("DESC", "DESC")],
+			noneOption=("ASC", "ASC"))
+
 	def _makeLimitWidget(self, service):
 		keys = [(str(i), i) for i in [1000, 5000, 10000, 100000, 250000]]
 		return SelectChoice(formaltypes.Integer(), options=keys,
@@ -76,22 +82,30 @@ class DBOptions(object):
 		if '_DBOPTIONS' in args:
 			# we're working from pre-parsed (nevow formal) arguments
 			v = [[args["_DBOPTIONS"]["order"]] or "", 
-				[args["_DBOPTIONS"]["limit"] or 100]]
+				[args["_DBOPTIONS"]["limit"] or 100],
+				[args["_DBOPTIONS"]["direction"] or "ASC"]]
 		else:
 			# args come raw from nevow contexts
 			v = [args.get("_DBOPTIONS_ORDER", ['']), 
-				args.get("MAXREC", [100])]
+				args.get("MAXREC", [100]),
+				args.get("_DBOPTIONS_DIR", "ASC")]
 
 		if errors:
-			args = {"_DBOPTIONS_ORDER": v[0], "MAXREC": v[1]}
+			args = {"_DBOPTIONS_ORDER": v[0], "MAXREC": v[1],
+				"_DBOPTIONS_DIR": v[2]}
 		else:
-			args = {"_DBOPTIONS_ORDER": v[0][0], "MAXREC": int(v[1][0])}
+			args = {"_DBOPTIONS_ORDER": v[0][0], "MAXREC": int(v[1][0]),
+				"_DBOPTIONS_DIR": v[2][0]}
+
 		if self.sortWidget:
 			children.extend(["Sort by ",
 				self.sortWidget.render(ctx, "_DBOPTIONS_ORDER", args, errors),
-				"   "])
+				" "])
+			children.extend([" ", self.directionWidget.render(ctx, 
+				"_DBOPTIONS_DIR", args, errors)])
+
 		if self.limitWidget:
-			children.extend(["Limit to ",
+			children.extend([T.br, "Limit to ",
 				self.limitWidget.render(ctx, "MAXREC", args, errors),
 				" items."])
 		return T.span(id=render_cssid(key))[children]
@@ -100,14 +114,18 @@ class DBOptions(object):
 	renderImmutable = render
 
 	def processInput(self, ctx, key, args, default=''):
-		order, limit = None, None
+		order, limit, direction = None, None, "ASC"
 		if self.sortWidget:
 			order = self.sortWidget.processInput(ctx, "_DBOPTIONS_ORDER", args)
+		if self.directionWidget:
+			direction = self.directionWidget.processInput(
+				ctx, "_DBOPTIONS_DIR", args)
 		if self.limitWidget:
 			limit = self.limitWidget.processInput(ctx, "MAXREC", args)
 		return {
 			"order": order,
 			"limit": limit,
+			"direction": direction,
 		}
 
 
