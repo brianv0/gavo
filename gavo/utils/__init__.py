@@ -63,8 +63,9 @@ from gavo.utils.serializers import (defaultMFRegistry, registerDefaultMF)
 from gavo.utils.stanxml import (ElementTree, xmlrender, 
 	escapeAttrVal, escapePCDATA, registerPrefix, getPrefixInfo)
 
-from gavo.utils.texttricks import (formatSize, makeEllipsis, floatRE, 
-	dateRE, datetimeRE, identifierPattern,
+from gavo.utils.texttricks import (formatSize, 
+	makeEllipsis, makeLeftEllipsis,
+	floatRE, dateRE, datetimeRE, identifierPattern,
 	datetimeToRFC2616, 
 	parseDefaultDatetime, parseDefaultDate, parseDefaultTime,
 	parseAccept,

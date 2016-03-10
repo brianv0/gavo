@@ -56,8 +56,24 @@ def formatSize(val, sf=1):
 
 
 def makeEllipsis(aStr, maxLen=60):
+	"""returns aStr cropped to maxLen if necessary.
+
+	Cropped strings are returned with an ellipsis marker.
+	"""
 	if len(aStr)>maxLen:
 		return aStr[:maxLen-3]+"..."
+	return aStr
+
+
+def makeLeftEllipsis(aStr, maxLen=60):
+	"""returns aStr shortened to maxLen by dropping prefixes if necessary.
+
+	Cropped strings are returned with an ellipsis marker.
+	>>> makeLeftEllipsis("0123456789"*2, 11)
+	'...23456789'
+	"""
+	if len(aStr)>maxLen:
+		return "..."+aStr[-maxLen+3:]
 	return aStr
 
 

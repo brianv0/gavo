@@ -130,9 +130,9 @@ class EventDispatcher(object):
 		As side effects, the curSource attribute is set to this value.
 		"""
 		if isinstance(sourceToken, basestring):
-			sourceName = utils.makeEllipsis(sourceToken)
+			sourceName = utils.makeLeftEllipsis(sourceToken)
 		else:
-			sourceName = utils.makeEllipsis(repr(sourceToken))
+			sourceName = utils.makeEllipsis(repr(sourceToken), maxLen=160)
 		self.curSource = sourceName
 		self.sourceStack.append(sourceName)
 		return sourceName

@@ -13,6 +13,10 @@
 			Even if you are sure you want to do this, better ask again...
 		</doc>
 
+		<stc>
+			Polygon ICRS [s_region]
+		</stc>
+
 		<column name="dataproduct_type" type="text"
 			utype="obscore:obs.dataproducttype" ucd="meta.id"
 			description="High level scientific classification of the data product,
