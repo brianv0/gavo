@@ -419,7 +419,7 @@ def processSource(data, source, feeder, opts, connection=None):
 		try:
 			with connection.savepoint():
 				_processSourceReal(data, source, feeder, opts)
-			feeder.flush()
+				feeder.flush()
 		except Exception, ex:
 			feeder.reset()
 			if not isinstance(ex, base.ExecutiveAction):
