@@ -94,6 +94,15 @@ on verbal permission here. -->
               </textarea>
               <input type="submit" value="Set query"/>
           </form>
+
+        <p>
+          <form method="post">
+            <xsl:attribute name="action">
+              <xsl:value-of select="$jobId"/>/executionduration</xsl:attribute>
+            Set maximum runtime to <input type="text" name="EXECUTIONDURATION"
+                size="5">
+              <xsl:attribute name="value"><xsl:value-of select="uws:executionDuration"/></xsl:attribute>
+            </input> seconds. <input type="submit" value="Go"/></form> </p>
         </xsl:if>
       <xsl:if test="$phase='EXECUTING' or $phase='QUEUED'">
         <p>Use your browser's reload to update the phase information.</p>
