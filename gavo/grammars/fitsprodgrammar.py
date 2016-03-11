@@ -108,16 +108,16 @@ class FITSProdGrammar(Grammar):
 
 	_qnd = base.BooleanAttribute("qnd", default=True, description=
 		"Use a hack to read the FITS header more quickly.  This only"
-		" works for the primary HDU")
+		" works for the primary HDU", copyable=True)
 	_hduIndex = base.IntAttribute("hdu", default=0,
 		description="Take the header from this HDU.  You must say qnd='False'"
-		" for this to take effect.")
+		" for this to take effect.", copyable=True)
 	_mapKeys = base.StructAttribute("mapKeys", childFactory=MapKeys,
 		default=None, copyable=True, description="Prescription for how to"
 		" map header keys to grammar dictionary keys")
 	_hdusAttr = base.UnicodeAttribute("hdusField", default=None,
 		description="If set, the complete pyfits HDU list for the FITS"
-		" file is returned in this grammar field.", copyable="True")
+		" file is returned in this grammar field.", copyable=True)
 	_maxHeaderBlocks = base.IntAttribute("maxHeaderBlocks",
 		default=40, copyable=True, description="Stop looking for"
 		" FITS END cards and raise an error after this many blocks."

@@ -164,7 +164,18 @@ class TestWCS(unittest.TestCase):
 			res = proj(*coos)
 			self.assertAlmostEqual(expected[0], res[0], 5)
 			self.assertAlmostEqual(expected[1], res[1], 5)
-	
+
+	def testAtPole(self):
+		wcs = self._getWCSExample()
+		wcs["CRVAL1"] = 0
+		wcs["CRVAL2"] = 90
+		wcs["CDELT1"] = -1.25000002E-02
+		wcs["CDELT2"] = 1.25000002E-02
+		wcs["CPIX1"] = 2.56516663E+02
+		wcs["CPIX2"] = 2.56516663E+02
+		wcs["NAXIS1"] = wcs["NAXIS2"] = 512
+		print ">>>>", coords.getSpolyFromWCSFields(wcs)
+
 	def _testInvalidWCSRejection(self):
 		"""tests for correct rejection of unknown WCS specs.
 
