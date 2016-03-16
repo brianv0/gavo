@@ -7,7 +7,7 @@ to see the gory details.  If anything not mentioned here breaks something
 for you, we'd consider it a severe bug, though.
 
 
-Version 0.9.6 (XXXX-XX-XX)
+Version 0.9.6 (2016-03-16)
 
   * Several new indices are now created by default; you probably want them,
     too.  Run "gavo imp -I //products". Similarly, gavo imp -I <rd-id> on all
