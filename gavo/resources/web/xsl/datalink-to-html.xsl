@@ -154,7 +154,7 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
             <xsl:when test="$file-size&lt;1500000000">
                 <xsl:value-of select="round($file-size div 10485.76) div 100"
                     /> MiB</xsl:when>
-            <xsl:when test="$file-size&lt;20e9">
+            <xsl:when test="$file-size&lt;20000000000">
                 <xsl:value-of select="round($file-size div 10737418.24) div 100"
                     /> GiB</xsl:when>
             <xsl:otherwise>
@@ -186,7 +186,7 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
 
     <!-- ################################### service interface -->
 
-    <xsl:template match="vot:RESOURCE" utype="adhoc:service">
+    <xsl:template match="vot:RESOURCE[@utype='adhoc:service']">
         <xsl:if test="vot:PARAM[@name='standardID']/@value=
            'ivo://ivoa.net/std/SODA#sync-1.0'">
             <form class="service-interface" method="GET">
@@ -200,10 +200,10 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
                     <input type="submit" value="Retrieve data"
                         style="width:14em;height:8ex"/>
                 </div>
-                <dl class="inputpars">
+                <div class="inputpars">
                     <xsl:apply-templates select="vot:GROUP[@name='inputParams']"
                         mode="build-inputs"/>
-                </dl>
+                </div>
             </form>
         </xsl:if>
     </xsl:template>
@@ -218,24 +218,36 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
    
         Also, there's a common template for assembling the tree fragments
         that should be used for consistency if at all possible.
+
+        Regrettably, XSLT1 apparently cannot meaningfully pass tree fragments
+        in template parameters (11.1: "An operation is permitted on a result 
+        tree fragment only if that operation would be permitted on a string").
+        Hence, we have this incredibly clumsy interface to the 
+        format-an-input-key template.  If anyone knows a hack to work around
+        this, you're most welcome.
     -->
 
     <xsl:template name="format-an-input-key">
-        <xsl:param name="key"/>
         <xsl:param name="typedesc"/>
         <xsl:param name="widget"/>
-        <xsl:param name="description"/>
-        <dt>
-            <span class="param-name"><xsl:copy-of select="$key"/></span>
-            <xsl:text> </xsl:text>
-            <span class="typedesc"><xsl:copy-of select="$typedesc"/></span>
-        </dt>
-        <dd>
-            <p class="widget"><xsl:copy-of select="$widget"/></p>
-            <p class="param-description">
-                <xsl:copy-of select="$description"/>
+        <div>
+            <xsl:attribute name="class">
+                <xsl:value-of select="concat('input ', @name, '-', 
+                    @unit, '-', translate(@ucd, '.', '_'))"/>
+            </xsl:attribute>
+            <p class="input-header">
+                <span class="param-name"><xsl:value-of select="@name"/></span>
+                <xsl:text> </xsl:text>
+                <span class="typedesc"><xsl:copy-of select="$typedesc"/></span>
             </p>
-        </dd>
+            <p class="widget">
+                <xsl:copy-of select="$widget"
+                    />&#xa0;<span class="unit">
+                <xsl:value-of select="@unit"/></span></p>
+            <p class="param-description">
+                <xsl:copy-of select="vot:DESCRIPTION"/>
+            </p>
+        </div>
     </xsl:template>
 
     <!-- params with a value always become hidden -->
@@ -256,17 +268,14 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
     <xsl:template match="vot:PARAM[@xtype='interval']" mode="build-inputs"
             priority="100">
         <xsl:call-template name="format-an-input-key">
-            <xsl:with-param name="key">
-                <xsl:value-of select="@name"/>
-            </xsl:with-param>
             <xsl:with-param name="typedesc">An interval 
                 (space-separated pair of numbers),
                 where the limits have to be between
-                <span class="limit">
+                <span class="low-limit">
                     <xsl:value-of select="vot:VALUES/vot:MIN/@value"/>
                 </span>
                 and
-                <span class="limit">
+                <span class="high-limit">
                     <xsl:value-of select="vot:VALUES/vot:MAX/@value"/>
                 </span>
             </xsl:with-param>
@@ -282,9 +291,6 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
                     </xsl:attribute>
                 </input>
             </xsl:with-param>
-            <xsl:with-param name="description">
-                <xsl:value-of select="vot:DESCRIPTION"/>
-            </xsl:with-param>
         </xsl:call-template>
     </xsl:template>
 
@@ -295,9 +301,6 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
     <xsl:template match="vot:PARAM[vot:VALUES/vot:OPTION]" mode="build-inputs"
             priority="100">
         <xsl:call-template name="format-an-input-key">
-            <xsl:with-param name="key">
-                <xsl:value-of select="@name"/>
-            </xsl:with-param>
             <xsl:with-param name="typedesc"
                 >Select zero, one, or possibly more options</xsl:with-param>
             <xsl:with-param name="widget">
@@ -308,9 +311,6 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
                     <xsl:apply-templates select="vot:VALUES" 
                         mode="build-inputs"/>
                 </select>
-            </xsl:with-param>
-            <xsl:with-param name="description">
-                <xsl:value-of select="vot:DESCRIPTION"/>
             </xsl:with-param>
         </xsl:call-template>
     </xsl:template>
@@ -337,9 +337,6 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
     <xsl:template match="vot:PARAM[vot:VALUES/vot:MIN]" mode="build-inputs"
             priority="50">
         <xsl:call-template name="format-an-input-key">
-            <xsl:with-param name="key">
-                <xsl:value-of select="@name"/>
-            </xsl:with-param>
             <xsl:with-param name="typedesc"
                 >A value between
                 <span class="limit">
@@ -358,9 +355,6 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
                         <xsl:value-of select="vot:VALUES/vot:MIN/@value"/>
                     </xsl:attribute>
                 </input>
-            </xsl:with-param>
-            <xsl:with-param name="description">
-                <xsl:value-of select="vot:DESCRIPTION"/>
             </xsl:with-param>
         </xsl:call-template>
     </xsl:template>
@@ -387,7 +381,7 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
     	<html>
     	<head>
     	<title>Datalink response</title>
-    	<style type="text/css">
+    	<style type="text/css"><![CDATA[
     	  table {
     	      border-spacing: 0pt;
     	      border-collapse: collapse;
@@ -458,13 +452,16 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
             padding-left: 0.5ex;
         }
 
-        form.service-interface dt {
+        form.service-interface div.input {
             border-top: 1pt solid #DDDD88;
+            margin-left: 1em;
         }
 
         .param-name {
             font-weight: bold;
             font-size: 130%;
+            margin-left: -1em;
+            margin-right: 0.5em;
         }
 
         .typedesc {
@@ -477,12 +474,41 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
         }
 
         input.interval-input {
-            width:40em;
-        }
+            width:20em;
+        } ]]>
     	</style>
+    	<script type="text/javascript" 
+    	  src="http://localhost:8080/static/js/jquery-gavo.js"/>
+      <script type="text/javascript"
+        src="http://localhost:8080/static/js/sodapars.js"/>
     	</head>
     	<body>
     	<xsl:apply-templates/>
+
+    	<script type="text/html" id="fancy-band-widget">
+        <div class="input custom-BAND">
+            <p class="input-header">
+                <span class="param-name">BAND</span>
+                <span class="typedesc">Enter the spectral range you want
+                to cut out in your preferred units</span>
+            </p>
+            <p class="widget">
+                <input type="text" name="BAND-low"/>
+                <span class="low-limit">$low_limit</span>
+                <input type="text" name="BAND-high"/>
+                <span class="high-limit">$high_limit</span>
+                <select name="BAND-unit"
+                    onchange="convert_spectral_units(
+                        this, $low_limit, $high_limit)">
+                    <option>m</option>
+                    <option>µm</option>
+                    <option>Ångstrøm</option>
+                    <option>MHz</option>
+                    <option>keV</option>
+                </select>
+            </p>
+        </div>
+    	</script>
     	</body>
     	</html>
     </xsl:template>

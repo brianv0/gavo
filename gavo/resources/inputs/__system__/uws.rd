@@ -73,7 +73,7 @@
 	</data>
 
 
-	<table id="userjobs" system="True">
+	<table id="userjobs" onDisk="True" system="True">
 		<meta name="description">The jobs table for user-defined UWS
 		jobs. As the jobs can come from all kinds of services, this
 		must encode the jobClass (as the id of the originating service).

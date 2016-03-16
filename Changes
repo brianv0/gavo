@@ -9,18 +9,30 @@ for you, we'd consider it a severe bug, though.
 
 Version 0.9.6 (XXXX-XX-XX)
 
-	* SIAPv2 support.
   * Several new indices are now created by default; you probably want them,
     too.  Run "gavo imp -I //products". Similarly, gavo imp -I <rd-id> on all
     RDs that have SSA tables with datalink services (if you don't know what
     that is, you don't have it)
+  * New soda RD containing (almost) all to build a WD-compliant cube
+    cutout service (and a bit more).  You can update any existing
+    services you have by changing "datalink" to "soda" in the referenced
+    procDefs.
   * API change: base.makeMetaItem and makeMetaValue were a pain.  They
 		have simply gone in the expectation that nobody has actually used them.
 		Protest if we're wrong.  Also there is no type attribute on meta
-		any more.
+		any more.  Also, no meta/@type any more in RDs.  I hope you've not
+		really used *that*.
 	* API change: When CondDescs yielded more than one fragement,
 	  the fragments were combined with AND so far.  Now, it's OR by
 	  default (you can restore the previoius behaviour using condDesc/@joiner)
+	* Some changes in the way the selection and evaluation of sort keys work
+	  in particular in web interfaces.  If you've been playing games with this,
+	  check if what you did still works.
+	* Support for DALI 1.1 xtype="interval" parameters.
+	* New recommended way to specify author lists; see
+	  http://docs.g-vo.org/DaCHS/tutorial.html#authors
+	* As usual, many small bug fixes and new features.
+
 
 Version 0.9.5 (2015-10-07)
 

@@ -415,7 +415,6 @@ class VerboseTest(testresources.ResourcedTestCase):
 			raise AssertionError("%s != %s"%(result, expectation))
 
 
-
 _xmlJunkPat = re.compile("|".join([
 	'(xmlns(:[a-z0-9]+)?="[^"]*"\s*)',
 	'((frame_|coord_system_)?id="[^"]*")',

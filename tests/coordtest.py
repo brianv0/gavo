@@ -165,6 +165,7 @@ class TestWCS(unittest.TestCase):
 			self.assertAlmostEqual(expected[0], res[0], 5)
 			self.assertAlmostEqual(expected[1], res[1], 5)
 
+	@unittest.skip("This is broken in pywcs")
 	def testAtPole(self):
 		wcs = self._getWCSExample()
 		wcs["CRVAL1"] = 0

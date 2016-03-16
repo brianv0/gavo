@@ -410,7 +410,7 @@ This is a temporary location for procDefs and friends complying to
 							paramArgs.update(axisMetaOverrides[fitsAxis])
 
 						yield MS(InputKey,  multiplicity="single",
-							type="double precision[2]",
+							type="double precision[2]", xtype="interval",
 							values=MS(Values, min=minPhys, max=maxPhys),
 							**paramArgs)
 
