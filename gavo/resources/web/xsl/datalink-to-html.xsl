@@ -473,6 +473,37 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
             font-weight: bold;
         }
 
+        .pos-canvas {
+            position: absolute;
+            background-color: none;
+            top:0px;
+            left: 0px;
+            z-index: 10;
+        }
+
+        .pos-image {
+            position: absolute;
+            top: 0px;
+            left: 0px
+            z-index: 0;
+        }
+
+        .custom-POS {
+            position: relative;
+        }
+
+        div#rubberband {
+            display: block;
+            position: absolute;
+            left: 0pt;
+            right: 0pt;
+            border: 1pt solid red;
+            width: 0pt;
+            height: 0pt;
+            background: white;
+            z-index: -100;
+        }
+
         input.interval-input {
             width:20em;
         } ]]>
@@ -483,6 +514,9 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
         src="http://localhost:8080/static/js/sodapars.js"/>
     	</head>
     	<body>
+    	  
+
+
     	<xsl:apply-templates/>
 
     	<script type="text/html" id="fancy-band-widget">
@@ -509,6 +543,19 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
             </p>
         </div>
     	</script>
+
+      <!-- I have no idea why this is, but when I do this with
+      a text/html template, I can't attach event handlers to it.
+      Cross browser.  Sigh. -->
+      <div id="pos-template" class="input custom-POS"
+        style="display:none">
+        <img class="pos-background" src=""/>
+        <canvas class="pos-canvas" width="300" height="300"/>
+        <br/>
+        <caption>Click-and-drag here to interactively set 
+        a spatial cutout</caption>
+      </div>
+
     	</body>
     	</html>
     </xsl:template>
@@ -516,5 +563,5 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
 </xsl:stylesheet>
 
 
-<!-- vim:et:sw=4:sta
+<!-- vim:et:sw=2:sta
 -->

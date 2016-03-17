@@ -159,19 +159,20 @@ class TAPRenderer(grend.ServiceBasedPage):
 		"""
 		request.files = {}
 		for uploadSpec in request.args.get("upload", []):
-			for tableName, upload in tap.parseUploadString(uploadSpec):
-				if upload.startswith("param:"):
-					paramName = upload[6:]
-					if paramName not in request.args or not request.args[paramName]:
-						raise base.ReportableError("No parameter for upload"
-							" table %s"%tableName)
+			if uploadSpec:
+				for tableName, upload in tap.parseUploadString(uploadSpec):
+					if upload.startswith("param:"):
+						paramName = upload[6:]
+						if paramName not in request.args or not request.args[paramName]:
+							raise base.ReportableError("No parameter for upload"
+								" table %s"%tableName)
 
-					item = request.args.pop(paramName)[0]
-					# fix if it doesn't already look like a file
-					if getattr(item, "file", None) is None:
-						item = _FakeUploadedFile(
-							"unnamed_inline_upload_%s"%paramName, item)
-					request.files[paramName] = item
+						item = request.args.pop(paramName)[0]
+						# fix if it doesn't already look like a file
+						if getattr(item, "file", None) is None:
+							item = _FakeUploadedFile(
+								"unnamed_inline_upload_%s"%paramName, item)
+						request.files[paramName] = item
 
 	def locateChild(self, ctx, segments):
 		request = inevow.IRequest(ctx)

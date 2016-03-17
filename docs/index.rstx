@@ -15,8 +15,12 @@ publishing registry, and support for many VO protocols and standards.
 Documentation
 =============
 
-All of this is very much work in progress.  Users asking for elaboration
-are certainly good indicators of where need is greatest.
+Except for the reference manual and the element reference (which are
+programmatically generated), DaCHS' documentation is now 
+`maintained on github <https://github.com/chbrandt/dachs-doc>`_.  You
+are very welcome to file documentation bugs there, and of course to
+contribute if you see fit.
+
 
 What to read when?
 ------------------

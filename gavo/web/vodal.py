@@ -586,6 +586,23 @@ class _DatalinkRendererBase(grend.ServiceBasedPage):
 			utils.safe_str(failure.value))
 
 
+def _doDatalinkXSLT(bytes, _cache={}):
+	"""a temporary hack to do server-side XSLT while the browser implementations
+	apparently suck.
+
+	Remove this once we've worked out how to make the datalink-to-xml 
+	stylesheet compatible with actual browers.
+	"""
+	if "etree" not in _cache:
+		from lxml import etree as lxmletree
+		_cache["etree"] = lxmletree
+	if "style" not in _cache:
+		with base.openDistFile("web/xsl/datalink-to-html.xsl") as f:
+			_cache["style"] = _cache["etree"].XSLT(
+				_cache["etree"].XML(f.read()))
+	return str(_cache["style"](_cache["etree"].XML(bytes)))
+
+
 class DatalinkGetDataRenderer(_DatalinkRendererBase):
 	"""A renderer for data processing by datalink cores.
 
@@ -611,6 +628,24 @@ class DatalinkGetMetaRenderer(_DatalinkRendererBase):
 	name = "dlmeta"
 	resultType = "application/x-votable+xml;content=datalink"
 
+	def _formatData(self, svcResult, request):
+		# this is a (hopefully temporary) hack that does XSLT server-side
+		# if we think we're talking to a browser.  The reason I'm doing
+		# this is that several browsers were confused when doing both
+		# XSLT and non-trivial javascript.
+		#
+		# remove this method once we've figured out how to placate these browsers.
+		mime, data = svcResult.original
+		if "Mozilla" in (request.getHeader("user-agent") or ""):
+			# it's a browser, do server-side XSLT
+			request.setHeader("content-type", "text/html;charset=utf-8")
+			return _doDatalinkXSLT(data)
+
+		else:
+			# no browser, do the right thing
+			request.setHeader("content-type", mime)
+			return data
+		
 
 class AsyncRendererBase(grend.ServiceBasedPage):
 	"""An abstract renderer for things running in a UWS.

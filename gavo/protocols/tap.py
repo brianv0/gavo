@@ -278,7 +278,7 @@ class LangParameter(uws.JobParameter):
 
 class MaxrecParameter(uws.JobParameter):
 	name = "MAXREC"
-	_serialize, _deserialize = str, int
+	_serialize, _deserialize = staticmethod(uws.strOrEmpty), int
 
 
 class LocalFile(object):

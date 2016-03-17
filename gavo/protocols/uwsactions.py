@@ -164,7 +164,7 @@ def getParametersElement(job):
 		if isinstance(value, uws.ParameterRef):
 			res[UWS.parameter(id=key, byReference=True)[value.url]]
 		else:
-			res[UWS.parameter(id=key)[str(value)]]
+			res[UWS.parameter(id=key)[value]]
 	return res
 
 

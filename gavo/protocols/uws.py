@@ -46,6 +46,16 @@ _DEFAULT_LOCK_TIMEOUT = 20
 __docformat__ = "restructuredtext en"
 
 
+def strOrEmpty(aVal):
+	"""returns a stringified version of aVal, except an empty string is returned
+	when aVal is None.
+	"""
+	if aVal is None:
+		return ""
+	else:
+		return str(aVal)
+
+
 class UWSError(base.Error):
 	"""UWS-related errors, mainly to communicate with web renderers.
 
@@ -593,7 +603,7 @@ class JobParameter(object):
 	by using cls.updatePar(name, value, job) or a suitable
 	facade (job.setPar, job.setSerializedPar)
 	"""
-	_deserialize, _serialize = str, str
+	_deserialize, _serialize = staticmethod(strOrEmpty), staticmethod(strOrEmpty)
 
 	@classmethod
 	def updatePar(cls, name, value, job):
@@ -946,6 +956,10 @@ class BaseUWSJob(object):
 				# TODO: handling multiple arguments must be way better thought out.
 				if isinstance(val, list):
 					val = " ".join(val)
+				if not val:
+					# have some way to re-set a parameter?  Anyway, I need to
+					# ignore empty parameters or my XSLT form will break
+					continue
 				self.setSerializedPar(key, val)
 
 	def setParamsFromRequest(self, request):

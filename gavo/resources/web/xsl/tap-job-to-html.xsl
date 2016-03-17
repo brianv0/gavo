@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Shamelessly lifted from astrogrid dsa and then hacked.  Operating
-on verbal permission here. -->
 
 <xsl:stylesheet
     xmlns:uws="http://www.ivoa.net/xml/UWS/v1.0"
@@ -18,29 +16,118 @@ on verbal permission here. -->
     <xsl:template match="text()"/>
 
     <xsl:template match="uws:parameter">
-      <dt><xsl:value-of select="@id"/></dt>
-      <dd><xsl:value-of select="text()"/></dd>
+      <li class="param">
+      <label>
+        <xsl:attribute name="for"><xsl:value-of select="@id"/></xsl:attribute>
+        <xsl:value-of select="@id"/>
+      </label>
+      <xsl:text> </xsl:text>
+      <input type="text">
+        <xsl:attribute name="id"><xsl:value-of select="@id"/></xsl:attribute>
+        <xsl:attribute name="name"><xsl:value-of select="@id"/></xsl:attribute>
+        <xsl:attribute name="value">
+          <xsl:value-of select="text()"/>
+        </xsl:attribute>
+      </input>
+      </li>
+    </xsl:template>
+
+    <xsl:template match="uws:parameter[@id='query']">
+      <li class="param">
+      <label for="query">QUERY</label><br/>
+        <textarea name="QUERY" style="width:100%" rows="7">
+            <xsl:value-of select="//uws:parameter[@id='query']"/>
+        </textarea>
+      </li>
+    </xsl:template>
+
+    <xsl:template match="uws:parameter[@id='format']">
+      <li class="param">
+      <label for="query">Response format </label>
+        <select name="FORMAT">
+          <option value="votable/b2">VOTable</option>
+          <option value="text/xml">Text VOTable</option>
+          <option value="application/fits">FITS binary</option>
+          <option value="text/csv">CSV</option>
+          <option value="application/json">JSON</option>
+        </select>
+        <xsl:text> Current: </xsl:text>
+        <xsl:value-of select="."/>
+      </li>
     </xsl:template>
 
     <xsl:template match="uws:parameters">
-      <dl><xsl:apply-templates/></dl>
+      <form method="POST">
+        <xsl:attribute name="action">
+          <xsl:value-of select="/*/uws:jobId"/>/parameters</xsl:attribute>
+        <ul class="params"><xsl:apply-templates/></ul>
+        <input type="submit" value="Set Parameters"/>
+      </form>
     </xsl:template>
 
+
+    <xsl:template name="instrux">
+      <xsl:param name="phase"/>
+      <xsl:choose>
+        <xsl:when test="$phase='PENDING'">
+          <p class="instrux">Use the parameter form to configure 
+          your query (in particular, type in the ADQL query and choose some
+          maxrec suitable for your query), then use the 
+          "Execute query" button below 
+          to start the job.</p>
+        </xsl:when>
+        <xsl:when test="$phase='QUEUED'">
+          <p class="instrux">Your job is waiting for other jobs to
+          complete.  Please be patient and hit reload now and then.
+          You can no longer change parameters except the destruction time.</p>
+        </xsl:when>
+        <xsl:when test="$phase='EXECUTING'">
+          <p class="instrux">Your job is executing.
+          You can no longer change parameters except the destruction time.</p>
+        </xsl:when>
+      </xsl:choose>
+    </xsl:template>
+
+
     <xsl:template match="/">
-        <html>
-            <head>
-              <title>UWS job <xsl:value-of select="/*/uws:jobId"/></title>
-            </head>
-            <body>
-                <h1>UWS job <xsl:value-of select="/*/uws:jobId"/></h1>
-                <xsl:apply-templates/>
-            </body>
-        </html>
+      <html>
+        <head>
+          <title>UWS job <xsl:value-of select="/*/uws:jobId"/></title>
+          <style type="text/css">
+            p.instrux {
+              padding-left: 1ex;
+              padding-right: 1ex;
+              border-left: 3pt solid grey;
+              border-right: 3pt solid grey;
+              max-width: 30em;
+              margin-left: 3em;
+              margin-top: 2ex;
+              margin-bottom: 2ex;
+            }
+
+            form {
+              margin-top: 2ex;
+              margin-bottom: 2ex;
+              background-color: #ccc;
+              padding: 1ex;
+            }
+          </style>
+        </head>
+        <body>
+          <h1>UWS job <xsl:value-of select="/*/uws:jobId"/></h1>
+          <xsl:apply-templates/>
+        </body>
+      </html>
     </xsl:template>
 
     <xsl:template match="uws:job">
       <xsl:variable name="jobId"><xsl:value-of select="uws:jobId"/></xsl:variable>
       <xsl:variable name="phase"><xsl:value-of select="uws:phase"/></xsl:variable>
+
+      <xsl:call-template name="instrux">
+        <xsl:with-param name="phase" select="$phase"/>
+      </xsl:call-template>
+
       <dl>
         <dt><xsl:text>Phase:</xsl:text></dt>
         <dd><xsl:value-of select="uws:phase"/></dd>
@@ -75,6 +162,15 @@ on verbal permission here. -->
 
       </dl>
       <xsl:if test="$phase='PENDING'">
+        <p>
+          <form method="post">
+            <xsl:attribute name="action">
+              <xsl:value-of select="$jobId"/>/executionduration</xsl:attribute>
+            Set maximum runtime to <input type="text" name="EXECUTIONDURATION"
+                size="5">
+              <xsl:attribute name="value"><xsl:value-of select="uws:executionDuration"/></xsl:attribute>
+            </input> seconds. <input type="submit" value="Go"/></form> </p>
+
           <form method="post">
             <xsl:attribute name="action">
               <xsl:value-of select="$jobId"/>/phase</xsl:attribute>
@@ -86,23 +182,6 @@ on verbal permission here. -->
           "Set query". Otherwise, "Execute query" will not pick up 
           your changes.</p>
 
-          <form method="post">
-            <xsl:attribute name="action">
-              <xsl:value-of select="$jobId"/>/parameters</xsl:attribute>
-              <textarea name="QUERY" style="width:100%">
-                <xsl:value-of select="//uws:parameter[@id='QUERY']"/>
-              </textarea>
-              <input type="submit" value="Set query"/>
-          </form>
-
-        <p>
-          <form method="post">
-            <xsl:attribute name="action">
-              <xsl:value-of select="$jobId"/>/executionduration</xsl:attribute>
-            Set maximum runtime to <input type="text" name="EXECUTIONDURATION"
-                size="5">
-              <xsl:attribute name="value"><xsl:value-of select="uws:executionDuration"/></xsl:attribute>
-            </input> seconds. <input type="submit" value="Go"/></form> </p>
         </xsl:if>
       <xsl:if test="$phase='EXECUTING' or $phase='QUEUED'">
         <p>Use your browser's reload to update the phase information.</p>
