@@ -370,6 +370,10 @@ li.metaItem {
 	width:100pt;
 }
 
+.headlinelogo {
+	height: 58px; /* as high as div#header */
+}
+
 div.explodable {
 	width: 96pt;
 	height: 28pt;
