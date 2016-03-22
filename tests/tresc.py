@@ -184,6 +184,7 @@ class RDDataResource(testhelpers.TestResource):
 		self.conn.rollback()
 		self.dataCreated.dropTables(rsc.parseNonValidating)
 		self.conn.commit()
+		print "Committed drop of %s %s"%(self.rdName, self.dataId)
 
 
 class CSTestTable(RDDataResource):

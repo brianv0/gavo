@@ -363,16 +363,8 @@ class PatternsSQLGenerTest(_SQLGenerTest):
 		("!~[a-z]", "foo !~* %(foo0)s", {"foo0": r"^[a-z]$"})]
 
 
-class _ViztestTable(testhelpers.TestResource):
-	resources = [("conn", tresc.dbConnection)]
-
-	def make(self, deps):
-		dd = testhelpers.getTestRD().getById("viziertest")
-		d = rsc.makeData(dd, connection=deps["conn"])
-		return d.getPrimaryTable()
-	
-	def clean(self, res):
-		res.drop().commit()
+class _ViztestTable(tresc.RDDataResource):
+	dataId = "viziertest"
 
 
 _viztestTable = _ViztestTable()

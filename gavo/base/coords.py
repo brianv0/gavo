@@ -286,7 +286,7 @@ def getSkyWCS(hdr):
 		return None, ()
 
 	if len(wcsAxes)!=2:
-		raise base.ValidationError("This FITS has !=2"
+		raise utils.ValidationError("This FITS has !=2"
 			" spatial WCS axes.  Please contact the DaCHS authors and"
 			" make them support it.", "PUBDID")
 
@@ -302,16 +302,23 @@ def getPixelLimits(cooPairs, wcsFields):
 
 	Each cutout slice is a tuple of (FITS axis number, lower limit, upper limit).
 	"""
+	latAxis = wcsFields.latAxis
+	longAxis = wcsFields.longAxis
+	latPixels = wcsFields._dachs_header["NAXIS%d"%latAxis]
+	longPixels = wcsFields._dachs_header["NAXIS%d"%longAxis]
+
 	slices = []
 	pixelFootprint = numpy.asarray(
 		numpy.round(wcsFields.wcs_sky2pix(cooPairs, 1)), numpy.int32)
-	pixelLimits = [[min(pixelFootprint[:,0]), max(pixelFootprint[:,0])],
-		[min(pixelFootprint[:,1]), max(pixelFootprint[:,1])]]
-	latAxis = wcsFields.latAxis
-	longAxis = wcsFields.longAxis
-	if pixelLimits[0]!=[1, wcsFields._dachs_header["NAXIS%d"%longAxis]]:
+	pixelLimits = [
+		[max(min(pixelFootprint[:,0]), 1), 
+			min(max(pixelFootprint[:,0]), longPixels)],
+		[max(min(pixelFootprint[:,1]), 1), 
+			min(max(pixelFootprint[:,1]), latPixels)]]
+
+	if pixelLimits[0]!=[1, longPixels]:
 		slices.append([longAxis]+pixelLimits[0])
-	if pixelLimits[1]!=[1, wcsFields._dachs_header["NAXIS%d"%latAxis]]:
+	if pixelLimits[1]!=[1, latPixels]:
 		slices.append([latAxis]+pixelLimits[1])
 	return slices
 
