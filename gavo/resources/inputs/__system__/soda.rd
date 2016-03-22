@@ -696,11 +696,73 @@ This is a temporary location for procDefs and friends complying to
 		</code>
 	</procDef>
 
+	<procDef type="metaMaker" id="fits_makePOSMeta">
+		<doc>
+			Yields a SIAv2-style POS param for cutouts.
+		</doc>
+		<code>
+			yield MS(InputKey, name="POS", type="text", ucd="phys.angArea;obs",
+				description="Region to (approximately) cut out, as Circle,"
+				" Region, or Polygon", multiplicity="single")
+		</code>
+	</procDef>
+
+	<procDef type="dataFunction" id="fits_makePOSSlice">
+		<doc>
+			Interprets the POS param.
+
+			This will yield positional cutouts (as from RA/DEC) to the descriptor.
+		</doc>
+		<setup>
+			<code>
+				import numpy
+				from gavo import stc
+				from gavo.protocols import siap
+				from gavo.stc import bboxes
+				from gavo.utils import fitstools
+			</code>
+		</setup>
+		<code>
+			if args.get("POS") is None:
+				return
+			geom = siap.parseSIAP2Geometry(args["POS"])
+			boxes = list(bboxes.getBboxes(
+				stc.fromPgSphere('ICRS', geom)))
+			corners = reduce(lambda a,b: a+b, [((r1, d1), (r2, d2))
+				for r1, d1, r2, d2 in boxes])
+
+			slices = []
+			pixelFootprint = numpy.asarray(
+				numpy.round(descriptor.skyWCS.wcs_sky2pix(corners, 1)), numpy.int32)
+			pixelLimits = [[min(pixelFootprint[:,0]), max(pixelFootprint[:,0])],
+				[min(pixelFootprint[:,1]), max(pixelFootprint[:,1])]]
+			latAxis = descriptor.skyWCS.latAxis
+			longAxis = descriptor.skyWCS.longAxis
+			if pixelLimits[0]!=[1, descriptor.hdr["NAXIS%d"%longAxis]]:
+				slices.append([longAxis]+pixelLimits[0])
+			if pixelLimits[1]!=[1, descriptor.hdr["NAXIS%d"%latAxis]]:
+				slices.append([latAxis]+pixelLimits[1])
+
+			if slices:
+				descriptor.data[0] = fitstools.cutoutFITS(descriptor.data[0],
+					*slices)
+				descriptor.dataIsPristine = False
+		</code>
+	</procDef>
+
+	<STREAM id="fits_POSParam">
+		<doc>
+			Adds metadata and data function for a SIAPv2-style POS cutout parameter.
+		</doc>
+		<metaMaker procDef="//soda#fits_makePOSMeta"/>
+		<dataFunction procDef="//soda#fits_makePOSSlice"/>
+	</STREAM>
+
 	<STREAM id="fits_standardLambdaCutout">
 		<doc>
-			Adds metadata and processor for one axis containing wavelengths.
+			Adds metadata and data function for one axis containing wavelengths.
 
-			(this could be extended to cover frequency and energy axis, I guess)
+			(this could be extended to cover frequency and energy axes, I guess)
 			
 			To use this, give the fits axis containing the spectral coordinate
 			in the spectralAxis attribute; if needed, you can override the

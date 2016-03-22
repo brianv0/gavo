@@ -763,6 +763,60 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 		self.failUnless("NAXIS3  =                    1" in data)
 
 
+class SODAPOSTest(testhelpers.VerboseTest):
+	resources = [("fitsTable", tresc.fitsTable)]
+
+	def _getSvc(self):
+		return api.parseFromString(svcs.Service, """<service id="foo"
+				allowed="dlmeta,dlget">
+			<datalinkCore>
+				<descriptorGenerator procDef="//soda#fits_genDesc"/>
+				<dataFunction procDef="//soda#fits_makeHDUList"/>
+				<metaMaker procDef="//soda#fits_makeWCSParams"/>
+				<FEED source="//soda#fits_POSParam"/>
+				<dataFormatter procDef="//soda#fits_formatHDUs"/>
+			</datalinkCore></service>""")
+
+	def testPOSError(self):
+		self.assertRaisesWithMsg(api.ValidationError,
+			"Field POS: Invalid SIAPv2 geometry: 'Circle 30 40'"
+			" (expected a SIAPv2 shape name)",
+			self._getSvc().run,
+			("dlget", {
+				"ID": [rscdef.getStandardPubDID("data/excube.fits")],
+				"POS": ["Circle 30 40"],
+				}))
+	
+	def testPOSRange(self):
+		mime, data = _dissectSODAFile(self._getSvc().run("dlget", {
+				"ID": [rscdef.getStandardPubDID("data/excube.fits")],
+				"POS": ["RANGE 359.359 359.36 30.9845 30.985"],
+				}).original)
+
+		self.assertEqual(mime, "image/fits")
+		hdr = fitstools.readPrimaryHeaderQuick(StringIO(data))
+		self.assertEqual(hdr["NAXIS1"], 4)
+		self.assertEqual(hdr["NAXIS2"], 2)
+		self.assertEqual(hdr["NAXIS3"], 4)
+
+	def testPOSCircle(self):
+		mime, data = _dissectSODAFile(self._getSvc().run("dlget", {
+			"ID": [rscdef.getStandardPubDID("data/excube.fits")],
+			"POS": ["CIRCLE 359.359 30.984 0.001"],
+			}).original)
+		hdr = fitstools.readPrimaryHeaderQuick(StringIO(data))
+		self.assertEqual(hdr["NAXIS1"], 7)
+		self.assertEqual(hdr["NAXIS2"], 7)
+
+	def testPOSPolygon(self):
+		mime, data = _dissectSODAFile(self._getSvc().run("dlget", {
+			"ID": [rscdef.getStandardPubDID("data/excube.fits")],
+			"POS": ["POLYGON 359.359 30.984 359.3592 30.985 359.3593 30.986"],
+			}).original)
+		hdr = fitstools.readPrimaryHeaderQuick(StringIO(data))
+		self.assertEqual(hdr["NAXIS1"], 2)
+		self.assertEqual(hdr["NAXIS2"], 4)
+
 
 ################ Start SDM tests
 

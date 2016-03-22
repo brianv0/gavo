@@ -232,7 +232,7 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
         <xsl:param name="widget"/>
         <div>
             <xsl:attribute name="class">
-                <xsl:value-of select="concat('input ', @name, '-', 
+                <xsl:value-of select="concat('soda ', @name, '-', 
                     @unit, '-', translate(@ucd, '.', '_'))"/>
             </xsl:attribute>
             <p class="input-header">
@@ -253,7 +253,7 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
     <!-- params with a value always become hidden -->
     <xsl:template match="vot:PARAM[@value!='']" mode="build-inputs"
             priority="200">
-        <input type="hidden">
+        <input type="hidden" class="soda">
             <xsl:attribute name="name">
                 <xsl:value-of select="@name"/>
             </xsl:attribute>
@@ -280,7 +280,7 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
                 </span>
             </xsl:with-param>
             <xsl:with-param name="widget">
-                <input type="text" class="interval-input">
+                <input type="text" class="soda interval-input">
                     <xsl:attribute name="name">
                         <xsl:value-of select="@name"/>
                     </xsl:attribute>
@@ -304,7 +304,7 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
             <xsl:with-param name="typedesc"
                 >Select zero, one, or possibly more options</xsl:with-param>
             <xsl:with-param name="widget">
-                <select multiple="multiple">
+                <select class="soda" multiple="multiple">
                     <xsl:attribute name="name">
                         <xsl:value-of select="@name"/>
                     </xsl:attribute>
@@ -347,7 +347,7 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
                     <xsl:value-of select="vot:VALUES/vot:MAX/@value"/>
                 </span></xsl:with-param>
             <xsl:with-param name="widget">
-                <input type="text">
+                <input type="text" class="soda">
                     <xsl:attribute name="name">
                         <xsl:value-of select="@name"/>
                     </xsl:attribute>
@@ -510,6 +510,8 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
     	</style>
     	<script type="text/javascript" 
     	  src="http://localhost:8080/static/js/jquery-gavo.js"/>
+      <script type="text/javascript" 
+        src="http://localhost:8080/static/js/samp.js"/>
       <script type="text/javascript"
         src="http://localhost:8080/static/js/sodapars.js"/>
     	</head>
@@ -527,13 +529,16 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
                 to cut out in your preferred units</span>
             </p>
             <p class="widget">
-                <input type="text" name="BAND-low"/>
+                <input type="text" name="BAND-low"
+                  onchange="update_SODA_widget(this, 'BAND', FROM_SPECTRAL_CONVERSIONS)"/>
                 <span class="low-limit">$low_limit</span>
-                <input type="text" name="BAND-high"/>
+                <input type="text" name="BAND-high"
+                  onchange="update_SODA_widget(this, 'BAND', FROM_SPECTRAL_CONVERSIONS)"/>
                 <span class="high-limit">$high_limit</span>
                 <select name="BAND-unit"
                     onchange="convert_spectral_units(
-                        this, $low_limit, $high_limit)">
+                      this, $low_limit, $high_limit);
+                      update_SODA_widget(this, 'BAND', FROM_SPECTRAL_CONVERSIONS)">
                     <option>m</option>
                     <option>µm</option>
                     <option>Ångstrøm</option>
@@ -544,9 +549,14 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
         </div>
     	</script>
 
-      <!-- I have no idea why this is, but when I do this with
-      a text/html template, I can't attach event handlers to it.
+      <!-- I have no idea why this is, but when I do the following two with
+      a text/html template, I can't attach event handlers to them.
       Cross browser.  Sigh. -->
+
+      <button id="samp-template" title="Broadcasts the result as a FITS image
+          to all connected clients (if you have a WebSAMP-enabled
+          hub running">Broadcast dataset via SAMP</button>
+
       <div id="pos-template" class="input custom-POS"
         style="display:none">
         <img class="pos-background" src=""/>

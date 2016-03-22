@@ -16,9 +16,11 @@ import itertools
 import operator
 import re
 
+from gavo import utils
 from gavo.stc import times
 from gavo.stc import units
 from gavo.stc import common
+from gavo.utils import pgsphere
 
 
 ################ Coordinate Systems
@@ -438,7 +440,9 @@ class _RedshiftMixin(object):
 		return {"unit": self.unit, "velTimeUnit": self.velTimeUnit}
 
 
-class SpaceCoo(_Coordinate, _SpatialMixin): pass
+class SpaceCoo(_Coordinate, _SpatialMixin):
+	pgClass = pgsphere.SPoint
+
 class VelocityCoo(_Coordinate, _VelocityMixin): pass
 class RedshiftCoo(_Coordinate, _RedshiftMixin): pass
 
@@ -491,6 +495,9 @@ class _CoordinateInterval(_CoordinateLike):
 class SpaceInterval(_CoordinateInterval):
 	cType = SpaceType
 
+	# See fromPgSphere docstring on this
+	pgClass = pgsphere.SBox
+
 	def getValues(self):
 		return reduce(lambda a,b: a+b, _CoordinateInterval.getValues(self))
 	
@@ -512,6 +519,13 @@ class SpaceInterval(_CoordinateInterval):
 		else:
 			raise NotImplemented("Cannot yet transform coordinate intervals"
 				" in n>2 dims.")
+
+	@classmethod
+	def fromPg(cls, frame, pgBox):
+		return cls(frame=frame,
+			lowerLimit=(pgBox.corner1.x/utils.DEG, pgBox.corner1.y/utils.DEG),
+			upperLimit=(pgBox.corner2.x/utils.DEG, pgBox.corner2.y/utils.DEG))
+
 
 # Service for stcsast -- this may go away again
 PositionInterval = SpaceInterval
@@ -592,6 +606,8 @@ class Circle(_Geometry):
 	_a_center = None
 	_a_radius = None
 
+	pgClass = pgsphere.SCircle
+
 	def getTransformed(self, sTrafo, destFrame):
 		return self.change(center=sTrafo(self.center), frame=destFrame)
 
@@ -603,6 +619,12 @@ class Circle(_Geometry):
 
 	def _getValuesSplit(self):
 		return [self.center[0], self.center[1], self.radius]
+
+	@classmethod
+	def fromPg(cls, frame, sCircle):
+		return cls(frame=frame,
+			center=(sCircle.center.x/utils.DEG, sCircle.center.y/utils.DEG),
+			radius=(sCircle.radius/utils.DEG))
 
 
 class Ellipse(_Geometry):
@@ -650,6 +672,8 @@ class Box(_Geometry):
 class Polygon(_Geometry):
 	_a_vertices = ()
 
+	pgClass = pgsphere.SPoly
+
 	def getTransformed(self, sTrafo, destFrame):
 		return self.change(vertices=tuple(sTrafo(v) for v in self.vertices), 
 			frame=destFrame)
@@ -659,6 +683,12 @@ class Polygon(_Geometry):
 
 	def _getValuesSplit(self):
 		return reduce(operator.add, self.vertices)
+
+	@classmethod
+	def fromPg(cls, frame, sPoly):
+		return cls(frame=frame,
+			vertices=[(p.x/utils.DEG, p.y/utils.DEG) 
+				for p in sPoly.points])
 
 
 class Convex(_Geometry):
@@ -891,3 +921,21 @@ class STCSpec(common.ASTNode):
 				node.unit = node.__class__._a_unit
 			if hasattr(node, "velTimeUnit"):
 				node.velTimeUnit = node.__class__._a_unit
+
+
+def fromPgSphere(refFrame, pgGeom):
+	"""Returns an AST for a pgsphere object as defined in utils.pgsphere.
+
+	This interprets the pgSphere box as a coordinate interval, which is wrong
+	but probably what most VO protocols expect.
+	"""
+	frame = SpaceFrame(refFrame=refFrame)
+
+	if isinstance(pgGeom, SpaceCoo.pgClass):
+		return STCSpec(place=SpaceCoo.fromPg(frame, pgGeom))
+
+	for stcGeo in [Circle, SpaceInterval, Polygon]:
+		if isinstance(pgGeom, stcGeo.pgClass):
+			return STCSpec(areas=[stcGeo.fromPg(frame, pgGeom)])
+	
+	raise common.STCValueError("Unknown pgSphere object %r"%pgGeom)

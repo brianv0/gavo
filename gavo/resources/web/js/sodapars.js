@@ -1,4 +1,5 @@
-// Javascript for custom widgets for standard SODA parameters.
+// Javascript for custom widgets for standard SODA parameters, and
+// other JS support for the improvised soda interface.
 // See https://github.com/msdemlei/datalink-xslt.git
 //
 // The needs jquery loaded before it
@@ -46,32 +47,33 @@ function update_class_elements(container, clsid, val) {
 		});
 }
 
-// returns a function to perform the conversion from custom UI to SODA
-// parameters for par_name -- el is the widget's div, conversions is the unit
-// conversion.  This needs input fields <par_name>-low, <par_name>-high,
-// and <par_name>-unit
-function make_submission_converter(el, old_widget,
-		conversions, par_name) {
-	return function() {
-		var converter = conversions[this[par_name+"-unit"].value];
+// update a SODA (interval) widget for par name form a -low/-high/-unit
+// split widget.
+// soda_name is the name of the SODA parameter to be built.  conversions
+// is a mapping going from -unit strings to converter functions to
+// the SODA units.
+function update_SODA_widget(input, soda_name, conversions) {
+	var form = input.form;
+	var low_element = form[soda_name+"-low"];
+	var high_element = form[soda_name+"-high"];
+	var unit_element = form[soda_name+"-unit"];
+	var converter = conversions[unit_element.value];
 
-		var low_val = this[par_name+"-low"].value;
-		if (low_val) {
-			low_val = converter(parseFloat(low_val));
-		} else {
-			low_val = '-Inf';
-		}
-
-		var high_val = this[par_name+"-high"].value;
-		if (high_val) {
-			high_val = converter(parseFloat(high_val));
-		} else {
-			high_val = '+Inf';
-		}
-
-		this["BAND"].value = low_val+" "+high_val;
-		$(this).find(".inputpars").find(".custom-BAND").remove()
+	var low_val = low_element.value;
+	if (low_val) {
+		low_val = converter(parseFloat(low_val));
+	} else {
+		low_val = '-Inf';
 	}
+
+	var high_val = high_element.value;
+	if (high_val) {
+		high_val = converter(parseFloat(high_val));
+	} else {
+		high_val = '+Inf';
+	}
+
+	form[soda_name].value = low_val+" "+high_val;
 }
 
 
@@ -188,7 +190,7 @@ function convert_spectral_units(el, low, high) {
 
 /////////////////// Individual widgets
 
-function replace_BAND_widget() {
+function add_BAND_widget() {
 	var old = $(".BAND-m-em_wl");
 	old.map(function(index, el) {
 		el = $(el);
@@ -202,16 +204,14 @@ function replace_BAND_widget() {
 				low_limit: low_limit,
 				high_limit: high_limit});
 		el.parent().prepend(new_widget);
-		el.hide();
 
-	form.submit(
-			make_submission_converter(
-				new_widget, el, FROM_SPECTRAL_CONVERSIONS, "BAND"));
+		form.submit(
+			function() {new_widget.remove();});
 	});
 }
 
 
-function replace_POS_widget() {
+function add_POS_widget() {
 	var ra_widget = $(".RA-deg-pos_eq_ra").first();
 	var dec_widget = $(".DEC-deg-pos_eq_dec").first();
 	
@@ -241,10 +241,11 @@ function replace_POS_widget() {
 		ra_widget.parent().prepend(new_widget);
 		new_widget.show();
 
+		var fov = (phys_width<phys_height) ? phys_height : phys_width;
 		var image_url =	"http://alasky.u-strasbg.fr/cgi/hips-thumbnails/thumbnail"
 				+"?ra="+(low_ra+phys_width/2)
 				+"&dec="+(low_dec+phys_height/2)
-				+"&fov="+phys_width
+				+"&fov="+fov
 				+"&width="+width
 				+"&height="+height
 				+"&hips=CDS/P/DSS2/color";
@@ -264,9 +265,135 @@ function replace_POS_widget() {
 // (this is called from the document's ready handler and thus is the
 // main entry point into the magic here)
 function replace_known_widgets() {
-	replace_BAND_widget();
-	replace_POS_widget();
+	add_BAND_widget();
+	add_POS_widget();
+}
+
+
+//////////////////////////// SAMP interface/result URL building
+
+// The thing sent to the SAMP clients is a URL built from all input
+// items that have a soda class.  The stylesheet must arrange it so
+// all input/select items generated from the declared service  parameters
+// have a soda class.
+
+// return a list of selected items for a selection element for URL inclusion
+function get_selected_entries(select_element) {
+	var result = new Array();
+	var i;
+
+	for (i=0; i<select_element.length; i++) {
+		if (select_element.options[i].selected) {
+			result.push(select_element.name+"="+encodeURIComponent(
+				select_element.options[i].value))
+		}
+	}
+	return result;
+}
+
+// return a URL fragment for a form item
+function make_query_item(form_element, index) {
+	var val = "";
+
+	if (! $(form_element).hasClass("soda")) {
+		return;
+	}
+	switch (form_element.nodeName) {
+		case "INPUT":
+		case "TEXTAREA":
+			if (form_element.type=="radio" || form_element.type=="checkbox") {
+				if (form_element.checked) {
+					val = form_element.name+"="+encodeURIComponent(form_element.value);
+				}
+			} else if (form_element.name && form_element.value) {
+				val = form_element.name+"="+encodeURIComponent(form_element.value);
+			}
+			break;
+		case "SELECT":
+			return get_selected_entries(form_element).join("&");
+			break;
+	}
+	return val;
+}
+
+
+// return the URL that sending off cur_form would retrieve
+function build_result_URL(cur_form) {
+	var fragments = $.map(cur_form.elements, make_query_item);
+	dest_url = cur_form.getAttribute("action")+"?"+fragments.join("&");
+	return dest_url;
+}
+
+
+// send the current selection as a FITS image
+function send_SAMP(conn, cur_form) {
+	var msg = new samp.Message("image.load.fits", {
+		"url": build_result_URL(cur_form),
+		"name": "SODA result"});
+	conn.notifyAll([msg]);
+}
+
+
+// return the callback for a successful hub connection
+// (which disables-re-registration and sends out the image link)
+function _make_SAMP_success_handler(samp_button, cur_form) {
+	return function(conn) {
+		conn.declareMetadata([{
+			"samp.description": "SODA processed data from"+document.URL,
+			"samp.icon.url": 
+				"http://"+window.location.host+"/static/img/logo_tiny.png"
+		}]);
+
+		// set the button up so clicks send again without reconnection.
+		$(samp_button).unbind("click");
+		$(samp_button).click(function(e) {
+			e.preventDefault();
+			send_SAMP(conn, cur_form);
+		});
+
+		// make sure we unregister when the user leaves the page
+		$(window).unload(function() {
+			conn.unregister();
+		});
+
+		// send the stuff once (since the connection has been established
+		// in response to a click alread)
+		send_SAMP(conn, cur_form);
+	};
+}
+
+// connect to a SAMP hub and, when the connection is established,
+// send the current cutout result.
+function connect_and_send_SAMP(samp_button, cur_form) {
+	samp.register("SODA processor",
+		_make_SAMP_success_handler(samp_button, cur_form),
+				function(err) {
+					alert("Could not connect to SAMP hub: "+err);
+				}
+			);
+		}
+
+
+// create a samp sending button in a SODA form
+function enable_SAMP_on_form(index, cur_form) {
+	try {
+		var samp_button = $("#samp-template").clone()[0]
+		$(samp_button).attr({"id": ""});
+		$(cur_form).prepend(samp_button);
+		$(samp_button).click(function (e) {
+			e.preventDefault();
+			connect_and_send_SAMP(samp_button, cur_form);
+		});
+	} catch (e) {
+		throw(e);
+		// we don't care if there's no SAMP.  Log something?
+	}
+}
+
+// enable SAMP sending for all forms that look promising
+function enable_SAMP() {
+	$("form.service-interface").each(enable_SAMP_on_form);
 }
 
 $(document).ready(replace_known_widgets);
-	
+$(document).ready(enable_SAMP);
