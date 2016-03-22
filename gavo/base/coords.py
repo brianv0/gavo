@@ -17,6 +17,7 @@ from math import sin, cos, pi #noflake: exported names
 import re
 import warnings
 
+import numpy
 
 from gavo import utils
 from gavo.utils import DEG
@@ -263,6 +264,56 @@ def getCenterFromWCSFields(wcsFields):
 	wcs = getWCS(wcsFields)
 	return pix2sky(wcs, (wcs._dachs_header["NAXIS1"]/2., 
 		wcs._dachs_header["NAXIS2"]/2.))
+
+
+def getSkyWCS(hdr):
+	"""returns a pair of a pywcs.WCS instance and a sequence of 
+	the spatial axes.
+
+	This will be None, () if no WCS could be discerned.  There's some
+	heuristics involved in the identification of the spatial coordinates
+	that will probably fail for unconventional datasets.
+	"""
+	wcsAxes = []
+	# heuristics: iterate through CTYPEn, anything that's got
+	# a - is supposed to be a position (needs some refinement :-)
+	for ind in range(1, hdr["NAXIS"]+1):
+		if "-" in hdr.get("CTYPE%s"%ind, ""):
+			wcsAxes.append(ind)
+
+	if not wcsAxes:
+		# more heuristics to be inserted here
+		return None, ()
+
+	if len(wcsAxes)!=2:
+		raise base.ValidationError("This FITS has !=2"
+			" spatial WCS axes.  Please contact the DaCHS authors and"
+			" make them support it.", "PUBDID")
+
+	return getWCS(hdr, naxis=wcsAxes), wcsAxes
+
+
+def getPixelLimits(cooPairs, wcsFields):
+	"""returns pixel cutout slices for covering cooPairs in an image with
+	wcsFields.
+
+	cooPairs is a sequence of (ra, dec) tuples.  wcsFields is a DaCHS-enhanced
+	pywcs.WCS instance.
+
+	Each cutout slice is a tuple of (FITS axis number, lower limit, upper limit).
+	"""
+	slices = []
+	pixelFootprint = numpy.asarray(
+		numpy.round(wcsFields.wcs_sky2pix(cooPairs, 1)), numpy.int32)
+	pixelLimits = [[min(pixelFootprint[:,0]), max(pixelFootprint[:,0])],
+		[min(pixelFootprint[:,1]), max(pixelFootprint[:,1])]]
+	latAxis = wcsFields.latAxis
+	longAxis = wcsFields.longAxis
+	if pixelLimits[0]!=[1, wcsFields._dachs_header["NAXIS%d"%longAxis]]:
+		slices.append([longAxis]+pixelLimits[0])
+	if pixelLimits[1]!=[1, wcsFields._dachs_header["NAXIS%d"%latAxis]]:
+		slices.append([latAxis]+pixelLimits[1])
+	return slices
 
 
 # let's do a tiny vector type.  It's really not worth getting some dependency

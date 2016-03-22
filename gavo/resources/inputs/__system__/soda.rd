@@ -325,32 +325,6 @@ This is a temporary location for procDefs and friends complying to
 			<code>
 				from gavo.utils import fitstools
 
-				def getSkyWCS(hdr):
-					"""uses some heuristics to guess how spatial WCS might be
-					in hdr.
-
-					The function returns a pair of a pywcs.WCS instance (or
-					None, if no spatial WCS was found) and a sequence of 
-					the axes used.
-					"""
-					wcsAxes = []
-					# heuristics: iterate through CTYPEn, anything that's got
-					# a - is supposed to be a position (needs some refinement :-)
-					for ind in range(1, hdr["NAXIS"]+1):
-						if "-" in hdr.get("CTYPE%s"%ind, ""):
-							wcsAxes.append(ind)
-
-					if not wcsAxes:
-						# more heuristics to be inserted here
-						return None, ()
-
-					if len(wcsAxes)!=2:
-						raise base.ValidationError("This FITS has !=2"
-							" spatial WCS axes.  Please contact the DaCHS authors and"
-							" make them support it.", "PUBDID")
-
-					return coords.getWCS(hdr, naxis=wcsAxes), wcsAxes
-
 				def iterSpatialKeys(descriptor):
 					"""yields inputKeys for spatial cutouts along the coordinate
 					axes.
@@ -423,7 +397,7 @@ This is a temporary location for procDefs and friends complying to
 
 		<code>
 			descriptor.axisNames = {}
-			descriptor.skyWCS, spatialAxes = getSkyWCS(descriptor.hdr)
+			descriptor.skyWCS, spatialAxes = coords.getSkyWCS(descriptor.hdr)
 
 			for ik in iterSpatialKeys(descriptor):
 				yield ik
@@ -486,7 +460,6 @@ This is a temporary location for procDefs and friends complying to
 		</doc>
 		<code>
 			from gavo.utils import fitstools
-			import numpy
 
 			slices = descriptor.slices
 
@@ -522,19 +495,10 @@ This is a temporary location for procDefs and friends complying to
 	
 			if not limitsChanged:
 				return
-
-			pixelFootprint = numpy.asarray(
-				numpy.round(descriptor.skyWCS.wcs_sky2pix([
+			
+			slices.extend(coords.getPixelLimits([
 					(limits[0][0], limits[1][0]),
-					(limits[0][1], limits[1][1])], 1)), numpy.int32)
-			pixelLimits = [[min(pixelFootprint[:,0]), max(pixelFootprint[:,0])],
-				[min(pixelFootprint[:,1]), max(pixelFootprint[:,1])]]
-			latAxis = descriptor.skyWCS.latAxis
-			longAxis = descriptor.skyWCS.longAxis
-			if pixelLimits[0]!=[1, descriptor.hdr["NAXIS%d"%longAxis]]:
-				slices.append([longAxis]+pixelLimits[0])
-			if pixelLimits[1]!=[1, descriptor.hdr["NAXIS%d"%latAxis]]:
-				slices.append([latAxis]+pixelLimits[1])
+					(limits[0][1], limits[1][1])], descriptor.skyWCS))
 
 			if slices:
 				descriptor.data[0] = fitstools.cutoutFITS(descriptor.data[0],
@@ -715,7 +679,6 @@ This is a temporary location for procDefs and friends complying to
 		</doc>
 		<setup>
 			<code>
-				import numpy
 				from gavo import stc
 				from gavo.protocols import siap
 				from gavo.stc import bboxes
@@ -731,18 +694,7 @@ This is a temporary location for procDefs and friends complying to
 			corners = reduce(lambda a,b: a+b, [((r1, d1), (r2, d2))
 				for r1, d1, r2, d2 in boxes])
 
-			slices = []
-			pixelFootprint = numpy.asarray(
-				numpy.round(descriptor.skyWCS.wcs_sky2pix(corners, 1)), numpy.int32)
-			pixelLimits = [[min(pixelFootprint[:,0]), max(pixelFootprint[:,0])],
-				[min(pixelFootprint[:,1]), max(pixelFootprint[:,1])]]
-			latAxis = descriptor.skyWCS.latAxis
-			longAxis = descriptor.skyWCS.longAxis
-			if pixelLimits[0]!=[1, descriptor.hdr["NAXIS%d"%longAxis]]:
-				slices.append([longAxis]+pixelLimits[0])
-			if pixelLimits[1]!=[1, descriptor.hdr["NAXIS%d"%latAxis]]:
-				slices.append([latAxis]+pixelLimits[1])
-
+			slices = coords.getPixelLimits(corners, descriptor.skyWCS)
 			if slices:
 				descriptor.data[0] = fitstools.cutoutFITS(descriptor.data[0],
 					*slices)
