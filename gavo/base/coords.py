@@ -85,6 +85,18 @@ def clampDelta(delta):
 	return max(-90, min(90, delta))
 
 
+def straddlesStitchingLine(minRA, maxRA):
+	"""returns true if something bordered by minRA and maxRA presumably straddles
+	the stitching line.
+
+	This assumes minRA<maxRA, and that "something" is less than 180 degrees in
+	longitude.
+
+	Angles are in degrees here.
+	"""
+	return maxRA>270 and minRA<90
+
+
 def _calcFootprintMonkeypatch(self, hdr=None, undistort=True):
 	"""returns the coordinates of the four corners of an image.
 

@@ -334,6 +334,11 @@ class PixelLimitsTest(testhelpers.VerboseTest):
 			coords.getPixelLimits([(87, -4), (88, 1.5), (92, 1), (93, -3)], wcs),
 			[[1, 20, 80], [2, 10, 65]])
 
+	def testNegative(self):
+		wcs, _ = coords.getSkyWCS(_getWCSExample(CRPIX1=50, CD1_1=0.1, CD2_2=0.1))
+		self.assertEqual(
+			coords.getPixelLimits([(-2, 0), (1, 1)], wcs),
+			[[1, 30, 60], [2, 1, 10]])
 
 
 if __name__=="__main__":

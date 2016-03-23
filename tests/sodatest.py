@@ -775,7 +775,7 @@ class SODAPOSTest(testhelpers.VerboseTest):
 				<descriptorGenerator procDef="//soda#fits_genDesc"/>
 				<dataFunction procDef="//soda#fits_makeHDUList"/>
 				<metaMaker procDef="//soda#fits_makeWCSParams"/>
-				<FEED source="//soda#fits_POSParam"/>
+				<FEED source="//soda#fits_genPOSPar"/>
 				<dataFormatter procDef="//soda#fits_formatHDUs"/>
 			</datalinkCore></service>""")
 

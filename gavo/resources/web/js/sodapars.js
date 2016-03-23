@@ -108,10 +108,10 @@ function Rubberband(canvas,
 	}
 			
 	self.to_ra = function(pix_val) {
-		return low_ra+pix_val/(1.0*canvas_width)*phys_width;
+		return high_ra-pix_val/(1.0*canvas_width)*phys_width;
 	}
 	self.to_dec = function(pix_val) {
-		return low_dec+pix_val/(1.0*canvas_height)*phys_height;
+		return high_dec-pix_val/(1.0*canvas_height)*phys_height;
 	}
 
 	self.start_rubberband = function(e) {
@@ -378,6 +378,7 @@ function connect_and_send_SAMP(samp_button, cur_form) {
 function enable_SAMP_on_form(index, cur_form) {
 	try {
 		var samp_button = $("#samp-template").clone()[0]
+		$(samp_button).show()
 		$(samp_button).attr({"id": ""});
 		$(cur_form).prepend(samp_button);
 		$(samp_button).click(function (e) {

@@ -322,7 +322,7 @@ This is a temporary location for procDefs and friends complying to
 				mapping fits axis indices (1-based) to dictionaries of
 				inputKey constructor arguments; for spatial axis, use the
 				axis name instead of the axis index.">{}</par>
-			<code>
+			<code><![CDATA[
 				from gavo.utils import fitstools
 
 				def iterSpatialKeys(descriptor):
@@ -349,13 +349,23 @@ This is a temporary location for procDefs and friends complying to
 							paramArgs = {"name": name, "unit": "deg", 
 									"description": description,
 									"ucd": baseUCD}
+
+							minCoo, maxCoo = min(vertexCoos), max(vertexCoos)
+							# for RA, we need to move the stitching line out
+							# of the way (and go to negative longitudes) if
+							# 0 is on the image; we're doing a little heuristic
+							# there assuming that images are smaller than 180 deg.
+							if cutoutName=="WCSLONG":
+								if coords.straddlesStitchingLine(minCoo, maxCoo):
+									minCoo, maxCoo = maxCoo-360, minCoo
+
 							if name in axisMetaOverrides:
 								paramArgs.update(axisMetaOverrides[name])
 
 							yield MS(InputKey,  multiplicity="single",
 								type="double precision[2]", xtype="interval",
 								stc=parSTC,
-								values=MS(Values, min=min(vertexCoos), max=max(vertexCoos)),
+								values=MS(Values, min=minCoo, max=maxCoo),
 								**paramArgs)
 							descriptor.axisNames[name] = cutoutName
 
@@ -392,7 +402,7 @@ This is a temporary location for procDefs and friends complying to
 					parSTC = None
 				else:
 					parSTC = stc.parseQSTCS(stcs)
-			</code>
+			]]></code>
 		</setup>
 
 		<code>
@@ -463,10 +473,12 @@ This is a temporary location for procDefs and friends complying to
 
 			slices = descriptor.slices
 
-			footprint  = descriptor.skyWCS.calcFootprint(descriptor.hdr)
 			# limits: [minRA, maxRA], [minDec, maxDec]]
+			footprint = descriptor.skyWCS.calcFootprint(descriptor.hdr)
 			limits = [[min(footprint[:,0]), max(footprint[:,0])],
 				[min(footprint[:,1]), max(footprint[:,1])]]
+			if coords.straddlesStitchingLine(limits[0][0], limits[0][1]):
+				limits[0] = [limits[0][1]-360, limits[0][0]]
 			limitsChanged = False
 
 			for parName, fitsAxis in descriptor.axisNames.iteritems():
@@ -495,7 +507,7 @@ This is a temporary location for procDefs and friends complying to
 	
 			if not limitsChanged:
 				return
-			
+		
 			slices.extend(coords.getPixelLimits([
 					(limits[0][0], limits[1][0]),
 					(limits[0][1], limits[1][1])], descriptor.skyWCS))
@@ -702,7 +714,7 @@ This is a temporary location for procDefs and friends complying to
 		</code>
 	</procDef>
 
-	<STREAM id="fits_POSParam">
+	<STREAM id="fits_genPOSPar">
 		<doc>
 			Adds metadata and data function for a SIAPv2-style POS cutout parameter.
 		</doc>
@@ -750,6 +762,7 @@ This is a temporary location for procDefs and friends complying to
 		</metaMaker>
 		<dataFunction procDef="//soda#fits_makeHDUList" name="makeHDUList"/>
 		<dataFunction procDef="//soda#fits_doWCSCutout" name="doWCSCutout"/>
+		<FEED source="//soda#fits_genPOSPar"/>
 		<FEED source="//soda#fits_genPixelPar"/>
 		<FEED source="//soda#fits_genKindPar"/>
 		<dataFormatter procDef="//soda#fits_formatHDUs" name="formatHDUs"/>
