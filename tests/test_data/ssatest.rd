@@ -23,7 +23,7 @@
 		<column original="accsize">
 			<values 
 				min="0" 
-				max="0"/>
+				max="0" nullLiteral="-1"/>
 		</column>
 		<column original="ssa_redshift">
 			<values 

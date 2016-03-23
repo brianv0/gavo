@@ -11,6 +11,7 @@ More on this in "Datalink Cores" in the reference documentation.
 
 
 import itertools
+import inspect
 import os
 
 from gavo import base
@@ -85,6 +86,32 @@ class ProductDescriptor(object):
 			except:
 				# fall through to returning None
 				pass
+	
+	def makeLink(self, url, **kwargs):
+		"""returns a LinkDef for this descriptor for url.
+
+		kwargs are passed on to LinkDef and include, in particular,
+		semantics, contentType, contentLength, and description.
+		"""
+		return LinkDef(self.pubDID, url, **kwargs)
+
+	def makeLinkFromFile(self, localPath, description, semantics,
+			service=None, contentType=None):
+		"""returns a LinkDef for a local file.
+
+		Arguments are as for LinkDef.fromFile, except you don't have
+		to pass in service if you're using the datalink service itself
+		to access the file; this method will try to find the service by
+		itself.
+		"""
+		if service is None:
+			try:
+				service = inspect.currentframe().f_back.f_locals["self"].parent
+			except (KeyError, AttributeError):
+				raise base.StructureError("Cannot infer service for datalink"
+					" file link.  Pass an appropriate service manually.")
+		return LinkDef.fromFile(localPath, description, semantics,
+			service=service, contentType=None)
 
 
 class DatalinkFault(object):

@@ -201,11 +201,11 @@ class _MetaMakerTestData(testhelpers.TestResource):
 
 				<metaMaker>
 					<code>
-					yield LinkDef(descriptor.pubDID, "http://foo/bar", 
+					yield descriptor.makeLink("http://foo/bar", 
 						contentType="test/junk", 
 						semantics="#alternative",
 						contentLength=500002)
-					yield LinkDef(descriptor.pubDID, "http://foo/baz", 
+					yield descriptor.makeLink("http://foo/baz", 
 						contentType="test/gold", 
 						semantics="#calibration")
 					</code>
@@ -219,14 +219,16 @@ class _MetaMakerTestData(testhelpers.TestResource):
 				</metaMaker>
 				<metaMaker>
 					<code>
-						yield LinkDef.fromFile("no.such.file", "An unrelated nothing",
-							"http://www.g-vo.org/dl#unrelated", self.parent)
+						yield descriptor.makeLinkFromFile(
+							"no.such.file", description="An unrelated nothing",
+							semantics="http://www.g-vo.org/dl#unrelated")
 					</code>
 				</metaMaker>
 				<metaMaker>
 					<code>
-						yield LinkDef.fromFile("data/map1.map", "Some mapping",
-							"http://www.g-vo.org/dl#related", self.parent)
+						yield descriptor.makeLinkFromFile("data/map1.map", 
+							description="Some mapping",
+							semantics="http://www.g-vo.org/dl#related")
 					</code>
 				</metaMaker>
 				<dataFunction procDef="//soda#generateProduct"/>

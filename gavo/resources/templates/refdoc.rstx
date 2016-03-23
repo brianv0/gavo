@@ -1676,9 +1676,9 @@ Meta makers may yield input keys (``InputKey`` instances) and/or
 link definitions (``LinkDef`` instances).  The input
 keys make up a service's interface in the usual way.
 
-The classes usually required to build whatever meta makers return 
-(InputKey, Values, Option, LinkDef) are available to the code as local
-names.  
+The classes usually required to build input keys return (InputKey,
+Values, Option) are available to the code as local names.  There is also
+LinkDef, but there is not usually a good reason to use it directly.
 
 As usual, DaCHS structs – that's InputKey, Values, and Option here –
 should not be constructed directly but only using the ``MS`` helper
@@ -1851,31 +1851,14 @@ All this is explained in [VOTSTC]_.
 Link Definitions
 .................
 
-When returning link definitions, the tricky part mostly is to come up
-with the URLs.  Use the ``makeAbsoluteURL`` rowmaker function to make
-them from relative URLs; the rest just depends on your URL scheme.  An
-example could look like this::
+Link definitions are usually created using the ``makeLink`` or
+``makeLinkFromFile`` methods of descriptor (they are available if the
+descriptor class was derived from ``datalink.ProductDescriptor``, as it
+usually should).
 
-  <metaMaker>
-    <code>
-      yield LinkDef(descriptor.pubDID,
-        makeAbsoluteURL("get/"+descriptor.accref[:-5]+".err.fits"),
-        contentType="image/fits", semantics="#error",
-        description="Errors for this dataset")
-      yield LinkDef(descriptor.pubDID,
-        "http://foo.bar/raw/"+descriptor.accref.split("/")[-1],
-        contentType="image/fits", semantics="#progenitor",
-        description="Un-flatfielded, uncalibrated source data")
-    </code>
-  </metaMaker>
+These functions take a link as the first argument.  The rest are keyword
+arguments corresponding to the datalink columns, viz., 
 
-In addition to the pubDID and the access URL, LinkDefs accept keyword
-arguments for the columns of the ``//datalink#dlresponse`` table.  At
-the time of this writing, these include:
-
-errorMessage
-  If your code cannot make a link and wants to communicate that to a
-  client, you leave accessURL empty (None) and set a message here.
 description
   A human-readable short information what's behind the link
 semantics
@@ -1886,7 +1869,10 @@ contentType
   sure it's consistent with what the server actually returns if the
   protocol used by accessURL supports that.
 contentLength
-  The (approximate) size of the resource at accessURL, in bytes.
+  The (approximate) size of the resource at accessURL, in bytes 
+  (not for ``makeLinkFromFile``, which takes it from the file system)
+
+``makeLinkFromFile`` additionally allows an argument service (see below).
 
 With the exception of semantics, all auxillary data defaults to None if
 not given, and it's legal to leave it at that.  Semantics must be
@@ -1903,10 +1889,29 @@ system by saying::
 
 (the table definition is right at the top).
 
+When returning link definitions, the tricky part mostly is to come up
+with the URLs.  Use the ``makeAbsoluteURL`` rowmaker function to make
+them from relative URLs; the rest just depends on your URL scheme.  An
+example could look like this::
+
+  <metaMaker>
+    <code>
+      yield descriptor.makeLink(
+        makeAbsoluteURL("get/"+descriptor.accref[:-5]+".err.fits"),
+        contentType="image/fits", semantics="#error",
+        description="Errors for this dataset")
+      yield descriptor.makeLink(
+        "http://foo.bar/raw/"+descriptor.accref.split("/")[-1],
+        contentType="image/fits", semantics="#progenitor",
+        description="Un-flatfielded, uncalibrated source data")
+    </code>
+  </metaMaker>
+
 Data links frequently should expose some data that's not in the product
 table (e.g., because you don't want the error files to show up there).
-In such cases, a good pattern is to put a static renderer next to the
-datalink renderer and then write a meta maker like this::
+In such cases, a good pattern is to allow a static renderer on the
+datalink service and use ``makeLinkFromFile``, which expects file paths
+relative to the value of the ``staticData`` property::
 
   <service id="d" allowed="dlget,dlmeta,static">
     <property name="staticData">data/errors</property>
@@ -1916,8 +1921,7 @@ datalink renderer and then write a meta maker like this::
       <metaMaker>
         <code>
           stem = descriptor.accref.split("/")[-1].split("_")[0]
-          yield LinkDef(descriptor.pubDID, makeAbsoluteURL(
-            "\rdId/d/static/%s_err.fits"%stem),
+          yield descriptor.makeLinkFromFile("%s_err.fits"%stem),
             contentType="image/fits", semantics="#error")
         </code>
       </metaMaker>
@@ -1926,7 +1930,13 @@ datalink renderer and then write a meta maker like this::
 
 Note, however, that the static renderer does not enforce any access
 control.  That means that embargoed files must never be within the
-staticData (or they are not embargoed any more...)
+staticData (or they are not embargoed any more...).
+
+Although it is preferable to have this static data on the datalink
+service to keep things simple, you can reuse an existing service's
+static renderer; you would pass in something like
+``service=base.resolveCrossId('otherres/q#staticsvc')`` as an addtional
+argument to ``makeLinkFromFile``.
 
 
 Metadata Error Messages

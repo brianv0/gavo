@@ -555,7 +555,7 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
 
       <button id="samp-template" title="Broadcasts the result as a FITS image
           to all connected clients (if you have a WebSAMP-enabled
-          hub running">Broadcast dataset via SAMP</button>
+          hub running" style="display:none">Broadcast dataset via SAMP</button>
 
       <div id="pos-template" class="input custom-POS"
         style="display:none">
