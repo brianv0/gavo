@@ -232,7 +232,7 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
         <xsl:param name="widget"/>
         <div>
             <xsl:attribute name="class">
-                <xsl:value-of select="concat('soda ', @name, '-', 
+                <xsl:value-of select="concat('input ', @name, '-', 
                     @unit, '-', translate(@ucd, '.', '_'))"/>
             </xsl:attribute>
             <p class="input-header">
@@ -359,7 +359,20 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
         </xsl:call-template>
     </xsl:template>
 
+    <!-- ...everything else is just a text input -->
 
+    <xsl:template match="vot:PARAM" mode="build-inputs" priority="0">
+      <xsl:call-template name="format-an-input-key">
+        <xsl:with-param name="typedesc"/>
+        <xsl:with-param name="widget">
+          <input type="text" class="soda generic-input">
+            <xsl:attribute name="name">
+              <xsl:value-of select="@name"/>
+            </xsl:attribute>
+          </input>
+        </xsl:with-param>
+      </xsl:call-template>
+    </xsl:template>
 
 
     <!-- ################################### utility, top-level -->
@@ -452,7 +465,7 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
             padding-left: 0.5ex;
         }
 
-        form.service-interface div.input {
+        div.inputpars div.input {
             border-top: 1pt solid #DDDD88;
             margin-left: 1em;
         }
@@ -468,11 +481,16 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
             font-size: 70%;
         }
 
-        .typedesc .limit {
+        .typedesc .low-limit {
             font-size: 100%;
             font-weight: bold;
         }
 
+        .typedesc .high-limit {
+            font-size: 100%;
+            font-weight: bold;
+        }
+ 
         .pos-canvas {
             position: absolute;
             background-color: none;
@@ -484,7 +502,7 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
         .pos-image {
             position: absolute;
             top: 0px;
-            left: 0px
+            left: 0px;
             z-index: 0;
         }
 
@@ -492,16 +510,8 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
             position: relative;
         }
 
-        div#rubberband {
-            display: block;
-            position: absolute;
-            left: 0pt;
-            right: 0pt;
-            border: 1pt solid red;
-            width: 0pt;
-            height: 0pt;
-            background: white;
-            z-index: -100;
+        input.generic-input {
+            width:20em;
         }
 
         input.interval-input {
@@ -517,7 +527,6 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
     	</head>
     	<body>
     	  
-
 
     	<xsl:apply-templates/>
 

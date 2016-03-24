@@ -55,16 +55,17 @@ class SyncTest(trialhelpers.ArchiveTest):
 
 	def testMetadata(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlmeta", 
-			{"ID": "ivo://x-unregistred/~?data/excube.fits"},
-			['<DESCRIPTION>The latitude coordinate, lower limit</DESCRIPTION>'
-				'<VALUES><MIN value="30.9831815872">',])
+			{"ID": "ivo://x-unregistred/~?data/excube.fits"}, [
+				'latitude coordinate</DESCRIPTION><VALUES><MIN value="30.9831815872">'
+					'</MIN><MAX value="30.9848485045">',
+				'xtype="interval"'])
 
 	def testRespformat1(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlmeta", {
 				"ID": "ivo://x-unregistred/~?data/excube.fits",
 				"RESPONSEFORMAT": "votable",
 			},
-			['<DESCRIPTION>The latitude coordinate, lower limit</DESCRIPTION>'
+			['<DESCRIPTION>The latitude coordinate</DESCRIPTION>'
 				'<VALUES><MIN value="30.9831815872">',])
 
 	def testRespformat2(self):
@@ -72,7 +73,7 @@ class SyncTest(trialhelpers.ArchiveTest):
 				"ID": "ivo://x-unregistred/~?data/excube.fits",
 				"RESPONSEFORMAT": "application/x-votable+xml",
 			},
-			['<DESCRIPTION>The latitude coordinate, lower limit</DESCRIPTION>'
+			['<DESCRIPTION>The latitude coordinate</DESCRIPTION>'
 				'<VALUES><MIN value="30.9831815872">',])
 
 	def testInvalidRespformat(self):
@@ -107,7 +108,7 @@ class SyncTest(trialhelpers.ArchiveTest):
 	def testCubeCutout(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlget", {
 			"ID": "ivo://x-unregistred/~?data/excube.fits",
-			"COO_3_MIN": "3753"}, [
+			"COO_3": "3753 +Inf"}, [
 			"NAXIS3  =                    2",
 			"CRPIX3  =                 -1.0"])
 
@@ -145,6 +146,22 @@ class SyncTest(trialhelpers.ArchiveTest):
 			os.path.join(api.getConfig("tempDir"), "fitstable*"))
 		self.assertFalse(pooLeft, "Something left fitstable temporaries"
 			" in tempDir")
+
+	def testDECandPOS(self):
+		return self.assertGETHasStrings("/data/cores/dl/dlget", {
+			"ID": "ivo://x-unregistred/~?data/excube.fits",
+			"DEC": "30.9832 30.9834",
+			"POS": "CIRCLE 359.3355 30.9835 0.0001"},[
+			"ValidationError: Field POS: Attempt to cut out along axis 2"
+			" that has been modified before."])
+
+	def testRAandPIXEL(self):
+		return self.assertGETHasStrings("/data/cores/dl/dlget", {
+			"ID": "ivo://x-unregistred/~?data/excube.fits",
+			"PIXEL_1": "1 3",
+			"POS": "CIRCLE 359.3355 30.9835 0.0001"},[
+			"ValidationError: Field PIXEL_1: Attempt to cut out along axis 1"
+			" that has been modified before."])
 
 
 def killLocalhost(url):
@@ -230,7 +247,7 @@ class AsyncTest(trialhelpers.ArchiveTest):
 		return trialhelpers.runQuery(self.renderer,  "POST",
 			"/data/cores/dl/dlasync", {
 				"ID": "ivo://x-unregistred/~?data/excube.fits",
-				"COO_3_MIN": "3753"}
+				"COO_3": "3753 +Inf"}
 			).addCallback(checkPosted)
 			
 

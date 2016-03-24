@@ -114,6 +114,50 @@ class ProductDescriptor(object):
 			service=service, contentType=None)
 
 
+class FITSProductDescriptor(ProductDescriptor):
+	"""A SODA descriptor for FITS files.
+
+	On top of the normal product descriptor, this has an attribute hdr
+	containing a copy of the image header, and a method 
+	changingAxis (see there). 
+
+	There's also an attribute dataIsPristine that must be set to false
+	if changes have been made.  The formatter will spit out the original
+	data otherwise, ignoring your changes.
+
+	Finally, there's a slices attribute provided explained in 
+	soda#fits_doWCSCutout that can be used by data functions running before
+	it to do cutouts.
+
+	The FITSProductDescriptor is constructed like a normal ProductDescriptor.
+	"""
+	def __init__(self, *args, **kwargs):
+		ProductDescriptor.__init__(self, *args, **kwargs)
+		with open(os.path.join(base.getConfig("inputsDir"), 
+				self.accessPath)) as f:
+			self.hdr = utils.readPrimaryHeaderQuick(f,
+				maxHeaderBlocks=100)
+		self.slices = []
+		self.dataIsPristine = True
+		self._axesTouched = set()
+	
+	def changingAxis(self, axisIndex, parName):
+		"""must be called before cutting out along axisIndex.
+
+		axIndex is a FITS (1-based) axis index axIndex, parName the name of the 
+		parameter that causes the cutout.
+		
+		This will simply return if nobody has called changingAxis with that index
+		before and raise a ValidationError otherwise.  Data functions doing a cutout
+		must call this before doing so; if they don't the cutout will probably be
+		wrong when two conflicting constraints are given.
+		"""
+		if axisIndex in self._axesTouched:
+			raise base.ValidationError("Attempt to cut out along axis %d that"
+				" has been modified before."%axisIndex, parName)
+		self._axesTouched.add(axisIndex)
+
+
 class DatalinkFault(object):
 	"""A datalink error ("fault", as it's called in the spec).
 
@@ -203,20 +247,23 @@ class DescriptorGenerator(rscdef.ProcApp):
 
 	  - pubDID -- the pubDID to be resolved
 	  - args -- all the arguments that came in from the web
-	    (these should not ususally be necessary and are completely unparsed)
+	    (these should not ususally be necessary for making the descriptor
+	    and are completely unparsed at this point)
 	
 	If you made your pubDID using the ``getStandardPubDID`` rowmaker function,
 	and you need no additional logic within the descriptor,
 	the default (//datalink#fromStandardPubDID) should do.
 
 	If you need to derive custom descriptor classes, you can see the base
-	class under the name ProductDescriptor.
+	class under the name ProductDescriptor; there's also 
+	FITSProductDescriptor and DatalinkFault in each proc's namespace.
 	"""
 	name_ = "descriptorGenerator"
 	requiredType = "descriptorGenerator"
 	formalArgs = "pubDID, args"
 
 	additionalNamesForProcs = {
+		"FITSProductDescriptor": FITSProductDescriptor,
 		"ProductDescriptor": ProductDescriptor,
 		"DatalinkFault": DatalinkFault,
 	}

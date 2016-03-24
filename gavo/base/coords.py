@@ -319,6 +319,15 @@ def getPixelLimits(cooPairs, wcsFields):
 	latPixels = wcsFields._dachs_header["NAXIS%d"%latAxis]
 	longPixels = wcsFields._dachs_header["NAXIS%d"%longAxis]
 
+	# pywcs does really funny things when we "wrap around".  Therefore, we
+	# clamp values to be within the pywcs-safe region.  Note that
+	# due to spherical magic this is not enough to ensure +/-Inf behaviour
+	# for SODA
+	cooPairs = [(
+			min(359.99999, max(-89.9999, ra)), 
+			min(89.9999, max(-89.9999, dec)))
+		for ra, dec in cooPairs]
+
 	slices = []
 	pixelFootprint = numpy.asarray(
 		numpy.round(wcsFields.wcs_sky2pix(cooPairs, 1)), numpy.int32)

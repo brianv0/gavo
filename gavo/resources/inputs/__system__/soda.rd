@@ -267,16 +267,7 @@ This is a temporary location for procDefs and friends complying to
 							"This SODA service not available"
 							" with this pubDID")
 
-					descriptor = ProductDescriptor.fromAccref(pubDID, accref)
-					with open(os.path.join(base.getConfig("inputsDir"), 
-							descriptor.accessPath)) as f:
-						descriptor.hdr = utils.readPrimaryHeaderQuick(f,
-							maxHeaderBlocks=100)
-					
-					# see fits_doWCSCutout for more info this
-					descriptor.slices = []
-
-					return descriptor
+					return FITSProductDescriptor.fromAccref(pubDID, accref)
 			</code>
 
 			<par key="accrefPrefix" description="A prefix for the accrefs 
@@ -479,12 +470,12 @@ This is a temporary location for procDefs and friends complying to
 				[min(footprint[:,1]), max(footprint[:,1])]]
 			if coords.straddlesStitchingLine(limits[0][0], limits[0][1]):
 				limits[0] = [limits[0][1]-360, limits[0][0]]
-			limitsChanged = False
+			limitsChangedName = None
 
 			for parName, fitsAxis in descriptor.axisNames.iteritems():
 				if args[parName] is None:
 					continue
-				limitsChanged = True
+				limitsChangedName = parName
 
 				if not isinstance(fitsAxis, int):
 					# some sort of spherical axis
@@ -502,15 +493,16 @@ This is a temporary location for procDefs and friends complying to
 					# 1-d axis
 					transform = fitstools.WCSAxis.fromHeader(descriptor.hdr, fitsAxis)
 					axMin, axMax = args[parName]
+					descriptor.changingAxis(fitsAxis, parName)
 					slices.append((fitsAxis, 
 						transform.physToPix(axMin), transform.physToPix(axMax)))
 	
-			if not limitsChanged:
-				return
-		
-			slices.extend(coords.getPixelLimits([
-					(limits[0][0], limits[1][0]),
-					(limits[0][1], limits[1][1])], descriptor.skyWCS))
+			if limitsChangedName:
+				for axisInd, lower, upper in coords.getPixelLimits([
+						(limits[0][0], limits[1][0]),
+						(limits[0][1], limits[1][1])], descriptor.skyWCS):
+					descriptor.changingAxis(axisInd, limitsChangedName)
+					slices.append((axisInd, lower, upper))
 
 			if slices:
 				descriptor.data[0] = fitstools.cutoutFITS(descriptor.data[0],
@@ -598,10 +590,12 @@ This is a temporary location for procDefs and friends complying to
 				from gavo.utils import fitstools
 				slices = []
 				for fitsInd in range(1, descriptor.hdr["NAXIS"]+1):
+					imMin, imMax = 1, descriptor.hdr["NAXIS"+str(fitsInd)]
 					parName = "PIXEL_%s"%fitsInd
 					if args[parName] is None:
 						continue
 					axMin, axMax = args[parName]
+					descriptor.changingAxis(fitsInd, parName)
 					slices.append([fitsInd, axMin, axMax])
 
 				if slices:
@@ -666,6 +660,7 @@ This is a temporary location for procDefs and friends complying to
 			axMin /= descriptor.lambdaToMeterFactor
 		
 			transform = descriptor.lambdaAxis
+			descriptor.changingAxis(descriptor.lambdaAxisIndex, "BAND")
 			descriptor.slices.append(
 				(descriptor.lambdaAxisIndex, transform.physToPix(axMin),
 					transform.physToPix(axMax)))
@@ -707,6 +702,9 @@ This is a temporary location for procDefs and friends complying to
 				for r1, d1, r2, d2 in boxes])
 
 			slices = coords.getPixelLimits(corners, descriptor.skyWCS)
+			for fitsInd, _, _ in slices:
+				descriptor.changingAxis(fitsInd, "POS")
+
 			if slices:
 				descriptor.data[0] = fitstools.cutoutFITS(descriptor.data[0],
 					*slices)

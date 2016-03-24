@@ -31,6 +31,7 @@ from gavo.helpers import testtricks
 from gavo.imp import argparse
 from gavo.registry import builders
 from gavo.registry import publication
+from gavo.protocols import datalink
 from gavo.user import errhandle
 from gavo.web import htmltable
 
@@ -223,6 +224,21 @@ def validateOtherCode(rd, args):
 					outputError(rd.sourceId, "Bad formatter on output field '%s': %s"%(
 						outputField.name, msg))
 					retval = False
+
+		if isinstance(svc.core, datalink.DatalinkCore):
+			try:
+				if "dlmeta" in svc.allowed:
+					svc.core.descriptorGenerator.compile(svc.core)
+				if "dlget" in svc.allowed:
+					for df in svc.core.dataFunctions:
+						df.compile(svc.core)
+					svc.core.dataFormatter.compile(svc.core)
+			except Exception, msg:
+				outputError(rd.sourceId, "Bad datalink function in service '%s': %s"%(
+					svc.id, msg))
+				if isinstance(msg, base.BadCode):
+					outputError(rd.sourceId, "Bad code:\n%s"%msg.code)
+				retval = False
 
 	for job in rd.jobs:
 		try:

@@ -118,7 +118,7 @@
 	<service id="dl" allowed="dlget,dlmeta,dlasync">
 		<meta name="title">Hollow Datalink</meta>
 		<datalinkCore>
-			<descriptorGenerator procDef="//datalink#fits_genDesc">
+			<descriptorGenerator procDef="//soda#fits_genDesc">
 				<setup>
 					<code>
 						from gavo import svcs
@@ -132,10 +132,13 @@
 					return getFITSDescriptor(pubDID)
 				</code>
 			</descriptorGenerator>
-			<metaMaker procDef="//datalink#fits_makeWCSParams"/>
-			<dataFunction procDef="//datalink#fits_makeHDUList"/>
-			<dataFunction procDef="//datalink#fits_doWCSCutout" name="doCutout"/>
-			<dataFormatter procDef="//datalink#fits_formatHDUs"/>
+			<metaMaker procDef="//soda#fits_makeWCSParams" name="getWCSParams"/>
+			<dataFunction procDef="//soda#fits_makeHDUList" name="makeHDUList"/>
+			<dataFunction procDef="//soda#fits_doWCSCutout" name="doWCSCutout"/>
+			<FEED source="//soda#fits_genPOSPar"/>
+			<FEED source="//soda#fits_genPixelPar"/>
+			<FEED source="//soda#fits_genKindPar"/>
+			<dataFormatter procDef="//soda#fits_formatHDUs" name="formatHDUs"/>
 		</datalinkCore>
 		
 		<meta name="_example" title="Example 1">
