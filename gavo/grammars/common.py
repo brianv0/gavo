@@ -475,20 +475,23 @@ class GrammarMacroMixin(base.StandardMacroMixin):
 				base.parseBooleanLiteral(liberalChars)))
 
 	def macro_fullDLURL(self, dlService):
-		r"""returns a python expression giving a link pullling the standard 
-		PubDID of the current source through the datalink service dlService.
+		r"""returns a python expression giving a link to the full current data
+		set retrieved through the datalink service.
 
 		You would write \fullDLURL{dlsvc} here, and the macro will expand into
 		something like http://yourserver/currd/dlget?ID=ivo://whatever.
 
 		dlService is the id of the datalink service in the current RD.
+
+		This is intended for "virtual" data where the dataset is generated
+		on the fly through datalink.
 		"""
 		baseURL = self.rd.getById(dlService).getURL("dlget")
 		return ("'%%s?ID=%%s'%%(%s,"
 			" urllib.quote_plus(getStandardPubDID(rowIter.sourceToken)))"%(
 				repr(baseURL)))
 
-	def macro_fullDLMetaURL(self, dlService):
+	def macro_dlMetaURI(self, dlService):
 		r"""like fullDLURL, except it points to the datalink metadata.
 
 		This is intended for binding to //products#define's datalink

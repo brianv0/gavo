@@ -232,7 +232,7 @@ def computeWCSKeys(pos, size, cutCrap=False):
 			"bandpassHi": pos[0]+size[0],
 			"pixflags": None,
 			"accref": "image/%s/%s"%(pos, size),
-			"accsize": 30+int(pos[0]+pos[1]+size[0]+size[1]),
+			"accsize": (30+int(pos[0]+pos[1]+size[0]+size[1]))*1024,
 			"embargo": None,
 			"owner": None,
 		})

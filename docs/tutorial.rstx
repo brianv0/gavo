@@ -3003,7 +3003,45 @@ you::
 Here, the “dl” in the macro argument must be the id of the datalink
 service as discussed below.
 
-TODO: Using datalink URLs as accrefs
+In such situations, it is still usually advisable to use the datalink
+URL rather than the naked accref in the obscore table – for instance,
+when you are using a SIAP cutout on large image (obscore cannot do
+cutouts) or to allow format conversions.  To do that, you need to advise
+the obscore to use the datalink response; besides changing the access
+URL, you will also need to adjust the access_format (so clients know
+they will have to deal with a datalink) and the access_estsize (because
+they will not have to download the entire dataset in one go).  For the
+latter, it is hard to predict how large the datalink stream will end up
+being.  Guessing “about 10 kB” should be good enough, though.
+
+In total, the obscore mixin would have to look like this::
+
+ 		<mixin
+			mime="'application/x-votable;content=datalink'"
+			accessURL="datalink"
+			size="10"
+			...
+		>//obscore#publish(WHATEVER)</mixin>
+
+(in case you're wondering: the ``datalink`` given here for accessURL is
+just the column name as given above).
+
+
+Datalinks as accrefs
+''''''''''''''''''''
+
+In particular for large datasets, it is probably a good idea to keep
+people from blindly pulling the data without first having been made
+aware that what they're accessing is not just a little CCD frame.
+Having the datalink document as the primary document retrieved is a
+fairly good way to do that; of course, without a datalink-enabled client
+people might be locked out from the dataset entirely.  On the other
+hand, DaCHS comes with a stylesheet that enables datalink operation from
+a common web brower, so that's perhaps not too bad.
+
+To have datalinks rather than the plain dataset, you need to change what
+the
+
 
 Simple FITS Datalink Services
 '''''''''''''''''''''''''''''
@@ -3017,6 +3055,8 @@ something like::
 		<meta name="description">This service lets you access cutouts
 			from HDAP plates and retrieve scaled versions.</meta>
 		<datalinkCore>
+ 			<FEED source="//soda#fits_standardDLFuncs" stcs=" "
+				accrefPrefix="lswscans"/>
 			<metaMaker>
 				<code>
 					yield descriptor.makeLink(
@@ -3030,6 +3070,9 @@ something like::
 		</datalinkCore>
 	</service>
 
+TODO: Explain what's going on here.
+
+TBC
 
 .. _large section on it: http://docs.g-vo.org/DaCHS/ref.html#datalink-cores
 

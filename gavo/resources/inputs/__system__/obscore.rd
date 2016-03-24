@@ -560,7 +560,6 @@
 			>imageTitle</mixinPar>
 		<mixinPar name="ra" description="preset for SIAP">centerAlpha</mixinPar>
 		<mixinPar name="dec" description="preset for SIAP">centerDelta</mixinPar>
-		<mixinPar name="size" description="preset for SIAP">accsize</mixinPar>
 		<mixinPar name="fov" description="preset for SIAP; we use the
 			extent along the X axis as a very rough estimate for the size.
 			If you can do better, by all means do."
