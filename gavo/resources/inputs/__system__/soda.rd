@@ -744,17 +744,13 @@ This is a temporary location for procDefs and friends complying to
 			Pulls in all "standard" SODA functions for FITSes, including
 			cutouts and header retrieval.
 
-			You must give both an stcs attribute (for fits_makeWCSParams) and an
-			accrefPrefix attribute (for fits_genDesc).  Both can be empty,
-			however (but if you think you should be leaving them empty you
-			should probably think again).
+			You must give an stcs attribute (for fits_makeWCSParams); for now,
+			keep it empty (sorry about that).  If you do put something in,
+			do not include the quotes the procDef needs.
 
-			Do *not* add quotes to them, even though the proc parameters
-			have them; the STREAM already puts in single quotes.
+			To work, this needs a descriptor generator; you probably want
+			//soda#fits_genDesc here.
 		</doc>
-		<descriptorGenerator procDef="//soda#fits_genDesc" name="genFITSDesc">
-			<bind key="accrefPrefix">'\accrefPrefix'</bind>
-		</descriptorGenerator>
 		<metaMaker procDef="//soda#fits_makeWCSParams" name="getWCSParams">
 			<bind key="stcs">'\stcs'</bind>
 		</metaMaker>
