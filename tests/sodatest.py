@@ -751,6 +751,7 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 		svc = api.parseFromString(svcs.Service, """<service id="foo"
 				allowed="dlmeta,dlget">
 			<datalinkCore>
+				<descriptorGenerator procDef="//soda#fits_genDesc"/>
 				<FEED source="//soda#fits_standardDLFuncs"
 					stcs="" accrefPrefix=""/>
 			</datalinkCore></service>""")

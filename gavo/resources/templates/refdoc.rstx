@@ -256,7 +256,8 @@ Datalink-related Streams
 .. replaceWithResult getStreamsDoc(
     ['//datalink#'+id for id in ["sdm_plainfluxcalib", "sdm_cutout",
       "sdm_format", "fits_genKindPar", "fits_genPixelPar",
-      "fits_standardDLFuncs", "fits_standardLambdaCutout"]])
+      "fits_standardDLFuncs", "fits_standardLambdaCutout",
+      'fits_genDesc']])
 
 Other Streams
 '''''''''''''
@@ -1573,6 +1574,9 @@ Descriptor generators (see `element descriptorGenerator`_) are procedure
 applications that see a pubDID value and are expected to return a
 ``datalink.ProductDescriptor`` instance, or something derived from it.  
 
+Simple Product Descriptor Generator
+...................................
+
 In the end, this usually boils down to figuring out the value of accref
 in the product table and using what's there to construct the descriptor
 generator.  In the simplest case, the pubDID will be in DaCHS'
@@ -1587,7 +1591,8 @@ It's functionality is equivalent to this::
 
   <descriptorGenerator>
     <code>
-      return ProductDescriptor.fromAccref("/".join(pubDID.split("/")[4:]))
+      return ProductDescriptor.fromAccref(pubDID,
+        "/".join(pubDID.split("/")[4:]))
     </code>
   </descriptorGenerator>
 
@@ -1595,11 +1600,18 @@ It's functionality is equivalent to this::
 d.g., e.g., because you have some special logic to encode the accref in
 the PubDID).
 
+Incidentally, such custom pubDID schemes are what makes this so obscure.
+We'll try to come up with something a bit clearer as soon as the
+Datalink dust has settled.
+
 The default ``ProductDescriptor`` class exposes all the columns from the
 products table, i.e., accref, accessPath, mime, owner, embargo, 
 sourceTable, datalink (a specialised datalink service for this data
 set),
 preview, and previewMime in addition to the pubDID itself.
+
+Spectrum Product Descriptor Generators
+......................................
 
 A slightly more interesting example is provided by datalink for SSA,
 where cutouts and similar is generated from spectra.  The actual
@@ -1662,6 +1674,54 @@ minor speed benefit, keeping things like function or class definitions
 in setup allows easier re-use of such definitions in procedure
 applications and is therefore recommended.
 
+
+FITS Product Descriptor Generators
+..................................
+
+For FITS files, you will usually just just //soda#fits_genDesc,
+preferably giving its ``accrefStart`` parameter to prevent confusion.
+
+
+Custom Product Descriptor Generators
+....................................
+
+When the ``accessPath`` in the products table is the datalink already – as
+is sometimes desirable with large datasets –, the standard descriptor
+generators don't work, because they pull the physical file path from the
+product table.
+
+You therefore need to override the computation of the path.  This is
+done by deriving from the product descriptor path and manipulating its
+arguments.  Use the following pattern; this uses the
+``FITSProductDescriptor``, as its base class, but the principle otherwise
+is the same::
+
+			<descriptorGenerator procDef="//soda#fits_genDesc" 
+					name="genFITSDesc">
+				<bind key="accrefPrefix">'califa/data'</bind>
+				<setup>
+					<code>
+						class CALIFADescriptor(FITSProductDescriptor):
+							def __init__(self, *args, **kwargs):
+								kwargs["accessPath"] = os.path.join(
+									base.getConfig("inputsDir"),
+									kwargs["accref"])
+								FITSProductDescriptor.__init__(self, *args, **kwargs)
+					</code>
+				</setup>
+				<code>
+					return getFITSDescriptor(pubDID, CALIFADescriptor)
+				</code>
+			</descriptorGenerator>
+
+-- except that absent getFITSDescriptor you'd write something like::
+
+  <code>
+    return ProductDescriptor.fromAccref(pubDID, 
+      "/".join(pubDID.split("/")[4:]))
+  </code>
+
+as explained above.
 
 
 Meta Makers
@@ -2203,12 +2263,8 @@ A plain FITS cutout service is assembled like this::
   <service id="dl">
     <meta name="title">Generic FITS datalink service</meta>
     <datalinkCore>
-      <descriptorGenerator procDef="//datalink#fits_genDesc"/>
-      <metaMaker procDef="//datalink#fits_makeWCSParams"/>
-      <dataFunction procDef="//datalink#fits_makeHDUList"/>
-      <dataFunction procDef="//datalink#fits_doWCSCutout"/>
-      <FEED source="//datalink#fits_genKindPar"/>
-      <dataFormatter procDef="//datalink#fits_formatHDUs"/>
+      <descriptorGenerator procDef="//soda#fits_genDesc"/>
+      <FEED source="//soda#fits_standardDLFuncs" stcs=""/>
     </datalinkCore>
   </service>
 
@@ -2217,44 +2273,14 @@ STC metadata.  Good datalink services do better; by giving more
 metadata, you of course commit to certain FITS structures, which means
 that you should restrict to only those files that actually match your
 assumptions.  The easiest way to do this is to structure your input
-directories accordingly and then filter early by using fits_getDesc's
-``accrefStart`` parameter.  The STC declaration was already discussed
-above, and so a more realistic datalink service might look like this::
+directories accordingly and then filter early by using fits_genDesc's
+``accrefStart`` parameter.  If, for instance, the data processed where
+in INPUTSDIR/thisdata/release2, you would give your descriptor generator
+as::
 
-  <service id="dl">
-    <meta name="title">Datalink service for califa cubes</meta>
-    <datalinkCore>
-      <descriptorGenerator procDef="//datalink#fits_genDesc">
-        <bind key="accrefStart">califa/data/cubes"</bind>
-      </descriptorGenerator>
-      <metaMaker procDef="//datalink#fits_makeWCSParams">
-        <bind key="stcs"
-          >('PositionInterval ICRS "RA_MIN" "DEC_MIN" "RA_MAX" "DEC_MAX"\n'
-            'SpectralInterval TOPOCENTER "WAVELEN_1_MIN" "WAVELEN_1_MAX"')
-         </bind>
-        </metaMaker>
-      <dataFunction procDef="//datalink#fits_makeHDUList"/>
-      <dataFunction procDef="//datalink#fits_doWCSCutout"/>
-      <FEED source="//datalink#fits_genKindPar"/>
-      <dataFormatter procDef="//datalink#fits_formatHDUs"/>
-    </datalinkCore>
-  </service>
-
-All of this (and potentially more as we expand the manipulation options)
-is included with the `//datalink#fits_standardDLFuncs`_ STREAM; the above
-specification then boils down to::
-
-  <service id="dl">
-    <meta name="title">Shortened FITS datalink service.</meta>
-    <datalinkCore>
-      <FEED source="//datalink#fits_standardDLFuncs"
-        stcs='PositionInterval ICRS "RA_MIN" "DEC_MIN" "RA_MAX" 
-          "DEC_MAX"\n
-            SpectralInterval TOPOCENTER "WAVELEN_1_MIN" "WAVELEN_1_MAX"'
-        accrefStart="califa/data/cubes"/>
-    </datalinkCore>
-  </service>
-
+  <descriptorGenerator procDef="//soda#fits_genDesc">
+    <bind key="accrefPrefix">"thisdata/release2"</bind>
+  </descriptorGenerator>
 
 TODO: Custom function, return link to error file.
 

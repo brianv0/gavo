@@ -137,10 +137,12 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
     </xsl:template>
 
     <xsl:template match="vot:TD" mode="access_url">
+      <xsl:if test="string(.)">
            <a class="datalink">
                <xsl:attribute name="href">
                     <xsl:value-of select="."/>
                </xsl:attribute>Link</a>
+      </xsl:if>
     </xsl:template>
 
     <xsl:template name="format-file-size">
@@ -173,9 +175,11 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
     </xsl:template>
 
     <xsl:template match="vot:TD" mode="error_message">
+        <xsl:if test="string(.)">
             <span class="errmsg">
                     <xsl:value-of select="."/>
             </span>
+        </xsl:if>
     </xsl:template>
 
     <xsl:template match="vot:TD" mode="description">
@@ -417,6 +421,11 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
     	      white-space: nowrap;
     	      background-color: white;
     	  }
+
+        .errmsg {
+          border: 2pt solid red;
+          padding: 1ex;
+        }
 
     	  span.ivoid-container:hover {
     	      overflow: visible;

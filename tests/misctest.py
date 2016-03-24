@@ -1094,7 +1094,7 @@ class RDManiTest(testhelpers.VerboseTest):
 			' description="random number">\n\t\t\t'
 			'<values nullLiteral="-1"/>\n\t\t</column>'
 			'\n\t\t<column original="accsize">\n\t\t\t'
-			'<values \n\t\t\t\tmin="213" \n\t\t\t\tmax="225"/>'
+			'<values \n\t\t\t\tmin="213" \n\t\t\t\tmax="225" nullLiteral="-1"/>'
 			'\n\t\t</column>\n\t\t'
 			'<column original="ssa_redshift">\n\t\t\t'
 			'<values \n\t\t\t\tmin="-0.001" max="0.7"/>\n\t\t</column>\n'

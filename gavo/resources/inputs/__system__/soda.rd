@@ -255,7 +255,7 @@ This is a temporary location for procDefs and friends complying to
 		</doc>
 		<setup>
 			<code>
-				def getFITSDescriptor(pubDID):
+				def getFITSDescriptor(pubDID, cls=FITSProductDescriptor):
 					try:
 						accref = getAccrefFromStandardPubDID(pubDID)
 					except ValueError:
@@ -267,7 +267,7 @@ This is a temporary location for procDefs and friends complying to
 							"This SODA service not available"
 							" with this pubDID")
 
-					return FITSProductDescriptor.fromAccref(pubDID, accref)
+					return cls.fromAccref(pubDID, accref)
 			</code>
 
 			<par key="accrefPrefix" description="A prefix for the accrefs 
