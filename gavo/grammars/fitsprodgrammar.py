@@ -31,7 +31,7 @@ class FITSProdIterator(RowIterator):
 
 		In reality, I'm just trying to cope with oversized keywords.
 		"""
-		mat = re.match(r"([^\s=]*)\s*=\s*([^/]+)", card._cardimage)
+		mat = re.match(r"([^\s=]*)\s*=\s*([^/]+)", card.cardimage)
 		if mat:
 			res[mat.group(1)] = mat.group(2).strip()
 		else: # Card beyond recognition, ignore
@@ -42,7 +42,7 @@ class FITSProdIterator(RowIterator):
 		for card in header.ascard:
 			try:
 				res[card.key.replace("-", "_")] = card.value
-			except ValueError:
+			except (ValueError, pyfits.VerifyError):
 				self._hackBotchedCard(card, res)
 		res["header_"] = header
 		if self.grammar.hdusField:
