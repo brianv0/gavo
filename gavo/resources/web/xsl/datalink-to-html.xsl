@@ -559,7 +559,7 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
                       update_SODA_widget(this, 'BAND', FROM_SPECTRAL_CONVERSIONS)">
                     <option>m</option>
                     <option>µm</option>
-                    <option>Ångstrøm</option>
+                    <option>Ångström</option>
                     <option>MHz</option>
                     <option>keV</option>
                 </select>
