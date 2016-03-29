@@ -178,7 +178,7 @@ PLANCK_H_EV = 4.135667662e-15;
 TO_SPECTRAL_CONVERSIONS = {
 	'm': function(val) { return val; },
 	'µm': function(val) { return val*1e6; },
-	'Ångstrøm': function(val) { return val*1e10; },
+	'Ångström': function(val) { return val*1e10; },
 	'MHz': function(val) { return LIGHT_C/val*1e-6; },
 	'keV': function(val) { return LIGHT_C*PLANCK_H_EV/val*1e-3; }};
 
