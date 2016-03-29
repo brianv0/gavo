@@ -730,6 +730,9 @@ This is a temporary location for procDefs and friends complying to
 			in the spectralAxis attribute; if needed, you can override the
 			unit in wavelengthUnit (if the unit in the header is somehow 
 			bad or missing; don't use quotes here).
+
+			This *must* be included  physically before fits_doWCSCutout.
+			Otherwise, no cutout will be performed.
 		</doc>
 
 		<metaMaker procDef="//soda#fits_makeBANDMeta">

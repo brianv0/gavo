@@ -2,7 +2,7 @@
 // other JS support for the improvised soda interface.
 // See https://github.com/msdemlei/datalink-xslt.git
 //
-// The needs jquery loaded before it
+// The needs jquery loaded before it.
 
 
 ///////////// Micro templating.  
@@ -114,8 +114,20 @@ function Rubberband(canvas,
 		return high_dec-pix_val/(1.0*canvas_height)*phys_height;
 	}
 
+	// workaround for missing offsetX/Y in firefox (why doesn't jquery fix
+	// this?); e is a jquery event
+	self._computeOffsets = function(e) {
+		if (e.offsetX==undefined) {
+			e.offsetX = e.pageX - $(e.target).offset().left;
+		}
+		if (e.offsetY==undefined) {
+			e.offsetY = e.pageY - $(e.target).offset().top;
+		}
+	}
+
 	self.start_rubberband = function(e) {
 		e.preventDefault();
+		self._computeOffsets(e);
 		self.x = e.offsetX;
 		self.y = e.offsetY;
 		$(canvas).mousemove(self.update_rubberband);
@@ -125,6 +137,7 @@ function Rubberband(canvas,
 	
 	self.update_rubberband = function(e) {
 		e.preventDefault();
+		self._computeOffsets(e);
 		var rel_x = e.offsetX;
 		var rel_y = e.offsetY;
 		self.width = rel_x-self.x;
@@ -205,9 +218,6 @@ function add_BAND_widget() {
 				low_limit: low_limit,
 				high_limit: high_limit});
 		el.parent().prepend(new_widget);
-
-		form.submit(
-			function() {new_widget.remove();});
 	});
 }
 
@@ -250,6 +260,7 @@ function add_POS_widget() {
 				+"&width="+width
 				+"&height="+height
 				+"&hips=CDS/P/DSS2/color";
+//		image_url = "http://dc.g-vo.org/static/img/logo_medium.png";
 		$(new_widget).find("img").attr({
 			src: image_url,
 			width: width,
@@ -265,9 +276,17 @@ function add_POS_widget() {
 // call the various handler functions for known three-factor widgets.
 // (this is called from the document's ready handler and thus is the
 // main entry point into the magic here)
-function replace_known_widgets() {
+function add_custom_widgets() {
 	add_BAND_widget();
 	add_POS_widget();
+	// in order to hide the extra inputs from the browser when sending
+	// off the form, we need to override the submit action
+	$("form.service-interface").bind("submit",
+		function(event) {
+			event.preventDefault();
+			window.open(
+				build_result_URL(event.target));
+		});
 }
 
 
@@ -397,5 +416,5 @@ function enable_SAMP() {
 	$("form.service-interface").each(enable_SAMP_on_form);
 }
 
-$(document).ready(replace_known_widgets);
+$(document).ready(add_custom_widgets);
 $(document).ready(enable_SAMP);
