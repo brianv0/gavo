@@ -590,9 +590,9 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 						3:    {"name": "ANGSTROMS", "unit": "0.1nm"}}
 					</bind>
 				</metaMaker>
-				<FEED source="//soda#fits_standardLambdaCutout"
+				<FEED source="//soda#fits_standardBANDCutout"
 					spectralAxis="3"
-					wavelengthUnit="'0.1nm'"/>
+					wavelengthUnit="0.1nm"/>
 			</datalinkCore></service>""")
 		svc.parent = testhelpers.getTestRD()
 
@@ -637,16 +637,16 @@ class DatalinkFITSTest(testhelpers.VerboseTest):
 		self.assertEqual(hdr["NAXIS2"], 7)
 		self.assertEqual(hdr["NAXIS3"], 2)
 
-	def testCutoutLAMBDACube(self):
+	def testCutoutBANDCube(self):
 		svc = api.parseFromString(svcs.Service, """<service id="foo"
 				allowed="dlmeta,dlget">
 			<datalinkCore>
 				<descriptorGenerator procDef="//soda#fits_genDesc"/>
 				<metaMaker procDef="//soda#fits_makeWCSParams"/>
 				<dataFunction procDef="//soda#fits_makeHDUList"/>
-				<FEED source="//soda#fits_standardLambdaCutout"
+				<FEED source="//soda#fits_standardBANDCutout"
 					spectralAxis="3"
-					wavelengthUnit="'0.1nm'"/>
+					wavelengthUnit="0.1nm"/>
 				<dataFunction procDef="//soda#fits_doWCSCutout"/>
 				<dataFormatter procDef="//soda#fits_formatHDUs"/>
 			</datalinkCore></service>""")

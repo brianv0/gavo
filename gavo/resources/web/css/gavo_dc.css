@@ -183,7 +183,7 @@ span.genparam-value {
 div#header, div#chdr {
 	background: #899dbf;
 	margin-bottom: 34px;
-	height: 58px;
+	height: 44pt;
 	width: 100%;
 }
 
@@ -192,7 +192,11 @@ div#chdr {
 }
 
 h1, h2, h3, h4, h5 { color: #666; }
+
 h1 { 
+	height: 30pt;
+	padding-top:9pt;
+	padding-bottom:5pt;
 	font-size: 17pt;
 	font-weight: bold;
 	font-family: Arial, Verdana, Helvetica, sans-serif;
@@ -200,8 +204,7 @@ h1 {
 	background: #F0F4FF;
 	padding-left: 0.5ex;
 	margin-top: 0px;
-	padding-top: 1ex;
-	padding-bottom: 1ex;
+	z-index: 0;
 }
 
 h2 { 
@@ -371,7 +374,7 @@ li.metaItem {
 }
 
 .headlinelogo {
-	height: 58px; /* as high as div#header */
+	height: 44pt; /* as high as div#header */
 }
 
 div.explodable {

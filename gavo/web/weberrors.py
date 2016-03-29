@@ -105,8 +105,8 @@ class NotFoundPage(ErrorPage):
 		T.head(render=T.directive("commonhead"))[
 			T.title(render=T.directive("titlemessage"))],
 		T.body[
-			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
-				"right:0pt"),
+			T.img(src="/static/img/logo_medium.png", class_="headlinelogo",
+				style="position:absolute;right:5pt"),
 			T.h1["Resource Not Found (404)"],
 			T.p["We're sorry, but the resource you requested could not be located."],
 			T.p(render=T.directive("message")),
@@ -145,8 +145,8 @@ class ForbiddenPage(ErrorPage):
 		T.head(render=T.directive("commonhead"))[
 			T.title(render=T.directive("titlemessage"))],
 		T.body[
-			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
-				"right:0pt"),
+			T.img(src="/static/img/logo_medium.png", class_="headlinelogo",
+				style="position:absolute;right:5pt"),
 			T.h1["Access denied (403)"],
 			T.p["We're sorry, but the resource you requested is forbidden."],
 			T.p(render=T.directive("message")),
@@ -185,8 +185,8 @@ class RedirectPage(RedirectBase):
 		T.head(render=T.directive("commonhead"))[
 			T.title(render=T.directive("titlemessage"))],
 		T.body[
-			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
-				"right:0pt"),
+			T.img(src="/static/img/logo_medium.png", class_="headlinelogo",
+				style="position:absolute;right:5pt"),
 			T.h1["Moved permanently (301)"],
 			T.p["The resource you requested is available from a ",
 				T.a(render=T.directive("destLink"))[
@@ -208,8 +208,8 @@ class SeeOtherPage(RedirectBase):
 		T.head(render=T.directive("commonhead"))[
 			T.title(render=T.directive("titlemessage"))],
 		T.body[
-			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
-				"right:0pt"),
+			T.img(src="/static/img/logo_medium.png", class_="headlinelogo",
+				style="position:absolute;right:5pt"),
 			T.h1["See also (303)"],
 			T.p["Please turn to a ",
 				T.a(render=T.directive("destLink"))[
@@ -244,8 +244,8 @@ class BadMethodPage(ErrorPage):
 		T.head(render=T.directive("commonhead"))[
 			T.title(render=T.directive("titlemessage"))],
 		T.body[
-			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
-				"right:0pt"),
+			T.img(src="/static/img/logo_medium.png", class_="headlinelogo",
+				style="position:absolute;right:5pt"),
 			T.h1["Bad Method (405)"],
 			T.p["You just tried to use some HTTP method to access this resource"
 				" that this resource does not support.  This probably means that"
@@ -267,8 +267,8 @@ class NotAcceptable(ErrorPage):
 		T.head(render=T.directive("commonhead"))[
 			T.title(render=T.directive("titlemessage"))],
 		T.body[
-			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
-				"right:0pt"),
+			T.img(src="/static/img/logo_medium.png", class_="headlinelogo",
+				style="position:absolute;right:5pt"),
 			T.h1["Not Acceptable (406)"],
 			T.p["The server cannot generate the data you requested."
 				"  The associated message is:"],
@@ -286,8 +286,8 @@ class ErrorDisplay(ErrorPage):
 		T.head(render=T.directive("commonhead"))[
 			T.title(render=T.directive("titlemessage"))],
 		T.body[
-			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
-				"right:0pt"),
+			T.img(src="/static/img/logo_medium.png", class_="headlinelogo",
+				style="position:absolute;right:5pt"),
 			T.h1["Server-side Error (500)"],
 			T.p(render=T.directive("message")),
 			T.p["This usually means we've fouled up, and there's no"
@@ -362,8 +362,8 @@ class InternalServerErrorPage(ErrorPage):
 		T.head(render=T.directive("commonhead"))[
 			T.title(render=T.directive("titlemessage"))],
 		T.body[
-			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
-				"right:0pt"),
+			T.img(src="/static/img/logo_medium.png", class_="headlinelogo",
+				style="position:absolute;right:5pt"),
 			T.h1["Server Error (500)"],
 			T.p["Your action has caused a(n) ",
 				T.span(render=str, data=T.directive("excname")),

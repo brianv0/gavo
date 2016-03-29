@@ -39,6 +39,14 @@ class DBConnection(testhelpers.TestResource):
 			conn.commit()
 			conn.close()
 
+	def finishedWith(self, resource, result=None):
+		testhelpers.TestResource.finishedWith(self, resource, result)
+		try:
+			resource.rollback()
+		except base.DBError:
+			# the connection probably has been closed.  Let someone else
+			# worry about it.
+			pass
 
 dbConnection = DBConnection()
 
@@ -174,8 +182,6 @@ class RDDataResource(testhelpers.TestResource):
 
 	def make(self, deps):
 		self.conn = deps["conn"]
-		print "Importing %s %s using %s:"%(self.rdName, self.dataId, list(
-			self.conn.queryToDicts("SELECT pg_backend_pid()"))[0]["pg_backend_pid"])
 		dd = base.caches.getRD(self.rdName).getById(self.dataId)
 		self.dataCreated = rsc.makeData(dd, connection=self.conn)
 		return self.dataCreated.getPrimaryTable()
@@ -184,7 +190,6 @@ class RDDataResource(testhelpers.TestResource):
 		self.conn.rollback()
 		self.dataCreated.dropTables(rsc.parseNonValidating)
 		self.conn.commit()
-		print "Committed drop of %s %s"%(self.rdName, self.dataId)
 
 
 class CSTestTable(RDDataResource):
