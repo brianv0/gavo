@@ -13,6 +13,7 @@ More on this in "Datalink Cores" in the reference documentation.
 import itertools
 import inspect
 import os
+import urllib
 
 from gavo import base
 from gavo import rsc
@@ -688,12 +689,22 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 			if hasattr(d, "suppressAutoLinks"):
 				continue
 
-			internalLinks.append(LinkDef(d.pubDID, 
-				products.makeProductLink(d.accref),
-				description="The full dataset.",
-				contentType=d.mime,
-				contentLength=d.estimateSize(),
-				semantics="#this"))
+			# if the accref is a datalink document, go through dlget itself.
+			if d.mime=="application/x-votable+xml;content=datalink":
+				internalLinks.append(LinkDef(d.pubDID, 
+					service.getURL("dlget")+"?ID=%s"%urllib.quote(d.pubDID),
+					description="The full dataset.",
+					contentType=products.guessMediaType(d.accref),
+					contentLength=d.estimateSize(),
+					semantics="#this"))
+
+			else:
+				internalLinks.append(LinkDef(d.pubDID, 
+					products.makeProductLink(d.accref),
+					description="The full dataset.",
+					contentType=d.mime,
+					contentLength=d.estimateSize(),
+					semantics="#this"))
 
 			if getattr(d, "preview", None):
 				if d.preview.startswith("http"):

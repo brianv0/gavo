@@ -762,6 +762,19 @@ class DatalinkSTCTest(testhelpers.VerboseTest):
 		self.assertEqual(names, set(["DEC_MAX", "BET_MAX"]))
 
 
+class MiscTest(testhelpers.VerboseTest):
+	def testMediaGuessFITS(self):
+		self.assertEqual(products.guessMediaType("foo/bar/gaz42h+88.old.fits"),
+			"image/fits")
+
+	def testMediaGuessVOTable(self):
+		self.assertEqual(products.guessMediaType("bal.vot"),
+			'application/x-votable+xml')
+
+	def testFallback(self):
+		self.assertEqual(products.guessMediaType("voo/bar.d/basz"),
+			"application/octet-stream")
+
 
 if __name__=="__main__":
 	testhelpers.main(DatalinkFITSTest)

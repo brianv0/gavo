@@ -89,6 +89,28 @@ getProductsTable = utils.CachedGetter(
 	isAlive=lambda t: not t.connection.closed)
 
 
+@utils.memoized
+def _getMediaTypes():
+	"""returns a dictionary mapping extensions to media types.
+	"""
+	extraMaps = {
+		".vot": base.votableType,
+	}
+	res = static.loadMimeTypes()
+	res.update(extraMaps)
+	return res
+
+
+def guessMediaType(fName):
+	"""returns a guess for a media type appropriate for fName.
+
+	This will fall back to application/octet-stream.
+	"""
+	try:
+		return _getMediaTypes()[os.path.splitext(fName)[-1]]
+	except:
+		return "application/octet-stream"
+
 def makePreviewFromFITS(product):
 	"""returns image/jpeg bytes for a preview of a product spitting out a
 	2D FITS.
