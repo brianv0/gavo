@@ -528,11 +528,11 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
         } ]]>
     	</style>
     	<script type="text/javascript" 
-    	  src="http://localhost:8080/static/js/jquery-gavo.js"/>
+    	  src="http://dc.g-vo.org/static/js/jquery-gavo.js"/>
       <script type="text/javascript" 
-        src="http://localhost:8080/static/js/samp.js"/>
+        src="http://dc.g-vo.org/static/js/samp.js"/>
       <script type="text/javascript"
-        src="http://localhost:8080/static/js/sodapars.js"/>
+        src="http://dc.g-vo.org/static/js/sodapars.js"/>
     	</head>
     	<body>
     	  
