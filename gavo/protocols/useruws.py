@@ -106,6 +106,7 @@ class UserUWS(uws.UWSWithQueueing):
 		"useruws-job-to-html.xsl' type='text/xsl'?>")
 
 	def __init__(self, service, jobActions):
+		self.runcountGoal = base.getConfig("async", "maxUserUWSRunningDefault")
 		self.service = weakref.proxy(service)
 		uws.UWSWithQueueing.__init__(self, 
 			makeUserUWSJobClass(service), jobActions)
@@ -119,7 +120,7 @@ class UserUWS(uws.UWSWithQueueing):
 		However, in a user UWS, there can be jobs from multiple services.
 		It would be nonsense to load another UWS's job's parameters into our
 		job class.  To prevent this, we redirect if we find the new job's
-		class isn't ourse. On the web interface, that should do the trick.  
+		class isn't ours. On the web interface, that should do the trick.  
 		Everywhere else, this may not be entirely clear but still prevent 
 		major confusion.
 
