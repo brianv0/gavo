@@ -447,6 +447,8 @@ _config = Configuration(
 			" for UWS jobs, in seconds"),
 		IntConfigItem("maxTAPRunning", "2", "Maximum number of"
 			" TAP jobs running at a time"),
+		IntConfigItem("maxUserUWSRunningDefault", "2", "Maximum number of"
+			" user UWS jobs running at a time"),
 		IntConfigItem("defaultLifetime", "172800", "Default"
 			" time to destruction for UWS jobs, in seconds"),
 		IntConfigItem("defaultMAXREC", "2000",

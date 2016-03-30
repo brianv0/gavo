@@ -662,7 +662,7 @@ class AsyncRendererBase(grend.ServiceBasedPage):
 		from gavo.web import asyncrender
 
 		# no trailing slashes here, ever (there probably should be central
-		# code for this somewhere, as this is done in taprender, too, and
+		# code for this somewhere, as this is done in taprender and
 		# possibly in other places, too)
 		if segments and not segments[-1]: # trailing slashes are forbidden here
 			newSegments = "/".join(segments[:-1])

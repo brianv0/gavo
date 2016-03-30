@@ -79,6 +79,10 @@ class MethodAwareResource(rend.Page):
 
 class UWSErrorMixin(object):
 	def _deliverError(self, failure, request):
+		# let auth requests fall through
+		if isinstance(failure.value, svcs.Authenticate):
+			return failure
+
 		if not isinstance(failure.value, uws.JobNotFound):
 			base.ui.notifyFailure(failure)
 		request.setHeader("content-type", "text/xml")
@@ -89,9 +93,15 @@ class JoblistResource(MethodAwareResource, UWSErrorMixin):
 	"""The web resource corresponding to async root.
 
 	GET yields a job list, POST creates a job.
+
+	There's an extra hack not in UWS: if get with something like
+	dachs_authenticate=anything and haven't passed a user, this will ask 
+	for credentials.
 	"""
 	def _doGET(self, ctx, request):
-		res = uwsactions.getJobList(self.workerSystem)
+		if request.args.has_key("dachs_authenticate") and not request.getUser():
+			raise svcs.Authenticate()
+		res = uwsactions.getJobList(self.workerSystem, request.getUser() or None)
 		return res
 	
 	def _doPOST(self, ctx, request):

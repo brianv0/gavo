@@ -767,10 +767,54 @@ def _setUser(username):
 
 class TestUWSAuth(trialhelpers.ArchiveTest):
 
+
 	def testAuthBig(self):
-		
+		def cleanupNext(result, jobURL2):
+			return trialhelpers.runQuery(self.renderer, "DELETE",
+				jobURL2, {})
+
+		def assertUnauthenticatedSeesAll(result, jobURL, jobURL2):
+			self.assertTrue(jobURL in result[0])
+			self.assertTrue(jobURL2 in result[0])
+			return trialhelpers.runQuery(self.renderer, "DELETE", 
+				jobURL, {}
+			).addCallback(cleanupNext, jobURL2)
+
+		def assertOnlyOwnedJobsVisible(result, jobURL, jobURL2):
+			self.assertTrue(jobURL in result[0])
+			self.assertFalse(jobURL2 in result[0], "public job in private job list")
+			return trialhelpers.runQuery(self.renderer, "GET", 
+				"/".join(jobURL.split("/")[:-1]), {}
+			).addCallback(assertUnauthenticatedSeesAll, jobURL, jobURL2)
+
+		def queryJobList(result, jobURL):
+			jobURL2 = _nukeHostPart(result[1].headers["location"])
+			return trialhelpers.runQuery(self.renderer, "GET", 
+				"/".join(jobURL.split("/")[:-1]), {},
+				requestMogrifier=_setUser("testuser")
+			).addCallback(assertOnlyOwnedJobsVisible, jobURL, jobURL2)
+
+		def assertNoGeneralAccess(result, jobURL):
+			self.assertEqual(result[1].code, 401)
+			# now create an anonymous job so you can see whether it's visible
+			return trialhelpers.runQuery(self.renderer, "POST", 
+				"/data/cores/pc/uws.xml", {
+					"opre": ["5"], "opim": ["7"], "powers": ["8", "9", "10"]}
+				).addCallback(queryJobList, jobURL)
+				
+
+		def assertAuthenticatedAccess(result, jobURL):
+			self.failUnless("<uws:ownerId>testuser</uws:ownerId>" in result[0])
+			self.failUnless("1 2 3</uws:parame" in result[0])
+			return trialhelpers.runQuery(self.renderer, "GET", 
+				jobURL, {},
+			).addCallback(assertNoGeneralAccess, jobURL)
+
 		def assertOwnerSet(result, jobURL):
 			self.assertEqual(result[0], "testuser")
+			return trialhelpers.runQuery(self.renderer, "GET", 
+				jobURL, {}, requestMogrifier=_setUser("testuser")
+			).addCallback(assertAuthenticatedAccess, jobURL)
 
 		def assertPosted(result):
 			request = result[1]

@@ -134,9 +134,9 @@ class UWS(object):
 		_mayBeEmpty = True
 
 
-def getJobList(workerSystem):
+def getJobList(workerSystem, forOwner=None):
 	result = UWS.jobs()
-	for jobId, phase in workerSystem.getIdsAndPhases():
+	for jobId, phase in workerSystem.getIdsAndPhases(forOwner):
 		result[
 			UWS.jobref(id=jobId, href=workerSystem.getURLForId(jobId))[
 				UWS.phase[phase]]]
@@ -190,6 +190,10 @@ class JobActions(object):
 		cls._standardActions[actionClass.name] = actionClass()
 
 	def dispatch(self, action, job, request, segments):
+		if job.owner:
+			if request.getUser()!=job.owner:
+				raise svcs.Authenticate()
+
 		try:
 			resFactory = self.actions[action]
 		except KeyError:

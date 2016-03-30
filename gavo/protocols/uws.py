@@ -152,6 +152,9 @@ class UWS(object):
 				[td.getColumnByName("jobId")], "")
 			res["getIdsAndPhases"] = jobsTable.getQuery(
 				[td.getColumnByName("jobId"), td.getColumnByName("phase")], "")
+			res["getIdsAndPhasesForOwner"] = jobsTable.getQuery(
+				[td.getColumnByName("jobId"), td.getColumnByName("phase")], 
+					"owner=%(owner)s", {"owner": ""})
 
 			countField = base.makeStruct(
 				svcs.OutputField, name="count", type="integer", select="count(*)")
@@ -351,12 +354,17 @@ class UWS(object):
 		with base.getTableConn() as conn:
 			return [r["jobId"] for r in self.runCanned('getAllIds', {}, conn)]
 
-	def getIdsAndPhases(self):
+	def getIdsAndPhases(self, owner=None):
 		"""returns pairs for id and phase for all jobs in the UWS.
 		"""
 		with base.getTableConn() as conn:
-			return [(r["jobId"], r["phase"])
-				for r in self.runCanned('getIdsAndPhases', {}, conn)]
+			if owner:
+				return [(r["jobId"], r["phase"])
+					for r in self.runCanned('getIdsAndPhasesForOwner', 
+						{"owner": owner}, conn)]
+			else:
+				return [(r["jobId"], r["phase"])
+					for r in self.runCanned('getIdsAndPhases', {}, conn)]
 
 	def cleanupJobsTable(self, includeFailed=False, includeCompleted=False,
 			includeAll=False, includeForgotten=False):
