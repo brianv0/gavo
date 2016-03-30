@@ -30,8 +30,6 @@ class DBConnection(testhelpers.TestResource):
 
 	def make(self, ignored):
 		conn = base.getDBConnection("admin")
-		print "Main querier now:", list(
-			conn.queryToDicts("SELECT pg_backend_pid()"))[0]["pg_backend_pid"]
 		return conn
 	
 	def clean(self, conn):

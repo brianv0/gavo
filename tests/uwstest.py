@@ -285,6 +285,10 @@ def _makeUWSRequest(inArgs, inMethod="GET", inFields={}):
 		args = inArgs
 		method = inMethod
 		fields = inFields
+	
+		@classmethod
+		def getUser(cls):
+			return None
 
 		@classmethod
 		def setHeader(cls, key, value):

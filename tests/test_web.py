@@ -760,6 +760,32 @@ class TestUserUWS(trialhelpers.ArchiveTest):
 		).addCallback(getJobURL)
 
 
+def _setUser(username):
+	def _(request):
+		request.user = username
+	return _
+
+class TestUWSAuth(trialhelpers.ArchiveTest):
+
+	def testAuthBig(self):
+		
+		def assertOwnerSet(result, jobURL):
+			self.assertEqual(result[0], "testuser")
+
+		def assertPosted(result):
+			request = result[1]
+			jobURL = _nukeHostPart(request.headers["location"])
+			return trialhelpers.runQuery(self.renderer, "GET", 
+				jobURL+"/owner", {}, requestMogrifier=_setUser("testuser")
+			).addCallback(assertOwnerSet, jobURL)
+
+		return trialhelpers.runQuery(self.renderer, "POST", 
+			"/data/cores/pc/uws.xml", {
+				"opre": ["1"], "opim": ["3"], "powers": ["1", "2", "3"]},
+			requestMogrifier=_setUser("testuser")
+		).addCallback(assertPosted)
+
+
 atexit.register(trialhelpers.provideRDData("test", "import_fitsprod"))
 atexit.register(trialhelpers.provideRDData("cores", "import_conecat"))
 atexit.register(trialhelpers.provideRDData("test", "ADQLTest"))

@@ -241,6 +241,8 @@ class UWS(object):
 		jobId = self.getNewJobId()
 		with self.changeableJob(jobId) as wjob:
 			wjob.setParamsFromRequest(request)
+			if request.getUser():
+				wjob.change(owner=request.getUser())
 		return jobId
 
 	def _getJob(self, jobId, conn, writable=False):

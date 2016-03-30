@@ -376,7 +376,6 @@ JobActions.addStandardAction(QuoteAction)
 
 
 class OwnerAction(JobAction):
-	# we do not support auth yet, so this is a no-op.
 	name = "owner"
 	mime = "text/plain"
 
