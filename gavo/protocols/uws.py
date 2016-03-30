@@ -246,6 +246,9 @@ class UWS(object):
 	def _getJob(self, jobId, conn, writable=False):
 		"""helps getJob and getNewJob.
 		"""
+		# Caution: this code is copied in useruws.UserUWS._getJob
+		# If you find you need to change this, this may be a good
+		# time to figure out how to refactor  this method.
 		statementId = 'getById'
 		if writable:
 			statementId = 'getByIdEx'

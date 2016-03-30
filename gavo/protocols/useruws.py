@@ -18,6 +18,7 @@ from gavo import base
 from gavo import formats
 from gavo import rsc
 from gavo import rscdesc #noflake: for registration
+from gavo import svcs
 from gavo.protocols import uws
 from gavo.protocols import uwsactions
 
@@ -112,7 +113,34 @@ class UserUWS(uws.UWSWithQueueing):
 	def getURLForId(self, jobId):
 		return self.service.getURL("uws.xml")+"/"+jobId
 
+	def _getJob(self, jobId, conn, writable=False):
+		"""returns the named job as uws.UWS._getJob.
 
+		However, in a user UWS, there can be jobs from multiple services.
+		It would be nonsense to load another UWS's job's parameters into our
+		job class.  To prevent this, we redirect if we find the new job's
+		class isn't ourse. On the web interface, that should do the trick.  
+		Everywhere else, this may not be entirely clear but still prevent 
+		major confusion.
+
+		This is repeating code from uws.UWS._getJob; some refactoring at
+		some point would be nice.
+		"""
+		statementId = 'getById'
+		if writable:
+			statementId = 'getByIdEx'
+		res = self.runCanned(statementId, {"jobId": jobId}, conn)
+		if len(res)!=1:
+			raise uws.JobNotFound(jobId)
+	
+		if res[0]["jobClass"]!=self.service.getFullId():
+			raise svcs.WebRedirect(
+				base.resolveCrossId(res[0]["jobClass"]).uws.getURLForId(jobId))
+
+		return self.jobClass(res[0], self, writable)
+
+
+		
 def makeUWSForService(service):
 	"""returns a UserUWS instance tailored to service.
 

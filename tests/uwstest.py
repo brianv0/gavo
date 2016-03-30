@@ -376,6 +376,23 @@ class UserUWSTest(testhelpers.VerboseTest):
 		finally:
 			worker.destroy(job.jobId)
 
+	def properClassDeserialisationTest(self):
+		worker1 = base.resolveCrossId("data/cores#pc").getUWS()
+		worker2 = base.resolveCrossId("data/cores#uc").getUWS()
+		jobId = worker1.getNewIdFromRequest(
+			_makeUWSRequest({"opre": ["29"], "powers": "2 3 4".split()}),
+			worker1.service)
+		try:
+			try:
+				deserJob = worker2.getJob(jobId)
+			except svcs.WebRedirect, ex:
+				self.assertEqual(ex.dest, 
+					"http://localhost:8080/data/cores/pc/uws.xml/"+jobId)
+			else:
+				self.fail("Construction of job with wrong UWS doesn't redirect")
+		finally:
+			worker1.destroy(jobId)
+
 
 if __name__=="__main__":
 	testhelpers.main(JobHandlingTest)
