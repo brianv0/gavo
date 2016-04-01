@@ -9,6 +9,7 @@ Common code for the nevow based interface.
 
 
 import cgi
+import re
 import urllib
 
 from nevow import appserver
@@ -203,6 +204,22 @@ class CommonRenderers(object):
 		if isinstance(data, unicode):
 			data = data.encode("utf-8")
 		return urllib.quote(data)
+	
+	def render_getconfig(self, ctx, data):
+		"""looks up the text child in the DaCHS configuration and inserts
+		the value as a (unicode) string.
+
+		The config key is either [section]item or just item for something
+		in [general].  Behaviour for undefined config items is undefined.
+		"""
+		configKey = ctx.tag.children[0].strip()
+		mat = re.match("\[([^]]*)\](.*)", configKey)
+		if mat:
+			content = base.getConfig(mat.group(1), mat.group(2))
+		else:
+			content = base.getConfig(configKey)
+		ctx.tag.clear()
+		return ctx.tag[content]
 
 
 class Request(appserver.NevowRequest):

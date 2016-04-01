@@ -77,6 +77,28 @@
 		<template key="form">//tpltest.html</template>
 	</service>
 
+	<service id="errors" allowed="form">
+		<pythonCore>
+			<inputTable>
+				<inputKey name="what" type="text"/>
+			</inputTable>
+			<coreProc>
+				<setup>
+					<code>
+						from gavo import svcs
+					</code>
+				</setup>
+				<code>
+					excName = inputTable.getParam("what")
+					if excName=="DataError":
+						raise base.DataError("test error")
+					raise svcs.__dict__[excName]("test error",
+						hint="This is for testing")
+				</code>
+			</coreProc>
+		</pythonCore>
+	</service>
+
 	<regSuite id="dachs">
 		<regTest title="Auth required for protected form.">
 			<url>limited/form</url>
@@ -120,7 +142,7 @@
 			<code>
 				self.assertHTTPStatus(301)
 				self.assertHasStrings('__system__/adql/query/form"',
-					"Moved permanently")
+					"Moved Permanently")
 			</code>
 		</regTest>
 
@@ -178,7 +200,7 @@
 		</regTest>
 	</regSuite>
 
-	<regSuite title="Caching and compression" sequential="True" id="cur">
+	<regSuite title="Caching and compression" sequential="True">
 		<regTest title="Root page is well-formed HTML">
 			<url>/</url>
 			<code>
@@ -276,5 +298,29 @@
 		</regTest>
 	</regSuite>
 
+	<regSuite title="error documents">
+		<LOOP>
+			<csvItems>
+				excName, expStatus, id, extraText
+				UnknownURI,     404, cur-a,   within the data center
+				ForbiddenURI,   403, cur-b,   complain fiercely
+				WebRedirect,    301, cur-c,   different URL
+				SeeOther,       303, cur-d,   Please turn
+				Authenticate,   401, cur-e,   access is protected
+				BadMethod,      405, cur-f,   HTTP method
+				DataError,      406, cur-g,   server cannot generate
+				test error,     500, cur-h,   KeyError
+			</csvItems>
+			<events>
+				<regTest title="\excName renders" id="\id">
+					<url parSet="form" what="\excName">errors</url>
+					<code>
+						self.assertHTTPStatus(\expStatus)
+						self.assertHasStrings("test error", "\extraText")
+					</code>
+				</regTest>
+			</events>
+		</LOOP>
+	</regSuite>
 
 </resource>

@@ -48,27 +48,32 @@ class Authenticate(Error):
 	shall authenticate in.  If you leave the realm out, the DC-wide default
 	will be used.
 	"""
-	def __init__(self, realm=base.getConfig("web", "realm")):
+	def __init__(self, realm=base.getConfig("web", "realm"), hint=None):
 		self.realm = realm
-		Error.__init__(self, "This is a request to authenticate against %s"%realm)
+		Error.__init__(self, "This is a request to authenticate against %s"%realm,
+			hint=hint)
 
 
-class WebRedirect(Error):
-	"""is raised when the user agent should look somwhere else.
-
-	WebRedirectes are constructed with the destination URL that can be
-	relative (to webRoot) or absolute (starting with http).
-	"""
-	def __init__(self, dest):
+class RedirectBase(Error):
+	def __init__(self, dest, hint=None):
 		self.rawDest = dest
 		dest = str(dest)
 		if not dest.startswith("http"):
 			dest = base.getConfig("web", "serverURL")+base.makeSitePath(dest)
 		self.dest = dest
-		Error.__init__(self, "This is supposed to redirect to %s"%dest)
+		Error.__init__(self, "This is supposed to redirect to %s"%dest,
+			hint=hint)
 
 
-class SeeOther(Error):
+class WebRedirect(RedirectBase):
+	"""is raised when the user agent should look somwhere else.
+
+	WebRedirectes are constructed with the destination URL that can be
+	relative (to webRoot) or absolute (starting with http).
+	"""
+
+
+class SeeOther(RedirectBase):
 	"""is raised when the user agent should look somwhere else.
 
 	SeeOthers are constructed with the destination URL that can be

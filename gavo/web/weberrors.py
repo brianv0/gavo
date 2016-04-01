@@ -48,12 +48,10 @@ class ErrorPage(rend.Page, common.CommonRenderers):
 	handles = None
 	status = 500
 	titleMessage = "Unspecified Error"
-
-	_footer = [
-		T.hr,
-		T.address[T.a(href="mailto:%s"%config.getMeta(
-				"contact.email").getContent())[
-			config.getMeta("contact.email").getContent()]]]
+	beforeMessage = "We're sorry, but something didn't work out:"
+	afterMessage = T.p["This generic text shouldn't be here.  The"
+		" child class should override afterMessage."]
+	_footer = "delete this when done"
 
 	def __init__(self, error):
 		self.failure = error
@@ -64,12 +62,17 @@ class ErrorPage(rend.Page, common.CommonRenderers):
 	def data_message(self, ctx, data):
 		return self.failure.getErrorMessage()
 
+	def render_beforeMessage(self, ctx, data):
+		return ctx.tag[self.beforeMessage]
+
+	def render_afterMessage(self, ctx, data):
+		return ctx.tag[self.afterMessage]
+
 	def render_message(self, ctx, data):
 		return ctx.tag(class_="errmsg")[self.failure.getErrorMessage()]
 
 	def render_hint(self, ctx, data):
-		if (hasattr(self.failure.value, "hint"),
-				self.failure.value.hint):
+		if (hasattr(self.failure.value, "hint") and self.failure.value.hint):
 			return ctx.tag[T.strong["Hint: "], 
 				self.failure.value.hint]
 		return ""
@@ -86,30 +89,44 @@ class ErrorPage(rend.Page, common.CommonRenderers):
 	def render_titlemessage(self, ctx, data):
 		return ctx.tag["%s -- %s"%(
 			base.getConfig("web", "sitename"), self.titleMessage)]
+	
+	def render_footer(self, ctx, data):
+		return ctx.tag[
+			T.hr,
+			T.address[T.a(href="mailto:%s"%config.getMeta(
+					"contact.email").getContent())[
+				config.getMeta("contact.email").getContent()]]]
 
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
 		request.setResponseCode(self.status)
 		return rend.Page.renderHTTP(self, ctx)
-
-
-class NotFoundPage(ErrorPage):
-	handles = svcs.UnknownURI
-	status = 404
-	titleMessage = "Not Found"
-
-	def renderHTTP_notFound(self, ctx):
-		return self.renderHTTP(ctx)
-
+	
 	docFactory = common.doctypedStan(T.html[
 		T.head(render=T.directive("commonhead"))[
 			T.title(render=T.directive("titlemessage"))],
 		T.body[
 			T.img(src="/static/img/logo_medium.png", class_="headlinelogo",
 				style="position:absolute;right:5pt"),
-			T.h1["Resource Not Found (404)"],
-			T.p["We're sorry, but the resource you requested could not be located."],
+			T.h1[
+				T.invisible(render=T.directive("titlemessage")),
+				" (",
+				T.invisible(data=T.directive("status"), render=T.directive("string")),
+				")"],
+			T.p(render=T.directive("beforeMessage")),
 			T.p(render=T.directive("message")),
+			T.div(render=T.directive("afterMessage")),
+			T.invisible(render=T.directive("footer"))]])
+
+
+
+class NotFoundPage(ErrorPage):
+	handles = svcs.UnknownURI
+	status = 404
+	titleMessage = "Not Found"
+	beforeMessage = ("We're sorry, but the resource you"
+		" requested could not be located.")
+	afterMessage = [
 			T.p["If this message resulted from following a link from ",
 				T.strong["within the data center"],
 				", you have discovered a bug, and we would be"
@@ -123,9 +140,10 @@ class NotFoundPage(ErrorPage):
 			T.p["In either case, you may find whatever you were looking"
 				" for by inspecting our ",
 				T.a(href="/")["list of published services"], "."],
-			T.p(render=T.directive("rdlink")),
-			ErrorPage._footer
-		]])
+			T.p(render=T.directive("rdlink"))]
+
+	def renderHTTP_notFound(self, ctx):
+		return self.renderHTTP(ctx)
 
 
 class OtherNotFoundPage(NotFoundPage):
@@ -140,23 +158,14 @@ class ForbiddenPage(ErrorPage):
 	handles = svcs.ForbiddenURI
 	status = 403
 	titleMessage = "Forbidden"
-
-	docFactory = common.doctypedStan(T.html[
-		T.head(render=T.directive("commonhead"))[
-			T.title(render=T.directive("titlemessage"))],
-		T.body[
-			T.img(src="/static/img/logo_medium.png", class_="headlinelogo",
-				style="position:absolute;right:5pt"),
-			T.h1["Access denied (403)"],
-			T.p["We're sorry, but the resource you requested is forbidden."],
-			T.p(render=T.directive("message")),
-			T.p["This usually means you tried to use a renderer on a service"
-				" that does not support it.  If you did not come up with the"
-				" URL in question yourself, complain fiercely to the %s staff."%
-					base.getConfig("web", "sitename")],
-			T.p(render=T.directive("rdlink")),
-			ErrorPage._footer,
-		]])
+	beforeMessage = "We're sorry, but the resource you requested is forbidden."
+	afterMessage = T.div[
+		T.p["This usually means you tried to use a renderer on a service"
+			" that does not support it.  If you did not come up with the"
+			" URL in question yourself, complain fiercely to the staff of ",
+			T.invisible(render=T.directive("getconfig"))["[web]sitename"],
+			"."],
+		T.p(render=T.directive("rdlink"))]
 
 
 class RedirectBase(ErrorPage):
@@ -179,46 +188,25 @@ class RedirectBase(ErrorPage):
 class RedirectPage(RedirectBase):
 	handles = svcs.WebRedirect
 	status = 301
-	titleMessage = "Redirect"
-
-	docFactory = common.doctypedStan(T.html[
-		T.head(render=T.directive("commonhead"))[
-			T.title(render=T.directive("titlemessage"))],
-		T.body[
-			T.img(src="/static/img/logo_medium.png", class_="headlinelogo",
-				style="position:absolute;right:5pt"),
-			T.h1["Moved permanently (301)"],
-			T.p["The resource you requested is available from a ",
+	titleMessage = "Moved Permanently"
+	beforeMessage = ["The resource you requested is available from a ",
 				T.a(render=T.directive("destLink"))[
 			 		"different URL"],
-				"."],
-			T.p["You should not see this page -- either your browser or"
-				" our site is broken.  Complain."],
-			ErrorPage._footer,
-		]])
+				"."]
+	afterMessage = T.p["You should not see this page -- either your browser or"
+				" our site is broken.  Complain."]
 
 
 class SeeOtherPage(RedirectBase):
 	handles = svcs.SeeOther
 	status = 303
-	titleMessage = "Redirect"
-
-	
-	docFactory = common.doctypedStan(T.html[
-		T.head(render=T.directive("commonhead"))[
-			T.title(render=T.directive("titlemessage"))],
-		T.body[
-			T.img(src="/static/img/logo_medium.png", class_="headlinelogo",
-				style="position:absolute;right:5pt"),
-			T.h1["See also (303)"],
-			T.p["Please turn to a ",
+	titleMessage = "See Other"
+	beforeMessage = ["Please turn to a ",
 				T.a(render=T.directive("destLink"))[
 			 		"different URL"],
-				" to go on."],
-			T.p["You should not see this page -- either your browser or"
-				" our site is broken.  Complain."],
-			ErrorPage._footer,
-		]])
+				" to go on."]
+	afterMessage = T.p["You should not see this page -- either your browser or"
+				" our site is broken.  Complain."]
 
 
 class AuthenticatePage(ErrorPage):
@@ -239,64 +227,36 @@ class BadMethodPage(ErrorPage):
 	handles = svcs.BadMethod
 	status = 405
 	titleMessage = "Bad Method"
-
-	docFactory = common.doctypedStan(T.html[
-		T.head(render=T.directive("commonhead"))[
-			T.title(render=T.directive("titlemessage"))],
-		T.body[
-			T.img(src="/static/img/logo_medium.png", class_="headlinelogo",
-				style="position:absolute;right:5pt"),
-			T.h1["Bad Method (405)"],
-			T.p["You just tried to use some HTTP method to access this resource"
-				" that this resource does not support.  This probably means that"
-				" this resource is for exclusive use for specialized clients."],
-			T.p["You may find whatever you were really looking"
+	beforeMessage = (
+		"You just tried to use some HTTP method to access this resource"
+		" that this resource does not support.  This probably means that"
+		" this resource is for exclusive use for specialized clients.")
+	afterMessage = T.p["You may find whatever you were really looking"
 				" for by inspecting our ",
 				T.a(href="/")["list of published services"],
-				"."],
-			ErrorPage._footer,
-		]])
+				"."]
 
 
 class NotAcceptable(ErrorPage):
 	handles = base.DataError
 	status = 406
 	titleMessage = "Not Acceptable"
-
-	docFactory = common.doctypedStan(T.html[
-		T.head(render=T.directive("commonhead"))[
-			T.title(render=T.directive("titlemessage"))],
-		T.body[
-			T.img(src="/static/img/logo_medium.png", class_="headlinelogo",
-				style="position:absolute;right:5pt"),
-			T.h1["Not Acceptable (406)"],
-			T.p["The server cannot generate the data you requested."
-				"  The associated message is:"],
-			T.p(render=T.directive("message")),
-			ErrorPage._footer,
-		]])
+	beforeMessage = ("The server cannot generate the data you requested."
+				"  The associated message is:")
+	afterMessage = ""
 
 
 class ErrorDisplay(ErrorPage):
 	handles = base.ReportableError
 	status = 500
-	titleMessage = "Error"
-
-	docFactory = common.doctypedStan(T.html[
-		T.head(render=T.directive("commonhead"))[
-			T.title(render=T.directive("titlemessage"))],
-		T.body[
-			T.img(src="/static/img/logo_medium.png", class_="headlinelogo",
-				style="position:absolute;right:5pt"),
-			T.h1["Server-side Error (500)"],
-			T.p(render=T.directive("message")),
-			T.p["This usually means we've fouled up, and there's no"
+	titleMessage = "Server Failure"
+	beforeMessage = ("An unexpected Problem occurred:")
+	afterMessage = [T.p["This usually means we've fouled up, and there's no"
 				" telling whether we've realized that already.  So, chances are"
 				" we'd be grateful if you told us at the address given below."
 				" Thanks."],
-			T.p(render=T.directive("hint")),
-			ErrorPage._footer,
-		]])
+			T.p(render=T.directive("hint"))]
+
 # HTML mess for last-resort type error handling.
 errorTemplate = (
 		'<body><div style="position:fixed;left:4px;top:4px;'
@@ -308,7 +268,7 @@ errorTemplate = (
 		'</div></div></body></html>')
 
 def _formatFailure(failure):
-	return errorTemplate%(
+	res = errorTemplate%(
 		"<h1>Internal Error</h1><p>A(n)"
 		" %s exception occurred.  The"
 		" accompanying message is: '%s'</p>"
@@ -318,6 +278,7 @@ def _formatFailure(failure):
 		" %s</p>"%(failure.value.__class__.__name__,
 			common.escapeForHTML(failure.getErrorMessage()),
 			config.getMeta("contact.email").getContent()))
+	return res.encode("ascii", "ignore")
 
 
 class InternalServerErrorPage(ErrorPage):
@@ -326,6 +287,14 @@ class InternalServerErrorPage(ErrorPage):
 	handles = base.Error  # meaningless, no isinstance done here
 	status = 500
 	titleMessage = "Uncaught Exception"
+	beforeMessage = T.p["Your action has caused a(n) ",
+				T.span(render=str, data=T.directive("excname")),
+				" exception to occur.  As additional info, the failing code"
+				" gave:"],
+	afterMessage = T.p["This is always a bug in our software, and we would really"
+				" be grateful for a report to the contact address below,"
+				" preferably with a description of what you were trying to do,"
+				" including any data pieces if applicable.  Thanks."]
 
 	def data_excname(self, ctx, data):
 		return self.failure.value.__class__.__name__
@@ -358,24 +327,6 @@ class InternalServerErrorPage(ErrorPage):
 		else:
 			return ErrorPage.renderHTTP(self, ctx)
 
-	docFactory = common.doctypedStan(T.html[
-		T.head(render=T.directive("commonhead"))[
-			T.title(render=T.directive("titlemessage"))],
-		T.body[
-			T.img(src="/static/img/logo_medium.png", class_="headlinelogo",
-				style="position:absolute;right:5pt"),
-			T.h1["Server Error (500)"],
-			T.p["Your action has caused a(n) ",
-				T.span(render=str, data=T.directive("excname")),
-				" exception to occur.  As additional info, the failing code"
-				" gave:"],
-			T.p(render=T.directive("message")),
-			T.p["This is always a bug in our software, and we would really"
-				" be grateful for a report to the contact address below,"
-				" preferably with a description of what you were trying to do,"
-				" including any data pieces if applicable.  Thanks."],
-			ErrorPage._footer,
-		]])
 
 
 def _writePanicInfo(ctx, failure, secErr=None):

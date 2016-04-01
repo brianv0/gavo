@@ -17,7 +17,6 @@ from cStringIO import StringIO
 from gavo import base
 from gavo import rsc
 from gavo import rscdef
-from gavo import utils
 from gavo.svcs import core
 from gavo.svcs import outputdef
 
@@ -181,5 +180,4 @@ class PythonCore(core.Core):
 		# in use by several services.  Hence, we go ask the RD
 		return self.rd.expand(s)
 	def run(self, service, inputTable, queryMeta):
-		with utils.sandbox():
-			return self.coreProc.compile()(self, service, inputTable, queryMeta)
+		return self.coreProc.compile()(self, service, inputTable, queryMeta)

@@ -134,7 +134,7 @@ class SyncTest(trialhelpers.ArchiveTest):
 	def testNoExtraSegments(self):
 		return self.assertGETHasStrings("/data/ssatest/dl/dlget/inv.test2", {
 				"ID": "ivo://test.inv/test2"},
-			["Resource Not Found (404)",
+			["Not Found (404)",
 			"'dlget' has no child"])
 
 	def testCleanedup(self):
