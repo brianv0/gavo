@@ -4,7 +4,11 @@ obscore and defined using the means given there. -->
 <resource resdir="__system" schema="dc">
 	<STREAM id="POSpar">
 		<doc>A stream defining a SIAPv2-style POS par over an obscore table.
+
+		You can pass the name of a pgsphere geometry in the geom_name macro.
+		The default is set up for ivoa.obscore.
 		</doc>
+		<DEFAULTS geom_name="s_region"/>
 		<condDesc>
 			<inputKey name="POS" type="text" multiplicity="multiple"
 				tablehead="Position"
@@ -19,7 +23,7 @@ obscore and defined using the means given there. -->
 				</setup>
 				<code>
 					for inStr in inPars["POS"]:
-						yield "s_region &amp;&amp;%%(%s)s"%(
+						yield '\geom_name &amp;&amp;%%(%s)s'%(
 							base.getSQLKey("pos", siap.parseSIAP2Geometry(inStr), outPars))
 				</code>
 			</phraseMaker>
@@ -52,8 +56,13 @@ obscore and defined using the means given there. -->
 	</procDef>
 
 	<STREAM id="BANDpar">
-		<doc>A stream defining the SIAPv2 BAND par over an obscore table.
+		<doc>A stream defining the SIAPv2 BAND par over a table with split
+		em_min/em_max.
+
+		You can pass the min/max column names in the em_min_name and
+		em_max_name macros; the defaults are for ivoa.obscore.
 		</doc>
+		<DEFAULTS em_min_name="em_min" em_max_name="em_max"/>
 		<condDesc>
 			<inputKey name="BAND" type="double precision[2]" 
 				multiplicity="multiple" xtype="interval"

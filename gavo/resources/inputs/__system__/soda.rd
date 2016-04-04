@@ -624,6 +624,8 @@ This is a temporary location for procDefs and friends complying to
 			</code>
 		</setup>
 		<code>
+			if not fitsAxis:
+				return
 			if not wavelengthUnit:
 				fitsUnit = descriptor.hdr["CUNIT%d"%fitsAxis]
 			descriptor.lambdaToMeterFactor = base.computeConversionFactor(
@@ -747,17 +749,25 @@ This is a temporary location for procDefs and friends complying to
 			Pulls in all "standard" SODA functions for FITSes, including
 			cutouts and header retrieval.
 
-			You must give an stcs attribute (for fits_makeWCSParams); for now,
-			keep it empty (sorry about that).  If you do put something in,
-			do not include the quotes the procDef needs.
+			You can give an stcs attribute (for fits_makeWCSParams); for this
+			doesn't make sense because STCS cannot express the SODA parameter
+			structure.
+
+			For cubes, you can give a spectralAxis attribute here containing the
+			fits axis index of the spectral axis.  If you don't not spectral
+			cutout will be generated.  If you do, you may want to fix
+			wavelengthUnit (default is to take what the FITS says).
 
 			To work, this needs a descriptor generator; you probably want
 			//soda#fits_genDesc here.
 		</doc>
+		<DEFAULTS stcs="" spectralAxis="" wavelengthUnit=""/>
 		<metaMaker procDef="//soda#fits_makeWCSParams" name="getWCSParams">
 			<bind key="stcs">'\stcs'</bind>
 		</metaMaker>
 		<dataFunction procDef="//soda#fits_makeHDUList" name="makeHDUList"/>
+		<FEED source="fits_standardBANDCutout"
+			spectralAxis="\spectralAxis" wavelengthUnit="\wavelengthUnit"/>
 		<dataFunction procDef="//soda#fits_doWCSCutout" name="doWCSCutout"/>
 		<FEED source="//soda#fits_genPOSPar"/>
 		<FEED source="//soda#fits_genPixelPar"/>
