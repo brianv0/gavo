@@ -109,6 +109,30 @@ class ReplayMacroTest(testhelpers.VerboseTest):
 			return
 		self.fail("MacroError not raised")
 
+	def testDEFAULTSPlain(self):
+		res = base.parseFromString(rscdef.DataDescriptor, 
+			"""<data><STREAM id="foo"><DEFAULTS tabname="fro"/>
+			<table id="\\tabname" onDisk="True">
+			<column name="x"/></table></STREAM>
+			<FEED source="foo" /></data>""")
+		self.assertEqual(res.tables[0].id, "fro")
+
+	def testDEFAULTSElement(self):
+		res = base.parseFromString(rscdef.DataDescriptor, 
+			"""<data><STREAM id="foo"><DEFAULTS><tabname>fro</tabname></DEFAULTS>
+			<table id="\\tabname" onDisk="True">
+			<column name="x"/></table></STREAM>
+			<FEED source="foo" /></data>""")
+		self.assertEqual(res.tables[0].id, "fro")
+
+	def testDEFAULTSOverridden(self):
+		res = base.parseFromString(rscdef.DataDescriptor, 
+			"""<data><STREAM id="foo"><DEFAULTS tabname="fro"/>
+			<table id="\\tabname" onDisk="True">
+			<column name="x"/></table></STREAM>
+			<FEED source="foo" tabname="quux"/></data>""")
+		self.assertEqual(res.tables[0].id, "quux")
+
 	def testWithUnicodeValue(self):
 		input = """<?xml version="1.0" encoding="iso-8859-1"?>
 			<table id="gack"><STREAM id="foo">
@@ -305,8 +329,6 @@ class PruneTest(testhelpers.VerboseTest):
 				</table>
 			</data>""")
 		self.assertEqual(" ".join(c.name for c in dd.tables[0]), "a c")
-
-
 
 
 class EditTest(testhelpers.VerboseTest):

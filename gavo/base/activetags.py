@@ -113,6 +113,38 @@ class _PreparedEventSource(object):
 		return res
 
 
+class Defaults(structure.Structure):
+	"""Defaults for macros.
+
+	In STREAMs and NXSTREAMs, DEFAULTS let you specify values filled into
+	macros when a FEED doesn't given them.  Macro names are attribute names
+	(or element names, if you insist), defaults are their values.
+	"""
+	def __init__(self, *args, **kwargs):
+		self.defaults = {}
+		structure.Structure.__init__(self, *args, **kwargs)
+	
+	def start_(self, ctx, name, value):
+		return self
+	
+	def value_(self, ctx, name, value):
+		if name=="content_":
+			self.storedContent = value
+		else:
+			self.defaults[name] = value
+		return self
+	
+	def end_(self, ctx, name, value):
+		if name=="DEFAULTS":
+			self.finishElement(ctx)
+			self.parent.feedObject("DEFAULTS", self)
+			return self.parent
+		else:
+			self.defaults[name] = self.storedContent
+			del self.storedContent
+			return self
+
+
 class RecordingBase(structure.Structure):
 	"""An "abstract base" for active tags doing event recording.
 
@@ -122,6 +154,11 @@ class RecordingBase(structure.Structure):
 
 	_doc = attrdef.UnicodeAttribute("doc", description="A description of"
 		" this stream (should be restructured text).", strip=False)
+	_defaults = complexattrs.StructAttribute("DEFAULTS",
+		childFactory=Defaults, description="A mapping giving"
+		" defaults for macros expanded in this stream.  Macros"
+		" not defaulted will fail when not given in a FEED's attributes.",
+		default=None)
 
 	def __init__(self, *args, **kwargs):
 		self.events_ = []
@@ -461,6 +498,14 @@ class ReplayedEventsWithFreeAttributesBase(DelayedReplayBase):
 		# managedAttrs in general is a class attribute.  Here, we want
 		# to add values for the macros, and these are instance-local.
 		self.managedAttrs = self.managedAttrs.copy()
+
+	def completeElement(self, ctx):
+		# define any missing macros that still are in defaults.
+		if self.source and self.source.DEFAULTS is not None:
+			for key, value in self.source.DEFAULTS.defaults.iteritems():
+				if not hasattr(self, "macro_"+key):
+					setattr(self, "macro_"+key, lambda v=value: v)
+		self._completeElementNext(ReplayedEventsWithFreeAttributesBase, ctx)
 
 	def getAttribute(self, name):
 		try:
