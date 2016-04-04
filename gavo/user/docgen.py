@@ -518,6 +518,14 @@ def getStreamsDoc(idList):
 				" reference documentation."%id)
 		content.addNormalizedPara(stream.doc)
 		content.makeSpace()
+
+		if stream.DEFAULTS and stream.DEFAULTS.defaults:
+			content.addNormalizedPara("*Defaults* for macros used in this stream:")
+			content.makeSpace()
+			for key, value in sorted(stream.DEFAULTS.defaults.iteritems()):
+				content.addULItem("%s: '%s'"%(key, value))
+			content.makeSpace()
+
 	return content.content
 
 

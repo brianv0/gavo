@@ -120,6 +120,8 @@ class Defaults(structure.Structure):
 	macros when a FEED doesn't given them.  Macro names are attribute names
 	(or element names, if you insist), defaults are their values.
 	"""
+	name_ = "DEFAULTS"
+
 	def __init__(self, *args, **kwargs):
 		self.defaults = {}
 		structure.Structure.__init__(self, *args, **kwargs)

@@ -254,10 +254,9 @@ Datalink-related Streams
 ''''''''''''''''''''''''
 
 .. replaceWithResult getStreamsDoc(
-    ['//datalink#'+id for id in ["sdm_plainfluxcalib", "sdm_cutout",
+    ['//soda#'+id for id in ["sdm_plainfluxcalib", "sdm_cutout",
       "sdm_format", "fits_genKindPar", "fits_genPixelPar",
-      "fits_standardDLFuncs", "fits_standardLambdaCutout",
-      'fits_genDesc']])
+      "fits_standardDLFuncs", "fits_standardBANDCutout"]])
 
 Other Streams
 '''''''''''''
@@ -2264,7 +2263,7 @@ A plain FITS cutout service is assembled like this::
     <meta name="title">Generic FITS datalink service</meta>
     <datalinkCore>
       <descriptorGenerator procDef="//soda#fits_genDesc"/>
-      <FEED source="//soda#fits_standardDLFuncs" stcs=""/>
+      <FEED source="//soda#fits_standardDLFuncs"/>
     </datalinkCore>
   </service>
 
@@ -2281,6 +2280,16 @@ as::
   <descriptorGenerator procDef="//soda#fits_genDesc">
     <bind key="accrefPrefix">"thisdata/release2"</bind>
   </descriptorGenerator>
+
+To have physical SODA cutout parameter, you need to explictly designate
+the axes (this is done because FITS files cannot be trusted to properly
+declare STC on non-spatial axes).  You can still use
+``fits_standardDLFuncs``.  In the simplest case, that would be::
+
+   <FEED source="//soda#fits_standardDLFuncs" spectralAxis="3"/>
+
+(you can also pass ``wavelengthUnit`` if that information is missing
+from the FITS.
 
 TODO: Custom function, return link to error file.
 
