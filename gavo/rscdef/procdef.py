@@ -197,7 +197,7 @@ class ProcDef(base.Structure, base.RestrictionMixin):
 		" will in general require certain types of definitions.",
 		validValues=["t_t", "apply", "rowfilter", "sourceFields", "mixinProc",
 			"phraseMaker", "descriptorGenerator", "dataFunction", "dataFormatter",
-			"metaMaker", "regTest"], 
+			"metaMaker", "regTest", "iterator", "pargetter"], 
 			copyable=True,
 		strip=True)
 	_original = base.OriginalAttribute()

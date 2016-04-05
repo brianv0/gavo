@@ -27,6 +27,23 @@ class EmbeddedIterator(rscdef.ProcApp):
 	formalArgs = "self"
 
 
+class EmbeddedPargetter(rscdef.ProcApp):
+	"""A definition of the parameter getter of an embedded grammar.
+
+	The code defined here becomes the getParameters method of the generated
+	row iterator.  This means that the dictionary returned here becomes
+	the input to a parmaker.
+
+	If you don't define it, the parameter dict will be empty.
+
+	Like the iterators, pargetters see the current source token as
+	self.sourceToken, and the grammar as self.grammar.
+	"""
+	name_ = "pargetter"
+	requiredType = "pargetter"
+	formalArgs = "self"
+
+
 class EmbeddedGrammar(common.Grammar, base.RestrictionMixin):
 	"""A Grammar defined by a code application.
 
@@ -35,8 +52,10 @@ class EmbeddedGrammar(common.Grammar, base.RestrictionMixin):
 	for normal grammars within data elements, that would be a fully
 	qualified file name.
 
-	The proc app body actually is the iterRows method of a row iterator
-	(see API docs).
+	Grammars can also return one "parameter" dictionary per source (the
+	input to a make's parmaker).  In an embedded grammar, you can define
+	a pargetter to do that.  It works like the iterator, except that
+	it returns a single dictionary rather than yielding several of them.
 
 	This could look like this, when the grammar input is some iterable::
 
@@ -58,6 +77,9 @@ class EmbeddedGrammar(common.Grammar, base.RestrictionMixin):
 	_iterator = base.StructAttribute("iterator", default=base.Undefined,
 		childFactory=EmbeddedIterator,
 		description="Code yielding row dictionaries", copyable=True)
+	_pargetter = base.StructAttribute("pargetter", default=None,
+		childFactory=EmbeddedPargetter,
+		description="Code returning a parameter dictionary", copyable=True)
 	_isDispatching = base.BooleanAttribute("isDispatching", default=False,
 		description="Is this a dispatching grammar (i.e., does the row iterator"
 		" return pairs of role, row rather than only rows)?", copyable=True)
@@ -67,4 +89,8 @@ class EmbeddedGrammar(common.Grammar, base.RestrictionMixin):
 		class RowIterator(common.RowIterator):
 			_iterRows = self.iterator.compile()
 			notify = False
+
+		if self.pargetter:
+			RowIterator.getParameters = self.pargetter.compile()
+
 		self.rowIterator = RowIterator

@@ -511,6 +511,7 @@ class DataFunction(rscdef.ProcApp):
 	  	descriptor.data.  
 	  - TemporaryFile(path,type) -- as File, but the disk file is 
 	    unlinked after use
+	  - makeData -- the rsc.makeData function
 	"""
 	name_ = "dataFunction"
 	requiredType = "dataFunction"
@@ -521,6 +522,7 @@ class DataFunction(rscdef.ProcApp):
 		"DeliverNow": DeliverNow,
 		"File": _File,
 		"TemporaryFile": _TemporaryFile, 
+		"makeData": rsc.makeData, 
 	}
 
 
