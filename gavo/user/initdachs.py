@@ -334,6 +334,26 @@ def _readDBScript(conn, scriptPath, sourceName, procName):
 		conn.commit()
 
 
+def _loadPgExtension(conn, extName):
+	"""tries to create the extension extName.
+
+	This is for new-style extensions (e.g., pgsphere starting from 1.1.1.7)
+	that don't have a load script any more.
+
+	It returns True if the extension was found (and has created it as a
+	side effect).
+	"""
+	res = _execDB(conn, "SELECT * FROM pg_available_extensions"
+		" WHERE name=%(name)s", {"name": extName})
+	if not res:
+		return False
+
+	cursor = conn.cursor()
+	cursor.execute("CREATE EXTENSION "+extName)
+	cursor.close()
+	return True
+
+
 def _doLocalSetup(dsn):
 	"""executes some commands that need to be executed with superuser
 	privileges.
@@ -361,13 +381,15 @@ def _readDBScripts(dsn):
 	"""
 	conn = psycopg2.connect(dsn.full)
 	scriptPath = _getServerScriptPath(conn)
-	for extScript, pkgName, procName in [
-			("pg_sphere.sql", "pgSphere", "spoint_in"),
-			("q3c.sql", "q3c", "q3c_ang2ipix")]:
-		_readDBScript(conn, 
-			os.path.join(scriptPath, extScript), 
-			pkgName,
-			procName)
+	for extScript, pkgName, procName, extName in [
+			("pg_sphere.sql", "pgSphere", "spoint_in", "pg_sphere"),
+			("q3c.sql", "q3c", "q3c_ang2ipix", "q3c")]:
+		# first try new-style extension, then fall back to running scripts
+		if not _loadPgExtension(conn, extName):
+			_readDBScript(conn, 
+				os.path.join(scriptPath, extScript), 
+				pkgName,
+				procName)
 
 
 def _importBasicResources():
