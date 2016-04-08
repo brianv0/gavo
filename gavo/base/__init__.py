@@ -96,5 +96,7 @@ votableType = "application/x-votable+xml"
 
 __version__ = getVersion()
 
+# this flag is set by user.cli if a --debug flag was passed
 DEBUG = False
+# this flag is set by gavo serve if this is a long-running server process
 IS_DACHS_SERVER = False

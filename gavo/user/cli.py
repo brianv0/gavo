@@ -63,6 +63,8 @@ def _enablePDB():
 		traceback.print_exception(type, value, tb)
 		pdb.pm()
 	sys.excepthook = enterPdb
+	from gavo.base import events
+	events.PDB_ENABLED = True
 
 
 def _enableDebug(*args):

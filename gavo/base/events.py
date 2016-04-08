@@ -22,6 +22,8 @@ import sys
 
 from gavo import utils
 
+# the cli sets this to true if exceptions should not be mutated.
+PDB_ENABLED = False
 
 class DispatcherType(type):
 	"""is a metaclass for dispatching of messages.
@@ -117,6 +119,9 @@ class EventDispatcher(object):
 	
 		This is just a convenience when mutating exceptions.
 		"""
+		if PDB_ENABLED:
+			# leave original exception for the pdb
+			raise
 		self.notifyExceptionMutation(newExc)
 		return newExc
 

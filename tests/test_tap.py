@@ -48,6 +48,10 @@ import trialhelpers
 
 base.DEBUG = True
 
+
+votWithGeom = 'eJxdUctugzAQvOcrVj72YAfUEwIkClRCigIiNNdqC26DRDCxHUj69bVDUKNcPLPa2dmH/X1eRW+b\nFEYuVSv6gDjUJSu4HLteBeSg9eAxNk0TbUeBtOeamRQzVfjVcTZadbjyy3SXf5RxaujNzuB7lm4S\nyJKAKIWfnahRG38CKCVeVfvLA/JCoEGN+jqYoD6gJNDjkT9XnOsmIINQlJ9M0Lc6IA3/MXQuVLr2\nIqWliIWQjaKFUK0tdBO6x+7MXQKXWYnNqfOKPNtWduYk3cVlVlRZvg2zuNzB0hHEN+DApT5LDjXv\nNZc+e1SvfHbbzppEVbQsPXMAvyotWJKEyzRwa+HS9doB59WCz0zaypnVm/ffw7S743JN9nBhdv+z\n8A+9NIXB\n'
+
+
 class TAPRenderTest(trialhelpers.RenderTest):
 	_tapService = base.caches.getRD("__system__/tap").getById("run")
 	@property
@@ -267,6 +271,17 @@ class SyncQueryTest(TAPRenderTest):
 			}, [
 				'<INFO name="QUERY_STATUS" value="ERROR">No parameter for'
 				' upload table bar'])
+
+	def testWithUploadGeom(self):
+		return self.assertPOSTHasStrings("/sync", {
+				"REQUEST": "doQuery",
+				"UPLOAD": "t1,param:HoNk",
+				"LANG": "ADQL",
+				"FORMAT": "votable/td",
+				"QUERY": 'SELECT * FROM test.adql join tap_upload.t1'
+					" on 1=contains(ssa_location, circle('', alpha, delta, 0.002))",
+				"HoNk": votWithGeom.decode("base64").decode("zlib")
+			}, ["Position UNKNOWNFrame 2.00", "10.25"])
 
 
 class SimpleAsyncTest(TAPRenderTest):

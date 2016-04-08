@@ -19,6 +19,7 @@ from gavo.utils import fitstools
 from gavo.utils import pyfits
 
 
+
 class FITSProdIterator(RowIterator):
 	def _iterRows(self):
 		if self.grammar.qnd:
@@ -44,7 +45,9 @@ class FITSProdIterator(RowIterator):
 				res[card.key.replace("-", "_")] = card.value
 			except (ValueError, pyfits.VerifyError):
 				self._hackBotchedCard(card, res)
+
 		res["header_"] = header
+
 		if self.grammar.hdusField:
 			res[self.grammar.hdusField] = fitstools.openFits(self.sourceToken)
 		return self.grammar.mapKeys.doMap(res)
