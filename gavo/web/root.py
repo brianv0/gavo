@@ -9,6 +9,7 @@ The root resource of the data center.
 
 
 import os
+import re
 import time
 from cStringIO import StringIO
 
@@ -86,18 +87,30 @@ def makeDynamicPage(pageClass):
 	return DynPage()
 
 
-def _hackHostHeader(ctx):
+def _hackHostHeader(request):
 	"""works around host-munging of forwarders.
 
 	This is a hack in that I hardcode port 80 for the forwarder.  Ah
 	well, I don't think I have a choice there.
 	"""
-	request = inevow.IRequest(ctx)
 	fwHost = request.getHeader("x-forwarded-host")
 	if fwHost:
 		request.setHost(fwHost, 80)
 
 
+def _authorizeCORS(request):
+	"""adds cross-origin authorisation headers if appropriate.
+
+	This evaluates the [web]corsOrigins config item.
+	"""
+	origin = request.getHeader("Origin")
+	if not origin:
+		return
+	pat = base.getConfig("web", "corsoriginpat")
+	if pat and re.match(pat, origin):
+		request.setHeader("Access-Control-Allow-Origin", origin)
+		
+	
 # A cache for RD-specific page caches.  Each of these maps segments
 # (tuples) to a finished text document.  The argument is the id of the
 # RD responsible for generating that data.  This ensures that pre-computed
@@ -300,7 +313,10 @@ class ArchiveService(rend.Page):
 
 			base.getNewStructs = testtricks.getMemDiffer()
 
-		_hackHostHeader(ctx)
+		request = inevow.IRequest(ctx)
+		_hackHostHeader(request)
+		_authorizeCORS(request)
+
 		if os.path.exists(self.maintFile):
 			return ifpages.ServiceUnavailable(), ()
 		if self.rootSegments:

@@ -433,6 +433,10 @@ _config = Configuration(
 		StringConfigItem("operatorCSS", "", "URL of an operator-specific"
 			" CSS.  This is included as the last item and can therefore"
 			" override rules in the distributed CSS."),
+		StringConfigItem("corsOriginPat", "", "A regular expression"
+			" for URLs from which to authorise cross-origin requests."
+			" This is matched, i.e., the RE must account for the whole URL"
+			r" including the schema. Example: https?://example\.com/json.")
 	),
 
 	Section('adql', "Settings concerning the built-in ADQL core",
