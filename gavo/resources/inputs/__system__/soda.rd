@@ -371,8 +371,15 @@ This is a temporary location for procDefs and friends complying to
 						if length==1:
 							# no cutouts along degenerate axes
 							continue
+						
+						try:
+							ax = fitstools.WCSAxis.fromHeader(descriptor.hdr, fitsAxis)
+						except ValueError:
+							# probably botched WCS, or an inseparable axis.
+							# Just ignore this axis, operators can add it manually
+							# using forceSeparable
+							continue
 
-						ax = fitstools.WCSAxis.fromHeader(descriptor.hdr, fitsAxis)
 						descriptor.axisNames[ax.name] = fitsAxis
 						minPhys, maxPhys = ax.getLimits()
 
@@ -631,7 +638,7 @@ This is a temporary location for procDefs and friends complying to
 			descriptor.lambdaToMeterFactor = base.computeConversionFactor(
 				wavelengthUnit, "m")
 			descriptor.lambdaAxis = fitstools.WCSAxis.fromHeader(
-				descriptor.hdr, fitsAxis)
+				descriptor.hdr, fitsAxis, forceSeparable=True)
 			descriptor.lambdaAxisIndex = fitsAxis
 
 			minPhys, maxPhys = descriptor.lambdaAxis.getLimits()
