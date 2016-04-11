@@ -873,7 +873,7 @@ class WCSAxis(object):
 		return min(limits), max(limits)
 
 	@classmethod
-	def fromHeader(cls, header, axisIndex):
+	def fromHeader(cls, header, axisIndex, forceSeparable=False):
 		"""returns a WCSAxis for the specified axis in header.
 
 		If the axis is mentioned in a transformation matrix (CD or PC),
@@ -884,8 +884,9 @@ class WCSAxis(object):
 		"""
 		if ("CD%d_%d"%(axisIndex, axisIndex) in header
 				or "PC%d_%d"%(axisIndex, axisIndex) in header):
-			raise ValueError("FITS axis %s appears not separable.  WCSAxis"
-				" cannot handle this."%axisIndex)
+			if not forceSeparable:
+				raise ValueError("FITS axis %s appears not separable.  WCSAxis"
+					" cannot handle this."%axisIndex)
 
 		def get(key, default):
 			return header.get("%s%d"%(key, axisIndex), default)

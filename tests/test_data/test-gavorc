@@ -17,3 +17,4 @@ enableTests: True
 adminpasswd: loser
 sitename: Unittest Suite
 realm: dachsunit
+corsOriginPat: https?://example\.com/corsusing.*

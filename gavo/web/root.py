@@ -87,17 +87,6 @@ def makeDynamicPage(pageClass):
 	return DynPage()
 
 
-def _hackHostHeader(request):
-	"""works around host-munging of forwarders.
-
-	This is a hack in that I hardcode port 80 for the forwarder.  Ah
-	well, I don't think I have a choice there.
-	"""
-	fwHost = request.getHeader("x-forwarded-host")
-	if fwHost:
-		request.setHost(fwHost, 80)
-
-
 def _authorizeCORS(request):
 	"""adds cross-origin authorisation headers if appropriate.
 
@@ -314,8 +303,13 @@ class ArchiveService(rend.Page):
 			base.getNewStructs = testtricks.getMemDiffer()
 
 		request = inevow.IRequest(ctx)
-		_hackHostHeader(request)
-		_authorizeCORS(request)
+		if "x-forwarded-host" in request.received_headers:
+			# we need the externally visible host in our request even
+			# when we're behind a reverse proxy.  This is a dumb attempt
+			# at fixing such situations.
+			request.setHost(request.getHeader("x-forwarded-host"), 80)
+		if "origin" in request.received_headers:
+			_authorizeCORS(request)
 
 		if os.path.exists(self.maintFile):
 			return ifpages.ServiceUnavailable(), ()

@@ -436,7 +436,7 @@ _config = Configuration(
 		StringConfigItem("corsOriginPat", "", "A regular expression"
 			" for URLs from which to authorise cross-origin requests."
 			" This is matched, i.e., the RE must account for the whole URL"
-			r" including the schema. Example: https?://example\.com/json.")
+			r" including the schema. Example: https?://example\.com/apps/.*.")
 	),
 
 	Section('adql', "Settings concerning the built-in ADQL core",

@@ -388,6 +388,32 @@ class PathResoutionTest(trialhelpers.ArchiveTest):
 		).addCallback(checkRedirect)
 
 
+def _makeOriginAdder(origin):
+	def _(req):
+		req.received_headers["origin"] = origin
+	return _
+
+
+class CORSTest(trialhelpers.ArchiveTest):
+	def testAuthorizedCORS(self):
+		def assertCORSHeader(res):
+			self.assertEqual(
+				res[1].headers["access-control-allow-origin"],
+			"https://example.com/corsusing/abc/d")
+
+		return trialhelpers.runQuery(self.renderer, "GET", "/robots.txt", {},
+			requestMogrifier=_makeOriginAdder("https://example.com/corsusing/abc/d")
+		).addCallback(assertCORSHeader)
+
+	def testUnauthorizedCORS(self):
+		def assertNoCORSHeader(res):
+			self.assertTrue("access-control-allow-origin" not in res[1].headers)
+
+		return trialhelpers.runQuery(self.renderer, "GET", "/robots.txt", {},
+			requestMogrifier=_makeOriginAdder("https://examplexcom/corsusing/abc/d")
+		).addCallback(assertNoCORSHeader)
+
+
 class BuiltinResTest(trialhelpers.ArchiveTest):
 	def testRobotsTxt(self):
 		return self.assertGETHasStrings("/robots.txt", {},
