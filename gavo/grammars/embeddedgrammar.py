@@ -83,12 +83,16 @@ class EmbeddedGrammar(common.Grammar, base.RestrictionMixin):
 	_isDispatching = base.BooleanAttribute("isDispatching", default=False,
 		description="Is this a dispatching grammar (i.e., does the row iterator"
 		" return pairs of role, row rather than only rows)?", copyable=True)
-
+	_notify = base.BooleanAttribute("notify", default=False,
+		description="Enable notification of begin/end of processing (as"
+			" for other grammars; embedded grammars often have odd source"
+			" tokens for which you don't want that).", copyable=True)
+	
 	def onElementComplete(self):
 		self._onElementCompleteNext(EmbeddedGrammar)
 		class RowIterator(common.RowIterator):
 			_iterRows = self.iterator.compile()
-			notify = False
+			notify = self.notify
 
 		if self.pargetter:
 			RowIterator.getParameters = self.pargetter.compile()

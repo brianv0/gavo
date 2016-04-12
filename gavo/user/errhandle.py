@@ -112,10 +112,7 @@ def raiseAndCatch(opts=None, output=outputError):
 			messages.append("Offending literal: %s\n"%repr(msg.offending))
 
 	except base.BadCode, msg:
-		messages.append("Bad user %s:\n"%msg.codeType)
-		messages.append(msg.code)
-		messages.append("User %s caused an error: %s\n"%(
-			msg.codeType, str(msg.origExc)))
+		messages.append("Bad user %s: %s\n"%(msg.codeType, str(msg.origExc)))
 		if msg.pos:
 			messages.append("(At %s)"%msg.pos)
 

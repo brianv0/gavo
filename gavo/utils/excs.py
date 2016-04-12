@@ -117,6 +117,8 @@ class BadCode(StructureError):
 	the original exception, and optionally a hint and a position.
 	"""
 	def __init__(self, code, codeType, origExc, hint=None, pos=None):
+		if not hint:
+			hint = "The offending code was:\n%s"%code
 		StructureError.__init__(self, "Bad code", pos=pos, hint=hint)
 		self.args = [code, codeType, origExc, hint, pos]
 		self.code, self.codeType = code, codeType
