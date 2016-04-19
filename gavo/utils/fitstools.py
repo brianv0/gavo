@@ -386,6 +386,9 @@ def sortHeaders(header, commentFilter=None, historyFilter=None,
 
 	As a shortcut, a sequence item may be something else then a tuple;
 	it will then be combined with a False to make one.
+
+	These days, if you think you need this, have a look at 
+	fitstricks.makeHeaderFromTemplate first.
 	"""
 	commentCs, historyCs, realCs = [], [], []
 	if hasattr(header, "ascardlist"):

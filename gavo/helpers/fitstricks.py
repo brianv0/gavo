@@ -85,6 +85,56 @@ MINIMAL_IMAGE_TEMPLATE = [
 	("BSCALE", "Slope of pixel scaling function"),]
 
 
+WCS_TEMPLATE = [
+		pyfits.Card(value="-------------------- Spatial WCS"),
+	('WCSAXES', "Number of FITS axes covered by WCS"),
+	('CTYPE1', "Projection on axis 1"),
+	('CTYPE2', "Projection on axis 2"),
+	('LONPOLE', "See sect 2.4 of WCS paper II"),
+	('LATPOLE', "See sect 2.4 of WCS paper II"),
+	('CRVAL1', "Longitude  of reference point"),
+	('CRVAL2', "Latitude of reference point"),
+	('CRPIX1', "X reference pixel"),
+	('CRPIX2', "Y reference pixel"),
+	('CUNIT1', "X pixel scale units"),
+	('CUNIT2', "Y pixel scale units"),
+	('CD1_1', "(1,1) Full transformation matrix"),
+	('CD1_2', "(1,2) Full transformation matrix"),
+	('CD2_1', "(2,1) Full transformation matrix"),
+	('CD2_2', "(2,2) Full transformation matrix"),
+	('PC1_1', "(1,1) Transformation matrix"),
+	('PC1_2', "(1,2) Transformation matrix"),
+	('PC2_1', "(2,1) Transformation matrix"),
+	('PC2_2', "(2,2) Transformation matrix"),
+	('A_ORDER', "Correction polynomial order, axis 1"),
+	('A_0_0', "Axis 1 correction polynomial, coefficient"),
+	('A_0_1', "Axis 1 correction polynomial, coefficient"),
+	('A_0_2', "Axis 1 correction polynomial, coefficient"),
+	('A_1_0', "Axis 1 correction polynomial, coefficient"),
+	('A_1_1', "Axis 1 correction polynomial, coefficient"),
+	('A_2_0', "Axis 1 correction polynomial, coefficient"),
+	('B_ORDER', "Correction polynomial order, axis 2"),
+	('B_0_0', "Axis 2 correction polynomial, coefficient"),
+	('B_0_1', "Axis 2 correction polynomial, coefficient"),
+	('B_0_2', "Axis 2 correction polynomial, coefficient"),
+	('B_1_0', "Axis 2 correction polynomial, coefficient"),
+	('B_1_1', "Axis 2 correction polynomial, coefficient"),
+	('B_2_0', "Axis 2 correction polynomial, coefficient"),
+	('AP_ORDER', "Inverse polynomial order, axis 1"),
+	('AP_0_0', "Axis 1 inverse polynomial, coefficient"),
+	('AP_0_1', "Axis 1 inverse polynomial, coefficient"),
+	('AP_0_2', "Axis 1 inverse polynomial, coefficient"),
+	('AP_1_0', "Axis 1 inverse polynomial, coefficient"),
+	('AP_1_1', "Axis 1 inverse polynomial, coefficient"),
+	('AP_2_0', "Axis 1 inverse polynomial, coefficient"),
+	('BP_ORDER', "Inverse polynomial order, axis 2"),
+	('BP_0_0', "Axis 2 inverse polynomial, coefficient"),
+	('BP_0_1', "Axis 2 inverse polynomial, coefficient"),
+	('BP_0_2', "Axis 2 inverse polynomial, coefficient"),
+	('BP_1_0', "Axis 2 inverse polynomial, coefficient"),
+	('BP_1_1', "Axis 2 inverse polynomial, coefficient"),
+	('BP_2_0', "Axis 2 inverse polynomial, coefficient"),]
+
 # Internal representation of Tuvikene et al FITS headers for plates
 # See https://www.plate-archive.org/wiki/index.php/FITS_header_format
 WFPDB_TEMPLATE = MINIMAL_IMAGE_TEMPLATE+[
@@ -112,6 +162,7 @@ WFPDB_TEMPLATE = MINIMAL_IMAGE_TEMPLATE+[
 			"OBJTYP%d",  "Object type of %s OBJECT"
 		)+_makeHeaderSequence(
 			"EXPTIM%d",  " [s] Exposure time %s exposure")+[
+
 		pyfits.Card(value="-------------------- Observatory and instrument"),
 		("OBSERVAT", "Observatory name"),
 		("SITENAME", "Observatory site name."),
@@ -139,7 +190,6 @@ WFPDB_TEMPLATE = MINIMAL_IMAGE_TEMPLATE+[
 		("OBSERVER", ""),
 		("OBSNOTES", "Observer notes (logs)"),
 
-
 		pyfits.Card(value="-------------------- Photographic plate"),
 		("PLATENUM", "Plate number in logs"),
 		("WFPDB-ID", "Plate identifier in WFPDB"),
@@ -152,7 +202,6 @@ WFPDB_TEMPLATE = MINIMAL_IMAGE_TEMPLATE+[
 		("EMULSION", "Type of the photographic emulsion"),
 		("PQUALITY", "Quality of the plate"),
 		("PLATNOTE", "Notes about the plate"),
-
 
 		pyfits.Card(value="-------------------- Derived observation data"),
 		("DATE-OBS", "UT date and time of obs. start"),
@@ -215,6 +264,8 @@ WFPDB_TEMPLATE = MINIMAL_IMAGE_TEMPLATE+[
 		("FN-LOGB", "Filename of the logbook image"),
 		("ORIGIN", "Origin of this file"),
 		("DATE", "File last changed"),
+		
+		] + WCS_TEMPLATE + [
 
 		pyfits.Card(value="-------------------- Other header cards"),]
 
@@ -280,30 +331,12 @@ def getTemplateNameFromHistory(hdr):
 		" engine, or some intervening thing hosed the history.")
 
 
-def makeHeaderFromTemplate(template, **values):
-	"""returns a new pyfits.Header from template with values filled in.
+def _applyTemplate(hdr, template, values):
+	"""helps makeHeaderFromTemplate.
 
-	template usually is the name of a template previously registred with
-	registerTemplate, or one of DaCHS predefined template names (currently,
-	minimal and wfpdb).  In a pinch, you can also pass in an immediate 
-	("anonymous") template, but you won't be able to later extend such headers.
-
-	values for which no template item is given are ignored (but a
-	warning is issued if there are leftover values).
+	Specifically, it moves items in values mentioned in template into
+	header in template's order.  hdr and values are modified in that process.
 	"""
-	values = values.copy()
-	hdr = pyfits.Header()
-
-	if isinstance(template, basestring):
-		templateName = template
-		template = getTemplateForName(templateName)
-	else:
-		try:
-			templateName = getNameForTemplate(template)
-		except base.NotFoundError:
-			base.notifyWarning("Using anonymous FITS template.")
-			templateName = "anonymous"
-
 	for tp in template:
 		if isinstance(tp, pyfits.Card):
 			tp.value = values.pop(tp.key, tp.value)
@@ -325,13 +358,75 @@ def makeHeaderFromTemplate(template, **values):
 					raise
 
 			values.pop(argKey, None)
-	
+
+
+def _copyMissingCards(newHdr, oldHdr):
+	"""helps makeHeaderFromTemplate.
+
+	Specifically, it copies over all cards from oldHder to newHdr not yet
+	present there.  It will also move over history and comment cards.
+
+	This will modify newHdr in place.
+	"""
+	commentCs, historyCs = [], []
+
+	for card in oldHdr.ascardlist():
+		if card.key=="COMMENT":
+			commentCs.append(card)
+		elif card.key=="HISTORY":
+			if not "GAVO DaCHS template used" in card.value:
+				historyCs.append(card)
+		elif card.key:
+			if card.key not in newHdr:
+				newHdr.append(card, end=True)
+
+	for card in historyCs:
+		newHdr.append(card, end=True)
+	newHdr.append(pyfits.Card(value=""), end=True)
+	for card in commentCs:
+		newHdr.append(card, end=True)
+
+
+def makeHeaderFromTemplate(template, originalHeader=None, **values):
+	"""returns a new pyfits.Header from template with values filled in.
+
+	template usually is the name of a template previously registered with
+	registerTemplate, or one of DaCHS predefined template names (currently,
+	minimal and wfpdb).  In a pinch, you can also pass in an immediate 
+	("anonymous") template, but you won't be able to later extend such headers.
+
+	original_header can be a pre-existing header; the history and comment
+	cards are copied over from it, and if any of its other cards have not
+	yet been added to the header, they will be added in the order that they 
+	apprear there.
+
+	values for which no template item is given are ignored (but a
+	warning is issued if there are leftover values).
+	"""
+	values = values.copy()
+	hdr = pyfits.Header()
+
+	if isinstance(template, basestring):
+		templateName = template
+		template = getTemplateForName(templateName)
+	else:
+		try:
+			templateName = getNameForTemplate(template)
+		except base.NotFoundError:
+			base.notifyWarning("Using anonymous FITS template.")
+			templateName = "anonymous"
+
+	_applyTemplate(hdr, template, values)
+
 	if values:
-		base.ui.notifyWarning("The following headers were left after"
+		base.ui.notifyWarning("The following values were left after"
 			" applying a FITS template and will be added in random order: %s"%
 			(", ").join(values.keys()))
 		for key, value in values.iteritems():
 			hdr.append(pyfits.Card(key, value), end=True)
+
+	if originalHeader:
+		_copyMissingCards(hdr, originalHeader)
 
 	hdr.add_history("GAVO DaCHS template used: "+templateName)
 	return hdr
@@ -353,17 +448,5 @@ def updateTemplatedHeader(hdr, templateName=None, **kwargs):
 	vals = getHeaderAsDict(hdr)
 	vals.update(kwargs)
 
-	res = makeHeaderFromTemplate(template, **vals)
-
-	for histVal in hdr.get_history():
-		if "GAVO DaCHS template" in histVal:
-			continue
-		res.add_history(histVal)
-	
-	comment = hdr.get_comment()
-	if comment:
-		res.append(pyfits.Card(value="*"), end=True)
-		for commentLine in comment:
-			res.add_comment(commentLine)
-	
+	res = makeHeaderFromTemplate(template, originalHeader=hdr, **vals)
 	return res
