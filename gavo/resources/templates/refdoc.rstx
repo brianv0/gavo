@@ -1695,23 +1695,23 @@ arguments.  Use the following pattern; this uses the
 ``FITSProductDescriptor``, as its base class, but the principle otherwise
 is the same::
 
-			<descriptorGenerator procDef="//soda#fits_genDesc" 
-					name="genFITSDesc">
-				<bind key="accrefPrefix">'califa/data'</bind>
-				<setup>
-					<code>
-						class CALIFADescriptor(FITSProductDescriptor):
-							def __init__(self, *args, **kwargs):
-								kwargs["accessPath"] = os.path.join(
-									base.getConfig("inputsDir"),
-									kwargs["accref"])
-								FITSProductDescriptor.__init__(self, *args, **kwargs)
-					</code>
-				</setup>
-				<code>
-					return getFITSDescriptor(pubDID, CALIFADescriptor)
-				</code>
-			</descriptorGenerator>
+  <descriptorGenerator procDef="//soda#fits_genDesc" 
+      name="genFITSDesc">
+    <bind key="accrefPrefix">'califa/data'</bind>
+    <setup>
+      <code>
+        class CALIFADescriptor(FITSProductDescriptor):
+          def __init__(self, *args, **kwargs):
+            kwargs["accessPath"] = os.path.join(
+              base.getConfig("inputsDir"),
+              kwargs["accref"])
+            FITSProductDescriptor.__init__(self, *args, **kwargs)
+      </code>
+    </setup>
+    <code>
+      return getFITSDescriptor(pubDID, CALIFADescriptor)
+    </code>
+  </descriptorGenerator>
 
 -- except that absent getFITSDescriptor you'd write something like::
 
@@ -1721,6 +1721,25 @@ is the same::
   </code>
 
 as explained above.
+
+
+For spectral data model datalink services based on SSAP services, you'll
+have to tell the normal sdm generator that you want a different
+descriptor class.  This could look like this::
+
+  <descriptorGenerator procDef="//soda#sdm_genDesc">
+    <setup>
+      <code>
+        class PCSLGDescriptor(ssap.SSADescriptor):
+          def __init__(self, *args, **kwargs):
+            kwargs["accessPath"] = os.path.join(
+              base.getConfig("inputsDir"), kwargs["accref"])
+            ssap.SSADescriptor.__init__(self, *args, **kwargs)
+      </code>
+    </setup>
+    <bind name="ssaTD">"\rdId#data"</bind>
+    <bind name="descriptorClass">PCSLGDescriptor</bind>
+  </descriptorGenerator>
 
 
 Meta Makers
@@ -2669,47 +2688,47 @@ implementation is nicely bundled together.  The following example should
 illustrate the use  of such python cores; note that ``rsc`` already is
 in the procApp's namespace::
 
-	<pythonCore>
-		<inputTable>
-			<inputKey name="opre" description="Operand, real part"
-				required="True"/>
-			<inputKey name="opim" description="Operand, imaginary part"
-				required="True"/>
-			<inputKey name="powers" description="Powers to compute"
-				type="integer" multiplicity="multiple"/>
-		</inputTable>
-		<outputTable>
-			<outputField name="re" description="Result, real part"/>
-			<outputField name="im" description="Result, imaginary part"/>
-			<outputField name="log"
-				description="real part of logarithm of result"/>
-		</outputTable>
+  <pythonCore>
+    <inputTable>
+      <inputKey name="opre" description="Operand, real part"
+        required="True"/>
+      <inputKey name="opim" description="Operand, imaginary part"
+        required="True"/>
+      <inputKey name="powers" description="Powers to compute"
+        type="integer" multiplicity="multiple"/>
+    </inputTable>
+    <outputTable>
+      <outputField name="re" description="Result, real part"/>
+      <outputField name="im" description="Result, imaginary part"/>
+      <outputField name="log"
+        description="real part of logarithm of result"/>
+    </outputTable>
 
-		<coreProc>
-			<setup>
-				<code>
-					import cmath
-				</code>
-			</setup>
-			<code>
-				powers = inputTable.getParam("powers")
-				if powers is None:
-					powers = [1,2]
-				op = complex(inputTable.getParam("opre"),
-					inputTable.getParam("opim"))
+    <coreProc>
+      <setup>
+        <code>
+          import cmath
+        </code>
+      </setup>
+      <code>
+        powers = inputTable.getParam("powers")
+        if powers is None:
+          powers = [1,2]
+        op = complex(inputTable.getParam("opre"),
+          inputTable.getParam("opim"))
 
-				rows = []
-				for p in powers:
-					val = op**p
-					rows.append({
-						"re": val.real,
-						"im": val.imag,
-						"log": cmath.log(val).real})
-				
-				return rsc.TableForDef(self.outputTable, rows=rows)
-			</code>
-		</coreProc>
-	</pythonCore>
+        rows = []
+        for p in powers:
+          val = op**p
+          rows.append({
+            "re": val.real,
+            "im": val.imag,
+            "log": cmath.log(val).real})
+        
+        return rsc.TableForDef(self.outputTable, rows=rows)
+      </code>
+    </coreProc>
+  </pythonCore>
 
 As an additional service, DaCHS executes your python cores in a sandbox
 directory, so you can create temporary files to your heart's
@@ -2747,8 +2766,8 @@ in the usual manner (see the debugging chapter in the tutorial).
 DALI-type RESPONSEFORMAT.  To enable that on automatic results (see
 below), say::
 
-	<inputKey name="responseformat" description="Preferred
-		output format" type="text"/>
+  <inputKey name="responseformat" description="Preferred
+    output format" type="text"/>
 
 in your input table.
 
@@ -2768,16 +2787,16 @@ do that, there's a ``job`` attribute on the inputTable that has an
 of course don't have that attribute unless they come from the uws
 rendererer.  Hence, a typical pattern to use this would be::
 
-	if hasattr(inputTable, "job"):
-		with inputTable.job.getWritable() as wjob:
-			wjob.addResult("Hello World.\\n", "text/plain", "aux.txt")
+  if hasattr(inputTable, "job"):
+    with inputTable.job.getWritable() as wjob:
+      wjob.addResult("Hello World.\\n", "text/plain", "aux.txt")
 
 or, to take the results from a file that's already on-disk::
 
-	if hasattr(inputTable, "job"):
-		with inputTable.job.getWritable() as wjob:
-		  with open("other-result.txt") as src:
-  			wjob.addResult(src, "text/plain", "output.txt")
+  if hasattr(inputTable, "job"):
+    with inputTable.job.getWritable() as wjob:
+      with open("other-result.txt") as src:
+        wjob.addResult(src, "text/plain", "output.txt")
 
 Right now, there's no facility for writing directly to UWS result files.
 Ask if you need that.
@@ -2792,8 +2811,8 @@ convenient to use the requests package, like this::
   import requests
 
   requests.post("http://localhost:8080/data/cores/pc/uws.xml/D2hFEJ/parameters",
-	  {"UPLOAD": "stuff,param:upl"},
-	  files = {"upl": open("zw.py")})
+    {"UPLOAD": "stuff,param:upl"},
+    files = {"upl": open("zw.py")})
 
 From within your core, use the file name (the name of the input key) and
 pull the file from the UWS working directory::
@@ -2823,11 +2842,11 @@ to write a custom page.
 First, in the RD, define a service allowing a custom page.  These
 normally have no cores (the customPage renderer will ignore the core)::
 
-	<service id="ui" core="null" allowed="custom" 
-		customPage="res/registration.py">
-		<meta name="shortName">DOI registration</meta>
-		<meta name="title">VOiDOI DOI registration web service</meta>
-	</service>
+  <service id="ui" core="null" allowed="custom" 
+    customPage="res/registration.py">
+    <meta name="shortName">DOI registration</meta>
+    <meta name="title">VOiDOI DOI registration web service</meta>
+  </service>
 
 The python module referred to in customPage must define a ``MainPage``
 nevow resource.  The recommended pattern is like this::
@@ -2839,35 +2858,35 @@ nevow resource.  The recommended pattern is like this::
 
 
   class MainPage(
-		  formal.ResourceMixin, 
-		  web.CustomTemplateMixin,
-		  web.ServiceBasedPage):
+      formal.ResourceMixin, 
+      web.CustomTemplateMixin,
+      web.ServiceBasedPage):
 
-	  name = "custom"
-	  customTemplate = "res/registration.html"
+    name = "custom"
+    customTemplate = "res/registration.html"
 
-	  workItems = None
+    workItems = None
 
-	  @classmethod
-	  def isBrowseable(self, service):
-		  return True
+    @classmethod
+    def isBrowseable(self, service):
+      return True
 
-	  def form_ivoid(self, ctx, data={}):
-	    form = formal.Form()
-	    form.addField("ivoid", formal.String(required=True), label="IVOID",
-		    description="An IVOID for a registred VO resource"),
-	    form.addAction(self.submitAction, label="Next")
-	    return form
+    def form_ivoid(self, ctx, data={}):
+      form = formal.Form()
+      form.addField("ivoid", formal.String(required=True), label="IVOID",
+        description="An IVOID for a registred VO resource"),
+      form.addAction(self.submitAction, label="Next")
+      return form
 
-	  def render_workItems(self, ctx, data):
-		  if self.workItems:
-			  return ctx.tag[T.li[[m for m in self.workItems]]]
-		  return ""
+    def render_workItems(self, ctx, data):
+      if self.workItems:
+        return ctx.tag[T.li[[m for m in self.workItems]]]
+      return ""
 
-	  def submitAction(self, ctx, form, data):
-		  self.workItems = ["Working on %s"%data["ivoid"]]
-		  return self
-		  
+    def submitAction(self, ctx, form, data):
+      self.workItems = ["Working on %s"%data["ivoid"]]
+      return self
+      
 The ``formal.ResourceMixin`` lets you define and interpret forms.  The
 ``web.ServiceBasedPage`` does all the interfacing to the DaCHS (e.g.,
 credential checking and the like).  The ``web.CustomTemplateMixin`` lets
@@ -2882,23 +2901,23 @@ On ``form_invoid`` and ``submitAction`` see below.
 This template could, for this service, look like this::
 
   <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-		  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 
   <html xmlns="http://www.w3.org/1999/xhtml"
-	  xmlns:n="http://nevow.com/ns/nevow/0.1">
+    xmlns:n="http://nevow.com/ns/nevow/0.1">
   <head>
-	  <title>VOiDOI: Registration</title>
-	  <n:invisible n:render="commonhead"/>
+    <title>VOiDOI: Registration</title>
+    <n:invisible n:render="commonhead"/>
   </head>
   <body n:render="withsidebar">
-	  <h1>VOiDOI: Register your VO resource</h1>
-	  <ul n:render="workItems"/>
-	  <p>VOiDOI lets you obtain DOIs for registered VO services.</p>
+    <h1>VOiDOI: Register your VO resource</h1>
+    <ul n:render="workItems"/>
+    <p>VOiDOI lets you obtain DOIs for registered VO services.</p>
 
-	  <p>In the form below, enter the IVOID of the resource you want a DOI for.
-	  If the resource is known to our registry but has no DOI yet, the registred
-	  contact will be sent an e-mail to confirm DOI creation.</p>
-	  <n:invisible n:render="form ivoid"/>
+    <p>In the form below, enter the IVOID of the resource you want a DOI for.
+    If the resource is known to our registry but has no DOI yet, the registred
+    contact will be sent an e-mail to confirm DOI creation.</p>
+    <n:invisible n:render="form ivoid"/>
   </body>
   </html>
 
@@ -2917,20 +2936,20 @@ non-trivial things either using asynchronous patterns or using
 ``deferToThread``.  The latter is less desirable but also easier, so
 here's how this looks like::
 
-	def submitAction(self, ctx, form, data):
-		return threads.deferToThread(
-			runRegistrationFor, data["ivoid"]
-			).addCallback(self._renderResponse
-			).addErrback(self._renderErrors)
-	
-	def _renderResponse(self, result):
-		# do something to render a success message (or return Redirect)
-		return self
+  def submitAction(self, ctx, form, data):
+    return threads.deferToThread(
+      runRegistrationFor, data["ivoid"]
+      ).addCallback(self._renderResponse
+      ).addErrback(self._renderErrors)
+  
+  def _renderResponse(self, result):
+    # do something to render a success message (or return Redirect)
+    return self
 
-	def _renderErrors(self, failure):
-		# do something to render an error message, e.g., from
-		# failure.getErrorMessage()
-		return self
+  def _renderErrors(self, failure):
+    # do something to render an error message, e.g., from
+    # failure.getErrorMessage()
+    return self
 
 The embedding RD is available in the custom pages's global namespace as
 ``RD``.  Thus, the standard pattern for creating a read only table is::
@@ -2957,9 +2976,9 @@ becomes::
   from gavo import utils
 
   def initModule(**kwargs):
-	  global oai2datacite
-	  modName = RD.getAbsPath("doitransfrom/oai2datacite")
-	  oai2datacite, _ = utils.loadPythonModule(modName)
+    global oai2datacite
+    modName = RD.getAbsPath("doitransfrom/oai2datacite")
+    oai2datacite, _ = utils.loadPythonModule(modName)
 
 
 .. _templating guide: http://docs.g-vo.org/DaCHS/templating.html

@@ -67,7 +67,6 @@ def geocToGeod(long, phip, rho=1, refSys=WGS84):
 	return long/DEG, phi/DEG, r/math.cos(phi)-refSys.a*C
 
 
-
 def geodToGeoc(long, phi, height, refSys=WGS84):
 	"""returns geocentric coordinates lambda, phi', rho for geodetic coordinates.
 

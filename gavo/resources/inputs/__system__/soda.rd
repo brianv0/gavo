@@ -75,7 +75,11 @@ This is a temporary location for procDefs and friends complying to
 		<setup>
 			<par key="ssaTD" description="Full reference (like path/rdname#id)
 				to the SSA table the spectrum's PubDID can be found in."/>
-
+			<par key="descriptorClass" description="The SSA descriptor
+				class to use.  You'll need to override this if the dc.products
+				path doesn't actually lead to the file (see
+				`custom generators &lt;#custom-product-descriptor-generators&gt;`_)."
+				late="True">ssap.SSADescriptor</par>
 			<code>
 				from gavo import rscdef
 				from gavo import rsc
@@ -96,7 +100,7 @@ This is a temporary location for procDefs and friends complying to
 
 				# the relevant metadata for all rows with the same PubDID should
 				# be identical, and hence we can blindly take the first result.
-				return ssap.SSADescriptor.fromSSARow(matchingRows[0],
+				return descriptorClass.fromSSARow(matchingRows[0],
 					ssaTable.getParamDict())
 		</code>
 	</procDef>

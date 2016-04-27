@@ -87,6 +87,7 @@ MINIMAL_IMAGE_TEMPLATE = [
 
 WCS_TEMPLATE = [
 		pyfits.Card(value="-------------------- Spatial WCS"),
+	('EQUNIOX', "Equinox of RA and Dec"),
 	('WCSAXES', "Number of FITS axes covered by WCS"),
 	('CTYPE1', "Projection on axis 1"),
 	('CTYPE2', "Projection on axis 2"),
@@ -440,6 +441,10 @@ def updateTemplatedHeader(hdr, templateName=None, **kwargs):
 
 	You can pass in templateName to keep DaCHS from trying to get things
 	from the header.
+
+	[It is probably better to use makeHeaderFromTemplate directly, passing
+	in the orginalHeader; that preserves the order of non-templated
+	headers].
 	"""
 	if templateName is None:
 		templateName = getTemplateNameFromHistory(hdr)

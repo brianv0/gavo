@@ -210,7 +210,7 @@
 			utype="ssa:Curation.Publisher"
 			tablehead="Publisher" verbLevel="25" 
 			description="Publisher of the datasets included here.">\publisher</param>
-		<param name="ssa_creator" type="text"
+		<param name="ssa_creator" type="unicode"
 			utype="ssa:DataID.Creator"
 			tablehead="Creator" verbLevel="25" 
 			description="Creator of the datasets included here.">\creator</param>
