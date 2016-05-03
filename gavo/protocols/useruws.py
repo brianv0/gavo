@@ -136,7 +136,7 @@ class UserUWS(uws.UWSWithQueueing):
 	
 		if res[0]["jobClass"]!=self.service.getFullId():
 			raise svcs.WebRedirect(
-				base.resolveCrossId(res[0]["jobClass"]).uws.getURLForId(jobId))
+				base.resolveCrossId(res[0]["jobClass"]).getUWS().getURLForId(jobId))
 
 		return self.jobClass(res[0], self, writable)
 

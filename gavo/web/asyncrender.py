@@ -42,8 +42,11 @@ class UWSRedirect(rend.Page):
 			baseURL = baseURL+"/async"
 
 		if location:
-			self.location = str(
-				"%s/%s"%(baseURL, location))
+			if location.startswith("http://") or location.startswith("https://"):
+				self.location = location
+			else:
+				self.location = str(
+					"%s/%s"%(baseURL, location))
 		else:
 			self.location = str(baseURL)
 

@@ -723,6 +723,13 @@ if __name__=="__main__":
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
 	res = syms["querySpecification"].parseString(
-		"SELECT UPPper(table_name), lower(description) from tap_schema.columns"
+		"""
+		select ivo_string_agg(name, '/') as columns, table_name
+from rr.res_table
+natural join rr.table_column
+where ucd in ('time.age', 'pos.eq.ra;meta.main', 'pos.eq.dec;meta.main')
+and 1=ivo_hasword(table_description, 'star')
+group by table_name
+having ivo_string_agg(ucd, '/') like '%time.age%'"""
 		, parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)
