@@ -43,7 +43,7 @@ class UWSRedirect(rend.Page):
 
 		if location:
 			if location.startswith("http://") or location.startswith("https://"):
-				self.location = location
+				self.location = str(location)
 			else:
 				self.location = str(
 					"%s/%s"%(baseURL, location))
