@@ -674,4 +674,21 @@
 		</make>
 	</data>
 
+
+	<!-- TBD: data refreshAfterSchemaUpdate, redoing all obscore things
+	mentioned in _obscoresources.  Central function:
+
+	def updateObscore(*tableRefs):
+		obscoreRD = api.getRD("//obscore")
+		runner = scripting.PythonScriptRunner(
+			obscoreRD.getById("addTableToObscoreSources"))
+
+		with api.getWritableAdminConn() as conn:
+			for tableRef in tableRefs:
+				table = api.TableForDef(
+					api.resolveCrossId(tableRef, forceType=api.TableDef),
+					connection=conn)
+				runner.run(table)
+-->
+
 </resource>

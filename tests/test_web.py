@@ -640,9 +640,8 @@ class TestUserUWS(trialhelpers.ArchiveTest):
 				).addCallback(waitForResult, jobURL, ct+1)
 
 		def checkParametersImmutable(result, jobURL):
-			self.assertTrue('<INFO name="QUERY_STATUS" value="ERROR">'
-				'Field phase: Parameters cannot be changed in phase EXECUTING'
-				in result[0])
+			self.assertStringsIn(result, ['<INFO name="QUERY_STATUS" value="ERROR">',
+				'Field phase: Parameters cannot be changed in phase EXECUTING'])
 			self.assertEqual(result[1].code, 400)
 			return trialhelpers.runQuery(self.renderer, "GET", jobURL, {}
 			).addCallback(waitForResult, jobURL)
@@ -792,8 +791,6 @@ def _setUser(username):
 	return _
 
 class TestUWSAuth(trialhelpers.ArchiveTest):
-
-
 	def testAuthBig(self):
 		def cleanupNext(result, jobURL2):
 			return trialhelpers.runQuery(self.renderer, "DELETE",
@@ -827,7 +824,6 @@ class TestUWSAuth(trialhelpers.ArchiveTest):
 				"/data/cores/pc/uws.xml", {
 					"opre": ["5"], "opim": ["7"], "powers": ["8", "9", "10"]}
 				).addCallback(queryJobList, jobURL)
-				
 
 		def assertAuthenticatedAccess(result, jobURL):
 			self.failUnless("<uws:ownerId>testuser</uws:ownerId>" in result[0])
@@ -854,6 +850,52 @@ class TestUWSAuth(trialhelpers.ArchiveTest):
 				"opre": ["1"], "opim": ["3"], "powers": ["1", "2", "3"]},
 			requestMogrifier=_setUser("testuser")
 		).addCallback(assertPosted)
+
+
+def _nukeServicePart(url):
+# remove service from UWS URL so we can test for visibility of services
+# in different user uwses below
+	return '/'.join(url.split('/')[-2:])
+
+class UserUWSJoblistTest(trialhelpers.ArchiveTest):
+
+	def testJoblist(self):
+		def assertPCJoblist(result, pcJobURL, ucJobURL):
+			self.assertStringsIn(result, [_nukeServicePart(pcJobURL)])
+			self.assertStringsIn(result, [_nukeServicePart(ucJobURL)], inverse=True)
+			trialhelpers.runQuery(self.renderer, "DELETE", 
+				pcJobURL, {})
+			return trialhelpers.runQuery(self.renderer, "DELETE", 
+				ucJobURL, {})
+
+		def assertUCJoblist(result, pcJobURL, ucJobURL):
+			self.assertStringsIn(result, [_nukeServicePart(ucJobURL)])
+			self.assertStringsIn(result, [_nukeServicePart(pcJobURL)], inverse=True)
+			return trialhelpers.runQuery(self.renderer, "GET", 
+				"/data/cores/pc/uws.xml", {}
+			).addCallback(assertPCJoblist, pcJobURL, ucJobURL)
+
+		def getJoblist(result, pcJobURL):
+			ucJobURL = _nukeHostPart(result[1].headers["location"])
+			return trialhelpers.runQuery(self.renderer, "GET", 
+				"/data/cores/uc/uws.xml", {}
+			).addCallback(assertUCJoblist, pcJobURL, ucJobURL)
+
+		def postOther(result):
+			pcJobURL = _nukeHostPart(result[1].headers["location"])
+			return trialhelpers.runQuery(self.renderer, "POST", 
+				"/data/cores/uc/uws.xml", {
+					"UPLOAD": ["stuff,param:foo", "other,param:bar"],
+					"foo": _FakeUpload(),
+					"bar": _FakeUpload("Other stuff"),
+				}
+			).addCallback(getJoblist, pcJobURL)
+
+		return trialhelpers.runQuery(self.renderer, "POST", 
+			"/data/cores/pc/uws.xml", {
+				"opre": ["1"], "opim": ["3"], "powers": ["1", "2", "3"]},
+			requestMogrifier=_setUser("testuser")
+		).addCallback(postOther)
 
 
 atexit.register(trialhelpers.provideRDData("test", "import_fitsprod"))
