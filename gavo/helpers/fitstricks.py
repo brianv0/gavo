@@ -394,15 +394,16 @@ def makeHeaderFromTemplate(template, originalHeader=None, **values):
 	template usually is the name of a template previously registered with
 	registerTemplate, or one of DaCHS predefined template names (currently,
 	minimal and wfpdb).  In a pinch, you can also pass in an immediate 
-	("anonymous") template, but you won't be able to later extend such headers.
+	headers.
 
-	original_header can be a pre-existing header; the history and comment
+	originalHeader can be a pre-existing header; the history and comment
 	cards are copied over from it, and if any of its other cards have not
 	yet been added to the header, they will be added in the order that they 
 	apprear there.
 
-	values for which no template item is given are ignored (but a
-	warning is issued if there are leftover values).
+	values for which no template item is given are added in random order
+	after the template unless an originalHeader is passed.  In that case,
+	they are assumed to originate there and are ignored.
 	"""
 	values = values.copy()
 	hdr = pyfits.Header()
@@ -419,15 +420,15 @@ def makeHeaderFromTemplate(template, originalHeader=None, **values):
 
 	_applyTemplate(hdr, template, values)
 
-	if values:
+	if originalHeader:
+		_copyMissingCards(hdr, originalHeader)
+	elif values:
 		base.ui.notifyWarning("The following values were left after"
 			" applying a FITS template and will be added in random order: %s"%
 			(", ").join(values.keys()))
 		for key, value in values.iteritems():
 			hdr.append(pyfits.Card(key, value), end=True)
 
-	if originalHeader:
-		_copyMissingCards(hdr, originalHeader)
 
 	hdr.add_history("GAVO DaCHS template used: "+templateName)
 	return hdr

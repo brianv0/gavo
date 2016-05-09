@@ -913,7 +913,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		"""
 		try:
 			self.getMeta("_example", raiseOnFail=True)
-			return base.META_CLASSES_FOR_KEYS["_example"](
+			return base.META_CLASSES_FOR_KEYS["_related"](
 				self.getURL("examples", False),
 				title="DALI examples")
 		except base.NoMetaKey:
