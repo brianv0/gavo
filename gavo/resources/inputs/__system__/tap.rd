@@ -471,9 +471,7 @@
 
 
 <!--********************* The TAP Service *********************-->
-	<nullCore id="null"/>
-
-	<service id="run" core="null" allowed="tap">
+	<service id="run" allowed="tap">
 		<meta name="shortName">\metaString{authority.shortName} TAP</meta>
 		<meta name="title">\getConfig{web}{sitename} TAP service</meta>
 
@@ -546,6 +544,7 @@
 		<publish render="tap" sets="ivo_managed,local">
 			<meta name="accessURL">\internallink{tap}</meta>
 		</publish>
+		<tapCore/>
 
 		<FEED source="%#tapdescription"/>
 		<FEED source="%#tapexamples"/>

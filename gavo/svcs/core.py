@@ -73,6 +73,7 @@ CORE_REGISTRY = {
 	"sdmCore": ("protocols.sdm", "SDMCore"),
 	"siapCutoutCore": ("protocols.siap", "SIAPCutoutCore"),
 	"ssapCore": ("protocols.ssap", "SSAPCore"),
+	"tapCore": ("protocols.tap", "TAPCore"),
 	"uploadCore": ("svcs.uploadcores", "UploadCore"),
 
 # Temporary hack to avoid validation errors on ccd700 in development

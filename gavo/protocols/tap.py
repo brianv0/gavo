@@ -15,6 +15,7 @@ import os
 
 from gavo import base
 from gavo import rsc
+from gavo import svcs
 from gavo import utils
 from gavo.imp.pyparsing import ParseException
 from gavo.protocols import uws
@@ -479,3 +480,15 @@ class TAPUWS(uws.UWSWithQueueing):
 		return "%s/%s/%s"%(self.baseURL, "async", jobId)
 
 WORKER_SYSTEM = TAPUWS()
+
+
+######################### The TAP core
+
+class TAPCore(svcs.Core):
+	"""A core for the TAP renderer.
+
+	Right now, this is a no-op and not used by the renderer.
+
+	This will change as we move to regularise the TAP system.
+	"""
+	name_ = "tapCore"
