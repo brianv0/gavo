@@ -59,7 +59,7 @@
 		<events>
 			<adql>True</adql>
 			<onDisk>True</onDisk>
-			<meta name="utype">epntap</meta>
+			<meta name="utype">ivo://ivoa.net/std/epntap#table-1.0</meta>
 
 			<meta name="info" infoName="SERVICE_PROTOCOL" 
 				infoValue="0.37">EPN-TAP</meta>

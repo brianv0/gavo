@@ -20,6 +20,7 @@ from nevow import appserver
 from nevow import compression
 from nevow import inevow
 from nevow import rend
+from nevow import tags as T
 from nevow import static
 
 from gavo import base
@@ -269,7 +270,15 @@ class ArchiveService(rend.Page):
 			
 		service = rd.getService(subId)
 		if service is None:
+			if rd.hasProperty("superseded-url"):
+				return weberrors.NotFoundPageWithFancyMessage([
+					"This resource is stale and has been superseded; you should really"
+					" not be directed here.  Anyway, you might find what you"
+					" were looking for at this ",
+					T.a(href=rd.getProperty("superseded-url"))["new location"],
+					"."]), ()
 			raise UnknownURI("No such service: %s"%subId, rd=rd)
+
 		if not rendName:
 			rendName = service.defaultRenderer
 		if rendName is None:

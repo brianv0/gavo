@@ -913,7 +913,8 @@ class DatalinkCore(DatalinkCoreBase):
 							utils.safe_str(ex)))
 					else:
 						if base.DEBUG:
-							base.ui.notifyError("Error in datalink descriptor generator")
+							base.ui.notifyError("Error in datalink descriptor generator: %s"%
+								utils.safe_str(ex))
 						descriptors.append(DatalinkFault.Fault(pubDID,
 							utils.safe_str(ex)))
 

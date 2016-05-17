@@ -8,14 +8,15 @@ Observers for running interactive programs in the terminal.
 #c COPYING file in the source distribution.
 
 
-from gavo.base import ObserverBase, listensTo
+from gavo import base
 
-class StingyPlainUI(ObserverBase):
+
+class StingyPlainUI(base.ObserverBase):
 	"""An Observer swallowing infos, warnings, and the like.
 	"""
 	def __init__(self, eh):
 		self.curIndent = ""
-		ObserverBase.__init__(self, eh)
+		base.ObserverBase.__init__(self, eh)
  
 	def showMsg(self, msg):
 		print self.curIndent+msg
@@ -26,11 +27,11 @@ class StingyPlainUI(ObserverBase):
 	def popIndent(self):
 		self.curIndent = self.curIndent[:-2]
 
-	@listensTo("SourceError")
+	@base.listensTo("SourceError")
 	def announceSourceError(self, srcString):
 		self.showMsg("Failed source %s"%srcString)
 
-	@listensTo("Error")
+	@base.listensTo("Error")
 	def printErrMsg(self, errMsg):
 		self.showMsg("*X*X* "+errMsg)
 
@@ -38,7 +39,7 @@ class StingyPlainUI(ObserverBase):
 class SemiStingyPlainUI(StingyPlainUI):
 	"""a StingyPlainUI that at least displays warnings.
 	"""
-	@listensTo("Warning")
+	@base.listensTo("Warning")
 	def printWarning(self, message):
 		self.showMsg("** WARNING: "+message)
 
@@ -46,36 +47,35 @@ class SemiStingyPlainUI(StingyPlainUI):
 class PlainUI(SemiStingyPlainUI):
 	"""An Observer spitting out most info to the screen.
 	"""
-
-	@listensTo("NewSource")
+	@base.listensTo("NewSource")
 	def announceNewSource(self, srcString):
 		self.showMsg("Starting %s"%srcString)
 		self.pushIndent()
 	
-	@listensTo("SourceFinished")
+	@base.listensTo("SourceFinished")
 	def announceSourceFinished(self, srcString):
 		self.popIndent()
 		self.showMsg("Done %s, read %d"%(srcString, self.dispatcher.totalRead))
 	
- 	@listensTo("SourceError")
+ 	@base.listensTo("SourceError")
  	def announceSourceError(self, srcString):
 		self.popIndent()
  		self.showMsg("Failed %s"%srcString)
 
-	@listensTo("Shipout")
+	@base.listensTo("Shipout")
 	def announceShipout(self, noShipped):
 		self.showMsg("Shipped %d/%d"%(
 			noShipped, self.dispatcher.totalShippedOut))
 	
-	@listensTo("IndexCreation")
+	@base.listensTo("IndexCreation")
 	def announceIndexing(self, indexName):
 		self.showMsg("Create index %s"%indexName)
 	
-	@listensTo("ScriptRunning")
+	@base.listensTo("ScriptRunning")
 	def announceScriptRunning(self, runner):
 		self.showMsg("%s excecuting script %s"%(
 			runner.__class__.__name__, runner.name))
 	
-	@listensTo("Info")
+	@base.listensTo("Info")
 	def printInfo(self, message):
 		self.showMsg(message)

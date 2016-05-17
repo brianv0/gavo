@@ -114,7 +114,7 @@ class ErrorPage(rend.Page, common.CommonRenderers):
 				T.invisible(data=T.directive("status"), render=T.directive("string")),
 				")"],
 			T.p(render=T.directive("beforeMessage")),
-			T.p(render=T.directive("message")),
+			T.div(class_="errors", render=T.directive("message")),
 			T.div(render=T.directive("afterMessage")),
 			T.invisible(render=T.directive("footer"))]])
 
@@ -144,6 +144,19 @@ class NotFoundPage(ErrorPage):
 
 	def renderHTTP_notFound(self, ctx):
 		return self.renderHTTP(ctx)
+
+
+class NotFoundPageWithFancyMessage(NotFoundPage):
+	"""A NotFoundPage with a message that's taken from a piece of stan.
+	"""
+	def __init__(self, message):
+		self.message = message
+	
+	def render_message(self, ctx, data):
+		return ctx.tag[self.message]
+	
+	def render_rdlink(self, ctx, data):
+		return ""
 
 
 class OtherNotFoundPage(NotFoundPage):
