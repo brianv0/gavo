@@ -224,7 +224,7 @@ Procedures available for grammar rowfilters
 Procedures available for datalink cores
 '''''''''''''''''''''''''''''''''''''''
 
-.. replaceWithResult _makeProcsDocumenter(["//datalink#"+ s for s in 
+.. replaceWithResult _makeProcsDocumenter(["//soda#"+ s for s in 
     "fromStandardPubDID", 
     "trivialFormatter",
     "generateProduct",
@@ -235,8 +235,8 @@ Procedures available for datalink cores
     "fits_makeHDUList",
     "fits_doWCSCutout",
     "fits_formatHDUs",
-    "fits_makeLambdaSlice",
-    "fits_makeLambdaMeta",
+    "fits_makeBANDSlice",
+    "fits_makeBANDMeta",
     ])(docStructure)
 
 
@@ -1476,16 +1476,29 @@ you could, for example, extract from a tcpdump log.
 Datalink Cores
 ==============
 
+**Historical note:**   DaCHS, which actually did much of the prototyping
+for the respective IVOA standards, treats datalink (metadata management)
+and SODA (actual operations on data) as a fairly integral system; the
+separation between the two does not make much sense within DaCHS.
+During prototyping, many of the procDefs and STREAMs for data
+manipulation mentioned below started their lives in the //datalink RD.
+Although they have not been removed there yet, please do not take them
+from there any more.  Take them from //soda, which is where they are
+maintained and developed.
+
 Datalink is an IVOA protocol that allows associating various products
 and artifacts with a data set id.  Think the association of error or
 mask maps, progenitor datasets, or processed data products, with a data
-set.  It also lets you associate data processing services with datasets,
+set.  
+
+It also lets you associate data processing services with datasets,
 which allows on-the-fly generation of cutouts, format conversions or
-recalibrations.  Note that in DaCHS, Datalink support covers both what
-the IVOA recommendation on Datalink gives (essentially metadata
-transport; that's the dlmeta renderer) and the access services described
-(there's a standard called "AccessData" planned for that; in DaCHS,
-that's the dlget renderer).
+recalibrations; the details of how this is done are described in another
+standard called SODA.  In DaCHS, Datalink is implemented by the
+``dlmeta`` renderer, SODA by the ``dlget`` renderer.  In all but fairly
+exotic cases, both renderers are used on the same service.  In the
+following treatment, we do not really distinguish between Datalink and
+SODA.
 
 A central term for datalink is the pubDID, or publisher DID.  This is an
 identifier assigned (essentially) by you that points to a concrete
@@ -1583,7 +1596,7 @@ generator.  In the simplest case, the pubDID will be in DaCHS'
 which case the default descriptor generator works and you don't have to
 specify anything.  You could manually insert that default by saying::
   
-  <descriptorGenerator procDef="//datalink#fromStandardPubDID"/>
+  <descriptorGenerator procDef="//soda#fromStandardPubDID"/>
 
 (this happens to be DaCHS' default if no descriptor generator is given).
 It's functionality is equivalent to this::
@@ -1614,7 +1627,7 @@ Spectrum Product Descriptor Generators
 
 A slightly more interesting example is provided by datalink for SSA,
 where cutouts and similar is generated from spectra.  The actual
-definition is in ``//datalink#sdm_genDesc``, but the gist of it is::
+definition is in ``//soda#sdm_genDesc``, but the gist of it is::
 
   <descriptorGenerator>
     <setup>
@@ -1786,7 +1799,7 @@ this::
     </code>
   </metaMaker>
 
-(something like this is part of the ``//datalink#sdm_cutout`` predefined
+(something like this is part of the ``//soda#sdm_cutout`` predefined
 stream).
 
 The example shows two general techniques for "physical" parameters.
@@ -1828,14 +1841,14 @@ orders.  The change method can take additional keyword/value pairs to
 change further properties.
 
 When publishing FITS cubes, you will usually use the
-`//datalink#fits_makeWCSParams`_ meta maker; it accepts similar QSTCS
+`//soda#fits_makeWCSParams`_ meta maker; it accepts similar QSTCS
 specifications as well.  To find out what parameter names the individual
 axes are mapped to, first use makeWCSParams without the STC metadata::
 
    <service id="d" allowed="dlmeta,dlget,form">
     <datalinkCore>
-      <descriptorGenerator procDef="//datalink#fits_genDesc"/>
-      <metaMaker procDef="//datalink#fits_makeWCSParams"/>
+      <descriptorGenerator procDef="//soda#fits_genDesc"/>
+      <metaMaker procDef="//soda#fits_makeWCSParams"/>
     </datalinkCore>
   </service>
 
@@ -1884,7 +1897,7 @@ In there you'll see the parameter names for the axes, e.g.,::
 If the image is calibrated using a catalog on ICRS, with the wavelength
 given as measured, change the ``fits_makeWCSParams`` call to::
 
-  <metaMaker procDef="//datalink#fits_makeWCSParams>
+  <metaMaker procDef="//soda#fits_makeWCSParams>
     <setup>
       <bind key="stcs"
         >('PositionInterval ICRS "RA_MIN" "DEC_MIN" "RA_MAX" "DEC_MAX"\n'
@@ -2085,7 +2098,7 @@ functions expects which parameters.  If no value for a parameter was
 provided on input, the corresponding value is None but a data function
 using it still is called.
 
-An example for a generating data function is ``//datalink#generateProduct``,
+An example for a generating data function is ``//soda#generateProduct``,
 which may be convenient when the manipulations operate on plain local files;
 it basically looks like this::
 
@@ -2100,7 +2113,7 @@ therefore a bit more complicated).
 
 Another generating data function, this time creating a Data instance
 containing a spectral data model-compliant structure, is in
-``//datalink#sdm_genData`` and looks essentially like this::
+``//soda#sdm_genData`` and looks essentially like this::
 
   <dataFunction>
     <code>
@@ -2116,7 +2129,7 @@ More on this will be discussed in our section on SDM support.
 
 Filtering data functions should always come with a corresponding
 metaMaker.  As an example, continuing the spectral cutout example above,
-is again in ``//datalink#sdm_cutout``.  It simply looks like this::
+is again in ``//soda#sdm_cutout``.  It simply looks like this::
 
   <dataFunction>
     <code>
@@ -2140,7 +2153,7 @@ immediately served) or FormatNow (which immediately goes to the data
 formatter; this is less useful).
 
 Here's an example for FormatNow; a similar thing is contained in the
-STREAM ``//datalink#fits_genKindPar``::
+STREAM ``//soda#fits_genKindPar``::
 
   <dataFunction>
     <setup>
@@ -2164,7 +2177,7 @@ Data Formatters
 Data formatters (see `element dataFormatter`_) take a descriptor's data
 attribute and build something serveable out of it.  Datalink cores do
 not absolutely need one; the default is to return ``descriptor.data``
-(the ``//datalink#trivialFormatter``, which might be fine if that data is
+(the ``//soda#trivialFormatter``, which might be fine if that data is
 serveable itself).
 
 What is serveable?  The easiest thing to come up with is a pair of
@@ -2180,7 +2193,7 @@ or Data instance, the following could work::
   </dataFormatter>
  
 
-Another example is an excerpt from ``//datalink#sdm_cutout``::
+Another example is an excerpt from ``//soda#sdm_cutout``::
 
   <dataFormatter>
     <code>
@@ -2198,7 +2211,7 @@ FORMAT).
 
 An alternative is to return something that has a ``renderHTTP(ctx)``
 method that works in nevow.  This is true for the Product instances that
-``//datalink#generateProduct`` generates, for example.  You can also
+``//soda#generateProduct`` generates, for example.  You can also
 write something yourself by inheriting from
 protocols.products.ProductBase and overriding its iterData method.
 
@@ -2322,15 +2335,15 @@ spectra.  A typical service there looks like this::
   <service id="ssaaux" allowed="dlmeta,dlget">
     <meta name="title">Datalink service to retrieve individual spectra</meta>
     <datalinkCore>
-      <descriptorGenerator procDef="//datalink#sdm_genDesc">
+      <descriptorGenerator procDef="//soda#sdm_genDesc">
         <bind name="ssaTD">"\rdId#slitspectra"</bind>
       </descriptorGenerator>
-      <dataFunction procDef="//datalink#sdm_genData">
+      <dataFunction procDef="//soda#sdm_genData">
         <bind name="builder">"\rdId#get_slitcomponent"</bind>
       </dataFunction>
-      <FEED source="//datalink#sdm_plainfluxcalib"/>
-      <FEED source="//datalink#sdm_cutout"/>
-      <FEED source="//datalink#sdm_format"/>
+      <FEED source="//soda#sdm_plainfluxcalib"/>
+      <FEED source="//soda#sdm_cutout"/>
+      <FEED source="//soda#sdm_format"/>
     </datalinkCore>
   </service>
 
