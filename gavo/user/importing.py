@@ -14,6 +14,7 @@ from optparse import OptionParser
 from gavo import api
 from gavo import base
 from gavo.protocols import tap
+from gavo.rscdef import scripting
 from gavo.user import common
 
 
@@ -60,6 +61,14 @@ def process(opts, args):
 			api.ui.notifyInfo("Updating meta for %s"%dd.id)
 			res = api.Data.create(dd, parseOptions=opts, connection=connection
 				).updateMeta(opts.metaPlusIndex)
+
+			# Hack: if there's an obscore mixin active, redo the obscore
+			# Is there a less special-cased way to do this?
+			for make in dd.makes:
+				for script in make.scripts:
+					if script.id=='addTableToObscoreSources':
+						scripting.PythonScriptRunner(script).run(
+							res.tables[make.table.id])
 		else:
 			api.ui.notifyInfo("Making data %s"%dd.id)
 			res = api.makeData(dd, parseOptions=opts, connection=connection)
