@@ -71,6 +71,8 @@
 			adql="True">
 		<meta name="description">Columns in tables available for ADQL querying.
 		</meta>
+		<foreignKey source="table_name" inTable="tables"/>
+
 		<column name="table_name" type="text" 
 			tablehead="Table"
 			description="Fully qualified table name">
