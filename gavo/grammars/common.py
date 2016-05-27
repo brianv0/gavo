@@ -512,6 +512,11 @@ class GrammarMacroMixin(base.StandardMacroMixin):
 		assumes to see in its namespace as accref; this is usually the
 		case in //products#define, which is where this macro would typically be
 		used).
+
+		As an alternative, there is the splitPreviewPath macro, which does not
+		mogrify the file name.  In particular, do not use standardPreviewPath
+		when you have more than a few 1e4 files, as it will have all these
+		files in a single, flat directory, and that can become a chore.
 		
 		See the introduction to custom previews for details.
 		"""
@@ -520,6 +525,22 @@ class GrammarMacroMixin(base.StandardMacroMixin):
 			self.parent.getProperty("previewDir"))+"/"
 		return (repr(constantPrefix)
 			+"+getFlatName(accref)")
+
+	def macro_splitPreviewPath(self, ext):
+		"""returns an expression for the split standard path for a custom 
+		preview.
+
+		As standardPreviewPath, except that the directory hierarchy of the data 
+		files will be reproduced in previews.  For ext, you should typically pass
+		the extension appropriate for the preview (like {.png} or {.jpeg}).
+		
+		See the introduction to custom previews for details.
+		"""
+		constantPrefix = os.path.join(
+			rscdef.getInputsRelativePath(self.parent.rd.resdir),
+			self.parent.getProperty("previewDir"))+"/"
+		return (repr(constantPrefix)
+			+"+accref+'%s'"%ext)
 
 	def macro_rowsProcessed(self):
 		"""returns an expression giving the number of records already

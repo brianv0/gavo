@@ -27,7 +27,6 @@ import Image
 
 from gavo import base
 from gavo import rsc
-from gavo import rscdef
 from gavo import utils
 from gavo.helpers import anet
 from gavo.helpers import fitstricks
@@ -576,25 +575,39 @@ class PreviewMaker(FileProcessor):
 			dd.getProperty("previewDir"))
 		if not os.path.isdir(self.previewDir):
 			os.makedirs(self.previewDir)
+		self.conn = base.getDBConnection("trustedquery")
 		FileProcessor._createAuxiliaries(self, dd)
 
 	def getPreviewPath(self, accref):
-		return os.path.join(self.previewDir,
-			rscdef.getFlatName(accref))
+		res = list(self.conn.query("select preview from dc.products where"
+			" accref=%(accref)s", {"accref": accref}))
+		if not res:
+			raise IOError("%s is not in the products table.  Update/import"
+				" the resource?"%accref)
+		return os.path.join(self.inputsDir, res[0][0])
 
-	def classify(self, accref):
+	def classify(self, path):
+		if not path.startswith("/"):
+			# It's probably an accref when we're not called from process
+			path = self.getPreviewPath(path)
+
 		if self.opts.force:
 			return "without"
-
-		if os.path.exists(self.getPreviewPath(accref)):
+		if os.path.exists(path):
 			return "with"
 		else:
 			return "without"
 	
 	def process(self, accref):
-		if self.classify(accref)=="with":
+		path = self.getPreviewPath(accref)
+		if self.classify(path)=="with":
 			return
-		with utils.safeReplaced(self.getPreviewPath(accref)) as f:
+
+		dirPart = os.path.dirname(path)
+		if not os.path.exists(dirPart):
+			os.makedirs(dirPart)
+
+		with utils.safeReplaced(path) as f:
 			f.write(self.getPreviewData(accref))
 
 
@@ -609,9 +622,8 @@ class SpectralPreviewMaker(PreviewMaker):
 		"""iterates over the accrefs in the first table of dd.
 		"""
 		tableId = self.dd.makes[0].table.getQName()
-		with base.getTableConn() as conn:
-			for r in conn.queryToDicts("select accref from %s"%tableId):
-				yield r["accref"]
+		for r in self.conn.queryToDicts("select accref from %s"%tableId):
+			yield r["accref"]
 
 	def getPreviewData(self, accref):
 		table = rsc.makeData(self.sdmDD, forceSource={

@@ -321,12 +321,12 @@ class UserUWSTest(testhelpers.VerboseTest):
 	def testFloatParameter(self):
 		worker = base.resolveCrossId("data/cores#pc").getUWS()
 		jobId = worker.getNewIdFromRequest(
-			_makeUWSRequest({"opre": ["2.5"], "opim": ["3.5"]}),
+			_makeUWSRequest({"opre": ["2.5489923488e10"], "opim": ["3.5"]}),
 				worker.service)
 		try:
 			job = worker.getJob(jobId)
-			self.assertEqual(job.getSerializedPar("opre"), "2.5")
-			self.assertEqual(job.parameters["opre"], 2.5)
+			self.assertEqual(job.getSerializedPar("opre"), "25489923488.0")
+			self.assertEqual(job.parameters["opre"], 25489923488.)
 		finally:
 			worker.destroy(jobId)
 
