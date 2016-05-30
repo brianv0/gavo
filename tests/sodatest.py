@@ -429,7 +429,7 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 
 	def testAccessURLAccess(self):
 		self.assertEqual(self.rows[
-			('ivo://x-unregistred/~?data/b.imp', '#access')][0]["access_url"],
+			('ivo://x-unregistred/~?data/b.imp', '#proc')][0]["access_url"],
 			'http://localhost:8080/data/test/foo/dlget')
 
 	def testAccessURLSelf(self):
@@ -446,7 +446,7 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 	
 	def testSemantics(self):
 		self.assertEqual(set(r[1] for r in self.rows), 
-			set(['#access', '#this', '#alternative', '#calibration', '#preview',
+			set(['#proc', '#this', '#alternative', '#calibration', '#preview',
 				"http://dc.g-vo.org/datalink#other",
 				'http://www.g-vo.org/dl#related',
 				'http://www.g-vo.org/dl#unrelated',
@@ -460,7 +460,7 @@ class DatalinkMetaRowsTest(testhelpers.VerboseTest):
 
 	def testServiceLink(self):
 		svcRow = self.rows[('ivo://x-unregistred/~?data/a.imp', 
-			'#access')][0]
+			'#proc')][0]
 		resId = svcRow["service_def"]
 		for res in self.serviceResult[1].xpath("//RESOURCE"):
 			if res.attrib.get("ID")==resId:
