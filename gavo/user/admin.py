@@ -302,14 +302,23 @@ def xsdValidate(querier, args):
 		print msgs
 
 
-@exposedFunction([Arg(help="IVORN to mark as deleted", dest="ivoid")],
-	help="Add a registry entry for a deleted record with IVORN.  You should"
+@exposedFunction([Arg(help="IVOID to mark as deleted", dest="ivoid")],
+	help="Add a registry entry for a deleted record with IVOID.  You should"
 		" not usually have to do this, except when you added an identifier"
 		" meta item to a service that was already published without also"
 		" changing its XML id.")
 def makeDeletedRecord(querier, args):
 	from gavo.registry import publication
 	publication.makeDeletedRecord(args.ivoid, querier.connection)
+
+
+@exposedFunction([], help="Update the TAP_SCHEMA metadata for all"
+	" RDs mentioned in TAP_SCHEMA.")
+def updateTAPSchema(querier, args):
+	from gavo.protocols import tap
+	for rdId, in querier.query("select sourcerd from TAP_SCHEMA.tables"):
+		rd = base.caches.getRD(rdId)
+		tap.publishToTAP(rd, querier.connection)
 
 
 def main():
