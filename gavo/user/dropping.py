@@ -36,6 +36,8 @@ def _do_dropTable(tableName, conn):
 			("dc.tablemeta", "tableName"),
 			("ivoa._obscoresources", "tableName"),
 			("tap_schema.tables", "table_name"),
+			("tap_schema.keys", "from_table"),
+			("tap_schema.keys", "target_table"),
 			("tap_schema.columns", "table_name")]:
 		if q.tableExists(metaTableName):
 			q.query("delete from %s where %s=%%(tableName)s"%(
