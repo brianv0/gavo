@@ -163,10 +163,12 @@ class Examples(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 
 def _taptableRoleFunc(name, rawText, text, lineno, inliner,
 		options={}, content=[]):
-	node = nodes.reference(rawText, text,
+	tablename = nodes.emphasis(rawText, text)
+	tablename["classes"] = ["dachs-ex-taptable"]
+	descr = nodes.reference(u"\u2197", u"\u2197",
 		refuri="/tableinfo/%s"%text) 
-	node["classes"] = ["dachs-ex-taptable"]
-	return [node], []
+	descr["classes"] = ["taptable-link"]
+	return [descr, tablename], []
 
 misctricks.RSTExtensions.makeTextRole("taptable", _taptableRoleFunc,
 	propertyName="table")

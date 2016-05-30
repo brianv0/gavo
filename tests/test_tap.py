@@ -89,7 +89,7 @@ class SyncMetaTest(TAPRenderTest):
 		return self.assertGETHasStrings("/examples", {}, [
 			'resource="#tap_schemaexample"',
 			'property="table"',
-			'content="tap_schema.columns"',
+			'>tap_schema.columns</em>',
 			'10\xc2\xb5m',
 			'property="query"',
 			"LIKE '%em.IR.8-15um%'\n</pre>",
