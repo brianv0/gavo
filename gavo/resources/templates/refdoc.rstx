@@ -3128,10 +3128,10 @@ Adapting Obscore
 
 You may want extra, locally-defined columns in your obscore tables.  To
 support this, there are three hooks in obscore that you can exploit.
-To fill these hooks, use ``userconfig.rd`` (TODO: more
-documentation on that as we use it more; meanwhile: get a `template from
-SVN`_ and put it into GAVO_ROOT/etc).  It helps to have a brief look at
-the ``//obscore`` RD to get an idea where these hooks go.
+The hooks are in ``userconfig.rd`` (see `Userconfig RD in
+the operator's guide`_ to where it is and how to get started with it)
+It helps to have a brief look at the ``//obscore`` RD (e.g., using
+``gavo admin dumpDF //obscore``) to get an idea what these hooks do.
 
 Within the template ``userconfig.rd``, there are already three STREAMs
 with ids starting with obscore.; these are referenced from within the
@@ -3151,7 +3151,7 @@ system ``//obscore`` RD.  Here's an somewhat more elaborate example::
   <STREAM id="obscore-extraevents">
     <property name="obscoreClause" cumulate="True">
       ,
-      CAST(\\\\fillFactor AS real) AS fill_factor,
+      CAST(\\\\fillFactor AS real) AS fill_factor
     </property>
   </STREAM>
 
@@ -3171,9 +3171,7 @@ What's going on here?  Well, ``obscore-extracolumns`` is easy – this
 material is directly inserted into the definition of the obscore view
 (see the table with id ``ObsCore`` within the ``//obscore`` RD).  You
 could abuse it to insert other stuff than columns but probably should
-not (current exception: you probably need to fix the ``viewStatement``
-in //obscore to include sufficient columns; we're trying to figure out a
-better solution).
+not.
 
 The tricky part is ``obscore-extraevents``.  This goes into the
 ``//obscore#_publishCommon`` STREAM and ends up in all the publish
@@ -3182,9 +3180,9 @@ this point, but the only thing you really must do is add lines to the
 big SQL fragment in the ``obscoreClause`` property that the mixin leaves
 in the table.  This is what is made into the table's contribution to the
 big obscore union. Just follow the example above and, in particular,
-always CAST to the type you ave in the metadata, since individual tables
+always CAST to the type you have in the metadata, since individual tables
 might have NULLs in the values, and you do not want misguided attempts
-of postgres to do type inference then.
+by postgres to do type inference then.
 
 If you actually must know why you need to double-escape fillFactor and
 what the magic with the ``cumulate="True"`` is, ask.
@@ -3193,19 +3191,40 @@ Finally, ``obscore-extrapars`` directly goes into a core component of
 obscore, one that all the various publish mixins there use.  Hence, all
 of them grow your functionality.  That is also why it is important to
 give defaults (i.e., element content) to all mixinPars you give in this
-way – without them, all those other publish mixins would fail.
+way – without them, all those other publish mixins would fail unless
+their applications in the RDs were fixed.
 
-If you change ``%#obscore-extracolumns``, you will need to re-import all
-obscore-published tables (actually, importing the metadata using ``gavo
-imp -m`` should do).  There currently is no automatic way to traverse
-the file system, and you will probably have to first unpublish all
-existing tables by connecting to the database and running ``delete from
-ivoa._obscoresources``.  If obscore adaption proves a popular feature,
-we'll make all this a bit smoother.
+If you change ``%#obscore-extracolumns``, all the statement fragments
+contributed by the obscore-published tables need to be fixed.  To spare
+you the effort of touching a potentially sizeable number of RDs, there's
+a data element in //obscore that does that for you; so, after every
+change just run::
 
-.. _template from SVN: http://svn.ari.uni-heidelberg.de/svn/gavo/python/trunk/gavo/resources/inputs/__system__/userconfig.rd
+  gavo imp //obscore refreshAfterSchemaUpdate
 
+This may fail if you didn't clean up properly after deleting a resource
+that once contributed to ivoa.obscore.  In that case you'll see an error
+message like::
 
+  *** Error: table u'whatever.main' could not be located in dc_tables
+
+In that case, just tell DaCHS to forget the offending table::
+
+  gavo purge whatever.main
+
+Another problem can arise when a table once was published to obscore but
+now no longer is while still existing.  DaCHS in that case will still
+have an entry for the table in ivoa._obscoresources, which results in an
+error like::
+
+  Table definition of whatever.main> has no property 'obscoreClause' set
+
+The fastest way to fix this situation is to drop the offending line in
+the database manually::
+  
+  psql gavo -c "delete from ivoa._obscoresources where tablename='whatever.main'"
+
+.. _Userconfig RD in the operator's guide: http://docs.g-vo.org/DaCHS/opguide.html#userconfig-rd
 
 
 

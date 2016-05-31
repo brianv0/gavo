@@ -675,20 +675,33 @@
 	</data>
 
 
-	<!-- TBD: data refreshAfterSchemaUpdate, redoing all obscore things
-	mentioned in _obscoresources.  Central function:
+	<data id="refreshAfterSchemaUpdate">
+		<recreateAfter>create</recreateAfter>
+		<make table="ObsCore">
+			<script name="update all obscore definitions" type="postCreation"
+					lang="python">
+				from gavo import rsc
+				from gavo.rscdef import scripting
 
-	def updateObscore(*tableRefs):
-		obscoreRD = api.getRD("//obscore")
-		runner = scripting.PythonScriptRunner(
-			obscoreRD.getById("addTableToObscoreSources"))
+				def updateObscore(conn, tableDefs):
+					obscoreRD = base.caches.getRD("//obscore")
+					runner = scripting.PythonScriptRunner(
+						obscoreRD.getById("addTableToObscoreSources"))
 
-		with api.getWritableAdminConn() as conn:
-			for tableRef in tableRefs:
-				table = api.TableForDef(
-					api.resolveCrossId(tableRef, forceType=api.TableDef),
-					connection=conn)
-				runner.run(table)
--->
+					for tableDef in tableDefs:
+						base.ui.notifyNewSource(tableDef.getQName())
+						depTable = rsc.TableForDef(tableDef, connection=conn)
+						runner.run(depTable)
+						base.ui.notifySourceFinished()
+				
+				if table.tableExists("ivoa._obscoresources"):
+					mth = base.caches.getMTH(None)
+					srcTables = [mth.getTableDefForTable(r[0]) 
+						for r in table.connection.query(
+							"select tablename from ivoa._obscoresources")]
+					updateObscore(table.connection, srcTables)
+			</script>
+		</make>
+	</data>
 
 </resource>
