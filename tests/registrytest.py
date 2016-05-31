@@ -732,6 +732,8 @@ class _TableVORRecord(testhelpers.TestResource):
 					>GAVO TAP service</meta>
 				<meta name="servedBy" ivoId="ivo://org.g-vo.junk/adql"
 					>GAVO ADQL Web</meta>
+				<meta name="continues" ivoId="ivo://org.g-vo.junk/zero"
+					>My Zeroeth Data Collection</meta>
 			</table></resource>""")
 		rd.sourceId = "funky/town"
 		td = rd.tables[0]
@@ -799,6 +801,14 @@ class TablePublicationRecordTest(testhelpers.VerboseTest):
 			"ivo://org.g-vo.junk/tap")
 		self.assertEqual(par.xpath("relatedResource")[1].attrib["ivo-id"],
 			"ivo://org.g-vo.junk/adql")
+
+	def testContinues(self):
+		par = self.tree.xpath("//relationship")[1]
+		self.assertEqual(par.xpath("relationshipType")[0].text, "Continues")
+		self.assertEqual(par.xpath("relatedResource")[0].text,
+			"My Zeroeth Data Collection")
+		self.assertEqual(par.xpath("relatedResource")[0].attrib["ivo-id"],
+			"ivo://org.g-vo.junk/zero")
 
 	def testUtype(self):
 		self.assertEqual(self.tree.xpath("tableset/schema/table/utype")[0].text,

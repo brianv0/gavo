@@ -876,7 +876,7 @@ class RelatedResourceMeta(MetaValue):
 	"""A meta value containing an ivo-id and a name of a related resource.
 
 	These are intended for serviceFor, servedBy, derivedFrom,
-	mirrorOf, and relatedTo metas.  Plus, new and non-standard for
+	mirrorOf, relatedTo, and other metas.  Plus, new and non-standard for
 	DocRegExt, uses.
 
 	It should look like this::
@@ -1086,11 +1086,15 @@ class ExampleMeta(MetaValue):
 META_CLASSES_FOR_KEYS = {
 	"_related": MetaURL,
 	"_example": ExampleMeta,
+
+# if you add new RelationResourceMeta meta keys, be you'll also need to
+# amend registry.builders._vrResourceBuilder
 	"servedBy": RelatedResourceMeta,
 	"serviceFor": RelatedResourceMeta,
 	"relatedTo": RelatedResourceMeta,
 	"mirrorOf": RelatedResourceMeta,
 	"derivedFrom": RelatedResourceMeta,
+	"continues": RelatedResourceMeta,
 	"uses": RelatedResourceMeta,
 	"_news": NewsMeta,
 	"referenceURL": MetaURL,

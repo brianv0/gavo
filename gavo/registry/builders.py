@@ -127,8 +127,10 @@ _vrResourceBuilder = meta.ModelBasedBuilder([
 					"ivoId": "ivoId"})]),
 		(None, SF(lambda: VOR.relationship[VOR.relationshipType["related-to"]]), [
 			('uses', SF(VOR.relatedResource), (), {
+					"ivoId": "ivoId"})]),
+		(None, SF(lambda: VOR.relationship[VOR.relationshipType["Continues"]]), [
+			('continues', SF(VOR.relatedResource), (), {
 					"ivoId": "ivoId"})]),]),
-
 ])
 
 
