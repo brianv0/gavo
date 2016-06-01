@@ -139,53 +139,6 @@ class SSAPCore(svcs.DBCore):
 		
 		return base.votableType, votablewrite.getAsVOTable(data)
 
-	def _declareGenerationParameters(self, resElement, datalinkCore):
-		"""adds a table declaring getData support to resElement as appropriate.
-
-		resElement is a votable.V RESOURCE element, datalinkCore
-		is the datalink core adapted for the SSA table in resElement.
-
-		Deprecated; this will go as we remove vintage getData support.
-		"""
-		# this assumes datalinkCore uses the ucds as in //datalink#sdm_*;
-		# also, we only support the keywords we've supported in the original
-		# getData implementation.
-		paramTable = V.TABLE(name="generationParameters")
-
-		for ik in datalinkCore.inputTable.params:
-			if ik.name=="FLUXCALIB":
-				paramTable[
-					V.PARAM(name="FLUXCALIB", datatype="char", arraysize="*") [
-						V.DESCRIPTION["Recalibrate the spectrum to..."],
-						V.VALUES[[
-							V.OPTION(value=option.content_, name=option.title)
-								for option in ik.values.options]]]]
-
-			elif ik.name=="LAMBDA_MIN":
-				paramTable[
-					V.PARAM(name="BAND", datatype="char", arraysize="m", unit="m")[
-						V.DESCRIPTION["The spectral range of the cutout"],
-						V.VALUES[
-							V.MIN(value=ik.values.min),
-							V.MAX(value=ik.values.max)]]]
-			
-			elif ik.name=="FORMAT":
-				paramTable[
-    			V.PARAM(name="FORMAT", datatype="char", arraysize="*",
-			      	value="application/x-votable+xml") [
-			      V.DESCRIPTION["Format to deliver the spectrum in."],
-		      	V.VALUES[[
-							V.OPTION(value=option.content_, name=option.title)
-								for option in ik.values.options]]]]
-
-			else:
-				pass
-
-		resElement[
-			V.RESOURCE(name="getDataMeta")[
-				paramTable]]
-
-
 	############### Implementation of the service operations
 
 	def _run_getData(self, service, inputTable, queryMeta):
@@ -317,9 +270,6 @@ class SSAPCore(svcs.DBCore):
 		if datalinkId and res:
 			dlService = self.rd.getById(datalinkId)
 			dlCore = getDatalinkCore(dlService, res)
-
-			# old and stinky getData (remove at some point)
-			self._declareGenerationParameters(vot, dlCore)
 
 			# new and shiny datalink (keep)
 			# (we're just using endpoint 0; it should a the sync service)
