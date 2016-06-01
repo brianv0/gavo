@@ -13,7 +13,6 @@ from gavo import base
 from gavo import rsc
 from gavo import rscdef
 from gavo import svcs
-from gavo import utils
 from gavo import votable
 from gavo.formats import votablewrite
 from gavo.protocols import datalink
@@ -93,10 +92,6 @@ class SSAPCore(svcs.DBCore):
 	This core knows about metadata queries, version negotiation, and 
 	dispatches on REQUEST.  Thus, it may return formatted XML data
 	under certain circumstances.
-
-	SSAPCores also know how to handle getData requests according to the 2012
-	draft.  This is done via datalink, and we expect parameters as per
-	the sdm_* streams in datalink.
 	"""
 	name_ = "ssapCore"
 
@@ -141,45 +136,6 @@ class SSAPCore(svcs.DBCore):
 
 	############### Implementation of the service operations
 
-	def _run_getData(self, service, inputTable, queryMeta):
-		"""returns mime and payload for a getData operation on the parameters
-		defined in inputTable.
-		"""
-		datalinkId = service.getProperty("datalink", None)
-		if datalinkId is None:
-			raise base.ValidationError("No getData support on %s"%
-				service.getMeta("identifier"), "REQUEST", hint="Only SSAP"
-						" services with a datalink property support getData")
-
-		rawArgs = queryMeta.ctxArgs
-		del rawArgs[utils.getKeyNoCase(rawArgs, "request")]
-		if "_FORMAT" in rawArgs:
-			del rawArgs["_FORMAT"]
-
-		if "BAND" in rawArgs:
-			bandVal = utils.getfirst(rawArgs, "BAND")
-			del rawArgs["BAND"]
-			if bandVal:
-				try:
-					min, max = bandVal.split("/")
-					if min:
-						rawArgs["LAMBDA_MIN"] = min
-					if max:
-						rawArgs["LAMBDA_MAX"] = max
-				except (ValueError, TypeError):
-					# malformed BAND, complain
-					raise base.ValidationError("BAND must have form [number]/[number].", 
-						"BAND")
-
-		# rename PUBDID (getData) to ID (datalink)
-		if "PUBDID" not in rawArgs:
-			raise base.ValidationError("Value is required but was not provided",
-				"PUBDID")
-		rawArgs["ID"] = rawArgs.pop("PUBDID")
-
-		dlService = self.rd.getById(datalinkId)
-		return dlService.run("dlget", rawArgs, queryMeta).original
-			
 	def _run_getTargetNames(self, service, inputTable, queryMeta):
 		with base.getTableConn()  as conn:
 			table = rsc.TableForDef(self.queriedTable, create=False,
@@ -299,8 +255,6 @@ class SSAPCore(svcs.DBCore):
 		requestType = (inputTable.getParam("REQUEST") or defaultRequest).upper()
 		if requestType=="QUERYDATA":
 			return self._run_queryData(service, inputTable, queryMeta)
-		elif requestType=="GETDATA":
-			return self._run_getData(service, inputTable, queryMeta)
 		elif requestType=="GETTARGETNAMES":
 			return self._run_getTargetNames(service, inputTable, queryMeta)
 		else:
