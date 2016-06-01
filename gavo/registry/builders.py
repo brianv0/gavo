@@ -471,7 +471,9 @@ class AuthResourceMaker(ResourceMaker):
 	resType = "authority"
 	def _makeResource(self, registry, setNames):
 		return ResourceMaker._makeResource(self, registry, setNames) [
-			VOG.managingOrg[base.getMetaText(registry, "managingOrg")]]
+			VOG.managingOrg(
+				ivoId=base.getMetaText(registry, "managingOrg.ivo-id", default=None))[
+					base.getMetaText(registry, "managingOrg")]]
 
 
 class StandardsResourceMaker(ResourceMaker):

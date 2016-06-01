@@ -104,6 +104,18 @@ class ProfileItem(StringConfigItem):
 		self.default = None
 
 
+class AuthorityConfigItem(StringConfigItem):
+	"""an IVOA Identifers-compatible authority.
+	"""
+	def _parse(self, val):
+		val = StringConfigItem._parse(self, val)
+		authorityRE = "[a-zA-Z0-9][a-zA-Z0-9._~-]{2,}$"
+		if not re.match(authorityRE, val):
+			raise fancyconfig.BadConfigValue("[ivoa]authority must match %s"
+				" ('more than three normal characters')"%authorityRE)
+		return val
+
+
 class Error(utils.Error):
 	pass
 
@@ -288,6 +300,7 @@ class ProfileParser(object):
 
 	def _feed(self, token):
 		self.stateFun = self.stateFun(token)
+
 
 
 class Configuration(fancyconfig.Configuration):
@@ -490,7 +503,7 @@ _config = Configuration(
 		itemFactory=ProfileItem),
 
 	Section('ivoa', 'The interface to the Greater VO.',
-		StringConfigItem("authority", "x-unregistred", 
+		AuthorityConfigItem("authority", "x-unregistred", 
 			"The authority id for this DC; this has *no* leading ivo://"),
 		IntConfigItem("dalDefaultLimit", "10000",
 			"Default match limit on SCS/SSAP/SIAP queries"),

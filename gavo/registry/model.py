@@ -50,6 +50,11 @@ registerPrefix("doc", "http://www.ivoa.net/xml/DocRegExt/v1.0",
 	schemaURL("DocRegExt-v1.0.xsd"))
 
 
+class _ResourceNameMixin(object):
+	_a_ivoId = None
+	_name_a_ivoId = "ivo-id"
+
+
 class OAI(object):
 	"""is a container for classes modelling OAI elements.
 	"""
@@ -337,7 +342,7 @@ class VOG:
 	
 	class optionalProtocol(VOGElement): pass
 	
-	class managingOrg(VOGElement): pass
+	class managingOrg(VOGElement, _ResourceNameMixin): pass
 
 	
 class DC:

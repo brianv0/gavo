@@ -98,7 +98,7 @@ def makeDefaultMeta():
 	destPath = os.path.join(base.getConfig("configDir"), "defaultmeta.txt")
 	if os.path.exists(destPath):
 		return
-	rawData = r"""publisher: Fill Out
+	rawData = r"""publisher: Your organisation's name
 		publisherID: ivo://x-unregistred
 		contact.name: Fill Out
 		contact.address: Ordinary street address.

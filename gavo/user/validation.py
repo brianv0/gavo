@@ -148,8 +148,8 @@ def validateServices(rd, args):
 			validSoFar = False
 			outputError(rd.sourceId, "Error when producing registry record"
 				" of service %s:"%svc.id, True)
-
-		if registryRecord:
+		
+		if registryRecord is not None:
 			try:
 				_XSD_VALIDATOR.assertValidates(
 					registryRecord.render(), leaveOffending=True)

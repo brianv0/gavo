@@ -10,6 +10,7 @@ Tests having to do with the registry code.
 
 import datetime
 import os
+import unittest
 
 from gavo.helpers import testhelpers
 
@@ -336,7 +337,7 @@ class AuthorityTest(testhelpers.VerboseTest):
 		resrec = builders.getVORMetadataElement(resob).render()
 		tree = ElementTree.fromstring(resrec)
 		self.assertEqual(tree.find("managingOrg").text, 
-			"ivo://%s/org"%base.getConfig("ivoa", "authority"))
+			"Your organisation's name")
 		self.failUnless('created="' in resrec)
 
 
@@ -1046,7 +1047,8 @@ class IdResolutionTest(testhelpers.VerboseTest):
 		self.assertEqual(registry.getResType(rec), "authority")
 		self.failUnless(base.getMetaText(rec, "description").startswith(
 			" This should be a relatively terse description of"))
-	
+
+	@unittest.skip("define an organization record again")
 	def testOrganization(self):
 		rec = registry.getResobFromIdentifier("ivo://%s/org"%self.auth)
 		self.failUnless(isinstance(rec, registry.nonservice.ResRec))
@@ -1068,8 +1070,7 @@ class ListRecordsTest(testhelpers.VerboseTest):
 		res = set(el.text for el in tree.xpath("//identifier"))
 		expected = set([
 			"ivo://x-unregistred/__system__/services/registry",
-			"ivo://x-unregistred",
-			"ivo://x-unregistred/org"])
+			"ivo://x-unregistred"])
 		self.assertEqual(res&expected, expected)
 
 

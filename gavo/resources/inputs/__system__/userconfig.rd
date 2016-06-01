@@ -70,28 +70,13 @@
 				title: \\metaString{authority.title}{UNCONFIGURED}
 				shortName: \\metaString{authority.shortName}{UNCONFIGURED}
 				subject: Authority
-				managingOrg: \\metaString{authority.managingOrg}{UNCONFIGURED}
+				managingOrg: \\metaString{publisher}
 				referenceURL: \\metaString{authority.referenceURL}{UNCONFIGURED}
 				identifier: ivo://\getConfig{ivoa}{authority}
 				sets: ivo_managed
 			</meta>
 			<meta name="description">
 				\\metaString{authority.description}{UNCONFIGURED}
-			</meta>
-		</resRec>
-
-		<resRec id="manager"> <!-- the organisation running this registry -->
-			<meta>
-				resType: organization
-				creationDate: \\metaString{authority.creationDate}{UNCONFIGURED}
-				title: \\metaString{organization.title}{UNCONFIGURED}
-				subject: Organization
-				referenceURL: \\metaString{organization.referenceURL}{UNCONFIGURED}
-				identifier: ivo://\getConfig{ivoa}{authority}/org
-				sets: ivo_managed
-			</meta>
-			<meta name="description">
-				\\metaString{organization.description}{UNCONFIGURED}
 			</meta>
 		</resRec>
 

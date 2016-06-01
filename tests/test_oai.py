@@ -100,15 +100,13 @@ class OAIBasicTest(_OAITest):
 		q = oaiclient.OAIQuery(
 			self.registry, "ListIdentifiers", metadataPrefix="oai_dc")
 		q.maxRecords = 1
-		# there must be at least three records (the registry, the authority,
-		# ...).  So, with maxRecords=1 we have resumption.
+		# there must be at least two records (the registry and the authority)
 		def assertResumptionHappened(res):
-			self.failIf(len(res)<3)
+			self.failIf(len(res)<2)
 			ids = set(rec["id"] for rec in res)
 			for id in [
 				"ivo://x-unregistred/__system__/services/registry",
-				'ivo://x-unregistred',
-				'ivo://x-unregistred/org']:
+				'ivo://x-unregistred']:
 				self.failUnless(id in ids)
 			self.assertEqual(len(ids), len(res), "Duplicate records with resumption")
 				
