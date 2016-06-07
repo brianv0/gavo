@@ -166,6 +166,7 @@ def getTablesetForSchemaCollection(schemas, rootElement=VS.tableset):
 			VS.name[rd.schema],
 			VS.title[base.getMetaText(rd, "title")],
 			VS.description[base.getMetaText(rd, "description")],
+			VS.utype[base.getMetaText(rd, "utype", None)],
 			[getTableForTableDef(td, namesInSet)
 				for td in tables]]]
 	return res

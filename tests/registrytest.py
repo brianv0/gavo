@@ -839,6 +839,7 @@ class _DataGetRecordRes(testhelpers.TestResource):
 		rd = base.parseFromString(rscdesc.RD, """<resource schema="data">
 			<meta name="creationDate">2011-03-04T11:00:00</meta>
 			<meta name="title">My second DataCollection</meta>
+			<meta name="utype">ivo://some.mad.stuff/datamodel#schema-2.0</meta>
 			<table id="honk" onDisk="True" temporary="True" adql="True">
 				<column name="col1" description="column from honk"/>
 			</table>
@@ -883,6 +884,12 @@ class DataGetRecordTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 	def testReducedCapabilityElement(self):
 		capChildren = self.srcAndTree[1].xpath("//capability/*")
 		self.assertEqual(len(capChildren), 1)
+	
+	def testUtypeDeclared(self):
+		utypeChildren = self.srcAndTree[1].xpath("//schema/utype")
+		self.assertEqual(len(utypeChildren), 1)
+		self.assertEqual(utypeChildren[0].text, 
+			"ivo://some.mad.stuff/datamodel#schema-2.0")
 
 
 class _ExternalRecordRes(testhelpers.TestResource):

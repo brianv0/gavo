@@ -314,7 +314,7 @@ class VerboseTest(testresources.ResourcedTestCase):
 		try:
 			callable(*args, **kwargs)
 		except exception, ex:
-			if str(ex)!=errMsg:
+			if errMsg!=str(ex):
 				raise self.failureException(
 					"Expected %r, got %r as exception message"%(errMsg, str(ex)))
 		except:

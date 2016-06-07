@@ -44,7 +44,6 @@ class AnnotationTest(testhelpers.VerboseTest):
 		self.assertEqual(dm.getAnnotations(o)[0]["someQ"].ucd, "phys.length")
 
 
-
 class _DirectVOT(testhelpers.TestResource):
 	def make(self, deps):
 		class Child(object):

@@ -22,6 +22,7 @@ from gavo import api
 from gavo import rscdef
 from gavo import svcs
 from gavo import votable
+from gavo.rscdef import regtest
 from gavo.protocols import datalink
 from gavo.protocols import products
 from gavo.utils import fitstools
@@ -31,7 +32,21 @@ import tresc
 class SODAElementTest(testhelpers.VerboseTest):
 	resources = [("prodtestTable", tresc.prodtestTable)]
 	parent = None
-	
+
+	def testMetaMakerSyntaxError(self):
+		mm = api.parseFromString(datalink.MetaMaker,
+			'<metaMaker>\n'
+			' <code>\n'
+			'	print return\n'
+			' </code>\n'
+			'</metaMaker>\n')
+		self.assertRaisesWithMsg(
+			api.BadCode,
+			regtest.EqualingRE(r"Bad source code in function \(invalid syntax"
+				r" \(<generated code \d+>, line 4\)\)"),
+			mm.compile,
+			(self,))
+
 	def testStandardDescGenWorks(self):
 		ivoid = rscdef.getStandardPubDID(
 			os.path.join(api.getConfig("inputsDir"), 
