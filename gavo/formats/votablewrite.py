@@ -22,7 +22,6 @@ from cStringIO import StringIO
 import warnings
 
 from gavo import base
-from gavo import dm
 from gavo import rsc
 from gavo import utils
 from gavo import votable
@@ -72,9 +71,6 @@ class VOTableContext(utils.IdManagerMixin):
 		self.overflowElement = overflowElement
 		self._containerStack = []
 		self._tableStack = []
-
-		# space to memorise models used within the document.
-		self.vodmlModels = set([dm.VODMLModel])
 
 		# id()s of objects already serialised into the tree
 		self.alreadyInTree = set()
@@ -471,7 +467,6 @@ def makeTable(ctx, table):
 
 	# this must happen before FIELDs and such are serialised to ensure
 	# referenced things have IDs.
-	dm.addFKAnnotations(table)
 
 	result = V.TABLE()
 	with ctx.activeContainer(result):
@@ -490,8 +485,6 @@ def makeTable(ctx, table):
 			_iterNotes(sm),
 			_linkBuilder.build(table.tableDef),
 			]
-
-		result[dm.getSubtrees(ctx, table.tableDef)]
 
 		if ctx.version>(1,1):
 			result[_iterSTC(table.tableDef, sm),
@@ -566,9 +559,6 @@ def makeVOTable(data, ctx=None, **kwargs):
 		rootHacks = [vot._fixedTagMaterial]+[
 			item.getContent() for item in rootAttrs]
 		vot._fixedTagMaterial = " ".join(s for s in rootHacks if s)
-
-	if len(ctx.vodmlModels)>1:
-		dm.declareDMs(ctx, vot)
 
 	return vot
 

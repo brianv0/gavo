@@ -10,17 +10,4 @@ GAVO's VO-DML+VOTable library.
 
 # Not checked by pyflakes: API file with gratuitous imports
 
-from gavo.dm.annotations import (
-	ColumnAnnotation, DataTypeAnnotation, GroupRefAnnotation,
-	ForeignKeyRefAnnotation,
-	addFKAnnotations)
 
-from gavo.dm.common import (
-	Annotation, getAnnotations,
-	DMNode,
-	Model, VODMLModel)
-
-from gavo.dm.dmvot import (
-	declareDMs,
-	getSubtrees,
-	asString)

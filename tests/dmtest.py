@@ -5,19 +5,26 @@ Tests to do with new-style data modelling and VO-DML serialisation.
 from gavo.helpers import testhelpers
 
 import datetime
+import re
+import unittest
 
 from gavo import base
 from gavo import dm
 from gavo import rsc
 from gavo import rscdesc
 from gavo.dm import common
+from gavo.dm import sil
 from gavo.formats import votablewrite
 
 
-_toyModel = dm.Model(name="toy", version="0.5", 
-	url="http://g-vo.org/toymodel")
-_toy2Model = dm.Model(name="toy2", version="2.5",
-	url="http://g-vo.org/toy2model")
+def normalizeSIL(sil):
+	return re.sub("\s+", " ", sil).strip()
+
+
+#_toyModel = dm.Model(name="toy", version="0.5", 
+#	url="http://g-vo.org/toymodel")
+#_toy2Model = dm.Model(name="toy2", version="2.5",
+#	url="http://g-vo.org/toy2model")
 
 
 def getByID(tree, id):
@@ -27,13 +34,14 @@ def getByID(tree, id):
 	return res[0]
 
 
-class _SampleQs(dm.DMNode):
-	DM_model = _toyModel
-	DM_typeName = "Bland"
+#class _SampleQs(dm.DMNode):
+#	DM_model = _toyModel
+#	DM_typeName = "Bland"
 
 	_a_someQ = dm.Annotation(None, unit="m", ucd="phys.length")
 
 
+@unittest.skip("Pending Res/VOT redesign")
 class AnnotationTest(testhelpers.VerboseTest):
 	def testGetValue(self):
 		o = _SampleQs(someQ=4)
@@ -67,8 +75,9 @@ class _DirectVOT(testhelpers.TestResource):
 			votablewrite.VOTableContext(), Ob), debug=False)
 
 
+@unittest.skip("Pending Res/VOT redesign")
 class DirectSerTest(testhelpers.VerboseTest):
-	resources = [("tree", _DirectVOT())]
+#	resources = [("tree", _DirectVOT())]
 
 	def testVODMLModelFirst(self):
 		dmgroup = self.tree.xpath("//GROUP[VODML/TYPE='vo-dml:Model']")[0]
@@ -174,8 +183,9 @@ class _TableVOT(testhelpers.TestResource):
 			testhelpers.getXMLTree(votablewrite.getAsVOTable(table), debug=False))
 
 
+@unittest.skip("Pending Res/VOT redesign")
 class TableSerTest(testhelpers.VerboseTest):
-	resources = [("tt", _TableVOT())]
+#	resources = [("tt", _TableVOT())]
 
 	def testDM1declared(self):
 		dm1group = self.tt[1].xpath(
@@ -277,8 +287,9 @@ class _ManyTablesVOT(testhelpers.TestResource):
 		del self.data  
 
 
+@unittest.skip("Pending Res/VOT redesign")
 class ManyTablesTest(testhelpers.VerboseTest):
-	resources = [("tt", _ManyTablesVOT())]
+#	resources = [("tt", _ManyTablesVOT())]
 
 	def testAllTablesSerializedOnce(self):
 		self.assertEqual(len(self.tt[1].xpath("RESOURCE/TABLE")), 3)
@@ -307,6 +318,70 @@ class ManyTablesTest(testhelpers.VerboseTest):
 			self.tt[1].xpath("RESOURCE/TABLE[1]/GROUP/FIELDref")[0].get("ref"))
 		self.assertEqual(destField.get("name"), "c1")
 
+
+class TestSILGrammar(testhelpers.VerboseTest):
+	def testPlainObject(self):
+		res = sil.getGrammar().parseString("""
+			(:testclass) {
+				attr1: plain12-14
+				attr2: "this is a ""weird"" literal"
+			}""")
+		self.assertEqual(res[0],
+			('obj', ':testclass', [
+				('attr', 'attr1', 'plain12-14'), 
+				('attr', 'attr2', 'this is a "weird" literal')]))
+	
+	def testNestedObject(self):
+		res = sil.getGrammar().parseString("""
+			(:testclass) {
+				attr1: (:otherclass) {
+						attr2: val
+					}
+			}""")
+		self.assertEqual(res[0],
+			('obj', ':testclass', [
+				('attr', 'attr1', 
+					('obj', ':otherclass', [ 
+						('attr', 'attr2', 'val')]))]))
+
+	def testCollection(self):
+		res = sil.getGrammar().parseString("""
+			(:testclass) {
+				seq: (:otherclass)[
+					{attr1: a}
+					{attr1: b}
+					{attr1: c}]}""")
+		self.assertEqual(res[0], 
+			('obj', ':testclass', [
+				('attr', 'seq', 
+					('coll', ':otherclass', [
+						('uobj', None, [('attr', 'attr1', 'a')]),
+						('uobj', None, [('attr', 'attr1', 'b')]),
+						('uobj', None, [('attr', 'attr1', 'c')]),]))]))
+
+
+class TestSILParser(testhelpers.VerboseTest):
+	def testNestedObject(self):
+		res = sil.getAnnotation("""
+			(:testclass) {
+				attr1: (:otherclass) {
+						attr2: val
+					}
+			}""", None)
+		self.assertEqual(normalizeSIL(res.asSIL()),
+			'(:testclass) { (:otherclass) { attr2: "val"} }')
+			
+	def testAtomicCollection(self):
+		res = sil.getAnnotation("""
+			(:testclass) {
+				seq: (:otherclass)[
+					{attr1: a}
+					{attr1: b}
+					{attr1: c}]}""", None)
+		self.assertEqual(normalizeSIL(res.asSIL()),
+			'(:testclass) { seq: (:otherclass) [ { attr1: "a"} { attr1: "b"}'
+			' { attr1: "c"} ] }')
+			
 
 if __name__=="__main__":
 	testhelpers.main(DirectSerTest)
