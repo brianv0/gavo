@@ -22,17 +22,14 @@ from gavo.votable import V
 class ColumnAnnotation(common.AnnotationBase):
 	"""An annotation of a table column.
 
-	These live in the annotations of tables and hold a reference to 
-	one of the table's columns.
+	These reference DaCHS columns.
 	"""
-	def __init__(self, name=None, columnName=None):
+	def __init__(self, name, column):
 		common.AnnotationBase.__init__(self, name)
-		self.columnName = columnName
-		self.default = None
+		self.value = weakref.proxy(column)
 
 	def getTree(self, ctx, parent):
-		destCol = ctx.currentTable.tableDef.getColumnByName(self.columnName)
-		return V.FIELDref(ref=ctx.getOrMakeIdFor(destCol))[
+		return V.FIELDref(ref=ctx.getOrMakeIdFor(self.value))[
 			V.VODML[V.ROLE[self.qualifiedRole]]]
 
 
@@ -77,18 +74,11 @@ class GroupRefAnnotation(common.AnnotationBase):
 			V.VODML[V.ROLE[self.qualifiedRole]]]
 
 
-class ForeignKeyRefAnnotation(common.AnnotationBase):
-	"""An annotation to a table satisfying foreign keys.
-
-	The constructor right now requires actual DaCHS ForeignKey and Table
-	objects; also, the tables referenced must be within Table's parent
-	Data instance.
+class ForeignKeyAnnotation(common.AnnotationBase):
+	"""An annotation pointing to a column in a different table.
 	"""
-	name = "ID"
-
-	def __init__(self, srcTable, foreignKey):
-		self.srcTable = srcTable
-		self.foreignKey = foreignKey
+	def __init__(self, destColumn):
+		self.value = weakref.proxy(destColumn)
 
 	def getTree(self, ctx, parent):
 		# the main trouble here is: What if there's multiple foreign keys
@@ -97,7 +87,8 @@ class ForeignKeyRefAnnotation(common.AnnotationBase):
 		# destTable's _FKR_serializedVOT attribute.  That will fail
 		# if we produce two VOTables from the same table at the same time,
 		# but let's worry about that later.
-
+		
+		raise NotImplementedError("Foreign key code must now be different")
 		srcTD = self.srcTable.tableDef
 		destTable = self.srcTable.parent.tables[self.foreignKey.inTable.id]
 
@@ -124,28 +115,3 @@ class ForeignKeyRefAnnotation(common.AnnotationBase):
 		targetVOT[pkDecl]
 
 		return fkDecl
-
-
-################### utilities
-
-def addFKAnnotations(table):
-	"""adds annotations on foreign keys to from table's definition
-	as necessary.
-
-	A foreign key will be declared if the destination table is part of the
-	enclosing data and if all columns of the foreign key are part of an
-	annotation.
-	"""
-	fks = {}
-	for fk in table.tableDef.foreignKeys:
-		fks[frozenset(fk.source)] = fk
-	if not fks:
-		return
-
-	for ann in common.getAnnotations(table.tableDef):
-		colsInAnn = set(role.columnName for role in ann.itervalues()
-			if isinstance(role, ColumnAnnotation))
-		for cols in fks:
-			if not cols-colsInAnn:
-				# All FK columns are in current annotation
-				ann.addRole(ForeignKeyRefAnnotation(table, fks[cols]))

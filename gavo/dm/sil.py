@@ -7,6 +7,25 @@ from gavo import utils
 from gavo.dm import common
 
 
+# sentinels for further processing
+
+class Atom(unicode):
+	"""a sentinel class for atomic values of roles
+	"""
+	def asSIL(self):
+		return '"%s"'%(self.replace('"', '""'))
+	
+	def __repr__(self):
+		return "a"+unicode.__repr__(self).lstrip("u")
+
+
+class Reference(unicode):
+	"""a sentinel class for roles referencing something else.
+	"""
+	def asSIL(self):
+		return "@%s"%self
+
+
 # parse methods, used by getGrammar, by nonterminal name there
 def _pa_attributeDef(s, p, toks):
 	return ("attr", toks[0], toks[2])
@@ -27,10 +46,10 @@ def _pa_sequenceBody(s, p, toks):
 	return [toks[1].asList()]
 
 def _pa_reference(s, p, toks):
-	return common.Reference(toks[1])
+	return Reference(toks[1])
 
 def _pa_simpleImmediate(s, p, toks):
-	return common.Atom(toks[0])
+	return Atom(toks[0])
 
 
 class getGrammar(utils.CachedResource):
@@ -44,7 +63,7 @@ class getGrammar(utils.CachedResource):
 		with utils.pyparsingWhitechars("\t\n\r "):
 			qualifiedIdentifier = Word(alphas+"_:", alphanums+"-_:")
 			plainIdentifier = Word(alphas+"_", alphanums+"-_")
-			externalIdentifier = Word(alphas+"_", alphanums+"_")
+			externalIdentifier = Word(alphas+"_", alphanums+"_/#-")
 			plainLiteral = Word(alphanums+"_-.")
 			quotedLiteral = QuotedString(quoteChar='"', escQuote='""')
 			reference = Literal('@') + externalIdentifier
@@ -96,9 +115,7 @@ def _iterAttrs(node, seqType, roleName):
 	"""
 	for child in node[2]:
 		assert child[0]=='attr'
-		if isinstance(child[2], common.Reference):
-			yield ('attr', child[1], resolveName(child[2]))
-		elif isinstance(child[2], common.Atom):
+		if isinstance(child[2], (Reference, Atom)):
 			yield ('attr', child[1], child[2])
 		elif isinstance(child[2], tuple):
 			for grandchild in _parseTreeToEvents(child[2], roleName=child[1]):
@@ -154,10 +171,12 @@ def iterparse(silLiteral):
 	return _parseTreeToEvents(root)
 
 
-def getAnnotation(silLiteral, nameResolver):
+def getAnnotation(silLiteral, annotationFactory):
 	"""returns an annotation object parsed from silLiteral.
 
-	References are resolved by calling nameResolver(id).
+	annotationFactory is a callable that takes attributeName/attributeValue
+	pairs and returns annotations; attributeValue is either an Atom or
+	a Reference in these cases.
 	"""
 	obStack, result = [], None
 
@@ -179,14 +198,15 @@ def getAnnotation(silLiteral, nameResolver):
 				result = newRole
 
 		elif evType=='attr':
-			obStack[-1].add( #noflake: the del up there is conditional
-				common.AtomicAnnotation(arg1, arg2))
+			obStack[-1].add( #noflake: the del obStack up there is conditional
+				annotationFactory(arg1, arg2))
 
 		else:
 			assert False
 
 	assert result is not None
 	return result
+
 
 if __name__=="__main__":
 	g = getGrammar()

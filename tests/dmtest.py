@@ -10,15 +10,82 @@ import unittest
 
 from gavo import base
 from gavo import dm
-from gavo import rsc
+from gavo import rscdef
 from gavo import rscdesc
 from gavo.dm import common
+from gavo.dm import dmrd
 from gavo.dm import sil
 from gavo.formats import votablewrite
 
 
 def normalizeSIL(sil):
 	return re.sub("\s+", " ", sil).strip()
+
+
+class TestSILGrammar(testhelpers.VerboseTest):
+	def testPlainObject(self):
+		res = sil.getGrammar().parseString("""
+			(:testclass) {
+				attr1: plain12-14
+				attr2: "this is a ""weird"" literal"
+			}""")
+		self.assertEqual(res[0],
+			('obj', ':testclass', [
+				('attr', 'attr1', 'plain12-14'), 
+				('attr', 'attr2', 'this is a "weird" literal')]))
+	
+	def testNestedObject(self):
+		res = sil.getGrammar().parseString("""
+			(:testclass) {
+				attr1: (:otherclass) {
+						attr2: val
+					}
+			}""")
+		self.assertEqual(res[0],
+			('obj', ':testclass', [
+				('attr', 'attr1', 
+					('obj', ':otherclass', [ 
+						('attr', 'attr2', 'val')]))]))
+
+	def testCollection(self):
+		res = sil.getGrammar().parseString("""
+			(:testclass) {
+				seq: (:otherclass)[
+					{attr1: a}
+					{attr1: b}
+					{attr1: c}]}""")
+		self.assertEqual(res[0], 
+			('obj', ':testclass', [
+				('attr', 'seq', 
+					('coll', ':otherclass', [
+						('uobj', None, [('attr', 'attr1', 'a')]),
+						('uobj', None, [('attr', 'attr1', 'b')]),
+						('uobj', None, [('attr', 'attr1', 'c')]),]))]))
+
+
+class TestSILParser(testhelpers.VerboseTest):
+	def testNestedObject(self):
+		res = sil.getAnnotation("""
+			(:testclass) {
+				attr1: (:otherclass) {
+						attr2: val
+					}
+			}""", dmrd.getAnnotationMaker(None))
+		self.assertEqual(normalizeSIL(res.asSIL()),
+			'(:testclass) { (:otherclass) { attr2: "val"} }')
+			
+	def testAtomicCollection(self):
+		res = sil.getAnnotation("""
+			(:testclass) {
+				seq: (:otherclass)[
+					{attr1: a}
+					{attr1: b}
+					{attr1: c}]}""", dmrd.getAnnotationMaker(None))
+		self.assertEqual(normalizeSIL(res.asSIL()),
+			'(:testclass) { seq: (:otherclass) [ { attr1: "a"} { attr1: "b"}'
+			' { attr1: "c"} ] }')
+			
+
 
 
 #_toyModel = dm.Model(name="toy", version="0.5", 
@@ -41,15 +108,30 @@ def getByID(tree, id):
 	_a_someQ = dm.Annotation(None, unit="m", ucd="phys.length")
 
 
-@unittest.skip("Pending Res/VOT redesign")
 class AnnotationTest(testhelpers.VerboseTest):
-	def testGetValue(self):
-		o = _SampleQs(someQ=4)
-		self.assertEqual(o.someQ, 4)
+	def testAtomicValue(self):
+		t = base.parseFromString(rscdef.TableDef,
+			"""<table id="foo">
+				<dm>
+					(testdm:testclass) {
+						attr1: test
+					}
+				</dm></table>""")
+		self.assertEqual(t.annotations[0].type, "testdm:testclass")
+		self.assertEqual(t.annotations[0].childRoles["attr1"].value,
+			"test")
 	
-	def testGetMeta(self):
-		o = _SampleQs()
-		self.assertEqual(dm.getAnnotations(o)[0]["someQ"].ucd, "phys.length")
+	def testColumnReference(self):
+		t = base.parseFromString(rscdef.TableDef,
+			"""<table id="foo">
+				<dm>
+					(testdm:testclass) {
+						attr1: @col1
+					}
+				</dm><column name="col1" ucd="stuff"/></table>""")
+		col = t.annotations[0].childRoles["attr1"].value
+		self.assertEqual(col.ucd, "stuff")
+	
 
 
 class _DirectVOT(testhelpers.TestResource):
@@ -318,70 +400,6 @@ class ManyTablesTest(testhelpers.VerboseTest):
 			self.tt[1].xpath("RESOURCE/TABLE[1]/GROUP/FIELDref")[0].get("ref"))
 		self.assertEqual(destField.get("name"), "c1")
 
-
-class TestSILGrammar(testhelpers.VerboseTest):
-	def testPlainObject(self):
-		res = sil.getGrammar().parseString("""
-			(:testclass) {
-				attr1: plain12-14
-				attr2: "this is a ""weird"" literal"
-			}""")
-		self.assertEqual(res[0],
-			('obj', ':testclass', [
-				('attr', 'attr1', 'plain12-14'), 
-				('attr', 'attr2', 'this is a "weird" literal')]))
-	
-	def testNestedObject(self):
-		res = sil.getGrammar().parseString("""
-			(:testclass) {
-				attr1: (:otherclass) {
-						attr2: val
-					}
-			}""")
-		self.assertEqual(res[0],
-			('obj', ':testclass', [
-				('attr', 'attr1', 
-					('obj', ':otherclass', [ 
-						('attr', 'attr2', 'val')]))]))
-
-	def testCollection(self):
-		res = sil.getGrammar().parseString("""
-			(:testclass) {
-				seq: (:otherclass)[
-					{attr1: a}
-					{attr1: b}
-					{attr1: c}]}""")
-		self.assertEqual(res[0], 
-			('obj', ':testclass', [
-				('attr', 'seq', 
-					('coll', ':otherclass', [
-						('uobj', None, [('attr', 'attr1', 'a')]),
-						('uobj', None, [('attr', 'attr1', 'b')]),
-						('uobj', None, [('attr', 'attr1', 'c')]),]))]))
-
-
-class TestSILParser(testhelpers.VerboseTest):
-	def testNestedObject(self):
-		res = sil.getAnnotation("""
-			(:testclass) {
-				attr1: (:otherclass) {
-						attr2: val
-					}
-			}""", None)
-		self.assertEqual(normalizeSIL(res.asSIL()),
-			'(:testclass) { (:otherclass) { attr2: "val"} }')
-			
-	def testAtomicCollection(self):
-		res = sil.getAnnotation("""
-			(:testclass) {
-				seq: (:otherclass)[
-					{attr1: a}
-					{attr1: b}
-					{attr1: c}]}""", None)
-		self.assertEqual(normalizeSIL(res.asSIL()),
-			'(:testclass) { seq: (:otherclass) [ { attr1: "a"} { attr1: "b"}'
-			' { attr1: "c"} ] }')
-			
 
 if __name__=="__main__":
 	testhelpers.main(DirectSerTest)

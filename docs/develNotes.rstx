@@ -42,7 +42,7 @@ factoring out libraries).
 * There is a hierarchy of subpackages, where subpackages lower in the
   hierarchy may not import anything from the higher or equal levels, but 
   only from lower levels.  This hierarchy currently looks like this:
-  imp [<] utils < stc < (votable, adql) < base < rscdef < grammars 
+  imp [<] utils < stc < (votable, adql) < base < dm < rscdef < grammars 
   < formats < rsc < svcs < registry < protocols < web < rscdesc 
   < (helpers, user)
   utils should never assume anything from imp is present, i.e., it may

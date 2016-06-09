@@ -19,23 +19,6 @@ from gavo.votable import V
 VODML_NAME = "vo-dml"
 
 
-class Atom(unicode):
-	"""a sentinel class for atomic values of roles
-	"""
-	def asSIL(self):
-		return '"%s"'%(self.replace('"', '""'))
-	
-	def __repr__(self):
-		return "a"+unicode.__repr__(self).lstrip("u")
-
-
-class Reference(unicode):
-	"""a sentinel class for roles referencing something else.
-	"""
-	def asSIL(self):
-		return "@%s"%self
-
-
 class AnnotationBase(object):
 	"""A base class for of structs.
 

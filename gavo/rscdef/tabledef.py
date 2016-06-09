@@ -13,6 +13,7 @@ import re
 
 from gavo import adql
 from gavo import base
+from gavo import dm
 from gavo import stc
 from gavo import utils
 from gavo.rscdef import column
@@ -381,6 +382,13 @@ class TableDef(base.Structure, base.ComputedMetaMixin, common.PrivilegesMixin,
 		childFactory=common.Registration,
 		copyable=False,
 		description="A registration (to the VO registry) of this table.")
+
+	# this actually induces an attribute annotations with the DM
+	# annotation instances
+	_annotations = base.StructListAttribute("dm",
+		childFactory=dm.DataModelRoles,
+		description="Annotations for data models.",
+		copyable=True)
 
 	_properties = base.PropertyAttribute()
 

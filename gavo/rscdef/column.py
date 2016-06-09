@@ -9,6 +9,7 @@ Description of columns (and I/O fields).
 
 
 from gavo import base
+from gavo import dm
 from gavo import utils
 from gavo.base import typesystems
 from gavo.utils import codetricks
@@ -589,6 +590,12 @@ class Column(ColumnBase):
 					# Seems we're not parsing from a file, so the user probably
 					# can't help it anyway.  Don't complain.
 					pass
+
+	def getAnnotation(self, roleName, container):
+		if self.parent==container:
+			return dm.ColumnAnnotation(roleName, self)
+		else:
+			return dm.ForeignKeyAnnotation(roleName, self)
 
 
 def _isStringList(ob):
