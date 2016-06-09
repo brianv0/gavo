@@ -3053,10 +3053,8 @@ what the ``//products#define`` rowfilter in your grammar is for::
 		</fitsProdGrammar>
 
 When you do this, you must use a custom descriptor generator.  See
-`Custom Product Descriptor Generators`_ in the reference manual.
+:dachsref:`Custom Product Descriptor Generators` in the reference manual.
 
-.. _Descriptor Generators: http://docs.g-vo.org/DaCHS/ref.html#descriptors-generators
-.. _Custom Product Descriptor Generators: http://docs.g-vo.org/DaCHS/ref.html#custom-product-descriptor-generators
 
 Simple FITS Datalink Services
 '''''''''''''''''''''''''''''

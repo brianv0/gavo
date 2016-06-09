@@ -6,12 +6,10 @@ RST_SOURCES=data_checklist.rstx howDoI.rstx ref.rstx tutorial.rstx\
 ALL_HTML=index.html $(subst .rstx,.html,$(RST_SOURCES))
 HTML_FILES=$(ALL_HTML)
 ALL_PDF=$(subst .rstx,.pdf,$(RST_SOURCES))
-LATEXOPTS=--documentoptions=11pt,a4paper --stylesheet stylesheet.tex
 
 
 %.html: %.rstx
-	rst2html --template rst2html-template.txt --stylesheet ref.css\
-		--link-stylesheet < $<  >$@
+	gavo gendoc html $<  >$@
 
 %.dvi: %.tex
 	latex $<
@@ -25,11 +23,11 @@ LATEXOPTS=--documentoptions=11pt,a4paper --stylesheet stylesheet.tex
 	pdflatex $<
 
 %.tex: %.rstx
-	rst2latex $(LATEXOPTS) $< > $@
+	gavo gendoc latex $< > $@
 
 .PHONY: ref.rstx elemref.rstx apidoc-stamp
 ref.rstx:
-	gavo --debug --traceback gendoc > ref.rstx
+	gavo --debug --traceback gendoc refdoc > ref.rstx
 
 elemref.rstx:
 	python makeElementIndex.py > $@

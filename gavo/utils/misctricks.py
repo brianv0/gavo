@@ -38,6 +38,7 @@ try:
 	from docutils import core as rstcore
 
 	from docutils import nodes
+	from docutils import utils as rstutils
 	from docutils.parsers.rst import roles
 	from docutils.parsers.rst import directives
 
@@ -105,18 +106,49 @@ try:
 
 			return roleFunc
 
-
 	# Generally useful RST extensions (for roles useful in examples, 
 	# see examplesrender)
 	def _bibcodeRoleFunc(name, rawText, text, lineno, inliner,
 			options={}, content=[]):
 		node = nodes.reference(rawText, text,
-			refuri="http://ads.ari.uni-heidelberg.de/abs/%s"%text) 
+			refuri="http://adsabs.harvard.edu/abs/%s"%text) 
 		node["classes"] = ["bibcode-link"]
 		return [node], []
 
 	RSTExtensions.makeTextRole("bibcode", _bibcodeRoleFunc)
 	del _bibcodeRoleFunc
+
+	# RST extensions for documention writing
+
+	_explicitTitleRE = re.compile(r'^(.+?)\s*(?<!\x00)<(.*?)>$', re.DOTALL)
+
+	def _dachsdocRoleFunc(name, rawText, text, lineno, inliner, 
+			options={}, content=[]):
+		# inspired by sphinx extlinks
+		text = rstutils.unescape(text)
+		mat = _explicitTitleRE.match(text)
+		if mat:
+			title, url = mat.groups()
+		else:
+			title, url = text.split("/")[-1], text
+		url = "http://docs.g-vo.org/DaCHS/"+url
+		return [nodes.reference(title, title, internal=False, refuri=url)
+			], []
+
+	RSTExtensions.makeTextRole("dachsdoc", _dachsdocRoleFunc)
+	del _dachsdocRoleFunc
+
+	def _dachsrefRoleFunc(name, rawText, text, lineno, inliner, 
+			options={}, content=[]):
+		# this will guess a link into the ref documentation
+		text = rstutils.unescape(text)
+		fragId = re.sub("[^a-z0-9]+", "-", text.lower())
+		url = "http://docs.g-vo.org/DaCHS/ref.html#"+fragId
+		return [nodes.reference(text, text, internal=False, refuri=url)
+			], []
+
+	RSTExtensions.makeTextRole("dachsref", _dachsrefRoleFunc)
+	del _dachsrefRoleFunc
 
 except ImportError:
 	rstcore = NotInstalledModuleStub("docutils") #noflake: conditional import

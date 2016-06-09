@@ -354,7 +354,7 @@ class ContentTest(testhelpers.VerboseTest):
 		m.addMeta("brasel", meta.MetaValue(
 			"See also :bibcode:`2011AJ....142....3H` .", format="rst"))
 		self.assertTrue(
-			'href="http://ads.ari.uni-heidelberg.de/abs/2011AJ....142....3H"'
+			'href="http://adsabs.harvard.edu/abs/2011AJ....142....3H"'
 			in m.getMeta("brasel").getContent("html"))
 			
 		

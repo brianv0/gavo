@@ -9,6 +9,7 @@ docs.
 #c COPYING file in the source distribution.
 
 
+import locale
 import inspect
 import re
 import sys
@@ -22,7 +23,7 @@ from gavo import rscdef
 from gavo import rscdesc
 from gavo import utils
 from gavo.base import structure
-
+from gavo.user.common import Arg, exposedFunction, makeParser
 
 
 def _indent(stuff, indent):
@@ -588,11 +589,42 @@ def makeReferenceDocs():
 	return "".join(res)
 
 
-def main():
+
+@exposedFunction([], help="Writes ReStructuredText for the reference"
+	" documentation to stdout")
+def refdoc(args):
 	print makeReferenceDocs(
 		).replace("\t", "  "
 		).encode("utf-8")
 
+
+@exposedFunction([Arg(help="Input file name", dest="src")],
+	help="Turns ReStructured text (with DaCHS extensions) to LaTeX source")
+def latex(args):
+	from docutils import core
+	locale.setlocale(locale.LC_ALL, '')
+	sys.argv[1:] = \
+		"--documentoptions=11pt,a4paper --stylesheet stylesheet.tex".split()
+	sys.argv.append(args.src)
+
+	core.publish_cmdline(writer_name='latex', description="(DaCHS rst2latex)")
+	
+
+@exposedFunction([Arg(help="Input file name", dest="src")],
+	help="Turns ReStructured text (with DaCHS extensions) to HTML")
+def html(args):
+	from  docutils import core
+	locale.setlocale(locale.LC_ALL, '')
+	# TODO: actually determine template path
+	sys.argv[1:] = ("--template rst2html-template.txt --stylesheet ref.css"
+		" --link-stylesheet").split()
+	sys.argv.append(args.src)
+	core.publish_cmdline(writer_name='html', description="(DaCHS rst2html)")
+
+
+def main():
+	args = makeParser(globals()).parse_args()
+	args.subAction(args)
 
 if __name__=="__main__":
 	docStructure = DocumentStructure()
