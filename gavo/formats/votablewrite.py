@@ -22,6 +22,7 @@ from cStringIO import StringIO
 import warnings
 
 from gavo import base
+from gavo import dm
 from gavo import rsc
 from gavo import utils
 from gavo import votable
@@ -59,6 +60,13 @@ class VOTableContext(utils.IdManagerMixin):
 		- suppressNamespace=False to leave out a namespace declaration
 		  (mostly convenient for debugging)
 		- overflowElement (see votable.tablewriter.OverflowElement)
+	
+	There's also an attribute produceVODML that will automatically be
+	set for VOTable 1.4; you can set it to true manually, but the
+	resulting VOTables will probably be invalid.
+
+	If VO-DML processing is enabled, the context also manages models declared;
+	that's the modelsUsed dictionary, mapping prefix -> dm.Model instances
 	"""
 	def __init__(self, mfRegistry=valuemappers.defaultMFRegistry, 
 			tablecoding='binary', version=None, acquireSamples=True,
@@ -72,8 +80,14 @@ class VOTableContext(utils.IdManagerMixin):
 		self._containerStack = []
 		self._tableStack = []
 
-		# id()s of objects already serialised into the tree
-		self.alreadyInTree = set()
+		self.produceVODML = self.version[0]>1 or self.version[1]>3
+		self.modelsUsed = {}
+
+	def addVODMLPrefix(self, prefix):
+		"""arranges the DM with prefix to be included in modelsUsed.
+		"""
+		if prefix not in self.modelsUsed:
+			self.modelsUsed[prefix] = dm.getKnownModel(prefix)
 
 	def makeTable(self, table):
 		"""returns xmlstan for a table.
@@ -149,16 +163,15 @@ class VOTableContext(utils.IdManagerMixin):
 		finally:
 			self._tableStack.pop()
 
-
-def _addID(rdEl, votEl, idManager):
-	"""adds an ID attribute to votEl if rdEl has an id managed by idManager.
-	"""
-	try:
-		votEl.ID = idManager.getIdFor(rdEl)
-	except base.NotFoundError: 
-		# the param is not referenced and thus needs no ID
-		pass
-	return votEl
+	def addID(self, rdEl, votEl):
+		"""adds an ID attribute to votEl if rdEl has an id managed by self.
+		"""
+		try:
+			votEl.ID = self.getIdFor(rdEl)
+		except base.NotFoundError: 
+			# the param is not referenced and thus needs no ID
+			pass
+		return votEl
 
 
 
@@ -345,7 +358,7 @@ def _iterTableParams(ctx, serManager):
 	for param in serManager.table.iterParams():
 		votEl = _makeVOTParam(ctx, param)
 		if votEl is not None:
-			_addID(param, votEl, serManager)
+			ctx.addID(param, votEl)
 			yield votEl
 
 
@@ -371,7 +384,7 @@ def _iterParams(ctx, dataSet):
 		el = V.PARAM()
 		el(value=ctx.mfRegistry.getMapper(colDesc)(values.get(item.name)))
 		defineField(ctx, el, colDesc)
-		_addID(el, item, ctx)
+		ctx.addID(el, item)
 		yield el
 
 
@@ -490,6 +503,10 @@ def makeTable(ctx, table):
 			result[_iterSTC(table.tableDef, sm),
 				_tableMetaBuilder.build(table)]
 
+		if ctx.produceVODML:
+			for ann in table.tableDef.annotations:
+				result[ann.getVOT(ctx)]
+
 		return votable.DelayedTable(result,
 			sm.getMappedTuples(),
 			tableEncoders[ctx.tablecoding],
@@ -543,11 +560,24 @@ def makeVOTable(data, ctx=None, **kwargs):
 		vot = V.VOTABLE11()
 	elif ctx.version==(1,2):
 		vot = V.VOTABLE()
+	elif ctx.version==(1,3):
+		vot = V.VOTABLE()     # TODO: actually write 1.3
+	elif ctx.version==(1,4):
+		vot = V.VOTABLE()
 	else:
 		raise votable.VOTableError("No toplevel element for VOTable version %s"%
 			ctx.version)
+
 	vot[_iterToplevelMeta(ctx, data)]
 	vot[_makeResource(ctx, data)]
+
+	if ctx.produceVODML:
+		if ctx.modelsUsed:
+			# if we declare any models, we'll need vo-dml
+			ctx.addVODMLPrefix("vo-dml")
+		for model in ctx.modelsUsed.values():
+			vot[model.getVOT(ctx)]
+
 	if ctx.suppressNamespace:  
 		# use this for "simple" table with nice element names
 		vot._fixedTagMaterial = ""

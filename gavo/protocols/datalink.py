@@ -417,8 +417,8 @@ class _ServiceDescriptor(object):
 		res = res[inputParams]
 
 		for ik in self.inputKeys:
-			param = votablewrite._addID(ik,
-				votablewrite.makeFieldFromColumn(ctx, V.PARAM, ik), ctx)
+			param = ctx.addID(ik,
+				votablewrite.makeFieldFromColumn(ctx, V.PARAM, ik))
 			if linkIdTo and ik.name=="ID":
 				param = param(ref=linkIdTo)
 			inputParams[param]

@@ -31,6 +31,7 @@ _ATOMIC_TYPES = [
 	(long, {"datatype": "long"}),
 	(int, {"datatype": "int"}),
 	(str, {"datatype": "char", "arraysize": "*"}),
+	(basestring, {"datatype": "unicodeChar", "arraysize": "*"}),
 	(float, {"datatype": "double"}),
 	(type(None), {"datatype": "double"}),
 	(complex, {"datatype": "doubleComplex"}),

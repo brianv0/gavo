@@ -10,6 +10,7 @@ import unittest
 
 from gavo import base
 from gavo import dm
+from gavo import rsc
 from gavo import rscdef
 from gavo import rscdesc
 from gavo.dm import common
@@ -66,33 +67,26 @@ class TestSILGrammar(testhelpers.VerboseTest):
 class TestSILParser(testhelpers.VerboseTest):
 	def testNestedObject(self):
 		res = sil.getAnnotation("""
-			(:testclass) {
-				attr1: (:otherclass) {
+			(testdm:testclass) {
+				attr1: (testdm:otherclass) {
 						attr2: val
 					}
 			}""", dmrd.getAnnotationMaker(None))
 		self.assertEqual(normalizeSIL(res.asSIL()),
-			'(:testclass) { (:otherclass) { attr2: "val"} }')
+			'(testdm:testclass) { (testdm:otherclass) { attr2: "val"} }')
 			
 	def testAtomicCollection(self):
 		res = sil.getAnnotation("""
-			(:testclass) {
-				seq: (:otherclass)[
+			(testdm:testclass) {
+				seq: (testdm:otherclass)[
 					{attr1: a}
 					{attr1: b}
 					{attr1: c}]}""", dmrd.getAnnotationMaker(None))
 		self.assertEqual(normalizeSIL(res.asSIL()),
-			'(:testclass) { seq: (:otherclass) [ { attr1: "a"} { attr1: "b"}'
+			'(testdm:testclass) { seq: (testdm:otherclass)'
+			' [ { attr1: "a"} { attr1: "b"}'
 			' { attr1: "c"} ] }')
 			
-
-
-
-#_toyModel = dm.Model(name="toy", version="0.5", 
-#	url="http://g-vo.org/toymodel")
-#_toy2Model = dm.Model(name="toy2", version="2.5",
-#	url="http://g-vo.org/toy2model")
-
 
 def getByID(tree, id):
 	# (for checking VOTables)
@@ -133,106 +127,108 @@ class AnnotationTest(testhelpers.VerboseTest):
 		self.assertEqual(col.ucd, "stuff")
 	
 
-
 class _DirectVOT(testhelpers.TestResource):
 	def make(self, deps):
-		class Child(object):
-			x = 2
-			y = 3
-			annotations = [common.VODMLMeta.fromRoles(_toyModel, "Pos",
-				"x", "y")]
-
-		class Ob(object):
-			width = 3
-			height = 6.8
-			location = "upstairs"
-			pos = Child
-			internal = object()
-			annotations = [common.VODMLMeta.fromRoles(_toyModel, "Thing",
-				"width", "height", "location",
-				dm.DataTypeAnnotation("pos", "Pos"),
-				dm.GroupRefAnnotation("extpos", Child))]
+		td = base.parseFromString(rscdef.TableDef,
+			"""<table id="foo">
+				<dm>
+					(testdm:testclass) {
+						attr1: @col1
+						attr2: 
+							(testdm:otherclass) {
+								nook: 0.1
+								ra: @raj2000
+								dec: @dej2000
+							}
+						references: (testdm:ref)[
+							{ bibcode: "too lazy" }
+							{ bibcode: "still too lazy" }]
+					}
+				</dm>
+					<column name="col1" ucd="stuff" type="text"/>
+					<column name="raj2000"/>
+					<column name="dej2000"/>
+				</table>""")
 		
-		return testhelpers.getXMLTree(dm.asString(
-			votablewrite.VOTableContext(), Ob), debug=False)
+		t = rsc.TableForDef(td, rows=[
+			{"col1": "id1", "raj2000": 0.3, "dej2000": 3.1}])
+		
+		return testhelpers.getXMLTree(votablewrite.getAsVOTable(t, 
+			ctx=votablewrite.VOTableContext(version=(1,4))), debug=False)
 
 
-@unittest.skip("Pending Res/VOT redesign")
 class DirectSerTest(testhelpers.VerboseTest):
-#	resources = [("tree", _DirectVOT())]
+	resources = [("tree", _DirectVOT())]
 
-	def testVODMLModelFirst(self):
-		dmgroup = self.tree.xpath("//GROUP[VODML/TYPE='vo-dml:Model']")[0]
+
+	def testVODMLModelDefined(self):
+		dmgroup = self.tree.xpath(
+			"//GROUP[VODML/TYPE='vo-dml:Model']"
+			"[PARAM[VODML/ROLE='name']/@value='vo-dml']")[0]
 		self.assertEqual(
-			dmgroup.xpath("PARAM[VODML/ROLE='vo-dml:Model.name']")[0].get("value"),
+			dmgroup.xpath("PARAM[VODML/ROLE='name']")[0].get("value"),
 			"vo-dml")
 		self.assertEqual(
-			dmgroup.xpath("PARAM[VODML/ROLE='vo-dml:Model.url']")[0].get("value"),
-			"http://this.needs.to/be/fixed")
+			dmgroup.xpath("PARAM[VODML/ROLE='url']")[0].get("value"),
+			"http://www.ivoa.net/dm/vo-dml.xml")
 		self.assertEqual(
-			dmgroup.xpath("PARAM[VODML/ROLE='vo-dml:Model.version']")[0].get("value"),
+			dmgroup.xpath("PARAM[VODML/ROLE='version']")[0].get("value"),
 			"1.0")
 
-	def testToyModelDefined(self):
-		dmgroup = self.tree.xpath("//GROUP[VODML/TYPE='vo-dml:Model']")[1]
+	def testTestModelDefined(self):
+		dmgroup = self.tree.xpath(
+			"//GROUP[VODML/TYPE='vo-dml:Model']"
+			"[PARAM[VODML/ROLE='name']/@value='testdm']")[0]
+
 		self.assertEqual(
-			dmgroup.xpath("PARAM[VODML/ROLE='vo-dml:Model.name']")[0].get("value"),
-			"toy")
+			dmgroup.xpath("PARAM[VODML/ROLE='name']")[0].get("value"),
+			"testdm")
 		self.assertEqual(
-			dmgroup.xpath("PARAM[VODML/ROLE='vo-dml:Model.url']")[0].get("value"),
-			"http://g-vo.org/toymodel")
+			dmgroup.xpath("PARAM[VODML/ROLE='url']")[0].get("value"),
+			"http://docs.g-vo.org/testdm/0.1")
 		self.assertEqual(
-			dmgroup.xpath("PARAM[VODML/ROLE='vo-dml:Model.version']")[0].get("value"),
-			"0.5")
+			dmgroup.xpath("PARAM[VODML/ROLE='version']")[0].get("value"),
+			"0.1")
 
 	def testNoExtraModels(self):
 		self.assertEqual(2,
 			len(self.tree.xpath("//GROUP[VODML/TYPE='vo-dml:Model']")))
 
-	def testToyInstancePresent(self):
-		toyGroup = self.tree.xpath("RESOURCE/GROUP")[1]
-		self.assertEqual(toyGroup.xpath("VODML/TYPE")[0].text, "toy:Thing")
+	def testTesclassInstancePresent(self):
+		res = self.tree.xpath("RESOURCE/GROUP[VODML/TYPE='testdm:testclass']")
+		self.assertEqual(len(res), 1)
 	
-	def testFloatAttrSerialized(self):
-		par = self.tree.xpath("//PARAM[VODML/ROLE='toy:Thing.width']")[0]
-		self.assertEqual(par.get("value"), "3")
+	def testLiteralSerialized(self):
+		par = self.tree.xpath(
+			"RESOURCE/GROUP[VODML/TYPE='testdm:otherclass']"
+			"/PARAM[VODML/ROLE='nook']")[0]
+		self.assertEqual(par.get("value"), "0.1")
+		self.assertEqual(par.get("datatype"), "unicodeChar")
 
-	def testStringAttrSerialized(self):
-		par = self.tree.xpath("//PARAM[VODML/ROLE='toy:Thing.location']")[0]
-		self.assertEqual(par.get("value"), "upstairs")
+	def testChildColumnAnnotated(self):
+		fr = self.tree.xpath(
+			"RESOURCE/GROUP[VODML/TYPE='testdm:testclass']"
+			"/FIELDref[VODML/ROLE='attr1']")[0]
+		col = getByID(self.tree, fr.get("ref"))
+		self.assertEqual(col.get("name"), "col1")
 
-	def testIntTypeDeclared(self):
-		par = self.tree.xpath("//PARAM[VODML/ROLE='toy:Thing.width']")[0]
-		self.assertEqual(par.get("datatype"), "int")
-		self.assertEqual(par.get("arraysize"), None)
-
-	def testFloatTypeDeclared(self):
-		par = self.tree.xpath("//PARAM[VODML/ROLE='toy:Thing.height']")[0]
-		self.assertEqual(par.get("datatype"), "double")
-		self.assertEqual(par.get("arraysize"), None)
-
-	def testStringTypeDeclared(self):
-		par = self.tree.xpath("//PARAM[VODML/ROLE='toy:Thing.location']")[0]
-		self.assertEqual(par.get("datatype"), "char")
-		self.assertEqual(par.get("arraysize"), "*")
-
-	def testDataTypeChild(self):
-		posGroup = self.tree.xpath("//GROUP/GROUP[VODML/TYPE='toy:Pos']")[0]
-		self.assertEqual("3",
-			posGroup.xpath("PARAM[VODML/ROLE='toy:Pos.y']")[0].get("value"))
-
-	def testSingletonReference(self):
-		ref = self.tree.xpath("//GROUP[VODML/ROLE='toy:Thing.extpos']")[0]
-		destGroup = getByID(self.tree, ref.get("ref"))
-		self.assertEqual(destGroup.tag, "GROUP")
-		self.assertEqual(destGroup.xpath("VODML/TYPE")[0].text,
-			"toy:Pos")
+	def testNestedColumnAnnotated(self):
+		fr = self.tree.xpath(
+			"RESOURCE/GROUP[VODML/TYPE='testdm:otherclass']"
+			"/FIELDref[VODML/ROLE='ra']")[0]
+		col = getByID(self.tree, fr.get("ref"))
+		self.assertEqual(col.get("name"), "raj2000")
 	
-	def testSingletonSerialized(self):
-		group = self.tree.xpath("RESOURCE/GROUP[1]")[0]
-		self.assertEqual(group.xpath("VODML/TYPE")[0].text, "toy:Pos")
-		self.assertEqual("2",
-			group.xpath("PARAM[VODML/ROLE='toy:Pos.x']")[0].get("value"))
+	def testGroupReference(self):
+		gr = self.tree.xpath(
+			"RESOURCE/GROUP[VODML/TYPE='testdm:testclass']"
+			"/GROUP[VODML/ROLE='attr2']")[0]
+		group = getByID(self.tree, gr.get("ref"))
+		self.assertEqual(group.xpath("VODML/TYPE")[0].text,
+			'testdm:otherclass')
+
+	def testCollection(self):
+		self.assertFalse("Implement something for collection")
 
 
 class _TableVOT(testhelpers.TestResource):

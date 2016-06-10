@@ -26,21 +26,18 @@ class ColumnAnnotation(common.AnnotationBase):
 	"""
 	def __init__(self, name, column):
 		common.AnnotationBase.__init__(self, name)
-		self.value = weakref.proxy(column)
+		self.weakref = weakref.ref(column)
 
-	def getTree(self, ctx, parent):
+	@property
+	def value(self):
+		return self.weakref()
+
+	def getVOT(self, ctx):
 		return V.FIELDref(ref=ctx.getOrMakeIdFor(self.value))[
-			V.VODML[V.ROLE[self.qualifiedRole]]]
+			V.VODML[V.ROLE[self.name]]]
 
 
-class DataTypeAnnotation(common.AnnotationBase):
-	"""An annotation of a complex value serialised  as a direct group child.
-	"""
-	def __init__(self, name, typeName):
-		common.AnnotationBase.__init__(self, name)
-		self.typeName = typeName
-
-
+# NOT UPDATED
 def _the(gen):
 	"""returns the first thing the generator gen spits out and makes sure 
 	there's nothing more
@@ -54,6 +51,7 @@ def _the(gen):
 		" extra %s"%repr(extra))
 
 
+# NOT UPDATED
 class GroupRefAnnotation(common.AnnotationBase):
 	"""An annotation always referencing a group that's not lexically
 	within the parent.
@@ -74,6 +72,7 @@ class GroupRefAnnotation(common.AnnotationBase):
 			V.VODML[V.ROLE[self.qualifiedRole]]]
 
 
+# NOT UPDATED
 class ForeignKeyAnnotation(common.AnnotationBase):
 	"""An annotation pointing to a column in a different table.
 	"""
