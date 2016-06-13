@@ -1,0 +1,6 @@
+# This is hopefully going to be a useful pendant to filters.txt in
+# the future.  Valuable links to figure things out (coutesy of
+# Milcho Tsvetkov):
+# http://www.wfpdb.org/ftp/WFPDB/PLATE_EMULSIONS/Dokuchaeva_films.pdf
+# http://gua.db.ukr-vo.org/guides.php
+# http://www.wfpdb.org/ftp/WFPDB/PLATE_EMULSIONS/KODAK_emulsions_1962.pdf
