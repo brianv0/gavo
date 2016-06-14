@@ -27,7 +27,7 @@ from gavo import rscdesc  #noflake: for cache registration
 from gavo import utils
 
 
-CURRENT_SCHEMAVERSION = 12
+CURRENT_SCHEMAVERSION = 13
 
 
 class AnnotatedString(str):
@@ -358,6 +358,17 @@ class To12Upgrader(Upgrader):
 		publication.makeDeletedRecord(
 			"ivo://"+base.getConfig("ivoa", "authority")+"/__system__/tap/run",
 			connection)
+
+
+class To13Upgrader(Upgrader):
+	version = 12
+	@classmethod
+	def u_010_updateObscore(cls, connection):
+		"""upgrade ivoa.obscore to obscore 1.1.
+		"""
+		dd = base.caches.getRD("//obscore", doQueries=False
+			).getById("refreshAfterSchemaUpdate")
+		rsc.makeData(dd, connection=connection)
 
 
 def iterStatements(startVersion, endVersion=CURRENT_SCHEMAVERSION, 

@@ -270,6 +270,75 @@
 			<property name="std">1</property>
 		</column>
 
+		<!-- obscore 1.1 additions -->
+
+		<column name="s_xel1" type="bigint"
+			description="Number of elements (typically pixels) along the
+				first spatial axis."
+			utype="obscore:Char.SpatialAxis.numBins1"
+			ucd="meta.number"
+			verbLevel="10">
+			<property name="std">1</property>
+			<values nullLiteral="-1"/>
+		</column>
+
+		<column name="s_xel2" type="bigint"
+			description="Number of elements (typically pixels) along the
+				second spatial axis."
+			utype="obscore:Char.SpatialAxis.numBins1"
+			ucd="meta.number"
+			verbLevel="10">
+			<property name="std">1</property>
+			<values nullLiteral="-1"/>
+		</column>
+
+		<column name="t_xel" type="bigint"
+			description="Number of elements (typically pixels) along the
+				time axis."
+			utype="obscore:Char.TimeAxis.numBins"
+			ucd="meta.number"
+			verbLevel="10">
+			<property name="std">1</property>
+			<values nullLiteral="-1"/>
+		</column>
+
+		<column name="em_xel" type="bigint"
+			description="Number of elements (typically pixels) along the
+				spectral axis."
+			utype="obscore:Char.SpectralAxis.numBins"
+			ucd="meta.number"
+			verbLevel="10">
+			<property name="std">1</property>
+			<values nullLiteral="-1"/>
+		</column>
+
+		<column name="pol_xel" type="bigint"
+			description="Number of elements (typically pixels) along the
+				polarization axis."
+			utype="obscore:Char.SpectralAxis.numBins"
+			ucd="meta.number"
+			verbLevel="10">
+			<property name="std">1</property>
+			<values nullLiteral="-1"/>
+		</column>
+
+		<column name="s_pixel_scale" type="double precision"
+			description="Sampling	period	in	world	coordinate	units	along	
+				the	spatial	axis"
+			unit="arcsec"
+			utype="obscore:Char.SpatialAxis.Sampling.RefVal.SamplingPeriod"
+			ucd="phys.angSize;instr.pixel"
+			verbLevel="10">
+			<property name="std">1</property>
+		</column>
+
+		<column name="em_ucd" type="text"
+			description="Nature of the product's spectral axis"
+			utype="obscore:Char.SpectralAxis.ucd" ucd="meta.ucd"
+			verbLevel="15">
+			<property name="std">1</property>
+		</column>
+
 		<FEED source="%#obscore-extracolumns"/>
 	</STREAM>
 
@@ -294,7 +363,9 @@
 				NULL, NULL, NULL, NULL, NULL,
 				NULL, NULL, NULL, NULL, NULL,
 				NULL, NULL, NULL, NULL, NULL,
-				NULL, NULL, NULL, NULL)) as q WHERE 0=1);
+				NULL, NULL, NULL, NULL, NULL, 
+				NULL, NULL, NULL, NULL, NULL,
+				NULL)) as q WHERE 0=1);
 		</viewStatement>
 
 		<FEED source="obscore-columns"/>
@@ -388,6 +459,23 @@
 			>NULL</mixinPar>
 		<mixinPar name="facilityName" description="The institute or observatory
 			at which the data was produced">NULL</mixinPar>
+		<mixinPar name="sXel1" description="Number of pixels along the 
+			first spatial axis">NULL</mixinPar>
+		<mixinPar name="sXel2" description="Number of pixels along the
+			second spatial axis">NULL</mixinPar>
+		<mixinPar name="tXel" description="Number of samples along the time axis"
+			>NULL</mixinPar>
+		<mixinPar name="emXel" description="Number of samples along the spectral
+			axis">NULL</mixinPar>
+		<mixinPar name="polXel" description="Number of polarisation states in
+			this product">NULL</mixinPar>
+		<mixinPar name="sPixelScale" description="Size of a spatial pixel (in
+			arcsec)">NULL</mixinPar>
+		<mixinPar name="emUcd" description="UCD of the spectral axis if the dataset
+			is a Doppler axis; the values are one of spect.dopplerVeloc.opt, 
+			spect.dopplerVeloc.radio, spect.dopplerVeloc.rel, or spect.doppler.z.
+			Otherwise, this is NULL.">NULL</mixinPar>
+
 		<FEED source="%#obscore-extrapars"/>
 
 		<events>
@@ -424,7 +512,14 @@
 						CAST(\oUCD AS text) AS o_ucd,
 						CAST(\polStates AS text) AS pol_states,
 						CAST(\facilityName AS text) AS facility_name,
-						CAST(\instrumentName AS text) AS instrument_name
+						CAST(\instrumentName AS text) AS instrument_name,
+						CAST(\sXel1 AS bigint) AS s_xel1,
+						CAST(\sXel2 AS bigint) AS s_xel2,
+						CAST(\tXel AS bigint) AS t_xel,
+						CAST(\emXel AS bigint) AS em_xel,
+						CAST(\polXel AS bigint) AS pol_xel,
+						CAST(\sPixelScale AS double precision) AS s_pixel_scale,
+						CAST(\emUcd AS text) AS em_ucd
 			</property>
 			<FEED source="%#obscore-extraevents"/>
 		</events>
@@ -590,6 +685,11 @@
 		<mixinPar name="creatorDID" description="Global identifier of the
 			data set assigned by the creator.  Leave NULL unless the creator
 			actually assigned an IVO id herself.">NULL</mixinPar>
+		<mixinPar name="sXel1" description="preset for SIAP"
+			>pixelSize[1]</mixinPar>
+		<mixinPar name="sXel2" description="preset for SIAP"
+			>pixelSize[2]</mixinPar>
+
 	</mixinDef>
 
 	<mixinDef id="publishSSAPHCD">
