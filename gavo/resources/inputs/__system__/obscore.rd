@@ -130,9 +130,7 @@
 		</column>
 
 		<column name="target_class" type="text" 
-			description="Class of the target object (star, QSO, ...; use Simbad object
-			classification http://simbad.u-strasbg.fr/simbad/sim-display?data=otypes
-			if at all possible)"
+			description="Class of the target object (star, QSO, ...)"
 			utype="obscore:target.class" ucd="src.class"
 			verbLevel="20">
 			<property name="std">1</property>
@@ -323,7 +321,7 @@
 		</column>
 
 		<column name="s_pixel_scale" type="double precision"
-			description="Sampling	period	in	world	coordinate	units	along	
+			description="Sampling	period in world	coordinate	units	along	
 				the	spatial	axis"
 			unit="arcsec"
 			utype="obscore:Char.SpatialAxis.Sampling.RefVal.SamplingPeriod"
@@ -471,10 +469,9 @@
 			this product">NULL</mixinPar>
 		<mixinPar name="sPixelScale" description="Size of a spatial pixel (in
 			arcsec)">NULL</mixinPar>
-		<mixinPar name="emUcd" description="UCD of the spectral axis if the dataset
-			is a Doppler axis; the values are one of spect.dopplerVeloc.opt, 
-			spect.dopplerVeloc.radio, spect.dopplerVeloc.rel, or spect.doppler.z.
-			Otherwise, this is NULL.">NULL</mixinPar>
+		<mixinPar name="emUCD" description="UCD of the spectral axis as defined
+			by the spectrum DM, plus a few values defined in obscore 1.1 for
+			Doppler axes">NULL</mixinPar>
 
 		<FEED source="%#obscore-extrapars"/>
 
@@ -519,7 +516,7 @@
 						CAST(\emXel AS bigint) AS em_xel,
 						CAST(\polXel AS bigint) AS pol_xel,
 						CAST(\sPixelScale AS double precision) AS s_pixel_scale,
-						CAST(\emUcd AS text) AS em_ucd
+						CAST(\emUCD AS text) AS em_ucd
 			</property>
 			<FEED source="%#obscore-extraevents"/>
 		</events>
@@ -689,7 +686,8 @@
 			>pixelSize[1]</mixinPar>
 		<mixinPar name="sXel2" description="preset for SIAP"
 			>pixelSize[2]</mixinPar>
-
+		<mixinPar name="sPixelScale" description="preset for SIAP"
+			>pixelScale[0]/3600</mixinPar>
 	</mixinDef>
 
 	<mixinDef id="publishSSAPHCD">
@@ -724,13 +722,12 @@
 		<mixinPar name="oUCD">'\getParam{ssa_fluxucd}'</mixinPar>
 		<mixinPar name="productType">'spectrum'</mixinPar>
 		<mixinPar name="sResolution">\getParam{ssa_spaceRes}{NULL}/3600.</mixinPar>
-		<mixinPar name="tMax">NULL</mixinPar>
-		<mixinPar name="tMin">NULL</mixinPar>
 		<mixinPar name="tMax">ssa_dateObs+ssa_timeExt/2</mixinPar>
 		<mixinPar name="tMin">ssa_dateObs-ssa_timeExt/2</mixinPar>
 		<mixinPar name="targetName">ssa_targname</mixinPar>
 		<mixinPar name="targetClass">ssa_targclass</mixinPar>
 		<mixinPar name="title">ssa_dstitle</mixinPar>
+		<mixinPar name="emUCD">ssa_spectralucd</mixinPar>
 	</mixinDef>
 
 	<table id="emptyobscore" onDisk="True" system="True"
@@ -774,7 +771,6 @@
 			</script>
 		</make>
 	</data>
-
 
 	<data id="refreshAfterSchemaUpdate">
 		<recreateAfter>create</recreateAfter>
