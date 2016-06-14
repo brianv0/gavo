@@ -275,9 +275,10 @@
 
 
 	<table id="ObsCore" adql="True" onDisk="True" system="True">
-		<property key="supportsModel">Obscore-1.0</property>
+		<property key="supportsModel">Obscore-1.0, Obscore-1.1</property>
 		<property key="supportsModelURI"
-			>ivo://ivoa.net/std/ObsCore/v1.0</property>
+			>ivo://ivoa.net/std/ObsCore/v1.0
+			ivo://ivoa.net/std/ObsCore#table-1.1</property>
 
 		<meta name="description">The IVOA-defined obscore table, containing
 		generic metadata for datasets within this datacenter.</meta>

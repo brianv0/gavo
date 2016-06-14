@@ -548,15 +548,22 @@ class _TAPPublishedADQLTable(tresc.CSTestTable):
 
 
 class TAPPublicationTest(testhelpers.VerboseTest):
-	resources = [("table", _TAPPublishedADQLTable())]
+	resources = [("table", _TAPPublishedADQLTable()),
+		("conn", tresc.dbConnection)]
 
 	def testColumnsPublished(self):
-		with base.AdhocQuerier() as q:
-			res = list(q.query(
-				"select column_name, unit, datatype"
-				" from tap_schema.columns where table_name='test.adql'"))
-			self.failUnless(("alpha", "deg", "REAL") in res)
-	
+		res = list(self.conn.query(
+			"select column_name, unit, datatype"
+			" from tap_schema.columns where table_name='test.adql'"))
+		self.failUnless(("alpha", "deg", "REAL") in res)
+
+	def testModelsSupportedPresent(self):
+		res = list(self.conn.query(
+			"select * from tap_schema.supportedmodels where sourcerd='data/test'"))
+		self.assertEqual(len(res), 2)
+		self.assertEqual(set(r[1] for r in res),
+			set(['Fantasy-1.0', 'Fantasy-1.1']))
+
 	def testSTCGroupPresent(self):
 		with base.AdhocQuerier() as q:
 			res = set(list(q.query(

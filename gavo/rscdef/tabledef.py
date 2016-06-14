@@ -289,7 +289,18 @@ class TableDef(base.Structure, base.ComputedMetaMixin, common.PrivilegesMixin,
 		common.IVOMetaMixin, base.StandardMacroMixin):
 	"""A definition of a table, both on-disk and internal.
 
-	Some attributes are ignored for the in-memory tables, e.g., roles or adql.
+	Some attributes are ignored for in-memory tables, e.g., roles or adql.
+
+	Properties for tables:
+
+	* supportsModel -- a short name of a data model supported through this 
+	  table (for TAPRegExt dataModel); you can give multiple names separated
+	  by commas.
+	* supportsModelURI -- a URI of a data model supported through this table.
+	  You can give multiple URIs separated by blanks.
+	
+	If you give multiple data model names or URIs, the sequences of names and 
+	URIs must be identical (in particular, each name needs a URI).
 	"""
 	name_ = "table"
 

@@ -79,9 +79,11 @@ class MiscCLITest(testhelpers.VerboseTest):
 
 	def testShowDD(self):
 		self.assertOutput(cli.main, argList=["show", "dds", "//tap"],
-			expectedStdout="importTablesFromRD\nimportColumnsFromRD\nimport"
-				"GroupsFromRD\nimportFkeysFromRD\ncreateSchema*\n"
-				"createJobTable*\n")
+			expectedStdout="importTablesFromRD\nimportDMsFromRD\n"
+				"importColumnsFromRD\nimportGroupsFromRD\nimportFkeysFromRD\n"
+				"createSchema*\ncreateJobTable*\n' != 'importTablesFromRD\n"
+				"importDMsFromRD\nimportColumnsFromRD\nimportGroupsFromRD\n"
+				"importFkeysFromRD\ncreateSchema*\ncreateJobTable*\n")
 
 	def testShowDDBad(self):
 		self.assertOutput(cli.main, argList=["show", "dds", "//nonex"],

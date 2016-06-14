@@ -393,7 +393,7 @@ def _processSourceReal(data, source, feeder, opts):
 		except Exception, msg:
 			raise base.ui.logOldExc(
 				base.SourceParseError(str(msg),
-					source=utils.makeLeftEllipsis(unicode(source), 80),
+					source=utils.makeLeftEllipsis(repr(source), 80),
 					location=srcIter.getLocator()))
 	else:  # magic grammars (like those of boosters) return a callable
 		srcIter(data)

@@ -106,6 +106,9 @@
 
 	<table id="adqltable" onDisk="True" adql="True">
 		<meta name="description">A meaningless table</meta>
+		<property name="supportsModel">Fantasy-1.0, Fantasy-1.1</property>
+		<property name="supportsModelURI">http://example.com/url1
+			http://example.com/anotheruri</property>
 		<column name="foo"
 			type="double precision" required="True"/>
 	</table>
@@ -172,7 +175,8 @@
 		</column>
 	</table>
 
-	<table original="adql" id="csdata" onDisk="True"/>
+	<table original="adql" id="csdata" onDisk="True">
+	</table>
 
 	<data id="ADQLTest">
 		<sources pattern="data/adqlin.txt"/>

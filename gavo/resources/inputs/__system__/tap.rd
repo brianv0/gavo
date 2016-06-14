@@ -251,8 +251,6 @@
 							"table_utype": base.getMetaText(table, "utype",
 								propagate=False),
 							"sourceRD": rd.sourceId,
-							"dmname": table.getProperty("supportsModel", None),
-							"dmivorn": table.getProperty("supportsModelURI", None),
 						}
 				</code>
 			</iterator>
@@ -286,14 +284,40 @@
 			</script>
 		</make>
 
-		<make table="supportedmodels" rowmaker="make_models">
-			<script type="newSource" lang="python" id="removeStale"
-					notify="False" name="delete stale models">
-				table.deleteMatching("sourceRD=%(sourceRD)s",
-					{"sourceRD": sourceToken.sourceId})
-			</script>
-		</make>
+	</data>
 
+	<data id="importDMsFromRD" auto="False">
+		<embeddedGrammar>
+			<iterator>
+				<code>
+					rd = self.sourceToken
+					# see importTablesFromRD
+					if rd.getProperty("moribund", False):
+						return
+					for table in rd.tables:
+						if not table.adql:
+							continue
+						yield {
+							"sourceRD": rd.sourceId,
+							"table_name": table.getQName().lower(),
+							"dmname": table.getProperty("supportsModel", None),
+							"dmivorn": table.getProperty("supportsModelURI", None),
+						}
+				</code>
+			</iterator>
+			<rowfilter>
+				<code>
+				if @dmname:
+					for name, uri in (
+							zip(@dmname.split(","), @dmivorn.split())):
+						yield {
+							"sourceRD": @sourceRD, 
+							"dmname": name.strip(), 
+							"dmivorn": uri}
+				</code>
+			</rowfilter>
+		</embeddedGrammar>
+		<make table="supportedmodels"/>
 	</data>
 
 	<data id="importColumnsFromRD" auto="False">
