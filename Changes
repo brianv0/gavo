@@ -11,6 +11,8 @@ Version 0.9.7
 
 	* Behaviour change: pythonCores no longer run in a file system sandbox 
 		(can't do that thread-safely).
+	* Obscore support is now at version 1.1
+	* DaCHS now supports CORS for web-based UIs
 
 
 Version 0.9.6 (2016-03-16)

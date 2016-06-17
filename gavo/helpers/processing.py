@@ -570,6 +570,13 @@ class PreviewMaker(FileProcessor):
 			" where they already exist", action="store_true",
 			dest="force", default=False)
 
+	def iterIdentifiers(self):
+		"""iterates over the accrefs in the first table of dd.
+		"""
+		tableId = self.dd.makes[0].table.getQName()
+		for r in self.conn.queryToDicts("select accref from %s"%tableId):
+			yield r["accref"]
+
 	def _createAuxiliaries(self, dd):
 		self.previewDir = dd.rd.getAbsPath(
 			dd.getProperty("previewDir"))
@@ -617,13 +624,6 @@ class SpectralPreviewMaker(PreviewMaker):
 	def _createAuxiliaries(self, dd):
 		PreviewMaker._createAuxiliaries(self, dd)
 		self.sdmDD = self.dd.rd.getById(self.sdmId)
-
-	def iterIdentifiers(self):
-		"""iterates over the accrefs in the first table of dd.
-		"""
-		tableId = self.dd.makes[0].table.getQName()
-		for r in self.conn.queryToDicts("select accref from %s"%tableId):
-			yield r["accref"]
 
 	def getPreviewData(self, accref):
 		table = rsc.makeData(self.sdmDD, forceSource={
