@@ -1,5 +1,11 @@
 <!-- Definitions of SLAP (simple line access) columns and parameters -->
 
+<!--  Ausgabe braucht noch 
+
+xmlns:ssldm="http://www.ivoa.net/xml/SimpleSpectrumLineDM/SimpleSpectrumLineDM-v1.0.xsd"
+
+-->
+
 <resource resdir="__system" schema="dc">
 
 	<mixinDef id="basic">

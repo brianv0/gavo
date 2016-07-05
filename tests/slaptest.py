@@ -166,6 +166,5 @@ class CapabilityTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 			"MAXREC=1")
 
 
-
 if __name__=="__main__":
 	testhelpers.main(ImportingTest)

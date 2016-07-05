@@ -33,7 +33,11 @@ class StaticRenderer(grend.ServiceBasedPage):
 	for directories are created.
 
 	You can define a root resource by giving an indexFile property on
-	the service.
+	the service.  Note in particular that you can use an index file
+	with an extension of shtml.  This lets you use nevow templates, but
+	since metadata will be taken from the global context, that's
+	probably not terribly useful.  You are probably looking for the fixed
+	renderer if you find yourself needing this.
 	"""
 	name = "static"
 

@@ -448,6 +448,12 @@ class SLAPRenderer(UnifiedDALRenderer):
 	name = "slap.xml"
 	parameterStyle = "pql"
 
+	def _formatOutput(self, data, ctx):
+		data.original.addMeta("_votableRootAttributes",
+			'xmlns:ssldm="http://www.ivoa.net/xml/SimpleSpectrumLineDM'
+				'/SimpleSpectrumLineDM-v1.0.xsd"')
+		return UnifiedDALRenderer._formatOutput(self, data, ctx)
+
 
 class APIRenderer(UnifiedDALRenderer):
 	"""A renderer that works like a VO standard renderer but that doesn't

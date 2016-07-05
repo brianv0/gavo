@@ -245,7 +245,8 @@ class CustomPageFunction(base.Structure, base.RestrictionMixin):
 	"""
 	_name = base.UnicodeAttribute("name", default=base.Undefined,
 		description="Name of the render function (use this in the"
-			" n:render attribute in custom templates).", copyable=True, strip=True)
+			" n:render or n:data attribute in custom templates).", 
+			copyable=True, strip=True)
 	_code = base.DataContent(description="Function body of the renderer; the"
 		" arguments are named ctx and data.", copyable=True)
 
