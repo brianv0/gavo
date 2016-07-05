@@ -322,7 +322,7 @@ I'm getting "No output columns with these settings." instead of result rows
 ===========================================================================
 
 This is particularly likely to happen with the scs.xml renderer.  There,
-it can happen the the server doesn't even bother to run database queries
+it can happen the server doesn't even bother to run database queries
 but instead keeps coming back with an error message ``No output columns
 with these settings.``.
 
@@ -360,7 +360,7 @@ I'm using reGrammar to parse a file, but no splitting takes place
 
 This mostly happens for input lines like ``a|b|c``; the underlying
 problem is that you're trying to split along regular expression
-metacharacters.  The solution is to escape the the metacharacter.  In
+metacharacters.  The solution is to escape the metacharacter.  In
 the example, you wouldn't write::
 
   <reGrammar fieldSep="|"> <!-- doesn't work -->

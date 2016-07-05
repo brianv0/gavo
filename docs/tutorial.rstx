@@ -1637,10 +1637,10 @@ To assoicate a column with a note, use the column's note attribute::
 As tag, you may use basically any string, but it's a good idea to keep
 it to numbers or at least characters not requiring URL encoding.
 
-The notes will exposed in HTML table heads, table and service
+The notes will be exposed in HTML table heads, table and service
 descriptions, etc.  If you need to link to one, there is the built-in
 tablenote renderer that takes the table and the note from its query
-path.  The most convenient way to is it is through the built-in vanity
+path.  The most convenient way to do it is through the built-in vanity
 name tablenote, where you would access the note above using a URL like
 ``http://your.server/tablenote/demoschema.demo/1``.
 
@@ -1877,7 +1877,7 @@ Phrase maker code has the following names available:
   dictionary to the query.
 
 The code should amend the outPars dictionary with the keys mentioned in
-the the conditions.  The conditions themselves are yielded.  So, a very
+the conditions.  The conditions themselves are yielded.  So, a very
 simple condDesc with generated SQL could look like this::
 
   <condDesc> <!-- don't do it like this, see below -->
@@ -2174,7 +2174,7 @@ about that UCD is horrible, and it is generally accepted in the VO that
 this was an error.
 
 Finally, there is advanced metadata, in particular time zones, time
-scales (i.e., how does the the time pass) and reference positions (i.e.,
+scales (i.e., how does the time pass) and reference positions (i.e.,
 where is the clock positioned).  
 
 Time zones are not supported at all in the VO.  All times are for the

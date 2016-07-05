@@ -300,7 +300,7 @@ buffer overflow.
 You are mainly on your own in terms of segmentation, but for entering
 values, you can use the ``MAKE_*`` discussed above.
 
-For these in particular, use the the portable type specifiers for
+For these in particular, use the portable type specifiers for
 integral types, viz., ``int8_t``, ``int16_t``, ``int32_t``, and
 ``int64_t`` and these names with a ``u`` in front.
 

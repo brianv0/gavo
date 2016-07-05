@@ -64,7 +64,7 @@ The italicized text in the explanations is taken from [RMI]_.
   possible and include as many relevant terms as possible.* If at all
   possible, the subjects should come from a controlled vocabulary.  We
   recommend you first check the `IVOA Thesaurus`_ (the dictionary may be
-  useful, or download the the turtle version and use what's under
+  useful, or download the turtle version and use what's under
   skos:definition), but both `Astronomy Journal Keywords`_ and `Vizier
   Keywords`_ will do fine if you already have those.  In the GAVO DC the
   first term is *always* capitalized, successive words should be lower

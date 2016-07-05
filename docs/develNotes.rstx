@@ -21,7 +21,7 @@ order to keep the modules dependency graph manageable (and facilitate
 factoring out libraries).
 
 * Each functionality block is in a subpackage, the __init__ for which
-  contains the main functions, classes, etc., of the the sub-package
+  contains the main functions, classes, etc., of the sub-package
   interface most clients will be concerned with.  Clients needing
   special tricks may still import individual modules (but then they're
   in much larger danger of breaking).  What's in __init__ should be 
