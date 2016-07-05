@@ -283,8 +283,11 @@ def _adqlFunctionToPG(node, state):
 	# ADQL lets RAND set a seed, fake this in an ugly way
 	if node.funName=='RAND':
 		if len(node.args)==1:
-			return "setseed(%s)-setseed(%s)+random()"%(flatten(node.args[0]),
-				flatten(node.args[0]))
+			# I suppose we should execute a separate query here with
+			# a crafted call to setseed.  There's no way to do
+			# that right now, and I'm not forcing it at this point since
+			# the semantics in the ADQL spec are dubious anyway.
+			return "random()"
 		else:
 			return "random()"
 	

@@ -1629,7 +1629,7 @@ class PQMorphTest(testhelpers.VerboseTest):
 		self._testMorph("select log10(x), log(x), rand(), rand(5), "
 			" TRUNCATE(x), TRUNCATE(x,3) from foo", 
 			'SELECT LOG(x) ASWHATEVER, LN(x) ASWHATEVER, random() ASWHATEVER,'
-				' setseed(5)-setseed(5)+random() ASWHATEVER, TRUNC('
+				' random() ASWHATEVER, TRUNC('
 				'x) ASWHATEVER, TRUNC((x)*10^(3)) / 10^(3) ASWHATEVER FROM foo')
 
 	def testHarmless(self):
