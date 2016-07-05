@@ -3345,7 +3345,7 @@ have that file yet, create it with a contents of::
   <resource schema="__system">
   </resource>
 
-There can be quite a bit of configuraiton in there 
+There can be quite a bit of configuration in there 
 (``gavo admin dumpDF //userconfig`` shows you what DaCHS uses when
 you don't override the items).  TAP examples are taken from a STREAM
 with id ``tapexamples``.  One such example is already given in the
