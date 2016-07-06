@@ -3375,7 +3375,7 @@ client would fill this into whatever its UI provides to write queries.
 Optionally, you can give the client a hint what table the example
 pertains to using the ``:taptable:`` interpreted text role.  A client
 would typically use that to restrict the display of the example to
-states in which it assumes the user wishes to runs queries against that
+states in which it assumes the user wishes to run queries against that
 particular table.
 
 DaCHS does not (yet) pick up changes to ``userconfig`` automatically.
