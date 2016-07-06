@@ -727,7 +727,7 @@
 		<mixinPar name="targetName">ssa_targname</mixinPar>
 		<mixinPar name="targetClass">ssa_targclass</mixinPar>
 		<mixinPar name="title">ssa_dstitle</mixinPar>
-		<mixinPar name="emUCD">'em.wl'</mixinPar> 
+		<mixinPar name="emUCD">'\getParam{ssa_fluxucd}'</mixinPar> 
 	</mixinDef>
 
 	<table id="emptyobscore" onDisk="True" system="True"
