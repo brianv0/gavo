@@ -20,6 +20,100 @@
 		</column>
 	</STREAM>
 
+ 	<STREAM id="v037columns">
+		<doc>
+			Colums that are deprecated in the version 2.0 of EPN-TAP parameters 	
+		</doc>
+
+		<column name="accref" original="//products#products.accref"/>
+
+		<column name="resource_type" type="text" 
+			utype="Epn.ResourceType" ucd="meta.id;class" 
+			description="'granule' if the row describes a smallest 
+				element reachable
+				in a service (e.g., a file), or 'dataset' for an aggregate
+				of granules.">
+			<property key="std">1</property>
+			<values>
+				<option>dataset</option>
+				<option>granule</option>
+			</values>
+		</column>
+
+		<column name="dataset_id" type="text"
+			ucd="meta.id;meta.dataset"
+			description="An identifier for the dataset this granule belongs to.">
+			<property key="std">1</property>
+		</column>
+
+		<column name="time_scale"	type="text" 
+			ucd="time.scale" 
+			description="Time scale as defined by the IVOA STC Data model."/>
+
+		<column name="reference"	type="text" 
+			ucd="meta.bib" 
+			description="A bibcode or URL of a publication about the data.">
+			<property key="std">1</property>
+		</column>
+
+		<column name="collection_id" type="text"
+			ucd="meta.id"
+			description="Identifier of the collection this piece of data belongs to">
+			<property key="std">1</property>
+		</column>
+
+		<column name="preview_url" type="text" 
+			ucd="meta.ref.url"
+			description="URL to retrieve a preview of the data"
+			displayHint="type=url">
+			<property key="std">1</property>
+		</column>
+	</STREAM>
+	
+	<STREAM id="v2.0columns">
+		<doc>
+			New columns introduced by the version 2.0 of EPN-TAP parameters
+		</doc>
+		
+		<column name="granule_gid" type="text"
+			ucd="meta.id"
+			description="Common to granules of the same type, in order to distinguish different files relative to the same data. Common to granules of same type">
+			<property key="std">1</property>
+		</column>	 
+
+		<column name="obs_id" type="text"
+			ucd="meta.id"
+			description="Common to granules derived from the same data, may be the ID of original observation">
+			<property key="std">1</property>
+		</column>	 
+
+		<column name="creation_date" type="date"
+			ucd="time.creation"
+			description="Date of first entry of the granule">
+			<property key="std">1</property>
+		</column>	 
+		
+		<column name="modification_date" type="date"
+			ucd="time.process"
+			description="Date of the last modification">
+			<property key="std">1</property>
+		</column>	 
+
+		<column name="release_date" type="date"
+			ucd="time.release"
+			description="Start of public access period (set to creation_date if no proprietary period">
+			<property key="std">1</property>
+		</column>	 
+
+		<column name="s_region" type="spoly"
+			ucd="phys.outline;obs.field"
+			description="ObssCore-like footprint, valid for celestial or body-fixed frames">
+			<property key="std">1</property>
+		</column>	 
+
+
+	</STREAM>
+
 	<mixinDef id="table">
 		<doc><![CDATA[
 			This mixin defines a table suitable for publication via the
@@ -65,29 +159,13 @@
 				infoValue="0.37">EPN-TAP</meta>
 
 			<column name="index_" type="bigint" required="True"
-				ucd="meta.id"
-				description="Numeric identifier (like a record number) of this
+				ucd="meta.id" description="Numeric identifier (like a record number) of this
 				row.">
 				<property key="std">1</property>
 			</column>
 				
-			<column name="accref" original="//products#products.accref"/>
-
-			<column name="resource_type" type="text" 
-				utype="Epn.ResourceType" ucd="meta.id;class" 
-				description="'granule' if the row describes a smallest 
-					element reachable
-					in a service (e.g., a file), or 'dataset' for an aggregate
-					of granules.">
-				<property key="std">1</property>
-				<values>
-					<option>dataset</option>
-					<option>granule</option>
-				</values>
-			</column>
-
 			<column name="dataproduct_type"	type="text" 
-				ucd="meta.id;class" utype="Epn.dataProductType"
+				ucd="meta.code;class" utype="Epn.dataProductType"
 				description="The high-level organization of the data product
 					described (image, spectrum, etc)"
 				note="et_prod">
@@ -107,12 +185,6 @@
 				</values>
 			</column>
 
-			<column name="dataset_id" type="text"
-				ucd="meta.id;meta.dataset"
-				description="An identifier for the dataset this granule belongs to.">
-				<property key="std">1</property>
-			</column>
-
 			<column name="target_name"	type="text" 
 				ucd="meta.id;src" utype="Epn.TargetName"
 				description="The name of the target of the observation, or a
@@ -121,7 +193,7 @@
 			</column>
 			
 			<column name="target_class"	type="text" 
-				ucd="src.class"  utype="Epn.TargetClass"
+				ucd="meta.code.class;src"  utype="Epn.TargetClass"
 				description="Type of target (from a controlled vocabulary)">
 				<property key="std">1</property>
 				<values>
@@ -144,16 +216,13 @@
 			<!-- time doesn't use not _minmax because ucds and utypes
 			are irregular -->
 			<column name="time_min" 
-				ucd="time.start;obs.exposure" unit="d"
+				ucd="time.start" unit="d"
 				utype=" Char.TimeAxis.Coverage.Bounds.Limits.Interval.StartTime"
 				description="Acquisition start time (as JD)"/>
 			<column name="time_max" 
-				ucd="time.stop;obs.exposure" unit="d"
+				ucd="time.end" unit="d"
 				utype="Char.TimeAxis.Coverage.Bounds.Limits.Interval.StopTime"
 				description="Acquisition stop time (as JD)"/>
-			<column name="time_scale"	type="text" 
-				ucd="time.scale" 
-				description="Time scale as defined by the IVOA STC Data model."/>
 
 			<FEED source="_minmax"
 				basename="t_sampling_step"
@@ -172,29 +241,28 @@
 				baseutype="Epn.Spectral.Spectral_range"
 				basedescr="Spectral domain of the data"/>
 			<FEED source="_minmax"
-				basename="sampling_step"
-				baseucd="spect" unit="Hz"
+			basename="spectral_sampling_step"
+				baseucd="em.freq.step" unit="Hz"
 				baseutype="Epn.Spectral.Spectral_sampling_step"
-				basedescr="Separation between the centers of two adjacent
-					filters or channels"/>
+				basedescr="Separation between the centers of two adjacent filters or channels"/>
 			<FEED source="_minmax"
 				basename="spectral_resolution"
-				baseucd="spec.resolution" unit="Hz"
+				baseucd="spect.resolution" unit="Hz"
 				baseutype="Epn.Spectral.Spectral_resolution"
 				basedescr="FWHM of the instrument profile"/>
 			<FEED source="_minmax"
 				basename="c1"
-				baseucd="obs.field" unit="\c1unit"
+				baseucd="pos.stat" unit="\c1unit"
 				baseutype="Epn.Spatial.Spatial_range.c1"
 				basedescr="First coordinate (e.g., longitude, 'x')"/>
 			<FEED source="_minmax"
 				basename="c2"
-				baseucd="obs.field" unit="\c2unit"
+				baseucd="pos.stat" unit="\c2unit"
 				baseutype="Epn.Spatial.Spatial_range.c2"
 				basedescr="Second coordinate (e.g., latitude, 'y')"/>
 			<FEED source="_minmax"
 				basename="c3"
-				baseucd="obs.field" unit="\c3unit"
+				baseucd="pos.stat" unit="\c3unit"
 				baseutype="Epn.Spatial.Spatial_range.c3"
 				basedescr="Third coordinate (e.g., height, 'z')"/>
 			<FEED source="_minmax"
@@ -214,16 +282,14 @@
 				basedescr="Resolution in the third coordinate"/>
 
 			<column name="spatial_frame_type"	type="text" 
-				ucd="pos.frame"
-				description="Flavor of coordinate system, also defining the 
-					nature of coordinates"/>
+				ucd="meta.code.class;pos.frame"
+				description="Flavor of coordinate system, also defining the nature of coordinates"/>
 
 			<FEED source="_minmax"
 				basename="incidence"
 				baseucd="pos.incidenceAng" unit="deg"
 				baseutype="Epn.View_angle.Incidence_angle"
-				basedescr="Incidence angle (solar zenithal angle) during
-					data acquisition"/>
+				basedescr="Incidence angle (solar zenithal angle) during data acquisition"/>
 			<FEED source="_minmax"
 				basename="emergence"
 				baseucd="pos.emergenceAng" unit="deg"
@@ -231,66 +297,56 @@
 				basedescr="Emergence angle during data acquisition"/>
 			<FEED source="_minmax"
 				basename="phase"
-				baseucd="pos.posang" unit="deg"
+				baseucd="pos.phaseAng" unit="deg"
 				baseutype="Epn.View_angle.Phase_angle"
 				basedescr="Phase angle during data acquisition"/>
 
 			<column name="instrument_host_name"	type="text" 
-				ucd="meta.class"
+				ucd="meta.id;instr.obsty"
 				utype="Provenance.ObsConfig.Facility.name"
-				description="Name of the observatory or spacecraft that
-					performed the measurements.">
+				description="Name of the observatory or spacecraft that performed the measurements.">
 				<property key="std">1</property>
 			</column>
+
 			<column name="instrument_name"	type="text" 
 				ucd="meta.id;instr" 
 				utype="Provenance.ObsConfig.Instrument.name"
 				description="Instrument used to acquire the data.">
 				<property key="std">1</property>
 			</column>
+
 			<column name="measurement_type"	type="text" 
 				ucd="meta.ucd" 
 				utype="Epn.Measurement_type"
-				description="UCD(s) defining the data, with multiple entries
-					separated by space characters.">
-				<property key="std">1</property>
-			</column>
-
-			<column name="reference"	type="text" 
-				ucd="meta.bib" 
-				description="A bibcode or URL of a publication about the data.">
+				description="UCD(s) defining the data, with multiple entries separated by space characters.">
 				<property key="std">1</property>
 			</column>
 
 			<column name="publisher"	type="text" 
-				ucd="meta.ref" 
-				description="A short string identifying the entity running
-					the data service used.">
+				ucd="meta.name" 
+				description="A short string identifying the entity running the data service used.">
 				<property key="std">1</property>
 			</column>
+
 			<column name="service_title"	type="text" 
-				ucd="meta.ref" 
+				ucd="meta.title" 
 				description="The title of the data service producing this row.">
-				<property key="std">1</property>
-			</column>
-			<column name="collection_id" type="text"
-				ucd="meta.id"
-				description="Identifier of the collection this piece of data
-					belongs to">
 				<property key="std">1</property>
 			</column>
 
 			<column name="access_url"	type="text" 
-				ucd="meta.ref.url" utype="Obs.Access.Reference"
+				ucd="meta.ref.url;meta.file" utype="Obs.Access.Reference"
 				description="URL to retrieve the data product described."
 				displayHint="type=url">
 				<property key="std">1</property>
 			</column>
+
 			<column name="access_format"	type="text"
-				ucd="meta.id;class" utype="Obs.Access.Format"
+				ucd="meta.code.mime" utype="Obs.Access.Format"
 				description="Format of the file containing the data.">
 				<property key="std">1</property>
 			</column>
+
 			<column name="access_estsize"	type="integer"
 				ucd="phys.size;meta.file" unit="kByte"
 				utype="Obs.Access.Size"
@@ -298,23 +354,16 @@
 				<property key="std">1</property>
 				<values nullLiteral="-1"/>
 			</column>
-			<column name="preview_url" type="text" 
-				ucd="meta.ref.url"
-				description="URL to retrieve a preview of the data"
-				displayHint="type=url">
-				<property key="std">1</property>
-			</column>
 
 			<column name="target_region"	type="text" 
-				ucd="src.class" 
+				ucd="meta.id;class" 
 				description="The part of the target object that was being observed">
 				<property key="std">1</property>
 			</column>
 
-
 			<param name="processing_level" type="integer"
 				utype="PSR:processingLevel"
-				ucd="meta.class.qual" 
+				ucd="meta.code;obs.calib"
 				description="Calibration level with coded according to CODMAC."
 				note="et_cal">
 				<property key="std">1</property>\processing_level</param>
