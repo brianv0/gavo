@@ -134,13 +134,17 @@ class _AttributeGroupAnnotation(AnnotationBase):
 	def getVOT(self, ctx):
 		ctx.addVODMLPrefix(self.modelPrefix)
 		group = self._makeVOTGroup(ctx)
-		ctx.getEnclosingResource()[group]
-		if self.name is not None:
-			# group in an attribute: return a reference to it
-			ctx.makeIdFor(self)
-			ctx.addID(self, group)
-			return V.GROUP(ref=group.ID)[
-				V.VODML[V.ROLE[self.name]]]
+		return group
+
+		# TODO: we'll have to figure out where to put the groups under what
+		# conditions in the end.
+		#ctx.getEnclosingResource()[group]
+		#if self.name is not None:
+		#	# group in an attribute: return a reference to it
+		#	ctx.makeIdFor(self)
+		#	ctx.addID(self, group)
+		#	return V.GROUP(ref=group.ID)[
+		#		V.VODML[V.ROLE[self.name]]]
 
 
 class DatatypeAnnotation(_AttributeGroupAnnotation):
@@ -179,11 +183,18 @@ class CollectionAnnotation(AnnotationBase):
 			"\n  ".join(r.asSIL(suppressType=True) for r in self.children))
 
 	def getVOT(self, ctx):
+# So... it's unclear at this point what to do here -- I somehow feel
+# we should serialise collections into a table.  But then this would
+# entail one table each whenever an attribute is potentially sequence-valued,
+# and that doesn't seem right either.  So, we'll dump groups for now
+# and see how we can tell when there's actually tables out there.
 		ctx.addVODMLPrefix(self.modelPrefix)
-		return []    # TODO: how do we want this?  is this really supposed
-			# to be a table even for literals?
-	
+		return V.GROUP[
+			V.VODML[
+				V.ROLE[self.name]],
+			[c.getVOT(ctx) for c in self.children]]
 
+	
 def _test():
 	import doctest, common
 	doctest.testmod(common)

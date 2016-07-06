@@ -160,7 +160,6 @@ class _DirectVOT(testhelpers.TestResource):
 class DirectSerTest(testhelpers.VerboseTest):
 	resources = [("tree", _DirectVOT())]
 
-
 	def testVODMLModelDefined(self):
 		dmgroup = self.tree.xpath(
 			"//GROUP[VODML/TYPE='vo-dml:Model']"
@@ -194,41 +193,39 @@ class DirectSerTest(testhelpers.VerboseTest):
 		self.assertEqual(2,
 			len(self.tree.xpath("//GROUP[VODML/TYPE='vo-dml:Model']")))
 
-	def testTesclassInstancePresent(self):
-		res = self.tree.xpath("RESOURCE/GROUP[VODML/TYPE='testdm:testclass']")
+	def testTestclassInstancePresent(self):
+		res = self.tree.xpath("RESOURCE/TABLE/GROUP[VODML/TYPE='testdm:testclass']")
 		self.assertEqual(len(res), 1)
 	
 	def testLiteralSerialized(self):
 		par = self.tree.xpath(
-			"RESOURCE/GROUP[VODML/TYPE='testdm:otherclass']"
+			"RESOURCE/TABLE/GROUP/GROUP[VODML/TYPE='testdm:otherclass']"
 			"/PARAM[VODML/ROLE='nook']")[0]
 		self.assertEqual(par.get("value"), "0.1")
 		self.assertEqual(par.get("datatype"), "unicodeChar")
 
 	def testChildColumnAnnotated(self):
 		fr = self.tree.xpath(
-			"RESOURCE/GROUP[VODML/TYPE='testdm:testclass']"
+			"RESOURCE/TABLE/GROUP[VODML/TYPE='testdm:testclass']"
 			"/FIELDref[VODML/ROLE='attr1']")[0]
 		col = getByID(self.tree, fr.get("ref"))
 		self.assertEqual(col.get("name"), "col1")
 
 	def testNestedColumnAnnotated(self):
 		fr = self.tree.xpath(
-			"RESOURCE/GROUP[VODML/TYPE='testdm:otherclass']"
+			"RESOURCE/TABLE/GROUP/GROUP[VODML/TYPE='testdm:otherclass']"
 			"/FIELDref[VODML/ROLE='ra']")[0]
 		col = getByID(self.tree, fr.get("ref"))
 		self.assertEqual(col.get("name"), "raj2000")
 	
-	def testGroupReference(self):
-		gr = self.tree.xpath(
-			"RESOURCE/GROUP[VODML/TYPE='testdm:testclass']"
-			"/GROUP[VODML/ROLE='attr2']")[0]
-		group = getByID(self.tree, gr.get("ref"))
-		self.assertEqual(group.xpath("VODML/TYPE")[0].text,
-			'testdm:otherclass')
-
 	def testCollection(self):
-		self.assertFalse("Implement something for collection")
+		gr = self.tree.xpath(
+			"RESOURCE/TABLE/GROUP/GROUP[VODML/ROLE='references']")
+		self.assertEqual(len(gr), 1)
+		refs = gr[0].xpath("GROUP/PARAM[VODML/ROLE='bibcode']")
+		self.assertEqual(len(refs), 2)
+		self.assertEqual(refs[0].get("value"), "too lazy")
+
 
 
 class _TableVOT(testhelpers.TestResource):
