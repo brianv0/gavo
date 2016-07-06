@@ -349,7 +349,8 @@ def expireRDs(args):
 			rdId = "__system__"+rdId[1:]
 
 		try:
-			f = utils.urlopenRemote(base.makeAbsoluteURL("/seffe/"+rdId),
+			f = utils.urlopenRemote(base.makeAbsoluteURL(
+				"/seffe/"+urllib.quote(rdId)),
 				urllib.urlencode({"__nevow_form__": "adminOps", "submit": "Reload RD"}),
 				creds=("gavoadmin", pw))
 			ignored = f.read()  #noflake: don't care enough to check at this point.
