@@ -25,6 +25,11 @@
 			Colums that are deprecated in the version 2.0 of EPN-TAP parameters 	
 		</doc>
 
+		<column name="index_" type="bigint" 
+			ucd="meta.id" description="Numeric identifier (like a record number) of this row.">
+			<property key="std">1</property>
+		</column>
+
 		<column name="accref" original="//products#products.accref"/>
 
 		<column name="resource_type" type="text" 
@@ -46,9 +51,11 @@
 			<property key="std">1</property>
 		</column>
 
-		<column name="time_scale"	type="text" 
-			ucd="time.scale" 
-			description="Time scale as defined by the IVOA STC Data model."/>
+		<FEED source="_minmax"
+			basename="sampling_step"
+			baseucd="em.freq.step" unit="Hz"
+			baseutype="Epn.Spectral.Spectral_sampling_step"
+			basedescr="Separation between the centers of two adjacent filters or channels"/>
 
 		<column name="reference"	type="text" 
 			ucd="meta.bib" 
@@ -75,9 +82,14 @@
 			New columns introduced by the version 2.0 of EPN-TAP parameters
 		</doc>
 		
+		<column name="granule_uid" type="text" 
+			ucd="meta.id" description="Numeric identifier (like a record number) of this row.">
+			<property key="std">1</property>
+		</column>
+
 		<column name="granule_gid" type="text"
 			ucd="meta.id"
-			description="Common to granules of the same type, in order to distinguish different files relative to the same data. Common to granules of same type">
+			description="Common to granules of the same type, in order to distinguish different files relative to the same data.">
 			<property key="std">1</property>
 		</column>	 
 
@@ -86,6 +98,12 @@
 			description="Common to granules derived from the same data, may be the ID of original observation">
 			<property key="std">1</property>
 		</column>	 
+
+		<FEED source="_minmax"
+			basename="spectral_sampling_step"
+			baseucd="em.freq.step" unit="Hz"
+			baseutype="Epn.Spectral.Spectral_sampling_step"
+			basedescr="Separation between the centers of two adjacent filters or channels"/>
 
 		<column name="creation_date" type="date"
 			ucd="time.creation"
@@ -111,7 +129,53 @@
 			<property key="std">1</property>
 		</column>	 
 
+		<column name="thumbnail_url"	type="text" 
+			ucd="meta.ref.url;meta.file" 
+			description="URL of a thumbnail image with predefined size (png ~200pix)">
+			<property key="std">1</property>
+		</column>
 
+		<column name="species"	type="text" 
+			ucd="meta.id;phys.atmol" 
+			description="Identify a chemical species">
+			<property key="std">1</property>
+		</column>
+
+		<column name="alt_target_name"	type="text" 
+			ucd="meta.id;src" 
+			description="Alternative name for the target">
+			<property key="std">1</property>
+		</column>
+
+		<column name="feature_name"	type="text" 
+			ucd="meta.id;pos" 
+			description="Secondary name">
+			<property key="std">1</property>
+		</column>
+
+		<column name="bib_reference"	type="text" 
+			ucd="meta.bib" 
+			description="A bibcode or URL of a publication about the data.">
+			<property key="std">1</property>
+		</column>
+
+		<column name="spatial_coordinate_description"	type="text" 
+			ucd="meta.code.class;pos.frame" 
+			description="ID or specific coordinate system and version">
+			<property key="std">1</property>
+		</column>
+
+		<column name="spatial_origin"	type="text" 
+			ucd="meta.ref;pos.frame" 
+			description="Defines the frame origin">
+			<property key="std">1</property>
+		</column>
+
+		<column name="time_origin"	type="text" 
+			ucd="meta.ref;time.scale" 
+			description="Defines where the time is measured">
+			<property key="std">1</property>
+		</column>
 	</STREAM>
 
 	<mixinDef id="table">
@@ -158,12 +222,6 @@
 			<meta name="info" infoName="SERVICE_PROTOCOL" 
 				infoValue="0.37">EPN-TAP</meta>
 
-			<column name="index_" type="bigint" required="True"
-				ucd="meta.id" description="Numeric identifier (like a record number) of this
-				row.">
-				<property key="std">1</property>
-			</column>
-				
 			<column name="dataproduct_type"	type="text" 
 				ucd="meta.code;class" utype="Epn.dataProductType"
 				description="The high-level organization of the data product
@@ -240,11 +298,6 @@
 				baseucd="\spectralUCD" unit="Hz"
 				baseutype="Epn.Spectral.Spectral_range"
 				basedescr="Spectral domain of the data"/>
-			<FEED source="_minmax"
-			basename="spectral_sampling_step"
-				baseucd="em.freq.step" unit="Hz"
-				baseutype="Epn.Spectral.Spectral_sampling_step"
-				basedescr="Separation between the centers of two adjacent filters or channels"/>
 			<FEED source="_minmax"
 				basename="spectral_resolution"
 				baseucd="spect.resolution" unit="Hz"
@@ -367,6 +420,10 @@
 				description="Calibration level with coded according to CODMAC."
 				note="et_cal">
 				<property key="std">1</property>\processing_level</param>
+
+			<column name="time_scale"	type="text" 
+				ucd="time.scale" 
+				description="Time scale as defined by the IVOA STC Data model."/>
 
 			<meta name="note" tag="et_prod">
 				The following values are defined for this field:
