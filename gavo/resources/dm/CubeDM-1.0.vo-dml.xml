@@ -1,0 +1,376 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<vo-dml:model xmlns:vo-dml="http://www.ivoa.net/xml/VODML/v1.0">
+  <name>NDcube</name>
+  <description>
+This IVOA model describes N-dimensional data cubes.
+</description>
+  <title>CubeDM-1.0</title>
+  <author>mdittmar@cfa.harvard.edu, gerard.lemson@gmail.com</author>
+  <version>1.0</version>
+  <previousVersion>0.x</previousVersion>
+  <lastModified>2015-12-29T07:21:50</lastModified>
+  <import>
+    <name>stc2</name>
+    <url>http://volute.g-vo.org/svn/trunk/projects/dm/vo-dml/models/STC2/2015-10-09/STC2.vo-dml.xml</url>
+    <documentationURL>http://volute.g-vo.org/svn/trunk/projects/dm/vo-dml/models/STC2/2015-10-09/STC2.html</documentationURL>
+  </import>
+  <import>
+    <name>ivoa</name>
+    <url>http://volute.g-vo.org/svn/trunk/projects/dm/vo-dml/models/ivoa/IVOA.vo-dml.xml</url>
+    <documentationURL>http://volute.g-vo.org/svn/trunk/projects/dm/vo-dml/models/ivoa/IVOA.html</documentationURL>
+  </import>
+
+  <package>
+    <vodml-id>ds</vodml-id>
+    <name>ds</name>
+    <description>
+Dataset Metadata V1.0 (2014)
+</description>
+    <objectType abstract="true">
+      <vodml-id>ds.ObsDataset</vodml-id>
+      <name>ObsDataset</name>
+      <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+    </objectType>
+
+  </package>
+
+
+
+  <package>
+    <vodml-id>cube</vodml-id>
+    <name>cube</name>
+    <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+    <objectType>
+      <vodml-id>cube.NDImageDataset</vodml-id>
+      <name>NDImageDataset</name>
+      <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+      <extends>
+        <vodml-ref>NDcube:ds.ObsDataset</vodml-ref>
+      </extends>
+      <reference>
+        <vodml-id>cube.NDImageDataset.image</vodml-id>
+        <name>image</name>
+        <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+        <datatype>
+          <vodml-ref>NDcube:cube.NDImage</vodml-ref>
+        </datatype>
+        <multiplicity>
+          <minOccurs>0</minOccurs>
+          <maxOccurs>-1</maxOccurs>
+        </multiplicity>
+      </reference>
+    </objectType>
+
+    <objectType>
+      <vodml-id>cube.NDImage</vodml-id>
+      <name>NDImage</name>
+      <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+      <extends>
+        <vodml-ref>NDcube:cube.PixelatedData</vodml-ref>
+      </extends>
+      <collection>
+        <vodml-id>cube.NDImage.data</vodml-id>
+        <name>data</name>
+        <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+        <datatype>
+          <vodml-ref>NDcube:cube.Voxel</vodml-ref>
+        </datatype>
+        <multiplicity>
+          <minOccurs>0</minOccurs>
+          <maxOccurs>-1</maxOccurs>
+        </multiplicity>
+      </collection>
+    </objectType>
+
+    <objectType>
+      <vodml-id>cube.CoordSys</vodml-id>
+      <name>CoordSys</name>
+      <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+      <extends>
+        <vodml-ref>stc2:coordsystem.AstroCoordSystem</vodml-ref>
+      </extends>
+    </objectType>
+
+    <objectType>
+      <vodml-id>cube.PixelCoordSys</vodml-id>
+      <name>PixelCoordSys</name>
+      <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+      <extends>
+        <vodml-ref>stc2:frametransforms.PixelCoordSystem</vodml-ref>
+      </extends>
+    </objectType>
+
+    <objectType>
+      <vodml-id>cube.FrameMappings</vodml-id>
+      <name>FrameMappings</name>
+      <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+      <extends>
+        <vodml-ref>stc2:frametransforms.PixelFrameTransform</vodml-ref>
+      </extends>
+    </objectType>
+
+    <objectType>
+      <vodml-id>cube.Voxel</vodml-id>
+      <name>Voxel</name>
+      <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+      <attribute>
+        <vodml-id>cube.Voxel.pixelAxes</vodml-id>
+        <name>pixelAxes</name>
+        <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+        <datatype>
+          <vodml-ref>stc2:frametransforms.PixelCoordinate</vodml-ref>
+        </datatype>
+        <multiplicity>
+          <minOccurs>0</minOccurs>
+          <maxOccurs>1</maxOccurs>
+        </multiplicity>
+      </attribute>
+      <attribute>
+        <vodml-id>cube.Voxel.dependentAxis</vodml-id>
+        <name>dependentAxis</name>
+        <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+        <datatype>
+          <vodml-ref>stc2:coords.Coordinate</vodml-ref>
+        </datatype>
+        <multiplicity>
+          <minOccurs>0</minOccurs>
+          <maxOccurs>1</maxOccurs>
+        </multiplicity>
+      </attribute>
+    </objectType>
+
+    <objectType abstract="true">
+      <vodml-id>cube.PixelatedData</vodml-id>
+      <name>PixelatedData</name>
+      <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+      <collection>
+        <vodml-id>cube.PixelatedData.pixelCoordSys</vodml-id>
+        <name>pixelCoordSys</name>
+        <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+        <datatype>
+          <vodml-ref>NDcube:cube.PixelCoordSys</vodml-ref>
+        </datatype>
+        <multiplicity>
+          <minOccurs>0</minOccurs>
+          <maxOccurs>1</maxOccurs>
+        </multiplicity>
+      </collection>
+    </objectType>
+
+    <objectType abstract="true">
+      <vodml-id>cube.PointData</vodml-id>
+      <name>PointData</name>
+      <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+      <attribute>
+        <vodml-id>cube.PointData.customAxes</vodml-id>
+        <name>customAxes</name>
+        <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+        <datatype>
+          <vodml-ref>stc2:coords.GenericCoord</vodml-ref>
+        </datatype>
+        <multiplicity>
+          <minOccurs>0</minOccurs>
+          <maxOccurs>-1</maxOccurs>
+        </multiplicity>
+      </attribute>
+    </objectType>
+
+    <objectType>
+      <vodml-id>cube.SparseCube</vodml-id>
+      <name>SparseCube</name>
+      <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+      <extends>
+        <vodml-ref>NDcube:cube.PointData</vodml-ref>
+      </extends>
+      <collection>
+        <vodml-id>cube.SparseCube.data</vodml-id>
+        <name>data</name>
+        <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+        <datatype>
+          <vodml-ref>NDcube:cube.NDPoint</vodml-ref>
+        </datatype>
+        <multiplicity>
+          <minOccurs>0</minOccurs>
+          <maxOccurs>-1</maxOccurs>
+        </multiplicity>
+      </collection>
+    </objectType>
+
+    <objectType>
+      <vodml-id>cube.NDPoint</vodml-id>
+      <name>NDPoint</name>
+      <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+      <attribute>
+        <vodml-id>cube.NDPoint.spaceAxis</vodml-id>
+        <name>spaceAxis</name>
+        <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+        <datatype>
+          <vodml-ref>stc2:coords.SpatialCoord</vodml-ref>
+        </datatype>
+        <multiplicity>
+          <minOccurs>0</minOccurs>
+          <maxOccurs>1</maxOccurs>
+        </multiplicity>
+      </attribute>
+      <attribute>
+        <vodml-id>cube.NDPoint.timeAxis</vodml-id>
+        <name>timeAxis</name>
+        <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+        <datatype>
+          <vodml-ref>stc2:coords.Time</vodml-ref>
+        </datatype>
+        <multiplicity>
+          <minOccurs>0</minOccurs>
+          <maxOccurs>1</maxOccurs>
+        </multiplicity>
+      </attribute>
+      <attribute>
+        <vodml-id>cube.NDPoint.spectralAxis</vodml-id>
+        <name>spectralAxis</name>
+        <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+        <datatype>
+          <vodml-ref>stc2:coords.SpectralCoord</vodml-ref>
+        </datatype>
+        <multiplicity>
+          <minOccurs>0</minOccurs>
+          <maxOccurs>1</maxOccurs>
+        </multiplicity>
+      </attribute>
+      <attribute>
+        <vodml-id>cube.NDPoint.redshiftAxis</vodml-id>
+        <name>redshiftAxis</name>
+        <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+        <datatype>
+          <vodml-ref>stc2:coords.GenericRedshiftCoord</vodml-ref>
+        </datatype>
+        <multiplicity>
+          <minOccurs>0</minOccurs>
+          <maxOccurs>1</maxOccurs>
+        </multiplicity>
+      </attribute>
+      <attribute>
+        <vodml-id>cube.NDPoint.polarizationAxis</vodml-id>
+        <name>polarizationAxis</name>
+        <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+        <datatype>
+          <vodml-ref>stc2:coords.PolCoord</vodml-ref>
+        </datatype>
+        <multiplicity>
+          <minOccurs>0</minOccurs>
+          <maxOccurs>1</maxOccurs>
+        </multiplicity>
+      </attribute>
+    </objectType>
+
+    <objectType>
+      <vodml-id>cube.SparseCubeDataset</vodml-id>
+      <name>SparseCubeDataset</name>
+      <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+      <extends>
+        <vodml-ref>NDcube:ds.ObsDataset</vodml-ref>
+      </extends>
+      <reference>
+        <vodml-id>cube.SparseCubeDataset.cube</vodml-id>
+        <name>cube</name>
+        <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+        <datatype>
+          <vodml-ref>NDcube:cube.SparseCube</vodml-ref>
+        </datatype>
+        <multiplicity>
+          <minOccurs>0</minOccurs>
+          <maxOccurs>-1</maxOccurs>
+        </multiplicity>
+      </reference>
+    </objectType>
+
+    <objectType abstract="true">
+      <vodml-id>cube.DataProduct</vodml-id>
+      <name>DataProduct</name>
+      <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+      <collection>
+        <vodml-id>cube.DataProduct.mappings</vodml-id>
+        <name>mappings</name>
+        <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+        <datatype>
+          <vodml-ref>NDcube:cube.FrameMappings</vodml-ref>
+        </datatype>
+        <multiplicity>
+          <minOccurs>0</minOccurs>
+          <maxOccurs>1</maxOccurs>
+        </multiplicity>
+      </collection>
+      <collection>
+        <vodml-id>cube.DataProduct.coordSys</vodml-id>
+        <name>coordSys</name>
+        <description>
+          TODO : Missing description : please, update your UML model asap.
+        </description>
+        <datatype>
+          <vodml-ref>NDcube:cube.CoordSys</vodml-ref>
+        </datatype>
+        <multiplicity>
+          <minOccurs>0</minOccurs>
+          <maxOccurs>1</maxOccurs>
+        </multiplicity>
+      </collection>
+    </objectType>
+
+  </package>
+
+</vo-dml:model>

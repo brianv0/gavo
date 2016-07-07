@@ -16,6 +16,7 @@ from gavo import rscdesc
 from gavo.dm import common
 from gavo.dm import dmrd
 from gavo.dm import sil
+from gavo.dm import vodml
 from gavo.formats import votablewrite
 
 
@@ -227,7 +228,6 @@ class DirectSerTest(testhelpers.VerboseTest):
 		self.assertEqual(refs[0].get("value"), "too lazy")
 
 
-
 class _TableVOT(testhelpers.TestResource):
 	def make(self, deps):
 		td = testhelpers.getTestRD().getById("abcd").copy(None)
@@ -392,6 +392,13 @@ class ManyTablesTest(testhelpers.VerboseTest):
 		destField = getByID(self.tt[1],
 			self.tt[1].xpath("RESOURCE/TABLE[1]/GROUP/FIELDref")[0].get("ref"))
 		self.assertEqual(destField.get("name"), "c1")
+
+
+class VODMLTest(testhelpers.VerboseTest):
+# Tests to do with VO-DML parsing and actions.
+	def testLoadModel(self):
+		model = vodml.getModelForPrefix("NDcube")
+		self.assertEqual(model.prefix, "NDcube")
 
 
 if __name__=="__main__":

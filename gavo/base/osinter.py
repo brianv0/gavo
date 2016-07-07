@@ -116,6 +116,10 @@ def openDistFile(name):
 	$GAVO_DIR/override/<name> and returns that file if present.  Thus, you
 	can usually override DaCHS built-in files (but there's not too many
 	places in which that's used so far).
+
+	TODO: this overrides stuff stinks a bit because for many classes 
+	of files (RDs, templates, ...) there already are override locations.
+	It think we should compute the override path based on name prefixes.
 	"""
 	userPath = os.path.join(config.get("rootDir"), "overrides/"+name)
 	if os.path.exists(userPath):
