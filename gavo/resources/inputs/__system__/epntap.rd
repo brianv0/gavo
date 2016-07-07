@@ -550,123 +550,136 @@
 		<FEED source="//products#hackProductsData"/>
 	</mixinDef>
 
-	<procDef type="apply" id="populate">
-		<doc>
-			Sets metadata for an epntap data set, including its products definition.
-
-			The values are left in vars, so you need to do manual copying,
-			e.g., using idmaps="*".
+	<NXSTREAM id="procDefTemplate">	
+		<doc>A stream to define the populate-type applys.  This needs
+		procname (of the apply being made), mixinid, and version (of
+		the EPN-TAP table built) FEED arguments.
 		</doc>
 
-		<setup>
-			<par key="index_" description="A numeric reference for the
-				item.  By default, this is just the row number.  As this will
-				(usually) change when new data is added, you should override it
-				with some unique integer number specific to the data product 
-				when there is such a thing." late="True">\rowsMade</par>
-			<par key="dataset_id" description="Unless you understand the
-				implications, leave this at the default.  In particular, note
-				that this is *not* a dataset id in the VO sense, so this should
-				normally not be whatever standardPubDID generates."
-				late="True">"1"</par>
-			<par key="target_name" description="Name of the target object,
-				preferably according to the official IAU nomenclature.
-				As appropriate, take these from the exoplanet encyclopedia
-				http://exoplanet.eu, the meteor catalog at 
-				http://www.lpi.usra.edu/meteor/, the catalog of stardust
-				samples at http://curator.jsc.nasa.gov/stardust/catalog/" 
-				late="True"/>
-			<par key="time_scale" description="Time scale used for the
-				various times, as given by IVOA's STC data model.  Choose
-				from TT, TDB, TOG, TOB, TAI, UTC, GPS, UNKNOWN" 
-				late="True">"UNKNOWN"</par>
-			<par key="spatial_frame_type" description="Flavor of the
-				coordinate system (this also fixes the meanings of c1, c2, and
-				c3).  Values defined by EPN-TAP include celestial, body,
-				cartesian, cylindrical, spherical, healpix." late="True"/>
-			<par key="instrument_host_name" description="Name of the observatory
-				or spacecraft that the observation originated from; for
-				ground-based data, use IAU observatory codes, 
-				http://www.minorplanetcenter.net/iau/lists/ObsCodesF.html,
-				for space-borne instruments use
-				http://nssdc.gsfc.nasa.gov/nmc/" late="True"/>
-			<par key="instrument_name" description="Service providers are
-				invited to include multiple values for instrumentname, e.g.,
-				complete name + usual acronym. This will allow queries on either
-				'VISIBLE AND INFRARED THERMAL IMAGING SPECTROMETER' or VIRTIS to
-				produce the same reply." late="True">None</par>
-			<par key="access_format" description="The standard text proposes
-				the standard names VOTable, Fits, CSV, ASCII, PDS, as well as
-				image formats." late="True"/>
-			<par key="target_region" description="This is a complement to the
-				target name to identify a substructure of the target that was
-				being observed (e.g., Atmosphere, Surface).  Take terms from
-				them Spase dictionary at http://www.spase-group.org or the
-				IVOA thesaurus." late="True">None</par>
-			<par key="target_class" description="The type of the target;
-				choose from asteroid, dwarf_planet, planet, satellite, comet, 
-				exoplanet, interplanetary_medium, ring, sample, sky, spacecraft, 
-				spacejunk, star" late="True">"UNKNOWN"</par>
+		<procDef type="apply" id="\procname">
+			<doc>
+				Sets metadata for an epntap version \version data set, including 
+				its products definition.
 
-			<!-- Note: only late parameters allowed in here.  Also, don't
-			define anything here unless you have to; we pick up the
-			columns from the mixin's stream automatically. -->
+				The values are left in vars, so you need to do manual copying,
+				e.g., using idmaps="*".
+			</doc>
 
-			<!-- if you add more manual parameters, make sure you list them
-			in overridden below -->
+			<setup>
+				<par key="index_" description="A numeric reference for the
+					item.  By default, this is just the row number.  As this will
+					(usually) change when new data is added, you should override it
+					with some unique integer number specific to the data product 
+					when there is such a thing." late="True">\\rowsMade</par>
+				<par key="dataset_id" description="Unless you understand the
+					implications, leave this at the default.  In particular, note
+					that this is *not* a dataset id in the VO sense, so this should
+					normally not be whatever standardPubDID generates."
+					late="True">"1"</par>
+				<par key="target_name" description="Name of the target object,
+					preferably according to the official IAU nomenclature.
+					As appropriate, take these from the exoplanet encyclopedia
+					http://exoplanet.eu, the meteor catalog at 
+					http://www.lpi.usra.edu/meteor/, the catalog of stardust
+					samples at http://curator.jsc.nasa.gov/stardust/catalog/" 
+					late="True"/>
+				<par key="time_scale" description="Time scale used for the
+					various times, as given by IVOA's STC data model.  Choose
+					from TT, TDB, TOG, TOB, TAI, UTC, GPS, UNKNOWN" 
+					late="True">"UNKNOWN"</par>
+				<par key="spatial_frame_type" description="Flavor of the
+					coordinate system (this also fixes the meanings of c1, c2, and
+					c3).  Values defined by EPN-TAP include celestial, body,
+					cartesian, cylindrical, spherical, healpix." late="True"/>
+				<par key="instrument_host_name" description="Name of the observatory
+					or spacecraft that the observation originated from; for
+					ground-based data, use IAU observatory codes, 
+					http://www.minorplanetcenter.net/iau/lists/ObsCodesF.html,
+					for space-borne instruments use
+					http://nssdc.gsfc.nasa.gov/nmc/" late="True"/>
+				<par key="instrument_name" description="Service providers are
+					invited to include multiple values for instrumentname, e.g.,
+					complete name + usual acronym. This will allow queries on either
+					'VISIBLE AND INFRARED THERMAL IMAGING SPECTROMETER' or VIRTIS to
+					produce the same reply." late="True">None</par>
+				<par key="access_format" description="The standard text proposes
+					the standard names VOTable, Fits, CSV, ASCII, PDS, as well as
+					image formats." late="True"/>
+				<par key="target_region" description="This is a complement to the
+					target name to identify a substructure of the target that was
+					being observed (e.g., Atmosphere, Surface).  Take terms from
+					them Spase dictionary at http://www.spase-group.org or the
+					IVOA thesaurus." late="True">None</par>
+				<par key="target_class" description="The type of the target;
+					choose from asteroid, dwarf_planet, planet, satellite, comet, 
+					exoplanet, interplanetary_medium, ring, sample, sky, spacecraft, 
+					spacejunk, star" late="True">"UNKNOWN"</par>
 
-			<LOOP>
-				<codeItems>
-					# overridden is a set of column names for which the parameters
-					# are manually defined above
-					overridden = set(["target_name", "time_scale",
-						"spatial_frame_type", "instrument_host_name", "instrument_name",
-						"access_format", "target_region", "processing_level",
-						"target_class", "index_", "dataset_id", 
-						# the following are set via products#define
-						"access_estsize", "access_url", "accref",
-						"preview_url",])
+				<!-- Note: only late parameters allowed in here.  Also, don't
+				define anything here unless you have to; we pick up the
+				columns from the mixin's stream automatically. -->
 
-					mixin = context.getById("table")
-					colDict = {}
-					for type, name, content, pos in mixin.events.events_:
-						if type=="value":
-							colDict[name] = content
-						elif type=="end":
-							if name=="column":
-								if colDict.get("name") not in overridden:
-									yield colDict
-								colDict = {}
-				</codeItems>
-				<events>
-					<par key="\name" description="\description"
-						late="True">None</par>
-				</events>
-			</LOOP>
+				<!-- if you add more manual parameters, make sure you list them
+				in overridden below -->
+
+				<LOOP>
+					<codeItems>
+						# overridden is a set of column names for which the parameters
+						# are manually defined above
+						overridden = set(["target_name", "time_scale",
+							"spatial_frame_type", "instrument_host_name", "instrument_name",
+							"access_format", "target_region", "processing_level",
+							"target_class", "index_", "dataset_id", 
+							# the following are set via products#define
+							"access_estsize", "access_url", "accref",
+							"preview_url",])
+
+						mixin = context.getById("\mixinid")
+						colDict = {}
+						for type, name, content, pos in mixin.events.events_:
+							if type=="value":
+								colDict[name] = content
+							elif type=="end":
+								if name=="column":
+									if colDict.get("name") not in overridden:
+										yield colDict
+									colDict = {}
+					</codeItems>
+					<events>
+						<par key="\\name" description="\\description"
+							late="True">None</par>
+					</events>
+				</LOOP>
+				<code>
+					# find myself to get the list of my parameters
+					for app in parent.apps:
+						if app.procDef and app.procDef.id=='populate':
+							break
+					else:
+						raise base.Error("Internal: epntap#populate cannot find itself")
+
+					EPNTAP_KEYS = [p.key for p in app.procDef.setups[0].pars]
+					del app
+					del p
+				</code>
+			</setup>
 			<code>
-				# find myself to get the list of my parameters
-				for app in parent.apps:
-					if app.procDef and app.procDef.id=='populate':
-						break
-				else:
-					raise base.Error("Internal: epntap#populate cannot find itself")
-
-				EPNTAP_KEYS = [p.key for p in app.procDef.setups[0].pars]
-				del app
-				del p
+				l = locals()
+				for key in EPNTAP_KEYS:
+					vars[key] = l[key]
+				
+				# map things from products#define
+				vars["access_estsize"] = vars["prodtblFsize"]/1024
+				vars["access_url"] = makeProductLink(vars["prodtblAccref"])
+				if @prodtblPreview:
+					vars["preview_url"] = @prodtblPreview
+				vars["accref"] = vars["prodtblAccref"]
 			</code>
-		</setup>
-		<code>
-			l = locals()
-			for key in EPNTAP_KEYS:
-				vars[key] = l[key]
-			
-			# map things from products#define
-			vars["access_estsize"] = vars["prodtblFsize"]/1024
-			vars["access_url"] = makeProductLink(vars["prodtblAccref"])
-			if @prodtblPreview:
-				vars["preview_url"] = @prodtblPreview
-			vars["accref"] = vars["prodtblAccref"]
-		</code>
-	</procDef>
+		</procDef>
+	</NXSTREAM>
+
+	<FEED source="procDefTemplate" procname="populate" version="0.37"
+		mixinid="table"/>
+	<FEED source="procDefTemplate" procname="populate-2.0" version="2.0"
+		mixinid="table-2.0"/>
 </resource>
