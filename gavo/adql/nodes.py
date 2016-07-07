@@ -1745,5 +1745,5 @@ class Area(FunctionNode):
 
 	def addFieldInfo(self, context):
 		self.fieldInfo = fieldinfo.FieldInfo(type="double precision",
-			unit="deg2", ucd="phys.angSize", 
+			unit="deg^2", ucd="phys.angSize", 
 			userData=collectUserData(self._getInfoChildren())[0])

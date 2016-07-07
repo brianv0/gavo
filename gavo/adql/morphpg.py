@@ -233,6 +233,11 @@ def _centroidToPG(node, state):
 	return "@@(%s)"%(flatten(node.args[0]))
 
 
+def _areaToPGSphere(node, state):
+	# pgsphere returns rad**2, adql wants deg**2
+	return "3282.806350011744*%s"%flatten(node)
+
+
 def _regionToPG(node, state):
 # Too obscure right now.
 	raise NotImplementedError("The REGION string you supplied is not"
@@ -262,6 +267,7 @@ _geometricMorphers = {
 	"centroid": _centroidToPG,
 	"region": _regionToPG,
 	"stcsRegion": _stcsRegionToPGSphere,
+	"area": _areaToPGSphere,
 }
 
 
