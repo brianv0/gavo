@@ -299,7 +299,7 @@ class NakedParseTest(_ADQLParsesTest):
 			p+"CIRCLE('fk5', 2, 3)=x",
 			p+"POLYGON('fk5', 2, 3, 3, 0, 23, 0, 45)=x",
 			p+"CENTROID(3)=x",
-			p+"CENTROID(CENTROID(POINT('fk4', 2, 3)))=x",
+			p+"CENTROID(COUNT(*))=x",
 		])
 
 	def testsBadFunctions(self):
@@ -1779,10 +1779,10 @@ class PGSMorphTest(testhelpers.VerboseTest):
 
 	samples = [
 		("select AREA(circle('ICRS', COORD1(p1), coord2(p1), 2)),"
-				" DISTANCE(p1,p2), centroid(box('ICRS', coord1(p1), coord2(p1),"
-				" coord1(p2), coord2(p2))) from (select point('ICRS', ra1, dec1) as p1,"
+				" DISTANCE(p1,p2), centroid(circle('ICRS', coord1(p1), coord2(p1),"
+				" 3)) from (select point('ICRS', ra1, dec1) as p1,"
 				"   point('ICRS', ra2, dec2) as p2 from foo) as q", 
-			'SELECT AREA(scircle(spoint(RADIANS(long(p1)), RADIANS(lat(p1))), RADIANS(2))) ASWHATEVER, DEGREES((p1) <-> (p2)) ASWHATEVER, @@((SELECT spoly(q.p) FROM (VALUES (0, spoint(RADIANS(long(p1))-RADIANS(long(p2))/2, RADIANS(lat(p1))-RADIANS(lat(p2))/2)), (1, spoint(RADIANS(long(p1))-RADIANS(long(p2))/2, RADIANS(lat(p1))+RADIANS(lat(p2))/2)), (2, spoint(RADIANS(long(p1))+RADIANS(long(p2))/2, RADIANS(lat(p1))+RADIANS(lat(p2))/2)), (3, spoint(RADIANS(long(p1))+RADIANS(long(p2))/2, RADIANS(lat(p1))-RADIANS(lat(p2))/2)) ORDER BY column1) as q(ind,p))) ASWHATEVER FROM (SELECT spoint(RADIANS(ra1), RADIANS(dec1)) AS p1, spoint(RADIANS(ra2), RADIANS(dec2)) AS p2 FROM foo) AS q'),
+			'SELECT 3282.806350011744*AREA(scircle(spoint(RADIANS(long(p1)), RADIANS(lat(p1))), RADIANS(2))) ASWHATEVER, DEGREES((p1) <-> (p2)) ASWHATEVER, @@(scircle(spoint(RADIANS(long(p1)), RADIANS(lat(p1))), RADIANS(3))) ASWHATEVER FROM (SELECT spoint(RADIANS(ra1), RADIANS(dec1)) AS p1, spoint(RADIANS(ra2), RADIANS(dec2)) AS p2 FROM foo) AS q'),
 		("select coord1(p) from foo", 'SELECT long(p) ASWHATEVER FROM foo'),
 		("select coord2(p) from foo", 'SELECT lat(p) ASWHATEVER FROM foo'),
 		# Ahem -- the following could resolve the coordsys, but intra-query 
@@ -1830,6 +1830,27 @@ class PGSMorphTest(testhelpers.VerboseTest):
 		("select contains(coverage, circle('', 10, 10, 1)) from data",
 			"SELECT CONTAINS(coverage, scircle(spoint(RADIANS(10), RADIANS(10)), RADIANS(1))) ASWHATEVER FROM data"),
 			]
+
+
+class PGSNoMorphTest(testhelpers.VerboseTest):
+	def testPolygonNoCentroid(self):
+		tree = adql.parseToTree(
+			"select centroid(polygon('ICRS', 12, 13, 14, 15, 15, 17)) from foo")
+		self.assertRaisesWithMsg(adql.MorphError,
+			"Can only compute centroids of circles and points yet."
+			"  Complain to make us implement other geometries faster.",
+			adql.morphPG,
+			(tree,))
+
+	def testReferencedBoxNoCentroid(self):
+		tree = parseWithArtificialTable(
+			"select centroid(b) from (select"
+				" box('', 1, 1, 2, 2) as b from spatial) as q")
+		self.assertRaisesWithMsg(adql.MorphError,
+			"Can only compute centroids of circles and points yet."
+			"  Complain to make us implement other geometries faster.",
+			adql.morphPG,
+			(tree,))
 
 
 class GlueTest(testhelpers.VerboseTest):

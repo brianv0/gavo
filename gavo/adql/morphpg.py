@@ -230,6 +230,24 @@ def _distanceToPG(node, state):
 
 
 def _centroidToPG(node, state):
+	# pgsphere right now can only to centroids of points and circles.  Try
+	# to come up with a good error message otherwise.
+
+	def _fail():
+		raise PostgresMorphError("Can only compute centroids of circles and points"
+			" yet.  Complain to make us implement other geometries faster.")
+
+	arg = node.args[0]
+	if hasattr(arg, "original"):
+		arg = arg.original
+	if arg.type=="polygon" or arg.type=="box":
+		_fail()
+
+	if getattr(arg, "fieldInfo", None):
+		fi = arg.fieldInfo
+		if fi.type=="spoly" or fi.type=="sbox":
+			_fail()
+
 	return "@@(%s)"%(flatten(node.args[0]))
 
 

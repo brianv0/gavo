@@ -426,9 +426,10 @@ def getADQLGrammarCopy():
 		geometryExpression = box | point | circle | polygon | region
 		geometryValue = columnReference.copy()
 		coordValue = point | columnReference
+		geometryValueExpression = Forward()
 		centroid = (CaselessKeyword("CENTROID")("fName") 
-			+ '(' + Args(geometryExpression) + ')')
-		geometryValueExpression = geometryExpression | geometryValue | centroid
+			+ '(' + Args(geometryValueExpression) + ')')
+		geometryValueExpression << (geometryExpression | geometryValue | centroid)
 
 # geometry functions
 		userDefinedFunction = Forward()
