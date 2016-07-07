@@ -25,8 +25,9 @@
 			Colums that are deprecated in the version 2.0 of EPN-TAP parameters 	
 		</doc>
 
-		<column name="index_" type="bigint" 
-			ucd="meta.id" description="Numeric identifier (like a record number) of this row.">
+		<column name="index_" type="bigint" required="True"
+			ucd="meta.id" description="Numeric identifier (like a record number) 
+				of this row.">
 			<property key="std">1</property>
 		</column>
 
@@ -77,7 +78,7 @@
 		</column>
 	</STREAM>
 	
-	<STREAM id="v2.0columns">
+	<STREAM id="v20columns">
 		<doc>
 			New columns introduced by the version 2.0 of EPN-TAP parameters
 		</doc>
@@ -178,16 +179,285 @@
 		</column>
 	</STREAM>
 
+	<STREAM id="commoncolumns">
+		<doc>Columns common to versions 0.37 and 2.0</doc>
+
+		<column name="dataproduct_type"	type="text" 
+			ucd="meta.code;class" utype="Epn.dataProductType"
+			description="The high-level organization of the data product
+				described (image, spectrum, etc)"
+			note="et_prod">
+			<property key="std">1</property>
+			<values>
+				<option>im</option>
+				<option>sp</option>
+				<option>ds</option>
+				<option>sc</option>
+				<option>pr</option>
+				<option>vo</option>
+				<option>mo</option>
+				<option>cu</option>
+				<option>ts</option>
+				<option>ca</option>
+				<option>sv</option>
+			</values>
+		</column>
+
+		<column name="target_name"	type="text" 
+			ucd="meta.id;src" utype="Epn.TargetName"
+			description="The name of the target of the observation, or a
+				suitable id.">
+			<property key="std">1</property>
+		</column>
+		
+		<column name="target_class"	type="text" 
+			ucd="meta.code.class;src"  utype="Epn.TargetClass"
+			description="Type of target (from a controlled vocabulary)">
+			<property key="std">1</property>
+			<values>
+				<option>asteroid</option>
+				<option>dwarf_planet</option>
+				<option>planet</option>
+				<option>satellite</option>
+				<option>comet</option>
+				<option>exoplanet</option>
+				<option>interplanetary_medium</option>
+				<option>ring</option>
+				<option>sample</option>
+				<option>sky</option>
+				<option>spacecraft</option>
+				<option>spacejunk</option>
+				<option>star</option>
+			</values>
+		</column>
+
+		<!-- time doesn't use not _minmax because ucds and utypes
+		are irregular -->
+		<column name="time_min" 
+			ucd="time.start" unit="d"
+			utype=" Char.TimeAxis.Coverage.Bounds.Limits.Interval.StartTime"
+			description="Acquisition start time (as JD)"/>
+		<column name="time_max" 
+			ucd="time.end" unit="d"
+			utype="Char.TimeAxis.Coverage.Bounds.Limits.Interval.StopTime"
+			description="Acquisition stop time (as JD)"/>
+
+		<FEED source="_minmax"
+			basename="t_sampling_step"
+			baseucd="time.interval" unit="s"
+			baseutype="Epn.Time.Time_sampling_step"
+			basedescr="Sampling time for measurements of dynamical
+				phenomena"/>
+		<FEED source="_minmax"
+			basename="t_exp"
+			baseucd="time.duration;obs.exposure" unit="s"
+			baseutype="Epn.Time.Time_exp"
+			basedescr="Integration time of the measurement"/>
+		<FEED source="_minmax"
+			basename="spectral_range"
+			baseucd="\spectralUCD" unit="Hz"
+			baseutype="Epn.Spectral.Spectral_range"
+			basedescr="Spectral domain of the data"/>
+		<FEED source="_minmax"
+			basename="spectral_resolution"
+			baseucd="spect.resolution" unit="Hz"
+			baseutype="Epn.Spectral.Spectral_resolution"
+			basedescr="FWHM of the instrument profile"/>
+		<FEED source="_minmax"
+			basename="c1"
+			baseucd="pos.stat" unit="\c1unit"
+			baseutype="Epn.Spatial.Spatial_range.c1"
+			basedescr="First coordinate (e.g., longitude, 'x')"/>
+		<FEED source="_minmax"
+			basename="c2"
+			baseucd="pos.stat" unit="\c2unit"
+			baseutype="Epn.Spatial.Spatial_range.c2"
+			basedescr="Second coordinate (e.g., latitude, 'y')"/>
+		<FEED source="_minmax"
+			basename="c3"
+			baseucd="pos.stat" unit="\c3unit"
+			baseutype="Epn.Spatial.Spatial_range.c3"
+			basedescr="Third coordinate (e.g., height, 'z')"/>
+		<FEED source="_minmax"
+			basename="c1_resol"
+			baseucd="pos.resolution" unit="\c1unit"
+			baseutype="Epn.Spatial.Spatial_resolution.c1_resol"
+			basedescr="Resolution in the first coordinate"/>
+		<FEED source="_minmax"
+			basename="c2_resol"
+			baseucd="pos.resolution" unit="\c2unit"
+			baseutype="Epn.Spatial.Spatial_resolution.c2_resol"
+			basedescr="Resolution in the second coordinate"/>
+		<FEED source="_minmax"
+			basename="c3_resol"
+			baseucd="pos.resolution" unit="\c3unit"
+			baseutype="Epn.Spatial.Spatial_resolution.c3_resol"
+			basedescr="Resolution in the third coordinate"/>
+
+		<column name="spatial_frame_type"	type="text" 
+			ucd="meta.code.class;pos.frame"
+			description="Flavor of coordinate system, also defining the nature of coordinates"/>
+
+		<FEED source="_minmax"
+			basename="incidence"
+			baseucd="pos.incidenceAng" unit="deg"
+			baseutype="Epn.View_angle.Incidence_angle"
+			basedescr="Incidence angle (solar zenithal angle) during data acquisition"/>
+		<FEED source="_minmax"
+			basename="emergence"
+			baseucd="pos.emergenceAng" unit="deg"
+			baseutype="Epn.View_angle.Emergence_angle"
+			basedescr="Emergence angle during data acquisition"/>
+		<FEED source="_minmax"
+			basename="phase"
+			baseucd="pos.phaseAng" unit="deg"
+			baseutype="Epn.View_angle.Phase_angle"
+			basedescr="Phase angle during data acquisition"/>
+
+		<column name="instrument_host_name"	type="text" 
+			ucd="meta.id;instr.obsty"
+			utype="Provenance.ObsConfig.Facility.name"
+			description="Name of the observatory or spacecraft that performed the measurements.">
+			<property key="std">1</property>
+		</column>
+
+		<column name="instrument_name"	type="text" 
+			ucd="meta.id;instr" 
+			utype="Provenance.ObsConfig.Instrument.name"
+			description="Instrument used to acquire the data.">
+			<property key="std">1</property>
+		</column>
+
+		<column name="measurement_type"	type="text" 
+			ucd="meta.ucd" 
+			utype="Epn.Measurement_type"
+			description="UCD(s) defining the data, with multiple entries separated by space characters.">
+			<property key="std">1</property>
+		</column>
+
+		<column name="publisher"	type="text" 
+			ucd="meta.name" 
+			description="A short string identifying the entity running the data service used.">
+			<property key="std">1</property>
+		</column>
+
+		<column name="service_title"	type="text" 
+			ucd="meta.title" 
+			description="The title of the data service producing this row.">
+			<property key="std">1</property>
+		</column>
+
+		<column name="access_url"	type="text" 
+			ucd="meta.ref.url;meta.file" utype="Obs.Access.Reference"
+			description="URL to retrieve the data product described."
+			displayHint="type=url">
+			<property key="std">1</property>
+		</column>
+
+		<column name="access_format"	type="text"
+			ucd="meta.code.mime" utype="Obs.Access.Format"
+			description="Format of the file containing the data.">
+			<property key="std">1</property>
+		</column>
+
+		<column name="access_estsize"	type="integer"
+			ucd="phys.size;meta.file" unit="kByte"
+			utype="Obs.Access.Size"
+			description="Estimated size of the data product.">
+			<property key="std">1</property>
+			<values nullLiteral="-1"/>
+		</column>
+
+		<column name="target_region"	type="text" 
+			ucd="meta.id;class" 
+			description="The part of the target object that was being observed">
+			<property key="std">1</property>
+		</column>
+
+		<param name="processing_level" type="integer"
+			utype="PSR:processingLevel"
+			ucd="meta.code;obs.calib"
+			description="Calibration level with coded according to CODMAC."
+			note="et_cal">
+			<property key="std">1</property>\\processing_level</param>
+
+		<column name="time_scale"	type="text" 
+			ucd="time.scale" 
+			description="Time scale as defined by the IVOA STC Data model."/>
+
+		<meta name="note" tag="et_prod">
+			The following values are defined for this field:
+
+			image
+				associated scalar fields with two spatial axes, e.g., images with
+				multiple color planes like from multichannel cameras for example.
+				Maps of planetary surfaces are considered as images.
+			spectrum
+				data product which spectral coverage is the primary attribute, e.g.,
+				a set of spectra.
+			dynamic_spectrum
+				consecutive spectral measurements through time, organized as a time
+				series.
+			spectral_cube
+				sets of spectral measurements with 1 or 2 D spatial coverage, e.g.,
+				imaging spectroscopy. The choice between Image and spectral_cube is
+				related to the characteristics of the instrument .
+			profile
+				scalar or vectorial measurements along 1 spatial dimension, e.g.,
+				atmospheric profiles, atmospheric paths, sub-surface profiles…
+			volume
+				other measurements with 3 spatial dimensions, e.g., internal or
+				atmospheric structures.
+			movie
+				sets of chronological 2 D spatial measurements
+			cube
+				multidimensional data with 3 or more axes, e.g., all that is not
+				described by other 3 D data types such as spectral cubes or volume.
+			time_series
+				measurements organized primarily as a function of time (with
+				exception of dynamical spectra) . A Spacecraft dust detect or
+				measurement is a typical example of a time series.
+			catalog 
+				can be a list of events, a catalog of object parameters, a list of f
+				eatures... It can be limited to scalar quantities, and possibly
+				limited to a single element. E.g., a list of asteroid properties.
+				Time_series, Profile, and Catalog are essentially tables of scalar
+				values. In Time_series the primary key is time; in Profile it is
+				altitude or distance; in Catalog, it may be a qualitative parameter
+				(name, ID...) .
+			spatial_vector
+				list of summit coordinates defining a vector, e.g., vector
+				information from a GIS, spatial footprints...
+		</meta>
+
+		<meta name="note" tag="et_cal">
+			CODMAC levels are:
+
+			1 -- Raw (UDR in PDS)
+
+			2 -- Edited (EDR in PDS, NASA level 0)
+
+			3 -- Calibrated (RDR in PDS, NASA Level 1A)
+
+			4 -- Resampled (REFDR in PDS, NASA Level 1B)
+
+			5 -- Derived (DDR in PDS, NASA Level 3)
+
+			6 -- Ancillary (ANCDR in PDS)
+		</meta>
+	</STREAM>
+
 	<mixinDef id="table">
 		<doc><![CDATA[
 			This mixin defines a table suitable for publication via the
-			EPN-TAP protocol.
+			EPN-TAP protocol, version 0.37.  For new services, use something
+			newer (as of this writing, //epntap#table-2.0).
 
 			According to the standard definition, tables mixing this in
 			should be called ``epn_core``.  The mixin already arranges
 			for the table to be accessible by ADQL and be on disk.
 
-			This also mixes causes the product table to be populated.
+			This also causes the product table to be populated.
 			This means that grammars feeding such tables need a 
 			`//products#define`_ row filter.  At the very least, you need to say::
 
@@ -222,269 +492,59 @@
 			<meta name="info" infoName="SERVICE_PROTOCOL" 
 				infoValue="0.37">EPN-TAP</meta>
 
-			<column name="dataproduct_type"	type="text" 
-				ucd="meta.code;class" utype="Epn.dataProductType"
-				description="The high-level organization of the data product
-					described (image, spectrum, etc)"
-				note="et_prod">
-				<property key="std">1</property>
-				<values>
-					<option>im</option>
-					<option>sp</option>
-					<option>ds</option>
-					<option>sc</option>
-					<option>pr</option>
-					<option>vo</option>
-					<option>mo</option>
-					<option>cu</option>
-					<option>ts</option>
-					<option>ca</option>
-					<option>sv</option>
-				</values>
-			</column>
+			<FEED source="commoncolumns"/>
+			<FEED source="v037columns"/>
+		</events>
 
-			<column name="target_name"	type="text" 
-				ucd="meta.id;src" utype="Epn.TargetName"
-				description="The name of the target of the observation, or a
-					suitable id.">
-				<property key="std">1</property>
-			</column>
-			
-			<column name="target_class"	type="text" 
-				ucd="meta.code.class;src"  utype="Epn.TargetClass"
-				description="Type of target (from a controlled vocabulary)">
-				<property key="std">1</property>
-				<values>
-					<option>asteroid</option>
-					<option>dwarf_planet</option>
-					<option>planet</option>
-					<option>satellite</option>
-					<option>comet</option>
-					<option>exoplanet</option>
-					<option>interplanetary_medium</option>
-					<option>ring</option>
-					<option>sample</option>
-					<option>sky</option>
-					<option>spacecraft</option>
-					<option>spacejunk</option>
-					<option>star</option>
-				</values>
-			</column>
+		<FEED source="//products#hackProductsData"/>
+	</mixinDef>
 
-			<!-- time doesn't use not _minmax because ucds and utypes
-			are irregular -->
-			<column name="time_min" 
-				ucd="time.start" unit="d"
-				utype=" Char.TimeAxis.Coverage.Bounds.Limits.Interval.StartTime"
-				description="Acquisition start time (as JD)"/>
-			<column name="time_max" 
-				ucd="time.end" unit="d"
-				utype="Char.TimeAxis.Coverage.Bounds.Limits.Interval.StopTime"
-				description="Acquisition stop time (as JD)"/>
+	<mixinDef id="table-2.0">
+		<doc><![CDATA[
+			This mixin defines a table suitable for publication via the
+			EPN-TAP protocol, version 2.0.
 
-			<FEED source="_minmax"
-				basename="t_sampling_step"
-				baseucd="time.interval" unit="s"
-				baseutype="Epn.Time.Time_sampling_step"
-				basedescr="Sampling time for measurements of dynamical
-					phenomena"/>
-			<FEED source="_minmax"
-				basename="t_exp"
-				baseucd="time.duration;obs.exposure" unit="s"
-				baseutype="Epn.Time.Time_exp"
-				basedescr="Integration time of the measurement"/>
-			<FEED source="_minmax"
-				basename="spectral_range"
-				baseucd="\spectralUCD" unit="Hz"
-				baseutype="Epn.Spectral.Spectral_range"
-				basedescr="Spectral domain of the data"/>
-			<FEED source="_minmax"
-				basename="spectral_resolution"
-				baseucd="spect.resolution" unit="Hz"
-				baseutype="Epn.Spectral.Spectral_resolution"
-				basedescr="FWHM of the instrument profile"/>
-			<FEED source="_minmax"
-				basename="c1"
-				baseucd="pos.stat" unit="\c1unit"
-				baseutype="Epn.Spatial.Spatial_range.c1"
-				basedescr="First coordinate (e.g., longitude, 'x')"/>
-			<FEED source="_minmax"
-				basename="c2"
-				baseucd="pos.stat" unit="\c2unit"
-				baseutype="Epn.Spatial.Spatial_range.c2"
-				basedescr="Second coordinate (e.g., latitude, 'y')"/>
-			<FEED source="_minmax"
-				basename="c3"
-				baseucd="pos.stat" unit="\c3unit"
-				baseutype="Epn.Spatial.Spatial_range.c3"
-				basedescr="Third coordinate (e.g., height, 'z')"/>
-			<FEED source="_minmax"
-				basename="c1_resol"
-				baseucd="pos.resolution" unit="\c1unit"
-				baseutype="Epn.Spatial.Spatial_resolution.c1_resol"
-				basedescr="Resolution in the first coordinate"/>
-			<FEED source="_minmax"
-				basename="c2_resol"
-				baseucd="pos.resolution" unit="\c2unit"
-				baseutype="Epn.Spatial.Spatial_resolution.c2_resol"
-				basedescr="Resolution in the second coordinate"/>
-			<FEED source="_minmax"
-				basename="c3_resol"
-				baseucd="pos.resolution" unit="\c3unit"
-				baseutype="Epn.Spatial.Spatial_resolution.c3_resol"
-				basedescr="Resolution in the third coordinate"/>
+			According to the standard definition, tables mixing this in
+			should be called ``epn_core``.  The mixin already arranges
+			for the table to be accessible by ADQL and be on disk.
 
-			<column name="spatial_frame_type"	type="text" 
-				ucd="meta.code.class;pos.frame"
-				description="Flavor of coordinate system, also defining the nature of coordinates"/>
+			This also causes the product table to be populated.
+			This means that grammars feeding such tables need a 
+			`//products#define`_ row filter.  At the very least, you need to say::
 
-			<FEED source="_minmax"
-				basename="incidence"
-				baseucd="pos.incidenceAng" unit="deg"
-				baseutype="Epn.View_angle.Incidence_angle"
-				basedescr="Incidence angle (solar zenithal angle) during data acquisition"/>
-			<FEED source="_minmax"
-				basename="emergence"
-				baseucd="pos.emergenceAng" unit="deg"
-				baseutype="Epn.View_angle.Emergence_angle"
-				basedescr="Emergence angle during data acquisition"/>
-			<FEED source="_minmax"
-				basename="phase"
-				baseucd="pos.phaseAng" unit="deg"
-				baseutype="Epn.View_angle.Phase_angle"
-				basedescr="Phase angle during data acquisition"/>
+				<rowfilter procDef="//products#define">
+					<bind name="table">"\schema.epn_core"</bind>
+				</rowfilter>
 
-			<column name="instrument_host_name"	type="text" 
-				ucd="meta.id;instr.obsty"
-				utype="Provenance.ObsConfig.Facility.name"
-				description="Name of the observatory or spacecraft that performed the measurements.">
-				<property key="std">1</property>
-			</column>
+			Use the `//epntap#populate`_ apply in rowmakers
+			feeding tables mixing this in.
+		]]></doc>
 
-			<column name="instrument_name"	type="text" 
-				ucd="meta.id;instr" 
-				utype="Provenance.ObsConfig.Instrument.name"
-				description="Instrument used to acquire the data.">
-				<property key="std">1</property>
-			</column>
+		<mixinPar key="c1unit" description="Unit of the first spatial
+			coordinate">deg</mixinPar>
+		<mixinPar key="c2unit" description="Unit of the second spatial
+			coordinate">deg</mixinPar>
+		<mixinPar key="c3unit" description="Unit of the third spatial
+			coordinate">__EMPTY__</mixinPar>
+		<mixinPar key="spectralUCD" description="UCD of the spectral
+			axis; this must be one of em.freq (for electromagnetic
+			radiation) or phys.energy;phys.part (for particles)"
+			>em.freq</mixinPar>
+		<mixinPar key="processing_level" description="How processed is the
+			data?  This is a numerical code explained in the corresponding
+			table footnote.  In short: 1 -- Raw; 2 -- Edited; 3 -- Calibrated;
+			4 -- Resampled; 5 -- Derived; 6 -- Ancillary"/>
 
-			<column name="measurement_type"	type="text" 
-				ucd="meta.ucd" 
-				utype="Epn.Measurement_type"
-				description="UCD(s) defining the data, with multiple entries separated by space characters.">
-				<property key="std">1</property>
-			</column>
+		<events>
+			<adql>True</adql>
+			<onDisk>True</onDisk>
+			<meta name="utype">ivo://ivoa.net/std/epntap#table-1.0</meta>
 
-			<column name="publisher"	type="text" 
-				ucd="meta.name" 
-				description="A short string identifying the entity running the data service used.">
-				<property key="std">1</property>
-			</column>
+			<meta name="info" infoName="SERVICE_PROTOCOL" 
+				infoValue="2.0">EPN-TAP</meta>
 
-			<column name="service_title"	type="text" 
-				ucd="meta.title" 
-				description="The title of the data service producing this row.">
-				<property key="std">1</property>
-			</column>
-
-			<column name="access_url"	type="text" 
-				ucd="meta.ref.url;meta.file" utype="Obs.Access.Reference"
-				description="URL to retrieve the data product described."
-				displayHint="type=url">
-				<property key="std">1</property>
-			</column>
-
-			<column name="access_format"	type="text"
-				ucd="meta.code.mime" utype="Obs.Access.Format"
-				description="Format of the file containing the data.">
-				<property key="std">1</property>
-			</column>
-
-			<column name="access_estsize"	type="integer"
-				ucd="phys.size;meta.file" unit="kByte"
-				utype="Obs.Access.Size"
-				description="Estimated size of the data product.">
-				<property key="std">1</property>
-				<values nullLiteral="-1"/>
-			</column>
-
-			<column name="target_region"	type="text" 
-				ucd="meta.id;class" 
-				description="The part of the target object that was being observed">
-				<property key="std">1</property>
-			</column>
-
-			<param name="processing_level" type="integer"
-				utype="PSR:processingLevel"
-				ucd="meta.code;obs.calib"
-				description="Calibration level with coded according to CODMAC."
-				note="et_cal">
-				<property key="std">1</property>\processing_level</param>
-
-			<column name="time_scale"	type="text" 
-				ucd="time.scale" 
-				description="Time scale as defined by the IVOA STC Data model."/>
-
-			<meta name="note" tag="et_prod">
-				The following values are defined for this field:
-
-				image
-					associated scalar fields with two spatial axes, e.g., images with
-					multiple color planes like from multichannel cameras for example.
-					Maps of planetary surfaces are considered as images.
-				spectrum
-					data product which spectral coverage is the primary attribute, e.g.,
-					a set of spectra.
-				dynamic_spectrum
-					consecutive spectral measurements through time, organized as a time
-					series.
-				spectral_cube
-					sets of spectral measurements with 1 or 2 D spatial coverage, e.g.,
-					imaging spectroscopy. The choice between Image and spectral_cube is
-					related to the characteristics of the instrument .
-				profile
-					scalar or vectorial measurements along 1 spatial dimension, e.g.,
-					atmospheric profiles, atmospheric paths, sub-surface profiles…
-				volume
-					other measurements with 3 spatial dimensions, e.g., internal or
-					atmospheric structures.
-				movie
-					sets of chronological 2 D spatial measurements
-				cube
-					multidimensional data with 3 or more axes, e.g., all that is not
-					described by other 3 D data types such as spectral cubes or volume.
-				time_series
-					measurements organized primarily as a function of time (with
-					exception of dynamical spectra) . A Spacecraft dust detect or
-					measurement is a typical example of a time series.
-				catalog 
-					can be a list of events, a catalog of object parameters, a list of f
-					eatures... It can be limited to scalar quantities, and possibly
-					limited to a single element. E.g., a list of asteroid properties.
-					Time_series, Profile, and Catalog are essentially tables of scalar
-					values. In Time_series the primary key is time; in Profile it is
-					altitude or distance; in Catalog, it may be a qualitative parameter
-					(name, ID...) .
-				spatial_vector
-					list of summit coordinates defining a vector, e.g., vector
-					information from a GIS, spatial footprints...
-			</meta>
-
-			<meta name="note" tag="et_cal">
-				CODMAC levels are:
-
-				1 -- Raw (UDR in PDS)
-
-				2 -- Edited (EDR in PDS, NASA level 0)
-
-				3 -- Calibrated (RDR in PDS, NASA Level 1A)
-
-				4 -- Resampled (REFDR in PDS, NASA Level 1B)
-
-				5 -- Derived (DDR in PDS, NASA Level 3)
-
-				6 -- Ancillary (ANCDR in PDS)
-			</meta>
+			<FEED source="commoncolumns"/>
+			<FEED source="v20columns"/>
 		</events>
 
 		<FEED source="//products#hackProductsData"/>
