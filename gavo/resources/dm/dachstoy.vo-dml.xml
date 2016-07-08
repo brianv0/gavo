@@ -1,0 +1,50 @@
+<vo-dml:model xmlns:vo-dml="http://www.ivoa.net/xml/VODML/v1.0">
+  <name>dachstoy</name>
+  <description>A toy model for DaCHS regression testing</description>
+  <title>DaCHS Toy model</title>
+  <author>msdemlei@ari.uni-heidelberg.de</author>
+  <version>1.0</version>
+  <lastModified>2016-07-08T08:28:00</lastModified>
+
+  <objectType>
+  	<vodml-id>Ruler</vodml-id>
+  	<name>Ruler</name>
+  	<description>Something to measure lenghts with</description>
+
+  	<attribute>
+  		<vodml-id>Ruler.width</vodml-id>
+  		<name>width</name>
+  		<description>A dimension</description>
+  		<datatype>
+  			<vodml-ref>ivoa:real</vodml-ref>
+  		</datatype>
+		</attribute>
+
+  	<attribute>
+  		<vodml-id>Ruler.birthday</vodml-id>
+  		<name>birthday</name>
+  		<description>Everyone rejoice!</description>
+  		<datatype>
+  			<vodml-ref>ivoa:datetime</vodml-ref>
+  		</datatype>
+		</attribute>
+
+	 	<attribute>
+  		<vodml-id>Ruler.maker</vodml-id>
+  		<name>maker</name>
+  		<description>Who to go see (the whole lot of them)</description>
+  		<datatype>
+  			<vodml-ref>ivoa:string</vodml-ref>
+  		</datatype>
+  		<multiplicity><minOccurs>0</minOccurs>
+  			<maxOccurs>-1</maxOccurs></multiplicity>
+		</attribute>
+	
+		<reference>
+			<vodml-id>Ruler.successor</vodml-id>
+			<name>successor</name>
+			<description>Long live the king</description>
+			<datatype>dachstoy:Ruler</datatype>
+		</reference>
+  </objectType>
+</model>

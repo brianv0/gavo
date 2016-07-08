@@ -17,6 +17,8 @@ from gavo.utils import ElementTree
 KNOWN_MODELS = {
 # maps the canonical prefix to the file name within resources/dm
 	"NDcube": "CubeDM-1.0.vo-dml.xml",
+	"ivoa": "IVOA.vo-dml.xml",
+	"dachstoy": "dachstoy.vo-dml.xml",
 }
 
 
