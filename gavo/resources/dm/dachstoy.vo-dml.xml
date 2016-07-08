@@ -18,6 +18,8 @@
   		<datatype>
   			<vodml-ref>ivoa:real</vodml-ref>
   		</datatype>
+  		<multiplicity><minOccurs>1</minOccurs>
+  			<maxOccurs>1</maxOccurs></multiplicity>
 		</attribute>
 
   	<attribute>
@@ -27,6 +29,8 @@
   		<datatype>
   			<vodml-ref>ivoa:datetime</vodml-ref>
   		</datatype>
+  		<multiplicity><minOccurs>0</minOccurs>
+  			<maxOccurs>1</maxOccurs></multiplicity>
 		</attribute>
 
 	 	<attribute>
@@ -44,7 +48,9 @@
 			<vodml-id>Ruler.successor</vodml-id>
 			<name>successor</name>
 			<description>Long live the king</description>
-			<datatype>dachstoy:Ruler</datatype>
+			<datatype><vodml-ref>dachstoy:Ruler</vodml-ref></datatype>
+  		<multiplicity><minOccurs>0</minOccurs>
+  			<maxOccurs>1</maxOccurs></multiplicity>
 		</reference>
   </objectType>
-</model>
+</vo-dml:model>
