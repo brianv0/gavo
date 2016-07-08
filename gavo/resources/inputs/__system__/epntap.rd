@@ -451,7 +451,7 @@
 		<doc><![CDATA[
 			This mixin defines a table suitable for publication via the
 			EPN-TAP protocol, version 0.37.  For new services, use something
-			newer (as of this writing, //epntap#table-2.0).
+			newer (as of this writing, //epntap#table-2_0).
 
 			According to the standard definition, tables mixing this in
 			should be called ``epn_core``.  The mixin already arranges
@@ -499,7 +499,7 @@
 		<FEED source="//products#hackProductsData"/>
 	</mixinDef>
 
-	<mixinDef id="table-2.0">
+	<mixinDef id="table-2_0">
 		<doc><![CDATA[
 			This mixin defines a table suitable for publication via the
 			EPN-TAP protocol, version 2.0.
@@ -680,6 +680,6 @@
 
 	<FEED source="procDefTemplate" procname="populate" version="0.37"
 		mixinid="table"/>
-	<FEED source="procDefTemplate" procname="populate-2.0" version="2.0"
-		mixinid="table-2.0"/>
+	<FEED source="procDefTemplate" procname="populate-2_0" version="2.0"
+		mixinid="table-2_0"/>
 </resource>
