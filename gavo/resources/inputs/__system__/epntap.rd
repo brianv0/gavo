@@ -31,8 +31,6 @@
 			<property key="std">1</property>
 		</column>
 
-		<column name="accref" original="//products#products.accref"/>
-
 		<column name="resource_type" type="text" 
 			utype="Epn.ResourceType" ucd="meta.id;class" 
 			description="'granule' if the row describes a smallest 
@@ -181,6 +179,11 @@
 
 	<STREAM id="commoncolumns">
 		<doc>Columns common to versions 0.37 and 2.0</doc>
+
+		<!-- this is for DaCHS-internal bookkeeping; this means we
+		have two links to the data, but for now that's a small price to 
+		pay -->
+		<column name="accref" original="//products#products.accref"/>
 
 		<column name="dataproduct_type"	type="text" 
 			ucd="meta.code;class" utype="Epn.dataProductType"
@@ -653,10 +656,10 @@
 				<code>
 					# find myself to get the list of my parameters
 					for app in parent.apps:
-						if app.procDef and app.procDef.id=='populate':
+						if app.procDef and app.procDef.id=='\procname':
 							break
 					else:
-						raise base.Error("Internal: epntap#populate cannot find itself")
+						raise base.Error("Internal: epntap#\procname cannot find itself")
 
 					EPNTAP_KEYS = [p.key for p in app.procDef.setups[0].pars]
 					del app
