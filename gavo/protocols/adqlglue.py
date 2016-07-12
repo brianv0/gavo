@@ -145,6 +145,7 @@ def _getTableDescForOutput(parsedTree):
 			if params:
 				resTable = resTable.change(params=params)
 			resTable.copyMetaFrom(srcTable)
+			resTable.id = srcTable.id
 		except base.NotFoundError:
 			# Single source is not one of our tables, hence no metadata
 			pass
