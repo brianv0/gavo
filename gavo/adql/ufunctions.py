@@ -220,6 +220,67 @@ def _ivo_apply_pm(args):
 		" RADIANS({dec}+{pmdec}*{epdist}))").format(**locals())
 
 
+# the healpix functions for now use a temporary extension of pgsphere;
+# this is available from ARI's Debian repository.  No good plan
+# on where healpix support will finally be going is made yet.
+#
+# You'll most likely have to define the underlying functions yourself.
+# Here's how:
+#
+#CREATE FUNCTION healpix_nest(integer, spoint)
+#RETURNS bigint
+#AS '/usr/lib/postgresql/9.4/lib/pg_sphere.so'
+#LANGUAGE C IMMUTABLE STRICT;
+#COMMENT ON FUNCTION healpix_nest(integer, spoint) IS
+#'nested healpix index of a spherical point for the specified integer level
+#(first argument)';
+#
+#CREATE FUNCTION center_of_healpix_nest(integer, bigint)
+#RETURNS spoint
+#AS '/usr/lib/postgresql/9.4/lib/pg_sphere.so', 'inv_healpix_nest'
+#LANGUAGE C IMMUTABLE STRICT;
+#COMMENT ON FUNCTION healpix_nest(integer, spoint) IS
+#'spherical point designating the centre of a nested healpix element for the
+#specified integer level (first argument)';
+
+@userFunction("ivo_healpix_index",
+	"(ra DOUBLE PRECISION, dec DOUBLE PRECISION, order INTEGER) -> BIGINT",
+	"""Returns the index of the (nest) healpix with order containing the 
+	spherical point (ra, dec).
+
+	An alternative, 2-argument form 
+	
+	ivo_healpix_index(p POINT, order INTEGER) -> BIGINT
+
+	is also available.
+	""",
+	returntype="bigint")
+def _ivo_healpix_index(args):
+	if len(args)==2:
+		return "healpix_nest(%s, %s)"%(
+			nodes.flatten(args[1]), nodes.flatten(args[0]))
+	elif len(args)==3:
+		return "healpix_nest(%s, spoint(RADIANS(%s), RADIANS(%s)))"%(
+			nodes.flatten(args[2]), nodes.flatten(args[0]), nodes.flatten(args[1]))
+	else:
+		raise common.UfuncError("ivo_healpix_index takes either (ra, dec, order)"
+			" or (point, order) arguments")
+
+
+@userFunction("ivo_healpix_center",
+	"(hpxIndex BIGINT, hpxOrder INTEGER) -> POINT",
+	"""returns a POINT corresponding to the center of the healpix with
+	the given index at the given order.
+	""",
+	returntype="spoint")
+def _ivo_healpix_center(args):
+	if len(args)!=2:
+		raise common.UfuncError("ivo_healpix_center only takes (index, order)"
+			" arguments")
+	return "center_of_healpix_nest(%s, %s)"%(
+		nodes.flatten(args[1]), nodes.flatten(args[0]))
+
+
 class UserFunction(nodes.FunctionNode):
 	"""A node processing user defined functions.
 

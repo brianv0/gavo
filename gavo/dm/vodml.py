@@ -42,29 +42,59 @@ def openModelFile(prefix):
 class Model(object):
 	"""a vo-dml model.
 
-	These are constructed with ElementTrees of the VO-DML defining the model.
+	These are usually constructed using the fromPrefix constructor,
+	which uses a built-in mapping from well-known prefix to VO-DML file
+	to populate the model.
 	"""
-	def __init__(self, dmlTree):
+	def __init__(self, prefix, dmlTree):
+		self.prefix = prefix
+		self.title = self.version = None
 		self.dmlTree = dmlTree
-		try:
+		if self.dmlTree:
 			self._getModelMeta()
-		except:
-			raise base.ui.logOldExc(base.ReportableError("Bad data model XML",
-				hint="Your log should say a bit more of why DaCHS did not"
-				" like the VO-DML specification it was just asked to read."))
-	
-	def _getModelMeta(self):
-		self.prefix = self.dmlTree.find("name").text
-		self.title = self.dmlTree.find("title").text
-		self.version = self.dmlTree.find("version").text
 
+	@classmethod
+	def fromPrefix(cls, prefix):
+		"""returns a VO-DML model for a well-known prefix.
+
+		User code should typically use the getModelFromPrefix function.
+		"""
+		inF = openModelFile(prefix)
+		try:
+			return cls(prefix, ElementTree.parse(inF))
+		finally:
+			inF.close()
+
+	@classmethod
+	def fromFile(cls, srcName):
+		"""returns a VO-DML model from a file name.
+
+		This is intended for documents using non-standard models with custom
+		prefixes (i.e., not known to DaCHS).
+		"""
+		inF = openModelFile(srcName)
+		try:
+			tree = ElementTree.parse(inF)
+			prefix = tree.find("name").text
+			return cls(prefix, tree)
+		finally:
+			inF.close()
+
+	def _getModelMeta(self):
+		try:
+			self.title = self.dmlTree.find("title").text
+			self.version = self.dmlTree.find("version").text
+		except AttributeError:
+			# probably the VO-DML file is bad; just falll through to
+			# non-validatable model.
+			pass
+	
 
 @utils.memoized
 def getModelForPrefix(prefix):
-	"""returns an elementtree for the VODML prefix.
+	"""returns a vodml.Model instance for as well-known VODML prefix.
+
+	This caches models for prefixes and thus should usually be used
+	from user code.
 	"""
-	inF = openModelFile(prefix)
-	try:
-		return Model(ElementTree.parse(inF))
-	finally:
-		inF.close()
+	return Model.fromPrefix(prefix)

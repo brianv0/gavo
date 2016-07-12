@@ -116,7 +116,6 @@ XS = QNamer("http://www.w3.org/2001/XMLSchema")
 
 
 VO_SCHEMATA = [
-		"simpledc20021212.xsd",
 		"Characterisation-v1.11.xsd",
 		"ConeSearch-v1.0.xsd",
 		"DocRegExt-v1.0.xsd",
@@ -140,6 +139,7 @@ VO_SCHEMATA = [
 		"VOSITables-v1.0.xsd",
 		"VOTable-1.1.xsd",
 		"VOTable-1.2.xsd",
+		"vo-dml-v1.0.xsd",
 		"xlink.xsd",
 		"XMLSchema.xsd",
 		"xml.xsd",]
