@@ -19,28 +19,47 @@ class DataModelRoles(base.Structure):
 
 	The content of this element is a Simple Instance Language term.
 	"""
+
+# We defer the parsing of the contained element to (hopefully) the
+# end of the parsing of the RD to enable forward references with
+# too many headaches (stubs don't cut it: we need to know types).
+# 
+# There's an additional complication in that we may want to 
+# access parsed annotations while parsing other annotations
+# (e.g., when processing foreign keys).
+# To allow the thing to "parse itself" in such situations, we do
+# all the crazy magic with the _buildAnnotation function.
 	name_ = "dm"
 
 	_sil = base.DataContent(description="SIL (simple instance language)"
 		" annotation.", copyable=True)
 
 	def completeElement(self, ctx):
-		if not hasattr(self.parent, "annotations"):
-			self.parent.annotations = []
+		def _buildAnnotation():
+			self._parsedAnnotation = sil.getAnnotation(
+				self.content_, getAnnotationMaker(self.parent))
+			self.parent.annotations.append(self._parsedAnnotation)
+			self._buildAnnotation = lambda: None
+		self._buildAnnotation = _buildAnnotation
+
+		ctx.addExitFunc(lambda rd, ctx: self._buildAnnotation())
 		self._completeElementNext(DataModelRoles, ctx)
+
+	def parse(self):
+		"""returns a parsed version of the embedded annotation.
+
+		Do not call this while the RD is still being built, as dm
+		elements may contain forward references, and these might
+		not yet be available during the parse.
+		"""
+		self._buildAnnotation()
+		return self._parsedAnnotation
 
 	def getCopy(self, instance, newParent):
 		# we'll have to re-parse since we want to reference the new columns
-		if not hasattr(newParent, "annotations"):
-			self.parent.annotations = []
 		self.parent.annotations.append(
 			sil.getAnnotation(self.content_, 
 				functools.partial(makeAttributeAnnotation, newParent)))
-
-	def onParentComplete(self):
-		self.parent.annotations.append(
-			sil.getAnnotation(self.content_,
-				getAnnotationMaker(self.parent)))
 
 
 def makeAttributeAnnotation(container, attName, attValue):

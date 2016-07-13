@@ -15,7 +15,6 @@ of these.
 import weakref
 
 from gavo.dm import common
-from gavo.dm import dmvot
 from gavo.votable import V
 
 
@@ -34,10 +33,9 @@ class ColumnAnnotation(common.AnnotationBase):
 
 	def getVOT(self, ctx):
 		return V.FIELDref(ref=ctx.getOrMakeIdFor(self.value))[
-			V.VODML[V.ROLE[self.name]]]
+			V.VODML[V.ROLE[common.completeVODMLId(ctx, self.name)]]]
 
 
-# NOT UPDATED
 def _the(gen):
 	"""returns the first thing the generator gen spits out and makes sure 
 	there's nothing more
@@ -51,7 +49,6 @@ def _the(gen):
 		" extra %s"%repr(extra))
 
 
-# NOT UPDATED
 class GroupRefAnnotation(common.AnnotationBase):
 	"""An annotation always referencing a group that's not lexically
 	within the parent.
@@ -60,7 +57,7 @@ class GroupRefAnnotation(common.AnnotationBase):
 		common.AnnotationBase.__init__(self, name)
 		self.objectReferenced = objectReferenced
 	
-	def getTree(self, ctx, parent):
+	def getVOT(self, ctx):
 		if id(self.objectReferenced) not in ctx.alreadyInTree:
 			ctx.getEnclosingContainer()[
 				_the(dmvot.getSubtrees(ctx, self.objectReferenced))(
@@ -69,17 +66,20 @@ class GroupRefAnnotation(common.AnnotationBase):
 
 		return V.GROUP(ref=ctx.getIdFor(self.objectReferenced))[
 			V.VODML[V.TYPE["vo-dml:GROUPref"]],
-			V.VODML[V.ROLE[self.qualifiedRole]]]
+			V.VODML[V.ROLE[common.completeVODMLId(ctx, self.name)]]]
 
 
-# NOT UPDATED
 class ForeignKeyAnnotation(common.AnnotationBase):
-	"""An annotation pointing to a column in a different table.
-	"""
-	def __init__(self, destColumn):
-		self.value = weakref.proxy(destColumn)
+	"""An annotation pointing to an annotation in a different table.
 
-	def getTree(self, ctx, parent):
+	These are constructed with the attribute name and the foreign key RD
+	object.
+	"""
+	def __init__(self, name, fk):
+		common.AnnotationBase.__init__(self, name)
+		self.value = weakref.proxy(fk)
+
+	def getVOT(self, ctx):
 		# the main trouble here is: What if there's multiple foreign keys
 		# into destTable?  To prevent multiple inclusions of a single
 		# table, we add a reference to our serialised VOTable stan in
@@ -87,9 +87,7 @@ class ForeignKeyAnnotation(common.AnnotationBase):
 		# if we produce two VOTables from the same table at the same time,
 		# but let's worry about that later.
 		
-		raise NotImplementedError("Foreign key code must now be different")
-		srcTD = self.srcTable.tableDef
-		destTable = self.srcTable.parent.tables[self.foreignKey.inTable.id]
+		destTable = self.myAnn.parent
 
 		pkDecl = V.GROUP[
 			V.VODML[V.ROLE["vo-dml:ObjectTypeInstance.ID"]],

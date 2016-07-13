@@ -3,8 +3,47 @@
   <description>A toy model for DaCHS regression testing</description>
   <title>DaCHS Toy model</title>
   <author>msdemlei@ari.uni-heidelberg.de</author>
-  <version>1.0</version>
+  <version>1.0a-pl23.44c</version>
   <lastModified>2016-07-08T08:28:00</lastModified>
+
+  <dataType>
+  	<vodml-id>Location</vodml-id>
+  	<name>Location</name>
+  	<description>Where something is.</description>
+
+  	<attribute>
+  		<vodml-id>Location.x</vodml-id>
+  		<name>x</name>
+  		<description>One piece of a location</description>
+  		<datatype>
+  			<vodml-ref>ivoa:real</vodml-ref>
+  		</datatype>
+  		<multiplicity><minOccurs>0</minOccurs>
+  			<maxOccurs>1</maxOccurs></multiplicity>
+  	</attribute>
+
+  	<attribute>
+  		<vodml-id>Location.y</vodml-id>
+  		<name>y</name>
+  		<description>Another piece of a location</description>
+  		<datatype>
+  			<vodml-ref>ivoa:real</vodml-ref>
+  		</datatype>
+  		<multiplicity><minOccurs>0</minOccurs>
+  			<maxOccurs>1</maxOccurs></multiplicity>
+  	</attribute>
+
+   	<attribute>
+  		<vodml-id>Location.z</vodml-id>
+  		<name>z</name>
+  		<description>And still another piece of a location</description>
+  		<datatype>
+  			<vodml-ref>ivoa:real</vodml-ref>
+  		</datatype>
+  		<multiplicity><minOccurs>0</minOccurs>
+  			<maxOccurs>1</maxOccurs></multiplicity>
+  	</attribute>
+	</dataType>
 
   <objectType>
   	<vodml-id>Ruler</vodml-id>
@@ -46,7 +85,7 @@
 
 		<attribute>
 			<vodml-id>Ruler.location</vodml-id>
-			<name>location</location>
+			<name>location</name>
 			<description>Where to find the ruler</description>
 			<datatype>
 				<vodml-ref>dachstoy:Location</vodml-ref>
@@ -65,42 +104,4 @@
 		</reference>
   </objectType>
 
-  <dataType>
-  	<vodml-id>Location</vodml-id>
-  	<name>Location</name>
-  	<description>Where something is.</description>
-
-  	<attribute>
-  		<vodml-id>Location.x</vodml-id>
-  		<name>x</name>
-  		<description>One piece of a location</description>
-  		<datatype>
-  			<vodml-ref>ivoa:real</vodml-ref>
-  		</datatype>
-  		<multiplicity><minOccurs>0</minOccurs>
-  			<maxOccurs>1</maxOccurs></multiplicity>
-  	</attribute>
-
-  	<attribute>
-  		<vodml-id>Location.y</vodml-id>
-  		<name>y</name>
-  		<description>Another piece of a location</description>
-  		<datatype>
-  			<vodml-ref>ivoa:real</vodml-ref>
-  		</datatype>
-  		<multiplicity><minOccurs>0</minOccurs>
-  			<maxOccurs>1</maxOccurs></multiplicity>
-  	</attribute>
-
-   	<attribute>
-  		<vodml-id>Location.z</vodml-id>
-  		<name>z</name>
-  		<description>And still another piece of a location</description>
-  		<datatype>
-  			<vodml-ref>ivoa:real</vodml-ref>
-  		</datatype>
-  		<multiplicity><minOccurs>0</minOccurs>
-  			<maxOccurs>1</maxOccurs></multiplicity>
-  	</attribute>
-	</dataType>
 </vo-dml:model>

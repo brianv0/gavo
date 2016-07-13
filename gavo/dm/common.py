@@ -11,6 +11,7 @@ of DaCHS tables is an ObjectAnnotation, the other Annotation classes
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
 
+import contextlib
 import re
 
 from gavo import votable
@@ -18,6 +19,33 @@ from gavo.votable import V
 
 
 VODML_NAME = "vo-dml"
+
+
+@contextlib.contextmanager
+def containerTypeSet(ctx, typeName):
+	"""a context manager to control the type currently serialised in a VOTable.
+	
+	ctx is a VOTable serialisation context (that we liberally hack into).
+	"""
+	if not hasattr(ctx, "_dml_typestack"):
+		ctx._dml_typestack = []
+	ctx._dml_typestack.append(typeName)
+	try:
+		yield
+	finally:
+		ctx._dml_typestack.pop()
+
+
+def completeVODMLId(ctx, roleName):
+	"""completes roleName to a full (standard) vo-dml id.
+
+	This is based on what the containerTypeSet context manager leaves
+	in the VOTable serialisation context ctx.
+	"""
+	if ":" in roleName:
+		# we allow the use of fully qualified role names and don't touch them
+		return roleName
+	return "%s.%s"%(ctx._dml_typestack[-1], roleName)
 
 
 def parseTypeName(typename):
@@ -94,7 +122,7 @@ class AtomicAnnotation(AnnotationBase):
 
 		param = V.PARAM(name=self.name,
 			id=ctx.getOrMakeIdFor(self.value), **attrs)[
-				V.VODML[V.ROLE[self.name]]]
+				V.VODML[V.ROLE[completeVODMLId(ctx, self.name)]]]
 		votable.serializeToParam(param, self.value)
 		return param
 
@@ -136,8 +164,9 @@ class _AttributeGroupAnnotation(AnnotationBase):
 
 	def getVOT(self, ctx):
 		ctx.addVODMLPrefix(self.modelPrefix)
-		group = self._makeVOTGroup(ctx)
-		return group
+		with containerTypeSet(ctx, self.type):
+			group = self._makeVOTGroup(ctx)
+			return group
 
 		# TODO: we'll have to figure out where to put the groups under what
 		# conditions in the end.

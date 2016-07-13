@@ -87,7 +87,7 @@ class VOTableContext(utils.IdManagerMixin):
 		"""arranges the DM with prefix to be included in modelsUsed.
 		"""
 		if prefix not in self.modelsUsed:
-			self.modelsUsed[prefix] = dm.getKnownModel(prefix)
+			self.modelsUsed[prefix] = dm.getModelForPrefix(prefix)
 
 	def makeTable(self, table):
 		"""returns xmlstan for a table.
@@ -505,7 +505,11 @@ def makeTable(ctx, table):
 
 		if ctx.produceVODML:
 			for ann in table.tableDef.annotations:
-				result[ann.getVOT(ctx)]
+				try:
+					result[ann.getVOT(ctx)]
+				except Exception, msg:
+					# never fail just because stupid DM annotation doesn't work out
+					base.ui.notifyError("DM annotation failed: %s"%msg)
 
 		return votable.DelayedTable(result,
 			sm.getMappedTuples(),

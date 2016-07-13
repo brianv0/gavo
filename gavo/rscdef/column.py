@@ -595,7 +595,11 @@ class Column(ColumnBase):
 		if self.parent==container:
 			return dm.ColumnAnnotation(roleName, self)
 		else:
-			return dm.ForeignKeyAnnotation(roleName, self)
+			raise base.ReportableError("You cannot use columns from"
+				" other tables in your DM annotations directly.",
+				hint="If you really need something like this, you need to"
+				" define a datatype corresponding to what's in  the other table"
+				" and reference a corresponding dm declaration.")
 
 
 def _isStringList(ob):

@@ -233,6 +233,11 @@ class ForeignKey(base.Structure):
 		querier.query("ALTER TABLE %s DROP CONSTRAINT %s"%(self.parent.getQName(), 
 			constraintName))
 
+	def getAnnotation(self, roleName, container):
+		"""returns a dm annotation for this foreign key.
+		"""
+		return dm.ForeignKeyAnnotation(roleName, self)
+
 
 class STCDef(base.Structure):
 	"""A definition of a space-time coordinate system using STC-S.
@@ -456,6 +461,10 @@ class TableDef(base.Structure, base.ComputedMetaMixin, common.PrivilegesMixin,
 				and self.parent 
 				and hasattr(self.parent, "_getMeta")):
 			self.setMetaParent(self.parent)
+
+		# Make room for DM annotations (these are currently filled by
+		# gavo.dm.dmrd.DataModelRoles, but we might reconsider this)
+		self.annotations = []
 
 		if self.viewStatement and getattr(ctx, "restricted", False):
 			raise base.RestrictedElement("table", hint="tables with"

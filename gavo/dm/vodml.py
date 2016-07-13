@@ -13,12 +13,17 @@ this code is expected to be efficient.
 from gavo import base
 from gavo import utils
 from gavo.utils import ElementTree
+from gavo.votable import V
+
 
 KNOWN_MODELS = {
-# maps the canonical prefix to the file name within resources/dm
-	"NDcube": "CubeDM-1.0.vo-dml.xml",
-	"ivoa": "IVOA.vo-dml.xml",
-	"dachstoy": "dachstoy.vo-dml.xml",
+# maps the canonical prefix to the file name within resources/dm and
+# (for now) the canonical URI (which isn't available anywhere else so far).
+	"NDcube": ("CubeDM-1.0.vo-dml.xml", 
+		"http://www.ivoa.net/dm/CubeDM-1.0.vo-dml.xml"),
+	"ivoa": ("IVOA.vo-dml.xml", "http://www.ivoa.net/dm/ivoa.vo-dml.xml"),
+	"vo-dml": ("VO-DML.vo-dml.xml", "http://www.ivoa.net/dm/VO-DML.vo-dml.xml"),
+	"dachstoy": ("dachstoy.vo-dml.xml","http://docs.g-vo.org/dachstoy"),
 }
 
 
@@ -28,7 +33,7 @@ def openModelFile(prefix):
 	This will raise a NotFoundError for an unknown prefix.
 	"""
 	try:
-		fName = KNOWN_MODELS[prefix]
+		fName, _ = KNOWN_MODELS[prefix]
 	except KeyError:
 		raise base.NotFoundError(prefix, "VO-DML file for prefix",
 			"data models known to DaCHS", hint="This can happen if there"
@@ -49,6 +54,7 @@ class Model(object):
 	def __init__(self, prefix, dmlTree):
 		self.prefix = prefix
 		self.title = self.version = None
+		self.version, self.url = None, None
 		self.dmlTree = dmlTree
 		if self.dmlTree:
 			self._getModelMeta()
@@ -61,7 +67,10 @@ class Model(object):
 		"""
 		inF = openModelFile(prefix)
 		try:
-			return cls(prefix, ElementTree.parse(inF))
+			res = cls(prefix, ElementTree.parse(inF))
+			# as long as we can't get the URL from the XML, patch it in here
+			res.url = KNOWN_MODELS[prefix][1]
+			return res
 		finally:
 			inF.close()
 
@@ -89,6 +98,18 @@ class Model(object):
 			# non-validatable model.
 			pass
 	
+	def getVOT(self, ctx):
+		"""returns xmlstan for a VOTable declaration of this DM.
+		"""
+		return V.GROUP[
+			V.VODML[V.TYPE["vo-dml:Model"]],
+			V.PARAM(datatype="char", arraysize="*",name="name", value=self.prefix)[
+				V.VODML[V.ROLE["name"]]],
+			V.PARAM(datatype="char", arraysize="*", name="name", value=self.version)[
+				V.VODML[V.ROLE["version"]]],
+			V.PARAM(datatype="char", arraysize="*", name="name", value=self.url)[
+				V.VODML[V.ROLE["url"]]]]
+
 
 @utils.memoized
 def getModelForPrefix(prefix):

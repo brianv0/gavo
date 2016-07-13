@@ -359,7 +359,6 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 			)%stuffDesignation
 
 
-
 class RDParseContext(base.ParseContext):
 	"""is a parse context for RDs.
 
