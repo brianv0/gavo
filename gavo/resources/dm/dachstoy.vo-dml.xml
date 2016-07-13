@@ -43,7 +43,18 @@
   		<multiplicity><minOccurs>0</minOccurs>
   			<maxOccurs>-1</maxOccurs></multiplicity>
 		</attribute>
-	
+
+		<attribute>
+			<vodml-id>Ruler.location</vodml-id>
+			<name>location</location>
+			<description>Where to find the ruler</description>
+			<datatype>
+				<vodml-ref>dachstoy:Location</vodml-ref>
+			</datatype>
+  		<multiplicity><minOccurs>0</minOccurs>
+  			<maxOccurs>-1</maxOccurs></multiplicity>
+		</attribute>
+
 		<reference>
 			<vodml-id>Ruler.successor</vodml-id>
 			<name>successor</name>
@@ -53,4 +64,43 @@
   			<maxOccurs>1</maxOccurs></multiplicity>
 		</reference>
   </objectType>
+
+  <dataType>
+  	<vodml-id>Location</vodml-id>
+  	<name>Location</name>
+  	<description>Where something is.</description>
+
+  	<attribute>
+  		<vodml-id>Location.x</vodml-id>
+  		<name>x</name>
+  		<description>One piece of a location</description>
+  		<datatype>
+  			<vodml-ref>ivoa:real</vodml-ref>
+  		</datatype>
+  		<multiplicity><minOccurs>0</minOccurs>
+  			<maxOccurs>1</maxOccurs></multiplicity>
+  	</attribute>
+
+  	<attribute>
+  		<vodml-id>Location.y</vodml-id>
+  		<name>y</name>
+  		<description>Another piece of a location</description>
+  		<datatype>
+  			<vodml-ref>ivoa:real</vodml-ref>
+  		</datatype>
+  		<multiplicity><minOccurs>0</minOccurs>
+  			<maxOccurs>1</maxOccurs></multiplicity>
+  	</attribute>
+
+   	<attribute>
+  		<vodml-id>Location.z</vodml-id>
+  		<name>z</name>
+  		<description>And still another piece of a location</description>
+  		<datatype>
+  			<vodml-ref>ivoa:real</vodml-ref>
+  		</datatype>
+  		<multiplicity><minOccurs>0</minOccurs>
+  			<maxOccurs>1</maxOccurs></multiplicity>
+  	</attribute>
+	</dataType>
 </vo-dml:model>

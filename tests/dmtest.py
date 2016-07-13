@@ -49,7 +49,7 @@ class TestSILGrammar(testhelpers.VerboseTest):
 					('obj', ':otherclass', [ 
 						('attr', 'attr2', 'val')]))]))
 
-	def testCollection(self):
+	def testObjectCollection(self):
 		res = sil.getGrammar().parseString("""
 			(:testclass) {
 				seq: (:otherclass)[
@@ -64,6 +64,15 @@ class TestSILGrammar(testhelpers.VerboseTest):
 						('uobj', None, [('attr', 'attr1', 'b')]),
 						('uobj', None, [('attr', 'attr1', 'c')]),]))]))
 
+	def testImmediateCollection(self):
+		res = sil.getGrammar().parseString("""
+			(:testclass) {
+				seq: [a "b c d" @e]}""")
+		self.assertEqual(res[0],
+			('obj', ':testclass', 
+				[('attr', 'seq', 
+					('coll', None, ['a', 'b c d', 'e']))]))
+
 
 class TestSILParser(testhelpers.VerboseTest):
 	def testNestedObject(self):
@@ -74,9 +83,9 @@ class TestSILParser(testhelpers.VerboseTest):
 					}
 			}""", dmrd.getAnnotationMaker(None))
 		self.assertEqual(normalizeSIL(res.asSIL()),
-			'(testdm:testclass) { (testdm:otherclass) { attr2: "val"} }')
-			
-	def testAtomicCollection(self):
+			'(testdm:testclass) { (testdm:otherclass) { attr2: val} }')
+
+	def testObjectCollection(self):
 		res = sil.getAnnotation("""
 			(testdm:testclass) {
 				seq: (testdm:otherclass)[
@@ -85,9 +94,15 @@ class TestSILParser(testhelpers.VerboseTest):
 					{attr1: c}]}""", dmrd.getAnnotationMaker(None))
 		self.assertEqual(normalizeSIL(res.asSIL()),
 			'(testdm:testclass) { seq: (testdm:otherclass)'
-			' [ { attr1: "a"} { attr1: "b"}'
-			' { attr1: "c"} ] }')
-			
+			' [{ attr1: a} { attr1: b} { attr1: c} ] }')
+
+	def testAtomicCollection(self):
+		res = sil.getAnnotation("""
+			(testdm:testclass) {
+				seq: [a "b c" 3.2]}""", dmrd.getAnnotationMaker(None))
+		self.assertEqual(normalizeSIL(res.asSIL()),
+			'(testdm:testclass) { seq: [a "b c" 3.2] }')
+
 
 def getByID(tree, id):
 	# (for checking VOTables)
@@ -133,17 +148,16 @@ class _DirectVOT(testhelpers.TestResource):
 		td = base.parseFromString(rscdef.TableDef,
 			"""<table id="foo">
 				<dm>
-					(testdm:testclass) {
-						attr1: @col1
-						attr2: 
-							(testdm:otherclass) {
-								nook: 0.1
-								ra: @raj2000
-								dec: @dej2000
+					(dachstoy:Ruler) {
+						width: @col1
+						location: 
+							(dachstoy:Location) {
+								x: 0.1
+								y: @raj2000
+								z: @dej2000
 							}
-						references: (testdm:ref)[
-							{ bibcode: "too lazy" }
-							{ bibcode: "still too lazy" }]
+						maker: [
+							Oma "Opa Rudolf"]
 					}
 				</dm>
 					<column name="col1" ucd="stuff" type="text"/>
@@ -152,7 +166,7 @@ class _DirectVOT(testhelpers.TestResource):
 				</table>""")
 		
 		t = rsc.TableForDef(td, rows=[
-			{"col1": "id1", "raj2000": 0.3, "dej2000": 3.1}])
+			{"col1": "1.5", "raj2000": 0.3, "dej2000": 3.1}])
 		
 		return testhelpers.getXMLTree(votablewrite.getAsVOTable(t, 
 			ctx=votablewrite.VOTableContext(version=(1,4))), debug=False)
@@ -178,14 +192,11 @@ class DirectSerTest(testhelpers.VerboseTest):
 	def testTestModelDefined(self):
 		dmgroup = self.tree.xpath(
 			"//GROUP[VODML/TYPE='vo-dml:Model']"
-			"[PARAM[VODML/ROLE='name']/@value='testdm']")[0]
+			"[PARAM[VODML/ROLE='name']/@value='dachstoy']")[0]
 
 		self.assertEqual(
-			dmgroup.xpath("PARAM[VODML/ROLE='name']")[0].get("value"),
-			"testdm")
-		self.assertEqual(
 			dmgroup.xpath("PARAM[VODML/ROLE='url']")[0].get("value"),
-			"http://docs.g-vo.org/testdm/0.1")
+			"http://docs.g-vo.org/dachstoy/0.1")
 		self.assertEqual(
 			dmgroup.xpath("PARAM[VODML/ROLE='version']")[0].get("value"),
 			"0.1")
@@ -195,37 +206,38 @@ class DirectSerTest(testhelpers.VerboseTest):
 			len(self.tree.xpath("//GROUP[VODML/TYPE='vo-dml:Model']")))
 
 	def testTestclassInstancePresent(self):
-		res = self.tree.xpath("RESOURCE/TABLE/GROUP[VODML/TYPE='testdm:testclass']")
+		res = self.tree.xpath("RESOURCE/TABLE/GROUP[VODML/TYPE='dachstoy:Ruler']")
 		self.assertEqual(len(res), 1)
 	
 	def testLiteralSerialized(self):
 		par = self.tree.xpath(
-			"RESOURCE/TABLE/GROUP/GROUP[VODML/TYPE='testdm:otherclass']"
-			"/PARAM[VODML/ROLE='nook']")[0]
+			"RESOURCE/TABLE/GROUP/GROUP[VODML/TYPE='dachstoy:Location']"
+			"/PARAM[VODML/ROLE='x']")[0]
 		self.assertEqual(par.get("value"), "0.1")
 		self.assertEqual(par.get("datatype"), "unicodeChar")
 
 	def testChildColumnAnnotated(self):
 		fr = self.tree.xpath(
-			"RESOURCE/TABLE/GROUP[VODML/TYPE='testdm:testclass']"
-			"/FIELDref[VODML/ROLE='attr1']")[0]
+			"RESOURCE/TABLE/GROUP[VODML/TYPE='dachstoy:Ruler']"
+			"/FIELDref[VODML/ROLE='width']")[0]
 		col = getByID(self.tree, fr.get("ref"))
 		self.assertEqual(col.get("name"), "col1")
 
 	def testNestedColumnAnnotated(self):
 		fr = self.tree.xpath(
-			"RESOURCE/TABLE/GROUP/GROUP[VODML/TYPE='testdm:otherclass']"
-			"/FIELDref[VODML/ROLE='ra']")[0]
+			"RESOURCE/TABLE/GROUP/GROUP[VODML/TYPE='dachstoy:Location']"
+			"/FIELDref[VODML/ROLE='y']")[0]
 		col = getByID(self.tree, fr.get("ref"))
 		self.assertEqual(col.get("name"), "raj2000")
 	
 	def testCollection(self):
 		gr = self.tree.xpath(
-			"RESOURCE/TABLE/GROUP/GROUP[VODML/ROLE='references']")
+			"RESOURCE/TABLE/GROUP/GROUP[VODML/ROLE='maker']")
 		self.assertEqual(len(gr), 1)
-		refs = gr[0].xpath("GROUP/PARAM[VODML/ROLE='bibcode']")
-		self.assertEqual(len(refs), 2)
-		self.assertEqual(refs[0].get("value"), "too lazy")
+		params = gr[0].xpath("PARAM")
+		self.assertEqual(len(params), 2)
+		self.assertEqual(params[0].get("value"), "Oma")
+		self.assertEqual(params[1].get("value"), "Opa Rudolf")
 
 
 class _TableVOT(testhelpers.TestResource):

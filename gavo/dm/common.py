@@ -98,8 +98,11 @@ class AtomicAnnotation(AnnotationBase):
 		votable.serializeToParam(param, self.value)
 		return param
 
-	def asSIL(self):
-		return "%s: %s"%(self.name, self.value.asSIL())
+	def asSIL(self, suppressType=False):
+		if suppressType:
+			return self.value.asSIL()
+		else:
+			return "%s: %s"%(self.name, self.value.asSIL())
 
 
 class _AttributeGroupAnnotation(AnnotationBase):
@@ -170,17 +173,28 @@ class CollectionAnnotation(AnnotationBase):
 	def __init__(self, name, type):
 		AnnotationBase.__init__(self, name)
 		self.type = type
-		self.modelPrefix, _, _ = parseTypeName(type)
+		# these can have atomic children, in which case we don't manage types
+		if self.type is not None:
+			self.modelPrefix, _, _ = parseTypeName(type)
 		self.children = []
 	
 	def add(self, child):
 		self.children.append(child)
 	
 	def asSIL(self):
-		return "%s: (%s) [\n  %s]\n"%(
+		if self.type is None:
+			opener = "["
+		else:
+			opener = "(%s) ["%(self.type,)
+
+		bodyItems = []
+		for r in self.children:
+			bodyItems.append(r.asSIL(suppressType="True"))
+
+		return "%s: \n  %s%s]\n"%(
 			self.name,
-			self.type,
-			"\n  ".join(r.asSIL(suppressType=True) for r in self.children))
+			opener,
+			"\n  ".join(bodyItems))
 
 	def getVOT(self, ctx):
 # So... it's unclear at this point what to do here -- I somehow feel
@@ -188,7 +202,8 @@ class CollectionAnnotation(AnnotationBase):
 # entail one table each whenever an attribute is potentially sequence-valued,
 # and that doesn't seem right either.  So, we'll dump groups for now
 # and see how we can tell when there's actually tables out there.
-		ctx.addVODMLPrefix(self.modelPrefix)
+		if self.type:
+			ctx.addVODMLPrefix(self.modelPrefix)
 		return V.GROUP[
 			V.VODML[
 				V.ROLE[self.name]],

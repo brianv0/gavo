@@ -3,17 +3,23 @@ SIL, the Simple Instance Language, is an attempt to allow
 data model instances written in a simple, JSON-like language.
 """
 
+import re
+
 from gavo import utils
 from gavo.dm import common
 
 
 # sentinels for further processing
-
 class Atom(unicode):
 	"""a sentinel class for atomic values of roles
 	"""
+	noQuotesOkRE = re.compile("[\w_.]+$")
+
 	def asSIL(self):
-		return '"%s"'%(self.replace('"', '""'))
+		if self.noQuotesOkRE.match(self):
+			return unicode(self)
+		else:
+			return '"%s"'%(self.replace('"', '""'))
 	
 	def __repr__(self):
 		return "a"+unicode.__repr__(self).lstrip("u")
@@ -34,7 +40,11 @@ def _pa_typeAnnotation(s, p, toks):
 	return toks[1]
 
 def _pa_collection(s, p, toks):
-	return ("coll", toks[0], toks[1])
+	if len(toks)==1:
+		# no explicit type annotation; we return None as type.
+		return ("coll", None, toks[0])
+	else:
+		return ("coll", toks[0], toks[1])
 
 def _pa_obj(s, p, toks):
 	return ("obj", toks[0], toks[1][2])
@@ -58,7 +68,7 @@ class getGrammar(utils.CachedResource):
 	@classmethod
 	def impl(cls):
 		from gavo.imp.pyparsing import (Word, Literal, alphas, alphanums,
-			QuotedString, Forward, ZeroOrMore, Group)
+			QuotedString, Forward, ZeroOrMore, Group, Optional)
 
 		with utils.pyparsingWhitechars("\t\n\r "):
 			qualifiedIdentifier = Word(alphas+"_:", alphanums+"-_:")
@@ -84,9 +94,9 @@ class getGrammar(utils.CachedResource):
 			obj = typeAnnotation + objectBody
 
 			sequenceBody = (Literal('[')
-				+ Group(ZeroOrMore(objectBody))
+				+ Group(ZeroOrMore(value | objectBody))
 				+ Literal(']'))
-			collection = typeAnnotation + sequenceBody
+			collection = Optional(typeAnnotation) + sequenceBody
 
 			complexImmediate << ( obj | collection )
 
@@ -126,10 +136,15 @@ def _iterAttrs(node, seqType, roleName):
 
 def _iterObjs(node, seqType, roleName):
 	for child in node[2]:
-		assert child[0]=='uobj'
-		for  grandchild in _parseTreeToEvents(child, seqType=seqType, 
-				roleName=roleName):
-			yield grandchild
+		if isinstance(child, (Reference, Atom)):
+			yield ('item', child, None)
+
+		else:
+			# complex child -- yield  events
+			assert child[0]=='uobj'
+			for  grandchild in _parseTreeToEvents(child, seqType=seqType, 
+					roleName=roleName):
+				yield grandchild
 
 
 _PARSER_EVENT_MAPPING = {
@@ -164,7 +179,8 @@ def iterparse(silLiteral):
 
 	* ('attr', roleName, value) add an attribute to the current annotation
 	* ('obj', roleName, type) create a new object object of type
-	* ('coll', type, None) create a new collection annotation
+	* ('coll', type, None) create a new collection annotation (type can be None)
+	* ('item', val, None) add an atomic value to the current collection
 	* ('pop', None, None) finish current annotation and add it to its container
 	"""
 	root = getGrammar().parseString(silLiteral, parseAll=True)[0]
@@ -201,6 +217,11 @@ def getAnnotation(silLiteral, annotationFactory):
 			obStack[-1].add( #noflake: the del obStack up there is conditional
 				annotationFactory(arg1, arg2))
 
+		elif evType=='item':
+			collection = obStack[-1] #noflake: see above
+			assert isinstance(collection, common.CollectionAnnotation)
+			collection.add(annotationFactory(collection.name, arg1)) 
+
 		else:
 			assert False
 
@@ -213,10 +234,6 @@ if __name__=="__main__":
 	getGrammar.enableDebuggingOutput()
 	res = g.parseString(
 		"""
-					(:testclass) {
-				coll: (:foo)[
-					{attr1: a}
-					{attr2: b}
-					{attr3: c}]}
-			""", parseAll=True)[0]
+(:testclass) {
+seq: [a "b c d" @e]}""", parseAll=True)[0]
 	print res

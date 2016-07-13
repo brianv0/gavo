@@ -42,8 +42,8 @@ class Model(object):
 
 KNOWN_PREFIXES = dict((m.prefix, m) for m in [
 	# DaCHS test model
-	Model("testdm", "DaCHS test data model", 
-		"http://docs.g-vo.org/testdm/0.1", "0.1"),
+	Model("dachstoy", "DaCHS test data model", 
+		"http://docs.g-vo.org/dachstoy/0.1", "0.1"),
 	Model("vo-dml", "VO-DML metamodel",
 		"http://www.ivoa.net/dm/vo-dml.xml", "1.0"),      # TODO: What's the URL?
 ])
