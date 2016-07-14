@@ -14,4 +14,4 @@ from gavo.dm.annotations import (ColumnAnnotation, ForeignKeyAnnotation)
 
 from gavo.dm.dmrd import DataModelRoles
 
-from gavo.dm.vodml import getModelForPrefix
+from gavo.dm.vodml import getModelForPrefix, resolveVODMLId

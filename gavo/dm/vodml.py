@@ -129,6 +129,30 @@ class Model(object):
 			# non-validatable model.
 			pass
 
+	def _resolveNonLocalVODMLId(self, id):
+		"""returns an etree Element pointed to by the VO-DML id 
+
+		This is a helper for getByVODMLId and works by sucessively
+		trying shorter pieces of id.
+
+		This returns None on a failure rather than raising an exception
+		(because it's really a helper for getByVODMLId).
+		"""
+		parts = id.split(".")
+		for splitPoint in range(len(parts)-1, 0, -1):
+			newId = ".".join(parts[:splitPoint])
+			if newId in self.idIndex:
+				# this should be an attribute definition.  Now follow
+				# the chain of attribute names to the end
+				att = self.idIndex[newId]
+				thisType = resolveVODMLId(att.find("datatype").find("vodml-ref"))
+
+				for attName in parts[splitPoint:]:
+					att = getAttributeDefinition(thisType, attName)
+					thisType = resolveVODMLId(att.find("datatype").find("vodml-ref"))
+				return att
+		# fall through on failure
+
 	def getByVODMLId(self, vodmlId):
 		"""returns the element with vodmlId.
 
@@ -140,13 +164,17 @@ class Model(object):
 		if ":" in vodmlId:
 			vodmlId = vodmlId.split(":", 1)[1]
 
-		# don't just mutate a key error, as that may have a different
-		# reason while the cache is being built.
-		if vodmlId not in self.idIndex:
+		# We may have to follow ids through several documents based on types.
+		# First try to directly find the element.
+		if vodmlId in self.idIndex:
+			return self.idIndex[vodmlId]
+
+		res = self._resolveNonLocalVODMLId(vodmlId)
+		if res:
+			return res
+		else:
 			raise base.NotFoundError(vodmlId, "data model element",
 				self.prefix+" data model")
-
-		return self.idIndex[vodmlId]
 
 	def getAttributeMeta(self, vodmlId):
 		"""returns a metadata dictionary for a VO-DML element with vodmlId.
@@ -181,3 +209,24 @@ def getModelForPrefix(prefix):
 	from user code.
 	"""
 	return Model.fromPrefix(prefix)
+
+
+def getAttributeDefinition(typeDef, attName):
+	"""returns the attribute definition for attName in typeDef as an etree.
+
+	This raises a NotFoundError if the attribute is not found.
+	"""
+	for attribute in typeDef.find("attribute"):
+		if attribute.find("name")==attName:
+			return attribute
+	raise base.NotFoundError(attName, "Attribute", 
+		"VO-DML type "+typeDef.find(name).text)
+
+
+def resolveVODMLId(vodmlId):
+	"""returns an etree element corresponding to the prefixed vodmlId.
+
+	Of course, this only works if vodmlId has a well-known prefix.
+	"""
+	prefix, id = vodmlId.split(":", 1)
+	return getModelForPrefix(prefix).getByVODMLId(id)

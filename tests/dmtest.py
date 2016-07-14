@@ -58,6 +58,11 @@ class ModelTest(testhelpers.VerboseTest):
 		self.assertTrue(isinstance(key, basestring))
 		self.assertTrue(hasattr(value, "attrib"))
 
+	def testGlobalResolution(self):
+		res = dm.resolveVODMLId("dachstoy:Ruler.width")
+		self.assertEqual(res.find("description").text, "A dimension")
+
+
 
 class TestSILGrammar(testhelpers.VerboseTest):
 	def testPlainObject(self):
@@ -266,6 +271,39 @@ class DirectSerTest(testhelpers.VerboseTest):
 		self.assertEqual(len(params), 2)
 		self.assertEqual(params[0].get("value"), "Oma")
 		self.assertEqual(params[1].get("value"), "Opa Rudolf")
+
+
+class _QuantityVOT(testhelpers.TestResource):
+	def make(self, deps):
+		td = base.parseFromString(rscdef.TableDef,
+			"""<table id="foo">
+				<dm>
+					(dachstoy:Cooler) {
+						tempLimit.value: 0 
+					}
+				</dm>
+				<dm>
+					(dachstoy:Cooler) {
+						tempLimit.value: @col1
+					}
+				</dm>
+					<column name="col1"/>
+				</table>""")
+		
+		t = rsc.TableForDef(td, rows=[
+			{"col1": "-30"}])
+		
+		return testhelpers.getXMLTree(votablewrite.getAsVOTable(t, 
+			ctx=votablewrite.VOTableContext(version=(1,4))), debug=True)
+
+
+
+class QuantityTest(testhelpers.VerboseTest):
+	resources = [("tree", _DirectVOT())]
+
+	def testParamAnnotated(self):
+		pass # Asked upstream how this is supposed to work.
+
 
 if __name__=="__main__":
 	testhelpers.main(DirectSerTest)
