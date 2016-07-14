@@ -51,6 +51,13 @@ class Model(object):
 	which uses a built-in mapping from well-known prefix to VO-DML file
 	to populate the model.
 	"""
+
+	# non-well-known models can be fed in through fromFile; they well
+	# be entered here and can then be obtained through fromPrefix
+	# as long as the don't clash with KNOWN_MODELS.
+
+	_modelsReadFromFile = {}
+
 	def __init__(self, prefix, dmlTree):
 		self.prefix = prefix
 		self.title = self.version = None
@@ -67,6 +74,9 @@ class Model(object):
 
 		User code should typically use the getModelFromPrefix function.
 		"""
+		if prefix in cls._modelsReadFromFile:
+			return cls._modelsReadFromFile[prefix]
+
 		inF = openModelFile(prefix)
 		try:
 			res = cls(prefix, ElementTree.parse(inF))
@@ -77,17 +87,30 @@ class Model(object):
 			inF.close()
 
 	@classmethod
-	def fromFile(cls, srcName):
-		"""returns a VO-DML model from a file name.
+	def fromFile(cls, src, srcURL="http //not.given/invalid"):
+		"""returns a VO-DML model from src.
+
+		src can either be a file name (interpreted relative to the root
+		of DaCHS' VO-DML repository) or an open file (which will be closed
+		as a side effect of this function).
 
 		This is intended for documents using non-standard models with custom
 		prefixes (i.e., not known to DaCHS).
 		"""
-		inF = openModelFile(srcName)
+		if hasattr(src, "read"):
+			inF = src
+		else:
+			inF = openModelFile(src)
+
 		try:
 			tree = ElementTree.parse(inF)
 			prefix = tree.find("name").text
-			return cls(prefix, tree)
+			res = cls(prefix, tree)
+			res.url = srcURL
+
+			if prefix not in KNOWN_MODELS:
+				cls._modelsReadFromFile[prefix] = res
+			return res
 		finally:
 			inF.close()
 
@@ -145,11 +168,13 @@ class Model(object):
 				# this should be an attribute definition.  Now follow
 				# the chain of attribute names to the end
 				att = self.idIndex[newId]
-				thisType = resolveVODMLId(att.find("datatype").find("vodml-ref"))
+				thisType = resolveVODMLId(
+					att.find("datatype").find("vodml-ref").text)
 
 				for attName in parts[splitPoint:]:
 					att = getAttributeDefinition(thisType, attName)
-					thisType = resolveVODMLId(att.find("datatype").find("vodml-ref"))
+					thisType = resolveVODMLId(
+						att.find("datatype").find("vodml-ref").text)
 				return att
 		# fall through on failure
 
@@ -185,7 +210,8 @@ class Model(object):
 
 		If the vodmlId cannot be found, a NotFoundError is raised.
 		"""
-		modelElement = self.getByVODMLId(vodmlId)
+		raise NotImplementedError("We've not yet figured out how this is"
+			" supposed to work.")
 
 
 	def getVOT(self, ctx):
@@ -216,11 +242,11 @@ def getAttributeDefinition(typeDef, attName):
 
 	This raises a NotFoundError if the attribute is not found.
 	"""
-	for attribute in typeDef.find("attribute"):
-		if attribute.find("name")==attName:
+	for attribute in typeDef.findall("attribute"):
+		if attribute.find("name").text==attName:
 			return attribute
 	raise base.NotFoundError(attName, "Attribute", 
-		"VO-DML type "+typeDef.find(name).text)
+		"VO-DML type "+typeDef.find("name").text)
 
 
 def resolveVODMLId(vodmlId):

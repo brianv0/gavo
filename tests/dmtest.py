@@ -4,6 +4,7 @@ Tests to do with new-style data modelling and VO-DML serialisation.
 
 from gavo.helpers import testhelpers
 
+from cStringIO import StringIO
 import datetime
 import re
 import unittest
@@ -24,7 +25,38 @@ def normalizeSIL(sil):
 	return re.sub("\s+", " ", sil).strip()
 
 
+INLINE_MODEL = """
+<vo-dml:model xmlns:vo-dml="http://www.ivoa.net/xml/VODML/v1.0">
+  <name>localinline</name>
+  <title>Local inline DM</title>
+  <version>1.0</version>
+  <lastModified>2016-07-14Z11:17:00</lastModified>
+
+  <objectType>
+  	<vodml-id>Polar</vodml-id>
+  	<name>Polar</name>
+  	<attribute>
+  		<vodml-id>Polar.rule</vodml-id>
+  		<name>rule</name>
+  		<datatype>
+  			<vodml-ref>dachstoy:Cooler</vodml-ref>
+  		</datatype>
+  	</attribute>
+  </objectType>
+</vo-dml:model>
+"""
+
+
+class _InlineModel(testhelpers.TestResource):
+	def make(self, ignored):
+		return dm.Model.fromFile(StringIO(INLINE_MODEL))
+
+_inlineModel = _InlineModel()
+
+
 class ModelTest(testhelpers.VerboseTest):
+	resources = [("inlineModel", _inlineModel)]
+
 	def testMetadataParsing(self):
 		toydm = dm.getModelForPrefix("dachstoy")
 		self.assertEqual(toydm.description, 
@@ -62,6 +94,18 @@ class ModelTest(testhelpers.VerboseTest):
 		res = dm.resolveVODMLId("dachstoy:Ruler.width")
 		self.assertEqual(res.find("description").text, "A dimension")
 
+	def testLoadFromFile(self):
+		att = self.inlineModel.getByVODMLId("localinline:Polar.rule")
+		self.assertEqual(att.find("datatype/vodml-ref").text, "dachstoy:Cooler")
+		self.assertEqual(self.inlineModel.prefix, "localinline")
+
+	def testCrossFileResolution(self):
+		res = dm.resolveVODMLId("dachstoy:Cooler.tempLimit.value")
+		self.assertEqual(res.find("vodml-id").text,
+			"quantity.RealQuantity.value")
+
+	def testCrossFileResolutionRecursive(self):
+		res = dm.resolveVODMLId("localinline:Polar.rule.tempLimit.value")
 
 
 class TestSILGrammar(testhelpers.VerboseTest):
