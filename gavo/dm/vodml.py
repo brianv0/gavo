@@ -54,8 +54,10 @@ class Model(object):
 	def __init__(self, prefix, dmlTree):
 		self.prefix = prefix
 		self.title = self.version = None
-		self.version, self.url = None, None
+		self.version = self.url = None
+		self.description = None
 		self.dmlTree = dmlTree
+		self.__idIndex = None
 		if self.dmlTree:
 			self._getModelMeta()
 
@@ -89,15 +91,75 @@ class Model(object):
 		finally:
 			inF.close()
 
+	@property
+	def idIndex(self):
+		"""returns a dictionary mapping vodmlids to elementtree objects.
+		"""
+		if self.__idIndex is None:
+			self.__idIndex = self._createIndex()
+		return self.__idIndex
+	
+	def _createIndex(self):
+		"""returns a dictionary mapping vodml-ids to elementtree objects.
+
+		Use the idIndex property rather than this function, as the former will 
+		cache the dicts.
+		"""
+		res = {}
+		for element in self.dmlTree.getroot().iter():
+			id = element.find("vodml-id")
+			if id is not None:
+				res[id.text] = element
+		return res
+
 	def _getModelMeta(self):
+		"""sets some metadata on the model from the parsed VO-DML.
+
+		This will fail silently (i.e., the metadata will remain on its
+		default).
+
+		Metadata obtained so far includes: title, version, description,
+		"""
 		try:
 			self.title = self.dmlTree.find("title").text
 			self.version = self.dmlTree.find("version").text
+			self.description = self.dmlTree.find("description").text
 		except AttributeError:
-			# probably the VO-DML file is bad; just falll through to
+			# probably the VO-DML file is bad; just fall through to
 			# non-validatable model.
 			pass
-	
+
+	def getByVODMLId(self, vodmlId):
+		"""returns the element with vodmlId.
+
+		This raises a NotFoundError for elements that are not present.
+
+		This can be used with or without the prefix.  The prefix is not
+		validated, though.
+		"""
+		if ":" in vodmlId:
+			vodmlId = vodmlId.split(":", 1)[1]
+
+		# don't just mutate a key error, as that may have a different
+		# reason while the cache is being built.
+		if vodmlId not in self.idIndex:
+			raise base.NotFoundError(vodmlId, "data model element",
+				self.prefix+" data model")
+
+		return self.idIndex[vodmlId]
+
+	def getAttributeMeta(self, vodmlId):
+		"""returns a metadata dictionary for a VO-DML element with vodmlId.
+
+		This includes datatype add description.  If vodmlId points to
+		the value of a quantity, the associate unit and ucd attributes
+		are returned as well.
+
+		If the vodmlId cannot be found, a NotFoundError is raised.
+		"""
+		modelElement = self.getByVODMLId(vodmlId)
+
+
 	def getVOT(self, ctx):
 		"""returns xmlstan for a VOTable declaration of this DM.
 		"""

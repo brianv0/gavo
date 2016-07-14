@@ -60,7 +60,7 @@ class GroupRefAnnotation(common.AnnotationBase):
 	def getVOT(self, ctx):
 		if id(self.objectReferenced) not in ctx.alreadyInTree:
 			ctx.getEnclosingContainer()[
-				_the(dmvot.getSubtrees(ctx, self.objectReferenced))(
+				_the(# fix this: dmvot.getSubtrees(ctx, self.objectReferenced))(
 					ID=ctx.getOrMakeIdFor(self.objectReferenced))]
 			ctx.alreadyInTree.add(id(self.objectReferenced))
 
@@ -81,18 +81,19 @@ class ForeignKeyAnnotation(common.AnnotationBase):
 
 	def getVOT(self, ctx):
 		# the main trouble here is: What if there's multiple foreign keys
-		# into destTable?  To prevent multiple inclusions of a single
+		# into destTD?  To prevent multiple inclusions of a single
 		# table, we add a reference to our serialised VOTable stan in
-		# destTable's _FKR_serializedVOT attribute.  That will fail
+		# destTD's _FKR_serializedVOT attribute.  That will fail
 		# if we produce two VOTables from the same table at the same time,
 		# but let's worry about that later.
 		
-		destTable = self.myAnn.parent
+		destTD = self.value.inTable
+		srcTD = self.value.parent
 
 		pkDecl = V.GROUP[
 			V.VODML[V.ROLE["vo-dml:ObjectTypeInstance.ID"]],
 			[V.FIELDref(ref=ctx.getOrMakeIdFor(
-					destTable.tableDef.getColumnByName(colName)))
+					destTD.tableDef.getColumnByName(colName)))
 				for colName in self.foreignKey.dest]]
 		pkDecl(ID=ctx.getOrMakeIdFor(pkDecl))
 
@@ -101,12 +102,12 @@ class ForeignKeyAnnotation(common.AnnotationBase):
 			[V.FIELDref(ref=ctx.getIdFor(srcTD.getColumnByName(colName)))
 				for colName in self.foreignKey.source]]
 
-		targetVOT = getattr(destTable, "_FKR_serializedVOT",
+		targetVOT = getattr(destTD, "_FKR_serializedVOT",
 			lambda: None)()
 		# weakrefs are None if expired
 		if targetVOT is None:
-			targetVOT = ctx.makeTable(destTable)
-			destTable._FKR_serializedVOT = weakref.ref(targetVOT)
+			targetVOT = ctx.makeTable(destTD)
+			destTD._FKR_serializedVOT = weakref.ref(targetVOT)
 			ctx.getEnclosingResource()[targetVOT]
 		
 		targetVOT[pkDecl]

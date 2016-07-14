@@ -24,6 +24,41 @@ def normalizeSIL(sil):
 	return re.sub("\s+", " ", sil).strip()
 
 
+class ModelTest(testhelpers.VerboseTest):
+	def testMetadataParsing(self):
+		toydm = dm.getModelForPrefix("dachstoy")
+		self.assertEqual(toydm.description, 
+			"A toy model for DaCHS regression testing")
+		self.assertEqual(toydm.title, "DaCHS Toy model")
+		self.assertEqual(toydm.version, "1.0a-pl23.44c")
+		self.assertEqual(toydm.url, "http://docs.g-vo.org/dachstoy")
+	
+	def testIdAccess(self):
+		toydm = dm.getModelForPrefix("dachstoy")
+		res = toydm.getByVODMLId("Ruler.width")
+		self.assertEqual(res.find("description").text, "A dimension")
+
+	def testPrefixIgnored(self):
+		toydm = dm.getModelForPrefix("dachstoy")
+		res = toydm.getByVODMLId("dachstoy:Ruler.width")
+		self.assertEqual(res.find("description").text, "A dimension")
+
+	def testNoIdAccess(self):
+		toydm = dm.getModelForPrefix("dachstoy")
+		self.assertRaisesWithMsg(base.NotFoundError,
+			"data model element 'Broken.toy' could not be located"
+			" in dachstoy data model",
+			toydm.getByVODMLId,
+			("Broken.toy",))
+	
+	def testIndexBuilt(self):
+		index = dm.getModelForPrefix("dachstoy").idIndex
+		self.assertTrue(isinstance(index, dict))
+		key, value = index.iteritems().next()
+		self.assertTrue(isinstance(key, basestring))
+		self.assertTrue(hasattr(value, "attrib"))
+
+
 class TestSILGrammar(testhelpers.VerboseTest):
 	def testPlainObject(self):
 		res = sil.getGrammar().parseString("""
@@ -109,13 +144,6 @@ def getByID(tree, id):
 	res = tree.xpath("//*[@ID='%s']"%id)
 	assert len(res)==1, "Resolving ID %s gave %d matches"%(id, len(res))
 	return res[0]
-
-
-#class _SampleQs(dm.DMNode):
-#	DM_model = _toyModel
-#	DM_typeName = "Bland"
-
-	_a_someQ = dm.Annotation(None, unit="m", ucd="phys.length")
 
 
 class AnnotationTest(testhelpers.VerboseTest):

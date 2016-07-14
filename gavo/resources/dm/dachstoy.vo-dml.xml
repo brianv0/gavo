@@ -60,7 +60,7 @@
   		<multiplicity><minOccurs>1</minOccurs>
   			<maxOccurs>1</maxOccurs></multiplicity>
 		</attribute>
-
+		
   	<attribute>
   		<vodml-id>Ruler.birthday</vodml-id>
   		<name>birthday</name>
@@ -103,5 +103,23 @@
   			<maxOccurs>1</maxOccurs></multiplicity>
 		</reference>
   </objectType>
+
+
+	<objectType>
+		<vodml-id>Cooler</vodml-id>
+		<name>Cooler</name>
+		<description>Something to cool Rulers with</description>
+
+		<attribute>
+			<vodml-id>Cooler.tempLimit</vodml-id>
+			<name>tempLimit</name>
+			<description>How cool can it get?</description>
+			<datatype>
+				<vodml-ref>ivoa:quantity.RealQuantity</vodml-ref>
+			</datatype>
+  		<multiplicity><minOccurs>1</minOccurs>
+  			<maxOccurs>1</maxOccurs></multiplicity>
+		</attribute>
+	</objectType>
 
 </vo-dml:model>
