@@ -191,6 +191,39 @@ class RDRscRecIterator(grammars.RowIterator):
 		return "%s#%s"%(self.sourceToken.sourceId, self.curSource)
 
 
+# extra handwork to deal with timestamps on deleted records
+def getDeletedIdentifiersUpdater(conn, rd):
+	"""returns a function to be called after records have been
+	updated to mark new deleted identifiers as changed.
+
+	The problem solved here is that we mark all resource metadata
+	belonging to and RD as deleted before feeding the new stuff in.
+	We don't want to change resources.rectimestamp there; this would,
+	for instance, bump old deleted records.
+
+	What we can do is see if there's new deleted records after and rd 
+	is through and update their rectimestamp.  We don't need to like it.
+	"""
+	oldDeletedRecords = set(r[0] for r in 
+		conn.query("select ivoid from dc.resources"
+			" where sourcerd=%(rdid)s and deleted",
+			{"rdid": rd.sourceId}))
+
+	def bumpNewDeletedRecords():
+		newDeletedRecords = set(r[0] for r in 
+			conn.query("select ivoid from dc.resources"
+				" where sourcerd=%(rdid)s and deleted",
+				{"rdid": rd.sourceId}))
+		toBump = newDeletedRecords-oldDeletedRecords
+		if toBump:
+			conn.query("update dc.resources set rectimestamp=%(now)s"
+				" where ivoid in %(ivoids)s", {
+					"now": datetime.datetime.utcnow(),
+					"ivoids": list(toBump)})
+	
+	return bumpNewDeletedRecords
+
+
 class RDRscRecGrammar(grammars.Grammar):
 	"""A grammar for "parsing" raw resource records from RDs.
 	"""
@@ -220,6 +253,9 @@ def updateServiceList(rds, metaToo=False, connection=None, onlyWarn=True,
 		if rd.sourceId.startswith("/"):
 			raise base.Error("Resource descriptor ID must not be absolute, but"
 				" '%s' seems to be."%rd.sourceId)
+
+		deletedUpdater = getDeletedIdentifiersUpdater(connection, rd)
+
 		try:
 			data = rsc.makeData(dd, forceSource=rd, parseOptions=parseOptions,
 				connection=connection)
@@ -232,6 +268,8 @@ def updateServiceList(rds, metaToo=False, connection=None, onlyWarn=True,
 				for dependentDD in rd:
 					rsc.Data.create(dependentDD, connection=connection).updateMeta()
 				tap.publishToTAP(rd, connection)
+
+			deletedUpdater()
 
 		except base.MetaValidationError, ex:
 			msg = ("Aborting publication of rd '%s' since meta structure of"
