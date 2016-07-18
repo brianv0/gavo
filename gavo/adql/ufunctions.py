@@ -244,13 +244,13 @@ def _ivo_apply_pm(args):
 #specified integer level (first argument)';
 
 @userFunction("ivo_healpix_index",
-	"(ra DOUBLE PRECISION, dec DOUBLE PRECISION, order INTEGER) -> BIGINT",
+	"(order INTEGER, ra DOUBLE PRECISION, dec DOUBLE PRECISION) -> BIGINT",
 	"""Returns the index of the (nest) healpix with order containing the 
 	spherical point (ra, dec).
 
 	An alternative, 2-argument form 
 	
-	ivo_healpix_index(p POINT, order INTEGER) -> BIGINT
+	ivo_healpix_index(order INTEGER, p POINT) -> BIGINT
 
 	is also available.
 	""",
@@ -258,17 +258,17 @@ def _ivo_apply_pm(args):
 def _ivo_healpix_index(args):
 	if len(args)==2:
 		return "healpix_nest(%s, %s)"%(
-			nodes.flatten(args[1]), nodes.flatten(args[0]))
+			nodes.flatten(args[0]), nodes.flatten(args[1]))
 	elif len(args)==3:
 		return "healpix_nest(%s, spoint(RADIANS(%s), RADIANS(%s)))"%(
-			nodes.flatten(args[2]), nodes.flatten(args[0]), nodes.flatten(args[1]))
+			nodes.flatten(args[0]), nodes.flatten(args[1]), nodes.flatten(args[2]))
 	else:
 		raise common.UfuncError("ivo_healpix_index takes either (ra, dec, order)"
 			" or (point, order) arguments")
 
 
 @userFunction("ivo_healpix_center",
-	"(hpxIndex BIGINT, hpxOrder INTEGER) -> POINT",
+	"(hpxOrder INTEGER, hpxIndex BIGINT) -> POINT",
 	"""returns a POINT corresponding to the center of the healpix with
 	the given index at the given order.
 	""",
@@ -278,7 +278,7 @@ def _ivo_healpix_center(args):
 		raise common.UfuncError("ivo_healpix_center only takes (index, order)"
 			" arguments")
 	return "center_of_healpix_nest(%s, %s)"%(
-		nodes.flatten(args[1]), nodes.flatten(args[0]))
+		nodes.flatten(args[0]), nodes.flatten(args[1]))
 
 
 class UserFunction(nodes.FunctionNode):

@@ -15,6 +15,7 @@ from gavo.helpers import testhelpers
 
 from gavo import adql
 from gavo import rscdesc
+from gavo import utils
 from gavo.protocols import adqlglue
 from gavo.protocols import simbadinterface # for getSesame registration
 from gavo.adql import nodes 
@@ -260,11 +261,11 @@ class HealpixFunctionsTest(testhelpers.VerboseTest):
 		self.assertEqualIgnoringAliases(getMorphed(query), expected)
 	
 	samples = [
-		("select ivo_healpix_index(point('', ra, dec), 10) from test.ufuncex",
+		("select ivo_healpix_index(10, point('', ra, dec)) from test.ufuncex",
 			"SELECT healpix_nest(10, spoint(RADIANS(ra), RADIANS(dec))) ASWHATEVER FROM test.ufuncex"),
-		("select ivo_healpix_index(p, 10) from test.ufuncex",
+		("select ivo_healpix_index(10, p) from test.ufuncex",
 			"SELECT healpix_nest(10, p) ASWHATEVER FROM test.ufuncex"),
-		("select ivo_healpix_center(40002, 10) from test.ufuncex",
+		("select ivo_healpix_center(10, 40002) from test.ufuncex",
 			"SELECT center_of_healpix_nest(10, 40002) ASWHATEVER FROM test.ufuncex"),
 	]
 
@@ -277,17 +278,16 @@ class HealpixExecTest(testhelpers.VerboseTest):
 
 	def testIndexAndPoint(self):
 		res = adqlglue.query(self.querier,
-			"SELECT ivo_healpix_index(p, 10) as hpi"
+			"SELECT ivo_healpix_index(10, p) as hpi"
 			" from test.ufuncex WHERE dt<'1985-01-01'")
 		self.assertEqual(res.rows[0]["hpi"], 2937727L)
 	
 	def testCenterFinding(self):
 		res = adqlglue.query(self.querier,
-			"SELECT ivo_healpix_center(ivo_healpix_index(ra, dec, 10), 5) as pt"
+			"SELECT ivo_healpix_center(10, ivo_healpix_index(10, ra, dec)) as pt"
 			" from test.ufuncex WHERE dt<'1985-01-01'")
-		self.assertAlmostEqual(res.rows[0]["pt"].y, 0.894582592023234)
-		# I do hope the -7.46 some day will be properly normalised.
-		self.assertAlmostEqual(res.rows[0]["pt"].x, -7.46128255227576)
+		self.assertAlmostEqual(res.rows[0]["pt"].y, -12.25362992*utils.DEG)
+		self.assertAlmostEqual(res.rows[0]["pt"].x, 23.51074219*utils.DEG)
 		self.assertEqual(res.tableDef.columns[0].type, "spoint")
 
 
