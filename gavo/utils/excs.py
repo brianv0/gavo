@@ -124,9 +124,13 @@ class BadCode(StructureError):
 		self.code, self.codeType = code, codeType
 		self.origExc = origExc
 
-	def __str__(self):
+	def __repr__(self):
 		return self.addPos(
-			"Bad source code in %s (%s)"%(self.codeType, unicode(self.origExc)))
+			"Bad source code in %s (%s)"%(
+				self.codeType, unicode(self.origExc)))
+
+	def __str__(self):
+		return repr(self)
 
 
 class ValidationError(Error):

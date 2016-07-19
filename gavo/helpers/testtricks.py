@@ -139,6 +139,7 @@ VO_SCHEMATA = [
 		"VOSITables-v1.0.xsd",
 		"VOTable-1.1.xsd",
 		"VOTable-1.2.xsd",
+		"VOTable-1.3.xsd",
 		"vo-dml-v1.0.xsd",
 		"xlink.xsd",
 		"XMLSchema.xsd",

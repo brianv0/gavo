@@ -550,7 +550,7 @@ class RegTest(procdef.ProcApp, unittest.TestCase):
 				" starts with\n%s"%(msgs[:160]))
 
 	XPATH_NAMESPACE_MAP = {
-		"v": "http://www.ivoa.net/xml/VOTable/v1.2",
+		"v": "http://www.ivoa.net/xml/VOTable/v1.3",
 		"v2": "http://www.ivoa.net/xml/VOTable/v1.2",
 		"v1": "http://www.ivoa.net/xml/VOTable/v1.1",
 		"o": "http://www.openarchives.org/OAI/2.0/",

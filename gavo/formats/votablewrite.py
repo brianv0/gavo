@@ -54,7 +54,8 @@ class VOTableContext(utils.IdManagerMixin):
 
 		- a value mapper registry (by default, valuemappers.defaultMFRegistry)
 		- the tablecoding (currently, td, binary, or binary2)
-		- version=(1,1) to order a 1.1-version VOTable
+		- version=(1,1) to order a 1.1-version VOTable, (1,2) for 1.2.
+		  (default is now 1.3.
 		- acquireSamples=False to suppress reading some rows to get
 		  samples for each column
 		- suppressNamespace=False to leave out a namespace declaration
@@ -73,7 +74,7 @@ class VOTableContext(utils.IdManagerMixin):
 			suppressNamespace=False, overflowElement=None):
 		self.mfRegistry = mfRegistry
 		self.tablecoding = tablecoding
-		self.version = version or (1,2)
+		self.version = version or (1,3)
 		self.acquireSamples = acquireSamples
 		self.suppressNamespace = suppressNamespace
 		self.overflowElement = overflowElement
@@ -563,11 +564,11 @@ def makeVOTable(data, ctx=None, **kwargs):
 	if ctx.version==(1,1):
 		vot = V.VOTABLE11()
 	elif ctx.version==(1,2):
-		vot = V.VOTABLE()
+		vot = V.VOTABLE12()
 	elif ctx.version==(1,3):
-		vot = V.VOTABLE()     # TODO: actually write 1.3
-	elif ctx.version==(1,4):
 		vot = V.VOTABLE()
+	elif ctx.version==(1,4):
+		vot = V.VOTABLE()     # TODO: When 1.4 XSD comes out, actually implement
 	else:
 		raise votable.VOTableError("No toplevel element for VOTable version %s"%
 			ctx.version)
@@ -636,4 +637,9 @@ common.registerDataWriter("votabletd1.1", functools.partial(
 	format, tablecoding="td", version=(1,1)), 
 	"application/x-votable+xml;serialization=TABLEDATA;version=1.1", 
 	"Tabledata VOTable version 1.1",
+	"text/xml")
+common.registerDataWriter("votabletd1.2", functools.partial(
+	format, tablecoding="td", version=(1,2)), 
+	"application/x-votable+xml;serialization=TABLEDATA;version=1.2", 
+	"Tabledata VOTable version 1.2",
 	"text/xml")

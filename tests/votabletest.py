@@ -894,7 +894,7 @@ class HackMetaTest(testhelpers.VerboseTest):
 		res = votablewrite.getAsVOTable(table,
 			votablewrite.VOTableContext(suppressNamespace=True))
 		self.failUnless(
-			"VOTABLE version=\"1.2\" malformed mess xmlns:crazy='http://forget.this'"
+			"VOTABLE version=\"1.3\" malformed mess xmlns:crazy='http://forget.this'"
 			in res)
 
 	def testInfoMeta(self):

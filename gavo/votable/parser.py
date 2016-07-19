@@ -32,14 +32,15 @@ DEFAULT_WATCHSET = []
 VOTABLE_NAMESPACES = [
 	"http://www.ivoa.net/xml/VOTable/v1.0",
 	"http://www.ivoa.net/xml/VOTable/v1.1",
-	"http://www.ivoa.net/xml/VOTable/v1.2"]
+	"http://www.ivoa.net/xml/VOTable/v1.2",
+	"http://www.ivoa.net/xml/VOTable/v1.3",
+]
 
 
 def _processNodeDefault(text, child, parent):
 	"""the default node processor: Append child to parent, return child.
 	"""
-	if text and text.strip():
-		child[text]
+	assert not (text and text.strip())
 	parent[child]
 	return child
 
@@ -134,7 +135,11 @@ def parse(inFile, watchset=DEFAULT_WATCHSET, ignoreUnknowns=False):
 					# and people mess it up anyway.
 				payload = dict((str(k.replace("-", "_")), v) 
 					for k, v in payload.iteritems() if (not ":" in k and k!="xmlns"))
-			elementStack.append(elements[tag](**payload))
+			try:
+				elementStack.append(elements[tag](**payload))
+			except TypeError, ex:
+				# this is quite likely a bad constructor argument
+				raise iterator.getParseError("Invalid VOTable construct: %s"%str(ex))
 
 			# ...prepare for new content,...
 			content = []

@@ -889,11 +889,6 @@ class WeirdTablesTest(testhelpers.VerboseTest):
 		data, metadata = votable.load(StringIO("<VOTABLE/>"))
 		self.failUnless(data is None)
 
-	def testBadTag(self):
-		it = votable.parseString("<VOTABLE><FOO/></VOTABLE>")
-		self.assertRaisesWithMsg(votable.VOTableParseError, 
-			"At [<VOTABLE><FOO/></VOTABLE>], (1, 9): Unknown tag: FOO", list, it)
-
 	def testBadStructure(self):
 		it = votable.parseString("<VOTABLE>")
 		self.assertRaisesWithMsg(votable.VOTableParseError, 
@@ -912,6 +907,19 @@ class WeirdTablesTest(testhelpers.VerboseTest):
 		self.assertEqual(len(data), 20)
 		self.assertEqual(len(data[0]), 1)
 		self.assertEqual(len(data[0][0]), 1000)
+
+	def testUnknownAttributesFails(self):
+		it = votable.parseString('<VOTABLE><RESOURCE class="upper"/></VOTABLE>')
+		self.assertRaisesWithMsg(votable.VOTableParseError, 
+			'At [<VOTABLE><RESOURCE class="u...], (1, 9): Invalid VOTable construct: constructor() got an unexpected keyword argument \'class\'',
+			list, 
+			(it,))
+
+	def testBadTag(self):
+		it = votable.parseString("<VOTABLE><FOO/></VOTABLE>")
+		self.assertRaisesWithMsg(votable.VOTableParseError, 
+			"At [<VOTABLE><FOO/></VOTABLE>], (1, 9): Unknown tag: FOO", list, it)
+
 
 
 class StringArrayTest(testhelpers.VerboseTest):
@@ -1000,7 +1008,7 @@ class StanXMLText(testhelpers.VerboseTest):
 	def testSimple(self):
 		vot = V.VOTABLE[
 			V.INFO(name="QUERY_STATUS", value="ERROR")["Nothing, testing"]]
-		self.assertEqual(vot.render(), '<VOTABLE version="1.2" xmlns="http://www.ivoa.net/xml/VOTable/v1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.ivoa.net/xml/VOTable/v1.2 http://vo.ari.uni-heidelberg.de/docs/schemata/VOTable-1.2.xsd"><INFO name="QUERY_STATUS" value="ERROR">Nothing, testing</INFO></VOTABLE>')
+		self.assertEqual(vot.render(), '<VOTABLE version="1.3" xmlns="http://www.ivoa.net/xml/VOTable/v1.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.ivoa.net/xml/VOTable/v1.3 http://vo.ari.uni-heidelberg.de/docs/schemata/VOTable-1.3.xsd"><INFO name="QUERY_STATUS" value="ERROR">Nothing, testing</INFO></VOTABLE>')
 
 
 class _BOMB(V._VOTElement):

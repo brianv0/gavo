@@ -22,8 +22,8 @@ NAMESPACES = {
 
 # WARNING: if you change the default version of the VOTables generated,
 # you'll probably have to adapt them in resources/xsl, too.
-#registerPrefix("vot", NAMESPACES["1.3"], schemaURL("VOTable-1.3.xsd"))
-registerPrefix("vot", NAMESPACES["1.2"], schemaURL("VOTable-1.2.xsd"))
+registerPrefix("vot", NAMESPACES["1.3"], schemaURL("VOTable-1.3.xsd"))
+registerPrefix("vot2", NAMESPACES["1.2"], schemaURL("VOTable-1.2.xsd"))
 registerPrefix("vot1", NAMESPACES["1.1"], schemaURL("VOTable-1.1.xsd"))
 	
 
@@ -382,7 +382,7 @@ class VOTable(object):
 
 	class VOTABLE(_VOTElement):
 		_a_ID = None
-		_a_version = "1.2"
+		_a_version = "1.3"
 		_prefix = "vot"
 		_supressedPrefix = "vot"
 		_mayBeEmpty = True
@@ -397,13 +397,12 @@ class VOTable(object):
 			"GROUP", "PARAM", "RESOURCE"]
 
 
-	class VOTABLE11(_VOTElement):
+	class VOTABLE11(VOTABLE):
 # An incredibly nasty hack that kinda works due to the fact that
 # all elements here are local -- make this your top-level element
 # and only use what's legal in VOTable 1.1, and you get a VOTable1.1
 # conforming document
 		name_ = "VOTABLE"
-		_a_ID = None
 		_a_version = "1.1"
 		_prefix = "vot1"
 		_supressedPrefix = "vot1"
@@ -415,9 +414,23 @@ class VOTable(object):
 					getPrefixInfo("xsi")[0])
 				+getPrefixInfo("vot1"))
 
+	class VOTABLE12(VOTABLE):
+# see VOTABLE11
+		name_ = "VOTABLE"
+		_a_version = "1.2"
+		_prefix = "vot2"
+		_supressedPrefix = "vot2"
+		# The following is for when the xmlstan tree is processed by 
+		# tablewriter.write rather than asETree
+		_fixedTagMaterial = ('xmlns="%s" xmlns:xsi="%s"'
+				' xsi:schemaLocation="%s %s"')%((
+					getPrefixInfo("vot1")[0],
+					getPrefixInfo("xsi")[0])
+				+getPrefixInfo("vot2"))
 
 
-def voTag(tagName, version="1.2"):
+
+def voTag(tagName, version="1.3"):
 	"""returns the VOTable QName for tagName.
 
 	You only need this if you want to search in ElementTrees.
