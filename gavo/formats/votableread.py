@@ -253,7 +253,7 @@ def uploadVOTable(tableId, srcFile, connection, gunzip=False,
 	if gunzip:
 		srcFile = gzip.GzipFile(fileobj=srcFile, mode="r")
 	try:
-		tuples = votable.parse(srcFile).next()
+		tuples = votable.parse(srcFile, raiseOnInvalid=False).next()
 	except StopIteration: # no table contained, not our problem
 		return
 

@@ -37,6 +37,34 @@ VOTABLE_NAMESPACES = [
 ]
 
 
+class IGNORE(object):
+	"""this is a sentinel element used when an element is not known
+	but robust parsing is requested.
+
+	These should not end up in a DOM, but if they do, they're silent.
+
+	They're designed to largely behave like stanxml Elements; it can't
+	autoconstruct, though.
+	"""
+	def __init__(self):
+		pass
+	
+	def __call__(self, **kwargs):
+		return self
+	
+	def __getitem__(self, item):
+		pass
+	
+	def isEmpty(self):
+		return True
+	
+	def shouldBeSkipped(self):
+		return True
+	
+	def apply(self, func):
+		return
+
+
 def _processNodeDefault(text, child, parent):
 	"""the default node processor: Append child to parent, return child.
 	"""
@@ -102,7 +130,7 @@ def _computeElementsImpl():
 computeElements = utils.CachedGetter(_computeElementsImpl)
 
 
-def parse(inFile, watchset=DEFAULT_WATCHSET, ignoreUnknowns=False):
+def parse(inFile, watchset=DEFAULT_WATCHSET, raiseOnInvalid=True):
 	"""returns an iterator yielding items of interest.
 
 	inFile is a something that supports read(bytes)
@@ -128,7 +156,13 @@ def parse(inFile, watchset=DEFAULT_WATCHSET, ignoreUnknowns=False):
 		elif type=="start":
 			# Element open: push new node on the stack...
 			if tag not in elements:
-				raise iterator.getParseError("Unknown tag: %s"%tag)
+				if raiseOnInvalid:
+					raise iterator.getParseError("Unknown tag: %s"%tag)
+				else:
+					element = IGNORE()
+			else:
+				element = elements[tag]
+
 			if payload: 
 					# Force attr keys to the byte strings for kw args and drop everything
 					# that's namespace related -- it's not necessary for VOTables
@@ -136,7 +170,7 @@ def parse(inFile, watchset=DEFAULT_WATCHSET, ignoreUnknowns=False):
 				payload = dict((str(k.replace("-", "_")), v) 
 					for k, v in payload.iteritems() if (not ":" in k and k!="xmlns"))
 			try:
-				elementStack.append(elements[tag](**payload))
+				elementStack.append(element(**payload))
 			except TypeError, ex:
 				# this is quite likely a bad constructor argument
 				raise iterator.getParseError("Invalid VOTable construct: %s"%str(ex))
@@ -160,17 +194,18 @@ def parse(inFile, watchset=DEFAULT_WATCHSET, ignoreUnknowns=False):
 				content = []
 			else:
 				text = None
-
+			
 			# ...see if we have any special procssing to do for the node type...
 			nodeProc = processors.get(tag, _processNodeDefault)
 			preChild = elementStack.pop()
-			# ...call handler with the current node and its future parent...
-			child = nodeProc(text, preChild, elementStack[-1])
-			
-			# ...and let user do something with the element if she ordered it.
-			if child is not None and child.__class__ in watchset:
-				child.idmap = idmap
-				yield child
+			if not isinstance(preChild, IGNORE):
+				# ...call handler with the current node and its future parent...
+				child = nodeProc(text, preChild, elementStack[-1])
+				
+				# ...and let user do something with the element if she ordered it.
+				if child is not None and child.__class__ in watchset:
+					child.idmap = idmap
+					yield child
 
 		else:
 			assert False
@@ -186,9 +221,9 @@ def readRaw(inFile):
 	return el
 
 
-def parseString(string, watchset=DEFAULT_WATCHSET):
+def parseString(string, watchset=DEFAULT_WATCHSET, raiseOnInvalid=True):
 	"""returns an iterator yielding pairs of (table definition, row iterator).
 
 	string contains a VOTable literal.
 	"""
-	return parse(StringIO(string), watchset)
+	return parse(StringIO(string), watchset, raiseOnInvalid)

@@ -119,7 +119,7 @@ def makeDtype(tableMetadata, defaultStringLength=20):
 	return dtypes
 
 
-def load(source):
+def load(source, raiseOnInvalid=True):
 	"""returns (data, metadata) from the first table of a VOTable.
 
 	data is a list of records (as a list), metadata a TableMetadata instance.
@@ -135,7 +135,7 @@ def load(source):
 	# after the table and thus only exit the loop when the next table starts
 	# or the iterator is exhausted.
 	rows = None
-	for element in parser.parse(source, [V.INFO]):
+	for element in parser.parse(source, [V.INFO], raiseOnInvalid):
 		if isinstance(element, V.INFO):
 			infos.setdefault(element.name, []).append(element)
 		else:
@@ -148,10 +148,10 @@ def load(source):
 	return rows, fields
 
 
-def loads(stuff):
+def loads(stuff, raiseOnInvalid=True):
 	"""returns data,metadata for a VOTable literal in stuff.
 	"""
-	return load(StringIO(stuff))
+	return load(StringIO(stuff), raiseOnInvalid)
 
 
 def save(data, tableDef, destF):

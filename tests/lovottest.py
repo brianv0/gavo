@@ -915,10 +915,17 @@ class WeirdTablesTest(testhelpers.VerboseTest):
 			list, 
 			(it,))
 
-	def testBadTag(self):
+	def testBadElements(self):
 		it = votable.parseString("<VOTABLE><FOO/></VOTABLE>")
 		self.assertRaisesWithMsg(votable.VOTableParseError, 
 			"At [<VOTABLE><FOO/></VOTABLE>], (1, 9): Unknown tag: FOO", list, it)
+
+	def testIgnoringBadElements(self):
+		data, metadata = votable.load(StringIO(
+				'<VOTABLE><FOO><bar><PARAM name="quux"/>"'
+				'</bar></FOO></VOTABLE>'), 
+			raiseOnInvalid=False)
+		self.failUnless(data is None)
 
 
 
