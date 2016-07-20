@@ -911,7 +911,7 @@ class WeirdTablesTest(testhelpers.VerboseTest):
 	def testUnknownAttributesFails(self):
 		it = votable.parseString('<VOTABLE><RESOURCE class="upper"/></VOTABLE>')
 		self.assertRaisesWithMsg(votable.VOTableParseError, 
-			'At [<VOTABLE><RESOURCE class="u...], (1, 9): Invalid VOTable construct: constructor() got an unexpected keyword argument \'class\'',
+			'At [<VOTABLE><RESOURCE class="u...], (1, 9): Attribute \'class\' invalid on RESOURCE',
 			list, 
 			(it,))
 
@@ -927,6 +927,11 @@ class WeirdTablesTest(testhelpers.VerboseTest):
 			raiseOnInvalid=False)
 		self.failUnless(data is None)
 
+	def testIgnoringBadAttributes(self):
+		data, metadata = votable.load(StringIO(
+				'<VOTABLE><RESOURCE class="upper"/></VOTABLE>'),
+			raiseOnInvalid=False)
+		self.failUnless(data is None)
 
 
 class StringArrayTest(testhelpers.VerboseTest):

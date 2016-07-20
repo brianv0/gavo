@@ -130,6 +130,30 @@ def _computeElementsImpl():
 computeElements = utils.CachedGetter(_computeElementsImpl)
 
 
+def _cleanAttributes(attrDict, element, raiseOnInvalid):
+	"""returns a sanitised version of attDict for element.
+
+	We force attribute keys to be byte strings (since they're being used
+	as keyword arguments), and we drop everything that's namespace related 
+	-- it's not necessary for VOTables and people mess it up anyway.  
+	
+	Also, we complain about or filter out attributes that element
+	cannot deal with.
+	"""
+	cleaned = {}
+	for key, value in attrDict.iteritems():
+		if ":" in key or key=="xmlns":
+			continue
+		key = str(key.replace("-", "_"))
+		if not hasattr(element, "_a_"+key):
+			if raiseOnInvalid:
+				raise KeyError(key)
+			else:
+				continue
+		cleaned[key] = value
+	return cleaned
+
+
 def parse(inFile, watchset=DEFAULT_WATCHSET, raiseOnInvalid=True):
 	"""returns an iterator yielding items of interest.
 
@@ -161,19 +185,15 @@ def parse(inFile, watchset=DEFAULT_WATCHSET, raiseOnInvalid=True):
 				else:
 					element = IGNORE()
 			else:
-				element = elements[tag]
+				element = elements[tag]()
 
 			if payload: 
-					# Force attr keys to the byte strings for kw args and drop everything
-					# that's namespace related -- it's not necessary for VOTables
-					# and people mess it up anyway.
-				payload = dict((str(k.replace("-", "_")), v) 
-					for k, v in payload.iteritems() if (not ":" in k and k!="xmlns"))
-			try:
-				elementStack.append(element(**payload))
-			except TypeError, ex:
-				# this is quite likely a bad constructor argument
-				raise iterator.getParseError("Invalid VOTable construct: %s"%str(ex))
+				try:
+					payload = _cleanAttributes(payload, element, raiseOnInvalid)
+				except KeyError, msg:
+					raise iterator.getParseError("Attribute %s invalid on %s"%(
+						str(msg), element.name_))
+			elementStack.append(element(**payload))
 
 			# ...prepare for new content,...
 			content = []
