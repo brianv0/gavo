@@ -93,6 +93,12 @@ class IgnoreSpec(base.Structure):
 
 class SourceSpec(base.Structure):
 	"""A Specification of a data descriptor's inputs.
+
+	This will typcially be files taken from a file system.  If so, DaCHS will,
+	in each directory, process the files in alphabetical order.  No guarantees
+	are made as to the sequence directories are processed in.
+
+	Multiple patterns are processed in the order given in the RD.
 	"""
 	name_ = "sources"
 
@@ -167,8 +173,8 @@ class SourceSpec(base.Structure):
 				dirParts = [dirPart]
 			if self.recurse:
 				dirParts = dirParts+self._expandDirParts(dirParts)
-			for dir in dirParts:
-				for name in glob.glob(os.path.join(dir, baseName)):
+			for dir in sorted(dirParts):
+				for name in sorted(glob.glob(os.path.join(dir, baseName))):
 					fullName = os.path.abspath(name)
 					if not self.ignoredSources.isIgnored(fullName):
 						yield fullName
