@@ -74,6 +74,13 @@
 			displayHint="type=url">
 			<property key="std">1</property>
 		</column>
+
+		<param name="processing_level" type="integer"
+			utype="PSR:processingLevel"
+			ucd="meta.code;obs.calib"
+			description="Calibration level with coded according to CODMAC."
+			note="et_cal">
+			<property key="std">1</property>\\processing_level</param>
 	</STREAM>
 	
 	<STREAM id="v20columns">
@@ -173,6 +180,15 @@
 		<column name="time_origin"	type="text" 
 			ucd="meta.ref;time.scale" 
 			description="Defines where the time is measured">
+			<property key="std">1</property>
+		</column>
+
+		<column name="processing_level" type="integer"
+			utype="PSR:processingLevel"
+			ucd="meta.code;obs.calib"
+			description="Calibration level with coded according to CODMAC."
+			note="et_cal">
+			<values nullLiteral="-1"/>
 			<property key="std">1</property>
 		</column>
 	</STREAM>
@@ -377,13 +393,6 @@
 			<property key="std">1</property>
 		</column>
 
-		<param name="processing_level" type="integer"
-			utype="PSR:processingLevel"
-			ucd="meta.code;obs.calib"
-			description="Calibration level with coded according to CODMAC."
-			note="et_cal">
-			<property key="std">1</property>\\processing_level</param>
-
 		<column name="time_scale"	type="text" 
 			ucd="time.scale" 
 			description="Time scale as defined by the IVOA STC Data model."/>
@@ -533,10 +542,6 @@
 			axis; this must be one of em.freq (for electromagnetic
 			radiation) or phys.energy;phys.part (for particles)"
 			>em.freq</mixinPar>
-		<mixinPar key="processing_level" description="How processed is the
-			data?  This is a numerical code explained in the corresponding
-			table footnote.  In short: 1 -- Raw; 2 -- Edited; 3 -- Calibrated;
-			4 -- Resampled; 5 -- Derived; 6 -- Ancillary"/>
 
 		<events>
 			<adql>True</adql>
