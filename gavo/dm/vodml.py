@@ -21,6 +21,8 @@ KNOWN_MODELS = {
 # (for now) the canonical URI (which isn't available anywhere else so far).
 	"NDcube": ("CubeDM-1.0.vo-dml.xml", 
 		"http://www.ivoa.net/dm/CubeDM-1.0.vo-dml.xml"),
+	"ds": ("DatasetMetadata-1.0.vo-dml.xml",
+		"http://www.ivoa.net/dm/DatasetMetadata-1.0.vo-dml.xml"),
 	"ivoa": ("IVOA.vo-dml.xml", "http://www.ivoa.net/dm/ivoa.vo-dml.xml"),
 	"vo-dml": ("VO-DML.vo-dml.xml", "http://www.ivoa.net/dm/VO-DML.vo-dml.xml"),
 	"dachstoy": ("dachstoy.vo-dml.xml","http://docs.g-vo.org/dachstoy"),
