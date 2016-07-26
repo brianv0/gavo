@@ -129,7 +129,7 @@
 			<property key="std">1</property>
 		</column>	 
 
-		<column name="s_region" type="spoly"
+		<column name="s_region" type="\\regiontype"
 			ucd="phys.outline;obs.field"
 			description="ObssCore-like footprint, valid for celestial or body-fixed frames">
 			<property key="std">1</property>
@@ -542,6 +542,10 @@
 			axis; this must be one of em.freq (for electromagnetic
 			radiation) or phys.energy;phys.part (for particles)"
 			>em.freq</mixinPar>
+		<mixinPar key="regiontype" description="Type of the
+			s_region column.  This can be spoly (the default), scircle,
+			sbox (a coordinate range) or possibly spoint (avoid that, though)."
+			>spoly</mixinPar>
 
 		<events>
 			<adql>True</adql>
