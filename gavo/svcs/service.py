@@ -432,6 +432,10 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		self._coresCache = {}
 		self._inputDDCache = {}
 		self._loadedTemplates = {}
+		
+		# Schedule the capabilities to be added when the parse is
+		# done (i.e., the RD is complete)
+		ctx.addExitFunc(lambda rd, ctx: self._addAutomaticCapabilities())
 			
 	def onElementComplete(self):
 		self._onElementCompleteNext(Service)
@@ -489,6 +493,16 @@ class Service(base.Structure, base.ComputedMetaMixin,
 
 	################### Registry and related methods.
 
+	@property
+	def isVOPublished(self):
+		"""is true if there is any ivo_managed publication on this
+		service.
+		"""
+		for pub in self.publications:
+			if "ivo_managed" in pub.sets:
+				return True
+		return False
+
 	def _computeResourceType(self):
 		"""sets the resType attribute.
 
@@ -503,37 +517,85 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		else: # no output table defined, we're a plain service
 			self.resType = "nonTabularService"
 
-	def getPublicationsForSet(self, names):
-		"""returns publications for set names in names.
+	def _addAutomaticCapabilities(self):
+		"""adds some publications that are automatic for certain types
+		of services.
 
-		names must be a set.  If ivo_managed is in names, there is any
-		publication at all, and the service has a useful core, artificial 
-		VOSI publications are added.
+		For services with ivo_managed publications and with useful cores
+		(this keeps out doc-like publications, which shouldn't have VOSI
+		resources), artificial VOSI publications are added.
+
+		If there is _example meta, an examples publication is added.
+
+		If this service exposes a table (i.e., a DbCore with a queriedTable)
+		and that table is adql-readable, also add an auxiliary TAP publication
+		if going to the VO.
+
+		This is being run as an exit function from the parse context as
+		we want the RD to be complete at this point (e.g., _examples
+		meta might come from it).  This also lets us liberally resolve
+		references anywhere.
 		"""
-		res = [pub for pub in self.publications if pub.sets & names]
+		if not self.isVOPublished:
+			return
 		vosiSet = set(["ivo_managed"])
 
-		if (res 
-				and "ivo_managed" in names 
-				and not isinstance(self.core, core.getCore("nullCore"))):
-			res.extend((
-				base.makeStruct(Publication, render="availability", sets=vosiSet,
-					parent_=self),
-				base.makeStruct(Publication, render="capabilities", sets=vosiSet,
-					parent_=self),
-				base.makeStruct(Publication, render="tableMetadata", sets=vosiSet,
-					parent_=self),
-			))
+		# All actual services get VOSI caps
+		if not isinstance(self.core, core.getCore("nullCore")):
+			self._publications.feedObject(self,
+				base.makeStruct(Publication, 
+					render="availability", 
+					sets=vosiSet,
+					parent_=self))
+			self._publications.feedObject(self,
+				base.makeStruct(Publication, 
+					render="capabilities", 
+					sets=vosiSet,
+					parent_=self))
+			self._publications.feedObject(self,
+				base.makeStruct(Publication, 
+					render="tableMetadata", 
+					sets=vosiSet,
+					parent_=self))
 
+		# things querying tables get a TAP relationship if 
+		# their table is adql-queriable
+		if isinstance(self.core, core.getCore("dbCore")):
+			if self.core.queriedTable.adql:
+				tapService = base.resolveCrossId("//tap#run") 
+				self._publications.feedObject(self,
+					base.makeStruct(Publication, 
+						render="tap", 
+						sets=vosiSet,
+						auxiliary=True, 
+						service=tapService,
+						parent_=self))
+			  # and they need a servedBy, too.
+				# According to the "discovering dependent" note, we don't
+				# do the reverse relationship lest the TAP service
+				# gets too related...
+				self.addMeta("servedBy", 
+					base.getMetaText(tapService, "title"),
+					ivoId=base.getMetaText(tapService, "identifier"))
+
+		# things with examples meta get an examples capability
 		try:
 			self.getMeta("_example", raiseOnFail=True)
-			res.append(
-				base.makeStruct(Publication, render="examples", sets=utils.AllSet(),
+			self._publications.feedObject(self,
+				base.makeStruct(Publication, 
+					render="examples", 
+					sets=utils.AllEncompassingSet(),
 					parent_=self))
 		except base.NoMetaKey:
 			pass
 
-		return res
+	
+	def getPublicationsForSet(self, names):
+		"""returns publications for set names in names.
+
+		names must be a set.  
+		"""
+		return [pub for pub in self.publications if pub.sets & names]
 
 	def getURL(self, rendName, absolute=True, **kwargs):
 		"""returns the full canonical access URL of this service together 
@@ -639,7 +701,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		"""adds meta to self and data indicating that data is served by
 		service.
 
-		This is used by adql and the publish element on data.
+		This is used by table/@adql and the publish element on data.
 		"""
 		if data.registration:
 			self.addMeta("serviceFor", 

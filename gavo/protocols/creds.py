@@ -17,7 +17,7 @@ from __future__ import with_statement
 
 from gavo import base
 
-from gavo.utils import AllSet
+from gavo.utils import AllEncompassingSet
 
 # this should only be changed for unit tests
 adminProfile = "admin"
@@ -35,7 +35,7 @@ def getGroupsForUser(username, password):
 			return set()
 	if username=='gavoadmin' and (
 			password and password==base.getConfig("web", "adminpasswd")):
-		return AllSet()
+		return AllEncompassingSet()
 	query = ("SELECT groupname FROM dc.groups NATURAL JOIN dc.users as u"
 		" where username=%(username)s AND u.password=%(password)s")
 	pars = {"username": username, "password": password}

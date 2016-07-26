@@ -31,7 +31,7 @@ class PDSRowIterator(RowIterator):
 
 
 class PDSGrammar(Grammar):
-	"""A grammar that returns labels of PDS documentes as rowdicts
+	"""A grammar that returns labels of PDS documents as rowdicts.
 
 	PDS is the file format of the Planetary Data System; the labels
 	are quite like, but not quite like FITS headers.

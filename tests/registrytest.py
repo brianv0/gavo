@@ -1131,11 +1131,12 @@ class _OtherServiceRRTree(testhelpers.TestResource):
 				<meta name="referenceURL">http://faked</meta>
 				<meta name="description">All Faked</meta>
 				<meta name="subject">Fakes</meta>
-				<service id="web">
+				<dbCore id="adcore" queriedTable="data/test#adqltable"/>
+				<service id="web" core="adcore">
 					<meta name="title">Web service</meta>
 					<publish render="form" sets="local"/>
-					<nullCore/></service>
-				<service id="scs" allowed="scs.xml">
+				</service>
+				<service id="scs" allowed="scs.xml" core="adcore">
 					<meta name="title">SCS service</meta>
 					<meta name="shortName">test prot</meta>
 					<meta name="testQuery.ra">1</meta>
@@ -1143,7 +1144,7 @@ class _OtherServiceRRTree(testhelpers.TestResource):
 					<meta name="testQuery.sr">1</meta>
 					<publish render="scs.xml" sets="ivo_managed"/>
 					<publish render="form" sets="ivo_managed" service="web"/>
-					<nullCore/></service></resource>
+					</service></resource>
 				""")
 		rd.sourceId = "k"
 
@@ -1157,19 +1158,32 @@ class _OtherServiceRRTree(testhelpers.TestResource):
 
 
 class OtherServiceTest(testhelpers.VerboseTest):
-# tests for having a service attribute in a publish record
+# tests for having a service attribute in a publish record,
+# and for automatic addition of TAP aux records.
 	resources = [("treeAndRecs", _OtherServiceRRTree())]
 
 	def testSCSCapability(self):
 		self.assertEqual(self.treeAndRecs[0].xpath(
 				"//capability[1]/interface/accessURL")[0].text,
 			"http://localhost:8080/k/scs/scs.xml?")
+		self.assertEqual(self.treeAndRecs[0].xpath(
+				"//capability[@standardID='ivo://ivoa.net/std/ConeSearch']"
+				"/maxSR")[0].text, "180")
+		self.assertEqual(self.treeAndRecs[0].xpath(
+				"//capability[@standardID='ivo://ivoa.net/std/ConeSearch']"
+				"/testQuery/ra")[0].text, "1")
 
 	def testWebCapability(self):
 		self.assertEqual(self.treeAndRecs[0].xpath(
 				"//capability[2]/interface/accessURL")[0].text,
 			"http://localhost:8080/k/web/form")
 	
+	def testTAPAuxCap(self):
+		self.assertEqual(self.treeAndRecs[0].xpath(
+				"//capability[@standardID='ivo://ivoa.net/std/TAP#aux']"
+					"/interface/accessURL")[0].text,
+			"http://localhost:8080/__system__/tap/run/tap")
+
 	def testDBFormLink(self):
 		webIntf = [r for r in self.treeAndRecs[1] if r["browseable"]]
 		assert len(webIntf)==1
@@ -1179,8 +1193,9 @@ class OtherServiceTest(testhelpers.VerboseTest):
 			"/k/web/form")
 
 	def testDBCSLink(self):
-		csIntf = [r for r in self.treeAndRecs[1] if not r["browseable"]]
+		csIntf = [r for r in self.treeAndRecs[1] if r["renderer"]=="scs.xml"]
 		assert len(csIntf)==1
+		self.assertFalse(r["browseable"])
 		self.assertEqual(csIntf[0]["referenceURL"],
 			"http://localhost:8080/k/scs/info")
 		self.assertEqual(csIntf[0]["accessURL"],

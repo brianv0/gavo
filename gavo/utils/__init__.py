@@ -32,7 +32,7 @@ from gavo.utils.codetricks import (silence, ensureExpression, compileFunction,
 	in_dir, memoizedMethod, getTracebackAsString,
 	Infimum, Supremum, NullObject,
 	stealVar,
-	AllSet)
+	AllEncompassingSet)
 
 from gavo.utils.excs import *
 
