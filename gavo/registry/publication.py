@@ -105,8 +105,12 @@ def iterSvcRecs(service, keepTimestamp=False):
 	rec["owner"] = service.limitTo
 	yield ("resources", rec)
 
-	# each publication becomes one interface
+	# each publication becomes one interface, except for auxiliary
+	# publications, which are for the VO registry only.
 	for pub in service.publications:
+		if pub.auxiliary:
+			continue
+
 		try:
 			browseable = service.isBrowseableWith(pub.render)
 		except AttributeError:  # service is not a ServiceBasedPage
