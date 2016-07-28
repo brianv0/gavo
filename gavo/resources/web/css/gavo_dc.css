@@ -146,8 +146,9 @@ table.results {
 }
 
 .results tr td {
-	padding-left: 2px;
-	padding-right: 2px;
+	padding-left: 2pt;
+	padding-right: 2pt;
+	text-align: right;
 }
 
 .resultMeta {
