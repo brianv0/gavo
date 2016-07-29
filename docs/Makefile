@@ -1,3 +1,8 @@
+# VPATH must include the directory the RST files are in in a checkout of 
+# https://github.com/chbrandt/dachs-doc.git
+RST_DIR=../../dachs-doc/docs/source
+VPATH=$(RST_DIR):.
+
 HTMLTARGET=vo.ari.uni-heidelberg.de:/var/www/docs/DaCHS
 RST_SOURCES=data_checklist.rstx howDoI.rstx ref.rstx tutorial.rstx\
 	booster.rstx install.rstx stc.rstx processors.rstx adql.rstx\
@@ -25,6 +30,8 @@ ALL_PDF=$(subst .rstx,.pdf,$(RST_SOURCES))
 %.tex: %.rstx
 	gavo gendoc latex $< > $@
 
+booster.html: booster.rstx
+
 .PHONY: ref.rstx elemref.rstx apidoc-stamp
 ref.rstx:
 	gavo --debug --traceback gendoc refdoc > ref.rstx
@@ -42,11 +49,12 @@ apidoc: gavo-epydoc.conf apidoc-stamp
 	epydoc -v --config gavo-epydoc.conf
 
 install: all
-	rsync -av *.css gavodoc.js $(HTML_FILES) $(ALL_PDF) $(RST_SOURCES) apidoc $(HTMLTARGET) 
+	rsync -av *.css gavodoc.js $(HTML_FILES) $(ALL_PDF) index.rstx apidoc $(HTMLTARGET) 
+	rsync -av $(RST_DIR)/*.rstx $(HTMLTARGET)
 
 all: $(HTML_FILES) $(ALL_PDF)
 
 clean:
 	rm -f $(ALL_HTML)
-	rm -f *.log *.aux *.out *.pdf
+	rm -f *.log *.aux *.out *.pdf *.toc
 	rm -f apidoc-stamp

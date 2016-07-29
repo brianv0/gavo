@@ -102,9 +102,13 @@ def getPathIndex():
 			# probably a __system__ RD
 			continue
 
-		with open(rdPath) as inFile:
-			for key in gatherXPaths(inFile):
-				pathIndex.setdefault(key, set()).add(rdId)
+		try:
+			with open(rdPath) as inFile:
+				for key in gatherXPaths(inFile):
+					pathIndex.setdefault(key, set()).add(rdId)
+		except ElementTree.ParseError:
+			# bad RD -- we certainly don't want to show it
+			pass
 	return pathIndex
 
 
