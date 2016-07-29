@@ -1,0 +1,6 @@
+This directory used to contain DaCHS' documentation.  In order to foster
+third-party contributions, the doc VCS has been moved to 
+https://github.com/chbrandt/dachs-doc.git.  This directory still contains
+the infrastructure for local builds.
+
+The makefile assumes a clone of the github repo is at ../../dachs-doc

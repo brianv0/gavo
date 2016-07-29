@@ -155,7 +155,9 @@ def runTAPQuery(query, timeout, connection, tdsForUploads, maxrec,
 		result.meta_ = tableTrunk.meta_
 		# XXX Hack: this is a lousy fix for postgres' seqscan love with
 		# limit.  See if we still want this with newer postgres...
-		result.configureConnection([("enable_seqscan", False)])
+		result.configureConnection([
+			("enable_seqscan", False),
+			("cursor_tuple_fraction", 1)])
 		result.setTimeout(timeout)
 	except:
 		adqlglue.mapADQLErrors(*sys.exc_info())

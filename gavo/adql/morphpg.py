@@ -67,10 +67,10 @@ def _booleanizeContainsQ3C(node, operator, operand):
 	if tapstc.getPGSphereTrafo(args[0].cooSys, args[1].cooSys) is not None:
 		# we'll need a transform; q3c cannot do this.
 		return None
-	
 
 	expr = None
 	p, shape = args
+
 	if shape.type=="circle":
 		# The pg planner works much smoother if you have constants first.
 		if p.x.type=='columnReference':
@@ -79,6 +79,7 @@ def _booleanizeContainsQ3C(node, operator, operand):
 		else:
 			expr = ("q3c_join(%s, %s, %s, %s, %s)"%tuple(map(_flatAndMorph, 
 				(p.x, p.y, shape.x, shape.y, shape.radius))))
+
 	elif shape.type=="polygon":
 		expr = "q3c_poly_query(%s, %s, ARRAY[%s])"%(
 			_flatAndMorph(p.x), _flatAndMorph(p.y), ",".join([

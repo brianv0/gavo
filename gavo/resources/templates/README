@@ -1,0 +1,17 @@
+In addition to the HTML template for DaCHS' web interface, this
+directory also contains the template for the reference documentation;
+since it is used by gavo gendoc, it needs to be in the distributed
+resources.
+
+Do *not* edit refdoc.rstx here.  It is maintained in DaCHS' documentation
+repo, https://github.com/chbrandt/dachs-doc.git.  In a checkout of that,
+have something like the following in
+.git/hooks/post-merge and
+.git/hooks/post-commit:
+
+#!/bin/sh
+# this hook updates the reference doc template in the GAVO source distribution
+# and should be both post-merge and post-commit
+cp docs/source/refdoc.rstx ../trunk/gavo/resources/templates/refdoc.rstx
+
+(fix the relative path, of course.
