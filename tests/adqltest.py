@@ -1533,7 +1533,7 @@ class Q3CMorphTest(unittest.TestCase):
 				" circle('ICRS', 23, 24, 0.2))=1"))
 		self.assertEqual(adql.flatten(t),
 			"SELECT alphaFloat, deltaFloat FROM ppmx.data WHERE"
-				" q3c_join(23, 24, alphaFloat, deltaFloat, 0.2)")
+				" q3c_join_symmetric(23, 24, alphaFloat, deltaFloat, 0.2)")
 	
 	def testCircleOut(self):
 		s, t = morphpg.morphPG(
@@ -1542,7 +1542,7 @@ class Q3CMorphTest(unittest.TestCase):
 				" circle('ICRS', 23, 24, 0.2))"))
 		self.assertEqual(adql.flatten(t),
 			"SELECT alphaFloat, deltaFloat FROM ppmx.data WHERE"
-				" NOT q3c_join(23, 24, alphaFloat, deltaFloat, 0.2)")
+				" NOT q3c_join_symmetric(23, 24, alphaFloat, deltaFloat, 0.2)")
 
 	def testConstantsFirst(self):
 		s, t = morphpg.morphPG(
@@ -1551,7 +1551,7 @@ class Q3CMorphTest(unittest.TestCase):
 				" circle('ICRS', alphaFloat, deltaFloat, 0.2))"))
 		self.assertEqual(adql.flatten(t),
 			"SELECT alphaFloat, deltaFloat FROM ppmx.data WHERE"
-				" NOT q3c_join(23, 24, alphaFloat, deltaFloat, 0.2)")
+				" NOT q3c_join_symmetric(23, 24, alphaFloat, deltaFloat, 0.2)")
 
 	def _parseAnnotating(self, query):
 		return adql.parseAnnotating(query, _sampleFieldInfoGetter)[1]
@@ -1562,7 +1562,7 @@ class Q3CMorphTest(unittest.TestCase):
 			" WHERE 1=CONTAINS(POINT('ICRS', ra1, ra2),"
 			"  CIRCLE('ICRS', 10, 10, 0.5))"))
 		self.assertEqual(adql.flatten(t),
-			"SELECT spatial.dist, spatial.width, spatial.height, spatial.ra1, spatial.ra2 FROM spatial WHERE q3c_join(10, 10, ra1, ra2, 0.5) LIMIT 10")
+			"SELECT spatial.dist, spatial.width, spatial.height, spatial.ra1, spatial.ra2 FROM spatial WHERE q3c_join_symmetric(10, 10, ra1, ra2, 0.5) LIMIT 10")
 
 	def testMogrifiedIntersect(self):
 		s, t = morphpg.morphPG(
@@ -1570,7 +1570,7 @@ class Q3CMorphTest(unittest.TestCase):
 			" WHERE 1=INTERSECTS(CIRCLE('ICRS', 10, 10, 0.5),"
 				"POINT('ICRS', ra1, ra2))"))
 		self.assertEqual(adql.flatten(t),
-			"SELECT spatial.dist, spatial.width, spatial.height, spatial.ra1, spatial.ra2 FROM spatial WHERE q3c_join(10, 10, ra1, ra2, 0.5) LIMIT 10")
+			"SELECT spatial.dist, spatial.width, spatial.height, spatial.ra1, spatial.ra2 FROM spatial WHERE q3c_join_symmetric(10, 10, ra1, ra2, 0.5) LIMIT 10")
 
 
 class PQMorphTest(testhelpers.VerboseTest):
@@ -1670,7 +1670,7 @@ class PQMorphTest(testhelpers.VerboseTest):
 			" TAP_UPLOAD.user_table WHERE (1=CONTAINS(POINT('ICRS',"
 			" usnob.data.raj2000, usnob.data.dej2000), CIRCLE('ICRS',"
 			" TAP_UPLOAD.user_table.ra2000, a.dec2000, 0.016666666666666666)))",
-			'SELECT user_table.ra FROM user_table WHERE ( q3c_join('
+			'SELECT user_table.ra FROM user_table WHERE ( q3c_join_symmetric('
 			"user_table.ra2000, a.dec2000, usnob.data.raj2000,"
 			" usnob.data.dej2000, 0.016666666666666666) )")
 
@@ -1820,7 +1820,7 @@ class PGSMorphTest(testhelpers.VerboseTest):
 # 10
 		("select * from data where 1=contains(point('UNKNOWN', ra,de),"
 			" circle('Galactic',2,3,4))", 
-			"SELECT * FROM data WHERE q3c_join(2, 3, ra, de, 4)"),
+			"SELECT * FROM data WHERE q3c_join_symmetric(2, 3, ra, de, 4)"),
 		("select * from data where 1=intersects(coverage,"
 			"circle('icrs', 10, 10, 1))",
 			"SELECT * FROM data WHERE ((coverage) && (scircle(spoint(RADIANS(10), RADIANS(10)), RADIANS(1))))"),

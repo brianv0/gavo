@@ -352,7 +352,8 @@ def getDBConnection(profile, debug=debug, autocommitted=False):
 				" pg_hba.conf).")
 
 	if not _PSYCOPG_INITED:
-		_initPsycopg(conn)
+		_initPsycopg()
+
 	if autocommitted:
 		conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 	conn.set_client_encoding("UTF8")
@@ -954,15 +955,64 @@ def connectionConfiguration(conn, isLocal=True, timeout=None, **runtimeVals):
 	resetAll(isLocal)
 
 
-def _initPsycopg(conn):
+JOIN_FUNCTION_BODY = """
+SELECT (
+    (   
+       ((q3c_ang2ipix($3,$4)>=(q3c_nearby_it($1,$2,$5,0))) AND (q3c_ang2ipix($3,$4)<=(q3c_nearby_it($1,$2,$5,1))))
+    OR ((q3c_ang2ipix($3,$4)>=(q3c_nearby_it($1,$2,$5,2))) AND (q3c_ang2ipix($3,$4)<=(q3c_nearby_it($1,$2,$5,3))))
+    OR ((q3c_ang2ipix($3,$4)>=(q3c_nearby_it($1,$2,$5,4))) AND (q3c_ang2ipix($3,$4)<=(q3c_nearby_it($1,$2,$5,5))))
+    OR ((q3c_ang2ipix($3,$4)>=(q3c_nearby_it($1,$2,$5,6))) AND (q3c_ang2ipix($3,$4)<=(q3c_nearby_it($1,$2,$5,7))))
+    ) AND                           
+    (    
+       ((q3c_ang2ipix($1,$2)>=(q3c_nearby_it($3,$4,$5,0))) AND (q3c_ang2ipix($1,$2)<=(q3c_nearby_it($3,$4,$5,1))))
+    OR ((q3c_ang2ipix($1,$2)>=(q3c_nearby_it($3,$4,$5,2))) AND (q3c_ang2ipix($1,$2)<=(q3c_nearby_it($3,$4,$5,3))))
+    OR ((q3c_ang2ipix($1,$2)>=(q3c_nearby_it($3,$4,$5,4))) AND (q3c_ang2ipix($1,$2)<=(q3c_nearby_it($3,$4,$5,5))))
+    OR ((q3c_ang2ipix($1,$2)>=(q3c_nearby_it($3,$4,$5,6))) AND (q3c_ang2ipix($1,$2)<=(q3c_nearby_it($3,$4,$5,7))))
+    )                               
+    )
+    AND q3c_sindist($1,$2,$3,$4)<POW(SIN(RADIANS($5)/2),2)
+' LANGUAGE SQL IMMUTABLE;
+"""
+
+
+def _initPsycopg():
+	"""does any DaCHS-specific database setup necessary.
+
+	This will always open an admin connection.
+	"""
 # collect all DB setup in this function.  XXX TODO: in particular, the
 # Box mess from coords (if we still want it)
 	global _PSYCOPG_INITED
+
+	conn = psycopg2.connect(connection_factory=GAVOConnection,
+		**config.getDBProfile("feed").getArgs())
 	try:
-		from gavo.utils import pgsphere
-		pgsphere.preparePgSphere(conn)
-	except:
-		warnings.warn("pgsphere missing -- ADQL, ps-SIAP, and SSA will not work")
+		try:
+			from gavo.utils import pgsphere
+			pgsphere.preparePgSphere(conn)
+		except:
+			warnings.warn("pgsphere missing -- ADQL, pg-SIAP, and SSA will not work")
+		
+		# Add symmetrised q3c_joins if q3c is in use and the functions are
+		# not already defined
+		# TODO: Delete this when q3c is fixed.
+		funcs = set(r[0] for r in 
+			conn.query("SELECT DISTINCT proname FROM pg_proc"
+			" WHERE proname IN ('q3c_join', 'q3c_join_symmetric')"))
+		if funcs==frozenset(["q3c_join"]):
+			# q3c is there, but not our extension
+			conn.execute("""CREATE OR REPLACE FUNCTION q3c_join_symmetric(
+				leftra double precision, leftdec double precision,
+      	rightra double precision, rightdec double precision,
+      	radius double precision) RETURNS boolean AS '"""+JOIN_FUNCTION_BODY)
+			conn.execute("""CREATE OR REPLACE FUNCTION q3c_join_symmetric(
+				leftra double precision, leftdec double precision,
+      	rightra real, rightdec real,
+      	radius double precision) RETURNS boolean AS '"""+JOIN_FUNCTION_BODY)
+	finally:
+		conn.commit()
+		conn.close()
+
 	_PSYCOPG_INITED = True
 
 
