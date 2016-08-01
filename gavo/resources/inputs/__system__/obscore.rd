@@ -730,7 +730,7 @@
 		<mixinPar name="emUCD">'\getParam{ssa_fluxucd}'</mixinPar> 
 	</mixinDef>
 
-	<table id="emptyobscore" onDisk="True" system="True"
+	<table id="emptyobscore" onDisk="True"
 			readProfiles="defaults,untrustedquery">
 		<meta name="description">An empty table having all columns of the
 		obscore table.  Useful internally, and sometimes for tricky queries.
@@ -774,6 +774,7 @@
 
 	<data id="refreshAfterSchemaUpdate">
 		<recreateAfter>create</recreateAfter>
+		<make table="emptyobscore"/>
 		<make table="ObsCore">
 			<script name="update all obscore definitions" type="postCreation"
 					lang="python">
