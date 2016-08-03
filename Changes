@@ -11,7 +11,8 @@ Version 0.9.7
 
 	* Behaviour change: pythonCores no longer run in a file system sandbox 
 		(can't do that thread-safely).
-	* support for EPN-TAP 2.0 (#table-2.0 mixin)
+	* support for Obscore 1.1 (update should be automatic)
+	* support for EPN-TAP 2.0 (manually change to the #table-2.0 mixin)
 	* Obscore support is now at version 1.1
 	* DaCHS now supports CORS for web-based UIs
 	* DaCHS's ADQL cross matches should now have "good" query plans 

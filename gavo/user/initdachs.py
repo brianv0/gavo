@@ -324,8 +324,6 @@ def _readDBScript(conn, scriptPath, sourceName, procName):
 				open(scriptPath).read()):
 			cursor.execute(statement)
 	except:
-		import traceback
-		traceback.print_exc()
 		conn.rollback()
 		warnings.warn("SQL script file %s failed.  Try running manually"
 			" using psql.  While it hasn't run, the %s extension is not"

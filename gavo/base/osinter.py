@@ -108,8 +108,8 @@ def getBinaryName(baseName):
 	return baseName
 
 
-def openDistFile(name):
-	"""returns an open file for a "dist resource", i.e., a file distributed
+def getPathForDistFile(name):
+	"""returns a path for a "dist resource", i.e., a file distributed
 	with DaCHS.
 
 	This is like pkg_resources, except it also checks in 
@@ -123,9 +123,18 @@ def openDistFile(name):
 	"""
 	userPath = os.path.join(config.get("rootDir"), "overrides/"+name)
 	if os.path.exists(userPath):
-		return open(userPath)
+		return userPath
 	else:
-		return pkg_resources.resource_stream('gavo', "resources/"+name)
+		return pkg_resources.resource_filename('gavo', "resources/"+name)
+
+
+def openDistFile(name):
+	"""returns an open file for a "dist resource", i.e., a file distributed
+	with DaCHS.
+
+	see getPathForDistFile
+	"""
+	return open(getPathForDistFile(name))
 
 
 def getVersion():

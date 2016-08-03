@@ -23,7 +23,7 @@ SETUP_ARGS = {
 	"author": "Markus Demleitner",
 	"author_email": "gavo@ari.uni-heidelberg.de",
 	"packages": find_packages(),
-	# Really, I think we should be zip_safe, but there's a weird output requriring investigation
+	# We're not zip-safe because the XSD validator accesses dist files by path
 	"zip_safe": False,
 	"include_package_data":  True,
 	"install_requires": install_requires,

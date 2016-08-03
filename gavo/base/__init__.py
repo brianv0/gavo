@@ -56,7 +56,8 @@ from gavo.base.metavalidation import MetaValidationError, validateStructure
 from gavo.base.observer import ObserverBase, listensTo
 
 from gavo.base.osinter import (getGroupId, makeSharedDir, makeSitePath,
-	getBinaryName, makeAbsoluteURL, openDistFile, getVersion, sendMail)
+	getBinaryName, makeAbsoluteURL, getVersion, sendMail,
+	openDistFile, getPathForDistFile)
 
 from gavo.base.parsecontext import (
 	IdAttribute, OriginalAttribute, ReferenceAttribute, ParseContext,

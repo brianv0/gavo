@@ -68,12 +68,12 @@ class XSDResolver(etree.Resolver):
 	"""A resolver for external entities only returning in-tree files only.
 	"""
 	def __init__(self):
-		self.basePath = "/"+os.path.join(
-			*(__file__.split("/")[:-3]+["schemata"]))
+		self.basePath = "schemata"
 
 	def getPathForName(self, name):
 		xsdName = name.split("/")[-1]
-		return os.path.join(self.basePath, xsdName)
+		return base.getPathForDistFile(
+			os.path.join(self.basePath, xsdName))
 
 	def resolve(self, url, pubid, context):
 		try:
