@@ -131,9 +131,9 @@ class ImportTest(testhelpers.VerboseTest):
 		with testhelpers.testFile(destName, '<resource schema="junk"/>'):
 			self.assertOutput(cli.main, 
 				argList=["imp", destName],
-				expectedRetcode=1, expectedStderr=
-				"*** Error: /home/msdemlei/foobar.rd: Only RDs below inputsDir"
-				"\n(/home/msdemlei/_gavo_test/inputs) are allowed.\n")
+				expectedRetcode=1, expectedStderr=lambda tx:
+				re.match(r"\*\*\* Error: .*/foobar.rd: Only RDs below inputsDir"
+				"\n.*/inputs. are allowed.\n", tx) is not None)
 
 	def testMetaImportAndPurge(self):
 		self.assertOutput(cli.main, argList=["purge", "test.adql"])

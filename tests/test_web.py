@@ -524,7 +524,7 @@ class SCSTest(trialhelpers.ArchiveTest):
 	def testCasting(self):
 		return self.assertGETHasStrings("/data/cores/scs/scs.xml", 
 			{"RA": ["1"], "DEC": ["2"], "SR": ["1.5"]},
-			['P+HiwiZkMhwAAAABMD/0AAAAAA', 'datatype="char"'])
+			['P+HiwiZkMh', 'datatype="char"'])
 
 	def testCapability(self):
 		return self.assertGETHasStrings("/data/cores/scs/capabilities", {}, [

@@ -95,6 +95,7 @@ def _getMediaTypes():
 	"""
 	extraMaps = {
 		".vot": base.votableType,
+		".fits": "image/fits",
 	}
 	res = static.loadMimeTypes()
 	res.update(extraMaps)
