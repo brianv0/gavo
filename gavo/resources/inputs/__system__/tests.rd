@@ -23,22 +23,12 @@
 		<make table="files" rowmaker="make_files"/>
 	</data>
 
-	<data id="boxTest">
-		<dictlistGrammar/>
-		
-		<table id="misctypes">
-			<column name="box" type="box"/>
-		</table>
-		<make table="misctypes"/>
-	</data>
-
 	<uploadCore id="uploadcore" destDD="fileUploadTest"/>
 
 	<service id="upload" core="uploadcore" allowed="upload,mupload">
 		<meta name="title">Upload Test</meta>
 		<meta name="shortName">fileupdate_test</meta>
 	</service>
-
 
 	<fixedQueryCore id="resetcore" writable="True"
 		query="delete from tests.files where name='c'">
@@ -154,11 +144,26 @@
 			</code>
 		</regTest>
 
-		<regTest title="ADQL tables can be listed">
-			<url>/__system__/dc_tables/list/form</url>
+		<regTest title="OAI error response validates">
+			<url verb="do_a_hiccup">/oai.xml</url>
 			<code>
-				self.assertHasStrings("Fully qualified table", "ppmx.data", 
-					"18 088 919")
+				self.assertValidatesXSD()
+			</code>
+		</regTest>
+
+		<regTest title="OAI Identify validates">
+			<url verb="Identify">/oai.xml</url>
+			<code>
+				self.assertHasStrings("&lt;oai:Identify")
+				self.assertValidatesXSD()
+			</code>
+		</regTest>
+
+		<regTest title="Help page is sanely delivered">
+			<url>/static/help.shtml</url>
+			<code>
+				self.assertHasStrings("Service discovery", 
+					"Search forms", "VOTable", "sidebar")
 			</code>
 		</regTest>
 
@@ -187,17 +192,6 @@
 			]]></code>
 		</regTest>
 
-		<regTest title="Obscore query returns morphed link and indicates 
-				an overflow">
-			<url LANG="ADQL" query="select top 1 access_url from ivoa.obscore" 
-				REQUEST="doQuery" FORMAT="votable/td"
-				>/__system__/tap/run/tap/sync</url>
-			<code><![CDATA[
-				self.assertHasStrings("TD>http://",
-					'utype="obscore:access.reference"',
-					'<INFO name="QUERY_STATUS" value="OVERFLOW"')
-			]]></code>
-		</regTest>
 	</regSuite>
 
 	<regSuite title="Caching and compression" sequential="True">

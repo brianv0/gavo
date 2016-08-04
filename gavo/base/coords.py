@@ -52,25 +52,12 @@ def makePyfitsFromDict(d):
 	return res
 
 
-
 _wcsTestDict = {
 	"CRVAL1": 0,   "CRVAL2": 0, "CRPIX1": 50,  "CRPIX2": 50,
 	"CD1_1": 0.01, "CD1_2": 0, "CD2_1": 0,    "CD2_2": 0.01,
 	"NAXIS1": 100, "NAXIS2": 100, "CUNIT1": "deg", "CUNIT2": "deg",
 	"CTYPE1": 'RA---TAN-SIP', "CTYPE2": 'DEC--TAN-SIP', "LONPOLE": 180.,
 }
-
-
-def getBbox(points):
-	"""returns a bounding box for the sequence of 2-sequences points.
-
-	The thing returned is a coords.Box.
-
-	>>> getBbox([(0.25, 1), (-3.75, 1), (-2, 4)])
-	Box((0.25,4), (-3.75,1))
-	"""
-	xCoos, yCoos = [[p[i] for p in points] for i in range(2)]
-	return Box(min(xCoos), max(xCoos), min(yCoos), max(yCoos))
 
 
 def clampAlpha(alpha):
@@ -424,122 +411,6 @@ class Vector3(object):
 	def getz(self): return self.coos[2]
 	def setz(self, z): self.coos[2] = z
 	z = property(getz, setz)
-
-
-class Box(object):
-	"""is a 2D box.
-
-	The can be constructed either with two tuples, giving two points
-	delimiting the box, or with four arguments x0, x1, y0, y1.
-
-	To access the thing, you can either access the x[01], y[01] attributes
-	or use getitem to retrieve the upper right and lower left corner.
-
-	The slightly silly ordering of the bounding points (larger values
-	first) is for consistency with Postgresql.
-
-	Boxes can be serialized to/from Postgresql BOXes.
-
-	>>> b1 = Box(0, 1, 0, 1)
-	>>> b2 = Box((0.5, 0.5), (1.5, 1.5))
-	>>> b1.overlaps(b2)
-	True
-	>>> b2.contains(b1)
-	False
-	>>> b2.contains(None)
-	False
-	>>> b2[0]
-	(1.5, 1.5)
-	"""
-	def __init__(self, x0, x1, y0=None, y1=None):
-		if y0 is None:
-			x0, y0 = x0
-			x1, y1 = x1
-		lowerLeft = (min(x0, x1), min(y0, y1))
-		upperRight = (max(x0, x1), max(y0, y1))
-		self.x0, self.y0 = upperRight
-		self.x1, self.y1 = lowerLeft
-	
-	def __getitem__(self, index):
-		if index==0 or index==-2:
-			return (self.x0, self.y0)
-		elif index==1 or index==-1:
-			return (self.x1, self.y1)
-		else:
-			raise IndexError("len(box) is always 2")
-
-	def __str__(self):
-		return "((%.4g,%.4g), (%.4g,%.4g))"%(self.x0, self.y0, self.x1, self.y1)
-
-	def __repr__(self):
-		return "Box((%g,%g), (%g,%g))"%(self.x0, self.y0, self.x1, self.y1)
-
-	def overlaps(self, other):
-		if other is None:
-			return False
-		return not (
-			(self.x1>other.x0 or self.x0<other.x1) or
-			(self.y1>other.y0 or self.y0<other.y1))
-
-	def contains(self, other):
-		if other is None:
-			return False
-
-		if isinstance(other, Box):
-			return (self.x0+1e-10>=other.x0 and self.x1-1e-10<=other.x1 and
-				self.y0+1e-10>=other.y0 and self.y1-1e-10<=other.y1)
-		else: # other is assumed to be a 2-sequence interpreted as a point.
-			x, y = other
-			return self.x0>=x>=self.x1 and self.y0>=y>=self.y1
-	
-	def translate(self, vec):
-		dx, dy = vec
-		return Box((self.x0+dx, self.y0+dy), (self.x1+dx, self.y1+dy))
-
-
-# tell sqlsupport about the box
-try:
-	from gavo.base import sqlsupport
-
-	class BoxAdapter(object):
-		"""is an adapter for coords.Box instances to SQL boxes.
-		"""
-		def __init__(self, box):
-			self._box = box
-
-		def prepare(self, conn):
-			pass
-
-		def getquoted(self):
-			# "'(%s,%s)'"%self._box would work as well, but let's be conservative
-			# here
-			res = "'((%f, %f), (%f, %f))'"%(self._box.x0, self._box.y0,
-				self._box.x1, self._box.y1)
-			return res
-
-	sqlsupport.registerAdapter(Box, BoxAdapter)
-
-	# XXX TODO: I'm using a fixed oid here because I don't want to do
-	# a db connection during import to find out OIDs.  This *should*
-	# work fine, but really it should be delegated into a "connection set-up"
-	# type thing.  Hm.
-	_BOX_OID = 603
-
-	def castBox(value, cursor):
-		"""makes coords.Box instances from SQL boxes.
-		"""
-		if value:
-			vals = map(float, re.match(r"\(([\d.+eE-]+),([\d.+eE-]+)\),"
-				"\(([\d.+eE-]+),([\d.+eE-]+)\)", value).groups())
-			return Box(vals[0], vals[2], vals[1], vals[3])
-	
-	sqlsupport.registerType((_BOX_OID,), "BOX", castBox)
-
-except:
-	import traceback
-	traceback.print_exc()
-	warnings.warn("Failed to register Box adapter with sqlsupport.  Expect"
-		" trouble with siap")
 
 
 def sgn(a):

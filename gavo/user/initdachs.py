@@ -102,7 +102,7 @@ def makeDefaultMeta():
 		publisherID: ivo://x-unregistred
 		contact.name: Fill Out
 		contact.address: Ordinary street address.
-		contact.email: Your email address
+		contact.email: invalid@example.com
 		contact.telephone: Delete this line if you don't want to give it
 		creator.name: Could be same as contact.name
 		creator.logo: a URL pointing to a small png
@@ -111,7 +111,7 @@ def makeDefaultMeta():
 
 		authority.creationDate: %s
 		authority.title: Untitled data center
-		authority.shortName: DaCHS standin
+		authority.shortName: DaCHS test
 		authority.description: This should be a relatively terse \
 			description of what you clam authority for.
 		authority.referenceURL: (your DC's "contact" page, presumably)

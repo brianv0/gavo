@@ -27,8 +27,6 @@ from gavo.base.config import(
 	get as getConfig, set as setConfig,
 	getDBProfile)
 
-from gavo.base.coords import Box
-
 from gavo.base.events import EventDispatcher
 
 from gavo.base.macros import (StandardMacroMixin, MacroPackage,

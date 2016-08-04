@@ -94,112 +94,6 @@ class PixelScaleTest(testhelpers.VerboseTest):
 		self.failIf(rasz>1)
 
 
-class TestWCSBbox(unittest.TestCase):
-	"""Tests for conversion from WCS coordinates to bboxes and box relations.
-
-	These tests do cos(delta) manipulations on alpha widths despite
-	SIAP's prescription that no cos(delta) is done to make test cases
-	comprehendable to the cartesian mind.
-	"""
-	_testCoords = [(20, 20), (0, 0), (0, 60), (0, -60), 
-		(40, 0), (60, -65), (40, 47), (130, 32), (140, -20), 
-		(250, 80), (235, -10), (150, 89), (359, -89)]
-
-	def _testEnclosure(self, ra, dec):
-		"""tests for bbox enclosure when growing a field around ra and dec.
-		"""
-		wcs = {
-			"CRVAL1": float(ra),   "CRVAL2": float(dec),
-			"CRPIX1": 50,  "CRPIX2": 50,
-			"CD1_1": 0.01/math.cos(dec*DEG), "CD1_2": 0,
-			"CD2_1": 0,    "CD2_2": 0.01,
-			"NAXIS1": 100, "NAXIS2": 100,
-			"CUNIT1": "deg", "CUNIT2": "deg",
-			"CTYPE1": 'RA---TAN-SIP', "CTYPE2": 'DEC--TAN-SIP',
-			"LONPOLE": 180.,
-			"NAXIS": 2,
-		}
-		def encloses(bbox1, bbox2):
-			"""returns true if bbox1 encloses bbox2.
-			"""
-			b11, b12 = siap.splitCrossingBox(bbox1)
-			b21, b22 = siap.splitCrossingBox(bbox2)
-			return b11.contains(b21) and (not b12 or b12.contains(b22))
-
-		boxes = []
-		boxes.append(coords.getBboxFromWCSFields(wcs))
-		for i in range(10):
-			wcs["CD1_1"] *= 1.1
-			wcs["CD2_2"] *= 1.0001
-			bbox = coords.getBboxFromWCSFields(wcs)
-			for oldBbox in boxes:
-				self.assert_(encloses(bbox, oldBbox), "enclose false negative"
-					" while growing in ra at %f, %f"%(ra, dec))
-			boxes.append(bbox)
-		for i in range(7):
-			wcs["CD2_2"] *= 1.1
-			wcs["CD1_1"] *= 1.0001
-			bbox = coords.getBboxFromWCSFields(wcs)
-			for oldBbox in boxes:
-				self.assert_(encloses(bbox, oldBbox), "enclose false negative"
-					" while growing in dec at %f, %f -- %s %s"%(ra, dec, bbox, oldBbox))
-			boxes.append(bbox)
-		refbox = boxes[0]
-		for box in boxes[1:]:
-			self.failIf(encloses(refbox, box), "enclose false positive:"
-				" %s doesn't really enclose %s"%(refbox, box))
-
-	def testEnclosures(self):
-		for ra, dec in self._testCoords:
-			self._testEnclosure(ra, dec)
-
-	def _testOverlap(self, ra, dec):
-		"""tests for bbox overlaps around ra and dec when moving a field around.
-		"""
-		wcs = {
-			"CRVAL1": float(ra),   "CRVAL2": float(dec),
-			"CRPIX1": 50,  "CRPIX2": 50,
-			"CD1_1": 0.01, "CD1_2": 0,
-			"CD2_1": 0,    "CD2_2": 0.01,
-			"NAXIS1": 100, "NAXIS2": 100,
-			"CUNIT1": "deg", "CUNIT2": "deg",
-			"CTYPE1": 'RA---TAN-SIP', "CTYPE2": 'DEC--TAN-SIP',
-			"LONPOLE": 180.,
-			"NAXIS": 2,
-		}
-
-		def overlaps(bbox1, bbox2):
-			"""returns true if bbox1 and bbox2 overlap.
-			"""
-			b11, b12 = siap.splitCrossingBox(bbox1)
-			b21, b22 = siap.splitCrossingBox(bbox2)
-			return b11.overlaps(b21) or (b12 and b12.overlaps(b22)) or (
-				b12 and b12.overlaps(b21)) or (b22 and b22.overlaps(b11))
-
-		targBbox = coords.getBboxFromWCSFields(wcs)
-		overlapOffsets = [(.1, .1), (.6, .6), (.6, -.6), (-.6, .6), 
-			(-.6, .6), (.9, .9), (.9, -.9), (-.9, .9), (-.9, .9)]
-		for da, dd in overlapOffsets:
-			wcs["CRVAL1"], wcs["CRVAL2"] = ra+da, dec+dd
-			bbox = coords.getBboxFromWCSFields(wcs)
-			self.assert_(overlaps(bbox, targBbox), "Overlap test false negative"
-				" at %s, offsets %s"%((ra, dec), (da, dd)))
-		if abs(dec)>85:
-			# These overlap in RA always
-			return
-		notOverlapOffsets = [(0, 1.1), (2.4, 0), (0, -1.6), (-1.6, 0), 
-			(-0.8, -1.6)]
-		for da, dd in notOverlapOffsets:
-			wcs["CRVAL1"], wcs["CRVAL2"] = ra+da/math.cos(dec*DEG), dec+dd
-			bbox = coords.getBboxFromWCSFields(wcs)
-			self.failIf(overlaps(bbox, targBbox), "Overlap test false positive"
-				" at %s, offsets %s"%((ra, dec), (da, dd)))
-
-	def testOverlap(self):
-		for ra, dec in self._testCoords:
-			self._testOverlap(ra, dec)
-
-
 def computeWCSKeys(pos, size, cutCrap=False):
 	imgPix = (1000., 1000.)
 	res = {
@@ -334,12 +228,6 @@ class CooQueryTestBase(testhelpers.VerboseTest):
 	
 	def testOVERLAPS(self):
 		self._runTests("OVERLAPS")
-
-
-class BboxQueriesTest(CooQueryTestBase):
-	"""tests for actual queries on the sphere with trivial WCS data.
-	"""
-	resources = [("data", _SIAPTestTable("bbox_siaptest"))]
 
 
 _siapTestTable = _SIAPTestTable("pgs_siaptest")

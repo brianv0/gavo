@@ -8,7 +8,6 @@
 	(distributed under the GNU GPL)</meta>
 	<meta name="creator.name">John C. Testwriter</meta>
 
-	<table id="bbox_siaptable" mixin="//siap#bbox" onDisk="True"/>
 	<table id="pgs_siaptable" mixin="//siap#pgs" onDisk="True">
 		<mixin
   		sResolution="0.5"
@@ -61,16 +60,6 @@
 				<bind key="bandpassHi">@bandpassHi</bind>
 			</apply>
 		</rowmaker>
-	</data>
-
-	<data id="bbox_siaptest" original="siap_base">
-		<!-- for bbox-based searching -->
-		<property name="destTable">test.bbox_siaptable</property>
-		<rowmaker id="make_bboxsiaptable" original="st_siaptable">
-			<apply procDef="//siap#computeBbox"/>
-		</rowmaker>
-		<make table="bbox_siaptable" rowmaker="make_bboxsiaptable" 
-			role="primary"/>
 	</data>
 
 	<data id="pgs_siaptest" original="siap_base">

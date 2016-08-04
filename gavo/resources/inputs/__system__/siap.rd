@@ -83,50 +83,6 @@
 			description="Flags specifying the processing done (C-original; F-resampled; Z-fluxes valid; X-not resampled; V-for display only"/>
 	</STREAM>
 
-	<mixinDef id="bbox">
-		<doc>
-			A table mixin for simple support of SIAP based on hand-made bboxes.
-
-			The columns added into the tables include
-
-				- (certain) FITS WCS headers 
-				- imageTitle (interpolateString should come in handy for these)
-				- instId -- some id for the instrument used
-				- dateObs -- MJD of the "characteristic" observation time
-				- the bandpass* values.  You're on your own with them...
-				- the values of the //products#table mixin.  
-				- mimetype -- the mime type of the product.
-				- the primaryBbox, secondaryBbox, centerAlpha and centerDelta, nAxes, 
-					pixelSize, pixelScale, wcs* fields calculated by the 
-					computeBboxSIAPFields macro.   
-
-			(their definition is in the siap system RD)
-
-			Tables mixing in //siap#bbox can be used for SIAP querying and
-			automatically mix in the products table mixin.
-
-			To feed these tables, use the //siap#computeBbox and 
-			//siap#setMeta procs.  Since you are dealing with products, you will also
-			need the //products#define rowgen in your grammar.
-
-			If you have pgSphere, you definitely should use the pgs mixin in
-			preference to this.
-		</doc>
-		
-		<FEED source="//products#hackProductsData"/>
-
-		<events>
-			<FEED source="//siap#SIAPbase"/>
-			<column name="primaryBbox"  
-				type="box" description="Bounding box of the image for internal use"
-				displayHint="type=suppress"/>
-			<column name="secondaryBbox"  
-				type="box" description="Bounding box of the image for internal use"
-				displayHint="type=suppress"/>
-		</events>
-	</mixinDef>
-
-
 	<mixinDef id="pgs">
 		<doc>
 			A table mixin for simple support of SIAP.
@@ -184,12 +140,7 @@
 			Records without or with insufficient wcs keys are furnished with
 			all-NULL wcs info if the missingIsError setup parameter is False,
 			else they bomb out with a DataError (the default).
-
-			Use either computePGS or computeBbbox depending on what mixin
-			the table has.  PGS is much preferable.
 		</doc>
-		<!-- Actually, this is a common base for both bbox and pgsphere based
-		procs -->
 		<setup>
 			<par name="missingIsError" description="Throw an exception when
 				no WCS information can be located.">True</par>
@@ -261,18 +212,6 @@
 			</code>
 		</setup>
 
-	</procDef>
-
-	<procDef type="apply" id="computeBbox" original="computeInputBase">
-		<code>
-			additionalKeys = ["primaryBbox", "secondaryBbox"]
-
-			def addCoverage(vars, wcs, result):
-				result["primaryBbox"], result["secondaryBbox"
-					] = siap.splitCrossingBox(coords.getBboxFromWCSFields(wcs))
-
-			addWCS(vars, result, additionalKeys, addCoverage)
-		</code>
 	</procDef>
 
 	<procDef type="apply" id="computePGS" original="computeInputBase">
