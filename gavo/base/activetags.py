@@ -629,6 +629,9 @@ class Loop(ReplayedEventsWithFreeAttributesBase):
 			for name, value in row.iteritems():
 				if value:
 					value = value.strip()
+				if name is None:
+					raise utils.StructureError(
+						"Too many CSV items (extra data: %s)"%value)
 				setattr(self, "macro_"+name.strip(), lambda v=value: v)
 			self._replayer()
 
