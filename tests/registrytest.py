@@ -1113,7 +1113,7 @@ class MetaExpandedTest(testhelpers.VerboseTest):
 		rec = publication.iterSvcRecs(rd.services[0]).next()[-1]
 		self.failUnless(rec["description"].startswith(
 			"The Unittest Suite's TAP end point. The Table Access"))
-		self.assertEqual(rec["shortName"], "DaCHS standin TAP")
+		self.assertEqual(rec["shortName"], "DaCHS test TAP")
 
 
 class ResourceLocationTest(testhelpers.VerboseTest):

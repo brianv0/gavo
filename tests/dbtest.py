@@ -180,13 +180,6 @@ class TestTypes(testhelpers.VerboseTest):
 	"""
 	resources = [("conn", tresc.dbConnection)]
 
-	def testBoxUnpack(self):
-		with digestedTable(self.conn, "b_a_t", "(b BOX)",
-				[{"b": coords.Box(1,2,3,4)}]) as rows:
-			box = rows[0]["b"]
-			self.assertEqual(box[0], (2,4))
-			self.assertEqual(box[1], (1,3))
-
 	def testNumpyFloat(self):
 		with digestedTable(self.conn, "n_a_t", "(b REAL)",
 				[{"b": numpy.float(0.25)}]) as rows:

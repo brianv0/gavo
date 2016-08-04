@@ -19,7 +19,6 @@ from gavo import svcs
 from gavo import utils
 from gavo.base import coords
 from gavo.protocols import products
-from gavo.utils import DEG
 from gavo.utils import pgsphere
 
 MS = base.makeStruct
@@ -138,16 +137,10 @@ def dissectPositions(posStr):
 def _getQueryMaker(queriedTable):
 	"""returns a query making function for SIAP appropriate for queriedTable.
 
-	getQuery uses this to return the right query fragments.  You can, in
-	a pinch, pass None for queriedTable, in which case this falls back
-	to bbox.
+	This used to have a function when we had different backends for SIAP.
+	Curently, we no longer have that, so this always returns getPGSQuery.
 	"""
-	if queriedTable is None:
-		return getBboxQuery
-	elif "coverage" in queriedTable:
-		return getPGSQuery
-	else:
-		return getBboxQuery
+	return getPGSQuery
 
 
 def getQuery(queriedTable, parameters, sqlPars, prefix="sia"):

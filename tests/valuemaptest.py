@@ -44,7 +44,7 @@ class AnnotationTest(testhelpers.VerboseTest):
 
 	def testWrapping(self):
 		col = valuemappers.AnnotatedColumn(testhelpers.getTestRD(
-			).getById("bbox_siaptable").getColumnByName("dateObs"))
+			).getById("pgs_siaptable").getColumnByName("dateObs"))
 		self.assertEqual(col["ucd"], "VOX:Image_MJDateObs")
 
 

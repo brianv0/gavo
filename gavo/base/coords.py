@@ -15,7 +15,6 @@ import math
 import new
 from math import sin, cos, pi #noflake: exported names
 import re
-import warnings
 
 import numpy
 
@@ -58,6 +57,54 @@ _wcsTestDict = {
 	"NAXIS1": 100, "NAXIS2": 100, "CUNIT1": "deg", "CUNIT2": "deg",
 	"CTYPE1": 'RA---TAN-SIP', "CTYPE2": 'DEC--TAN-SIP', "LONPOLE": 180.,
 }
+
+
+class Box(object):
+	"""is a 2D box.
+
+	The can be constructed either with two tuples, giving two points
+	delimiting the box, or with four arguments x0, x1, y0, y1.
+
+	To access the thing, you can either access the x[01], y[01] attributes
+	or use getitem to retrieve the upper right and lower left corner.
+
+	The slightly silly ordering of the bounding points (larger values
+	first) is for consistency with Postgresql.
+	"""
+	def __init__(self, x0, x1, y0=None, y1=None):
+		if y0 is None:
+			x0, y0 = x0
+			x1, y1 = x1
+		lowerLeft = (min(x0, x1), min(y0, y1))
+		upperRight = (max(x0, x1), max(y0, y1))
+		self.x0, self.y0 = upperRight
+		self.x1, self.y1 = lowerLeft
+	
+	def __getitem__(self, index):
+		if index==0 or index==-2:
+			return (self.x0, self.y0)
+		elif index==1 or index==-1:
+			return (self.x1, self.y1)
+		else:
+			raise IndexError("len(box) is always 2")
+
+	def __str__(self):
+		return "((%.4g,%.4g), (%.4g,%.4g))"%(self.x0, self.y0, self.x1, self.y1)
+
+	def __repr__(self):
+		return "Box((%g,%g), (%g,%g))"%(self.x0, self.y0, self.x1, self.y1)
+
+
+def getBbox(points):
+	"""returns a bounding box for the sequence of 2-sequences points.
+
+	The thing returned is a coords.Box.
+
+	>>> getBbox([(0.25, 1), (-3.75, 1), (-2, 4)])
+	Box((0.25,4), (-3.75,1))
+	"""
+	xCoos, yCoos = [[p[i] for p in points] for i in range(2)]
+	return Box(min(xCoos), max(xCoos), min(yCoos), max(yCoos))
 
 
 def clampAlpha(alpha):
