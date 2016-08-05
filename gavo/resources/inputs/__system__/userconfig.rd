@@ -139,7 +139,13 @@
 		<!-- put any items you want to appear in the //siap2#sitewide
 		service definition (in particular, metadata) here; it'd be nice if
 		you changed the creationDate, at least, as that might aid
-		in debugging. -->
+		in debugging. 
+		
+		You should also add 
+		testQuery.pos.ra, testQuery.pos.dec,
+		testQuery.size.ra, testQuery.size.dec meta item to  describe a field
+		that is guaranteed to return at least one result.
+		-->
 		<meta name="description">
 			The \\getConfig{web}{sitename}'s sitewide SIAP version 2 service 
 			publishes all the images published through the site.  For more
@@ -148,7 +154,8 @@
 		</meta>
 		<meta name="creationDate">2016-08-05T12:40:00</meta>
 		<meta name="subject">Images</meta>
-				<meta name="shortName">\\metaString{authority.shortName} SIA2</meta>
+		<meta name="shortName">\\metaString{authority.shortName} SIA2</meta>
 		<meta name="title">\getConfig{web}{sitename} SIAP Version 2 Service</meta>
+		<meta name="sia.type">Pointed</meta>
 	</NXSTREAM>
 </resource>

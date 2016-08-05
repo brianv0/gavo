@@ -117,23 +117,13 @@ class InterfaceWithParams(InterfaceMaker):
 		]
 
 
-class JPEGInterface(InterfaceWithParams):
-	renderer = "img.jpeg"
-
-
-class DatalinkInterface(InterfaceWithParams):
-	renderer = "dlmeta"
-
-
 class SIAPInterface(InterfaceWithParams):
 	renderer = "siap.xml"
 	interfaceClass = SIA.interface
 
-
 class SCSInterface(InterfaceWithParams):
 	renderer = "scs.xml"
 	interfaceClass = SCS.interface
-
 
 class SSAPInterface(InterfaceWithParams):
 	renderer = "ssap.xml"
@@ -142,11 +132,6 @@ class SSAPInterface(InterfaceWithParams):
 class SLAPInterface(InterfaceWithParams):
 	renderer = "slap.xml"
 	interfaceClass = SLAP.interface
-
-
-
-class APIInterface(InterfaceWithParams):
-	renderer = "api"
 
 
 class TAPInterface(InterfaceMaker):
@@ -216,7 +201,8 @@ class GetProductInterface(WebBrowserInterface):
 
 _getInterfaceMaker = utils.buildClassResolver(InterfaceMaker, 
 	globals().values(), instances=True, 
-	key=lambda obj: obj.renderer)
+	key=lambda obj: obj.renderer,
+	default=InterfaceWithParams())
 
 
 def getInterfaceElement(publication):
@@ -316,6 +302,12 @@ class SIACapabilityMaker(CapabilityMaker):
 				],
 			],
 		]
+
+
+class SIAV2CapabilityMaker(SIACapabilityMaker):
+	renderer = "siap2.xml"
+	capabilityClass = SIA.capability2
+	auxiliaryId = "ivo://ivoa.net/std/SIA#query-aux-2.0"
 
 
 class SCSCapabilityMaker(CapabilityMaker):
@@ -532,11 +524,12 @@ def getAuxiliaryCapability(publication):
 def getCapabilityElement(publication):
 	"""returns the appropriate capability definition for a publication object.
 	"""
-	try:
-		if publication.auxiliary:
-			return getAuxiliaryCapability(publication)
-		else:
-			return _getCapabilityMaker(publication.render)(publication)
-	except KeyError:
-		raise base.ui.logOldExc(base.ReportableError("Do not know how to"
-			" produce a capability for the '%s' renderer"%publication.render))
+	if publication.auxiliary:
+		return getAuxiliaryCapability(publication)
+	else:
+		try:
+			maker = _getCapabilityMaker(publication.render)
+		except KeyError:
+			raise base.ui.logOldExc(base.ReportableError("Do not know how to"
+				" produce a capability for the '%s' renderer"%publication.render))
+		return maker  (publication)

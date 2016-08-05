@@ -76,12 +76,16 @@ else:
 				"--encoding=UTF-8", "--locale=C", dbname])
 			initdachs.createFSHierarchy(dsn, "test")
 
-			with open(os.path.join(base.getConfig("configDir"), "defaultmeta.txt"),
-					"a") as f:
+			with open(os.path.join(
+					base.getConfig("configDir"), "defaultmeta.txt"), "a") as f:
 				f.write("!organization.description: Mein w\xc3\xbcster Club\n")
 				f.write("!contact.email: invalid@whereever.else\n")
 			from gavo.base import config
 			config.makeFallbackMeta(reload=True)
+
+			target = os.path.join(base.getConfig("configDir"), "userconfig.rd")
+			os.symlink(os.path.join(TEST_BASE, "test_data", "userconfig.rd"),
+				target)
 
 			os.symlink(os.path.join(TEST_BASE, "test_data"),
 				os.path.join(base.getConfig("inputsDir"), "data"))

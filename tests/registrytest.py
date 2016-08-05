@@ -319,6 +319,37 @@ class SIAPCapabilityTest(testhelpers.VerboseTest):
 		self.assertEqual([l.text for l in longs], ["10", "0.4"])
 
 
+class _SIA2CapabilityElement(testhelpers.TestResource):
+	def make(self, deps):
+		publication = base.resolveCrossId("//siap2#sitewide").publications[0]
+		res = capabilities.getCapabilityElement(publication).render()
+		return res, testhelpers.getXMLTree(res, debug=False)
+
+
+class SIAP2CapabilityTest(testhelpers.VerboseTest, testhelpers.XSDTestMixin):
+	resources = [("txNTree", _SIA2CapabilityElement())]
+
+	def testNoEmptyMax(self):
+		self.failIf(self.txNTree[1].xpath("//maxImageExtent/lat"),
+			"maxImageExtent/lat should be empty but is not")
+
+	def testTestQuery(self):
+		tqEl = self.txNTree[1].xpath("/capability/testQuery")[0]
+		self.assertEqual(len(tqEl), 2)
+		longs = tqEl.xpath("*/long")
+		self.assertEqual([l.text for l in longs], ["3.14", "0.5"])
+
+	def testStandardId(self):
+		self.assertEqual(self.txNTree[1].xpath("@standardID")[0],
+			"ivo://ivoa.net/std/SIA#query-2.0")
+	
+	def testValid(self):
+		doc = ('<cap:capabilities xmlns:cap="'
+			'http://www.ivoa.net/xml/VOSICapabilities/v1.0">%s</cap:capabilities>'
+			)%self.txNTree[0]
+		self.assertValidates(doc)
+
+
 class AuthorityTest(testhelpers.VerboseTest):
 # This test will fail until defaultmeta.txt has the necessary entries
 # and //services is published
