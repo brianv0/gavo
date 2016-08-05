@@ -134,4 +134,21 @@
 			Tables exposed through this endpoint include: \\tablesForTAP.
 		</meta>
 	</NXSTREAM>
+
+	<NXSTREAM id="sitewidesiap2-extras">
+		<!-- put any items you want to appear in the //siap2#sitewide
+		service definition (in particular, metadata) here; it'd be nice if
+		you changed the creationDate, at least, as that might aid
+		in debugging. -->
+		<meta name="description">
+			The \\getConfig{web}{sitename}'s sitewide SIAP version 2 service 
+			publishes all the images published through the site.  For more
+			advanced queries including uploads, all this data is also available
+			through ObsTAP.
+		</meta>
+		<meta name="creationDate">2016-08-05T12:40:00</meta>
+		<meta name="subject">Images</meta>
+				<meta name="shortName">\\metaString{authority.shortName} SIA2</meta>
+		<meta name="title">\getConfig{web}{sitename} SIAP Version 2 Service</meta>
+	</NXSTREAM>
 </resource>

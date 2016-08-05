@@ -494,6 +494,46 @@ class LoopTest(testhelpers.VerboseTest):
 		self.assertEqual(table.columns[0].name, "a")
 		self.assertEqual(table.columns[1].name, "b")
 
+	def testPassivate(self):
+		table = base.parseFromString(rscdesc.RD,
+			r"""<resource schema="data">
+			<STREAM id="col1">
+				<column name="foo"/>
+			</STREAM>
+			<STREAM id="col2">
+				<column name="bar"/>
+			</STREAM>
+			<STREAM id="cols">
+				<LOOP listItems="1 2">
+					<events passivate="True">
+						<FEED source="col\item"/>
+					</events>
+				</LOOP>
+			</STREAM>
+
+			<table id="o">
+				<FEED source="cols"/>
+			</table>
+			</resource>""").tables[0]
+		self.assertEqual(table.columns[0].name, "foo")
+		self.assertEqual(table.columns[1].name, "bar")
+
+	def testGeneratedSTREAMs(self):
+		rd = base.parseFromString(rscdesc.RD,
+			r"""<resource schema="data">
+				<LOOP listItems="1 2">
+					<events passivate="True">
+						<STREAM id="\item\+stream">
+							<table id="tab\item"><column name="colin\item"/></table>
+						</STREAM>
+					</events>
+				</LOOP>
+				<FEED source="1stream"/>
+				<FEED source="2stream"/>
+			</resource>""")
+		self.assertEqual(rd.getById("tab1").columns[0].name, "colin1")
+		self.assertEqual(rd.getById("tab2").columns[0].name, "colin2")
+			
 
 class RDBasedTest(testhelpers.VerboseTest):
 	def setUp(self):
@@ -661,7 +701,8 @@ class ReferenceAttributeTest(testhelpers.VerboseTest):
 			<resource schema="test">
 				<STREAM id="woo"><var key="src">@inp+33</var></STREAM>
 				<STREAM id="loo"><var key="gno">4</var></STREAM>
-				<table id="t1"><column name="foo" type="integer"/></table>
+				<table id="t1"><column name="foo" type="integer" required="True"/>
+				</table>
 				<data id="make_t1"><dictlistGrammar/>
 					<make table="t1">
 						<rowmaker>

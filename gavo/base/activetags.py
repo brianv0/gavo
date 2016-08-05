@@ -40,9 +40,11 @@ from gavo.base import structure
 
 # the following is a sentinel for values that have been expanded
 # by an active tag already.  When active tags are nested, only the
-# innermost must expand macros so one can be sure that double-escaped
-# macros actually end up at the top level.  _EXPANDED_VALUE must
-# compare true to value since it is used as such in event triples.
+# innermost active tag must expand macros so one can be sure that
+# double-escaped macros actually end up when the events are finally 
+# replayed at the top level.  _EXPANDED_VALUE must compare true to 
+# value since it is used as such in event triples.
+
 class _ExValueType(object):
 	def __str__(self):
 		return "value"
@@ -168,8 +170,11 @@ class RecordingBase(structure.Structure):
 		structure.Structure.__init__(self, *args, **kwargs)
 
 	def feedEvent(self, ctx, type, name, value):
-		# keep _EXPANDED_VALUE rather than "value", see comment above
-		if type is _EXPANDED_VALUE:
+		# keep _EXPANDED_VALUE rather than feed the value to protect it from
+		# further expansion by subordinate structures (except if we, the
+		# active tag, is the final recipient, in which case we gobble the thing
+		# ourselves).
+		if (type is _EXPANDED_VALUE and name not in self.managedAttrs):
 			self.events_.append((_EXPANDED_VALUE, name, value, ctx.pos))
 			return self
 		else:
@@ -274,6 +279,15 @@ class EmbeddedStream(RecordingBase, structure.Structure):
 	"""
 	name_ = "events"  # Lower case since it's really a "normal" element that's
 	                  # added into the parse tree.
+	_passivate = attrdef.ActionAttribute("passivate",
+		methodName="_makePassive", description="If set to True, do not expand"
+		" active elements immediately in the body of these events"
+		" (as in an NXSTREAM)")
+
+	def _makePassive(self, ctx):
+		if self.passivate.lower()=="true":
+			self.ACTIVE_NOEXPAND = True
+
 	def end_(self, ctx, name, value):
 		if not self.tagStack_: # end of my element, do standard structure thing.
 			return structure.Structure.end_(self, ctx, name, value)
@@ -415,7 +429,7 @@ class ReplayBase(ActiveTag, structure.Structure, macros.StandardMacroMixin):
 			if type=="start":
 				idStack.append(set())
 			elif type=="value":
-				if name=="id" or name=="name":
+				if idStack and name=="id" or name=="name":
 					idStack[-1].add(val)
 			elif type=="end":
 				ids = idStack.pop()

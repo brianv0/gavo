@@ -532,7 +532,11 @@ def getAuxiliaryCapability(publication):
 def getCapabilityElement(publication):
 	"""returns the appropriate capability definition for a publication object.
 	"""
-	if publication.auxiliary:
-		return getAuxiliaryCapability(publication)
-	else:
-		return _getCapabilityMaker(publication.render)(publication)
+	try:
+		if publication.auxiliary:
+			return getAuxiliaryCapability(publication)
+		else:
+			return _getCapabilityMaker(publication.render)(publication)
+	except KeyError:
+		raise base.ui.logOldExc(base.ReportableError("Do not know how to"
+			" produce a capability for the '%s' renderer"%publication.render))

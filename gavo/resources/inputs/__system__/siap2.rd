@@ -123,7 +123,7 @@ obscore and defined using the means given there. -->
 		For non-obscore use, you can the min/max column names in the 
 		min_name and max_name macros.
 		</doc>
-		<DEFAULTS min_name="t_min" _max_name="t_max"/>
+		<DEFAULTS min_name="t_min" max_name="t_max"/>
 		<condDesc>
 			<inputKey name="TIME" type="double precision[2]" 
 				multiplicity="multiple" xtype="interval"
@@ -172,7 +172,7 @@ SPECRP,  em_res_powr,Res. Power,    ,     the spectral resolving power λ/Δλ i
 EXPTIME, t_exptime,  Exposure Time, s,    the integration times of the observation
 TIMERES, t_resolution,Time res.,    s,    the (absolute) resolution on the time axis
 		</csvItems>
-		<events>
+		<events passivate="True">
 			<STREAM id="\parName\+par">
 				<doc>A stream defining the SIAPv2 \parName parameter over an 
 				obscore-like table (i.e., one with \colName).
@@ -208,7 +208,7 @@ CALIB,      calib_level,       Calib. Level,smallint, "Calibration level of the 
 TARGET,     target_name,       Target,     text, A name  of an observation target.
 FORMAT,     access_format,     Format,     text, Media type (like image/fits) or similar of the data product searched
 		</csvItems>
-		<events>
+		<events passivate="True">
 			<STREAM id="\parName\+par">
 				<doc>A stream defining the SIAPv2 \parName parameter over an 
 				obscore-like table (i.e., one with \colName).
@@ -226,5 +226,31 @@ FORMAT,     access_format,     Format,     text, Media type (like image/fits) or
 			</STREAM>
 		</events>
 	</LOOP>
-</resource>
 
+	<STREAM id="parameters">
+		<LOOP listItems="POS BAND TIME POL FOV SPATRES SPECRP EXPTIME TIMERES
+				ID COLLECTION FACILITY INSTRUMENT DPTYPE CALIB TARGET FORMAT">
+			<events passivate="True">
+				<FEED source="\item\+par"/>
+			</events>
+		</LOOP>
+	</STREAM>
+
+	<service id="sitewide" allowed="siap2.xml,form">
+		<publish render="siap2.xml" sets="ivo_managed"/>
+	
+		<dbCore queriedTable="//obscore#ObsCore">
+			<FEED source="parameters"/>
+
+			<!-- force results to be images and cubes exclusively -->
+			<condDesc>
+				<phraseMaker>
+					<code>
+						yield "dataproduct_type in ('image', 'cube')"
+					</code>
+				</phraseMaker>
+			</condDesc>
+		</dbCore>
+		<FEED source="%#sitewidesiap2-extras"/>
+	</service>
+</resource>
