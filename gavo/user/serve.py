@@ -43,10 +43,11 @@ def setupServer(rootPage):
 	if base.DEBUG:
 		# we don't want periodic stuff to happen when in debug mode, since
 		# it usually will involve fetching or importing things, and it's at
-		# best going to be confusing.  However, at least TAP cleanup needs
-		# to run now and then
-		from gavo.protocols import tap
-		tap.WORKER_SYSTEM.cleanupJobsTable()
+		# best going to be confusing.  However, stuff that is supposed to
+		# run immediately at startup should run (e.g., cleaning up the TAP
+		# table).  We install a special scheduler only running such jobs
+		# ("every" jobs with a negative repeat).
+		cron.registerScheduleFunction(_DebugScheduler.scheduleJob)
 	else:
 		cron.registerScheduleFunction(_Scheduler.scheduleJob)
 
@@ -213,6 +214,18 @@ class _Scheduler(object):
 			cls.lastDelayedCall.cancel()
 
 		cls.lastDelayedCall = reactor.callLater(wakeTime, job)
+
+
+class _DebugScheduler(object):
+	"""An internal singleton for running "immediate" jobs in debug mode.
+	"""
+	@classmethod
+	def scheduleJob(cls, wakeTime, job):
+		"""executes the job if wakeTime is, essentially, now, and
+		forgets it otherwise.
+		"""
+		if wakeTime<30:
+			job()
 
 
 def _startServer():

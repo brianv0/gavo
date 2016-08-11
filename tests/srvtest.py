@@ -119,6 +119,12 @@ class CronTest(testhelpers.VerboseTest):
 		t1 = time.gmtime(job.getNextWakeupTime(t0))
 		self.assertEqual(t1[:3], (1991, 1, 2))
 
+	def testNegativeFirstSchedule(self):
+		job = cron.IntervalJob(-3600, "testing#testing", None)
+		t0 = calendar.timegm((1990, 5, 3, 20, 30, 0, -1, -1, -1))
+		t1 = time.gmtime(job.getNextWakeupTime(t0))
+		self.assertEqual(t1[3:6], (20, 30, 0))
+
 	def testEveryFirstSchedule(self):
 		job = cron.IntervalJob(3600, "testing#testing", None)
 		t0 = calendar.timegm((1990, 5, 3, 20, 30, 0, -1, -1, -1))

@@ -169,7 +169,9 @@ class Execute(base.Structure, base.ExpansionDelegator):
 		" such a job is after every/10 seconds, and that the timers"
 		" start anew at every server restart.  So, if you restart"
 		" often, these jobs may run much more frequently or not at all"
-		" if the interval is large.",
+		" if the interval is large.  If every is smaller than zero, the"
+		" job will be executed immediately when the RD is being loaded and is"
+		" then run every abs(every) seconds",
 		copyable=True,)
 
 	_job = base.StructAttribute("job",

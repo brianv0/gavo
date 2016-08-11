@@ -1188,8 +1188,7 @@ def doMetaOverride(container, metaKey, metaValue, extraArgs={}):
 	if metaKey=="creator":
 		return _doCreatorMetaOverride(container, metaValue)
 
-	# fallthorugh: let addMeta do its standard thing.
-
+	# fallthrough: let addMeta do its standard thing.
 
 def getMetaText(ob, key, default=None, **kwargs):
 	"""returns the meta item key form ob in text form if present, default 

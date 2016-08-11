@@ -152,7 +152,7 @@ class FixedPageRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 
 	@classmethod
 	def isCacheable(cls, segments, request):
-		return True
+		return False
 	
 	@classmethod
 	def isBrowseable(self, service):

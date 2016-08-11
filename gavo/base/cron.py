@@ -107,12 +107,21 @@ class AbstractJob(object):
 
 class IntervalJob(AbstractJob):
 	"""A job that's executed roughly every interval seconds.
+
+	interval can be negative, in which case the job is scheduled for immediate
+	execution.
 	"""
 	def __init__(self, interval, name, callable):
 		self.interval = interval
 		AbstractJob.__init__(self, name, callable)
 
 	def getNextWakeupTime(self, curTime):
+		# special behaviour for the first call with a negative interval:
+		# fix the interval and run immediately.
+		if self.interval<0:
+			self.interval = -self.interval
+			return curTime
+
 		if self.lastStarted is None:
 			return curTime+self.interval/10
 		else:

@@ -123,7 +123,7 @@ class UWS(object):
 		self.jobClass = jobClass
 		self.jobActions = jobActions
 		self._statementsCache = None
-		cron.runEvery(self.cleanupInterval, 
+		cron.runEvery(-self.cleanupInterval, 
 			"UWS %s jobs table reaper"%str(self),
 			self.cleanupJobsTable)
 	
