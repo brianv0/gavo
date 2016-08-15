@@ -580,6 +580,16 @@ class SSATest(trialhelpers.ArchiveTest):
 			["<VOTABLE", 'name="QUERY_STATUS" value="OK"', 'name="INPUT:SIZE"'])
 
 
+class SIAP2Test(trialhelpers.ArchiveTest):
+	def testUsageFault(self):
+		return self.assertGETHasStrings("/__system__/siap2/sitewide/siap2.xml",
+			{"POS": "Forgot about this shitty syntax"}, [
+				"UsageFault: Field POS: Invalid SIAPv2 geometry",
+				"<VOTABLE",
+				'RESOURCE type="results"',
+				'value="ERROR"'])
+
+
 class TestExamples(trialhelpers.ArchiveTest):
 	def testBasic(self):
 		return self.assertGETHasStrings("/data/cores/dl/examples", 
@@ -901,3 +911,4 @@ class UserUWSJoblistTest(trialhelpers.ArchiveTest):
 atexit.register(trialhelpers.provideRDData("test", "import_fitsprod"))
 atexit.register(trialhelpers.provideRDData("cores", "import_conecat"))
 atexit.register(trialhelpers.provideRDData("test", "ADQLTest"))
+atexit.register(trialhelpers.provideRDData("ssatest", "test_import"))

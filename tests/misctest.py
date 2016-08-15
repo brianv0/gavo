@@ -544,13 +544,7 @@ class ObscorePublishedTest(testhelpers.VerboseTest):
 class _ModifiedObscoreTables(testhelpers.TestResource):
 	
 	def make(self, dependents):
-		self.userConfigPath = os.path.join(
-			base.getConfig("configDir"), "userconfig.rd")
-		base.caches.clearForName(self.userConfigPath[:-3])
-		base.caches.clearForName("__system__/obscore")
-
-		with open(self.userConfigPath, "w") as f:
-			f.write("""<resource schema="__system">
+		with testhelpers.userconfigContent("""
 				<STREAM id="obscore-extraevents">
 					<property name="obscoreClause" cumulate="True">
 						,
@@ -565,21 +559,21 @@ class _ModifiedObscoreTables(testhelpers.TestResource):
 				<STREAM id="obscore-extracolumns">
 					<column name="pluto_long" tablehead="lambda_Pluto"/>
 					<column name="pluto_lat"/>
-				</STREAM>
-			</resource>""")
+				</STREAM>"""):
 
-		with testhelpers.testFile(
-			os.path.join(base.getConfig("inputsDir"), "ex.rd"), """
-				<resource schema="__system">
-					<table id="instable" onDisk="yes">
-						<mixin plutoLong="56">//obscore#publishSSAPHCD</mixin>
-					</table>
-				</resource>
-			""") as fName:
-			insTable = base.caches.getRD(fName).getById("instable")
-		ocTable = base.caches.getRD("//obscore").getById("ObsCore")
-		os.unlink(self.userConfigPath)
+			base.caches.clearForName("__system__/obscore")
+			with testhelpers.testFile(
+				os.path.join(base.getConfig("inputsDir"), "ex.rd"), """
+					<resource schema="__system">
+						<table id="instable" onDisk="yes">
+							<mixin plutoLong="56">//obscore#publishSSAPHCD</mixin>
+						</table>
+					</resource>
+				""") as fName:
+				insTable = base.caches.getRD(fName).getById("instable")
+			ocTable = base.caches.getRD("//obscore").getById("ObsCore")
 		base.caches.clearForName("__system__/obscore")
+	
 		return insTable, ocTable
 
 	

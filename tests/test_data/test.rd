@@ -11,6 +11,7 @@
 	<table id="pgs_siaptable" mixin="//siap#pgs" onDisk="True">
 		<mixin
   		sResolution="0.5"
+  		polStates="'/RR/XY/'"
   		calibLevel="2"
   		>//obscore#publishSIAP</mixin>
 	</table>

@@ -397,6 +397,31 @@ class SIAP2Renderer(UnifiedDALRenderer):
 	parameterStyle = "dali"
 	name = "siap2.xml"
 
+	def _makeErrorTable(self, ctx, msg, queryStatus="ERROR"):
+		# FatalFault, DefaultFault
+		return V.VOTABLE[
+			V.RESOURCE(type="results")[
+				V.INFO(name="QUERY_STATUS", value=queryStatus)[
+					str(msg)]]]
+
+	def _handleRandomFailure(self, failure, ctx):
+		if base.DEBUG:
+			base.ui.notifyFailure(failure)
+		return self._writeErrorTable(ctx,
+			"DefaultFault: "+failure.getErrorMessage(),
+			500)
+	
+	def _handleInputErrors(self, failure, ctx):
+		queryStatus = "ERROR"
+
+		if isinstance(failure.value, base.EmptyData):
+			inevow.IRequest(ctx).setResponseCode(400)
+			queryStatus = "EMPTY"
+
+		return self._writeErrorTable(ctx, "UsageFault: "+failure.getErrorMessage(),
+			queryStatus=queryStatus)
+
+
 
 class SSAPRenderer(UnifiedDALRenderer):
 	"""A renderer for the simple spectral access protocol.

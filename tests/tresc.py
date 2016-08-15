@@ -40,7 +40,7 @@ class DBConnection(testhelpers.TestResource):
 	def finishedWith(self, resource, result=None):
 		testhelpers.TestResource.finishedWith(self, resource, result)
 		try:
-			resource.rollback()
+			resource.commit()
 		except base.DBError:
 			# the connection probably has been closed.  Let someone else
 			# worry about it.
@@ -85,7 +85,10 @@ class ProdtestTable(testhelpers.TestResource):
 		return self.conn
 
 	def clean(self, ignore):
-		self.conn.rollback()
+		try:
+			self.conn.commit()
+		except:
+			self.conn.rollback()
 		t = self.data.tables["prodtest"].drop()
 		self.conn.commit()
 
@@ -185,9 +188,11 @@ class RDDataResource(testhelpers.TestResource):
 		return self.dataCreated.getPrimaryTable()
 	
 	def clean(self, table):
-		self.conn.rollback()
-		self.dataCreated.dropTables(rsc.parseNonValidating)
-		self.conn.commit()
+		try:
+			self.dataCreated.dropTables(rsc.parseNonValidating)
+			self.conn.commit()
+		except:
+			self.conn.rollback()
 
 
 class CSTestTable(RDDataResource):
@@ -198,21 +203,10 @@ class CSTestTable(RDDataResource):
 csTestTable = CSTestTable()
 
 
-class _SSATable(testhelpers.TestResource):
-# This stuff is now imported by testhelpers on test environment creation
-# (that's mainly so trial can use it, too).
-	resources = [("conn", dbConnection)]
-
-	def make(self, deps):
-		conn = deps["conn"]
-		dd = base.caches.getRD("data/ssatest").getById("test_import")
-		data = rsc.makeData(dd, connection=conn)
-		return data.getPrimaryTable()
+class _SSATable(RDDataResource):
+		rdName = "data/ssatest"
+		dataId = "test_import"
 	
-	def clean(self, res):
-		# Leave the stuff so trial still has it.
-		pass
-
 ssaTestTable = _SSATable()
 
 

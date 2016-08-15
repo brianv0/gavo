@@ -116,7 +116,7 @@ def computeWCSKeys(pos, size, cutCrap=False):
 	if not cutCrap:
 		res.update({"imageTitle": "test image at %s"%repr(pos),
 			"instId": None,
-			"dateObs": None,
+			"dateObs":55300+pos[0], 
 			"refFrame": None,
 			"wcs_equinox": None,
 			"bandpassId": None,
@@ -134,8 +134,6 @@ def computeWCSKeys(pos, size, cutCrap=False):
 
 
 class _SIAPTestTable(testhelpers.TestResource):
-	"""Base class for SIAP test tables.
-	"""
 	resources = [("conn", tresc.dbConnection)]
 	setUpCost = 6
 	
@@ -451,10 +449,12 @@ class SIAP2GeometryStringTest(testhelpers.VerboseTest):
 
 
 class SIAP2ServiceTest(testhelpers.VerboseTest):
-	resources = [("data", _siapTestTable)]
+	resources = [("data", _siapTestTable), 
+		# we want spectra in the table so we can make sure they don't come back.
+		("spectra", tresc.ssaTestTable)]
 
 	def _doQuery(self, params):
-		return base.resolveCrossId("data/cores#s2").run(
+		return base.resolveCrossId("//siap2#sitewide").run(
 			"siap2.xml", params).original.getPrimaryTable()
 
 	def testBasicCooQuery(self):
@@ -468,7 +468,7 @@ class SIAP2ServiceTest(testhelpers.VerboseTest):
 				self.assertEqual(info.getContent(), 
 					"{'pos0': <pgsphere Circle Unknown 4. 44. 0.5>}")
 				self.assertEqual(info.infoValue, 
-					's_region &&%(pos0)s')
+					"(s_region &&%(pos0)s) AND (dataproduct_type in ('image', 'cube'))")
 				break
 
 	def testDualCooQuery(self):
@@ -476,7 +476,8 @@ class SIAP2ServiceTest(testhelpers.VerboseTest):
 		for info in res.getMeta("info"):
 			if info.infoName=="queryPars":
 				self.assertEqual(info.infoValue, 
-					'(s_region &&%(pos0)s) OR (s_region &&%(pos1)s)')
+					'((s_region &&%(pos0)s) OR (s_region &&%(pos1)s))'
+					" AND (dataproduct_type in ('image', 'cube'))")
 				self.assertEqual(info.getContent(), 
 					"{'pos0': <pgsphere Circle Unknown 4. 44. 0.5>, 'pos1':"
 					" <pgsphere\nPositionInterval Unknown 250. 89. 260. 90.>}")
@@ -489,9 +490,10 @@ class SIAP2ServiceTest(testhelpers.VerboseTest):
 		for info in res.getMeta("info"):
 			if info.infoName=="queryPars":
 				self.assertEqual(info.infoValue, 
-					'(%(BAND1)s < em_max AND %(BAND0)s > em_min)'
+					'((%(BAND1)s < em_max AND %(BAND0)s > em_min)'
 					' OR (%(BAND3)s < em_max AND %(BAND2)s > em_min)'
-					' OR (%(BAND5)s < em_max AND %(BAND4)s > em_min)')
+					' OR (%(BAND5)s < em_max AND %(BAND4)s > em_min))'
+					" AND (dataproduct_type in ('image', 'cube'))")
 
 	def testCombinedQuery(self):
 		res = self._doQuery({"BAND": ["-Inf 0.5", "40 60"],
@@ -501,8 +503,40 @@ class SIAP2ServiceTest(testhelpers.VerboseTest):
 				self.assertEqual(info.infoValue, 
 					'((s_region &&%(pos0)s) OR (s_region &&%(pos1)s)) AND'
 					' ((%(BAND1)s < em_max AND %(BAND0)s > em_min) OR'
-					' (%(BAND3)s < em_max AND %(BAND2)s > em_min))')
+					' (%(BAND3)s < em_max AND %(BAND2)s > em_min))'
+					" AND (dataproduct_type in ('image', 'cube'))")
 		self.assertEqual(len(res.rows), 1)
+
+	def testDPConstraint(self):
+		res = self._doQuery({"INSTRUMENT": ["DaCHS test suite"]})
+		# this would return the ssaptest spectra if not for the empty constraint
+		self.assertEqual(len(res.rows), 0)
+		# just make sure ssaptest actually is in ivoa.obscore
+		spectra = list(self.spectra.connection.query(
+			"SELECT * FROM ivoa.obscore"
+			" WHERE instrument_name='DaCHS test suite'"))
+		self.assertEqual(len(spectra), 6)
+
+	def testDPOverride(self):
+		res = self._doQuery({"INSTRUMENT": ["cube"]})
+		# TODO: Add some cubes at some point
+		self.assertEqual(len(res.rows), 0)
+	
+	def testFOV(self):
+		res = self._doQuery({"FOV": ["1 2.5", "11 +Inf"]})
+		self.assertEqual(len(res.rows), 6)
+	
+	def testTIME(self):
+		res = self._doQuery({"TIME": ["-Inf 55200", "55300.5 55302.3"]})
+		self.assertEqual(len(res.rows), 2)
+	
+	def testPOLPositive(self):
+		res = self._doQuery({"POL": ["RR", "LL"]})
+		self.assertEqual(len(res.rows), 9)
+
+	def testPOLNegative(self):
+		res = self._doQuery({"POL": ["I", "Q", "U", "LR", "X"]})
+		self.assertEqual(len(res.rows), 0)
 
 
 if __name__=="__main__":

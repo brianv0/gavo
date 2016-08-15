@@ -71,7 +71,7 @@ obscore and defined using the means given there. -->
 			name = inputKeys[0].name
 			for lower, upper in inPars[name]:
 				yield ("%(colName)s BETWEEN"
-					" %%(%(lowerVal)s)s AND %%(%(upperVal)s)s"%{
+					" %%(%(lowerVal)s)s AND %%(%(upperVal)s)s")%{
 					"upperVal": base.getSQLKey(name, upper, outPars),
 					"lowerVal": base.getSQLKey(name, lower, outPars),
 					"colName": colName }
@@ -91,8 +91,9 @@ obscore and defined using the means given there. -->
 		</setup>
 		<code>
 			name = inputKeys[0].name
-			yield ("%(colName)s in %%(%(key)s)s"%{
-				"key": inPars[name]}
+			yield "%(colName)s in %%(%(key)s)s"%{
+				"colName": colName,
+				"key": base.getSQLKey(name, inPars[name], outPars)}
 		</code>
 	</procDef>
 
@@ -188,7 +189,7 @@ TIMERES, t_resolution,Time res.,    s,    the (absolute) resolution on the time 
 						tablehead="\tablehead"
 						description="Lower and upper bound for \description"/>
 					<phraseMaker procDef="//siap2#intervalConstraint">
-						<bind key="colName">"\\colName"</bind>
+						<bind key="colName">"\colName"</bind>
 					</phraseMaker>
 				</condDesc>
 			</STREAM>
@@ -220,7 +221,7 @@ FORMAT,     access_format,     Format,     text, Media type (like image/fits) or
 						tablehead="\tablehead"
 						description="\description"/>
 						<phraseMaker procDef="//siap2#equalityConstraint">
-							<bind key="colName">"\\colName"</bind>
+							<bind key="colName">"\colName"</bind>
 						</phraseMaker>
 				</condDesc>
 			</STREAM>
@@ -243,7 +244,7 @@ FORMAT,     access_format,     Format,     text, Media type (like image/fits) or
 			<FEED source="parameters"/>
 
 			<!-- force results to be images and cubes exclusively -->
-			<condDesc>
+			<condDesc combining="True">
 				<phraseMaker>
 					<code>
 						yield "dataproduct_type in ('image', 'cube')"

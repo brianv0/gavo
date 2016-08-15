@@ -17,6 +17,9 @@
 			spectralResolution="1e-10"
 			collection="test set"
 			>//ssap#hcd</mixin>
+		<mixin
+			calibLevel="2"
+			>//obscore#publishSSAPHCD</mixin>
 		<column name="excellence" type="integer" description="random number">
 			<values nullLiteral="-1"/>
 		</column>

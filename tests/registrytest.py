@@ -321,9 +321,27 @@ class SIAPCapabilityTest(testhelpers.VerboseTest):
 
 class _SIA2CapabilityElement(testhelpers.TestResource):
 	def make(self, deps):
-		publication = base.resolveCrossId("//siap2#sitewide").publications[0]
-		res = capabilities.getCapabilityElement(publication).render()
-		return res, testhelpers.getXMLTree(res, debug=False)
+		base.caches.clearForName("__system__/siap2")
+		with testhelpers.userconfigContent("""
+					<NXSTREAM id="sitewidesiap2-extras">
+						<meta name="description">
+							This is just an illusion.
+						</meta>
+						<meta>
+							testQuery.pos.ra: 3.14
+							testQuery.pos.dec: 0.5
+							testQuery.size.ra: 0.5
+							testQuery.size.dec: 0.5
+						</meta>
+						<meta name="creationDate">2016-08-15T12:40:00</meta>
+						<meta name="subject">Images</meta>
+						<meta name="shortName">unittest SIA2</meta>
+						<meta name="title">DaCHS unittests SIAv2 service</meta>
+						<meta name="sia.type">Pointed</meta>
+					</NXSTREAM>"""):
+			publication = base.resolveCrossId("//siap2#sitewide").publications[0]
+			res = capabilities.getCapabilityElement(publication).render()
+			return res, testhelpers.getXMLTree(res, debug=False)
 
 
 class SIAP2CapabilityTest(testhelpers.VerboseTest, testhelpers.XSDTestMixin):

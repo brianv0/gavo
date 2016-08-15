@@ -615,6 +615,29 @@ def DataServer(data):
 	t.join(10)
 
 
+@contextlib.contextmanager
+def userconfigContent(content):
+	"""a context manager to temporarily set some content to userconfig.
+
+	This cleans up after itself and clears any userconfig cache before
+	it sets to work.
+
+	content are RD elements without the root (resource) tag.
+	"""
+	userConfigPath = os.path.join(
+		base.getConfig("configDir"), "userconfig.rd")
+	base.caches.clearForName(userConfigPath[:-3])
+	with open(userConfigPath, "w") as f:
+		f.write('<resource schema="__system">\n'
+			+content
+			+'\n</resource>\n')
+	try:
+		yield
+	finally:
+		os.unlink(userConfigPath)
+	base.caches.clearForName(userConfigPath[:-3])
+
+
 def main(testClass, methodPrefix=None):
 	from gavo import base
 	
