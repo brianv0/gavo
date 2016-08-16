@@ -71,9 +71,9 @@ class getGrammar(utils.CachedResource):
 			QuotedString, Forward, ZeroOrMore, Group, Optional)
 
 		with utils.pyparsingWhitechars("\t\n\r "):
-			qualifiedIdentifier = Word(alphas+"_:", alphanums+"-_:")
-			plainIdentifier = Word(alphas+"_", alphanums+"-_")
-			externalIdentifier = Word(alphas+"_", alphanums+"_/#-")
+			qualifiedIdentifier = Word(alphas+"_:", alphanums+"-._:")
+			plainIdentifier = Word(alphas+"_", alphanums+"-._")
+			externalIdentifier = Word(alphas+"_", alphanums+"._/#-")
 			plainLiteral = Word(alphanums+"_-.")
 			quotedLiteral = QuotedString(quoteChar='"', escQuote='""')
 			reference = Literal('@') + externalIdentifier
