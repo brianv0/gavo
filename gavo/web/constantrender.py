@@ -111,10 +111,12 @@ class FixedPageRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 	you can also define new render and data functions on the
 	service using customRF and customDF.
 
-	This is mainly for applet/browser app support; See the
-	specview.html or voplot.html templates as an example.  This is
-	the place to add further render or data function for programs
-	like those.
+	This is, in particular, used for the data center's root page.
+
+	The fixed renderer is intended for non- or slowly changing content.
+	It is annotated as cachable, which means that DaCHS will in general
+	only render it once and then cache it.  If the render functions
+	change independently of the RD, use the volatile renderer.
 
 	Built-in services for such browser apps should go through the //run 
 	RD.
@@ -152,8 +154,21 @@ class FixedPageRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 
 	@classmethod
 	def isCacheable(cls, segments, request):
-		return False
+		return True
 	
 	@classmethod
 	def isBrowseable(self, service):
 		return True
+
+
+class VolatilePageRenderer(FixedPageRenderer):
+	"""A renderer rendering a single template with fast-changing results.
+
+	This is like the fixed renderer, except that the results are not cached.
+	"""
+	name = "volatile"
+
+	@classmethod
+	def isCacheable(cls, segments, request):
+		return False
+

@@ -288,7 +288,6 @@ class ArchiveService(rend.Page):
 		except Exception, exc:
 			exc.rd = rd
 			raise
-
 		cached = self._processCache(ctx, service, rendC, segments)
 		if cached:
 			return cached, ()

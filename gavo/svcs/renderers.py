@@ -54,6 +54,7 @@ RENDERER_REGISTRY = {
 	'tap': ("web.taprender", "TAPRenderer"),
 	'upload': ("web.uploadservice", "Uploader"),
 	'uws.xml': ("web.vodal", "UWSAsyncRenderer"),
+	'volatile': ("web.constantrender", "VolatilePageRenderer"),
 }
 
 
