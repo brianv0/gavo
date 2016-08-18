@@ -169,7 +169,7 @@ obscore and defined using the means given there. -->
 parName, colName,    tablehead,     unit, description
 FOV,     s_fov,      Field of View, deg,  the field of view of the observation
 SPATRES, s_resolution, Spat. Res.,  deg,  the spatial resolution of the image(s)
-SPECRP,  em_res_powr,Res. Power,    ,     the spectral resolving power λ/Δλ in spectrally resolved observations
+SPECRP,  em_res_power,Res. Power,    ,     the spectral resolving power λ/Δλ in spectrally resolved observations
 EXPTIME, t_exptime,  Exposure Time, s,    the integration times of the observation
 TIMERES, t_resolution,Time res.,    s,    the (absolute) resolution on the time axis
 		</csvItems>
