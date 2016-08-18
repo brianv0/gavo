@@ -121,6 +121,10 @@ class SIAPInterface(InterfaceWithParams):
 	renderer = "siap.xml"
 	interfaceClass = SIA.interface
 
+class SIAP2Interface(InterfaceWithParams):
+	renderer = "siap2.xml"
+	interfaceClass = SIA.interface
+
 class SCSInterface(InterfaceWithParams):
 	renderer = "scs.xml"
 	interfaceClass = SCS.interface
