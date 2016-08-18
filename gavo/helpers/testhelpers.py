@@ -83,10 +83,6 @@ else:
 			from gavo.base import config
 			config.makeFallbackMeta(reload=True)
 
-			target = os.path.join(base.getConfig("configDir"), "userconfig.rd")
-			os.symlink(os.path.join(TEST_BASE, "test_data", "userconfig.rd"),
-				target)
-
 			os.symlink(os.path.join(TEST_BASE, "test_data"),
 				os.path.join(base.getConfig("inputsDir"), "data"))
 			os.rmdir(os.path.join(base.getConfig("inputsDir"), "__system"))

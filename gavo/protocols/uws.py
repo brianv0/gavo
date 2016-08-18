@@ -438,7 +438,8 @@ class UWSWithQueueing(UWS):
 		td = jobsTable.tableDef
 
 		countField = base.makeStruct(
-			svcs.OutputField, name="count", type="integer", select="count(*)")
+			svcs.OutputField, name="count", type="integer", select="count(*)",
+				required=True)
 
 		statements["countQueuedBefore"] = jobsTable.getQuery(
 			[countField],

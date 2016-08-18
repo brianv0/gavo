@@ -350,7 +350,8 @@
 		<meta name="description">The IVOA-defined obscore table, containing
 		generic metadata for datasets within this datacenter.</meta>
 
-		<!-- the view creation statement is bogus; in reality, we create
+		<!-- the view creation statement is bogus (a fallback used
+		in the initial creation, actually; in reality, we create
 		the view creation statement from the _obscoresources table in the
 		data create -->
 
