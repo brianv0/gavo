@@ -48,11 +48,24 @@ anything else that might yet come) until you notice you need to read
 them.
 
 
+Deployment Options
+------------------
+
+* Installation and configuration (`install.html <./install.html>`_, 
+  `install.pdf <./install.pdf>`_, `install.rstx <./install.rstx>`_) --
+  this is for “conventional” installations, typically using an APT-based
+  package manager or perhaps directly from source.
+
+..
+  * DaCHS on Docker (`deploy_docker.html <./deploy_docker.html>`_,
+    `deploy_docker.pdf <./deploy_docker.pdf>`_, 
+    `deploy_docker.rstx <./deploy_docker.rstx>`_) -- an alternative
+    way to run DaCHS within Docker container(s).  Somewhat in development
+    as of 2016.
+
 For Data Center Operators
 -------------------------
 
-* Installation and configuration (`install.html <./install.html>`_, 
-  `install.pdf <./install.pdf>`_, `install.rstx <./install.rstx>`_)
 * Operator's guide (`opguide.html <./opguide.html>`_, 
   `opguide.pdf <./opguide.pdf>`_, `opguide.rstx <./opguide.rstx>`_)
 * Tutorial on importing data (`tutorial.html <./tutorial.html>`_, 
