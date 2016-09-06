@@ -6,6 +6,13 @@ svn log http://svn.ari.uni-heidelberg.de/svn/gavo/python/trunk/ | less
 to see the gory details.  If anything not mentioned here breaks something
 for you, we'd consider it a severe bug, though.
 
+Version 0.9.8 ()
+
+	* EPN-TAP 2.0 changed some column and parameter names, and the mixin
+	  followed.  If you've already used EPN-TAP 2.0, you will have to re-import
+	  your data and slightly adapt your RD (e.g., c1_min -> c1min, 
+	  t_exp_min -> time_exp_min etc).
+
 
 Version 0.9.7 (2016-08-18)
 

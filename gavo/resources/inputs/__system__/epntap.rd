@@ -4,18 +4,19 @@
 	<STREAM id="_minmax">
 		<doc>
 			Generates a pair of minimum/maximum column pairs.  You must
-			fill out basename, baseucd, basedescr, unit.
+			fill out basename, baseucd, basedescr, unit, and possibly type.
 		</doc>
-		<column name="\basename\+_min"
+		<DEFAULTS type="real"/>
+		<column name="\basename\+min" type="\type"
 			ucd="\baseucd;stat.min" unit="\unit"
 			description="\basedescr, lower limit."
-			utype="\baseutype\+_min">
+			utype="\baseutype\+min">
 			<property key="std">1</property>
 		</column>
-		<column name="\basename\+_max"
+		<column name="\basename\+max" type="\type"
 			ucd="\baseucd;stat.max" unit="\unit"
 			description="\basedescr, upper limit"
-			utype="\baseutype\+_max">
+			utype="\baseutype\+max">
 			<property key="std">1</property>
 		</column>
 	</STREAM>
@@ -24,6 +25,23 @@
 		<doc>
 			Colums that are deprecated in the version 2.0 of EPN-TAP parameters 	
 		</doc>
+
+		<!-- for cn, the naming scheme is different from v2 -->
+		<FEED source="_minmax"
+			basename="c1_"
+			baseucd="pos.stat" unit="\c1unit"
+			baseutype="Epn.Spatial.Spatial_range.c1_"
+			basedescr="First coordinate (e.g., longitude, 'x', or right ascension)"/>
+		<FEED source="_minmax"
+			basename="c2_"
+			baseucd="pos.stat" unit="\c2unit"
+			baseutype="Epn.Spatial.Spatial_range.c2_"
+			basedescr="Second coordinate (e.g., latitude, 'y', or declination)"/>
+		<FEED source="_minmax"
+			basename="c3_"
+			baseucd="pos.stat" unit="\c3unit"
+			baseutype="Epn.Spatial.Spatial_range.c3_"
+			basedescr="Third coordinate (e.g., height, 'z', or distance)"/>
 
 		<column name="index_" type="bigint" required="True"
 			ucd="meta.id" description="Numeric identifier (like a record number) 
@@ -51,9 +69,9 @@
 		</column>
 
 		<FEED source="_minmax"
-			basename="sampling_step"
+			basename="sampling_step_" type="double precision"
 			baseucd="em.freq.step" unit="Hz"
-			baseutype="Epn.Spectral.Spectral_sampling_step"
+			baseutype="Epn.Spectral.Spectral_sampling_step_"
 			basedescr="Separation between the centers of two adjacent filters or channels"/>
 
 		<column name="reference"	type="text" 
@@ -87,9 +105,27 @@
 		<doc>
 			New columns introduced by the version 2.0 of EPN-TAP parameters
 		</doc>
-		
+
+		<!-- for cn, the naming scheme is different from v0.37 -->
+		<FEED source="_minmax"
+			basename="c1"
+			baseucd="pos.stat" unit="\c1unit"
+			baseutype="Epn.Spatial.Spatial_range.c1."
+			basedescr="First coordinate (e.g., longitude, 'x', or right ascension)"/>
+		<FEED source="_minmax"
+			basename="c2"
+			baseucd="pos.stat" unit="\c2unit"
+			baseutype="Epn.Spatial.Spatial_range.c2."
+			basedescr="Second coordinate (e.g., latitude, 'y', or declination)"/>
+		<FEED source="_minmax"
+			basename="c3"
+			baseucd="pos.stat" unit="\c3unit"
+			baseutype="Epn.Spatial.Spatial_range.c3."
+			basedescr="Third coordinate (e.g., height, 'z', or distance)"/>
+
 		<column name="granule_uid" type="text" 
-			ucd="meta.id" description="Numeric identifier (like a record number) of this row.">
+			ucd="meta.id" description="Unique ID in data service, aplphanumeric identifier 
+				(like a record number) of this row.">
 			<property key="std">1</property>
 		</column>
 
@@ -106,9 +142,9 @@
 		</column>	 
 
 		<FEED source="_minmax"
-			basename="spectral_sampling_step"
+			basename="spectral_sampling_step_" type="double precision"
 			baseucd="em.freq.step" unit="Hz"
-			baseutype="Epn.Spectral.Spectral_sampling_step"
+			baseutype="Epn.Spectral.Spectral_sampling_step_"
 			basedescr="Separation between the centers of two adjacent filters or channels"/>
 
 		<column name="creation_date" type="date"
@@ -118,14 +154,15 @@
 		</column>	 
 		
 		<column name="modification_date" type="date"
-			ucd="time.process"
+			ucd="time.update"
 			description="Date of the last modification">
 			<property key="std">1</property>
 		</column>	 
 
 		<column name="release_date" type="date"
 			ucd="time.release"
-			description="Start of public access period (set to creation_date if no proprietary period">
+			description="Start of public access period (set to creation_date if no
+				proprietary period)">
 			<property key="std">1</property>
 		</column>	 
 
@@ -183,14 +220,17 @@
 			<property key="std">1</property>
 		</column>
 
-		<column name="processing_level" type="integer"
-			utype="PSR:processingLevel"
-			ucd="meta.code;obs.calib"
-			description="Calibration level with coded according to CODMAC."
-			note="et_cal">
-			<values nullLiteral="-1"/>
+		<column name="file_name"	type="text" 
+			ucd="meta.id;meta.file" 
+			description="Name of the file only">
 			<property key="std">1</property>
 		</column>
+
+		<FEED source="_minmax"
+			basename="time_exp_" type="double precision"
+			baseucd="time.duration;obs.exposure" unit="s"
+			baseutype="Epn.Time.Time_exp_"
+			basedescr="Integration time of the measurement"/>
 	</STREAM>
 
 	<STREAM id="commoncolumns">
@@ -202,7 +242,7 @@
 		<column name="accref" original="//products#products.accref"/>
 
 		<column name="dataproduct_type"	type="text" 
-			ucd="meta.code;class" utype="Epn.dataProductType"
+			ucd="meta.code.class" utype="Epn.dataProductType"
 			description="The high-level organization of the data product
 				described (image, spectrum, etc)"
 			note="et_prod">
@@ -250,87 +290,84 @@
 			</values>
 		</column>
 
+		<column name="processing_level" type="integer"
+			utype="PSR:processingLevel"
+			ucd="meta.code;obs.calib"
+			description="Calibration level with coded according to CODMAC."
+			note="et_cal">
+			<values nullLiteral="-1"/>
+			<property key="std">1</property>
+		</column>  
+
 		<!-- time doesn't use not _minmax because ucds and utypes
 		are irregular -->
-		<column name="time_min" 
+
+		<column name="time_min"  type="double precision"
 			ucd="time.start" unit="d"
 			utype=" Char.TimeAxis.Coverage.Bounds.Limits.Interval.StartTime"
 			description="Acquisition start time (as JD)"/>
-		<column name="time_max" 
+		<column name="time_max"  type="double precision"
 			ucd="time.end" unit="d"
 			utype="Char.TimeAxis.Coverage.Bounds.Limits.Interval.StopTime"
 			description="Acquisition stop time (as JD)"/>
 
-		<FEED source="_minmax"
-			basename="t_sampling_step"
-			baseucd="time.interval" unit="s"
-			baseutype="Epn.Time.Time_sampling_step"
+		<FEED source="_minmax" 
+			basename="time_sampling_step_"
+			baseucd="time.interval" unit="s" type="double precision"
+			baseutype="Epn.Time.Time_sampling_step_"
 			basedescr="Sampling time for measurements of dynamical
 				phenomena"/>
 		<FEED source="_minmax"
-			basename="t_exp"
-			baseucd="time.duration;obs.exposure" unit="s"
+			basename="time_exp_" type="double precision"
+			baseucd="time.duration;obs.exposure_" unit="s"
 			baseutype="Epn.Time.Time_exp"
 			basedescr="Integration time of the measurement"/>
 		<FEED source="_minmax"
-			basename="spectral_range"
-			baseucd="\spectralUCD" unit="Hz"
-			baseutype="Epn.Spectral.Spectral_range"
+			basename="spectral_range_" type="double precision"
+			baseucd="em.freq" unit="Hz"
+			baseutype="Epn.Spectral.Spectral_range_"
 			basedescr="Spectral domain of the data"/>
 		<FEED source="_minmax"
-			basename="spectral_resolution"
+			basename="spectral_resolution_" type="double precision"
 			baseucd="spect.resolution" unit="Hz"
-			baseutype="Epn.Spectral.Spectral_resolution"
+			baseutype="Epn.Spectral.Spectral_resolution_"
 			basedescr="FWHM of the instrument profile"/>
 		<FEED source="_minmax"
-			basename="c1"
-			baseucd="pos.stat" unit="\c1unit"
-			baseutype="Epn.Spatial.Spatial_range.c1"
-			basedescr="First coordinate (e.g., longitude, 'x')"/>
-		<FEED source="_minmax"
-			basename="c2"
-			baseucd="pos.stat" unit="\c2unit"
-			baseutype="Epn.Spatial.Spatial_range.c2"
-			basedescr="Second coordinate (e.g., latitude, 'y')"/>
-		<FEED source="_minmax"
-			basename="c3"
-			baseucd="pos.stat" unit="\c3unit"
-			baseutype="Epn.Spatial.Spatial_range.c3"
-			basedescr="Third coordinate (e.g., height, 'z')"/>
-		<FEED source="_minmax"
-			basename="c1_resol"
+			basename="c1_resol_"
 			baseucd="pos.resolution" unit="\c1unit"
-			baseutype="Epn.Spatial.Spatial_resolution.c1_resol"
+			baseutype="Epn.Spatial.Spatial_resolution.c1_resol_"
 			basedescr="Resolution in the first coordinate"/>
 		<FEED source="_minmax"
-			basename="c2_resol"
+			basename="c2_resol_" type="double precision"
 			baseucd="pos.resolution" unit="\c2unit"
-			baseutype="Epn.Spatial.Spatial_resolution.c2_resol"
+			baseutype="Epn.Spatial.Spatial_resolution.c2_resol_"
 			basedescr="Resolution in the second coordinate"/>
 		<FEED source="_minmax"
-			basename="c3_resol"
+			basename="c3_resol_" type="double precision"
 			baseucd="pos.resolution" unit="\c3unit"
-			baseutype="Epn.Spatial.Spatial_resolution.c3_resol"
+			baseutype="Epn.Spatial.Spatial_resolution.c3_resol_"
 			basedescr="Resolution in the third coordinate"/>
 
 		<column name="spatial_frame_type"	type="text" 
 			ucd="meta.code.class;pos.frame"
-			description="Flavor of coordinate system, also defining the nature of coordinates"/>
+			description="Flavor of coordinate system, also defining 
+				the nature of coordinates"/>
 
 		<FEED source="_minmax"
-			basename="incidence"
-			baseucd="pos.incidenceAng" unit="deg"
-			baseutype="Epn.View_angle.Incidence_angle"
-			basedescr="Incidence angle (solar zenithal angle) during data acquisition"/>
+			basename="incidence_" type="double precision"
+			baseucd="pos.posAng" unit="deg"
+			baseutype="Epn.View_angle.Incidence_angle_"
+			basedescr="Incidence angle (solar zenithal angle) during 
+				data acquisition"/>
 		<FEED source="_minmax"
-			basename="emergence"
-			baseucd="pos.emergenceAng" unit="deg"
-			baseutype="Epn.View_angle.Emergence_angle"
+			basename="emergence_" type="double precision"
+			baseucd="pos.posAng" unit="deg"
+			baseutype="Epn.View_angle.Emergence_angle_"
 			basedescr="Emergence angle during data acquisition"/>
 		<FEED source="_minmax"
-			basename="phase"
+			basename="phase_" type="double precision"
 			baseucd="pos.phaseAng" unit="deg"
-			baseutype="Epn.View_angle.Phase_angle"
+			baseutype="Epn.View_angle.Phase_angle_"
 			basedescr="Phase angle during data acquisition"/>
 
 		<column name="instrument_host_name"	type="text" 
@@ -362,7 +399,8 @@
 
 		<column name="service_title"	type="text" 
 			ucd="meta.title" 
-			description="The title of the data service producing this row.">
+			description="The title of the data service producing this row.(an acronym really, will 
+				be used to handle multiservice results)">
 			<property key="std">1</property>
 		</column>
 
@@ -380,7 +418,7 @@
 		</column>
 
 		<column name="access_estsize"	type="integer"
-			ucd="phys.size;meta.file" unit="kByte"
+			ucd="phys.size;meta.file" unit="kbyte"
 			utype="Obs.Access.Size"
 			description="Estimated size of the data product.">
 			<property key="std">1</property>
@@ -388,8 +426,9 @@
 		</column>
 
 		<column name="target_region"	type="text" 
-			ucd="meta.id;class" 
-			description="The part of the target object that was being observed">
+			ucd="obs.field" 
+			description="The part of the target object that was being observed, 
+				type of region of interest">
 			<property key="std">1</property>
 		</column>
 
@@ -538,10 +577,6 @@
 			coordinate">deg</mixinPar>
 		<mixinPar key="c3unit" description="Unit of the third spatial
 			coordinate">__EMPTY__</mixinPar>
-		<mixinPar key="spectralUCD" description="UCD of the spectral
-			axis; this must be one of em.freq (for electromagnetic
-			radiation) or phys.energy;phys.part (for particles)"
-			>em.freq</mixinPar>
 		<mixinPar key="regiontype" description="Type of the
 			s_region column.  This can be spoly (the default), scircle,
 			sbox (a coordinate range) or possibly spoint (avoid that, though)."
@@ -626,6 +661,8 @@
 					choose from asteroid, dwarf_planet, planet, satellite, comet, 
 					exoplanet, interplanetary_medium, ring, sample, sky, spacecraft, 
 					spacejunk, star" late="True">"UNKNOWN"</par>
+				<par key="processing_level" description=" CODMAC calibration level
+					(ignored for version 0.37)" late="True">0</par>
 
 				<!-- Note: only late parameters allowed in here.  Also, don't
 				define anything here unless you have to; we pick up the

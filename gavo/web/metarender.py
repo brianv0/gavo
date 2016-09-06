@@ -94,7 +94,13 @@ class RendExplainer(object):
 		return T.invisible["a ",
 			T.a(href=service.getURL("fixed"))["custom page"],
 			", possibly with dynamic content"]
-	
+
+	@classmethod
+	def _explain_volatile(cls, service):
+		return T.invisible["a ",
+			T.a(href=service.getURL("volatile"))["custom page"],
+			", possibly with dynamic content"]
+
 	@classmethod
 	def _explain_soap(cls, service):
 

@@ -74,7 +74,8 @@ def getAuthFor(authKey):
 	except KeyError:
 		raise base.NotFoundError(authKey, "Authorization info",
 			"~/.gavo/test.creds")
-	return {'Authorization': "Basic "+("%s:%s"%(user, pw)).encode("base64")}
+	return {'Authorization': "Basic "+(
+		"%s:%s"%(user, pw)).encode("base64").strip()}
 
 
 class EqualingRE(object):
