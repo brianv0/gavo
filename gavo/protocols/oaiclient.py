@@ -613,7 +613,7 @@ class OAIQuery(object):
 			resumptionToken = handler.resumptionToken
 			handler = parserClass(oaiResult)
 			try:
-				res = self.doHTTP(metadataPrefix="ivo_vor", verb=self.verb,
+				res = self.doHTTP(verb=self.verb,
 					resumptionToken=resumptionToken)
 				sax.parseString(res, handler)
 				if self.contentCallback:

@@ -21,6 +21,7 @@ from gavo import votable
 from gavo.base import valuemappers
 from gavo.grammars import votablegrammar
 from gavo.votable import V
+from gavo.votable import modelgroups
 
 MS = base.makeStruct
 
@@ -183,7 +184,7 @@ def makeTableDefForVOTable(tableId, votTable, nameMaker=None, rd=None,
 	addQ3CIndex(tableDef)
 
 	# Build STC info
-	for colInfo, ast in votable.modelgroups.unmarshal_STC(votTable):
+	for colInfo, ast in modelgroups.unmarshal_STC(votTable):
 		for colId, utype in colInfo.iteritems():
 			try:
 				col = tableDef.getColumnById(colId)

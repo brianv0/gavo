@@ -29,7 +29,7 @@ def getRowDecoderSource(tableDefinition):
 	source = [
 		"def codec(inF):", 
 		"  row = []",
-		"  nullMap = nullFlags.getFromFile(inF)"]
+		"  nullMap = nullFlags.getFromFile(inF)", ]
 
 	for index, field in enumerate(
 			tableDefinition.iterChildrenOfType(VOTable.FIELD)):
@@ -43,10 +43,13 @@ def getRowDecoderSource(tableDefinition):
 			"  except:",
 			"    raise common.BadVOTableLiteral('%s', repr(inF.lastRes))"%(
 				field.datatype),
-			"  if nullMap.pop():",
-			"    row[-1] = None",
 			])
-	source.append("  return row")
+
+	source.extend([
+		"  for index, isNull in enumerate(nullMap):",
+		"    if isNull:",
+		"      row[index] = None",
+		"  return row"])
 	return "\n".join(source)
 
 
