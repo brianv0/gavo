@@ -109,17 +109,17 @@
 		<!-- for cn, the naming scheme is different from v0.37 -->
 		<FEED source="_minmax"
 			basename="c1"
-			baseucd="pos.stat" unit="\c1unit"
+			baseucd="obs.field" unit="\c1unit"
 			baseutype="Epn.Spatial.Spatial_range.c1."
 			basedescr="First coordinate (e.g., longitude, 'x', or right ascension)"/>
 		<FEED source="_minmax"
 			basename="c2"
-			baseucd="pos.stat" unit="\c2unit"
+			baseucd="obs.field" unit="\c2unit"
 			baseutype="Epn.Spatial.Spatial_range.c2."
 			basedescr="Second coordinate (e.g., latitude, 'y', or declination)"/>
 		<FEED source="_minmax"
 			basename="c3"
-			baseucd="pos.stat" unit="\c3unit"
+			baseucd="obs.field" unit="\c3unit"
 			baseutype="Epn.Spatial.Spatial_range.c3."
 			basedescr="Third coordinate (e.g., height, 'z', or distance)"/>
 
@@ -333,7 +333,7 @@
 			baseutype="Epn.Spectral.Spectral_resolution_"
 			basedescr="FWHM of the instrument profile"/>
 		<FEED source="_minmax"
-			basename="c1_resol_"
+			basename="c1_resol_" type="double precision"
 			baseucd="pos.resolution" unit="\c1unit"
 			baseutype="Epn.Spatial.Spatial_resolution.c1_resol_"
 			basedescr="Resolution in the first coordinate"/>
@@ -423,6 +423,12 @@
 			description="Estimated size of the data product.">
 			<property key="std">1</property>
 			<values nullLiteral="-1"/>
+		</column>
+
+		<column name="access_md5" type="text"
+			ucd="meta.checsum;meta.file"
+			description="MD5 hash of the file content.">
+			<property key="std">1</property>
 		</column>
 
 		<column name="target_region"	type="text" 
@@ -527,8 +533,7 @@
 		<mixinPar key="c3unit" description="Unit of the third spatial
 			coordinate">__EMPTY__</mixinPar>
 		<mixinPar key="spectralUCD" description="UCD of the spectral
-			axis; this must be one of em.freq (for electromagnetic
-			radiation) or phys.energy;phys.part (for particles)"
+			axis (ignored for version 2.0">
 			>em.freq</mixinPar>
 		<mixinPar key="processing_level" description="How processed is the
 			data?  This is a numerical code explained in the corresponding
