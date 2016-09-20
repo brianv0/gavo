@@ -411,7 +411,7 @@ class _LineBasedCodeGenerator(_CodeGenerator):
 	while (fgets(inputLine, INPUT_LINE_MAX, inF)) {"""
 			+LOOP_BODY_INTRO
 			+"""
-			tuple = getTuple(inputLine);"""
+			tuple = getTuple(inputLine, recCount);"""
 			+LOOP_BODY_FOOT
 			+"}\n"
 			+COMMON_MAIN_FOOT)

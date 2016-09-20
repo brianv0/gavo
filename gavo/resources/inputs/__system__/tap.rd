@@ -127,6 +127,12 @@
 		</column>
 		<column name="sourceRD" type="text" 
 			description="Id of the originating rd (local information)"/>
+		<column name="column_index" type="smallint"
+			tablehead="Ind."
+			description="1-based index of the column in database order.">
+			<property name="std">1</property>
+			<values nullLiteral="-1"/>
+		</column>
 	</table>
 
 	<table id="keys" onDisk="True" system="True"
@@ -335,7 +341,7 @@
 					for table in rd.tables:
 						if not table.adql:
 							continue
-						for col in table:
+						for index, col in enumerate(table):
 							indexed = 0
 							if col.isIndexed():
 								indexed = 1
@@ -353,6 +359,7 @@
 								"indexed": indexed,
 								"std": parseInt(col.getProperty("std", "0")),
 								"sourceRD": rd.sourceId,
+								"column_index": index+1,
 							}
 				</code>
 			</iterator>

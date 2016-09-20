@@ -208,7 +208,10 @@ class MetaParser(common.Parser):
 
 	def end_(self, ctx, name, value):
 		if name=="meta":
-			self._doAddMeta()
+			try:
+				self._doAddMeta()
+			except TypeError, msg:
+				raise utils.StructureError("While constructing meta: %s"%msg)
 			return self.nextParser
 
 		else:

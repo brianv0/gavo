@@ -27,7 +27,12 @@ from gavo import rscdesc  #noflake: for cache registration
 from gavo import utils
 
 
-CURRENT_SCHEMAVERSION = 13
+class _COMMIT(object):
+	"""A sentinel used by iterStatements.
+	"""
+
+
+CURRENT_SCHEMAVERSION = 14
 
 
 class AnnotatedString(str):
@@ -371,6 +376,30 @@ class To13Upgrader(Upgrader):
 		rsc.makeData(dd, connection=connection)
 
 
+class To14Upgrader(Upgrader):
+	version = 13
+	u_010_addColIndex = AnnotatedString("ALTER TABLE TAP_SCHEMA.columns"
+		" ADD COLUMN column_index SMALLINT",
+		" Adding column_index column to TAP_SCHEMA.columns")
+
+	@classmethod
+	def u_020_updatePublished(cls, connection):
+		"""ingesting column_index for TAP-published tables."""
+		toDo = [r[0] for r in 
+			connection.query(
+				"SELECT DISTINCT sourceRD FROM TAP_SCHEMA.columns")]
+		dd = base.resolveCrossId("//tap#importColumnsFromRD")
+
+		for rdId in toDo:
+			try:
+				rd = base.caches.getRD(rdId)
+			except Exception, msg:
+				base.ui.notifyWarning("RD %s couldn't be loaded (%s)."
+					"  Fix and run gavo imp -m on it to get"
+					" column indices in TAP_SCHEMA"%(rdId, msg))
+			rsc.makeData(dd, forceSource=rd, connection=connection)
+
+
 def iterStatements(startVersion, endVersion=CURRENT_SCHEMAVERSION, 
 		upgraders=None):
 	"""yields all upgraders from startVersion to endVersion in sequence.
@@ -384,6 +413,7 @@ def iterStatements(startVersion, endVersion=CURRENT_SCHEMAVERSION,
 	for upgrader in toRun:
 		for statement in upgrader.iterStatements():
 			yield statement
+		yield _COMMIT
 
 
 def upgrade(forceDBVersion=None, dryRun=False):
@@ -403,20 +433,23 @@ def upgrade(forceDBVersion=None, dryRun=False):
 
 	with base.getWritableAdminConn() as conn:
 		for statement in iterStatements(startVersion, CURRENT_SCHEMAVERSION):
-			if callable(statement):
+			if statement is _COMMIT:
+				if dryRun:
+					conn.rollback()
+				conn.commit()
+
+			elif callable(statement):
 				if statement.__doc__:
 					showProgress("> %s..."%statement.__doc__)
 				# if no docstring is present, we assume the function will output
 				# custom user feedback
 				statement(conn)
+
 			else:
 				showProgress("> "+getattr(statement, "annotation",
 					"executing %s"%utils.makeEllipsis(statement, 60))+"... ")
 				conn.execute(statement)
 			showProgress(" ok\n")
-		if dryRun:
-			conn.rollback()
-		conn.commit()
 
 
 def parseCommandLine():
