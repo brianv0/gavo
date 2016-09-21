@@ -65,7 +65,7 @@ def getXSDErrorsXerces(data, leaveOffending=False):
 
 
 class XSDResolver(etree.Resolver):
-	"""A resolver for external entities only returning in-tree files only.
+	"""A resolver for external entities only returning in-tree files.
 	"""
 	def __init__(self):
 		self.basePath = "schemata"
@@ -78,7 +78,8 @@ class XSDResolver(etree.Resolver):
 	def resolve(self, url, pubid, context):
 		try:
 			path = self.getPathForName(url)
-			return self.resolve_filename(path, context)
+			res = self.resolve_filename(path, context)
+			return res
 		except:
 			base.ui.notifyError("Did not find local file for schema %s --"
 				" this will fall back to network resources and thus probably"
@@ -136,7 +137,7 @@ VO_SCHEMATA = [
 		"VODataService-v1.1.xsd",
 		"VOEvent-1.0.xsd",
 		"VORegistry-v1.0.xsd",
-		"VOResource-v1.0.xsd",
+		"VOResource-v1.1.xsd",
 		"VOSIAvailability-v1.0.xsd",
 		"VOSICapabilities-v1.0.xsd",
 		"VOSITables-v1.0.xsd",

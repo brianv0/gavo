@@ -20,7 +20,7 @@ xsi:schemaLocation="http://www.w3.org/2001/XMLSchema http://vo.ari.uni-heidelber
     A description of the capabilities metadata for TAP services.
     </xs:documentation>
   </xs:annotation>
-  <xs:import namespace="http://www.ivoa.net/xml/VOResource/v1.0" schemaLocation="http://vo.ari.uni-heidelberg.de/docs/schemata/VOResource-v1.0.xsd"/>
+  <xs:import namespace="http://www.ivoa.net/xml/VOResource/v1.0" schemaLocation="http://vo.ari.uni-heidelberg.de/docs/schemata/VOResource-v1.1.xsd"/>
   <xs:complexType name="TableAccess">
     <xs:annotation>
       <xs:documentation>

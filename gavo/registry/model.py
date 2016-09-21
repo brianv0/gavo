@@ -27,7 +27,7 @@ registerPrefix("ri",
 registerPrefix("vg", "http://www.ivoa.net/xml/VORegistry/v1.0",
 	schemaURL("VORegistry-v1.0.xsd"))
 registerPrefix("vr", "http://www.ivoa.net/xml/VOResource/v1.0",
-	schemaURL("VOResource-v1.0.xsd"))
+	schemaURL("VOResource-v1.1.xsd"))
 registerPrefix("dc", "http://purl.org/dc/elements/1.1/",
 	schemaURL("simpledc20021212.xsd"))
 registerPrefix("vs0", "http://www.ivoa.net/xml/VODataService/v1.0",

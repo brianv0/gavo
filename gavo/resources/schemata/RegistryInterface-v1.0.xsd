@@ -8,7 +8,7 @@
            version="1.0">
            
    <xs:import namespace="http://www.ivoa.net/xml/VOResource/v1.0"
-              schemaLocation="http://vo.ari.uni-heidelberg.de/docs/schemata/VOResource-v1.0.xsd"/>     
+              schemaLocation="http://vo.ari.uni-heidelberg.de/docs/schemata/VOResource-v1.1.xsd"/>     
      
    <xs:element name="VOResources">
       <xs:annotation>

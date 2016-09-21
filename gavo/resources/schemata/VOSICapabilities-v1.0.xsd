@@ -17,7 +17,7 @@
   </xsd:annotation>
 
   <xsd:import namespace="http://www.ivoa.net/xml/VOResource/v1.0"
-              schemaLocation="http://vo.ari.uni-heidelberg.de/docs/schemata/VOResource-v1.0.xsd" />
+              schemaLocation="http://vo.ari.uni-heidelberg.de/docs/schemata/VOResource-v1.1.xsd" />
 
   <!--
     -  the root element for a VOSI capabilities metadata (section 2.1)
