@@ -485,7 +485,7 @@ class ActionAttribute(UnicodeAttribute):
 		getattr(instance, self.methodName)(ctx)
 			
 
-# __init__ does in import * from this.  You shouldn't.
+# __init__ does an import * from this.  You shouldn't.
 
 __all__ = ["LiteralParseError", "Undefined", "UnicodeAttribute", 
 	"IntAttribute", "BooleanAttribute", "AtomicAttribute", 

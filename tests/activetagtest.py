@@ -694,6 +694,20 @@ class MixinTest(testhelpers.VerboseTest):
 		self.assertTrue("q3c_ang2ipix(r, d)" in
 			"".join(res.getById("bla").indices[0].iterCode()))
 
+	def testParameterOverwriting(self):
+		rd = base.parseFromString(rscdesc.RD, r"""<resource schema="test">
+			<mixinDef id="bla">
+				<mixinPar key="xy">xy</mixinPar>
+				<mixinPar key="xy">zz</mixinPar>
+				<events>
+					<param name="val" type="text">\xy</param>
+				</events>
+			</mixinDef>
+			<table id="foo" mixin="bla"/>
+		</resource>""")
+		self.assertEqual(len(rd.getById("bla").pars), 1)
+		self.assertEqual(rd.getById("foo").getParamByName("val").value, "zz")
+
 
 class ReferenceAttributeTest(testhelpers.VerboseTest):
 	def testRefattChangeHonored(self):

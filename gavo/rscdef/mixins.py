@@ -135,8 +135,9 @@ class MixinDef(activetags.ReplayBase):
 		childFactory=ProcessLate,
 		description="Code executed resource fixup.",
 		copyable=True)
-	_pars = base.StructListAttribute("pars",
+	_pars = base.UniquedStructListAttribute("pars",
 		childFactory=MixinPar,
+		uniqueAttribute="key",
 		description="Parameters available for this mixin.",
 		copyable=True)
 	_original = base.OriginalAttribute()

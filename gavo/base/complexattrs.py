@@ -433,16 +433,30 @@ class StructListAttribute(StructAttribute):
 			return "Recursive element list"
 		else:
 			return "List of %s"%self.childFactory.name_
-	
+
+	def addStruct(self, instance, value, destIndex=None):
+		"""adds a structure to the attribute's value.
+
+		Do *not* directly add to the list, always go through this
+		method; derived classes override it for special behaviour.
+		Also, this is where callbacks are called.
+
+		Use destIndex to overwrite an (existing!) struct; default is appending.
+		"""
+		if value.parent is None:  # adopt if necessary
+				value.parent = instance
+		if destIndex is None:
+			getattr(instance, self.name_).append(value)
+		else:
+			getattr(instance, self.name_)[destIndex] = value
+		self.doCallbacks(instance, value)
+
 	def feedObject(self, instance, value):
 		if isinstance(value, list):
 			for item in value:
 				self.feedObject(instance, item)
 		else:
-			if value.parent is None:  # adopt if necessary
-				value.parent = instance
-			getattr(instance, self.name_).append(value)
-			self.doCallbacks(instance, value)
+			self.addStruct(instance, value)
 	
 	def getCopy(self, instance, newParent):
 		res = [c.copy(newParent) for c in getattr(instance, self.name_)]
@@ -452,9 +466,8 @@ class StructListAttribute(StructAttribute):
 		# This will only replace the first occurrence of oldStruct if
 		# multiple identical items are in the list.  Any other behaviour
 		# would be about as useful, so let's leave it at this for now.
-		curContent = getattr(instance, self.name_)
-		ind = curContent.index(oldStruct)
-		curContent[ind] = newStruct
+		ind = getattr(instance, self.name_).index(oldStruct)
+		self.addStruct(instance, newStruct, ind)
 
 	def iterEvents(self, instance):
 		for val in getattr(instance, self.name_):
@@ -482,6 +495,34 @@ class StructListAttribute(StructAttribute):
 			contains = "(contains `Element %s`_"%self.childFactory.name_
 		return ("%s %s and may be repeated zero or more"
 			" times) -- %s")%(self.name_, contains, self.description_)
+
+
+class UniquedStructListAttribute(StructListAttribute):
+	"""A StructListAttribute that will only admit one child per value
+	of uniqueAttribute, overwriting existing entries if existing.
+	"""
+	def __init__(self, name, childFactory, uniqueAttribute,
+			**kwargs):
+		self.uniqueAttribute = uniqueAttribute
+		StructListAttribute.__init__(self, name, childFactory, **kwargs)
+
+	@property
+	def typeDesc_(self):
+		return "List of %s, uniqued on %s's value"%(
+			self.childFactory.name_, self.uniqueAttribute)
+
+	def addStruct(self, instance, value):
+		# we expect lists will not get so long as to make a linear search
+		# actually expensive.  Linear searching, on the other hand, saves
+		# us from having to maintain and index (in the presence of
+		# possible deletions!)
+		uniqueOn = getattr(value, self.uniqueAttribute)
+		for index, item in enumerate(iter(getattr(instance, self.name_))):
+			if getattr(item, self.uniqueAttribute)==uniqueOn:
+				StructListAttribute.addStruct(self, instance, value, index)
+				break
+		else:
+			StructListAttribute.addStruct(self, instance, value)
 
 
 # Ok, so the inheritance here is evil.  I'll fix it if it needs more work.
@@ -514,4 +555,4 @@ class MultiStructListAttribute(StructListAttribute, MultiStructAttribute):
 
 __all__ = ["ListOfAtomsAttribute", "DictAttribute", "StructAttribute",
 	"MultiStructAttribute", "StructListAttribute", "MultiStructListAttribute",
-	"SetOfAtomsAttribute", "PropertyAttribute"]
+	"UniquedStructListAttribute", "SetOfAtomsAttribute", "PropertyAttribute"]

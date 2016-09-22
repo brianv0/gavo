@@ -851,6 +851,29 @@ class Binary2ReadTest(testhelpers.VerboseTest):
 		)]
 
 
+class Binary2RoundtripTest(testhelpers.VerboseTest):
+	"""tests for roundtripping values through BINARY2 VOTables.
+	"""
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		fielddefs, input = sample
+		vot = V.VOTABLE[V.RESOURCE[votable.DelayedTable(
+			V.TABLE[fielddefs], input, V.BINARY2)]]
+		valAfter = list(votable.parseString(
+			votable.asString(vot)).next())
+		self.assertEqual(input, valAfter)
+	
+	samples = [
+		([V.FIELD(datatype="int"), V.FIELD(datatype="float")],
+			[[5, None], [None, 4.25]]),
+		([V.FIELD(datatype="char"), V.FIELD(datatype="char", arraysize="*")],
+			[['a', None], [None, 'abc']]),
+		([V.FIELD(datatype="boolean"), V.FIELD(datatype="doubleComplex")],
+			[[True, None], [None, 0.25+3j]]),
+	]
+
+
 class NDArrayTest(testhelpers.VerboseTest):
 	"""tests for the (non-existing) support for multi-D arrays.
 	"""
