@@ -16,6 +16,11 @@ Version 0.9.8 ()
 	  your data and slightly adapt your RD (e.g., c1_min -> c1min, 
 	  t_exp_min -> time_exp_min etc).
 
+	* DaCHS now emits warnings for columns whose names are SQL or ADQL 
+		reserved names (this includes popular items like area, size, and distance).
+		Even if things have worked so far, please change these names.  We promise
+		you'll regret it if you don't.
+
 
 Version 0.9.7 (2016-08-18)
 

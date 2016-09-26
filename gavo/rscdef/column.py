@@ -8,6 +8,7 @@ Description of columns (and I/O fields).
 #c COPYING file in the source distribution.
 
 
+from gavo import adql
 from gavo import base
 from gavo import dm
 from gavo import utils
@@ -47,26 +48,48 @@ class TypeNameAttribute(base.AtomicAttribute):
 		return value
 
 
-class ColumnNameAttribute(base.UnicodeAttribute):
-	"""An attribute containing a column name.
+class ParamNameAttribute(base.UnicodeAttribute):
+	"""An attribute containing a param or column name.
+
+	These, in DaCHS, have to match identifierPat (essentially, like
+	python identifiers.
+	"""
+	@property
+	def typeDesc_(self):
+		return ("A name for a table or service parameter.  These have to match"
+			" ``%s``."
+			)%utils.identifierPattern.pattern
+	
+	def parse(self, value):
+		if not utils.identifierPattern.match(value):
+			raise base.StructureError("'%s' is not a valid column name"%value)
+		return value
+	
+
+class ColumnNameAttribute(ParamNameAttribute):
+	"""An attribute containing a name suitable for SQL table names.
 
 	Column names are special in that you can prefix them with "quoted/"
 	and then get a delimited identifier.  This is something you probably
 	shouldn't use.
+
+	Using ADQL/SQL reserved words (without quoting) here yields a warning.
 	"""
-	@property
 	def typeDesc_(self):
-		return ("a column name within an SQL table.  These have to match"
-			" ``%s``.  In a desperate pinch, you can generate delimited identifiers"
-			" (that can contain anything) by prefixing the name with 'quoted/' (but"
-			" you cannot use rowmakers to fill such tables)."
-			)%utils.identifierPattern.pattern
-	
+		return ("a column name within an SQL table.  These have to match the"
+			" SQL regular_identifier production."
+			"  In a desperate pinch, you can generate delimited identifiers"
+			" (that can contain anything) by prefixing the name with 'quoted/'")
+
 	def parse(self, value):
 		if value.startswith("quoted/"):
 			return utils.QuotedName(value[7:])
-		if not utils.identifierPattern.match(value):
-			raise base.StructureError("'%s' is not a valid column name"%value)
+		value = ParamNameAttribute.parse(self, value)
+		if value.upper() in adql.allReservedWords:
+			base.ui.notifyWarning("Column name '%s' conincides with a"
+				" ADQL/SQL reserved name.  This may lead to serious trouble"
+				" later.  Please consider changing the name, or prepend quoted/"
+				" to make it a delimited identifier."%value)
 		return value
 	
 	def unparse(self, value):
@@ -329,8 +352,8 @@ class ColumnBase(base.Structure, base.MetaMixin):
 	See also Column for a docstring that still applies to all we've in
 	here.
 	"""
-	_name = ColumnNameAttribute("name", default=base.Undefined,
-		description="Name of the column",
+	_name = ParamNameAttribute("name", default=base.Undefined,
+		description="Name of the param",
 		copyable=True, before="type")
 	_type = TypeNameAttribute("type", default="real", description=
 		"datatype for the column (SQL-like type system)",
@@ -546,7 +569,6 @@ class ColumnBase(base.Structure, base.MetaMixin):
 		return type, arraysize, xtype
 		
 
-
 class Column(ColumnBase):
 	"""A database column.
 	
@@ -570,6 +592,10 @@ class Column(ColumnBase):
 	  std column in TAP_SCHEMA 1 (it's 0 otherwise).
 	"""
 	name_ = "column"
+
+	_name = ColumnNameAttribute("name", default=base.Undefined,
+		description="Name of the column",
+		copyable=True, before="type")
 
 	def validate(self):
 		self._validateNext(Column)

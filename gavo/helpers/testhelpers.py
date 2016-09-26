@@ -552,6 +552,39 @@ class FakeContext(object):
 registerAdapter(lambda ctx: ctx.request, FakeContext, inevow.IRequest)
 
 
+class CatchallUI(object):
+	"""A replacement for base.ui, collecting the messages being sent.
+
+	This is to write tests against producing UI events.  Use it with
+	the messageCollector context manager below.
+	"""
+	def __init__(self):
+		self.events = []
+
+	def record(self, evType, args, kwargs):
+		self.events.append((evType, args, kwargs))
+
+	def __getattr__(self, attName):
+		if attName.startswith("notify"):
+			return lambda *args, **kwargs: self.record(attName[6:], args, kwargs)
+
+
+@contextlib.contextmanager
+def messageCollector():
+	"""A context manager recording UI events.
+
+	The object returned by the context manager is a CatchallUI; get the
+	events accumulated during the run time in its events attribute.
+	"""
+	tempui = CatchallUI()
+	realui = base.ui
+	try:
+		base.ui = tempui
+		yield tempui
+	finally:
+		base.ui = realui
+
+
 def trialMain(testClass):
 	from twisted.trial import runner
 	from twisted.scripts import trial as script

@@ -407,6 +407,19 @@ class QuotedColumnNameTest(testhelpers.VerboseTest):
 		self.assertEqual(self.td.getColumnByName(
 			utils.QuotedName("Harmless")).type, "real")
 
+	def testInvalidNameRejected(self):
+		self.assertRaisesWithMsg(base.StructureError,
+			"At [<column name=\"%)#=\"/>], (1, 0): '%)#=' is not a valid column name",
+			base.parseFromString,
+			(rscdef.Column, '<column name="%)#="/>'))
+
+	def testReservedNameWarns(self):
+		with testhelpers.messageCollector() as msgs:
+			base.parseFromString(rscdef.Column, '<column name="references"/>')
+		self.assertEqual(msgs.events[0][0], 'Warning')
+		self.assertTrue(msgs.events[0][1][0].startswith(
+			"Column name 'references' conincides"))
+
 
 class _ResTestTable(testhelpers.TestResource):
 	def make(self, ignored):

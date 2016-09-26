@@ -88,7 +88,7 @@ class Group(base.Structure):
 	"""
 	name_ = "group"
 
-	_name = column.ColumnNameAttribute("name", 
+	_name = column.ParamNameAttribute("name", 
 		default=None,
 		description="Name of the column (must be SQL-valid for onDisk tables)",
 		copyable=True)
