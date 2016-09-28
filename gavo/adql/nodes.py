@@ -1333,14 +1333,15 @@ class SetFunction(TransparentMixin, FieldInfoedNode):
 	type = "setFunctionSpecification"
 
 	funcDefs = {
-		'AVG': ('stat.mean', None, "double precision"),
-		'MAX': ('stat.max', None, None),
-		'MIN': ('stat.min', None, None),
+		'AVG': ('%s;stat.mean', None, "double precision"),
+		'MAX': ('%s;stat.max', None, None),
+		'MIN': ('%s;stat.min', None, None),
 		'SUM': (None, None, None),
-		'COUNT': ('meta.number', '', "integer"),}
+		'COUNT': ('meta.number;%s', '', "integer"),}
 
 	def addFieldInfo(self, context):
-		ucdPref, newUnit, newType = self.funcDefs[self.children[0].upper()]
+		funcName = self.children[0].upper()
+		ucdPref, newUnit, newType = self.funcDefs[funcName]
 
 		# try to find out about our child
 		infoChildren = self._getInfoChildren()
@@ -1353,8 +1354,15 @@ class SetFunction(TransparentMixin, FieldInfoedNode):
 		if ucdPref is None:
 			# ucd of a sum is the ucd of the summands?
 			ucd = fi.ucd
+		elif fi.ucd:
+			ucd = ucdPref%(fi.ucd)
 		else:
-			ucd = ";".join(p for p in (ucdPref, fi.ucd) if p)
+			# no UCD given; if we're count, we're meta.number, otherwise we
+			# don't know
+			if funcName=="COUNT":
+				ucd = "meta.number"
+			else:
+				ucd = None
 
 		# most of these keep the unit of what they're working on
 		if newUnit is None:

@@ -6,7 +6,7 @@ svn log http://svn.ari.uni-heidelberg.de/svn/gavo/python/trunk/ | less
 to see the gory details.  If anything not mentioned here breaks something
 for you, we'd consider it a severe bug, though.
 
-Version 0.9.8 ()
+Version 0.9.8-pre1 (2016-09-27)
 
 	* TAP_SCHEMA columns now has new column_index column.  Its addition should
 	  be automatic as long as your TAP-published RDs are in order.

@@ -884,13 +884,13 @@ class ColResTest(ColumnTest):
 		cols = self._getColSeq("select AVG(mag), mAx(mag), max(2*mag),"
 			" Min(Mag), sum(mag), count(mag), avg(3), count(*) from misc")
 		self._assertColumns(cols, [
-			("double precision", "mag", "stat.mean;phot.mag", False),
-			("real", "mag", "stat.max;phot.mag", False),
-			("real", "mag", "stat.max;phot.mag", True),
-			("real", "mag", "stat.min;phot.mag", False),
+			("double precision", "mag", "phot.mag;stat.mean", False),
+			("real", "mag", "phot.mag;stat.max", False),
+			("real", "mag", "phot.mag;stat.max", True),
+			("real", "mag", "phot.mag;stat.min", False),
 			("real", "mag", "phot.mag", False),
 			("integer", "", "meta.number;phot.mag", False),
-			("double precision", "", "stat.mean", False),
+			("double precision", "", None, False),
 			("integer", "", "meta.number", False)])
 
 	def testNumericFunctions(self):
@@ -909,8 +909,8 @@ class ColResTest(ColumnTest):
 	def testAggFunctions(self):
 		cols = self._getColSeq("select max(ra1), min(ra1) from spatial")
 		self._assertColumns(cols, [
-			("real", "deg", "stat.max;pos.eq.ra", False),
-			("real", "deg", "stat.min;pos.eq.ra", False)])
+			("real", "deg", "pos.eq.ra;stat.max", False),
+			("real", "deg", "pos.eq.ra;stat.min", False)])
 
 	def testPoint(self):
 		cols = self._getColSeq("select point('ICRS', ra1, ra2) from spatial")
