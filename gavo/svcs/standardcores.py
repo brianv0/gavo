@@ -296,11 +296,13 @@ def mapDBErrors(excType, excValue, excTb):
 	if getattr(excValue, "cursor", None) is not None:
 		base.ui.notifyWarning("Failed DB query: %s"%excValue.cursor.query)
 	if isinstance(excValue, sqlsupport.QueryCanceledError):
-		message = "Query timed out (took too long)."
+		message = "Query timed out (took too long).\n"
 		if base.getConfig("maintainerAddress"):
-			message = message+("  Unless you know why the query took that"
-				" long, please contact %s; we will probably be able to"
-				" help you."%base.getConfig("maintainerAddress"))
+			message = message+("Unless you know why the query took that"
+				" long, please contact %s.\n"%base.getConfig("maintainerAddress"))
+		message += ("Meanwhile, if this failure happened with a cross match,"
+			" please try exchanging the large and the small catalog in POINT"
+			" and CIRCLE.\n")
 		raise base.ui.logOldExc(base.ValidationError(message, "query"))
 	elif isinstance(excValue, base.NotFoundError):
 		raise base.ui.logOldExc(base.ValidationError("Could not locate %s '%s'"%(
