@@ -354,7 +354,7 @@ class RowIterator(object):
 					d["parser_"] = self
 
 				yield row
-		except:
+		except Exception:
 			base.ui.notifySourceError()
 			raise
 

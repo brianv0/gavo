@@ -344,7 +344,10 @@ def debug(args):
 	log.startLogging(sys.stderr)
 	base.DEBUG = True
 	root.root.child_exit = ExitPage()
-	reactor.listenTCP(int(base.getConfig("web", "serverPort")), root.site)
+	reactor.listenTCP(
+		int(base.getConfig("web", "serverPort")), 
+		root.site,
+		interface=base.getConfig("web", "bindAddress"))
 	setupServer(root)
 	reactor.run()
 
