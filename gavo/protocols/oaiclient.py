@@ -243,10 +243,6 @@ class OAIRecordsParser(sax.ContentHandler, OAIErrorMixin):
 	res/canonicalPrefixes.pickle
 
 	Note that we *require* that records actually carry ivo_vor metadata.
-	That's necessary because rr.resource only has records with
-	ivo_vor metadata and the oairecs table has a foreign key there.  It's
-	probably also desirable so we don't ingest any noise that may happen
-	to end up in registries.
 	"""
 	# attribute names the values of which should be disambiguated to
 	# reduce the likelihood of clashes when ids are reused between documents.
@@ -677,6 +673,13 @@ def _addCanonicalNSDecls(xmlLiteral):
 	
 
 def getRecord(registry, identifier):
+	"""returns the XML form of an OAI-PMH record for identifier from
+	the OAI-PMH endpoint at URL registry.
+
+	This uses the OAIRecordsParser which enforces canonical prefixes,
+	and the function will add their declarations as necessary.  This also means
+	that evil registry records could be broken by us.
+	"""
 	q = OAIQuery(registry, verb="GetRecord", identifier=identifier)
 	res = q.talkOAI(OAIRecordsParser)
 	dest, row = res[0]

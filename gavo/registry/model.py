@@ -183,6 +183,8 @@ class VOR:
 
 	class identifier(VORElement): pass
 
+	class altIdentifier(VORElement): pass
+
 	class curation(VORElement): pass
 	
 	class content(VORElement): pass

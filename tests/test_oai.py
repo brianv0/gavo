@@ -262,3 +262,15 @@ class OAIContentCallbackTest(_OAITest):
 			).addErrback(assertNotSaved)
 
 
+class OAIClientFunctionTest(_OAITest):
+	def testGetRecordContent(self):
+		def assertContentIsRecord(res):
+			self.assertTrue(
+				'xmlns:vg="http://www.ivoa.net/xml/VORegistry/v1.0"' in res)
+			self.assertTrue(res.strip().startswith("<oai:record "))
+			self.assertTrue('<ri:Resource status="active"' in res)
+			self.assertTrue('xsi:type="vg:Harvest"' in res)
+
+		return threads.deferToThread(oaiclient.getRecord,
+			self.registry, "ivo://x-unregistred/__system__/services/registry"
+		).addCallback(assertContentIsRecord)

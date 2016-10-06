@@ -406,6 +406,8 @@ class _StandardsRec(testhelpers.TestResource):
 			subject: testing
 			referenceURL: http://bar
 			identifier: ivo://foo.bar
+			altIdentifier: doi:10.5072/teststuff
+			altIdentifier: bibcode:1970ivoa.spec........D
 			endorsedVersion: 1.1
 			endorsedVersion.status: wd
 			endorsedVersion.use: preferred
@@ -451,6 +453,12 @@ class StandardsTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 		self.assertEqual(el[0].text, "bar1")
 		self.assertEqual(el[1].tag, "description")
 		self.assertEqual(el[1].text, "This one's open")
+
+	def testAltIdentifiers(self):
+		els = self.srcAndTree[1].xpath("//metadata/Resource/altIdentifier")
+		self.assertEqual([el.text for el in els], [
+			"doi:10.5072/teststuff",
+			"bibcode:1970ivoa.spec........D"])
 
 
 class _DocRec(testhelpers.TestResource):
@@ -950,6 +958,10 @@ class _ExternalRecordRes(testhelpers.TestResource):
 	<meta name="creationDate">2015-09-17T11:45:00</meta>
 	<meta name="subject">Cosmic ray</meta>
 	<meta name="creator.name">Steigies, C.</meta>
+	<meta name="creator">
+		<meta name="name">Wilbanks, J.</meta>
+		<meta name="altIdentifier">orcid:0000-0002-4510-0385</meta>
+	</meta>
 	<service id="run" allowed="external">
 		<nullCore/>
 		<meta name="shortName">nmdb web</meta>
@@ -976,6 +988,12 @@ class ExternalRecordTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 
 	def testValid(self):
 		self.assertValidates(self.srcAndTree[0])
+
+	def testCreatorAltIdentifier(self):
+		self.assertEqual(
+			self.srcAndTree[1].xpath("//creator/altIdentifier")[0].text,
+			"orcid:0000-0002-4510-0385")
+
 
 class _ProductServiceRecord(testhelpers.TestResource):
 	def make(self, ignored):

@@ -262,13 +262,13 @@ class NotAcceptable(ErrorPage):
 class ErrorDisplay(ErrorPage):
 	handles = base.ReportableError
 	status = 500
-	titleMessage = "Server Failure"
-	beforeMessage = ("An unexpected Problem occurred:")
-	afterMessage = [T.p["This usually means we've fouled up, and there's no"
-				" telling whether we've realized that already.  So, chances are"
-				" we'd be grateful if you told us at the address given below."
-				" Thanks."],
-			T.p(render=T.directive("hint"))]
+	titleMessage = "Error"
+	beforeMessage = ("A piece of code failed:")
+	afterMessage = [T.p["Problems of this sort usually mean we considered"
+		" the possibility of something like this happening; if the above"
+		" doesn't give you sufficient hints to fix the problem, please"
+		" complain to the address given below."],
+		T.p(render=T.directive("hint"))]
 
 # HTML mess for last-resort type error handling.
 errorTemplate = (
