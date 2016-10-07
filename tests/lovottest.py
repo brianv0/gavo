@@ -382,7 +382,11 @@ class TabledataWriteTest(testhelpers.VerboseTest):
 			[V.FIELD(datatype="double", arraysize="*")[V.VALUES(null="23")]],
 			[[None], [[None]]],
 			"<TR><TD></TD></TR><TR><TD>NaN</TD></TR>"
-		)
+		), (
+			[V.FIELD(datatype="char", arraysize="*", xtype="adql:TIMESTAMP")],
+			[[None], [datetime.datetime(2010, 10, 12, 23, 10, 01)]],
+			"<TR><TD></TD></TR><TR><TD>2010-10-12T23:10:01Z</TD></TR>"
+		),
 	]
 
 
@@ -491,6 +495,10 @@ class BinaryWriteTest(testhelpers.VerboseTest):
 			[V.FIELD(datatype="short", arraysize="3x2")],
 			[[[1,2,3,4,5,6]]],
 			'\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06'
+		),(
+			[V.FIELD(datatype="char", arraysize="*", xtype="adql:TIMESTAMP")],
+			[[None], [datetime.datetime(2010, 10, 12, 23, 10, 01)]],
+			'\x00\x00\x00\x00\x00\x00\x00\x142010-10-12T23:10:01Z'
 		),
 	]
 
@@ -722,7 +730,12 @@ class Binary2WriteTest(testhelpers.VerboseTest):
 			[[[1,2,3,4,5,6]], [None]],
 			'\x00\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06'
 			'\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+		), (
+			[V.FIELD(datatype="char", arraysize="*", xtype="adql:TIMESTAMP")],
+			[[None], [datetime.datetime(2010, 10, 12, 23, 10, 01)]],
+			'\x80\0\0\0\0\0\0\0\0\x142010-10-12T23:10:01Z'
 		),
+
 	]
 
 

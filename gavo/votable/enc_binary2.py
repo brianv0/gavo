@@ -16,8 +16,10 @@ it's family.
 #c COPYING file in the source distribution.
 
 
+import datetime                 #noflake: used by generated code
 import struct
 
+from gavo import utils          #noflake: used by generated code
 from gavo.votable import coding
 from gavo.votable import common
 from gavo.votable import enc_binary
@@ -107,6 +109,7 @@ def _makeCharArrayEncoder(field):
 			'  val = val.encode("ascii", "replace")'])
 
 	if field.hasVarLength():
+		src.extend(common.getXtypeCode(field))
 		src.extend([
 			"if not val:",
 			"  tokens.append('\\0\\0\\0\\0')",
