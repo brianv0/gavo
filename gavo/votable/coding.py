@@ -60,7 +60,7 @@ def buildCodec(source, env):
 	ns = {}
 	ns.update(env)
 	try:
-		open("codec.py", "w").write(source)
+		#open("codec.py", "w").write(source)
 		exec source in ns
 	except:
 		utils.sendUIEvent("Error", 
