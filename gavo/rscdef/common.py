@@ -164,14 +164,17 @@ class IVOMetaMixin(object):
 		except AttributeError:
 			# fetch data from DB
 			pass
-		# We're not going through servicelist since we don't want to depend
-		# on the registry subpackage.
-		with base.getTableConn() as conn:
-			curs = conn.cursor()
-			curs.execute("SELECT dateUpdated, recTimestamp, setName"
-				" FROM dc.resources_join WHERE sourceRD=%(rdId)s AND resId=%(id)s",
-				{"rdId": self.rd.sourceId, "id": self.id})
-			res = list(curs)
+		res = None
+
+		if self.rd:
+			# We're not going through servicelist since we don't want to depend
+			# on the registry subpackage.
+			with base.getTableConn() as conn:
+				res = list(
+					conn.query("SELECT dateUpdated, recTimestamp, setName"
+					" FROM dc.resources_join WHERE sourceRD=%(rdId)s AND resId=%(id)s",
+					{"rdId": self.rd.sourceId, "id": self.id}))
+
 		if res:
 			self.__dbRecord = {
 				"sets": list(set(row[2] for row in res)),
@@ -186,10 +189,12 @@ class IVOMetaMixin(object):
 		return self.__getFromDB(metaKey)
 	
 	def _meta_dateUpdated(self):
-		return self.rd.getMeta("dateUpdated")
+		if self.rd:
+			return self.rd.getMeta("dateUpdated")
 
 	def _meta_datetimeUpdated(self):
-		return self.rd.getMeta("datetimeUpdated")
+		if self.rd:
+			return self.rd.getMeta("datetimeUpdated")
 	
 	def _meta_recTimestamp(self):
 		return self.__getFromDB("recTimestamp")

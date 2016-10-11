@@ -74,6 +74,7 @@ def adaptTable(origTable, newColumns):
 		newTable._params = origTable._params
 
 	else: # we need to do work
+		newTd.copyMetaFrom(origTable.tableDef)
 		rmk = rscdef.RowmakerDef(None)
 		for col in newColumns:
 			exprStart = ""

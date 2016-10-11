@@ -402,7 +402,19 @@ class MetaTest(testhelpers.VerboseTest):
 				' Do not use \' or &quot;."',
 			'<INFO name="warning" value="In table fud: Now, this *really*',
 		])
-	
+
+	def testCitelink(self):
+		def setupData(data):
+			data.getPrimaryTable().addMeta("howtociteLink", 
+				"http://dc.g-vo.org/whatever")
+			data.getPrimaryTable().addMeta("howtociteLink", 
+				"http://dc.g-vo.org/somethingelse")
+		self._assertVOTableContains(setupData, [
+			'<INFO name="howtocite" value="http://dc.g-vo.org/whatever">',
+			'For advice on how to cite the resource(s) that contributed'
+			' to this result, see http://dc.g-vo.org/whatever',
+			'<INFO name="howtocite" value="http://dc.g-vo.org/somethingelse">'])
+
 	def testLegal(self):
 		def setupData(data):
 			data.dd.rd.addMeta("copyright", "Please reference someone else")

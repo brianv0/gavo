@@ -35,6 +35,28 @@
 			<n:invisible n:render="metahtml">_longdoc</n:invisible>
 		</n:invisible>
 
+		<h2 class="section">Citing this table</h2>
+				<div id="biblio" n:render="ifmeta source">
+			<p>This table has an associated publication.  If you use data from it,
+			it may be appropriate to reference
+				<span class="bibsource" n:render="metahtml">source</span>
+				<span n:render="ifbibcode"> 
+					(<a><n:attr name="href"
+					>http://adsabs.harvard.edu/cgi-bin/nph-bib_query?bibcode=<n:invisible 
+						n:data="meta source" n:render="string"
+						/>&amp;data_type=BIBTEX&amp;db_key=AST&amp;nocookieset=1</n:attr
+				>ADS BibTeX entry for the publication</a>)</span> either
+				in addition to or instead of the service reference.</p>
+		</div>
+
+		<div id="serviceref">
+			<h2>Reference the Table</h2>
+			<p>To cite the table as such, we suggest the following
+			BibTeX entry:</p>
+			<pre class="bibtex" n:data="bibtexentry" n:render="unicode"/>
+		</div>
+
+
 		<h2 class="section">Fields</h2>
 		<p n:render="sortOrder"/>
 		<table n:data="fields" n:render="sequence" class="shorttable">
@@ -73,7 +95,7 @@
 			<n:invisible n:render="metahtml">note</n:invisible>
 		</n:invisible>
 		<p n:render="ifmeta copyright"><strong>Copyright and such:</strong> 
-			<n:invisible n:render="meta">copyright</n:invisible></p>
+			<n:invisible n:render="metahtml">copyright</n:invisible></p>
 	</body>
 </html>
 

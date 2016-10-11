@@ -715,7 +715,7 @@ class TableDef(base.Structure, base.ComputedMetaMixin, common.PrivilegesMixin,
 				within="table %s"%self.id)
 
 	def getURL(self, rendName, absolute=True):
-		basePath = "%s__system__/dc_tables/show/tableinfo/%s"%(
+		basePath = "%stableinfo/%s"%(
 			base.getConfig("web", "nevowRoot"),
 			self.getQName())
 		if absolute:
@@ -812,6 +812,17 @@ class TableDef(base.Structure, base.ComputedMetaMixin, common.PrivilegesMixin,
 			newColumns.append(c)
 			seenNames.add(c.name)
 		return newColumns
+
+	def _meta_howtociteLink(self):
+		"""returns a link to a how-to-cite page for this service as an URL
+		meta.
+		"""
+		if self.onDisk:  
+			# we assume we're sufficiently long-lived to merit a tableinfo if
+			# we're on disk
+			return base.META_CLASSES_FOR_KEYS["_related"](
+				self.getURL(None, True),
+				title="Advice on citing this resource")
 
 
 class FieldRef(base.Structure):

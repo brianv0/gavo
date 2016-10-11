@@ -521,8 +521,9 @@ class MetaMixin(object):
 	def copyMetaFrom(self, other):
 		"""sets a copy of other's meta items on self.
 		"""
-		self.meta_ = other.meta_
-		self.deepCopyMeta()
+		for key in other.getMetaKeys():
+			for val in other.iterMeta(key, propagate=False):
+				self.addMeta(key, val.copy())
 
 
 # Global meta, items get added from config
@@ -539,7 +540,11 @@ class ComputedMetaMixin(MetaMixin):
 	exception will be propagated.
 
 	The _meta_<key> methods should return MetaItems; if something else
-	is returned, an appropriate MetaValue  will be 
+	is returned, it is wrapped in a MetaValue.
+
+	On copying such metadata, the copy will retain the value on the original
+	if it has one.  This does not work for computed metadata that would be
+	inherited.
 	"""
 	def _getFromAtom(self, atom):
 		try:
@@ -554,6 +559,27 @@ class ComputedMetaMixin(MetaMixin):
 				return ensureMetaItem(res)
 
 			raise
+
+	def getMetaKeys(self):
+		computedKeys = []
+		for name in dir(self):
+			if name.startswith("_meta_"):
+				computedKeys.append(name[6:])
+		return MetaMixin.getMetaKeys(self)+computedKeys
+
+	def _iterMeta(self, atoms):
+		if len(atoms)>1:
+			for mv in MetaMixin._iterMeta(self, atoms):
+				yield mv
+		else:
+			res = list(MetaMixin._iterMeta(self, atoms))
+			if not res:
+				try:
+					res = self._getFromAtom(atoms[0])
+				except NoMetaKey:
+					res = []
+			for val in res:
+				yield val
 
 
 class MetaItem(object):

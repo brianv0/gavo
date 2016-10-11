@@ -882,5 +882,30 @@ class DefaultMetaTest(testhelpers.VerboseTest):
 			"Mein w\xfcster Club")
 
 
+class _NonComputer(meta.ComputedMetaMixin):
+	def _meta_computed(self):
+		return "abc"+"x"
+
+
+class ComputedMetaTest(testhelpers.VerboseTest):
+	def testBasic(self):
+		f = _NonComputer()
+		self.assertEqual(f.getMeta("computed").getContent(), "abcx")
+
+	def testOverriding(self):
+		f = _NonComputer()
+		f.addMeta("computed", "xc")
+		f.addMeta("computed", "ba")
+		self.assertEqual(
+			[m.getContent() for m in f.iterMeta("computed")],
+			["xc", "ba"])
+
+	def testCopying(self):
+		original = _NonComputer()
+		copy = _MetaCarrier(None)
+		copy.copyMetaFrom(original)
+		self.assertEqual(copy.getMeta("computed").getContent(), "abcx")
+
+
 if __name__=="__main__":
 	testhelpers.main(IterMetaTest)

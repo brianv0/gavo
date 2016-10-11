@@ -30,6 +30,17 @@ from gavo.web import common
 from gavo.web import grend
 
 
+def _protectForBibTeX(tx):
+	"""returns tx in a way that hopefully prevents larger disasters
+	when used with BibTeX.
+
+	(currently, this just looks for multiple uppercase characters within
+	one word and protects the respective word with curly braces; for now,
+	this is ASCII only).
+	"""
+	return re.sub(r"(\w*[A-Z]\w+[A-Z]\w*)", r"{\1}", tx)
+
+
 class MetaRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 	"""Renderers that are allowed on all services.
 	"""
@@ -76,6 +87,50 @@ class MetaRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 				return ctx.tag
 			return ""
 		return render
+
+	def render_ifbibcode(self, ctx, data):
+		"""renders its children if the source metadata looks like a bibcode.
+		"""
+		source = base.getMetaText(self.metaCarrier, "source", "")
+		if utils.couldBeABibcode(source):
+			return ctx.tag
+		else:
+			return ""
+
+	def data_bibtexentry(self, ctx, data):
+		"""returns BibTeX for the current record.
+		"""
+		year = utils.parseISODT(
+			base.getMetaText(self.metaCarrier, "creationDate")).year
+		
+		# for the BibTeX tag, prefer the short name if given...
+		label = base.getMetaText(self.metaCarrier, "shortName", None)
+		if label is None:
+			# ... else hope it's a table...
+			try:
+				label = self.metaCarrier.getQName()
+			except AttributeError:
+				# else use the id (which probably stinks)
+				label = self.metaCarrier.id
+		label = "vo:"+re.sub("[^\w]", "_", label)
+
+		res = [
+			"@MISC{%s"%label,
+			"  year=%s"%year,
+			"  title={%s}"%_protectForBibTeX(
+				base.getMetaText(self.metaCarrier, "title", "Untitled Resource")),
+			"  author={%s}"%_protectForBibTeX(
+				" and ".join(m.getContent() 
+					for m in self.metaCarrier.iterMeta("creator.name", propagate=True))),
+			"  url={%s}"%base.getMetaText(self.metaCarrier, "referenceURL"),
+			"  howpublished={{VO} resource provided by the %s}"%
+				_protectForBibTeX(base.getConfig("web", "sitename")),
+			]
+		doi = base.getMetaText(self.metaCarrier, "doi", None)
+		if doi:
+			res.append(
+				"  doi = {%s}"%doi)
+		return u",\n".join(res)+"\n}\n"
 
 
 class RendExplainer(object):
@@ -546,57 +601,14 @@ class TableNoteRenderer(MetaRenderer):
 		T.invisible(render=T.directive("noteHTML")))
 
 
-def _protectForBibTeX(tx):
-	"""returns tx in a way that hopefully prevents larger disasters
-	when used with BibTeX.
-
-	(currently, this just looks for multiple uppercase characters within
-	one word and protects the respective word with curly braces; for now,
-	this is ASCII only).
-	"""
-	return re.sub(r"(\w*[A-Z]\w+[A-Z]\w*)", r"{\1}", tx)
-
-
 class HowToCiteRenderer(MetaRenderer):
 	"""A renderer that lets you format citation instructions.
 	"""
 	name = "howtocite"
 
-	def render_ifbibcode(self, ctx, data):
-		"""renders its children if the source metadata looks like a bibcode.
-		"""
-		source = base.getMetaText(self.service, "source", "")
-		if utils.couldBeABibcode(source):
-			return ctx.tag
-		else:
-			return ""
 	customTemplate = svcs.loadSystemTemplate("howtocite.html")
 
-	def data_bibtexentry(self, ctx, data):
-		"""returns BibTeX for the current record.
-		"""
-		year = utils.parseISODT(
-			base.getMetaText(self.service, "creationDate")).year
-		res = [
-			"@MISC{svc:%s"%base.getMetaText(self.service, "shortName"
-				).replace(" ", "_"),
-			"  year=%s"%year,
-			"  title={%s}"%_protectForBibTeX(
-				base.getMetaText(self.service, "title")),
-			"  author={%s}"%_protectForBibTeX(
-				" and ".join(m.getContent() 
-					for m in self.service.iterMeta("creator.name", propagate=True))),
-			"  url={%s}"%base.getMetaText(self.service, "referenceURL"),
-			"  howpublished={{VO} resource provided by the %s}"%
-				_protectForBibTeX(base.getConfig("web", "sitename")),
-			]
-		doi = base.getMetaText(self.service, "doi", None)
-		if doi:
-			res.append(
-				"  doi = {%s}"%doi)
-		return u",\n".join(res)+"\n}\n"
 
-	
 class ExternalRenderer(grend.ServiceBasedPage):
 	"""A renderer redirecting to an external resource.
 

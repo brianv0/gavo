@@ -213,10 +213,11 @@ def _iterToplevelMeta(ctx, dataSet):
 		return
 	yield V.DESCRIPTION[base.getMetaText(rd, "description",
 		macroPackage=dataSet.dd.rd)]
+
 	for infoItem in rd.iterMeta("copyright"):
 		yield V.INFO(name="legal", value=infoItem.getContent("text",
 			macroPackage=dataSet.dd.rd))
-
+	
 
 # link elements may be defined using the votlink meta on RESOURCE, TABLE,
 # GROUP, FIELD, or PARAM; within in the DC, GROUPs have no meta structure,
@@ -394,7 +395,11 @@ def _iterParams(ctx, dataSet):
 
 _tableMetaBuilder = meta.ModelBasedBuilder([
 	('source', lambda content, localattrs: [V.INFO(name="source",
-			value=item, **localattrs) for item in content])])
+			value=item, **localattrs) for item in content]),
+	('howtociteLink', lambda content, localattrs: [V.INFO(name="howtocite",
+			value=item, **localattrs)["For advice on how to cite the resource(s)"
+				" that contributed to this result, see %s"%item] for item in content]),
+	])
 
 
 def _iterSTC(tableDef, serManager):
@@ -497,12 +502,12 @@ def makeTable(ctx, table):
 			_iterFields(ctx, sm),
 			_iterTableParams(ctx, sm),
 			_iterNotes(sm),
+			_tableMetaBuilder.build(table),
 			_linkBuilder.build(table.tableDef),
 			]
 
 		if ctx.version>(1,1):
-			result[_iterSTC(table.tableDef, sm),
-				_tableMetaBuilder.build(table)]
+			result[_iterSTC(table.tableDef, sm)]
 
 		if ctx.produceVODML:
 			for ann in table.tableDef.annotations:
