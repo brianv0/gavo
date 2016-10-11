@@ -258,15 +258,17 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 		"""
 		self.query(*self.getDeleteQuery(matchCondition, pars))
 	
-	def copyIn(self, inFile):
+	def copyIn(self, inFile, binary=True):
+		fmt = " WITH BINARY" if binary else ""
 		cursor = self.connection.cursor()
-		cursor.copy_expert("COPY %s FROM STDIN WITH BINARY"%self.tableName, inFile)
+		cursor.copy_expert("COPY %s FROM STDIN %s"%(self.tableName, fmt), inFile)
 		cursor.close()
 		return self
 
-	def copyOut(self, outFile):
+	def copyOut(self, outFile, binary=True):
+		fmt = " WITH BINARY" if binary else ""
 		cursor = self.connection.cursor()
-		cursor.copy_expert("COPY %s TO STDOUT WITH BINARY"%self.tableName, outFile)
+		cursor.copy_expert("COPY %s TO STDOUT %s"%(self.tableName, fmt), outFile)
 		cursor.close()
 		return self
 	
