@@ -60,7 +60,7 @@ def _build_source(children, localattrs=None):
 # this manual builder.
 	src = unicode(children[0])
 	attrs = {}
-	if meta.BibcodeMeta.bibcodePat.match(src):
+	if utils.couldBeABibcode(src):
 		attrs["format"] = "bibcode"
 	return VOR.source(**attrs)[src]
 
@@ -78,7 +78,7 @@ _vrResourceBuilder = meta.ModelBasedBuilder([
 	('title', SF(VOR.title)),
 	('shortName', SF(VOR.shortName)),
 	('identifier', SF(VOR.identifier)),
-	('altIdentifier', SF(VOR.altIdentifier)),
+	('doi', lambda args, localattrs=None: VOR.altIdentifier["doi:"+args[0]]),
 	(None, SF(VOR.curation), [
 		('publisher', SF(VOR.publisher), (), {
 				"ivoId": "ivoId"}),

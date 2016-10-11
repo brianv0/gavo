@@ -139,7 +139,7 @@ class Execute(base.Structure, base.ExpansionDelegator):
 	block with the GIL held; this is still in the server process.
 	If you do daring things, fork off (note that you must not use
 	any database connections you may have after forking, which means
-	you can't safely use the RD passed in).  See the docs on CronJob.
+	you can't safely use the RD passed in).  See the docs on `Element job`_.
 
 	Then testing/debugging such code, use ``gavo admin execute rd#id``
 	to immediately run the jobs.

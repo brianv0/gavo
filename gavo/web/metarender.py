@@ -10,6 +10,7 @@ Renderers that take services "as arguments".
 
 import cgi
 import datetime
+import re
 import urllib
 
 from nevow import inevow
@@ -545,6 +546,57 @@ class TableNoteRenderer(MetaRenderer):
 		T.invisible(render=T.directive("noteHTML")))
 
 
+def _protectForBibTeX(tx):
+	"""returns tx in a way that hopefully prevents larger disasters
+	when used with BibTeX.
+
+	(currently, this just looks for multiple uppercase characters within
+	one word and protects the respective word with curly braces; for now,
+	this is ASCII only).
+	"""
+	return re.sub(r"(\w*[A-Z]\w+[A-Z]\w*)", r"{\1}", tx)
+
+
+class HowToCiteRenderer(MetaRenderer):
+	"""A renderer that lets you format citation instructions.
+	"""
+	name = "howtocite"
+
+	def render_ifbibcode(self, ctx, data):
+		"""renders its children if the source metadata looks like a bibcode.
+		"""
+		source = base.getMetaText(self.service, "source", "")
+		if utils.couldBeABibcode(source):
+			return ctx.tag
+		else:
+			return ""
+	customTemplate = svcs.loadSystemTemplate("howtocite.html")
+
+	def data_bibtexentry(self, ctx, data):
+		"""returns BibTeX for the current record.
+		"""
+		year = utils.parseISODT(
+			base.getMetaText(self.service, "creationDate")).year
+		res = [
+			"@MISC{svc:%s"%base.getMetaText(self.service, "shortName"
+				).replace(" ", "_"),
+			"  year=%s"%year,
+			"  title={%s}"%_protectForBibTeX(
+				base.getMetaText(self.service, "title")),
+			"  author={%s}"%_protectForBibTeX(
+				" and ".join(m.getContent() 
+					for m in self.service.iterMeta("creator.name", propagate=True))),
+			"  url={%s}"%base.getMetaText(self.service, "referenceURL"),
+			"  howpublished={{VO} resource provided by the %s}"%
+				_protectForBibTeX(base.getConfig("web", "sitename")),
+			]
+		doi = base.getMetaText(self.service, "doi", None)
+		if doi:
+			res.append(
+				"  doi = {%s}"%doi)
+		return u",\n".join(res)+"\n}\n"
+
+	
 class ExternalRenderer(grend.ServiceBasedPage):
 	"""A renderer redirecting to an external resource.
 
@@ -716,7 +768,6 @@ class LogoutRenderer(MetaRenderer):
 					T.a(href=base.makeAbsoluteURL("/"))["root page"],
 					"."]]])
 
-	
 
 class ResourceRecordMaker(rend.Page):
 	"""A page that returns resource records for internal services.

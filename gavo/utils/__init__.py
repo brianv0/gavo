@@ -49,6 +49,7 @@ from gavo.utils.mathtricks import *
 from gavo.utils.misctricks import (Undefined, QuotedName, getfirst,
 	logOldExc, sendUIEvent, pyparsingWhitechars, getWithCache,
 	rstxToHTML, rstxToHTMLWithWarning, 
+	couldBeABibcode,
 	pyparseString, pyparseTransform, parseKVLine, makeKVLine,
 	StreamBuffer, CaseSemisensitiveDict,
 	NotInstalledModuleStub)

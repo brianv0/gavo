@@ -162,6 +162,12 @@ class CommonRenderers(object):
 	* <tag href|src="/foo" n:render="rootlink"/>
 
 	"""
+	def render_unicode(self, ctx, data):
+		"""returns unicode(data); use this when render="string" might have to
+		format non-ASCII.
+		"""
+		return ctx.tag[unicode(data)]
+
 	def render_rootlink(self, ctx, data):
 		tag = ctx.tag
 		def munge(key):

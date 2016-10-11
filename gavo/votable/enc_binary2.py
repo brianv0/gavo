@@ -20,6 +20,7 @@ import datetime                 #noflake: used by generated code
 import struct
 
 from gavo import utils          #noflake: used by generated code
+from gavo.utils import pgsphere  #noflake: used by generated code
 from gavo.votable import coding
 from gavo.votable import common
 from gavo.votable import enc_binary

@@ -77,6 +77,11 @@ pre {
 	background: #EEEEEE;
 }
 
+blockquote {
+	padding-left: 20pt;
+	border-left: 5pt solid #999;
+}
+
 form.sortArrow {
 	text-align:center;
 }

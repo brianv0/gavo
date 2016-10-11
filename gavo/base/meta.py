@@ -38,6 +38,7 @@ from gavo import utils
 from gavo.base import attrdef
 from gavo.base import common
 from gavo.utils import stanxml
+from gavo.utils import misctricks
 
 
 class MetaError(utils.Error):
@@ -1016,20 +1017,17 @@ class BibcodeMeta(MetaValue):
 	"""A MetaValue that may contain bibcodes, which are rendered as links
 	into ADS.
 	"""
-	bibcodePat = re.compile("\d\d\d\d\w[^ ]{14}$")
-
 	def _makeADSLink(self, matOb):
 		# local import of config to avoid circular import.
 		# (move special metas to separate module?)
 		from gavo.base import config
 		adsMirror = config.get("web", "adsMirror")
 		return '<a href="%s">%s</a>'%(
-			adsMirror+"/cgi-bin/nph-data_query?bibcode=%s&"
-				"link_type=ABSTRACT"%urllib.quote(matOb.group(0)),
+			adsMirror+"/abs/%s"%urllib.quote(matOb.group(0)),
 			matOb.group(0))  
 
 	def _getContentAsHTML(self, content):
-		return self.bibcodePat.sub(self._makeADSLink, unicode(content)
+		return misctricks.BIBCODE_PATTERN.sub(self._makeADSLink, unicode(content)
 			).replace("&", "&amp;")
 			# Yikes.  We should really quote such raw HTML properly...
 

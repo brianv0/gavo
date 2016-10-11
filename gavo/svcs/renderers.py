@@ -33,6 +33,7 @@ RENDERER_REGISTRY = {
 	'fixed': ("web.constantrender", "FixedPageRenderer"),
 	'form': ("web.formrender", "Form"),
 	'get': ("web.productrender", "ProductRenderer"),
+	'howtocite': ("web.metarender", "HowToCiteRenderer"),
 	'img.jpeg': ("web.oddrender", "JpegRenderer"),
 	'info': ("web.metarender", "ServiceInfoRenderer"),
 	'logout': ("web.metarender", "LogoutRenderer"),

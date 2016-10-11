@@ -157,7 +157,8 @@ class UWS(object):
 					"owner=%(owner)s", {"owner": ""})
 
 			countField = base.makeStruct(
-				svcs.OutputField, name="count", type="integer", select="count(*)")
+				svcs.OutputField, name="count", type="integer", select="count(*)",
+					required=True)
 			res["countRunning"] = jobsTable.getQuery([countField],
 				"phase='EXECUTING'")
 			res["countQueued"] = jobsTable.getQuery([countField],

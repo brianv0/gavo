@@ -981,3 +981,12 @@ class Service(base.Structure, base.ComputedMetaMixin,
 				title="DALI examples")
 		except base.NoMetaKey:
 			return None
+	
+	def _meta_howtociteLink(self):
+		"""returns a link to a how-to-cite page for this service as an URL
+		meta.
+		"""
+		return base.META_CLASSES_FOR_KEYS["_related"](
+			self.getURL("howtocite", False),
+			title="Advice on citing this resource")
+

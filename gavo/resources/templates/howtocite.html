@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+		"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns:n="http://nevow.com/ns/nevow/0.1" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>How to cite <n:invisible n:data="meta identifier" n:render="string"/></title>
+		<meta name="robots" content="nofollow"/>
+		<n:invisible n:render="commonhead"/>
+  </head>
+	<body n:render="withsidebar">
+
+    <h1>How to cite <n:invisible n:data="meta identifier" n:render="string"/></h1>
+
+		<div id="biblio" n:render="ifmeta source">
+			<p>This resource has an associated publication.  If you use its data,
+			it may be appropriate to reference
+				<span class="bibsource" n:render="metahtml">source</span>
+				<span n:render="ifbibcode"> 
+					(<a><n:attr name="href"
+					>http://adsabs.harvard.edu/cgi-bin/nph-bib_query?bibcode=<n:invisible 
+						n:data="meta source" n:render="string"
+						/>&amp;data_type=BIBTEX&amp;db_key=AST&amp;nocookieset=1</n:attr
+				>ADS BibTeX entry for the publication</a>)</span> either
+				in addition to or instead of the service reference.</p>
+		</div>
+
+		<div id="serviceref">
+			<h2>Reference the Service or Table</h2>
+			<p>To cite the resource as such, we suggest the following
+			BibTeX entry:</p>
+			<pre class="bibtex" n:data="bibtexentry" n:render="unicode"/>
+		</div>
+
+
+		<div id="rights" n:render="ifmeta copyright">
+			<h2>Perhaps Have a Look at Licenses and such</h2>
+			<p>Some services have additional advice or requests on citing in their copyright
+			information.  For this service, that is:</p>
+			<blockquote>
+			<n:invisible n:render="metahtml">copyright</n:invisible>
+			</blockquote>
+		</div>
+
+	</body>
+</html>

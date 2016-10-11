@@ -406,8 +406,7 @@ class _StandardsRec(testhelpers.TestResource):
 			subject: testing
 			referenceURL: http://bar
 			identifier: ivo://foo.bar
-			altIdentifier: doi:10.5072/teststuff
-			altIdentifier: bibcode:1970ivoa.spec........D
+			doi: 10.5072/teststuff
 			endorsedVersion: 1.1
 			endorsedVersion.status: wd
 			endorsedVersion.use: preferred
@@ -457,8 +456,7 @@ class StandardsTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 	def testAltIdentifiers(self):
 		els = self.srcAndTree[1].xpath("//metadata/Resource/altIdentifier")
 		self.assertEqual([el.text for el in els], [
-			"doi:10.5072/teststuff",
-			"bibcode:1970ivoa.spec........D"])
+			"doi:10.5072/teststuff"])
 
 
 class _DocRec(testhelpers.TestResource):

@@ -34,6 +34,17 @@ class NotInstalledModuleStub(object):
 		raise RuntimeError("%s not installed"%self.modName)
 
 
+
+BIBCODE_PATTERN = re.compile("[012]\d\d\d\w[^ ]{14}$")
+
+def couldBeABibcode(s):
+	"""returns true if we think that the string s is a bibcode.
+
+	This is based on matching against BIBCODE_PATTERN.
+	"""
+	return bool(BIBCODE_PATTERN.match(s))
+
+
 try:
 	from docutils import core as rstcore
 
@@ -110,6 +121,8 @@ try:
 	# see examplesrender)
 	def _bibcodeRoleFunc(name, rawText, text, lineno, inliner,
 			options={}, content=[]):
+		if not couldBeABibcode(text):
+			raise ValueError("Probably not a bibcode: '%s'"%text)
 		node = nodes.reference(rawText, text,
 			refuri="http://adsabs.harvard.edu/abs/%s"%text) 
 		node["classes"] = ["bibcode-link"]

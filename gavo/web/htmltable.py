@@ -98,7 +98,7 @@ def _bibcodeMapperFactory(colDesc):
 		if data:
 			for item in data.split(","):
 				yield T.a(href=base.getConfig("web", "adsMirror")+
-					"/cgi-bin/nph-bib_query?bibcode="+urllib.quote(item.strip()))[
+					"/abs/"+urllib.quote(item.strip()))[
 					item.strip()]
 				yield ", "
 		else:

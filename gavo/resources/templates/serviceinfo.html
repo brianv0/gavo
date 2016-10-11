@@ -7,6 +7,9 @@
 		<n:invisible n:render="commonhead"/>
   </head>
 	<body n:render="withsidebar">
+
+		<h1 n:render="title"/>
+
 		<div class="wrapuseservice">
 			<div class="useservice" n:data="browserURL" n:render="ifdata">
 				<a>
@@ -17,8 +20,6 @@
 				<p>Further access options are discussed <a href="#overview">below</a></p>
 			</div>
 		</div>
-
-		<h1 n:render="title"/>
 
 		<div class="metadescription">
 			<n:invisible n:render="metahtml">description</n:invisible>
