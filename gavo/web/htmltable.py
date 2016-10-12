@@ -57,10 +57,13 @@ def _productMapperFactory(colDesc):
 	fixedArgs = ""
 	def coder(val):
 		if val:
+			anchor = re.sub(r"\?.*", "", 
+					os.path.basename(urllib.unquote_plus(str(val)[4:])))
+			if not anchor:
+				anchor = "File"
 			return T.a(href=products.makeProductLink(val)+fixedArgs,
 				onmouseover=mouseoverHandler,
-				class_="productlink")[re.sub(r"\?.*", "", 
-					os.path.basename(urllib.unquote_plus(str(val)[4:])))]
+				class_="productlink")[anchor]
 		else:
 			return ""
 	return coder

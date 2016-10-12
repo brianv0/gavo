@@ -102,6 +102,8 @@ def _unitMapperFactory(colDesc):
 		
 		if "[" in colDesc["dbtype"]:
 			def coder(val):
+				if val is None:
+					return "N/A"
 				return "[%s]"%", ".join("N/A" if item is None else fmtStr%(item*factor)
 					for item in val)
 
