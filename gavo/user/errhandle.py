@@ -63,6 +63,9 @@ def reformatMessage(msg):
 
 
 def outputError(message):
+	if isinstance(message, str):
+		# make sure we don't fail on non-ASCII in byte strings
+		message = message.decode("ascii", "replace")
 	sys.stderr.write(message.encode(
 		base.getConfig("ui", "outputEncoding"), "replace"))
 
