@@ -220,39 +220,43 @@ def _addTableMeta(query, tree, table):
 		infoValue=base.getConfig("web", "serverURL"))
 	table.addMeta("info", "", infoName="query", infoValue=query)
 
-	copyrights = set()
-	sources = set()
 	mth = base.caches.getMTH(None)
-	for tableName in tree.getContributingNames():
+	sourceTables = tree.getContributingNames()
+	# for 1-table queries, we've already copied the entire table metadata.
+	# don't re-copy it.
+	tableMetaCopied = len(sourceTables)==1
+
+	tablesSeen = set()
+	for tableName in sourceTables:
+		if tableName in tablesSeen:
+			continue
+		tablesSeen.add(tableName)
+
 		try:
 			sourceTD = mth.getTableDefForTable(tableName)
 			table.addMeta("info", 
 				base.getMetaText(sourceTD.rd, "description", ""),
 				infoName="src_res", 
 				infoValue="Contains traces from resource %s"%(sourceTD.rd.sourceId))
+			for m in sourceTD.iterMeta("copyright", propagate=True):
+				table.addMeta("info",
+					m.getContent("text"),
+					infoName="copyright", 
+					infoValue="%s copyright or license"%(sourceTD.rd.sourceId))
 			table.addMeta("info", 
 				base.getMetaText(sourceTD, "description", "", propagate=False),
 				infoName="src_table", 
 				infoValue="Contains traces from table %s"%(
 					sourceTD.getQName()))
-			copyrights.add(
-				(sourceTD.rd.sourceId, base.getMetaText(sourceTD, "copyright")))
-			sources.add(base.getMetaText(sourceTD, "source"))
+
+			if not tableMetaCopied:
+				for m in sourceTD.iterMeta("howtociteLink"):
+					table.addMeta("howtociteLink", m)
+				for m in sourceTD.iterMeta("source"):
+					table.addMeta("source", m)
 		except base.Error:
 			# don't fail just because of funny metadata or tables not found
 			pass
-
-	for src in sources:
-		if src:
-			table.addMeta("source", src)
-
-	for rdId, rightsText in copyrights:
-		if rightsText:
-			table.addMeta("info",
-					rightsText,
-					infoName="copyright", 
-					infoValue="Content from %s has rights note (see INFO content)"%(
-						rdId))
 
 
 def morphADQL(query, metaProfile=None, tdsForUploads=[], 

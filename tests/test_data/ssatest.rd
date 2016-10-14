@@ -8,6 +8,7 @@
 
 	<table id="hcdtest" onDisk="True" primary="accref" adql="True">
 		<meta name="description">A boring and pointless test table</meta>
+		<meta name="source">2015ivoa.spec.0617D</meta>
 		<mixin 
 			instrument="DaCHS test suite" 
 			fluxCalibration="UNCALIBRATED"

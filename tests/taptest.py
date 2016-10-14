@@ -408,13 +408,47 @@ class VOTableMetaTest(testhelpers.VerboseTest):
 	def testCopyrightsMentioned(self):
 		self.assertEqual(self.tree.xpath(
 			"//INFO[@name='copyright']")[0].get("value"),
-			"Content from data/test has rights note (see INFO content)")
+			"data/test copyright or license")
 		self.assertEqual(self.tree.xpath("//INFO[@name='copyright']")[0].text,
 			"Everything in here is pure fantasy (distributed under the GNU GPL)")
 
 	def testSourcesMentioned(self):
 		self.assertEqual(self.tree.xpath("//INFO[@name='source']")[0].get("value"),
 			"1635QB41.G135......")
+
+	def testSourcesUniqued(self):
+		self.assertEqual(len(self.tree.xpath("//INFO[@name='source']")), 1)
+
+	def testCitationInfo(self):
+		info = self.tree.xpath("//INFO[@name='howtocite']")[0]
+		self.assertEqual(info.get("value"), 
+			"http://localhost:8080/tableinfo/test.adql")
+		self.assertTrue("For advice " in info.text)
+
+
+class _TAPJoinResultTable(testhelpers.TestResource):
+	resources = [("ds", adqltest.adqlTestTable), 
+		("ssa", tresc.ssaTestTable)]
+
+	def make(self, deps):
+		return testhelpers.getXMLTree(
+			_getUnparsedQueryResult(
+				"SELECT delta from test.adql join test.hcdtest on (alpha=ssa_length)"),
+			debug=False)
+
+class JoinMetaTest(testhelpers.VerboseTest):
+	resources = [("tree", _TAPJoinResultTable())]
+
+	def testAllSourcesPresent(self):
+		self.assertEqual(set(e.get("value") 
+			for e in self.tree.xpath("//INFO[@name='source']")),
+			set(["1635QB41.G135......", "2015ivoa.spec.0617D"]))
+
+	def testAllCitationsPresent(self):
+		self.assertEqual(set(e.get("value") 
+			for e in self.tree.xpath("//INFO[@name='howtocite']")),
+			set(['http://localhost:8080/tableinfo/test.adql',
+				'http://localhost:8080/tableinfo/test.hcdtest']))
 
 
 class TAPTableMetaTest(testhelpers.VerboseTest):
