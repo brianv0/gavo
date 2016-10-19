@@ -12,7 +12,7 @@ This is a temporary location for procDefs and friends complying to
 	<procDef type="descriptorGenerator" id="fromStandardPubDID">
 		<doc>A descriptor generator for SODA that builds a 
 		ProductDescriptor for PubDIDs that have been built by getStandardsPubDID
-		(i.e., the path part of the IVORN is a tilde, with the
+		(i.e., the path part of the IVOID is a tilde, with the
 		products table accref as the query part).
 		</doc>
 		<code>

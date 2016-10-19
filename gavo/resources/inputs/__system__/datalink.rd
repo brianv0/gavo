@@ -72,7 +72,7 @@
 	<procDef type="descriptorGenerator" id="fromStandardPubDID">
 		<doc>A descriptor generator for datalink that builds a 
 		ProductDescriptor for PubDIDs that have been built by getStandardsPubDID
-		(i.e., the path part of the IVORN is a tilda, with the
+		(i.e., the path part of the IVOID is a tilda, with the
 		products table accref as the query part).
 		</doc>
 		<code>

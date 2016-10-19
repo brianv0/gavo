@@ -432,6 +432,16 @@ class MetaRenderTest(trialhelpers.ArchiveTest):
 		return self.assertGETHasStrings("/browse/__system__/tap", {},
 			['<div class="rddesc"><span class="plainmeta"> Unittest'
 				" Suite's Table Access"])
+	
+	def testPublicationSelection(self):
+		def checkRenderers(result):
+			tree = trialhelpers.testhelpers.getXMLTree(result[0])
+			rends = set(e.text for e in tree.xpath("//em[@class='renderer']"))
+			self.assertEqual(rends, set(["tap", "examples"]))
+
+		return trialhelpers.runQuery(self.renderer, "GET", 
+			"/__system__/tap/run/info", {}
+		).addCallback(checkRenderers)
 
 
 class MetaPagesTest(trialhelpers.ArchiveTest):

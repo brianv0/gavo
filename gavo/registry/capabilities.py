@@ -398,7 +398,7 @@ class TAPCapabilityMaker(CapabilityMaker):
 			res[[
 				TR.dataModel(ivoId=dmivoid)[dmname]
 					for dmname, dmivoid in conn.query(
-						"select dmname, dmivoid from tap_schema.supportedmodels")]]
+						"select dmname, dmivorn from tap_schema.supportedmodels")]]
 
 			res[
 				# Once we support more than one language, we'll have to

@@ -30,6 +30,11 @@ from gavo.web import common
 from gavo.web import grend
 
 
+# names of renders that should not be shown to humans
+HIDDEN_RENDERERS = frozenset([
+	'tableMetadata', 'availability', 'capabilities'])
+
+
 def _protectForBibTeX(tx):
 	"""returns tx in a way that hopefully prevents larger disasters
 	when used with BibTeX.
@@ -446,7 +451,8 @@ class ServiceInfoRenderer(MetaRenderer, utils.IdManagerMixin):
 
 	def data_publications(self, ctx, data):
 		res = [{"sets": ",".join(p.sets), "render": p.render} 
-			for p in self.service.publications if p.sets]
+			for p in self.service.publications 
+			if p.sets and p.render not in HIDDEN_RENDERERS]
 		return sorted(res, key=lambda v: v["render"])
 
 	def data_browserURL(self, ctx, data):

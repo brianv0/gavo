@@ -225,7 +225,7 @@
 		<column name="dmname" type="text"
 			description="Human-readable name of the data model"/>
 		<column name="dmivorn" type="text"
-			description="IVORN of the data model"/>
+			description="IVOID of the data model (sorry for the legacy name)."/>
 	</table>
 
 	<data id="importTablesFromRD" auto="False">
