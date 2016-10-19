@@ -14,7 +14,7 @@ profilePath: $configDir
 
 [web]
 enableTests: True
-adminpasswd: loser
+adminpasswd: this_is_the_unittest_suite
 sitename: Unittest Suite
 realm: dachsunit
 corsOriginPat: https?://example\.com/corsusing.*

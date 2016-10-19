@@ -137,7 +137,7 @@ class ImportTest(testhelpers.VerboseTest):
 
 	def testMetaImportAndPurge(self):
 		self.assertOutput(cli.main, argList=["purge", "test.adql"])
-		# make sure the test schema before running the test exists
+		# make sure the test schema exists before running the test
 		self.conn.commit()
 		self.assertOutput(cli.main, 
 			argList=["imp", "data/test", "productimport-skip"])
@@ -149,7 +149,8 @@ class ImportTest(testhelpers.VerboseTest):
 			with base.AdhocQuerier() as querier:
 				self.assertOutput(cli.main, argList=
 					["imp", "-m", "data/test", "ADQLTest"],
-					expectedStdout="Updating meta for ADQLTest\n")
+					expectedStdout=
+						lambda output: "Updating meta for ADQLTest\n" in output)
 				self.assertEqual(list(querier.query(
 					"select * from dc.tablemeta where tablename='test.adql'")),
 					[(u'test.adql', u'data/test', None, None, True)])

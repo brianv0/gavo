@@ -55,7 +55,7 @@ from gavo.base.observer import ObserverBase, listensTo
 
 from gavo.base.osinter import (getGroupId, makeSharedDir, makeSitePath,
 	getBinaryName, makeAbsoluteURL, getVersion, sendMail,
-	openDistFile, getPathForDistFile)
+	openDistFile, getPathForDistFile, tryRemoteReload)
 
 from gavo.base.parsecontext import (
 	IdAttribute, OriginalAttribute, ReferenceAttribute, ParseContext,

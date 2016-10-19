@@ -15,6 +15,7 @@ import re
 import os
 import subprocess
 import time
+import urllib
 from email import charset
 from email import utils as emailutils
 from email.header import Header
@@ -195,3 +196,25 @@ def sendMail(mailText):
 		return False
 	
 	return True
+
+
+def tryRemoteReload(rdId):
+	"""tries to reload the rdId on a running service
+
+	This only works if there's [web]adminpasswd and[web]serverURL
+	set, and both match what the actual server uses.
+	"""
+	pw = config.get("web", "adminpasswd")
+	# don't bother if admin passwd has not been set or when running unit tests.
+	if pw=="" or pw=="this_is_the_unittest_suite":
+		return
+
+	try:
+		f = utils.urlopenRemote(makeAbsoluteURL("/seffe/%s"%rdId),
+			urllib.urlencode({"__nevow_form__": "adminOps", "submit": "Reload RD"}),
+			creds=("gavoadmin", pw))
+		f.read()
+	except IOError, ex:
+		utils.sendUIEvent("Warning", "Could not reload %s RD (%s).  This means"
+			" that the server may still use stale metadata.  You may want"
+			" to reload %s manually (or restart the server)."%(rdId, ex, rdId))

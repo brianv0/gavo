@@ -81,6 +81,7 @@ def process(opts, args):
 	api.makeDependentsFor(dds, opts, connection)
 	connection.commit()
 	rd.touchTimestamp()
+	base.tryRemoteReload("__system__/dc_tables")
 
 	return retvalWatcher.retval
 

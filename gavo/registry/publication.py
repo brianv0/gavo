@@ -420,32 +420,6 @@ def updateRegistryTimestamp():
 	common.getServicesRD().touchTimestamp()
 
 
-def tryServiceReload():
-	"""tries to reload the services RD.
-
-	This only works if there's [web]adminpasswd and[web]serverURL
-	set, and both match what the actual server uses.
-	"""
-	import urllib
-	pw = base.getConfig("web", "adminpasswd")
-	if pw=="":
-		base.ui.notifyWarning("Not reloading services RD on server since"
-			" no admin password available.")
-		return
-
-	try:
-		f = utils.urlopenRemote(base.makeAbsoluteURL("/seffe/__system__/services"),
-			urllib.urlencode({"__nevow_form__": "adminOps", "submit": "Reload RD"}),
-			creds=("gavoadmin", pw))
-		f.read()
-	except IOError, ex:
-		base.ui.notifyWarning("Could not reload services RD (%s).  This means"
-			" that the registry time stamp on the server will be out of date."
-			" You should reload //services manually."%ex)
-	else:
-		base.ui.notifyInfo("Reloaded services RD (registry timestamp up to date)")
-
-
 def main():
 	"""handles the user interaction for gavo publish.
 	"""
@@ -456,7 +430,7 @@ def main():
 		args = findPublishedRDs()
 	updateServiceList(getRDs(args), metaToo=opts.meta, 
 		keepTimestamp=opts.keepTimestamp)
-	tryServiceReload()
+	base.tryRemoteReload("__system__/services")
 
 
 if __name__=="__main__":
