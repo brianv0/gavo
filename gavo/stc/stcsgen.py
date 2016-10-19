@@ -265,7 +265,7 @@ _velocityToCST = _makePhraseTreeMapper(
 
 def _sysIdToCST(astRoot):
 	if astRoot.astroSystem.libraryId:
-		return syslib.stripIVORN(astRoot.astroSystem.libraryId)
+		return syslib.stripIVOID(astRoot.astroSystem.libraryId)
 
 
 def _makeAllSkyCoos(node):

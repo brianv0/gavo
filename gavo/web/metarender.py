@@ -283,7 +283,7 @@ class RendExplainer(object):
 		return T.invisible["the interface to this site's Table Access Protocol"
 			" service.  This protocol is best accessed using specialized clients"
 			" or libraries. In such clients, you can find this service by its"
-			" IVORN, ",
+			" IVOID, ",
 			T.code(render=T.directive("meta"))["identifier"], 
 			", or access it by entering its base URL ",
 			T.code[service.getURL("tap")],

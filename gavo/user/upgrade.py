@@ -356,7 +356,7 @@ class To12Upgrader(Upgrader):
 
 	@classmethod
 	def u_010_updateTAPRecord(cls, connection):
-		"""prettify the TAP record's IVORN"""
+		"""prettify the TAP record's IVOID"""
 		from gavo.registry import publication
 		publication.updateServiceList([base.caches.getRD("//services")],
 			connection=connection)

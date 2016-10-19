@@ -38,7 +38,7 @@ class ResRec(rscdef.IVOMetaMixin, NonServiceResource):
 	carry their own metadata and care for their registration themselves.).
 
 	All resources must either have an id (which is used in the construction of
-	their IVORN), or you must give an identifier meta item.
+	their IVOID), or you must give an identifier meta item.
 	
 	You must further set the following meta items:
 

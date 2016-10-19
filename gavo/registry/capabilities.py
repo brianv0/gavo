@@ -232,7 +232,7 @@ class CapabilityMaker(object):
 		
 	Additionally, if the capability should also appear in data collections 
 	served by a service with the capability, also define auxiliaryId (that's
-	an IVORN like ivo://ivoa.net/std/TAP#aux).  These are used in 
+	an IVOID like ivo://ivoa.net/std/TAP#aux).  These are used in 
 	getCapabilityElement.
 
 	CapabilityMakers are used by calling them.
@@ -396,9 +396,9 @@ class TAPCapabilityMaker(CapabilityMaker):
 			from gavo.adql import ufunctions
 
 			res[[
-				TR.dataModel(ivoId=dmivorn)[dmname]
-					for dmname, dmivorn in conn.query(
-						"select dmname, dmivorn from tap_schema.supportedmodels")]]
+				TR.dataModel(ivoId=dmivoid)[dmname]
+					for dmname, dmivoid in conn.query(
+						"select dmname, dmivoid from tap_schema.supportedmodels")]]
 
 			res[
 				# Once we support more than one language, we'll have to

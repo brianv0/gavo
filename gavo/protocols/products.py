@@ -1046,7 +1046,7 @@ class RAccref(object):
 			if not res:
 				raise base.NotFoundError(self.accref, "accref", "product table",
 					hint="Product URLs may disappear, though in general they should"
-					" not.  If you have an IVORN (pubDID) for the file you are trying to"
+					" not.  If you have an IVOID (pubDID) for the file you are trying to"
 					" locate, you may still find it by querying the ivoa.obscore table"
 					" using TAP and ADQL.")
 			self._productsRowCache = res[0]

@@ -17,7 +17,7 @@ If and when there are additional library systems, you need to amend sysdefs.
 from gavo import utils
 
 
-STC_IVORN = "ivo://STClib/CoordSys"
+STC_IVOID = "ivo://STClib/CoordSys"
 
 
 SYSDEFS = {
@@ -66,11 +66,11 @@ SYSDEFS = {
 def getLibrarySystem(sysId):
 	"""returns a dm.CoordSys instance for sysId.
 
-	sysId may be the full IVORN or just the fragment.
+	sysId may be the full IVOID or just the fragment.
 	Unknown sysIds result in NotFoundErrors.  Results are memoized, so
 	make sure you do not mess with what you are returned.
 	"""
-	sysId = stripIVORN(sysId)
+	sysId = stripIVOID(sysId)
 	try:
 		sDef = SYSDEFS[sysId]
 	except KeyError:
@@ -79,15 +79,15 @@ def getLibrarySystem(sysId):
 			" in an appendix of the STC recommendation")
 	from gavo.stc import stcsast
 	system = stcsast.parseSTCS(sDef).astroSystem
-	system.libraryId = "%s#%s"%(STC_IVORN, sysId)
+	system.libraryId = "%s#%s"%(STC_IVOID, sysId)
 	return system
 
 
-def stripIVORN(sysId):
-	"""returns sysId with the STC IVORN root removed.
+def stripIVOID(sysId):
+	"""returns sysId with the STC IVOID root removed.
 
-	If sysId does not start with the STC IVORN, it is returned unchanged.
+	If sysId does not start with the STC IVOID, it is returned unchanged.
 	"""
-	if sysId.startswith(STC_IVORN):
-		sysId = sysId[len(STC_IVORN)+1:]
+	if sysId.startswith(STC_IVOID):
+		sysId = sysId[len(STC_IVOID)+1:]
 	return sysId
