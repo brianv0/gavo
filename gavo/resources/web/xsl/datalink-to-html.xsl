@@ -6,7 +6,7 @@
 Assumptions on document content beyond conforming datalink content:
 
 (1) null value of content_length is -1
-(2) VOTable namespace is 1.2 (as long as you know what version you're handing
+(2) VOTable namespace is 1.3 (as long as you know what version you're handing
     out, just fix xmlns:vot below)
 
 
@@ -17,7 +17,7 @@ http://www.gnu.org/licenses/gpl.html to learn about your rights.
 
 
 <xsl:stylesheet
-    xmlns:vot="http://www.ivoa.net/xml/VOTable/v1.2"
+    xmlns:vot="http://www.ivoa.net/xml/VOTable/v1.3"
     xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
    	xmlns="http://www.w3.org/1999/xhtml"
     version="1.0">
