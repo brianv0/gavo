@@ -314,11 +314,11 @@ class VOG:
 	
 	class Harvest(capability):
 		_a_xsi_type = "vg:Harvest"
-		_additionalPrefixes = frozenset(["vg", "xsi"])
+		_additionalPrefixes = frozenset(["vg", "xsi", "vs"])
 
 	class Search(VOGElement):
 		_a_xsi_type = "vg:Search"
-		_additionalPrefixes = frozenset(["vg", "xsi"])
+		_additionalPrefixes = frozenset(["vg", "xsi", "vs"])
 
 	class OAIHTTP(VOR.interface):
 		_a_xsi_type = "vg:OAIHTTP"

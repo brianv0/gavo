@@ -16,6 +16,7 @@ only if case-normalized (i.e., all-lower in DaCHS).
 import itertools
 
 from gavo import base
+from gavo import rscdef
 from gavo import svcs
 from gavo import utils
 from gavo.registry.model import VS
@@ -172,13 +173,25 @@ def getTablesetForSchemaCollection(schemas, rootElement=VS.tableset):
 	return res
 
 
-def getTablesetForService(service, rootElement=VS.tableset):
-	"""returns a VS.tableset for a dbCore-based service.
+def getTablesetForService(resource, rootElement=VS.tableset):
+	"""returns a VS.tableset for a service or a published data resource.
 
-	This is for VOSI queries.  It uses the service's getTableset
-	method to find out the service's table set.
+	This is for VOSI queries and the generation of registry records.  
+	Where it actually works on services, it uses the service's getTableset
+	method to find out the service's table set; if it's passed a TableDef
+	of a DataDescriptor, it will turn these into tablesets.
+
+	Sorry about the name.
 	"""
-	tables = service.getTableSet()
+	if isinstance(resource, rscdef.TableDef):
+		tables = [resource]
+
+	elif isinstance(resource, rscdef.DataDescriptor):
+		tables = list(resource.iterTableDefs())
+	
+	else:
+		tables = resource.getTableSet()
+
 	if not tables:
 		return rootElement[
 			VS.schema[

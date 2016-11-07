@@ -75,6 +75,7 @@ class ColumnNameAttribute(ParamNameAttribute):
 
 	Using ADQL/SQL reserved words (without quoting) here yields a warning.
 	"""
+	@property
 	def typeDesc_(self):
 		return ("a column name within an SQL table.  These have to match the"
 			" SQL regular_identifier production."

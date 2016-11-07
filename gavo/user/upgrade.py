@@ -397,6 +397,7 @@ class To14Upgrader(Upgrader):
 				base.ui.notifyWarning("RD %s couldn't be loaded (%s)."
 					"  Fix and run gavo imp -m on it to get"
 					" column indices in TAP_SCHEMA"%(rdId, msg))
+				continue
 			rsc.makeData(dd, forceSource=rd, connection=connection)
 
 

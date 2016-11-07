@@ -265,7 +265,7 @@ class Make(base.Structure, scripting.ScriptingMixin):
 
 
 class DataDescriptor(base.Structure, base.ComputedMetaMixin, 
-		common.IVOMetaMixin):
+		common.IVOMetaMixin, tabledef.PublishableDataMixin):
 	"""A description of how to process data from a given set of sources.
 
 	Data descriptors bring together a grammar, a source specification and
@@ -283,12 +283,6 @@ class DataDescriptor(base.Structure, base.ComputedMetaMixin,
 		description="Embedded build rules (usually rowmakers are defined toplevel)",
 		copyable=True,
 		before="makes")
-
-	_registration = base.StructAttribute("registration",
-		default=None,
-		childFactory=common.Registration,
-		copyable=False,
-		description="A registration (to the VO registry) of this data collection.")
 
 	_tables = base.StructListAttribute("tables",
 		childFactory=tabledef.TableDef, 

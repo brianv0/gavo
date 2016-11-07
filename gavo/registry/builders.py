@@ -31,7 +31,6 @@ using resob.resType as a fallback.
 
 
 from gavo import base
-from gavo import svcs
 from gavo import stc
 from gavo import utils
 from gavo.base import meta
@@ -409,7 +408,7 @@ class ServiceResourceMaker(ResourceMaker):
 	def _makeResource(self, service, setNames):
 		return ResourceMaker._makeResource(self, service, setNames)[
 			VOR.rights[base.getMetaText(service, "rights")], [
-				capabilities.getCapabilityElement(pub)
+					capabilities.getCapabilityElement(pub)
 				for pub in service.getPublicationsForSet(setNames)]]
 
 
@@ -442,22 +441,15 @@ _registryMetaBuilder = meta.ModelBasedBuilder([
 	('managedAuthority', SF(VOG.managedAuthority)),])
 
 	
-class RegistryResourceMaker(ResourceMaker):
+class RegistryResourceMaker(ServiceResourceMaker):
 	resourceClass = VOG.Resource
 	resType = "registry"
 
 	def _makeResource(self, registry, setNames):
-		return ResourceMaker._makeResource(self, registry, setNames) [
-				VOG.Harvest[
-					VOR.description[base.getMetaText(registry, "harvest.description")],
-					VOG.OAIHTTP(role="std", version="1.0")[
-						VOR.accessURL[_getOAIURL(registry)],
-					],
-					VOG.maxRecords[base.getMetaText(registry, "maxRecords")],
-				],
+		return ServiceResourceMaker._makeResource(self, registry, setNames) [
 				VOG.full[base.getMetaText(registry, "full", "false")],
-				_registryMetaBuilder.build(registry),
-			]
+				_registryMetaBuilder.build(registry)]
+# not for now: let's see if we can get the schema changes				tableset.getTablesetForService(registry)]
 
 
 class OrgResourceMaker(ResourceMaker):
@@ -519,32 +511,6 @@ class DataCollectionResourceMaker(ResourceMaker):
 	def _makeTableset(self, schemas):
 		return tableset.getTablesetForSchemaCollection(schemas)
 
-	def _makeCapabilities(self, metaCarrier, setNames):
-		"""returns capabilities for the services of published data.
-		
-		These return "auxiliary" capabilities, i.e., those with a
-		standardID telling clients to disregard this service in
-		enumerations.
-		"""
-		if metaCarrier.registration is None:
-			return
-
-		services = metaCarrier.registration.services
-		if not services:
-			# empty svcs implies publication via TAP if the underlying table(s)
-			# are accessible via ADQL
-			if metaCarrier.registration.publishedForADQL():
-				yield capabilities.getCapabilityElement(
-					MS(svcs.Publication, render="tap", sets=setNames,
-						auxiliary=True,
-						parent_=metaCarrier,
-						service=base.caches.getRD("//tap").getById("run")))
-		
-		for service in services:
-			yield [capabilities.getCapabilityElement(
-					pub.change(parent_=metaCarrier, auxiliary=True))
-				for pub in service.getPublicationsForSet(setNames)]
-
 	def _makeResourceForSchemas(self, metaCarrier, schemas, setNames):
 		"""returns xmlstan for schemas within metaCarrier.
 
@@ -553,8 +519,9 @@ class DataCollectionResourceMaker(ResourceMaker):
 		VODataService schema, tables is a sequence of TableDefs that 
 		define the tables within that schema.
 		"""
-		res = ResourceMaker._makeResource(self, metaCarrier, setNames)[
-			self._makeCapabilities(metaCarrier, setNames),
+		res = ResourceMaker._makeResource(self, metaCarrier, setNames)[[
+					capabilities.getCapabilityElement(pub)
+				for pub in metaCarrier.getPublicationsForSet(setNames)],
 			_orgMetaBuilder.build(metaCarrier),
 			_dataMetaBuilder.build(metaCarrier),
 			_coverageMetaBuilder.build(metaCarrier),

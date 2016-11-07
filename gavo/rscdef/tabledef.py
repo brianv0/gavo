@@ -290,8 +290,47 @@ class ADQLVisibilityAttribute(base.BooleanAttribute):
 		return base.BooleanAttribute.unparse(self, value)
 
 
+class PublishableDataMixin(object):
+	"""A mixin with a few classes and attributes for data that can be
+	published to the VO registry.
+
+	In particular, this contains the publish element (registration attribute).
+	"""
+	_registration = base.StructAttribute("registration",
+		default=None,
+		childFactory=common.Registration,
+		copyable=False,
+		description="A registration (to the VO registry) of this table"
+			" or data collection.")
+	
+	def getPublicationsForSet(self, setNames):
+		"""returns a sequence of publication elements for the data, suitable
+		for OAI responses for the sets setNames.
+
+		Essentially: if registration is None, or its sets don't match
+		setNames, return an emtpy sequence.
+		
+		If the registration mentions services, we turn their publications
+		into auxiliary publications and yield them
+
+		Otherwise, if we're published for ADQL, return the TAP service
+		as an auxiliary publication.
+		"""
+		if (self.registration is None 
+				or not self.registration.sets & setNames):
+			return
+
+		services = self.registration.services
+		if not services:
+			services = [base.resolveCrossId("//tap#run")]
+
+		for service in services:
+			for pub in service.getPublicationsForSet(setNames):
+				yield pub.change(parent_=self, auxiliary=True)
+
+
 class TableDef(base.Structure, base.ComputedMetaMixin, common.PrivilegesMixin,
-		common.IVOMetaMixin, base.StandardMacroMixin):
+		common.IVOMetaMixin, base.StandardMacroMixin, PublishableDataMixin):
 	"""A definition of a table, both on-disk and internal.
 
 	Some attributes are ignored for in-memory tables, e.g., roles or adql.
@@ -392,12 +431,6 @@ class TableDef(base.Structure, base.ComputedMetaMixin, common.PrivilegesMixin,
 		childFactory=group.Group,
 		description="Groups for columns and params of this table",
 		copyable=True)
-
-	_registration = base.StructAttribute("registration",
-		default=None,
-		childFactory=common.Registration,
-		copyable=False,
-		description="A registration (to the VO registry) of this table.")
 
 	# this actually induces an attribute annotations with the DM
 	# annotation instances

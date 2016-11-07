@@ -495,13 +495,20 @@ class Service(base.Structure, base.ComputedMetaMixin,
 	################### Registry and related methods.
 
 	@property
-	def isVOPublished(self):
+	def isVOPublished(self, renderer=None):
 		"""is true if there is any ivo_managed publication on this
 		service.
+
+		If renderer is non-None, only publications with this renderer name
+		count.
 		"""
 		for pub in self.publications:
 			if "ivo_managed" in pub.sets:
-				return True
+				if renderer:
+					if pub.render==renderer:
+						return True
+				else:
+					return True
 		return False
 
 	def _computeResourceType(self):

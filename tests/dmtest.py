@@ -341,7 +341,6 @@ class _QuantityVOT(testhelpers.TestResource):
 			ctx=votablewrite.VOTableContext(version=(1,4))), debug=True)
 
 
-
 class QuantityTest(testhelpers.VerboseTest):
 	resources = [("tree", _DirectVOT())]
 
