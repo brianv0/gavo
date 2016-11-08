@@ -2023,6 +2023,13 @@ class QueryTest(testhelpers.VerboseTest):
 			" from %s"%self.tableName)
 		self.assertAlmostEqual(res.rows[0]["d"], 130.31777623681)
 
+	def testInUnitGeometry(self):
+		res = self.runQuery(
+			"select in_unit(DISTANCE(POINT('ICRS', 22, -3),"
+				" POINT('ICRS', 183, 50)), 'rad') as d"
+			" from %s"%self.tableName)
+		self.assertAlmostEqual(res.rows[0]["d"], 2.27447426920956)
+
 	def testWithUDF(self):
 		res = self.runQuery(
 			"SELECT mag FROM %s WHERE 1=CONTAINS(REGION('simbad M1'),"

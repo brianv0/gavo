@@ -1475,7 +1475,12 @@ class InUnitFunction(FieldInfoedNode):
 			exprPat = "%s"
 		else:
 			exprPat = "(%s)"
-		return "(%s * %s)"%(exprPat%self.expr.flatten(), self.conversionFactor)
+		return "(%s * %s)"%(exprPat%flatten(self.expr), self.conversionFactor)
+	
+	def change(self, **kwargs):
+		copy = FieldInfoedNode.change(self, **kwargs)
+		copy.conversionFactor = self.conversionFactor
+		return copy
 
 
 class CharacterStringLiteral(FieldInfoedNode):

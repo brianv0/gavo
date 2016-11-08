@@ -597,7 +597,6 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		except base.NoMetaKey:
 			pass
 
-	
 	def getPublicationsForSet(self, names):
 		"""returns publications for set names in names.
 
