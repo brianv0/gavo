@@ -338,6 +338,7 @@ class SIAPRenderer(DALRenderer):
 		"wcs_projection": {"arraysize": "3", "castFunction": lambda s: s[:3]},
 		"mime": {"ucd": "VOX:Image_Format"},
 		"accref": {"ucd": "VOX:Image_AccessReference"},
+		"accsize": {"datatype": "int"},
 	}
 
 	def _formatOutput(self, data, ctx):
