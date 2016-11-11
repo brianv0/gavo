@@ -147,6 +147,7 @@ class SyncTest(trialhelpers.ArchiveTest):
 		self.assertFalse(pooLeft, "Something left fitstable temporaries"
 			" in tempDir")
 
+	@unittest.skip("Pending re-implementation of POS")
 	def testDECandPOS(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlget", {
 			"ID": "ivo://x-unregistred/~?data/excube.fits",
@@ -155,6 +156,7 @@ class SyncTest(trialhelpers.ArchiveTest):
 			"ValidationError: Field POS: Attempt to cut out along axis 2"
 			" that has been modified before."])
 
+	@unittest.skip("Pending re-implementation of POS")
 	def testRAandPIXEL(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlget", {
 			"ID": "ivo://x-unregistred/~?data/excube.fits",

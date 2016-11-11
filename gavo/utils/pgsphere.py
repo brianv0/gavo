@@ -146,10 +146,19 @@ class SCircle(PgSAdapter):
 			pt, radius = cls.pattern.match(value).groups()
 			return cls(SPoint._castFromPgSphere(pt, cursor), radius)
 
+	def asSODA(self):
+		"""returns the "SODA-form" for this circle.
+
+		This is a string containing blank-separated float literals of the
+		center coordinates and the radius in degrees.  Warning: if the coordinates
+		aren't ICRS to begin with, these values will be wrong.
+		"""
+		return "%.10f %.10f %.10f"%(self.center.x/DEG, self.center.y/DEG,
+			self.radius/DEG)
+
 	def asSTCS(self, systemString):
-		return removeTrailingZeroes("Circle %s %.10f %.10f %.10f"%(systemString, 
-			self.center.x/DEG, self.center.y/DEG,
-			self.radius/DEG))
+		return removeTrailingZeroes("Circle %s %s"%(
+			systemString, self.asSODA()))
 
 	def asPgSphere(self):
 		return "scircle '< (%.10f, %.10f), %.10f >'"%(
@@ -197,9 +206,19 @@ class SPoly(PgSAdapter):
 			return cls([SPoint._castFromPgSphere(ptLit, cursor)
 				for ptLit in cls.pattern.findall(value)])
 
+	def asSODA(self):
+		"""returns the "SODA-form" for this polygon.
+
+		This is a string containing blank-separated float literals of the vertex
+		coordinates in degrees.  Warning: if the coordinates aren't ICRS to begin
+		with, these values will be wrong.
+		"""
+		return removeTrailingZeroes(
+			" ".join("%.10f %.10f"%(p.x/DEG, p.y/DEG) for p in self.points))
+
 	def asSTCS(self, systemString):
 		return removeTrailingZeroes("Polygon %s %s"%(systemString, 
-			" ".join("%.10f %.10f"%(p.x/DEG, p.y/DEG) for p in self.points)))
+			self.asSODA()))
 
 	def asPgSphere(self):
 		return "spoly '{%s}'"%(",".join("(%.10f,%.10f)"%(p.x, p.y)

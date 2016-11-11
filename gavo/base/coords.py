@@ -294,22 +294,44 @@ def getSpolyFromWCSFields(wcsFields):
 	wcsFields is passed to getWCS, see there for legal types.
 
 	The polygon returned is computed by using the four corner points
-	assuming a rectangular image.
+	assuming a rectangular image.  This typically is only loosely related
+	to a proper spherical polygon describing the shape, as image boundaries
+	in the usual projects are not great circles.
+
+	Also, the spoly will be in the coordinate system of the WCS.  If that
+	is not ICRS, you'll probably get something incompatible with most of the
+	VO.
 	"""
 	wcs = getWCS(wcsFields)
 	return pgsphere.SPoly([pgsphere.SPoint.fromDegrees(*p)
 		for p in wcs.calcFootprint(wcs._dachs_header)])
 
 
-def getCenterFromWCSFields(wcsFields):
+def getCenterFromWCSFields(wcsFields, spatialAxes=(1,2)):
 	"""returns RA and Dec of the center of an image described by wcsFields.
 
-	Well, this isn't very general; actually, we just use the first two axes.
-	This should probably be fixed once we might get to see cubes here.
+	This will use the 1-based axes given by spatialAxes to figure out
+	the pixel lengths of the axes.
 	"""
 	wcs = getWCS(wcsFields)
-	return pix2sky(wcs, (wcs._dachs_header["NAXIS1"]/2., 
-		wcs._dachs_header["NAXIS2"]/2.))
+	center1 = wcs._dachs_header["NAXIS%s"%spatialAxes[0]]/2.
+	center2 = wcs._dachs_header["NAXIS%s"%spatialAxes[1]]/2.
+	return pix2sky(wcs, (center1, center2))
+
+
+def getCoveringCircle(wcsFields, spatialAxes=(1,2)):
+	"""returns a pgsphere.scircle large enough to cover the image
+	described by wcsFields.
+	"""
+	wcs = getWCS(wcsFields)
+	center = getCenterFromWCSFields(wcs)
+	# for now: Ignore distortions and projections.
+	corner = [[wcs._dachs_header["NAXIS%s"%spatialAxes[0]],
+		wcs._dachs_header["NAXIS%s"%spatialAxes[1]]]]
+	cornerFoc = wcs.pix2foc(corner, 0)
+	ddt
+	return pgsphere.SCircle(pgsphere.SPoint.fromDegrees(*center),
+		radius)
 
 
 def getSkyWCS(hdr):

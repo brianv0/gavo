@@ -13,6 +13,7 @@ atomic parameter-style dlget stuff.  This should go ca. 2017.
 from cStringIO import StringIO
 import gc
 import os
+import unittest
 
 from nevow.testutil import FakeRequest
 
@@ -791,10 +792,10 @@ class SODAPOSTest(testhelpers.VerboseTest):
 				<descriptorGenerator procDef="//soda#fits_genDesc"/>
 				<dataFunction procDef="//soda#fits_makeHDUList"/>
 				<metaMaker procDef="//soda#fits_makeWCSParams"/>
-				<FEED source="//soda#fits_genPOSPar"/>
 				<dataFormatter procDef="//soda#fits_formatHDUs"/>
 			</datalinkCore></service>""")
 
+	@unittest.skip("needs re-implementation of POS")
 	def testPOSError(self):
 		self.assertRaisesWithMsg(api.ValidationError,
 			"Field POS: Invalid SIAPv2 geometry: 'Circle 30 40'"
@@ -805,6 +806,7 @@ class SODAPOSTest(testhelpers.VerboseTest):
 				"POS": ["Circle 30 40"],
 				}))
 	
+	@unittest.skip("needs re-implementation of POS")
 	def testPOSRange(self):
 		mime, data = _dissectSODAFile(self._getSvc().run("dlget", {
 				"ID": [rscdef.getStandardPubDID("data/excube.fits")],
@@ -817,6 +819,7 @@ class SODAPOSTest(testhelpers.VerboseTest):
 		self.assertEqual(hdr["NAXIS2"], 2)
 		self.assertEqual(hdr["NAXIS3"], 4)
 
+	@unittest.skip("needs re-implementation of POS")
 	def testPOSCircle(self):
 		mime, data = _dissectSODAFile(self._getSvc().run("dlget", {
 			"ID": [rscdef.getStandardPubDID("data/excube.fits")],
@@ -826,6 +829,7 @@ class SODAPOSTest(testhelpers.VerboseTest):
 		self.assertEqual(hdr["NAXIS1"], 7)
 		self.assertEqual(hdr["NAXIS2"], 7)
 
+	@unittest.skip("needs re-implementation of POS")
 	def testPOSPolygon(self):
 		mime, data = _dissectSODAFile(self._getSvc().run("dlget", {
 			"ID": [rscdef.getStandardPubDID("data/excube.fits")],

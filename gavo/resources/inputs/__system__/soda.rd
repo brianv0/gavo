@@ -259,19 +259,7 @@ This is a temporary location for procDefs and friends complying to
 		</doc>
 		<setup>
 			<code>
-				def getFITSDescriptor(pubDID, cls=FITSProductDescriptor):
-					try:
-						accref = getAccrefFromStandardPubDID(pubDID)
-					except ValueError:
-						return DatalinkFault.NotFoundFault(pubDID,
-							"Not a pubDID from this site.")
-
-					if accrefPrefix and not accref.startswith(accrefPrefix):
-						return DatalinkFault.AuthenticationFault(pubDID,
-							"This SODA service not available"
-							" with this pubDID")
-
-					return cls.fromAccref(pubDID, accref)
+				from gavo.protocols import soda
 			</code>
 
 			<par key="accrefPrefix" description="A prefix for the accrefs 
@@ -281,10 +269,47 @@ This is a temporary location for procDefs and friends complying to
 				about the FITSes (e.g., what axes are available).">None</par>
 		</setup>
 		<code>
-			return getFITSDescriptor(pubDID)
+			return soda.getFITSDescriptor(pubDID, accrefPrefix)
 		</code>
 	</procDef>
 
+
+	<procDef type="metaMaker" id="fits_makeSODAPOS">
+		<doc>A metaMaker that generates the SODA POLYGON, CIRCLE, and
+		POS parameters for a rectangular image with WCS in ICRS.  
+		Needs a FITSDescriptor.
+		</doc>
+		<setup>
+			<code>
+				from gavo.protocols import soda
+			</code>
+		</setup>
+		<code>
+			soda.ensureSkyWCS(descriptor)
+			if descriptor.skyWCS:
+				yield MS(InputKey, name="POLYGON", type="double precision[]",
+					xtype="polygon", ucd="phys.angArea;obs",
+					description="A polygon describing the area to cut out",
+					multiplicity="single",
+					values=MS(Values, 
+						max=coords.getSpolyFromWCSFields(descriptor.skyWCS
+							).asSODA()))
+
+				yield MS(InputKey, name="CIRCLE", type="double precision[3]",
+					xtype="circle", ucd="phys.angArea;obs",
+					description="A circle describing the area to cut out",
+					multiplicity="single",
+					values=MS(Values, 
+						max=coords.getCoveringCircle(
+							descriptor.skyWCS, descriptor.spatialAxes
+							).asSODA()))
+				
+				yield MS(InputKey, name="POS", type="text",
+					ucd="phys.angArea;obs",
+					description="SIAv2-compatible cutout specification,
+					multiplicity="single")
+		</code>
+	</procDef>
 
 	<procDef type="metaMaker" id="fits_makeWCSParams">
 		<doc>A metaMaker that generates parameters allowing cutouts along
@@ -311,110 +336,30 @@ This is a temporary location for procDefs and friends complying to
 		</doc>
 		<setup>
 			<par key="stcs" description="A QSTC expression describing the
-				STC structure of the parameters.  If you don't give this,
-				no STC structure will be declared.">None</par>
+				STC structure of the parameters.  This is currently ignored
+				and will almost certainly look totally different when STC2
+				finally comes around.  Meanwhile, don't bother.">None</par>
 			<par key="axisMetaOverrides" description="A python dictionary
 				mapping fits axis indices (1-based) to dictionaries of
-				inputKey constructor arguments; for spatial axis, use the
+				inputKey constructor arguments; for spatial axes, use the
 				axis name instead of the axis index.">{}</par>
 			<code><![CDATA[
-				from gavo.utils import fitstools
-
-				def iterSpatialKeys(descriptor):
-					"""yields inputKeys for spatial cutouts along the coordinate
-					axes.
-
-					This can be nothing if descriptor doesn't have a skyWCS attribute
-					or if it's None.
-					"""
-					if not getattr(descriptor, "skyWCS", None):
-						return
-
-					footprint = descriptor.skyWCS.calcFootprint(descriptor.hdr)
-					wcsprm = descriptor.skyWCS.wcs
-
-					# FIXME: UCD inference!
-					for name, colInd, description, baseUCD, cutoutName in [
-						(wcsprm.lattyp.strip(), wcsprm.lat, "The latitude coordinate",
-							"pos.eq.dec", "WCSLAT"),
-						(wcsprm.lngtyp.strip(), wcsprm.lng, "The longitude coordinate",
-							"pos.eq.ra", "WCSLONG")]:
-						if name:
-							vertexCoos = footprint[:,colInd]
-							paramArgs = {"name": name, "unit": "deg", 
-									"description": description,
-									"ucd": baseUCD}
-
-							minCoo, maxCoo = min(vertexCoos), max(vertexCoos)
-							# for RA, we need to move the stitching line out
-							# of the way (and go to negative longitudes) if
-							# 0 is on the image; we're doing a little heuristic
-							# there assuming that images are smaller than 180 deg.
-							if cutoutName=="WCSLONG":
-								if coords.straddlesStitchingLine(minCoo, maxCoo):
-									minCoo, maxCoo = maxCoo-360, minCoo
-
-							if name in axisMetaOverrides:
-								paramArgs.update(axisMetaOverrides[name])
-
-							yield MS(InputKey,  multiplicity="single",
-								type="double precision[2]", xtype="interval",
-								stc=parSTC,
-								values=MS(Values, min=minCoo, max=maxCoo),
-								**paramArgs)
-							descriptor.axisNames[name] = cutoutName
-
-				def iterOtherKeys(descriptor, spatialAxes):
-					"""yields inputKeys for all WCS axes not covered by spatialAxes.
-					"""
-					axesLengths = fitstools.getAxisLengths(descriptor.hdr)
-					for axIndex, length in enumerate(axesLengths):
-						fitsAxis = axIndex+1
-						if fitsAxis in spatialAxes:
-							continue
-						if length==1:
-							# no cutouts along degenerate axes
-							continue
-						
-						try:
-							ax = fitstools.WCSAxis.fromHeader(descriptor.hdr, fitsAxis)
-						except ValueError:
-							# probably botched WCS, or an inseparable axis.
-							# Just ignore this axis, operators can add it manually
-							# using forceSeparable
-							continue
-
-						descriptor.axisNames[ax.name] = fitsAxis
-						minPhys, maxPhys = ax.getLimits()
-
-						# FIXME: ucd inference
-						paramArgs = {"name": ax.name, "unit": ax.cunit, 
-							"stc": parSTC,
-							"description": "Coordinate along axis number %s"%fitsAxis,
-							"ucd": None}
-						if fitsAxis in axisMetaOverrides:
-							paramArgs.update(axisMetaOverrides[fitsAxis])
-
-						yield MS(InputKey,  multiplicity="single",
-							type="double precision[2]", xtype="interval",
-							values=MS(Values, min=minPhys, max=maxPhys),
-							**paramArgs)
-
 				if stcs is None:
 					parSTC = None
 				else:
 					parSTC = stc.parseQSTCS(stcs)
+
+				from gavo.protocols import soda
 			]]></code>
 		</setup>
 
 		<code>
-			descriptor.axisNames = {}
-			descriptor.skyWCS, spatialAxes = coords.getSkyWCS(descriptor.hdr)
+			soda.ensureSkyWCS(descriptor)
 
-			for ik in iterSpatialKeys(descriptor):
+			for ik in soda.iterSpatialAxisKeys(descriptor, axisMetaOverrides):
 				yield ik
 
-			for ik in iterOtherKeys(descriptor, spatialAxes):
+			for ik in soda.iterOtherAxisKeys(descriptor, axisMetaOverrides):
 				yield ik
 		</code>
 	</procDef>
@@ -470,55 +415,13 @@ This is a temporary location for procDefs and friends complying to
 			The .data attribute must be a pyfits hduList, as generated by the
 			fits_makeHDUList data function.
 		</doc>
+		<setup>
+			<code>
+				from gavo.protocols import soda
+			</code>
+		</setup>
 		<code>
-			from gavo.utils import fitstools
-
-			slices = descriptor.slices
-
-			# limits: [minRA, maxRA], [minDec, maxDec]]
-			footprint = descriptor.skyWCS.calcFootprint(descriptor.hdr)
-			limits = [[min(footprint[:,0]), max(footprint[:,0])],
-				[min(footprint[:,1]), max(footprint[:,1])]]
-			if coords.straddlesStitchingLine(limits[0][0], limits[0][1]):
-				limits[0] = [limits[0][1]-360, limits[0][0]]
-			limitsChangedName = None
-
-			for parName, fitsAxis in descriptor.axisNames.iteritems():
-				if args[parName] is None:
-					continue
-				limitsChangedName = parName
-
-				if not isinstance(fitsAxis, int):
-					# some sort of spherical axis
-					if fitsAxis=="WCSLAT":
-						cooLimits = limits[1]
-					elif fitsAxis=="WCSLONG":
-						cooLimits = limits[0]
-					else:
-						assert False
-
-					cooLimits[0] = max(cooLimits[0], args[parName][0])
-					cooLimits[1] = min(cooLimits[1], args[parName][1])
-					
-				else:
-					# 1-d axis
-					transform = fitstools.WCSAxis.fromHeader(descriptor.hdr, fitsAxis)
-					axMin, axMax = args[parName]
-					descriptor.changingAxis(fitsAxis, parName)
-					slices.append((fitsAxis, 
-						transform.physToPix(axMin), transform.physToPix(axMax)))
-	
-			if limitsChangedName:
-				for axisInd, lower, upper in coords.getPixelLimits([
-						(limits[0][0], limits[1][0]),
-						(limits[0][1], limits[1][1])], descriptor.skyWCS):
-					descriptor.changingAxis(axisInd, limitsChangedName)
-					slices.append((axisInd, lower, upper))
-
-			if slices:
-				descriptor.data[0] = fitstools.cutoutFITS(descriptor.data[0],
-					*slices)
-				descriptor.dataIsPristine = False
+			soda.doFITSCutout(descriptor, args)
 		</code>
 	</procDef>
 
@@ -691,48 +594,6 @@ This is a temporary location for procDefs and friends complying to
 		</code>
 	</procDef>
 
-	<procDef type="dataFunction" id="fits_makePOSSlice">
-		<doc>
-			Interprets the POS param.
-
-			This will yield positional cutouts (as from RA/DEC) to the descriptor.
-		</doc>
-		<setup>
-			<code>
-				from gavo import stc
-				from gavo.protocols import siap
-				from gavo.stc import bboxes
-				from gavo.utils import fitstools
-			</code>
-		</setup>
-		<code>
-			if args.get("POS") is None:
-				return
-			geom = siap.parseSIAP2Geometry(args["POS"])
-			boxes = list(bboxes.getBboxes(
-				stc.fromPgSphere('ICRS', geom)))
-			corners = reduce(lambda a,b: a+b, [((r1, d1), (r2, d2))
-				for r1, d1, r2, d2 in boxes])
-
-			slices = coords.getPixelLimits(corners, descriptor.skyWCS)
-			for fitsInd, _, _ in slices:
-				descriptor.changingAxis(fitsInd, "POS")
-
-			if slices:
-				descriptor.data[0] = fitstools.cutoutFITS(descriptor.data[0],
-					*slices)
-				descriptor.dataIsPristine = False
-		</code>
-	</procDef>
-
-	<STREAM id="fits_genPOSPar">
-		<doc>
-			Adds metadata and data function for a SIAPv2-style POS cutout parameter.
-		</doc>
-		<metaMaker procDef="//soda#fits_makePOSMeta"/>
-		<dataFunction procDef="//soda#fits_makePOSSlice"/>
-	</STREAM>
-
 	<STREAM id="fits_standardBANDCutout">
 		<doc>
 			Adds metadata and data function for one axis containing wavelengths.
@@ -780,7 +641,6 @@ This is a temporary location for procDefs and friends complying to
 		<FEED source="fits_standardBANDCutout"
 			spectralAxis="\spectralAxis" wavelengthUnit="\wavelengthUnit"/>
 		<dataFunction procDef="//soda#fits_doWCSCutout" name="doWCSCutout"/>
-		<FEED source="//soda#fits_genPOSPar"/>
 		<FEED source="//soda#fits_genPixelPar"/>
 		<FEED source="//soda#fits_genKindPar"/>
 		<dataFormatter procDef="//soda#fits_formatHDUs" name="formatHDUs"/>

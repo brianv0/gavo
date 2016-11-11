@@ -122,6 +122,7 @@
 				<setup>
 					<code>
 						from gavo import svcs
+						from gavo.protocols import soda
 					</code>
 				</setup>
 				<code>
@@ -129,13 +130,12 @@
 						ddt
 					elif pubDID=="somewhereelse":
 						raise svcs.WebRedirect("http://some.whereel.se/there")
-					return getFITSDescriptor(pubDID)
+					return soda.getFITSDescriptor(pubDID)
 				</code>
 			</descriptorGenerator>
 			<metaMaker procDef="//soda#fits_makeWCSParams" name="getWCSParams"/>
 			<dataFunction procDef="//soda#fits_makeHDUList" name="makeHDUList"/>
 			<dataFunction procDef="//soda#fits_doWCSCutout" name="doWCSCutout"/>
-			<FEED source="//soda#fits_genPOSPar"/>
 			<FEED source="//soda#fits_genPixelPar"/>
 			<FEED source="//soda#fits_genKindPar"/>
 			<dataFormatter procDef="//soda#fits_formatHDUs" name="formatHDUs"/>
