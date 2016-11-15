@@ -349,7 +349,7 @@ class OAIRecordsParser(sax.ContentHandler, OAIErrorMixin):
 			# if someone is devious enough to cause collisions here, they
 			# deserve no better.
 			if newName in self._referringAttributeNames:
-				value = hashlib.md5(self.ivoid).hexdigest()+value
+				value = value+hashlib.md5(self.ivoid).hexdigest()
 
 			newAttrs[newName] = value
 
