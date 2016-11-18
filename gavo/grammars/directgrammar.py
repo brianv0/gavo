@@ -546,6 +546,7 @@ class FITSCodeGenerator(_CodeGenerator):
 		"J": ("TLONG", "long"),
 		"K": ("TLONGLONG", "long long"),
 		"E": ("TFLOAT", "float"),
+		"L": ("TLOGICAL", "unsigned char"),
 		"D": ("TDOUBLE", "double")}
 	makers = {
 		"bigint": "MAKE_BIGINT",
