@@ -6,6 +6,7 @@
 		<column name="f" type="real"/>
 		<column name="d" type="double precision"/>
 		<column name="t" type="text"/>
+		<column name="l" type="smallint"/>
 	</table>
 
 	<table id="dgtplus" onDisk="True" original="dgt">

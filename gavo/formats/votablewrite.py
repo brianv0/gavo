@@ -204,6 +204,24 @@ def _iterResourceMeta(ctx, dataSet):
 			_iterInfoInfos(dataSet), _iterWarningInfos(dataSet)):
 		yield el
 
+	sourcesSeen, citeLinksSeen = set(), set()
+	for table in dataSet.tables.values():
+		for m in table.iterMeta("source", propagate="True"):
+			src = m.getContent("text")
+			if src not in sourcesSeen:
+				yield V.INFO(name="source", value=src)[
+					"This resource contains data associated with the publication"
+					" %s."%src]
+			sourcesSeen.add(src)
+
+		for m in table.iterMeta("howtociteLink"):
+			link = value=m.getContent("text")
+			if link not in citeLinksSeen:
+				yield V.INFO(name="howtocite", value=link)[
+					"For advice on how to cite the resource(s)"
+					" that contributed to this result, see %s"%link]
+			citeLinksSeen.add(link)
+
 
 def _iterToplevelMeta(ctx, dataSet):
 	"""yields meta elements for the entire VOTABLE from dataSet's RD.
@@ -393,14 +411,6 @@ def _iterParams(ctx, dataSet):
 ####################### Tables and Resources
 
 
-_tableMetaBuilder = meta.ModelBasedBuilder([
-	('source', lambda content, localattrs: [V.INFO(name="source",
-			value=item, **localattrs) for item in content]),
-	('howtociteLink', lambda content, localattrs: [V.INFO(name="howtocite",
-			value=item, **localattrs)["For advice on how to cite the resource(s)"
-				" that contributed to this result, see %s"%item] for item in content]),
-	])
-
 
 def _iterSTC(tableDef, serManager):
 	"""adds STC groups for the systems to votTable fetching data from 
@@ -502,7 +512,6 @@ def makeTable(ctx, table):
 			_iterFields(ctx, sm),
 			_iterTableParams(ctx, sm),
 			_iterNotes(sm),
-			_tableMetaBuilder.build(table),
 			_linkBuilder.build(table.tableDef),
 			]
 
