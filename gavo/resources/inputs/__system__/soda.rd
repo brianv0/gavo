@@ -625,11 +625,38 @@ This is a temporary location for procDefs and friends complying to
 		</doc>
 		<code>
 			if args["POLYGON"]:
-				poly = pgsphere.SPoly.fromSODA(args["POLYGON"])
-				for axisInd, lower, upper in coords.getPixelLimits(
-						poly.asCooPairs(), descriptor.skyWCS):
-					descriptor.changingAxis(axisInd, "POLYGON")
-					descriptor.slices.append((axisInd, lower, upper))
+				soda.addPolygonSlices(descriptor,
+					pgsphere.SPoly.fromSODA(args["POLYGON"]), "POLYGON")
+		</code>
+	</procDef>
+
+	<procDef type="metaMaker" id="fits_makeCIRCLEMeta">
+		<doc>
+			Yields a SODA CIRCLE parameter.  This needs a descriptor
+			made by fits_genDesc.
+		</doc>
+		<code>
+			soda.ensureSkyWCS(descriptor)
+			yield MS(InputKey, name="CIRCLE", type="double precision(3)",
+				ucd="phys.argArea;obs", unit="deg",
+				description="A circle (as a flattened array of ra, dec, radius)"
+				" that should be covered by the cutout.",
+				multiplicity="single",
+				values=MS(Values,
+					max=coords.getCoveringCircle(descriptor.skyWCS).asSODA()))
+		</code>
+	</procDef>
+
+	<procDef type="dataFunction" id="fits_makeCIRCLESlice">
+		<doc>
+			Interprets CIRCLE parameters.  It just adds slices to the
+			descriptor.  The actual cutout is done by fits_doWCSCutout, and
+			thus this procDef must be physically before it.
+		</doc>
+		<code>
+			if args["CIRCLE"]:
+				circle = pgsphere.SCircle.fromSODA(args["CIRCLE"])
+				soda.addPolygonSlices(descriptor, circle.asPoly(), "CIRCLE")
 		</code>
 	</procDef>
 
@@ -637,6 +664,9 @@ This is a temporary location for procDefs and friends complying to
 		<metaMaker procDef="//soda#fits_makePOLYGONMeta" name="polygonMeta"/>
 		<dataFunction procDef="//soda#fits_makePOLYGONSlice" 
 			name="polygonSlice"/>
+		<metaMaker procDef="//soda#fits_makeCIRCLEMeta" name="circleMeta"/>
+		<dataFunction procDef="//soda#fits_makeCIRCLESlice" 
+			name="circleSlice"/>
 	</STREAM>
 
 	<STREAM id="fits_standardDLFuncs">

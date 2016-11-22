@@ -162,6 +162,13 @@ class SCircle(PgSAdapter):
 		return "%.10f %.10f %.10f"%(self.center.x/DEG, self.center.y/DEG,
 			self.radius/DEG)
 
+	@classmethod
+	def fromSODA(cls, sodaSeq):
+		"""returns a circle from its SODA-like float sequence.
+		"""
+		ra, dec, radius = [float(s) for s in sodaSeq]
+		return cls(SPoint.fromDegrees(ra, dec), radius*DEG)
+
 	def asSTCS(self, systemString):
 		return removeTrailingZeroes("Circle %s %s"%(
 			systemString, self.asSODA()))
@@ -223,14 +230,14 @@ class SPoly(PgSAdapter):
 			" ".join("%.10f %.10f"%(p.x/DEG, p.y/DEG) for p in self.points))
 
 	@classmethod
-	def fromSODA(cls, literal):
-		"""returns a polygon from a SODA literal.
+	def fromSODA(cls, sodaSeq):
+		"""returns a polygon from a SODA-like float-sequence
 
 		This is a string containing blank-separated float literals of the vertex
 		coordinates in degrees, ICRS.
 		"""
 		return cls([SPoint.fromDegrees(*tuple(p)) 
-			for p in misctricks.grouped(2, (float(v) for v in literal))])
+			for p in misctricks.grouped(2, sodaSeq)])
 
 	def asCooPairs(self):
 		"""returns the vertices as a sequence of (long, lat) pairs in

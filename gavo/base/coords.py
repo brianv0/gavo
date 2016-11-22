@@ -193,6 +193,17 @@ def getWCS(wcsFields, naxis=(1,2), relax=True):
 	return wcsObj
 
 
+def pix2foc(wcsFields, pixels):
+	"""returns the focal plane coordindates for the 2-sequence pixels.
+
+	(this is a thin wrapper intended to abstract for pix2sky's funky
+	calling convention; also, we fix on the silly "0 pixel is 1 convention")
+	"""
+	wcsObj = getWCS(wcsFields)
+	val = wcsObj.pix2foc((pixels[0],), (pixels[1],), 1)
+	return val[0][0], val[1][0]
+
+
 def pix2sky(wcsFields, pixels):
 	"""returns the sky coordindates for the 2-sequence pixels.
 
@@ -316,13 +327,15 @@ def getCoveringCircle(wcsFields, spatialAxes=(1,2)):
 	"""
 	wcs = getWCS(wcsFields)
 	center = getCenterFromWCSFields(wcs)
-	# for now: Ignore distortions and projections.
-	corner = [[wcs._dachs_header["NAXIS%s"%spatialAxes[0]],
-		wcs._dachs_header["NAXIS%s"%spatialAxes[1]]]]
-	cornerFoc = wcs.pix2foc(corner, 0)
-	ddt
+
+	height, width = (wcs._dachs_header["NAXIS%s"%spatialAxes[0]],
+		wcs._dachs_header["NAXIS%s"%spatialAxes[1]])
+	radius = max(
+			getGCDist(center, pix2sky(wcs, corner))
+		for corner in [(0, 0), (height, 0), (0, width), (height, width)])
+
 	return pgsphere.SCircle(pgsphere.SPoint.fromDegrees(*center),
-		radius)
+		radius*DEG)
 
 
 def getSkyWCS(hdr):

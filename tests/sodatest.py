@@ -708,8 +708,7 @@ class SODAFITSTest(testhelpers.VerboseTest):
 		self.assertEqual(hdr["NAXIS2"], 2)
 		self.assertEqual(hdr["NAXIS3"], 2)
 
-	def testCutoutPOLYGON(self):
-		svc = api.parseFromString(svcs.Service, """<service id="foo"
+	_geoDLServiceLiteral = """<service id="foo"
 				allowed="dlmeta,dlget">
 			<datalinkCore>
 				<descriptorGenerator procDef="//soda#fits_genDesc"/>
@@ -718,8 +717,10 @@ class SODAFITSTest(testhelpers.VerboseTest):
 				<FEED source="//soda#fits_Geometries"/>
 				<dataFunction procDef="//soda#fits_doWCSCutout"/>
 				<dataFormatter procDef="//soda#fits_formatHDUs"/>
-			</datalinkCore></service>""")
+			</datalinkCore></service>"""
 
+	def testCutoutPOLYGON(self):
+		svc = api.parseFromString(svcs.Service, self._geoDLServiceLiteral)
 		mime, data = _dissectSODAFile(svc.run("dlget", {
 				"ID": [rscdef.getStandardPubDID("data/excube.fits")],
 				"POLYGON": ["359.36 30.9845 359.359 30.9845"
@@ -733,17 +734,7 @@ class SODAFITSTest(testhelpers.VerboseTest):
 		self.assertEqual(hdr["NAXIS3"], 4)
 
 	def testPOLYGONClashesRA(self):
-		svc = api.parseFromString(svcs.Service, """<service id="foo"
-				allowed="dlmeta,dlget">
-			<datalinkCore>
-				<descriptorGenerator procDef="//soda#fits_genDesc"/>
-				<metaMaker procDef="//soda#fits_makeWCSParams"/>
-				<dataFunction procDef="//soda#fits_makeHDUList"/>
-				<FEED source="//soda#fits_Geometries"/>
-				<dataFunction procDef="//soda#fits_doWCSCutout"/>
-				<dataFormatter procDef="//soda#fits_formatHDUs"/>
-			</datalinkCore></service>""")
-
+		svc = api.parseFromString(svcs.Service, self._geoDLServiceLiteral)
 		self.assertRaisesWithMsg(api.ValidationError,
 			"Field RA: Attempt to cut out along axis 1 that has been"
 				" modified before.",
@@ -751,6 +742,34 @@ class SODAFITSTest(testhelpers.VerboseTest):
 			("dlget", {
 				"ID": [rscdef.getStandardPubDID("data/excube.fits")],
 				"RA": ["359.36 359.359"],
+				"POLYGON": ["359.36 30.9845 359.359 30.9845"
+					" 359.359 30.985"]
+				}))
+
+	def testCutoutCIRCLE(self):
+		svc = api.parseFromString(svcs.Service, self._geoDLServiceLiteral)
+		mime, data = _dissectSODAFile(svc.run("dlget", {
+				"ID": [rscdef.getStandardPubDID("data/excube.fits")],
+				"CIRCLE": ["359.36 30.984 0.0004"]
+				}).original)
+
+		self.assertEqual(mime, "image/fits")
+		hdr = fitstools.readPrimaryHeaderQuick(StringIO(data))
+# TODO: I'd really expect NAXIS1==NAXIS2, but I cannot find a mistake
+# in my reasoning up to here.  Hm.
+		self.assertEqual(hdr["NAXIS1"], 4)
+		self.assertEqual(hdr["NAXIS2"], 3)
+		self.assertEqual(hdr["NAXIS3"], 4)
+	
+	def testCIRCLEClashesPOLYGON(self):
+		svc = api.parseFromString(svcs.Service, self._geoDLServiceLiteral)
+		self.assertRaisesWithMsg(api.ValidationError,
+			"Field CIRCLE: Attempt to cut out along axis 1 that has been"
+				" modified before.",
+			svc.run,
+			("dlget", {
+				"ID": [rscdef.getStandardPubDID("data/excube.fits")],
+				"CIRCLE": ["359.36 30.9845 0.0004"],
 				"POLYGON": ["359.36 30.9845 359.359 30.9845"
 					" 359.359 30.985"]
 				}))
@@ -891,6 +910,50 @@ class SODA_POLYGONMetaTest(testhelpers.VerboseTest):
 			('vertex',)+p for p in utils.grouped(2, points)]
 
 	samples = list(_iterWCSSamples())
+
+
+class SODA_CIRCLEMetaTest(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	# generated through maketruth below
+	truth = {
+		 (0, 0): '0.0000000000 0.0000000000 1.8021810709',
+  	(10, 45): '10.0000000000 45.0000000000 1.8021810709',
+  	(120, -30): '120.0000000000 -30.0000000000 1.8021810709',
+  	(240, 87): '240.0000000000 87.0000000000 1.8021810709',
+  	(0, -90): '180.0000000000 -90.0000000000 1.8021810709',
+  	(180, 90): '180.0000000000 90.0000000000 1.8021810709',
+	}
+	
+	proc = api.makeStruct(datalink.MetaMaker, 
+			procDef=api.resolveCrossId("//soda#fits_makeCIRCLEMeta")
+		).compile(parent=testhelpers.getTestRD())
+
+	def _produceKeys(self, sample):
+		pos, header = sample
+		desc = _getFakeDescriptorForWCS(header)
+		return list(self.proc(desc))
+
+	def _runTest(self, sample):
+		keys = self._produceKeys(sample)
+		self.assertEqual(len(keys), 1)
+		key = keys[0]
+		self.assertEqual(key.type, "double precision(3)")
+		self.assertEqual(key.values.max,
+			self.truth[sample[0]])
+
+	def getTruthFor(self, sample):
+		from gavo.utils import pgsphere
+
+		key = self._produceKeys(sample)[0]
+		circ = pgsphere.SCircle.fromSODA(key.values.max)
+		points = [float(v) for v in circ.asPoly().asSODA().split()]
+		return "%r: %r"%(sample[0], key.values.max), [
+			('center', sample[0][0], sample[0][1])]+[
+			('vertex',)+p for p in utils.grouped(2, points)]
+
+	samples = list(_iterWCSSamples())
+
 
 
 class SODAPOSTest(testhelpers.VerboseTest):
@@ -1106,9 +1169,9 @@ def maketruth(testclass):
 		votable.write(vot, f)
 
 	with open("000truth.txt", "w") as f:
-		f.write("{\n  %s\n}"%"  \n".join(txt))
+		f.write("  %s\n"%(",\n  ".join(txt)))
 
 
 if __name__=="__main__":
-#	maketruth(SODA_POLYGONMetaTest)
+#	maketruth(SODA_CIRCLEMetaTest)
 	testhelpers.main(SDMDatalinkTest)

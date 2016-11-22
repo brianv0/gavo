@@ -131,6 +131,18 @@ def iterOtherAxisKeys(descriptor, axisMetaOverrides):
 			**paramArgs)
 
 
+def addPolygonSlices(descriptor, poly, srcPar="Unknown"):
+	"""adds slicings in descriptor.slices for a pgsphere.SPoly poly.
+
+	srcPar is the name of the parameter that generated the polygon
+	(for making error messages)
+	"""
+	for axisInd, lower, upper in coords.getPixelLimits(
+			poly.asCooPairs(), descriptor.skyWCS):
+		descriptor.changingAxis(axisInd, srcPar)
+		descriptor.slices.append((axisInd, lower, upper))
+
+
 def doAxisCutout(descriptor, args):
 	"""updates descriptor.data on a FITS descriptor, interpreting the
 	parameters defined by iter*AxisKeys, passed in in args.

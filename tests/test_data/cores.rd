@@ -130,7 +130,7 @@
 						ddt
 					elif pubDID=="somewhereelse":
 						raise svcs.WebRedirect("http://some.whereel.se/there")
-					return soda.getFITSDescriptor(pubDID)
+					return getFITSDescriptor(pubDID)
 				</code>
 			</descriptorGenerator>
 			<metaMaker procDef="//soda#fits_makeWCSParams" name="getWCSParams"/>
