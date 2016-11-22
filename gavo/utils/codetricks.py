@@ -103,6 +103,27 @@ class CachedResource(object):
 		return cls.cache
 
 
+class DeferredImport(object):
+	"""A trivial deferred module loader.
+
+	Use this to delay the actual import of a module until it's actually
+	needed.
+
+	Use this like this::
+	
+		pywcs = utils.DeferredImport("pywcs")
+	"""
+	loadedModule = None
+
+	def __init__(self, moduleName):
+		self.moduleName = moduleName
+	
+	def __getattr__(self, *args):
+		module = importModule(self.moduleName)
+		globals()[self.moduleName] = module
+		return getattr(module, *args)
+
+
 class IdManagerMixin(object):
 	"""
 	A mixin for objects requiring unique IDs.

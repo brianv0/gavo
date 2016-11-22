@@ -19,6 +19,7 @@ import re
 from gavo.utils import codetricks
 from gavo.utils import excs
 from gavo.utils import mathtricks
+from gavo.utils import misctricks
 from gavo.utils.mathtricks import DEG
 
 _TRAILING_ZEROES = re.compile("0+(\s|$)")
@@ -112,6 +113,11 @@ class SPoint(PgSAdapter):
 	@classmethod
 	def fromDegrees(cls, x, y):
 		return cls(x*DEG, y*DEG)
+
+	def asCooPair(self):
+		"""returns this point as (long, lat) in degrees.
+		"""
+		return (self.x/DEG, self.y/DEG)
 
 	def asSTCS(self, systemString):
 		return removeTrailingZeroes(
@@ -215,6 +221,24 @@ class SPoly(PgSAdapter):
 		"""
 		return removeTrailingZeroes(
 			" ".join("%.10f %.10f"%(p.x/DEG, p.y/DEG) for p in self.points))
+
+	@classmethod
+	def fromSODA(cls, literal):
+		"""returns a polygon from a SODA literal.
+
+		This is a string containing blank-separated float literals of the vertex
+		coordinates in degrees, ICRS.
+		"""
+		return cls([SPoint.fromDegrees(*tuple(p)) 
+			for p in misctricks.grouped(2, (float(v) for v in literal))])
+
+	def asCooPairs(self):
+		"""returns the vertices as a sequence of (long, lat) pairs in
+		degrees.
+
+		This form is required by some functions from base.coords.
+		"""
+		return [p.asCooPair() for p in self.points]
 
 	def asSTCS(self, systemString):
 		return removeTrailingZeroes("Polygon %s %s"%(systemString, 

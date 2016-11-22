@@ -215,7 +215,7 @@ def _iterResourceMeta(ctx, dataSet):
 			sourcesSeen.add(src)
 
 		for m in table.iterMeta("howtociteLink"):
-			link = value=m.getContent("text")
+			link = m.getContent("text")
 			if link not in citeLinksSeen:
 				yield V.INFO(name="howtocite", value=link)[
 					"For advice on how to cite the resource(s)"

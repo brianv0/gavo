@@ -22,7 +22,8 @@ from gavo.utils.algotricks import (
 from gavo.utils.autonode import AutoNode
 
 from gavo.utils.codetricks import (silence, ensureExpression, compileFunction,
-	loadPythonModule, memoized, identity, runInSandbox, document, 
+	loadPythonModule, DeferredImport,
+	memoized, identity, runInSandbox, document, 
 	getKeyNoCase,
 	buildClassResolver, CachedGetter, CachedResource, intToFunnyWord, 
 	IdManagerMixin,
@@ -52,7 +53,7 @@ from gavo.utils.misctricks import (Undefined, QuotedName, getfirst,
 	couldBeABibcode,
 	pyparseString, pyparseTransform, parseKVLine, makeKVLine,
 	StreamBuffer, CaseSemisensitiveDict,
-	NotInstalledModuleStub)
+	NotInstalledModuleStub, grouped)
 
 from gavo.utils.ostricks import (safeclose, urlopenRemote, 
 	fgetmtime, cat, ensureDir, safeReplaced)

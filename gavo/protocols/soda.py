@@ -3,6 +3,11 @@ Helper functions for SODA manipulators.
 
 This primarily comprises various WCS helpers.  It is built on base.coords,
 which is where you'll get the wcsFields.
+
+Note that this must not use things from protocols.datalink, as it
+is imported from there.  Essentially, use this space for helpers
+for SODA manipulations that are generic enough to be kept outside of
+the RD but not generic enough to go do base.coords.
 """
 
 #c Copyright 2008-2016, the GAVO project
@@ -13,28 +18,9 @@ which is where you'll get the wcsFields.
 from gavo import rscdef
 from gavo import svcs
 from gavo.base import coords
-from gavo.protocols import datalink
 from gavo.utils import fitstools
 
 from gavo.base import makeStruct as MS
-
-
-def getFITSDescriptor(pubDID, accrefPrefix=None, 
-		cls=datalink.FITSProductDescriptor):
-	"""returns a datalink descriptor for a FITS file.
-	"""
-	try:
-		accref = rscdef.getAccrefFromStandardPubDID(pubDID)
-	except ValueError:
-		return datalink.DatalinkFault.NotFoundFault(pubDID,
-			"Not a pubDID from this site.")
-
-	if accrefPrefix and not accref.startswith(accrefPrefix):
-		return datalink.DatalinkFault.AuthenticationFault(pubDID,
-			"This SODA service not available"
-			" with this pubDID")
-
-	return cls.fromAccref(pubDID, accref)
 
 
 def ensureSkyWCS(descriptor):
@@ -145,7 +131,7 @@ def iterOtherAxisKeys(descriptor, axisMetaOverrides):
 			**paramArgs)
 
 
-def doFITSCutout(descriptor, args):
+def doAxisCutout(descriptor, args):
 	"""updates descriptor.data on a FITS descriptor, interpreting the
 	parameters defined by iter*AxisKeys, passed in in args.
 
@@ -198,4 +184,3 @@ def doFITSCutout(descriptor, args):
 		descriptor.data[0] = fitstools.cutoutFITS(descriptor.data[0],
 			*slices)
 		descriptor.dataIsPristine = False
-

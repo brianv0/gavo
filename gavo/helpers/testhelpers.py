@@ -504,6 +504,56 @@ class SimpleSampleComparisonTest(VerboseTest):
 				raise
 
 
+def computeWCSKeys(pos, size, cutCrap=False):
+	"""returns a dictionary containing a 2D WCS structure for an image
+	centered at pos with angular size.  Both are 2-tuples in degrees.
+	"""
+	imgPix = (1000., 1000.)
+	res = {
+		"CRVAL1": pos[0],
+		"CRVAL2": pos[1],
+		"CRPIX1": imgPix[0]/2.,
+		"CRPIX2": imgPix[1]/2.,
+		"CUNIT1": "deg",
+		"CUNIT2": "deg",
+		"CD1_1": size[0]/imgPix[0],
+		"CD1_2": 0,
+		"CD2_2": size[1]/imgPix[1],
+		"CD2_1": 0,
+		"NAXIS1": imgPix[0],
+		"NAXIS2": imgPix[1],
+		"NAXIS": 2,
+		"CTYPE1": 'RA---TAN-SIP', 
+		"CTYPE2": 'DEC--TAN-SIP',
+		"LONPOLE": 180.}
+	if not cutCrap:
+		res.update({"imageTitle": "test image at %s"%repr(pos),
+			"instId": None,
+			"dateObs":55300+pos[0], 
+			"refFrame": None,
+			"wcs_equinox": None,
+			"bandpassId": None,
+			"bandpassUnit": None,
+			"bandpassRefval": None,
+			"bandpassLo": pos[0],
+			"bandpassHi": pos[0]+size[0],
+			"pixflags": None,
+			"accref": "image/%s/%s"%(pos, size),
+			"accsize": (30+int(pos[0]+pos[1]+size[0]+size[1]))*1024,
+			"embargo": None,
+			"owner": None,
+		})
+	return res
+
+
+class StandIn(object):
+	"""A class having the attributes passed as kwargs to the constructor.
+	"""
+	def __init__(self, **kwargs):
+		for key, value in kwargs.items():
+			setattr(self, key, value)
+
+
 def getTestRD(id="test.rd"):
 	from gavo import rscdesc  #noflake: import above is conditional
 	from gavo import base

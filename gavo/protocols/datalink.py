@@ -21,6 +21,7 @@ from gavo import rscdef
 from gavo import svcs
 from gavo import utils
 from gavo.protocols import products
+from gavo.protocols import soda
 from gavo.formats import votablewrite
 from gavo.votable import V, modelgroups
 
@@ -159,6 +160,27 @@ class FITSProductDescriptor(ProductDescriptor):
 		self._axesTouched.add(axisIndex)
 
 
+def getFITSDescriptor(pubDID, accrefPrefix=None, 
+		cls=FITSProductDescriptor):
+	"""returns a datalink descriptor for a FITS file.
+
+	This is the implementation of fits_genDesc and should probably reused
+	when making more specialised descriptors.
+	"""
+	try:
+		accref = rscdef.getAccrefFromStandardPubDID(pubDID)
+	except ValueError:
+		return DatalinkFault.NotFoundFault(pubDID,
+			"Not a pubDID from this site.")
+
+	if accrefPrefix and not accref.startswith(accrefPrefix):
+		return DatalinkFault.AuthenticationFault(pubDID,
+			"This SODA service not available"
+			" with this pubDID")
+
+	return cls.fromAccref(pubDID, accref)
+
+
 class DatalinkFault(object):
 	"""A datalink error ("fault", as it's called in the spec).
 
@@ -250,6 +272,10 @@ class DescriptorGenerator(rscdef.ProcApp):
 	  - args -- all the arguments that came in from the web
 	    (these should not ususally be necessary for making the descriptor
 	    and are completely unparsed at this point)
+	  - FITSProductDescriptor -- the base class of FITS product descriptors
+	  - ProductDescriptor -- the base class of FITSProductDescriptor
+	  - DatalinkFault -- use this when flagging failures
+	  - soda -- contents of the soda module for convenience
 	
 	If you made your pubDID using the ``getStandardPubDID`` rowmaker function,
 	and you need no additional logic within the descriptor,
@@ -266,7 +292,9 @@ class DescriptorGenerator(rscdef.ProcApp):
 	additionalNamesForProcs = {
 		"FITSProductDescriptor": FITSProductDescriptor,
 		"ProductDescriptor": ProductDescriptor,
+		"getFITSDescriptor": getFITSDescriptor,
 		"DatalinkFault": DatalinkFault,
+		"soda": soda,
 	}
 
 
@@ -462,6 +490,7 @@ class MetaMaker(rscdef.ProcApp):
 	  - Options -- used by Values
 	  - LinkDef -- a class to define further links within datalink services.
 	  - DatalinkFault -- a container of datalink error generators
+	  - soda -- the soda module.
 	"""
 	name_ = "metaMaker"
 	requiredType = "metaMaker"
@@ -474,6 +503,7 @@ class MetaMaker(rscdef.ProcApp):
 		"Option": rscdef.Option,
 		"LinkDef": LinkDef,
 		"DatalinkFault": DatalinkFault,
+		"soda": soda,
 	}
 
 
@@ -512,6 +542,7 @@ class DataFunction(rscdef.ProcApp):
 	  - TemporaryFile(path,type) -- as File, but the disk file is 
 	    unlinked after use
 	  - makeData -- the rsc.makeData function
+	  - soda -- the protocols.soda module
 	"""
 	name_ = "dataFunction"
 	requiredType = "dataFunction"
@@ -523,6 +554,7 @@ class DataFunction(rscdef.ProcApp):
 		"File": _File,
 		"TemporaryFile": _TemporaryFile, 
 		"makeData": rsc.makeData, 
+		"soda": soda,
 	}
 
 
@@ -551,6 +583,7 @@ class DataFormatter(rscdef.ProcApp):
 	    its path and media type to File and return the result. 
 	  - TemporaryFile(path, type) -- as File, but the disk file is unlinked 
 	    after use
+	  - soda -- the protocols.soda module
 	"""
 	name_ = "dataFormatter"
 	requiredType = "dataFormatter"
@@ -561,6 +594,7 @@ class DataFormatter(rscdef.ProcApp):
 		"IRequest": inevow.IRequest,
 		"File": _File,
 		"TemporaryFile": _TemporaryFile, 
+		"soda": soda,
 	}
 
 

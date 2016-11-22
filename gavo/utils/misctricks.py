@@ -12,6 +12,7 @@ from __future__ import with_statement
 
 import collections
 import contextlib
+import itertools
 import os
 import re
 import struct
@@ -364,6 +365,19 @@ class StreamBuffer(object):
 
 	def doneWriting(self):
 		self.finished = True
+
+
+def grouped(n, seq):
+	"""yields items of seq in groups n elements.
+
+	If len(seq)%n!=0, the last elements are discarded.
+
+	>>> list(grouped(2, range(5)))
+	[(0, 1), (2, 3)]
+	>>> list(grouped(3, range(9)))
+	[(0, 1, 2), (3, 4, 5), (6, 7, 8)]
+	"""
+	return itertools.izip(*([iter(seq)]*n))
 
 
 def getfirst(args, key, default=Undefined):

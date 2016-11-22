@@ -94,45 +94,6 @@ class PixelScaleTest(testhelpers.VerboseTest):
 		self.failIf(rasz>1)
 
 
-def computeWCSKeys(pos, size, cutCrap=False):
-	imgPix = (1000., 1000.)
-	res = {
-		"CRVAL1": pos[0],
-		"CRVAL2": pos[1],
-		"CRPIX1": imgPix[0]/2.,
-		"CRPIX2": imgPix[1]/2.,
-		"CUNIT1": "deg",
-		"CUNIT2": "deg",
-		"CD1_1": size[0]/imgPix[0],
-		"CD1_2": 0,
-		"CD2_2": size[1]/imgPix[1],
-		"CD2_1": 0,
-		"NAXIS1": imgPix[0],
-		"NAXIS2": imgPix[1],
-		"NAXIS": 2,
-		"CTYPE1": 'RA---TAN-SIP', 
-		"CTYPE2": 'DEC--TAN-SIP',
-		"LONPOLE": 180.}
-	if not cutCrap:
-		res.update({"imageTitle": "test image at %s"%repr(pos),
-			"instId": None,
-			"dateObs":55300+pos[0], 
-			"refFrame": None,
-			"wcs_equinox": None,
-			"bandpassId": None,
-			"bandpassUnit": None,
-			"bandpassRefval": None,
-			"bandpassLo": pos[0],
-			"bandpassHi": pos[0]+size[0],
-			"pixflags": None,
-			"accref": "image/%s/%s"%(pos, size),
-			"accsize": (30+int(pos[0]+pos[1]+size[0]+size[1]))*1024,
-			"embargo": None,
-			"owner": None,
-		})
-	return res
-
-
 class _SIAPTestTable(testhelpers.TestResource):
 	resources = [("conn", tresc.dbConnection)]
 	setUpCost = 6
@@ -147,7 +108,7 @@ class _SIAPTestTable(testhelpers.TestResource):
 		rd = testhelpers.getTestRD()
 		dd = rd.getById(self.ddid)
 		return rsc.makeData(dd, connection=self.conn, forceSource=[
-			computeWCSKeys(pos, size) for pos, size in [
+			testhelpers.computeWCSKeys(pos, size) for pos, size in [
 				((0, 0), (10, 10)),
 				((0, 90), (1, 1)),
 				((45, -45), (1, 1)),
@@ -253,7 +214,7 @@ class ImportTest(testhelpers.VerboseTest):
 	def testPlainPGS(self):
 		dd = testhelpers.getTestRD().getById("pgs_siaptest")
 		data = rsc.makeData(dd, connection=self.conn, forceSource=[
-			computeWCSKeys((34, 67), (0.3, 0.4))])
+			testhelpers.computeWCSKeys((34, 67), (0.3, 0.4))])
 		try:
 			table = data.tables["pgs_siaptable"]
 			res = list(table.iterQuery([table.tableDef.getColumnByName(n) for
@@ -272,7 +233,7 @@ class ImportTest(testhelpers.VerboseTest):
 	def testNullIncorporation(self):
 		dd = testhelpers.getTestRD().getById("pgs_siapnulltest")
 		data = rsc.makeData(dd, connection=self.conn, forceSource=[
-			self.noWCSRec, computeWCSKeys((34, 67), (0.25, 0.5))])
+			self.noWCSRec, testhelpers.computeWCSKeys((34, 67), (0.25, 0.5))])
 		try:
 			table = data.tables["pgs_siaptable"]
 			res = list(table.iterQuery(
@@ -351,7 +312,7 @@ class ScaleHeaderTest(testhelpers.VerboseTest):
 
 	def testSimple(self):
 		fullHdr = fitstools.headerFromDict(
-			computeWCSKeys((23, 27), (1, 2), cutCrap=True))
+			testhelpers.computeWCSKeys((23, 27), (1, 2), cutCrap=True))
 		halfHdr = fitstools.shrinkWCSHeader(fullHdr, 2)
 
 		self.assertEqual(halfHdr["IMSHRINK"], 'Image scaled down 2-fold by DaCHS')
@@ -373,7 +334,7 @@ class ScaleHeaderTest(testhelpers.VerboseTest):
 
 	def testTypesFixed(self):
 		fullHdr = fitstools.headerFromDict(
-			computeWCSKeys((23, 27), (1, 2), cutCrap=True))
+			testhelpers.computeWCSKeys((23, 27), (1, 2), cutCrap=True))
 		fullHdr.update("BZERO", 32768)
 		fullHdr.update("BSCALE", 1)
 		fullHdr.update("BITPIX", 8)

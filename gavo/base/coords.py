@@ -24,16 +24,7 @@ from gavo.utils import pgsphere
 from gavo.utils import pyfits
 
 
-class PyWCSLoader(object):
-	"""A quick hack to save time on startup: delay (slow) loading of pywcs
-	until it is used (which it may not be at all in many GAVO programs).
-	"""
-	def __getattr__(self, *args):
-		import pywcs
-		globals()["pywcs"] = pywcs
-		return getattr(pywcs, *args)
-
-pywcs = PyWCSLoader()
+pywcs = utils.DeferredImport("pywcs")
 
 
 fitsKwPat = re.compile("[A-Z0-9_-]{1,8}$")
@@ -367,6 +358,9 @@ def getPixelLimits(cooPairs, wcsFields):
 
 	cooPairs is a sequence of (ra, dec) tuples.  wcsFields is a DaCHS-enhanced
 	pywcs.WCS instance.
+
+	Behaviour if cooPairs use a different coordinate system from wcsFields
+	is undefined at this point.
 
 	Each cutout slice is a tuple of (FITS axis number, lower limit, upper limit).
 	"""
