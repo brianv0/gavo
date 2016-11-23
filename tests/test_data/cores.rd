@@ -135,6 +135,7 @@
 			</descriptorGenerator>
 			<metaMaker procDef="//soda#fits_makeWCSParams" name="getWCSParams"/>
 			<dataFunction procDef="//soda#fits_makeHDUList" name="makeHDUList"/>
+			<FEED source="//soda#fits_Geometries"/>
 			<dataFunction procDef="//soda#fits_doWCSCutout" name="doWCSCutout"/>
 			<FEED source="//soda#fits_genPixelPar"/>
 			<FEED source="//soda#fits_genKindPar"/>

@@ -276,29 +276,56 @@ This is a temporary location for procDefs and friends complying to
 		Needs a FITSDescriptor.
 		</doc>
 		<code>
-			soda.ensureSkyWCS(descriptor)
-			if descriptor.skyWCS:
-				yield MS(InputKey, name="POLYGON", type="double precision[]",
-					xtype="polygon", ucd="phys.angArea;obs",
-					description="A polygon describing the area to cut out",
-					multiplicity="single",
-					values=MS(Values, 
-						max=coords.getSPolyFromWCSFields(descriptor.skyWCS
-							).asSODA()))
+			yield MS(InputKey, name="POS", type="text",
+				ucd="phys.angArea;obs",
+				description="SIAv2-compatible cutout specification,
+				multiplicity="single")
+		</code>
+	</procDef>
 
-				yield MS(InputKey, name="CIRCLE", type="double precision[3]",
-					xtype="circle", ucd="phys.angArea;obs",
-					description="A circle describing the area to cut out",
-					multiplicity="single",
-					values=MS(Values, 
-						max=coords.getCoveringCircle(
-							descriptor.skyWCS, descriptor.spatialAxes
-							).asSODA()))
-				
-				yield MS(InputKey, name="POS", type="text",
-					ucd="phys.angArea;obs",
-					description="SIAv2-compatible cutout specification,
-					multiplicity="single")
+	<procDef type="dataFunction" id="fits_translateSODAPOS">
+		<doc>A data function to interpret SODA POS.
+
+		This merely translates the POS parameter to the equivalent
+		POLYGON, CIRCLE, or RA/DC parameters.  It thus must run before
+		these other data funtions.  Just run it after the initial data
+		funtion and be done with it.
+		</doc>
+		<setup>
+			<code>
+				from gavo.protocols import siap
+			</code>
+		</setup>
+		<code>
+			if not args["POS"]:
+				return
+			geom = siap.parseSIAP2Geometry(args["POS"])
+			args["POS"] = None
+
+			if isinstance(geom, pgsphere.SCircle):
+				if args.get("CIRCLE"):
+					raise ValidationError(
+						"Cannot give POS and CIRCLE in one request.",
+						"POS")
+				args["CIRCLE"] = [float(v) for v in geom.asSODA().split()]
+
+			elif isinstance(geom, pgsphere.SPoly):
+				if args.get("POLYGON"):
+					raise ValidationError(
+						"Cannot give POS and POLYGON in one request.",
+						"POS")
+				args["POLYGON"] = [float(v) for v in geom.asSODA().split()]
+
+			elif isinstance(geom, pgsphere.SBox):
+				if args.get("RA") or args.get("DEC"):
+					raise ValidationError(
+						"Cannot give POS and RA/DEC in one request.",
+						"POS")
+				args["RA"] = (geom.corner1.x/DEG, geom.corner2.x/DEG)
+				args["DEC"] = (geom.corner1.y/DEG, geom.corner2.y/DEG)
+
+			else:  # parseSIAP2Geometry failure
+				raise ValidationError("Unexpected geometry result", "POS")
 		</code>
 	</procDef>
 
@@ -624,7 +651,7 @@ This is a temporary location for procDefs and friends complying to
 			thus this procDef must be physically before it.
 		</doc>
 		<code>
-			if args["POLYGON"]:
+			if args.get("POLYGON"):
 				soda.addPolygonSlices(descriptor,
 					pgsphere.SPoly.fromSODA(args["POLYGON"]), "POLYGON")
 		</code>
@@ -654,13 +681,16 @@ This is a temporary location for procDefs and friends complying to
 			thus this procDef must be physically before it.
 		</doc>
 		<code>
-			if args["CIRCLE"]:
+			if args.get("CIRCLE"):
 				circle = pgsphere.SCircle.fromSODA(args["CIRCLE"])
 				soda.addPolygonSlices(descriptor, circle.asPoly(), "CIRCLE")
 		</code>
 	</procDef>
 
 	<STREAM id="fits_Geometries">
+		<metaMaker procDef="//soda#fits_makePOSMeta" name="polygonMeta"/>
+		<dataFunction procDef="//soda#fits_translateSODAPOS" 
+			name="translatePOS"/>
 		<metaMaker procDef="//soda#fits_makePOLYGONMeta" name="polygonMeta"/>
 		<dataFunction procDef="//soda#fits_makePOLYGONSlice" 
 			name="polygonSlice"/>
@@ -693,6 +723,7 @@ This is a temporary location for procDefs and friends complying to
 		<dataFunction procDef="//soda#fits_makeHDUList" name="makeHDUList"/>
 		<FEED source="fits_standardBANDCutout"
 			spectralAxis="\spectralAxis" wavelengthUnit="\wavelengthUnit"/>
+		<FEED source="//soda#fits_Geometries"/>
 		<dataFunction procDef="//soda#fits_doWCSCutout" name="doWCSCutout"/>
 		<FEED source="//soda#fits_genPixelPar"/>
 		<FEED source="//soda#fits_genKindPar"/>
