@@ -18,7 +18,7 @@
 	<table id="schemas" onDisk="True" system="True"
 			forceUnique="True" dupePolicy="drop" primary="schema_name"
 			readProfiles="defaults,untrustedquery" adql="True">
-		<meta name="description">Schmemas containing tables available for ADQL
+		<meta name="description">Schemas containing tables available for ADQL
 			querying.</meta>
 	<!-- since schemata may be shared between RDs, nothing will ever
 	     get deleted from here -->

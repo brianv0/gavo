@@ -74,10 +74,10 @@ def _booleanizeContainsQ3C(node, operator, operand):
 	if shape.type=="circle":
 		# The pg planner works much smoother if you have constants first.
 		if p.x.type=='columnReference':
-			expr = ("q3c_join_symmetric(%s, %s, %s, %s, %s)"%tuple(map(_flatAndMorph,
+			expr = ("q3c_join(%s, %s, %s, %s, %s)"%tuple(map(_flatAndMorph,
 				(shape.x, shape.y, p.x, p.y, shape.radius))))
 		else:
-			expr = ("q3c_join_symmetric(%s, %s, %s, %s, %s)"%tuple(map(_flatAndMorph, 
+			expr = ("q3c_join(%s, %s, %s, %s, %s)"%tuple(map(_flatAndMorph, 
 				(p.x, p.y, shape.x, shape.y, shape.radius))))
 
 	elif shape.type=="polygon":
@@ -91,7 +91,7 @@ morphhelpers.registerBooleanizer("CONTAINS", _booleanizeContainsQ3C)
 
 
 def _booleanizeCROSSMATCH(node, operator, operand):
-	node.funName = "q3c_join_symmetric"
+	node.funName = "q3c_join"
 	return morphhelpers.addNotToBooleanized(
 		_flatAndMorph(node), operator, operand)
 

@@ -213,8 +213,9 @@ class Execute(base.Structure, base.ExpansionDelegator):
 				"Output of %s:\n\n%s"%(cliList, childOutput))
 
 		elif self.debug:
-			self.outputAccum.append("\n\n%s -> %s\n"%(cliList, p.returncode))
-			self.outputAccum.append(childOutput)
+			if childOutput:
+				self.outputAccum.append("\n\n%s -> %s\n"%(cliList, p.returncode))
+				self.outputAccum.append(childOutput)
 
 		return p.returncode
 	
