@@ -542,7 +542,7 @@ This is a temporary location for procDefs and friends complying to
 		<setup>
 			<par key="fitsAxis" description="FITS axis index (1-based) of
 				the wavelength dimension">3</par>
-			<par key="wavelengthUnit" description="Override for the FITS
+			<par key="wavelengthOverride" description="Override for the FITS
 				unit given for the wavelength (for when it is botched or
 				missing; leave at None for taking it from the header)">None</par>
 			<code>
@@ -552,8 +552,11 @@ This is a temporary location for procDefs and friends complying to
 		<code>
 			if not fitsAxis:
 				return
-			if not wavelengthUnit:
-				fitsUnit = descriptor.hdr["CUNIT%d"%fitsAxis]
+			if wavelengthOverride:
+				wavelengthUnit = wavelengthOverride
+			else:
+				wavelengthUnit = descriptor.hdr["CUNIT%d"%fitsAxis]
+
 			descriptor.lambdaToMeterFactor = base.computeConversionFactor(
 				wavelengthUnit, "m")
 			descriptor.lambdaAxis = fitstools.WCSAxis.fromHeader(
@@ -595,17 +598,6 @@ This is a temporary location for procDefs and friends complying to
 		</code>
 	</procDef>
 
-	<procDef type="metaMaker" id="fits_makePOSMeta">
-		<doc>
-			Yields a SIAv2-style POS param for cutouts.
-		</doc>
-		<code>
-			yield MS(InputKey, name="POS", type="text", ucd="phys.angArea;obs",
-				description="Region to (approximately) cut out, as Circle,"
-				" Region, or Polygon", multiplicity="forced-single")
-		</code>
-	</procDef>
-
 	<STREAM id="fits_standardBANDCutout">
 		<doc>
 			Adds metadata and data function for one axis containing wavelengths.
@@ -621,12 +613,26 @@ This is a temporary location for procDefs and friends complying to
 			Otherwise, no cutout will be performed.
 		</doc>
 
+		<DEFAULTS spectralAxis="0" wavelengthOverride="None"/>
+
 		<metaMaker procDef="//soda#fits_makeBANDMeta">
 			<bind key="fitsAxis">\spectralAxis</bind>
-			<bind key="wavelengthUnit">'\wavelengthUnit'</bind>
+			<bind key="wavelengthOverride">'\wavelengthOverride'</bind>
 		</metaMaker>
 		<dataFunction procDef="//soda#fits_makeBANDSlice"/>
 	</STREAM>
+
+
+	<procDef type="metaMaker" id="fits_makePOSMeta">
+		<doc>
+			Yields a SIAv2-style POS param for cutouts.
+		</doc>
+		<code>
+			yield MS(InputKey, name="POS", type="text", ucd="phys.angArea;obs",
+				description="Region to (approximately) cut out, as Circle,"
+				" Region, or Polygon", multiplicity="forced-single")
+		</code>
+	</procDef>
 
 	<procDef type="metaMaker" id="fits_makePOLYGONMeta">
 		<doc>
@@ -717,13 +723,16 @@ This is a temporary location for procDefs and friends complying to
 			To work, this needs a descriptor generator; you probably want
 			//soda#fits_genDesc here.
 		</doc>
-		<DEFAULTS stcs="" spectralAxis="" wavelengthUnit=""/>
+		<DEFAULTS stcs="" spectralAxis="0" wavelengthUnit="None"/>
 		<metaMaker procDef="//soda#fits_makeWCSParams" name="getWCSParams">
 			<bind key="stcs">'\stcs'</bind>
 		</metaMaker>
 		<dataFunction procDef="//soda#fits_makeHDUList" name="makeHDUList"/>
-		<FEED source="fits_standardBANDCutout"
-			spectralAxis="\spectralAxis" wavelengthUnit="\wavelengthUnit"/>
+		<metaMaker procDef="//soda#fits_makeBANDMeta">
+			<bind key="fitsAxis">\spectralAxis</bind>
+			<bind key="wavelengthOverride">\wavelengthUnit</bind>
+		</metaMaker>
+		<dataFunction procDef="//soda#fits_makeBANDSlice"/>
 		<FEED source="//soda#fits_Geometries"/>
 		<dataFunction procDef="//soda#fits_doWCSCutout" name="doWCSCutout"/>
 		<FEED source="//soda#fits_genPixelPar"/>

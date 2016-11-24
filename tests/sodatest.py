@@ -612,7 +612,7 @@ class SODAFITSTest(testhelpers.VerboseTest):
 				</metaMaker>
 				<FEED source="//soda#fits_standardBANDCutout"
 					spectralAxis="3"
-					wavelengthUnit="0.1nm"/>
+					wavelengthOverride="0.1nm"/>
 			</datalinkCore></service>""")
 		svc.parent = testhelpers.getTestRD()
 
@@ -666,7 +666,7 @@ class SODAFITSTest(testhelpers.VerboseTest):
 				<dataFunction procDef="//soda#fits_makeHDUList"/>
 				<FEED source="//soda#fits_standardBANDCutout"
 					spectralAxis="3"
-					wavelengthUnit="0.1nm"/>
+					wavelengthOverride="0.1nm"/>
 				<dataFunction procDef="//soda#fits_doWCSCutout"/>
 				<dataFormatter procDef="//soda#fits_formatHDUs"/>
 			</datalinkCore></service>""")
