@@ -291,7 +291,8 @@ def parseWithNull(literal, baseParser, nullLiteral=base.Undefined,
 
 
 @utils.document
-def getHTTPPar(inputData, parser, single=False, forceUnique=False):
+def getHTTPPar(inputData, parser, single=False, forceUnique=False,
+		parName="?"):
 	"""returns a parsed value from inputData.
 
 	inputData may be
@@ -307,7 +308,7 @@ def getHTTPPar(inputData, parser, single=False, forceUnique=False):
 	If you pass single=True, you'll get exactly one value (or None).  The
 	value will be the first one from a sequence.
 
-	If you pass forceUnique=True, a ValueError will be raised if
+	If you pass forceUnique=True, a MultiplicityError will be raised if
 	inputData is longer than one.
 	"""
 	if inputData is None:
@@ -318,8 +319,10 @@ def getHTTPPar(inputData, parser, single=False, forceUnique=False):
 		return None
 
 	if forceUnique and len(inputData)>1:
-		raise ValueError("Inputs for this parameter must not have more than"
-			" one value; hovever, %s was passed in."%str(inputData))
+		raise base.MultiplicityError(
+			"Inputs for this parameter must not have more than"
+			" one value; hovever, %s was passed in."%str(inputData),
+			colName=parName)
 
 	if single:
 		return parser(inputData[0])

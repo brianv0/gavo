@@ -423,9 +423,10 @@ def makeAutoParmaker(inputTable):
 		if par.type in par.unprocessedTypes:
 			makeValue = "vars['%s']"%par.name
 		else:
-			makeValue = "getHTTPPar(vars['%s'], identity%s)"%(
+			makeValue = "getHTTPPar(vars['%s'], identity%s, parName='%s')"%(
 				par.name,
-				_OPTIONS_FOR_MULTIS[par.multiplicity])
+				_OPTIONS_FOR_MULTIS[par.multiplicity],
+				par.name)
 
 		maps.append(MS(rscdef.MapRule, dest=par.name, content_=makeValue))
 

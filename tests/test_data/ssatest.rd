@@ -220,6 +220,11 @@
 			and datalink.</meta>
 		<property name="datalink">dl</property>
 		<property name="returnData"/>
+		<publish render="ssap.xml" sets="ivo_managed"/>
+		<meta name="shortName">ssatest c</meta>
+		<meta name="ssap.dataSource">artificial</meta>
+		<meta name="ssap.creationType">archival</meta>
+		<meta name="ssap.testQuery">TARGETNAME=alpha%20Boo</meta>
 	</service>
 
 	<service id="d">

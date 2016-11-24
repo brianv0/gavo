@@ -137,6 +137,13 @@ class SLAPInterface(InterfaceWithParams):
 	renderer = "slap.xml"
 	interfaceClass = SLAP.interface
 
+class SODAInterface(InterfaceMaker):
+	# here, we must not inquire parameters, as the core can only
+	# tell when it actually has an ID, which we don't have here.
+	renderer = "dlget"
+	class interfaceClass(VS.ParamHTTP):
+		role = "std"
+
 
 class TAPInterface(InterfaceMaker):
 # for TAP, result type is tricky, and we don't have good metadata
@@ -182,7 +189,6 @@ class FormInterface(WebBrowserInterface):
 
 class DocformInterface(WebBrowserInterface):
 	renderer = "docform"
-
 
 # Actually, statics, externals and customs could be anything, but if you
 # register it, it's better be something a web browser can handle.
@@ -372,13 +378,6 @@ class SLAPCapabilityMaker(CapabilityMaker):
 		]
 
 
-class DatalinkCapabilityMaker(CapabilityMaker):
-	renderer = "dlmeta"
-
-	class capabilityClass(VOR.capability):
-		_a_standardID = "ivo://ivoa.net/std/DataLink#links-1.0"
-		
-
 _tapModelBuilder = meta.ModelBasedBuilder([
 	('supportsModel', meta.stanFactory(TR.dataModel), (), 
 		{"ivoId": "ivoId"})])
@@ -503,6 +502,28 @@ class DocformCapabilityMaker(CapabilityMaker):
 
 class ProductCapabilityMaker(CapabilityMaker):
 	renderer = "get"
+
+
+class DatalinkCapabilityMaker(CapabilityMaker):
+	renderer = "dlmeta"
+
+	class capabilityClass(VOR.capability):
+		_a_standardID = "ivo://ivoa.net/std/DataLink#links-1.0"
+
+
+class SODACapabilityMaker(CapabilityMaker):
+	renderer = "dlget"
+
+	class capabilityClass(VOR.capability):
+		_a_standardID = "ivo://ivoa.net/std/SODA#sync-1.0"
+
+
+class SODAAsyncCapabilityMaker(CapabilityMaker):
+	renderer = "dlasync"
+
+	class capabilityClass(VOR.capability):
+		_a_standardID = "ivo://ivoa.net/std/SODA#async-1.0"
+
 
 
 _getCapabilityMaker = utils.buildClassResolver(CapabilityMaker, 

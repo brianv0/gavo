@@ -376,6 +376,9 @@ def getPixelLimits(cooPairs, wcsFields):
 	is undefined at this point.
 
 	Each cutout slice is a tuple of (FITS axis number, lower limit, upper limit).
+
+	If cooPairs is off the wcsFields coverage, a null cutout on the longAxis
+	is returned.
 	"""
 	latAxis = wcsFields.latAxis
 	longAxis = wcsFields.longAxis
@@ -395,10 +398,19 @@ def getPixelLimits(cooPairs, wcsFields):
 	pixelFootprint = numpy.asarray(
 		numpy.round(wcsFields.wcs_sky2pix(cooPairs, 1)), numpy.int32)
 	pixelLimits = [
-		[max(min(pixelFootprint[:,0]), 1), 
-			min(max(pixelFootprint[:,0]), longPixels)],
-		[max(min(pixelFootprint[:,1]), 1), 
-			min(max(pixelFootprint[:,1]), latPixels)]]
+		[min(pixelFootprint[:,0]), max(pixelFootprint[:,0])],
+		[min(pixelFootprint[:,1]), max(pixelFootprint[:,1])]]
+	
+	# see if we're completely off coverage
+	if pixelLimits[0][1]<0 or pixelLimits[1][1]<0:
+		return [[longAxis, 0, 0]]
+	if pixelLimits[0][0]>longPixels or pixelLimits[1][0]>latPixels:
+		return [[longAxis, 0, 0]]
+
+	# now crop to actual limits
+	pixelLimits = [
+		[max(pixelLimits[0][0], 1), min(pixelLimits[0][1], longPixels)],
+		[max(pixelLimits[1][0], 1), min(pixelLimits[1][1], latPixels)]]
 
 	if pixelLimits[0]!=[1, longPixels]:
 		slices.append([longAxis]+pixelLimits[0])

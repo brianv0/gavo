@@ -22,6 +22,8 @@ from gavo import svcs
 from gavo import utils
 from gavo.protocols import products
 from gavo.protocols import soda
+from gavo.protocols.soda import (FormatNow, DeliverNow, DatalinkFault,
+	DEFAULT_SEMANTICS)
 from gavo.formats import votablewrite
 from gavo.votable import V, modelgroups
 
@@ -32,22 +34,7 @@ from nevow import static
 from twisted.internet import defer
 
 
-DEFAULT_SEMANTICS = "http://dc.g-vo.org/datalink#other"
-
-
 MS = base.makeStruct
-
-
-class FormatNow(base.ExecutiveAction):
-	"""can be raised by data functions to abort all further processing
-	and format the current descriptor.data.
-	"""
-
-
-class DeliverNow(base.ExecutiveAction):
-	"""can be raised by data functions to abort all further processing
-	and return the current descriptor.data to the client.
-	"""
 
 
 class ProductDescriptor(object):
@@ -179,60 +166,6 @@ def getFITSDescriptor(pubDID, accrefPrefix=None,
 			" with this pubDID")
 
 	return cls.fromAccref(pubDID, accref)
-
-
-class DatalinkFault(object):
-	"""A datalink error ("fault", as it's called in the spec).
-
-	These are usually constructed using one of the classmethods
-
-	* AuthenticationFault -- Not authenticated (and authentication required)
-	* AuthorizationFault -- Not authorized (to access the resource)
-	* NotFoundFault -- Unknown ID value
-	* UsageFault -- Invalid input (e.g. no ID values)
-	* TransientFault -- Service is not currently able to function
-	* FatalFault -- Service cannot perform requested action
-	* Fault -- General error (not covered above)
-
-	all of which take the pubDID that caused the failure and a human-oriented
-	error message.
-	"""
-	def __init__(self, code, pubDID, message, exceptionClass, semantics,
-			description=None):
-		self.code, self.pubDID, self.message = code, pubDID, message
-		self.semantics = semantics
-		self.exceptionClass = exceptionClass
-		self.description = description
-	
-	@classmethod
-	def _addErrorMaker(cls, errCode, exceptionClass):
-		def meth(inner, pubDID, message, semantics=DEFAULT_SEMANTICS,
-				description=None):
-			return inner(errCode, pubDID, message, exceptionClass, semantics,
-				description)
-		setattr(cls, errCode, classmethod(meth))
-
-	def asDict(self):
-		"""returns an error row for the datalink response.
-		"""
-		return {"ID": self.pubDID, "error_message":
-			"%s: %s"%(self.code, self.message),
-			"semantics": self.semantics,
-			"description": self.description}
-
-	def raiseException(self):
-		raise self.exceptionClass(self.message+" (pubDID: %s)"%self.pubDID)
-
-for errName, exClass in [
-		("AuthenticationFault", svcs.ForbiddenURI), 
-		("AuthorizationFault", svcs.ForbiddenURI),
-		("NotFoundFault", svcs.UnknownURI),
-		("UsageFault", svcs.BadMethod),
-		("TransientFault", svcs.BadMethod),
-		("FatalFault", svcs.Error),
-		("Fault", svcs.Error)]:
-	DatalinkFault._addErrorMaker(errName, exClass)
-del errName, exClass
 
 
 class _File(static.File):

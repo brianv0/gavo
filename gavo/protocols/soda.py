@@ -15,12 +15,90 @@ the RD but not generic enough to go do base.coords.
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
 
+from gavo import base
 from gavo import rscdef
 from gavo import svcs
 from gavo.base import coords
 from gavo.utils import fitstools
 
 from gavo.base import makeStruct as MS
+
+
+DEFAULT_SEMANTICS = "http://dc.g-vo.org/datalink#other"
+
+
+class EmptyData(base.ExecutiveAction):
+	"""raise this when you notice you won't have any data to return.
+	"""
+	responseCode = 206
+	# SODA and HTTP say no bytes are allowed in empty responses.
+	responsePayload = ""
+
+
+class DatalinkFault(object):
+	"""A datalink error ("fault", as it's called in the spec).
+
+	These are usually constructed using one of the classmethods
+
+	* AuthenticationFault -- Not authenticated (and authentication required)
+	* AuthorizationFault -- Not authorized (to access the resource)
+	* NotFoundFault -- Unknown ID value
+	* UsageFault -- Invalid input (e.g. no ID values)
+	* TransientFault -- Service is not currently able to function
+	* FatalFault -- Service cannot perform requested action
+	* Fault -- General error (not covered above)
+
+	all of which take the pubDID that caused the failure and a human-oriented
+	error message.
+	"""
+	def __init__(self, code, pubDID, message, exceptionClass, semantics,
+			description=None):
+		self.code, self.pubDID, self.message = code, pubDID, message
+		self.semantics = semantics
+		self.exceptionClass = exceptionClass
+		self.description = description
+	
+	@classmethod
+	def _addErrorMaker(cls, errCode, exceptionClass):
+		def meth(inner, pubDID, message, semantics=DEFAULT_SEMANTICS,
+				description=None):
+			return inner(errCode, pubDID, message, exceptionClass, semantics,
+				description)
+		setattr(cls, errCode, classmethod(meth))
+
+	def asDict(self):
+		"""returns an error row for the datalink response.
+		"""
+		return {"ID": self.pubDID, "error_message":
+			"%s: %s"%(self.code, self.message),
+			"semantics": self.semantics,
+			"description": self.description}
+
+	def raiseException(self):
+		raise self.exceptionClass(self.message+" (pubDID: %s)"%self.pubDID)
+
+for errName, exClass in [
+		("AuthenticationFault", svcs.ForbiddenURI), 
+		("AuthorizationFault", svcs.ForbiddenURI),
+		("NotFoundFault", svcs.UnknownURI),
+		("UsageFault", svcs.BadMethod),
+		("TransientFault", svcs.BadMethod),
+		("FatalFault", svcs.Error),
+		("Fault", svcs.Error)]:
+	DatalinkFault._addErrorMaker(errName, exClass)
+del errName, exClass
+
+
+class FormatNow(base.ExecutiveAction):
+	"""can be raised by data functions to abort all further processing
+	and format the current descriptor.data.
+	"""
+
+
+class DeliverNow(base.ExecutiveAction):
+	"""can be raised by data functions to abort all further processing
+	and return the current descriptor.data to the client.
+	"""
 
 
 def ensureSkyWCS(descriptor):
@@ -193,6 +271,10 @@ def doAxisCutout(descriptor, args):
 			slices.append((axisInd, lower, upper))
 
 	if slices:
-		descriptor.data[0] = fitstools.cutoutFITS(descriptor.data[0],
+		for axis, lower, upper in slices:
+			if lower==upper:  # Sentinel for emtpy data
+				raise EmptyData()
+		descriptor.data[0] = fitstools.cutoutFITS(
+			descriptor.data[0],
 			*slices)
 		descriptor.dataIsPristine = False

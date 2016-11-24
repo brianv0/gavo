@@ -148,7 +148,7 @@ This is a temporary location for procDefs and friends complying to
 				supportedCalibs.update(foundCalibs)
 
 				yield MS(InputKey, name="FLUXCALIB", type="text",
-					multiplicity="single",
+					multiplicity="forced-single",
 					ucd="phot.calib",
 					utype="ssa:Char.FluxAxis.Calibration",
 					description="Recalibrate the spectrum.  Right now, the only"
@@ -227,7 +227,7 @@ This is a temporary location for procDefs and friends complying to
 				yield MS(InputKey, name="FORMAT", type="text",
 					ucd="meta.code.mime",
 					utype="ssa:Access.Format",
-					multiplicity="single",
+					multiplicity="forced-single",
 					description="MIME type of the output format",
 					values = MS(Values,
 						options = [MS(Option, title=value, content_=key)
@@ -238,7 +238,8 @@ This is a temporary location for procDefs and friends complying to
 		<dataFormatter>
 			<code>
 				from gavo.protocols import sdm
-
+				if not descriptor.data.getPrimaryTable().rows:
+					raise soda.EmptyData()
 				return sdm.formatSDMData(descriptor.data, args["FORMAT"])
 			</code>
 		</dataFormatter>
@@ -279,7 +280,7 @@ This is a temporary location for procDefs and friends complying to
 			yield MS(InputKey, name="POS", type="text",
 				ucd="phys.angArea;obs",
 				description="SIAv2-compatible cutout specification,
-				multiplicity="single")
+				multiplicity="forced-single")
 		</code>
 	</procDef>
 
@@ -465,7 +466,7 @@ This is a temporary location for procDefs and friends complying to
 		<metaMaker name="genKindPar">
 			<code>
 				yield MS(InputKey, name="KIND", type="text",
-					multiplicity="single", description="Set to HEADER"
+					multiplicity="forced-single", description="Set to HEADER"
 					" to retrieve just the primary header, leave empty for data.",
 					values = MS(Values,
 						options = [MS(Option, content_="HEADER", 
@@ -505,7 +506,7 @@ This is a temporary location for procDefs and friends complying to
 					yield MS(InputKey, name="PIXEL_%s"%fitsInd,
 						type="integer[2]", unit="", xtype="interval",
 						description="Pixel coordinate along axis %s"%fitsInd,
-						ucd="pos.cartesian;instr.pixel", multiplicity="single",
+						ucd="pos.cartesian;instr.pixel", multiplicity="forced-single",
 						values=MS(Values, min=minVal, max=maxVal))
 			</code>
 		</metaMaker>
@@ -563,7 +564,7 @@ This is a temporary location for procDefs and friends complying to
 			yield MS(InputKey, name="BAND", unit="m",
 				type="double precision[2]", xtype="interval",
 				ucd="em.wl", description="Vacuum wavelength limits",
-				multiplicity="single",
+				multiplicity="forced-single",
 				values=MS(Values, 
 					min=minPhys*descriptor.lambdaToMeterFactor, 
 					max=maxPhys*descriptor.lambdaToMeterFactor))
@@ -601,7 +602,7 @@ This is a temporary location for procDefs and friends complying to
 		<code>
 			yield MS(InputKey, name="POS", type="text", ucd="phys.angArea;obs",
 				description="Region to (approximately) cut out, as Circle,"
-				" Region, or Polygon", multiplicity="single")
+				" Region, or Polygon", multiplicity="forced-single")
 		</code>
 	</procDef>
 
@@ -638,7 +639,7 @@ This is a temporary location for procDefs and friends complying to
 				ucd="phys.argArea;obs", unit="deg",
 				description="A polygon (as a flattened array of ra, dec pairs)"
 				" that should be covered by the cutout.",
-				multiplicity="single",
+				multiplicity="forced-single",
 				values=MS(Values,
 					max=coords.getSpolyFromWCSFields(descriptor.skyWCS).asSODA()))
 		</code>
@@ -668,7 +669,7 @@ This is a temporary location for procDefs and friends complying to
 				ucd="phys.argArea;obs", unit="deg",
 				description="A circle (as a flattened array of ra, dec, radius)"
 				" that should be covered by the cutout.",
-				multiplicity="single",
+				multiplicity="forced-single",
 				values=MS(Values,
 					max=coords.getCoveringCircle(descriptor.skyWCS).asSODA()))
 		</code>

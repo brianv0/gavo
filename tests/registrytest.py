@@ -637,8 +637,9 @@ class ResobGrammarTest(testhelpers.VerboseTest):
 			'ivo://x-unregistred/data/ssatest/s')
 	
 	def testSubjects(self):
-		self.assertEqual(self.tables["subjects"],
-			[{'sourceRD': 'data/ssatest', 'resId': u's', 'subject': 'Testing'}])
+		self.assertEqual(self.tables["subjects"], [
+			{'sourceRD': 'data/ssatest', 'resId': u's', 'subject': 'Testing'},
+			{'sourceRD': 'data/ssatest', 'resId': u'c', 'subject': 'Testing'}])
 	
 	def testAuthors(self):
 		self.assertEqual(
@@ -1030,6 +1031,73 @@ class ProductServiceTest(testhelpers.VerboseTest):
 			"http://localhost:8080/__system__/products/dl/dlmeta")
 		self.assertEqual(el.xpath("interface/param[name='ID']")[0].get("std"),
 			"true")
+
+
+class _WithDatalinkRecord(testhelpers.TestResource):
+	def make(self, ignored):
+		return getGetRecordResponse(api.resolveCrossId("data/ssatest#c"))
+
+
+class WithDatalinkTest(testhelpers.VerboseTest):
+	resources = [("srcAndTree", _WithDatalinkRecord())]
+
+	def testSODACapPresent(self):
+		sodaCaps = self.srcAndTree[1].xpath(
+			"//capability[@standardID='ivo://ivoa.net/std/SODA#sync-1.0']")
+		self.assertEqual(len(sodaCaps), 1)
+
+	def testSODAAccessURL(self):
+		dlURLs = self.srcAndTree[1].xpath(
+			"//capability[@standardID='ivo://ivoa.net/std/SODA#sync-1.0']"
+			"/interface/accessURL")
+		self.assertEqual(len(dlURLs), 1)
+		self.assertTrue(dlURLs[0].text.endswith("/data/ssatest/dl/dlget"))
+
+	def testSODAParameters(self):
+		parentPath = ("//capability[@standardID="
+			"'ivo://ivoa.net/std/SODA#sync-1.0']/interface")
+		intfEl = self.srcAndTree[1].xpath(parentPath)[0]
+		# can't compute them without data, so make sure we don't
+		# invent something.
+		self.assertEqual(len(intfEl.xpath("param")), 0)
+
+	def testDatalinkCapPresent(self):
+		dlCaps = self.srcAndTree[1].xpath(
+			"//capability[@standardID='ivo://ivoa.net/std/DataLink#links-1.0']")
+		self.assertEqual(len(dlCaps), 1)
+	
+	def testDatalinkInterfaceDeclared(self):
+		dlIntfs = self.srcAndTree[1].xpath(
+			"//capability[@standardID='ivo://ivoa.net/std/DataLink#links-1.0']"
+			"/interface")
+		self.assertEqual(len(dlIntfs), 1)
+		self.assertEqual(dlIntfs[0].get(
+			"{http://www.w3.org/2001/XMLSchema-instance}type"), 'vs:ParamHTTP')
+
+	def testDatalinkAccessURL(self):
+		dlURLs = self.srcAndTree[1].xpath(
+			"//capability[@standardID='ivo://ivoa.net/std/DataLink#links-1.0']"
+			"/interface/accessURL")
+		self.assertEqual(len(dlURLs), 1)
+		self.assertTrue(dlURLs[0].text.endswith("/data/ssatest/dl/dlmeta"))
+
+	def testDatalinkResultType(self):
+		dlTypes = self.srcAndTree[1].xpath(
+			"//capability[@standardID='ivo://ivoa.net/std/DataLink#links-1.0']"
+			"/interface/resultType")
+		self.assertEqual(len(dlTypes), 1)
+		self.assertEqual(dlTypes[0].text, 
+			"application/x-votable+xml;content=datalink")
+
+	def testDatalinkParameters(self):
+		dlParams = self.srcAndTree[1].xpath(
+			"//capability[@standardID='ivo://ivoa.net/std/DataLink#links-1.0']"
+			"/interface/param[@std='true']")
+		self.assertEqual(len(dlParams), 3)
+		self.assertEqual(dlParams[0][0].tag, "name")
+		self.assertEqual(dlParams[0][0].text, "ID")
+		self.assertEqual(dlParams[0][2].tag, "ucd")
+		self.assertEqual(dlParams[0][2].text, "meta.id;meta.main")
 
 
 # minimal meta for successful RR generation without a (working) RD

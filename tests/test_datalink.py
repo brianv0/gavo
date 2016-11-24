@@ -120,7 +120,17 @@ class SyncTest(trialhelpers.ArchiveTest):
 				"ID": "ivo://test.inv/test2"},
 			["spec2:Char.SpatialAxis.Coverage.Location.Value",
 			"1908.0"])
-	
+
+	def testNoMultiArguments(self):
+		def assertErrorResponse(res):
+			self.assertEqual(res[1].code, 422)
+
+		return self.assertGETHasStrings("/data/cores/dl/dlget", {
+				"CIRCLE": ["10 10 5", "14 13 2"],
+				"ID": "ivo://x-unregistred/~?data/excube.fits"},
+			["MultiValuedParamNotSupported: Field CIRCLE"]
+			).addCallback(assertErrorResponse)
+
 	def testAvailability(self):
 		return self.assertGETHasStrings("/data/cores/dl/availability", {},
 			["<avl:available>true</avl:available>"])
@@ -145,23 +155,33 @@ class SyncTest(trialhelpers.ArchiveTest):
 		pooLeft = glob.glob(
 			os.path.join(api.getConfig("tempDir"), "fitstable*"))
 		self.assertFalse(pooLeft, "Something left fitstable temporaries"
-			" in tempDir")
+			" in tempDir %s"%api.getConfig("tempDir"))
 
 	def testDECandPOS(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlget", {
 			"ID": "ivo://x-unregistred/~?data/excube.fits",
 			"DEC": "30.9832 30.9834",
-			"POS": "CIRCLE 359.3355 30.9835 0.0001"},[
-			"ValidationError: Field DEC: Attempt to cut out along axis 2"
+			"POS": "CIRCLE 359.36 30.985 0.0004"},[
+			"UsageError: Field DEC: Attempt to cut out along axis 2"
 			" that has been modified before."])
 
-	def testRAandPIXEL(self):
+	def testPOSandPIXEL(self):
 		return self.assertGETHasStrings("/data/cores/dl/dlget", {
 			"ID": "ivo://x-unregistred/~?data/excube.fits",
 			"PIXEL_1": "1 3",
-			"POS": "CIRCLE 359.3355 30.9835 0.0001"},[
-			"ValidationError: Field PIXEL_1: Attempt to cut out along axis 1"
+			"POS": "CIRCLE 359.36 30.985 0.0004"},[
+			"UsageError: Field PIXEL_1: Attempt to cut out along axis 1"
 			" that has been modified before."])
+
+	def testEmptyResponse(self):
+		def assertResponseCode(res):
+			self.assertEqual(res[0], "")
+			self.assertEqual(res[1].code, 206)
+
+		return self.assertGETLacksStrings("/data/cores/dl/dlget", {
+			"ID": "ivo://x-unregistred/~?data/excube.fits",
+			"POS": "CIRCLE 10 10 0.0001"},
+			[" "]).addCallback(assertResponseCode)
 
 
 def killLocalhost(url):

@@ -746,6 +746,16 @@ class SODAFITSTest(testhelpers.VerboseTest):
 					" 359.359 30.985"]
 				}))
 
+	def testEmptyCutout(self):
+		svc = api.parseFromString(svcs.Service, self._geoDLServiceLiteral)
+		self.assertRaisesWithMsg(soda.EmptyData,
+			"",
+			svc.run,
+			("dlget", {
+				"ID": [rscdef.getStandardPubDID("data/excube.fits")],
+				"CIRCLE": ["36 48 0.0004"],
+				}))
+
 	def testCutoutCIRCLE(self):
 		svc = api.parseFromString(svcs.Service, self._geoDLServiceLiteral)
 		mime, data = _dissectSODAFile(svc.run("dlget", {
@@ -1091,11 +1101,12 @@ class SDMDatalinkTest(testhelpers.VerboseTest):
 			)[0].get("value")), 1e-10)
 
 	def testEmptyCutoutFails(self):
-		res = self.runService({"ID": 'ivo://test.inv/test1', 
+		self.assertRaisesWithMsg(soda.EmptyData,
+			"",
+			self.runService,
+			({"ID": 'ivo://test.inv/test1', 
 				"FORMAT": "application/x-votable+xml",
-				"BAND": "-Inf 1.927e-8"})
-		mime, payload = res.original
-		self.assertTrue('<STREAM encoding="base64"></STREAM>' in payload)
+				"BAND": "-Inf 1.927e-8"},))
 
 	def testOriginalCalibOk(self):
 		mime, payload = self.runService(

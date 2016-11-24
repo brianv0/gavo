@@ -26,8 +26,6 @@ become an even worse nightmare than it already is.
 
 # NOTE -- due to a bug in python 2.5, you need to set the args attribute
 # in your constructors, or else they'll bomb on unpickling
-# XXX TODO: We probably should move that into a metaclass and automatically
-# infer args;  beware, however, of traps due to inheritance.
 
 from gavo.utils.fancyconfig import NoConfigItem #noflake: exported name
 
@@ -156,6 +154,10 @@ class ValidationError(Error):
 	
 	__unicode__ = __str__
 
+
+class MultiplicityError(ValidationError):
+	"""is raised when a singleton is passed in multiple times or vice versa.
+	"""
 
 class SourceParseError(Error):
 	"""is raised when some syntax error occurs during a source parse.

@@ -576,7 +576,7 @@ class _DatalinkRendererBase(grend.ServiceBasedPage):
 	"""
 	urlUse = "base"
 
-	# end out files as attachments with separate file names
+	# send out files as attachments with separate file names?
 	attachResult = False
 
 	def renderHTTP(self, ctx):
@@ -607,15 +607,29 @@ class _DatalinkRendererBase(grend.ServiceBasedPage):
 		else:
 			return data
 
+	failureNameMap = {
+		'ValidationError': 'UsageError',
+		'MultiplicityError': 'MultiValuedParamNotSupported',
+	}
+
 	def _reportError(self, failure, request):
 		# Do not trap svcs.WebRedirect here!
-		failure.trap(base.ValidationError)
-		request.setHeader("content-type", "text/plain")
-		request.setResponseCode(422)
+		failure.trap(base.ValidationError,
+			base.ExecutiveAction)
 
-		return "%s: %s\n"%(
-			failure.value.__class__.__name__, 
-			utils.safe_str(failure.value))
+		request.setHeader("content-type", "text/plain")
+
+		if hasattr(failure.value, "responseCode"):
+			request.setResponseCode(failure.value.responseCode)
+		else:
+			request.setResponseCode(422)
+
+		if hasattr(failure.value, "responsePayload"):
+			return failure.value.responsePayload
+		else:
+			return "%s: %s\n"%(
+				self.failureNameMap.get(failure.value.__class__.__name__, "Error"),
+				utils.safe_str(failure.value))
 
 
 def _doDatalinkXSLT(bytes, _cache={}):

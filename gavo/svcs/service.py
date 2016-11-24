@@ -602,7 +602,24 @@ class Service(base.Structure, base.ComputedMetaMixin,
 
 		names must be a set.  
 		"""
-		return [pub for pub in self.publications if pub.sets & names]
+		additionals = []
+		# for ivo_managed, also return a datalink endpoints if they're
+		# there; the specs imply that might be useful some day.
+		if self.getProperty("datalink", None):
+			dlSvc = self.rd.getById(self.getProperty("datalink"))
+			if "dlget" in dlSvc.allowed:
+				additionals.append(base.makeStruct(Publication,
+					render="dlget",
+					sets="ivo_managed",
+					service=dlSvc))
+			if "dlmeta" in dlSvc.allowed:
+				additionals.append(base.makeStruct(Publication,
+					render="dlmeta",
+					sets="ivo_managed",
+					service=dlSvc))
+
+		return [pub for pub in self.publications if pub.sets & names
+			]+additionals
 
 	def getURL(self, rendName, absolute=True, **kwargs):
 		"""returns the full canonical access URL of this service together 
