@@ -264,9 +264,15 @@ This is a temporary location for procDefs and friends complying to
 				will be rejected with a 403 forbidden.  You should always
 				include a restriction like this when you make assumptions
 				about the FITSes (e.g., what axes are available).">None</par>
+			<par key="descClass" description="The descriptor class to
+				use.  The default is fine for vanilla FITS files, but when
+				you deliver datalinks through the product table, you'll have
+				to use DLFITSDescriptor here.  Also, you can define a descriptor
+				yourself in the setup (inherit from FITSDescriptor)."
+				>FITSProductDescriptor</par>
 		</setup>
 		<code>
-			return getFITSDescriptor(pubDID, accrefPrefix)
+			return getFITSDescriptor(pubDID, accrefPrefix, cls=descClass)
 		</code>
 	</procDef>
 

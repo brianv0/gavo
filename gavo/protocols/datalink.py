@@ -147,6 +147,19 @@ class FITSProductDescriptor(ProductDescriptor):
 		self._axesTouched.add(axisIndex)
 
 
+class DLFITSProductDescriptor(FITSProductDescriptor):
+	"""A SODA descriptor for FITS files with datalink product paths.
+
+	Use is as descClass in //soda#fits_genDesc when the product table
+	has a datalink as the product.
+	"""
+	def __init__(self, *args, **kwargs):
+		kwargs["accessPath"] = os.path.join(
+			base.getConfig("inputsDir"),
+			kwargs["accref"])
+		FITSProductDescriptor.__init__(self, *args, **kwargs)
+
+
 def getFITSDescriptor(pubDID, accrefPrefix=None, 
 		cls=FITSProductDescriptor):
 	"""returns a datalink descriptor for a FITS file.
@@ -206,6 +219,8 @@ class DescriptorGenerator(rscdef.ProcApp):
 	    (these should not ususally be necessary for making the descriptor
 	    and are completely unparsed at this point)
 	  - FITSProductDescriptor -- the base class of FITS product descriptors
+	  - DLFITSProductDescriptor -- the same, just for when the product table
+	    has a datalink.
 	  - ProductDescriptor -- the base class of FITSProductDescriptor
 	  - DatalinkFault -- use this when flagging failures
 	  - soda -- contents of the soda module for convenience
@@ -224,6 +239,7 @@ class DescriptorGenerator(rscdef.ProcApp):
 
 	additionalNamesForProcs = {
 		"FITSProductDescriptor": FITSProductDescriptor,
+		"DLFITSProductDescriptor": DLFITSProductDescriptor,
 		"ProductDescriptor": ProductDescriptor,
 		"getFITSDescriptor": getFITSDescriptor,
 		"DatalinkFault": DatalinkFault,
