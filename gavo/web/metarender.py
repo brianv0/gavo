@@ -507,6 +507,9 @@ class TableInfoRenderer(MetaRenderer):
 			res.sort(key=lambda item: item["name"].lower())
 		return res
 
+	def data_internalpath(self, ctx, data):
+		return "%s/%s"%(self.table.rd.sourceId, self.table.id)
+
 	def render_title(self, ctx, data):
 		return ctx.tag["Table information for '%s'"%self.tableName]
 	

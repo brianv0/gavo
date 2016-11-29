@@ -134,6 +134,10 @@ class Examples(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 	These are the custom directives:
 
 	* *tapquery*: The query discussed in a TAP example.
+
+	Examples for how to write TAP examples are in the userconfig.rd 
+	distributed with DaCHS.  Examples for Datalink examples can
+	be found in the GAVO RDs feros/q and califa/q3.
 	"""
 	name = "examples"
 	checkedRenderer = False

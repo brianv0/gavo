@@ -176,7 +176,7 @@ class SyncTest(trialhelpers.ArchiveTest):
 	def testEmptyResponse(self):
 		def assertResponseCode(res):
 			self.assertEqual(res[0], "")
-			self.assertEqual(res[1].code, 206)
+			self.assertEqual(res[1].code, 204)
 
 		return self.assertGETLacksStrings("/data/cores/dl/dlget", {
 			"ID": "ivo://x-unregistred/~?data/excube.fits",
