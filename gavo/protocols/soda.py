@@ -30,7 +30,7 @@ DEFAULT_SEMANTICS = "http://dc.g-vo.org/datalink#other"
 class EmptyData(base.ExecutiveAction):
 	"""raise this when you notice you won't have any data to return.
 	"""
-	responseCode = 206
+	responseCode = 204
 	# SODA and HTTP say no bytes are allowed in empty responses.
 	responsePayload = ""
 
