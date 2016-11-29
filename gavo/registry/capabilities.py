@@ -137,12 +137,16 @@ class SLAPInterface(InterfaceWithParams):
 	renderer = "slap.xml"
 	interfaceClass = SLAP.interface
 
-class SODAInterface(InterfaceMaker):
+class SODASyncInterface(InterfaceMaker):
 	# here, we must not inquire parameters, as the core can only
 	# tell when it actually has an ID, which we don't have here.
 	renderer = "dlget"
 	class interfaceClass(VS.ParamHTTP):
 		role = "std"
+
+class SODAAsyncInterface(SODASyncInterface):
+	# same deal as with SODASyncInterface
+	renderer = "dlasync"
 
 
 class TAPInterface(InterfaceMaker):

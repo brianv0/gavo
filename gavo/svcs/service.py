@@ -612,6 +612,13 @@ class Service(base.Structure, base.ComputedMetaMixin,
 					render="dlget",
 					sets="ivo_managed",
 					service=dlSvc))
+
+			if "dlasync" in dlSvc.allowed:
+				additionals.append(base.makeStruct(Publication,
+					render="dlasync",
+					sets="ivo_managed",
+					service=dlSvc))
+
 			if "dlmeta" in dlSvc.allowed:
 				additionals.append(base.makeStruct(Publication,
 					render="dlmeta",
