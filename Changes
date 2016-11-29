@@ -6,7 +6,11 @@ svn log http://svn.ari.uni-heidelberg.de/svn/gavo/python/trunk/ | less
 to see the gory details.  If anything not mentioned here breaks something
 for you, we'd consider it a severe bug, though.
 
-Version 0.9.8-pre1 (2016-09-27)
+Version 0.9.8-pre2 (2016-09-27)
+
+	* SODA/Datalink implementation is now considered stable.  Go forth and
+	  make fabulous links and cutout services.  Check the datalink intro
+	  in the reference documentation if you have a couple of minutes.
 
 	* TAP_SCHEMA columns now has new column_index column.  Its addition should
 	  be automatic as long as your TAP-published RDs are in order.
@@ -18,8 +22,8 @@ Version 0.9.8-pre1 (2016-09-27)
 
 	* DaCHS now emits warnings for columns whose names are SQL or ADQL 
 		reserved names (this includes popular items like area, size, and distance).
-		Even if things have worked so far, please change these names.  We promise
-		you'll regret it if you don't.
+		Even if things have worked so far, please change these names.  We 
+		guarantee you'll regret it if you don't.
 
 
 Version 0.9.7 (2016-08-18)

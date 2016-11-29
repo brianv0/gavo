@@ -735,7 +735,8 @@ class FormRenderer(object):
     def rend(self, ctx, data):
         tag = T.invisible[self.loader.load()]
         tag.fillSlots('formName', self.original.name)
-        tag.fillSlots('formAction', url.here)
+        tag.fillSlots('formAction', 
+            getattr(self.original, "actionURL", None) or url.here)
         tag.fillSlots('formErrors', self._renderErrors)
         tag.fillSlots('formItems', self._renderItems)
         tag.fillSlots('formActions', self._renderActions)

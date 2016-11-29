@@ -497,6 +497,7 @@ class FormMixin(formal.ResourceMixin):
 				self.service, queryMeta),
 				label="Output format")
 
+		form.actionURL = self.service.getURL(self.name)
 		form.addAction(self.submitAction, label="Go")
 		form.actionMaterial = self._getFormLinks()
 		self.form = form
