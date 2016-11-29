@@ -5,7 +5,7 @@ resource descriptors.
 Validation means giving some prognosis as to whether RD will properly work 
 within both the DC and the VO.
 
-While validation is active there's base.VALIDATION=True.  If RDs
+While validation is active there's base.VALIDATING=True.  If RDs
 to anything expensive, they're advised to have something like::
 
 	if getattr(base, "VALIDATING", False):

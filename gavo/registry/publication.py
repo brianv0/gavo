@@ -356,6 +356,11 @@ def findAllRDs():
 	rds = []
 	inputsDir = base.getConfig("inputsDir")
 	for dir, dirs, files in os.walk(inputsDir):
+
+		if "DACHS_PRUNE" in files:
+			dirs = []
+			continue
+
 		for file in files:
 			if file.endswith(".rd"):
 				rds.append(os.path.splitext(
