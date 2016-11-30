@@ -227,7 +227,7 @@ class DescriptorGenerator(rscdef.ProcApp):
 	
 	If you made your pubDID using the ``getStandardPubDID`` rowmaker function,
 	and you need no additional logic within the descriptor,
-	the default (//datalink#fromStandardPubDID) should do.
+	the default (//soda#fromStandardPubDID) should do.
 
 	If you need to derive custom descriptor classes, you can see the base
 	class under the name ProductDescriptor; there's also 
@@ -559,7 +559,7 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 		childFactory=DescriptorGenerator,
 		description="Code that takes a PUBDID and turns it into a"
 			" product descriptor instance.  If not given,"
-			" //datalink#fromStandardPubDID will be used.",
+			" //soda#fromStandardPubDID will be used.",
 		copyable=True)
 
 	_metaMakers = base.StructListAttribute("metaMakers",
@@ -602,7 +602,7 @@ class DatalinkCoreBase(svcs.Core, base.ExpansionDelegator):
 	def completeElement(self, ctx):
 		if self.descriptorGenerator is base.NotGiven:
 			self.descriptorGenerator = MS(DescriptorGenerator, 
-				procDef=base.caches.getRD("//datalink").getById("fromStandardPubDID"))
+				procDef=base.resolveCrossId("//soda#fromStandardPubDID"))
 
 		if self.dataFormatter is base.NotGiven:
 			self.dataFormatter = MS(DataFormatter, 

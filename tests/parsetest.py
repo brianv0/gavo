@@ -341,6 +341,5 @@ class CrossResolutionTest(testhelpers.VerboseTest):
 				self.assertEqual(res.sourceId, "test/rel")
 
 
-
 if __name__=="__main__":
 	testhelpers.main(DispatchedGrammarTest)

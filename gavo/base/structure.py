@@ -166,6 +166,9 @@ class StructureBase(object):
 	_id = parsecontext.IdAttribute("id", 
 		description="Node identity for referencing")
 
+	# the following is managed by setPosition/getSourcePosition
+	__fName = __lineNumber = None
+
 	def __init__(self, parent, **kwargs):
 		self.parent = parent
 		
@@ -191,6 +194,21 @@ class StructureBase(object):
 
 	def _nop(self, *args, **kwargs):
 		pass
+
+	def setPosition(self, fName, lineNumber):
+		"""should be called by parsers to what file at what line the
+		serialisation came from.
+		"""
+		self.__fName, self.__lineNumber = fName, lineNumber
+	
+	def getSourcePosition(self):
+		"""returns a string representation of where the struct was parsed
+		from.
+		"""
+		if self.__fName is None:
+			return "<internally built>"
+		else:
+			return "%s, line %s"%(self.__fName, self.__lineNumber)
 
 	def getAttributes(self, attDefsFrom=None):
 		"""returns a dict of the current attributes, suitable for making

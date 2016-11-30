@@ -358,7 +358,7 @@ def findAllRDs():
 	for dir, dirs, files in os.walk(inputsDir):
 
 		if "DACHS_PRUNE" in files:
-			dirs = []
+			dirs = []   #noflake: manipulating loop variable
 			continue
 
 		for file in files:

@@ -108,6 +108,7 @@ class EventProcessor(object):
 			else:
 				self.result = self.rootStruct
 			self.result.idmap = ctx.idmap
+			ctx.setPositionOn(self.result)
 			return self.result
 		else:
 			raise common.StructureError("Bad document structure")

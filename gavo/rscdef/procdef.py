@@ -200,6 +200,9 @@ class ProcDef(base.Structure, base.RestrictionMixin):
 			"metaMaker", "regTest", "iterator", "pargetter"], 
 			copyable=True,
 		strip=True)
+	_deprecated = base.UnicodeAttribute("deprecated", default=None,
+		copyable=True, description="A deprecation message.  This will"
+			" be shown if this procDef is being compiled.")
 	_original = base.OriginalAttribute()
 
 
@@ -263,6 +266,22 @@ class ProcApp(ProcDef):
 				raise base.StructureError("The procDef %s has type %s, but"
 					" here %s procDefs are required."%(self.procDef.id,
 						self.procDef.type, self.requiredType))
+
+		if self.procDef:
+			if self.procDef.deprecated:
+				if self.getSourcePosition()!="<internally built>":
+					# for now, don't warn about these; they typically
+					# originate when copying/adapting cores and will just
+					# confuse operators
+					procId = "unnamed procApp"
+					if self.name:
+						procId = "procApp %s"%self.name
+
+					base.ui.notifyWarning("%s, %s: %s"%(
+						self.getSourcePosition(),
+						procId,
+						utils.fixIndentation(self.procDef.deprecated, "")))
+
 		self._validateNext(ProcApp)
 		self._ensureParsBound()
 
@@ -310,6 +329,7 @@ class ProcApp(ProcDef):
 		parts = []
 		if self.procDef is not base.NotGiven:
 			parts.append(getattr(self.procDef, methodName)(boundNames))
+
 		parts.append(getattr(ProcDef, methodName)(self, boundNames))
 		return "\n".join(parts)
 

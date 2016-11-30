@@ -347,6 +347,7 @@ class StructAttribute(attrdef.AttributeDef):
 			res = structure.__class__(structure)
 		else:
 			res = self.childFactory(structure)
+		ctx.setPositionOn(res)
 		return res
 
 	def getCopy(self, instance, newParent):
@@ -408,6 +409,7 @@ class MultiStructAttribute(StructAttribute):
 	
 	def create(self, structure, ctx, name):
 		res = self.childFactory(name)(structure)
+		ctx.setPositionOn(res)
 		return res
 
 	def makeUserDoc(self):

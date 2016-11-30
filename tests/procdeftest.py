@@ -7,6 +7,8 @@ Tests for function definitions and applications.
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
 
+import os
+import re
 
 from gavo.helpers import testhelpers
 
@@ -284,6 +286,45 @@ class SourceKeepingTest(testhelpers.VerboseTest):
 			f.runApps()
 		except Exception, ex:
 			self.assertTrue("this = broken" in utils.getTracebackAsString())
+
+
+class DepreciationTest(testhelpers.VerboseTest):
+	def testMessage(self):
+		with testhelpers.messageCollector() as messages:
+			base.parseFromString(Foo, "<foo><procDef type='t_t' id='b'>\n"
+				"<deprecated>This is a test depreciation</deprecated>\n"
+				"<code>dest['par']='const'</code></procDef>\n"
+				"<testApp name='x' procDef='b'/>"
+				"</foo>")
+		self.assertEqual(messages.events,
+			[('Warning', 
+				(u"[<foo><procDef type='t_t' id...], line 4, procApp x:"
+					" This is a test depreciation",), {})])
+
+	def testWithActiveTag(self):
+		from gavo import api
+		with testhelpers.messageCollector() as messages:
+			with testhelpers.testFile(
+					os.path.join(base.getConfig("inputsDir"), "procborken.rd"),
+					"""<resource schema="test">
+						<procDef id="dep">
+						<deprecated>gone</deprecated>
+						</procDef>
+						<STREAM id="break">
+								<rowmaker><apply name="my" procDef="dep"/></rowmaker>
+						</STREAM>
+						<data>
+							<make>
+								<table/>
+								<FEED source="break"/>
+							</make>
+						</data>
+						</resource>"""):
+				api.getRD("procborken")
+		type, (msg,), _ = messages.events[0]
+		self.assertEqual(
+			re.sub(".*/", "", msg), 
+			"procborken.rd, line 11, procApp my: gone")
 
 
 if __name__=="__main__":

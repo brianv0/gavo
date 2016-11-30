@@ -465,6 +465,14 @@ class ParseContext(object):
 		else:
 			return self.eventSource.pos
 
+	def setPositionOn(self, struct):
+		"""calls a struct's setPosition method to tell it where it came from.
+		"""
+		if isinstance(self.pos, basestring):
+			struct.setPosition(self.pos, -1)
+		else:
+			struct.setPosition(self.pos.fName, self.pos.line)
+
 	def getQualifiedId(self, id):
 		"""returns an id including the current RD's id, if known, otherwise id
 		itself.

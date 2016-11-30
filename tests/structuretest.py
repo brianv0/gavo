@@ -9,6 +9,7 @@ Tests for structures (i.e. instances of structure-decorated classes).
 
 
 from cStringIO import StringIO
+import re
 import unittest
 
 from gavo.helpers import testhelpers
@@ -429,6 +430,39 @@ class IterEventsTest(testhelpers.VerboseTest):
 		self.assertEqual(len(evs), 6)
 		self.assertEqual(evs[1], ('value', 'content_', u'abc'))
 		self.assertEqual(evs[2], ('end', 'calib', None))
+
+
+class AttachedPositionsTest(testhelpers.VerboseTest):
+	sampleXML = ('<root>\n'
+			'<pal id="pal1">\n<color r="20"/></pal>\n'
+			'<pal id="pal2">\n<color r="10"/></pal>\n'
+			'</root>')
+
+	def testPositionAdded(self):
+		root = base.parseFromString(Root, self.sampleXML)
+		self.assertEqual(root.getSourcePosition(), 
+			'[<root>\\n<pal id="pal1">\\n<c...], line 1')
+		self.assertEqual(root.pals[0].getSourcePosition(), 
+			'[<root>\\n<pal id="pal1">\\n<c...], line 2')
+		self.assertEqual(root.pals[1].getSourcePosition(),
+			'[<root>\\n<pal id="pal1">\\n<c...], line 4')
+
+	def testFilePositions(self):
+		def clean(s):
+			return re.sub(".*/", "", s)
+
+		with testhelpers.testFile("bla.xml", self.sampleXML) as p:
+			with open(p) as f:
+				root = base.parseFromStream(Root, open(p))
+		self.assertEqual(
+			clean(root.getSourcePosition()),
+			'bla.xml, line 1')
+		self.assertEqual(
+			clean(root.pals[0].getSourcePosition()), 
+			'bla.xml, line 2')
+		self.assertEqual(
+			clean(root.pals[1].getSourcePosition()),
+			'bla.xml, line 4')
 
 
 if __name__=="__main__":

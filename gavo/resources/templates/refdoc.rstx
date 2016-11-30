@@ -1468,18 +1468,8 @@ you could, for example, extract from a tcpdump log.
 
 
 
-Datalink Cores
-==============
-
-**Historical note:**   DaCHS, which actually did much of the prototyping
-for the respective IVOA standards, treats datalink (metadata management)
-and SODA (actual operations on data) as a fairly integral system; the
-separation between the two does not make much sense within DaCHS.
-During prototyping, many of the procDefs and STREAMs for data
-manipulation mentioned below started their lives in the //datalink RD.
-Although they have not been removed there yet, please do not take them
-from there any more.  Take them from //soda, which is where they are
-maintained and developed.
+Datalink and SODA
+=================
 
 Datalink is an IVOA protocol that allows associating various products
 and artifacts with a data set id.  Think the association of error or
