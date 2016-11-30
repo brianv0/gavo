@@ -112,7 +112,7 @@ class TestWCS(unittest.TestCase):
 			self.assertAlmostEqual(expected[0], res[0], 5)
 			self.assertAlmostEqual(expected[1], res[1], 5)
 
-	@unittest.skip("This is broken in pywcs")
+	@unittest.skip("Broken in pywcs")
 	def testAtPole(self):
 		wcs = _getWCSExample()
 		wcs["CRVAL1"] = 0
@@ -124,22 +124,18 @@ class TestWCS(unittest.TestCase):
 		wcs["NAXIS1"] = wcs["NAXIS2"] = 512
 		print ">>>>", coords.getSpolyFromWCSFields(wcs)
 
-	@unittest.skip("This is broken in pywcs")
 	def testInvalidWCSRejection(self):
 		"""tests for correct rejection of unknown WCS specs.
-
-		*** Test disabled since astLib is much more lenient ***
-		XXX TODO: reject things when NAXIS not defined since wcslib craps out then.
 		"""
 		wcs = _getWCSExample()
 		wcs["CTYPE1"] = "Weird Stuff"
-		self.assertRaises(gavo.Error, coords.getWCSTrafo, wcs)
+		self.assertRaises(Exception, coords.getWCSTrafo, wcs)
 		wcs = _getWCSExample()
 		wcs["CTYPE2"] = "Weird Stuff"
-		self.assertRaises(gavo.Error, coords.getWCSTrafo, wcs)
+		self.assertRaises(Exception, coords.getWCSTrafo, wcs)
 		wcs = _getWCSExample()
-		wcs["CUNIT1"] = "arcsec"
-		self.assertRaises(gavo.Error, coords.getWCSTrafo, wcs)
+		wcs["CUNIT1"] = "arcsel"
+		self.assertRaises(Exception, coords.getWCSTrafo, wcs)
 
 
 class TestMovePm(unittest.TestCase):

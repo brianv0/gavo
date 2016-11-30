@@ -524,7 +524,7 @@ This is a temporary location for procDefs and friends complying to
 				for fitsInd in range(1, descriptor.hdr["NAXIS"]+1):
 					imMin, imMax = 1, descriptor.hdr["NAXIS"+str(fitsInd)]
 					parName = "PIXEL_%s"%fitsInd
-					if args[parName] is None:
+					if args.get(parName) is None:
 						continue
 					axMin, axMax = args[parName]
 					descriptor.changingAxis(fitsInd, parName)
@@ -550,7 +550,8 @@ This is a temporary location for procDefs and friends complying to
 				the wavelength dimension">3</par>
 			<par key="wavelengthOverride" description="Override for the FITS
 				unit given for the wavelength (for when it is botched or
-				missing; leave at None for taking it from the header)">None</par>
+				missing; leave at None for taking it from the header); this is
+				a python literal.">None</par>
 			<code>
 				from gavo.utils import fitstools
 			</code>
@@ -683,7 +684,9 @@ This is a temporary location for procDefs and friends complying to
 				" that should be covered by the cutout.",
 				multiplicity="forced-single",
 				values=MS(Values,
-					max=coords.getCoveringCircle(descriptor.skyWCS).asSODA()))
+					max=coords.getCoveringCircle(
+						descriptor.skyWCS,
+						descriptor.spatialAxes).asSODA()))
 		</code>
 	</procDef>
 
@@ -722,21 +725,21 @@ This is a temporary location for procDefs and friends complying to
 			structure.
 
 			For cubes, you can give a spectralAxis attribute here containing the
-			fits axis index of the spectral axis.  If you don't not spectral
+			fits axis index (1..n) of the spectral axis.  If you don't, no BAND
 			cutout will be generated.  If you do, you may want to fix
-			wavelengthUnit (default is to take what the FITS says).
+			wavelengthOverride (default is to take what the FITS says).
 
 			To work, this needs a descriptor generator; you probably want
 			//soda#fits_genDesc here.
 		</doc>
-		<DEFAULTS stcs="" spectralAxis="0" wavelengthUnit="None"/>
+		<DEFAULTS stcs="" spectralAxis="0" wavelengthOverride="None"/>
 		<metaMaker procDef="//soda#fits_makeWCSParams" name="getWCSParams">
 			<bind key="stcs">'\stcs'</bind>
 		</metaMaker>
 		<dataFunction procDef="//soda#fits_makeHDUList" name="makeHDUList"/>
 		<metaMaker procDef="//soda#fits_makeBANDMeta">
 			<bind key="fitsAxis">\spectralAxis</bind>
-			<bind key="wavelengthOverride">\wavelengthUnit</bind>
+			<bind key="wavelengthOverride">\wavelengthOverride</bind>
 		</metaMaker>
 		<dataFunction procDef="//soda#fits_makeBANDSlice"/>
 		<FEED source="//soda#fits_Geometries"/>

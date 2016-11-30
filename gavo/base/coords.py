@@ -187,8 +187,9 @@ def getWCS(wcsFields, naxis=(1,2), relax=True):
 	for key in ["AP_ORDER", "BP_ORDER", "A_ORDER", "B_ORDER"]:
 		if wcsFields.get(key)==0:
 			del wcsFields[key]
-	
+
 	wcsObj = pywcs.WCS(wcsFields, relax=relax, naxis=naxis)
+
 	_monkeypatchWCS(wcsObj, naxis, wcsFields)
 	return wcsObj
 
@@ -407,7 +408,7 @@ def getPixelLimits(cooPairs, wcsFields):
 	if pixelLimits[0][0]>longPixels or pixelLimits[1][0]>latPixels:
 		return [[longAxis, 0, 0]]
 
-	# now crop to actual limits
+	# now crop to the actual pixel values
 	pixelLimits = [
 		[max(pixelLimits[0][0], 1), min(pixelLimits[0][1], longPixels)],
 		[max(pixelLimits[1][0], 1), min(pixelLimits[1][1], latPixels)]]
