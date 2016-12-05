@@ -152,7 +152,7 @@ machinery -->
 			<par late="True" key="path" description="the inputs-relative path
 				to the product file (change at your peril)"
 				>\inputRelativePath{True}</par>
-			<par late="True" key="fsize" description="the size of the input"
+			<par late="True" key="fsize" description="the size of the input in bytes"
 				>\inputSize</par>
 			<par late="True" key="mime" description="MIME-type for the product"
 				>'image/fits'</par>

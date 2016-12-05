@@ -26,6 +26,7 @@ ALL_PDF=$(subst .rstx,.pdf,$(RST_SOURCES))
 
 %.pdf: %.tex
 	pdflatex $<
+	pdflatex $<
 
 %.tex: %.rstx
 	gavo gendoc latex $< > $@

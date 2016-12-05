@@ -168,8 +168,8 @@
 	<table system="True" id="res_dependencies" forceUnique="True"
 			onDisk="True" primary="rd, prereq" dupePolicy="overwrite">
 		<meta name="description">An RD-level map of dependencies, meaning
-		that before generating resource records from rd, requisite should
-		be imported.
+		that before generating resource records from rd, prereq should
+		be imported (think: TAP needs the metadata of all dependent tables).
 		
 		This is managed by gavo pub and used in the OAI-PMH interface.
 		</meta>

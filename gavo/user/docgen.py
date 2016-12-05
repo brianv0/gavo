@@ -603,8 +603,9 @@ def refdoc(args):
 def latex(args):
 	from docutils import core
 	locale.setlocale(locale.LC_ALL, '')
-	sys.argv[1:] = \
-		"--documentoptions=11pt,a4paper --stylesheet stylesheet.tex".split()
+	sys.argv[1:] = (
+		"--documentoptions=11pt,a4paper --stylesheet stylesheet.tex"
+		" --use-latex-citations").split()
 	sys.argv.append(args.src)
 
 	core.publish_cmdline(writer_name='latex', description="(DaCHS rst2latex)")

@@ -15,10 +15,18 @@ This is a temporary location for procDefs and friends complying to
 		(i.e., the path part of the IVOID is a tilde, with the
 		products table accref as the query part).
 		</doc>
+		<setup>
+			<par key="accrefPrefix" description="A prefix for the accrefs 
+				the parent SODA service works on.  Calls on all other accrefs
+				will be rejected with a 403 forbidden.  You should always
+				include a restriction like this when you make assumptions
+				about the FITSes (e.g., what axes are available).">None</par>
+		</setup>
 		<code>
 			return ProductDescriptor.fromAccref(
 				pubDID,
-				getAccrefFromStandardPubDID(pubDID))
+				getAccrefFromStandardPubDID(pubDID),
+				accrefPrefix)
 		</code>
 	</procDef>
 
@@ -184,7 +192,7 @@ This is a temporary location for procDefs and friends complying to
   	<metaMaker>
      	<code>
 				yield MS(InputKey, type="double precision[2]", xtype="interval",
-					name="BAND",
+					name="BAND", multiplicity="forced-single",
 					unit="m", ucd="em.wl", 
 					description="Spectral cutout interval",
 					values=MS(Values, 

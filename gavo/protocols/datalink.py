@@ -62,9 +62,18 @@ class ProductDescriptor(object):
 		self.preview, self.previewMime = preview, preview_mime
 
 	@classmethod
-	def fromAccref(cls, pubDID, accref):
+	def fromAccref(cls, pubDID, accref, accrefPrefix=None):
 		"""returns a product descriptor for an access reference.
+
+		If an accrefPrefix is passed in, an AuthenticationFault (for want
+		of something better fitting) is returned when the accref doesn't
+		start with accrefPrefix.
 		"""
+		if accrefPrefix and not accref.startswith(accrefPrefix):
+			return DatalinkFault.AuthenticationFault(pubDID,
+				"This Datalink service not available"
+				" with this pubDID", semantics="#this")
+
 		return cls(pubDID, **products.RAccref(accref).productsRow)
 
 	def estimateSize(self):
@@ -173,12 +182,7 @@ def getFITSDescriptor(pubDID, accrefPrefix=None,
 		return DatalinkFault.NotFoundFault(pubDID,
 			"Not a pubDID from this site.")
 
-	if accrefPrefix and not accref.startswith(accrefPrefix):
-		return DatalinkFault.AuthenticationFault(pubDID,
-			"This SODA service not available"
-			" with this pubDID")
-
-	return cls.fromAccref(pubDID, accref)
+	return cls.fromAccref(pubDID, accref, accrefPrefix)
 
 
 class _File(static.File):
@@ -720,7 +724,7 @@ class DatalinkCore(DatalinkCoreBase):
 	The input table of this core is dynamically generated from its
 	metaMakers; it makes no sense at all to try and override it.
 
-	See `Datalink Cores`_ for more information.
+	See `Datalink and SODA`_ for more information.
 
 	In contrast to "normal" cores, one of these is made (and destroyed)
 	for each datalink request coming in.  This is because the interface

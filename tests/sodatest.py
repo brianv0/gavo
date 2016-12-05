@@ -91,6 +91,36 @@ class SODAElementTest(testhelpers.VerboseTest):
 			("form", {"ID": rscdef.getStandardPubDID("data/b.imp"),
 				"ignored": 0.5}))
 
+	def testAccrefPrefixDeny(self):
+		svc = api.parseFromString(svcs.Service, """<service id="foo" 
+				allowed="dlmeta">
+			<datalinkCore>
+				<descriptorGenerator procDef="//soda#fromStandardPubDID">
+					<bind name="accrefPrefix">'nodata'</bind>
+				</descriptorGenerator>
+			</datalinkCore>
+			</service>""")
+		res = svc.run("dlmeta", {"ID": rscdef.getStandardPubDID("data/b.imp")})
+		row = list(votable.parseString(res.original[1]).next())[0]
+		self.assertEqual(row[3],
+			'AuthenticationFault: This Datalink'
+			' service not available with this pubDID')
+		self.assertEqual(row[5], "#this")
+
+	def testAccrefPrefixAccept(self):
+		svc = api.parseFromString(svcs.Service, """<service id="foo" 
+				allowed="dlmeta">
+			<datalinkCore>
+				<descriptorGenerator procDef="//soda#fromStandardPubDID">
+					<bind name="accrefPrefix">'data/b'</bind>
+				</descriptorGenerator>
+			</datalinkCore>
+			</service>""")
+		res = svc.run("dlmeta", {"ID": rscdef.getStandardPubDID("data/b.imp")})
+		row = list(votable.parseString(res.original[1]).next())[0]
+		self.assertTrue(row[1].endswith("/getproduct/data/b.imp"))
+		self.assertEqual(row[5], "#this")
+
 	def testProductsGeneratorFailure(self):
 		svc = api.parseFromString(svcs.Service, """<service id="foo"
 				allowed="dlget">
@@ -150,7 +180,7 @@ class SODAElementTest(testhelpers.VerboseTest):
 			</datalinkCore></service>""")
 
 		self.assertRaisesWithMsg(svcs.ForbiddenURI,
-			"This SODA service not available with this pubDID"
+			"This Datalink service not available with this pubDID"
 			" (pubDID: ivo://x-unregistred/~?goo/boo)",
 			svc.run,
 			("dlget", {"ID": [rscdef.getStandardPubDID("goo/boo")]}))

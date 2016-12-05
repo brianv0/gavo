@@ -669,7 +669,7 @@ class DatalinkGetMetaRenderer(_DatalinkRendererBase):
 	This renderer will return the links and services applicable to
 	one or more pubDIDs.
 
-	See `Datalink Cores`_ for more information.
+	See `Datalink and SODA`_ for more information.
 	"""
 	name = "dlmeta"
 	resultType = "application/x-votable+xml;content=datalink"
