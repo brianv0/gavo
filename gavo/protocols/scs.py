@@ -85,12 +85,20 @@ class SCSCore(svcs.DBCore):
 
 	def onElementComplete(self):
 		self._onElementCompleteNext(SCSCore)
+		# raColumn and decColumn must be from the queriedTable (rather than
+		# the outputTable, as it would be preferable), since we're using
+		# them to build database queries.
 		self.raColumn = self.queriedTable.getColumnByUCDs(
 			"pos.eq.ra;meta.main", "POS_EQ_RA_MAIN")
 		self.decColumn = self.queriedTable.getColumnByUCDs(
 			"pos.eq.dec;meta.main", "POS_EQ_DEC_MAIN")
-		self.idColumn = self.queriedTable.getColumnByUCDs(
-			"meta.id;meta.main", "ID_MAIN")
+		try:
+			self.idColumn = self.outputTable.getColumnByUCDs(
+				"meta.id;meta.main", "ID_MAIN")
+		except ValueError:
+			base.ui.notifyWarning("SCS core at %s: Output table has no"
+				" meta.id;meta.main column.  This service will be invalid."%
+				self.getSourcePosition())
 
 		self.distCol = base.resolveCrossId("//scs#distCol")
 		self.outputTable = self.outputTable.change(

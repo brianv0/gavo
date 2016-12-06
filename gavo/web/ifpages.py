@@ -25,45 +25,7 @@ from gavo import utils
 from gavo.base import meta
 from gavo.imp import rjsmin
 from gavo.web import caching
-from gavo.web import common
 from gavo.web import grend
-
-
-class ReloadPage(grend.GavoRenderMixin, rend.Page):
-	"""A page to clear some caches.
-
-	Right now, we don't use it (e.g., it's not reachable from the web).  There's
-	gavo serve reload and reloads of individual RDs, so there may not be much of
-	a niche for this.
-
-	If it ever gets resurrected, we probably should use user.server._reload
-	as the implementation.
-	"""
-	modsToReload = []
-
-	def __init__(self, ctx):
-		rend.Page.__init__(self)
-		self.modulesReloaded = []
-	
-	def data_reloadedModules(self, ctx, data):
-		return self.modulesReloaded
-
-	def renderHTTP(self, ctx):
-		return common.runAuthenticated(ctx, "admin", self._reload, ctx)
-
-	def _reloadModules(self):
-		for modPath in self.modsToReload:
-			parts = modPath.split(".")
-			exec "from %s import %s;reload(%s)"%(".".join(parts[:-1]), parts[-1],
-				parts[-1])
-			self.modulesReloaded.append(modPath)
-
-	def _reload(self, ctx):
-		base.caches.clearCaches()
-		self._reloadModules()
-		return self._renderHTTP(ctx)
-	
-	docFactory = svcs.loadSystemTemplate("reloaded.html")
 
 
 class LoginPage(rend.Page, grend.GavoRenderMixin):

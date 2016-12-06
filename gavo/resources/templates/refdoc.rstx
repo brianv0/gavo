@@ -1733,7 +1733,7 @@ generating SDM-compliant spectra, see `SDM compliant tables`_.
 
 For large spectra, reading the spectrum in its entirety may incur a
 significant CPU cost. When that becomes a problem for you, you'll need
-to write a different data function, perhaps only parsing a header, and
+to write different data functions, perhaps only parsing a header, and
 implement, e.g., cutouts directly in a subsequent data function.
 
 The two next STREAMs pulled in are just combinations of data functions
@@ -1754,15 +1754,20 @@ built and executed.  You should read it if you want to write data
 processing functions; for just using them, don't bother.
 
 When a request for processed data comes in, the descriptor generator is
-used to make a product descriptor, and the input keys are updated.  They
-are then used to build the arguments described by the input keys.
+used to make a product descriptor, and the input keys are adapted to the
+concrete dataset.  This means that, contrary to normal DaCHS services,
+services with a Datalink core have a variable interface; in particular,
+the interface on the dlmeta renderer (essentially, just ID) is very
+different from the one on the dlget renderer (ID plus whatever the meta
+makers produce).  
 
-If the context grammar doing this succeeds, 
-the data descriptor is passed to the
-first data function together with the arguments parsed.  This must set
+The input key so produced are used to build a context grammar that
+parses the request.  If this succeeds, the data descriptor is passed to the
+initial data function together with the arguments parsed.  This must set
 the ``data`` attribute of the descriptor or raise a ValidationError
-on the ID parameter; leaving descriptor as ``None`` results in a 500 server
-error.  Descriptor.data could an ``rsc.InMemoryTable`` (e.g., in SSAP)
+on the ID parameter; leaving ``data`` as ``None`` results in a 500 server
+error.  Descriptor.data could an ``rsc.InMemoryTable`` (e.g., in SDM
+processing)
 or a ``products.Products`` instance, but as long as the other data
 functions and the formatter agree on what it is, anything goes.
 
@@ -1777,7 +1782,8 @@ Finally, the data enters the formatter, which actually generates the
 output, usually returning a pair of mime type and string to be
 delivered.
 
-It is a design descision which manipulations are done in the initial data
+It is a design descision of the service creator
+which manipulations are done in the initial data
 function, which are in later filters, and which perhaps only in the
 formatter.  The advantage of filters is that they are more flexible and
 can more easily be reused, while doing it things in the data generator
@@ -1799,22 +1805,19 @@ Simple Product Descriptor Generator
 In the end, this usually boils down to figuring out the value of accref
 in the product table and using what's there to construct the descriptor
 generator.  In the simplest case, the pubDID will be in DaCHS'
-"standard" format (see the ``getStandardPubDID`` rowmaker function or
+“standard” format (see the ``getStandardPubDID`` rowmaker function or
 the `macro standardPubDID`_), in
 which case the default descriptor generator works and you don't have to
 specify anything.  You could manually insert that default by saying::
   
   <descriptorGenerator procDef="//soda#fromStandardPubDID"/>
 
-(this happens to be DaCHS' default if no descriptor generator is given).
-To save you the ``gavo adm dumpDF //soda``, here's its current
-implementation::
+This happens to be DaCHS' default if no descriptor generator is given,
+but as said above that is suboptimal as no accrefPrefix constrains what
+the service will run on.
 
-	return ProductDescriptor.fromAccref(
-		pubDID,
-		getAccrefFromStandardPubDID(pubDID))
-
-The easiest way to adapt this is to copy this code and just add
+The easiest way to furnish your descriptors with additional information
+is to grab that code (use ``gavo adm dumpDF //soda``) and just add
 attributes to the ``ProductDescriptor`` generated in this way.
 
 The default ``ProductDescriptor`` class exposes as attributes 
@@ -1864,11 +1867,12 @@ definition is in ``//soda#sdm_genDesc``, but the gist of it is::
 
 Here, we use ``ssa.SSADescriptor``, derived from ``ProductDescriptor``,
 rather than monkeypatching the extra ``ssaRow`` attribute the former
-provides; being explicit it may help in development.  You may still want
-to override the descriptor class.  As usual, it encodes how to resolve a
-pubDID to an actual file.  If the product table just lists a datalink
-URL, you may want to override the accessPath.  See, for instance,
-:samplerd:`pcslg/q` for how to do this.
+provides; being explicit here may help when debugging.  
+As usual, the descriptor generates encodes how to resolve a
+pubDID to an accref, in this case using an SSA table.  
+If the product table just lists a datalink
+URL, you will want to override the accessPath this comes up with.  
+See, for instance, :samplerd:`pcslg/q` for how to do this.
 
 Incidentally, in this case you could stuff the entire code into the 
 main ``code`` element, saving on the extra ``setup`` element.  
@@ -1886,7 +1890,7 @@ defining the ``accrefStart`` as discussed  in `FITS/SODA processing`_.
 This will produce `datalink.FITSProductDescriptor` instances.  As in the
 SSA/SDM case, you may need different descriptor classes in special
 situations.  Since for large FITS files, just delivering datalink files
-is a fairly compelling situation, there is actually a predefined
+is a fairly compelling proposition, there is actually a predefined
 descriptor class to use with datalink access paths,
 `DLFITSProductDescriptor`; the ``dl`` service in :samplerd:`califa/q3`
 shows how to use it.
@@ -1937,10 +1941,7 @@ and if possible choose one of the terms given at
 http://www.ivoa.net/rdf/datalink/core
 
 You can inspect the definition of the datalinks table active in your
-system by saying::
-
-  gavo admin dumpDF //datalink | less
-
+system by saying ``gavo admin dumpDF //datalink | less``
 (the table definition is right at the top).
 
 When returning link definitions, the tricky part mostly is to come up
@@ -1960,40 +1961,6 @@ example could look like this::
         description="Un-flatfielded, uncalibrated source data")
     </code>
   </metaMaker>
-
-Data links frequently should expose some data that's not in the product
-table (e.g., because you don't want the error files to show up there).
-In such cases, a good pattern is to allow a static renderer on the
-datalink service and use ``makeLinkFromFile``, which expects file paths
-relative to the service's resdir::
-
-  <service id="d" allowed="dlget,dlmeta,static">
-    <property name="staticData">data/errors</property>
-
-    <datalinkCore>
-      ...
-      <metaMaker>
-        <code>
-          stem = descriptor.accref.split("/")[-1].split("_")[0]
-          yield descriptor.makeLinkFromFile("%s_err.fits"%stem,
-            contentType="image/fits", semantics="#error")
-        </code>
-      </metaMaker>
-    </datalinkCore>
-  </service>
-
-Note, however, that the static renderer does not enforce any access
-control.  That means that embargoed files must never be within the
-staticData (or they are not embargoed any more...).   Note also that
-this will of course fail if the file in question isn't below
-what's given in the service's ``staticData`` property, because the
-service then will not serve the file.
-
-Although it is preferable to have this static data on the datalink
-service to keep things simple, you can reuse an existing service's
-static renderer; you would pass in something like
-``service=base.resolveCrossId('otherres/q#staticsvc')`` as an additional
-argument to ``makeLinkFromFile``.
 
 
 Parameter Definitions
@@ -2156,15 +2123,16 @@ example above, consider this::
 (Ignoring for the moment troubles with half-open intervals).
 
 There are situations in which a data function must shortcut, mostly
-because it is doing something other than just "pushing on"
+because it is doing something other than just “pushing on”
 descriptor.data.  Examples include preview producers or a data function
-that returns the a FITS header.  For cases like this, data functions can
-raise one of DeliverNow (which means ``descriptor.data`` must be
+that should produce the FITS header only.  
+For cases like this, data functions can
+raise one of ``DeliverNow`` (which means ``descriptor.data`` must be
 something servable, see `Data Formatters`_ and causes that to be
-immediately served) or FormatNow (which immediately goes to the data
+immediately served) or ``FormatNow`` (which immediately goes to the data
 formatter; this is less useful).
 
-Here's an example for FormatNow; a similar thing is contained in the
+Here's an example for ``DeliverNow``; a similar thing is contained in the
 STREAM ``//soda#fits_genKindPar``::
 
   <dataFunction>
@@ -2197,12 +2165,12 @@ Data Formatters
 '''''''''''''''
 
 Data formatters (see `element dataFormatter`_) take a descriptor's data
-attribute and build something serveable out of it.  Datalink cores do
+attribute and build something servable out of it.  Datalink cores do
 not absolutely need one; the default is to return ``descriptor.data``
 (the ``//soda#trivialFormatter``, which might be fine if that data is
-serveable itself).
+servable itself).
 
-What is serveable?  The easiest thing to come up with is a pair of
+What is servable?  The easiest thing to come up with is a pair of
 content type and data in byte strings; if ``descriptor.data`` is a Table
 or Data instance, the following could work::
 
@@ -2260,8 +2228,8 @@ the main service like this::
 
 as, for instance, in :samplerd:`mlqso/q`.
 
-While it might be a good idea to provide some ``_example`` meta for each
-datalink service, when you register them, you should provide one in any
+While it might be a good idea to provide some ``_example`` meta for all
+datalink services, when you register them, you really should provide one in any
 case so validators can pick up IDs and parameters to use when valdiating
 your service.  Here is an example, taken from :samplerd:`califa/q3`::
 
@@ -2282,7 +2250,7 @@ Datalinks as Product URLs
 
 In particular for larger datasets like cubes, it is rude to put the
 entire dataset into an obscore table.  Although obscore gives expected
-download sizes, clients nevertheless do not usually expecte to have to
+download sizes, clients nevertheless do not usually expect to have to
 retrieve several gigabytes or even terabytes of data when dereferencing
 an obscore access URL.
 
@@ -2314,7 +2282,9 @@ what the `//products#define`_ rowfilter in your grammar is for::
     </fitsProdGrammar>
 
 This includes the estimate that the datalink document will have about
-10k octets; in that region, there is no need to be precise.
+10k octets; in that region, there is no need to be precise.  Note that
+the argument to the `macro dlMetaURI`_ is the id of the datalink
+service; DaCHS has no way to work that out by itself.
 
 When you do this, you must use a datalink-aware descriptor generator in
 SODA.
@@ -2339,11 +2309,8 @@ When not using FITS, you will need to change the descriptor generator's
 computation of the local file path yourself, as done, e.g., in
 :samplerd:`pcslg/q`.
 
-Datalink Details
-''''''''''''''''
-
 SDM compliant tables
-....................
+''''''''''''''''''''
 
 A common use for datalink cores in DaCHS is for server-side generation
 and processing of spectra as discussed in `SDM processing`_ . This almost

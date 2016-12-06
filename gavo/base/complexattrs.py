@@ -544,7 +544,9 @@ class MultiStructListAttribute(StructListAttribute, MultiStructAttribute):
 		return "List of any of %s"%(", ".join(self.aliases))
 
 	def create(self, structure, ctx, name):
-		return MultiStructAttribute.create(self, structure, ctx, name)
+		res = MultiStructAttribute.create(self, structure, ctx, name)
+		ctx.setPositionOn(res)
+		return res
 
 	def makeUserDoc(self):
 		if self.childFactory is attrdef.Recursive:

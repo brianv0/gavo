@@ -237,22 +237,23 @@ class _ReferenceParser(common.Parser):
 		self.child = common.NotGiven
 		self.baseName = baseName
 
-	def _ensureChild(self):
+	def _ensureChild(self, ctx):
 		"""creates an instance of the new, immediate child to be filled and
 		leaves it in self.child.
 		"""
 		if self.child is common.NotGiven:
 			self.child = self.refAttr._makeChild(self.baseName, self.parent)
+			ctx.setPositionOn(self.child)
 
 	def start_(self, ctx, name, value):
 		# start event: we have an immediate child.  Create it and feed this
 		# event to the newly created child.
-		self._ensureChild() 
+		self._ensureChild(ctx) 
 		return self.child.feedEvent(ctx, "start", name, value)
 	
 	def end_(self, ctx, name, value):
 		if self.child is common.NotGiven:  # empty element; make a child
-			self._ensureChild()
+			self._ensureChild(ctx)
 		if self.child is not None: # immediate child was given:
 			self.child.finishElement(ctx)
 			self.parent.feedObject(name, self.child)
@@ -270,7 +271,7 @@ class _ReferenceParser(common.Parser):
 			self.child = None
 			return self
 		else:
-			self._ensureChild()
+			self._ensureChild(ctx)
 			return self.child.feedEvent(ctx, "value", name, value)
 
 
