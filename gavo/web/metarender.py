@@ -473,8 +473,10 @@ class ServiceInfoRenderer(MetaRenderer, utils.IdManagerMixin):
 class TableInfoRenderer(MetaRenderer):
 	"""A renderer for displaying table information.
 
-	It really doesn't use the underlying service, but conventionally,
-	it is run on __system__/dc_tables/show.
+	Since tables don't necessarily have associated services, this 
+	renderer cannot use a service.  There's a built-in vanity tableinfo
+	that sits on //dc_tables#show using this renderer, but it
+	really doesn't matter.
 	"""
 	name = "tableinfo"
 	customTemplate = svcs.loadSystemTemplate("tableinfo.html")
@@ -484,6 +486,7 @@ class TableInfoRenderer(MetaRenderer):
 			# _retrieveTableDef did not run, i.e., no tableName was given
 			raise svcs.UnknownURI(
 				"You must provide a table name to this renderer.")
+		self.macroPackage = self.table
 		self.metaCarrier = self.table
 		return super(TableInfoRenderer, self).renderHTTP(ctx)
 

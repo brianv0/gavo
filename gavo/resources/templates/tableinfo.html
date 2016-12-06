@@ -102,6 +102,12 @@
 			<h2 class="section">Notes</h2>
 			<n:invisible n:render="metahtml">note</n:invisible>
 		</n:invisible>
+
+		<n:invisible n:render="ifmeta _longdoc">
+		<h2>More Information on the Base Resource</h2>
+		<div n:render="metahtml">_longdoc</div>
+		</n:invisible>
+
 		<p n:render="ifmeta copyright"><strong>Copyright and such:</strong> 
 			<n:invisible n:render="metahtml">copyright</n:invisible></p>
 	</body>
