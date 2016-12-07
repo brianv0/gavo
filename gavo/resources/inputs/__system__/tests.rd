@@ -20,7 +20,13 @@
 			<idmaps>a,b</idmaps>
 		</rowmaker>
 
-		<make table="files" rowmaker="make_files"/>
+		<make table="files" rowmaker="make_files">
+			<script type="postCreation" lang="python">
+				stagingPath = os.path.join(table.tableDef.rd.resdir, "upload")
+				if not os.path.isdir(stagingPath):
+					os.makedirs(stagingPath)
+			</script>
+		</make>
 	</data>
 
 	<uploadCore id="uploadcore" destDD="fileUploadTest"/>
