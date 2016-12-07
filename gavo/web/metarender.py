@@ -660,7 +660,10 @@ class RDInfoPage(grend.CustomTemplateMixin, grend.ResourceBasedPage):
 			key=lambda s: base.getMetaText(s, "title", default=s.id))
 	
 	def data_tables(self, ctx, data):
-		return sorted((t for t in self.rd.tables if t.onDisk and not t.temporary),
+		return sorted((t for t in self.rd.tables 
+			if t.onDisk 
+				and not t.temporary
+				and not t.hasProperty("internal")),
 			key=lambda t: t.id)
 
 	def data_clientRdId(self, ctx, data):
@@ -731,6 +734,11 @@ class RDInfoRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 	By virtue of builtin vanity, you can reach the rdinfo renderer
 	at /browse, and thus you can access /browse/foo/q to view the RD infos.
 	This is the form used by table registrations.
+
+	In addition to all services, this renderer also links tableinfos
+	for all non-temporary, on-disk tables defined in the RD.  When
+	you actually want to hide some internal on-disk tables, you can
+	set a property ``internal`` on the table (the value is ignored).
 	"""
 	name = "rdinfo"
 	customTemplate = svcs.loadSystemTemplate("rdlist.html")
