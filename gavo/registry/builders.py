@@ -110,28 +110,42 @@ _vrResourceBuilder = meta.ModelBasedBuilder([
 		('source', _build_source),
 		('referenceURL', SF(VOR.referenceURL)),
 		('type', SF(VOR.type)),
-		('contentLevel', SF(VOR.contentLevel)),
-		(None, SF(lambda: VOR.relationship[VOR.relationshipType["served-by"]]), [
-			('servedBy', SF(VOR.relatedResource), (), {
-					"ivoId": "ivoId"})]),
-		(None, SF(lambda: VOR.relationship[VOR.relationshipType["service-for"]]), [
-			('serviceFor', SF(VOR.relatedResource), (), {
-					"ivoId": "ivoId"})]),
-		(None, SF(lambda: VOR.relationship[VOR.relationshipType["derived-from"]]), [
-			('derivedFrom', SF(VOR.relatedResource), (), {
-					"ivoId": "ivoId"})]),
-		(None, SF(lambda: VOR.relationship[VOR.relationshipType["related-to"]]), [
-			('relatedTo', SF(VOR.relatedResource), (), {
-					"ivoId": "ivoId"})]),
-		(None, SF(lambda: VOR.relationship[VOR.relationshipType["mirror-of"]]), [
-			('mirrorOf', SF(VOR.relatedResource), (), {
-					"ivoId": "ivoId"})]),
-		(None, SF(lambda: VOR.relationship[VOR.relationshipType["related-to"]]), [
-			('uses', SF(VOR.relatedResource), (), {
-					"ivoId": "ivoId"})]),
-		(None, SF(lambda: VOR.relationship[VOR.relationshipType["Continues"]]), [
-			('continues', SF(VOR.relatedResource), (), {
-					"ivoId": "ivoId"})]),]),
+		('contentLevel', SF(VOR.contentLevel)),] + [
+		# old-style relationship terms from VOResource 1.0 f
+		# plan: after a while, make the update mapping in here
+			(None, SF(lambda t=vorTerm: 
+				VOR.relationship[VOR.relationshipType[t]]), [
+			(metaName, SF(VOR.relatedResource), (), {
+					"ivoId": "ivoId"})])
+			for metaName, vorTerm in [
+				("servedBy", "served-by"),
+				("serviceFor", "service-for"),
+				("derivedFrom", "dervived-from"),
+				("relatedTo", "related-to"),
+				("mirrorOf", "mirror-of"),
+				("relatedTo", "related-to"),
+				("uses", "Cites")]
+		] + [
+		# new-style relationship terms from VOResource 1.1
+			(None, SF(lambda term=term: 
+				VOR.relationship[VOR.relationshipType[term]]), [
+			(term[0].lower()+term[1:], SF(VOR.relatedResource), (), {
+					"ivoId": "ivoId"})])
+			for term in [
+				"Cites",
+				"IsSupplementTo",
+				"IsSupplementedBy",
+				"IsContinuedBy",
+				"Continues",
+				"IsNewVersionOf",
+				"IsPreviousVersionOf",
+				"IsPartOf",
+				"HasPart",
+				"IsSourceOf",
+				"IsDerivedFrom",
+				"IsIdenticalTo",
+				"IsServiceFor",
+				"IsServedBy"]])
 ])
 
 

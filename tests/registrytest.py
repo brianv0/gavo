@@ -519,8 +519,7 @@ class DocumentResTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 		self.assertEqual(len(relations), 1)
 		t = relations[0].xpath("relationshipType")[0]
 
-		# until VOResource is fixed, we turn "uses" into related-to
-		self.assertEqual(t.text, "related-to")
+		self.assertEqual(t.text, "Cites")
 		ids = relations[0].xpath("relatedResource")
 		self.assertEqual(ids[0].text, "Sample useful resource")
 		self.assertEqual(ids[1].attrib["ivo-id"], "ivo://crapola/work")
@@ -1170,6 +1169,19 @@ class RelatedTest(testhelpers.VerboseTest):
 		finally:
 			# clear adql entry in cache since we've changed it
 			base.caches.clearForName("//adql")
+
+	def testSupplement(self):
+		tree = self._getTreeFor(
+			'<meta name="isSupplementTo" ivoId="ivo://test/table">Test Table</meta>')
+		self.assertEqual(tree.xpath(
+			"metadata/Resource/content/relationship/relatedResource")[0
+				].get("ivo-id"), "ivo://test/table")
+		self.assertEqual(tree.xpath(
+			"metadata/Resource/content/relationship/relatedResource")[0
+				].text, "Test Table")
+		self.assertEqual(tree.xpath(
+			"metadata/Resource/content/relationship/relationshipType")[0
+			].text, "IsSupplementTo")
 
 
 class IdResolutionTest(testhelpers.VerboseTest):

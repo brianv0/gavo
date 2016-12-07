@@ -9,8 +9,9 @@ for you, we'd consider it a severe bug, though.
 Version 0.9.8-pre2 (2016-11-29)
 
 	* SODA/Datalink implementation is now considered stable.  Go forth and
-	  make fabulous links and cutout services.  Check the datalink intro
-	  in the reference documentation if you have a couple of minutes.
+	  make fabulous links and cutout services.  Check the overhauled datalink 
+	  section in the reference documentation if you have a couple of minutes:
+		http://docs.g-vo.org/DaCHS/ref.html#datalink-and-soda
 
 	* TAP_SCHEMA columns now has new column_index column.  Its addition should
 	  be automatic as long as your TAP-published RDs are in order.
@@ -24,6 +25,10 @@ Version 0.9.8-pre2 (2016-11-29)
 		reserved names (this includes popular items like area, size, and distance).
 		Even if things have worked so far, please change these names.  We 
 		guarantee you'll regret it if you don't.
+
+	* Full support for VOResource 1.1 relationships 
+		(http://docs.g-vo.org/vocab-test/relationship_type).  Please try them
+		if you have appropriate data.
 
 
 Version 0.9.7 (2016-08-18)

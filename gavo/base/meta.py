@@ -905,17 +905,20 @@ class MetaURL(MetaValue):
 class RelatedResourceMeta(MetaValue):
 	"""A meta value containing an ivo-id and a name of a related resource.
 
-	These are intended for serviceFor, servedBy, derivedFrom,
-	mirrorOf, relatedTo, and other metas.  Plus, new and non-standard for
-	DocRegExt, uses.
+	These all are translated to relationship elements in VOResource
+	renderings.  These correspond to the terms in the official relationship
+	vocabulary http://docs.g-vo.org/vocab-test/relationship_type.  There,
+	the camelCase terms are preferred, and for DaCHS meta, they are written
+	with a lowercase initial.
 
-	It should look like this::
+	Relationship metas should look like this::
 
 		servedBy: GAVO TAP service
 		servedBy.ivoId: ivo://org.gavo.dc
-	
-	However, service attribute of data publications automatically sets
-	these metas, so typically you won't have to bother with those.
+
+	``servedBy`` and ``serviceFor`` are somewhat special cases, as
+	the service attribute of data publications automatically takes care 
+	of them; so, you shouldn't usually need to bother with these two manually.
 	"""
 	def __init__(self, title, format="plain", ivoId=None):
 		MetaValue.__init__(self, title, format)
@@ -1116,13 +1119,30 @@ META_CLASSES_FOR_KEYS = {
 
 # if you add new RelationResourceMeta meta keys, be you'll also need to
 # amend registry.builders._vrResourceBuilder
+# VOResource 1.0 terms
 	"servedBy": RelatedResourceMeta,
 	"serviceFor": RelatedResourceMeta,
 	"relatedTo": RelatedResourceMeta,
 	"mirrorOf": RelatedResourceMeta,
 	"derivedFrom": RelatedResourceMeta,
-	"continues": RelatedResourceMeta,
 	"uses": RelatedResourceMeta,
+
+# VOResource 1.1 terms
+	"cites": RelatedResourceMeta,
+	"isSupplementTo": RelatedResourceMeta,
+	"isSupplementedBy": RelatedResourceMeta,
+	"isContinuedBy": RelatedResourceMeta,
+	"continues": RelatedResourceMeta,
+	"isNewVersionOf": RelatedResourceMeta,
+	"isPreviousVersionOf": RelatedResourceMeta,
+	"isPartOf": RelatedResourceMeta,
+	"hasPart": RelatedResourceMeta,
+	"isSourceOf": RelatedResourceMeta,
+	"isDerivedFrom": RelatedResourceMeta,
+	"isIdenticalTo": RelatedResourceMeta,
+	"isServiceFor": RelatedResourceMeta,
+	"isServedBy": RelatedResourceMeta,
+
 	"_news": NewsMeta,
 	"referenceURL": MetaURL,
 	"info": InfoItem,
