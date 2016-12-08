@@ -130,8 +130,6 @@ class CanonicalPrefixes(object):
 			with open(self.pickleName) as f:
 				self._fillFromPairs(pickle.load(f))
 		except IOError: # most likely, the file does not exist yet
-			import traceback
-			traceback.print_exc()
 			base.ui.notifyWarning("Starting new canonical prefixes")
 			self._bootstrap()
 

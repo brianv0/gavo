@@ -6,7 +6,7 @@ svn log http://svn.ari.uni-heidelberg.de/svn/gavo/python/trunk/ | less
 to see the gory details.  If anything not mentioned here breaks something
 for you, we'd consider it a severe bug, though.
 
-Version 0.9.8-pre2 (2016-11-29)
+Version 0.9.8 (2016-12-08)
 
 	* SODA/Datalink implementation is now considered stable.  Go forth and
 	  make fabulous links and cutout services.  Check the overhauled datalink 
