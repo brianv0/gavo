@@ -461,13 +461,13 @@ def parseISODT(literal):
 	datetime.datetime(1998, 12, 14, 13, 30, 12)
 	>>> parseISODT("junk")
 	Traceback (most recent call last):
-	ValueError: Bad ISO datetime literal: junk
+	ValueError: Bad ISO datetime literal: junk (required format: yyyy-mm-ddThh:mm:ssZ)
 	"""
-	# temporary hack while ESAVO registry is broken:
 	literal = literal.rstrip("Z")
 	mat = _isoDTRE.match(literal.strip())
 	if not mat:
-		raise ValueError("Bad ISO datetime literal: %s"%literal)
+		raise ValueError("Bad ISO datetime literal: %s"
+			" (required format: yyyy-mm-ddThh:mm:ssZ)"%literal)
 	parts = mat.groupdict()
 	if parts["hour"] is None:
 		parts["hour"] = parts["minute"] = parts["seconds"] = 0

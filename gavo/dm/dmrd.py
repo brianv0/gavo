@@ -36,9 +36,13 @@ class DataModelRoles(base.Structure):
 
 	def completeElement(self, ctx):
 		def _buildAnnotation():
-			self._parsedAnnotation = sil.getAnnotation(
-				self.content_, getAnnotationMaker(self.parent))
-			self.parent.annotations.append(self._parsedAnnotation)
+			try:
+				self._parsedAnnotation = sil.getAnnotation(
+					self.content_, getAnnotationMaker(self.parent))
+				self.parent.annotations.append(self._parsedAnnotation)
+			except Exception, ex:
+				raise base.StructureError(str(ex),
+					pos=self.getSourcePosition())
 			self._buildAnnotation = lambda: None
 		self._buildAnnotation = _buildAnnotation
 

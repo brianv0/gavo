@@ -10,7 +10,8 @@ GAVO's VO-DML+VOTable library.
 
 # Not checked by pyflakes: API file with gratuitous imports
 
-from gavo.dm.annotations import (ColumnAnnotation, ForeignKeyAnnotation)
+from gavo.dm.annotations import (ColumnAnnotation, ForeignKeyAnnotation,
+	ParamAnnotation)
 
 from gavo.dm.dmrd import DataModelRoles
 

@@ -188,6 +188,15 @@ class TestSILParser(testhelpers.VerboseTest):
 			'(testdm:testclass) { seq: [a "b c" 3.2] }')
 
 
+	def testComments(self):
+		res = sil.getAnnotation("""/* comment with stuff */
+			(testdm:testclass) /* another comment */ { /* and yet one */
+				seq: [a "b c" 3.2] /* here's an additional comment */}
+				/* final comment */""", dmrd.getAnnotationMaker(None))
+		self.assertEqual(normalizeSIL(res.asSIL()),
+			'(testdm:testclass) { seq: [a "b c" 3.2] }')
+
+
 def getByID(tree, id):
 	# (for checking VOTables)
 	res = tree.xpath("//*[@ID='%s']"%id)
@@ -234,9 +243,10 @@ class _DirectVOT(testhelpers.TestResource):
 								z: @dej2000
 							}
 						maker: [
-							Oma "Opa Rudolf"]
+							Oma "Opa Rudolf" @artisan]
 					}
 				</dm>
+					<param name="artisan" type="text">Onkel Fritz</param>
 					<column name="col1" ucd="stuff" type="text"/>
 					<column name="raj2000"/>
 					<column name="dej2000"/>
@@ -316,6 +326,15 @@ class DirectSerTest(testhelpers.VerboseTest):
 		self.assertEqual(params[0].get("value"), "Oma")
 		self.assertEqual(params[1].get("value"), "Opa Rudolf")
 
+	def testParamReferenced(self):
+		gr = self.tree.xpath(
+			"RESOURCE/TABLE/GROUP/GROUP[VODML/ROLE='maker']")[0]
+		paramref = gr.xpath("PARAMref")[0]
+		self.assertEqual(paramref.xpath("VODML/ROLE")[0].text,
+			"dachstoy:Ruler.maker")
+		par = getByID(self.tree, paramref.get("ref"))
+		self.assertEqual(par.get("value"), "Onkel Fritz")
+
 
 class _QuantityVOT(testhelpers.TestResource):
 	def make(self, deps):
@@ -338,7 +357,7 @@ class _QuantityVOT(testhelpers.TestResource):
 			{"col1": "-30"}])
 		
 		return testhelpers.getXMLTree(votablewrite.getAsVOTable(t, 
-			ctx=votablewrite.VOTableContext(version=(1,4))), debug=True)
+			ctx=votablewrite.VOTableContext(version=(1,4))), debug=False)
 
 
 class QuantityTest(testhelpers.VerboseTest):

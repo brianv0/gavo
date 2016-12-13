@@ -75,9 +75,10 @@ class AnnotationBase(object):
 	depends on the actual subclass (e.g., an atomic value, a reference,
 	a sequence of key-value pairs, a sequence of other objects, ...).
 
-	They have a method getVOT(ctx) -> xmlstan, which, using a
+	They have a method getVOT(ctx, instance) -> xmlstan, which, using a
 	votablewrite.Context ctx, will return mapping-document conformant VOTable
-	xmlstand.
+	xmlstan; instance is the rsc/rscdef structure the annotation is produced
+	for.
 
 	Use asSIL() to retrieve a simple string representation.
 
@@ -89,7 +90,7 @@ class AnnotationBase(object):
 	def __init__(self, name):
 		self.name = name
 
-	def getVOT(self, ctx):
+	def getVOT(self, ctx, instance):
 		raise NotImplementedError("%s cannot be serialised (override getVOT)."%
 			self.__class__.__name__)
 
@@ -114,7 +115,7 @@ class AtomicAnnotation(AnnotationBase):
 		AnnotationBase.__init__(self, name)
 		self.value, self.unit, self.ucd = value, unit, ucd
 
-	def getVOT(self, ctx):
+	def getVOT(self, ctx, instance):
 		attrs = votable.guessParamAttrsForValue(self.value)
 		attrs.update({
 			"unit": self.unit,
@@ -155,17 +156,17 @@ class _AttributeGroupAnnotation(AnnotationBase):
 		return "%s{\n  %s}\n"%(typeAnn,
 			"\n  ".join(r.asSIL() for r in self.childRoles.values()))
 
-	def _makeVOTGroup(self, ctx):
+	def _makeVOTGroup(self, ctx, instance):
 		"""helps getVOT.
 		"""
 		return V.GROUP[
-			V.VODML[V.TYPE[self.type]], [ann.getVOT(ctx)
+			V.VODML[V.TYPE[self.type]], [ann.getVOT(ctx, instance)
 				for ann in self.childRoles.values()]]
 
-	def getVOT(self, ctx):
+	def getVOT(self, ctx, instance):
 		ctx.addVODMLPrefix(self.modelPrefix)
 		with containerTypeSet(ctx, self.type):
-			group = self._makeVOTGroup(ctx)
+			group = self._makeVOTGroup(ctx, instance)
 			return group
 
 		# TODO: we'll have to figure out where to put the groups under what
@@ -225,7 +226,7 @@ class CollectionAnnotation(AnnotationBase):
 			opener,
 			"\n  ".join(bodyItems))
 
-	def getVOT(self, ctx):
+	def getVOT(self, ctx, instance):
 # So... it's unclear at this point what to do here -- I somehow feel
 # we should serialise collections into a table.  But then this would
 # entail one table each whenever an attribute is potentially sequence-valued,
@@ -236,7 +237,7 @@ class CollectionAnnotation(AnnotationBase):
 		return V.GROUP[
 			V.VODML[
 				V.ROLE[self.name]],
-			[c.getVOT(ctx) for c in self.children]]
+			[c.getVOT(ctx, instance) for c in self.children]]
 
 	
 def _test():

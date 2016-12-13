@@ -31,9 +31,31 @@ class ColumnAnnotation(common.AnnotationBase):
 	def value(self):
 		return self.weakref()
 
-	def getVOT(self, ctx):
+	def getVOT(self, ctx, instance):
 		return V.FIELDref(ref=ctx.getOrMakeIdFor(self.value))[
 			V.VODML[V.ROLE[common.completeVODMLId(ctx, self.name)]]]
+
+
+class ParamAnnotation(common.AnnotationBase):
+	"""An annotation of a table param.
+
+	NOTE: in getVOT, instance MUST be the table itself, as the table has
+	params of its own and does *not* share tableDef's one.
+	"""
+	def __init__(self, name, param):
+		common.AnnotationBase.__init__(self, name)
+		self.weakref = weakref.ref(param)
+
+	@property
+	def value(self):
+		return self.weakref()
+
+	def getVOT(self, ctx, instance):
+		referenced = instance.getParamByName(self.value.name)
+		res = V.PARAMref(ref=ctx.getOrMakeIdFor(referenced))[
+			V.VODML[V.ROLE[common.completeVODMLId(ctx, self.name)]]]
+		return res
+
 
 
 def _the(gen):
@@ -57,7 +79,7 @@ class GroupRefAnnotation(common.AnnotationBase):
 		common.AnnotationBase.__init__(self, name)
 		self.objectReferenced = objectReferenced
 	
-	def getVOT(self, ctx):
+	def getVOT(self, ctx, instance):
 		if id(self.objectReferenced) not in ctx.alreadyInTree:
 			ctx.getEnclosingContainer()[
 				_the(# fix this: dmvot.getSubtrees(ctx, self.objectReferenced))(
@@ -79,7 +101,7 @@ class ForeignKeyAnnotation(common.AnnotationBase):
 		common.AnnotationBase.__init__(self, name)
 		self.value = weakref.proxy(fk)
 
-	def getVOT(self, ctx):
+	def getVOT(self, ctx, instance):
 		# the main trouble here is: What if there's multiple foreign keys
 		# into destTD?  To prevent multiple inclusions of a single
 		# table, we add a reference to our serialised VOTable stan in

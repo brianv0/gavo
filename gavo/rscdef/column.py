@@ -877,3 +877,11 @@ class Param(ParamBase):
 				and hasattr(self.parent, "expand")):
 			val = self.parent.expand(val)
 		return ParamBase.set(self, val)
+
+	def getAnnotation(self, roleName, container):
+		"""returns a dm annotation for this param (i.e., a paramRef).
+		"""
+		# TODO: Figure out how to make sure that this param actually
+		# ends up in the target VOTable.  Or do we want to enforce
+		# params to be within the table.
+		return dm.ParamAnnotation(roleName, self)

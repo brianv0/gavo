@@ -303,7 +303,6 @@ class ArchiveService(rend.Page):
 				ns = base.getNewStructs()
 				print ">>>>>> new structs:", len(ns)
 				if len(ns)==90:
-					import ipdb;ipdb.set_trace()
 					ob = ns[0]
 					del ns
 					testtricks.debugReferenceChain(ob)

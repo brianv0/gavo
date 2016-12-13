@@ -499,6 +499,16 @@ def makeTable(ctx, table):
 
 	result = V.TABLE()
 	with ctx.activeContainer(result):
+		# start out with VO-DML annotation so everything that needs
+		# and id has one.
+		if ctx.produceVODML:
+			for ann in table.tableDef.annotations:
+				try:
+					result[ann.getVOT(ctx, table)]
+				except Exception, msg:
+					# never fail just because stupid DM annotation doesn't work out
+					base.ui.notifyError("DM annotation failed: %s"%msg)
+
 		result(
 				name=table.tableDef.id,
 				utype=base.getMetaText(table, "utype", macroPackage=table.tableDef,
@@ -517,14 +527,6 @@ def makeTable(ctx, table):
 
 		if ctx.version>(1,1):
 			result[_iterSTC(table.tableDef, sm)]
-
-		if ctx.produceVODML:
-			for ann in table.tableDef.annotations:
-				try:
-					result[ann.getVOT(ctx)]
-				except Exception, msg:
-					# never fail just because stupid DM annotation doesn't work out
-					base.ui.notifyError("DM annotation failed: %s"%msg)
 
 		return votable.DelayedTable(result,
 			sm.getMappedTuples(),
@@ -595,7 +597,7 @@ def makeVOTable(data, ctx=None, **kwargs):
 			# if we declare any models, we'll need vo-dml
 			ctx.addVODMLPrefix("vo-dml")
 		for model in ctx.modelsUsed.values():
-			vot[model.getVOT(ctx)]
+			vot[model.getVOT(ctx, None)]
 
 	if ctx.suppressNamespace:  
 		# use this for "simple" table with nice element names

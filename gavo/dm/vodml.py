@@ -215,8 +215,7 @@ class Model(object):
 		raise NotImplementedError("We've not yet figured out how this is"
 			" supposed to work.")
 
-
-	def getVOT(self, ctx):
+	def getVOT(self, ctx, instance):
 		"""returns xmlstan for a VOTable declaration of this DM.
 		"""
 		return V.GROUP[

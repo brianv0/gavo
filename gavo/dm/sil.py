@@ -68,7 +68,7 @@ class getGrammar(utils.CachedResource):
 	@classmethod
 	def impl(cls):
 		from gavo.imp.pyparsing import (Word, Literal, alphas, alphanums,
-			QuotedString, Forward, ZeroOrMore, Group, Optional)
+			QuotedString, Forward, ZeroOrMore, Group, Optional, cStyleComment)
 
 		with utils.pyparsingWhitechars("\t\n\r "):
 			qualifiedIdentifier = Word(alphas+"_:", alphanums+"-._:")
@@ -76,11 +76,11 @@ class getGrammar(utils.CachedResource):
 			externalIdentifier = Word(alphas+"_", alphanums+"._/#-")
 			plainLiteral = Word(alphanums+"_-.")
 			quotedLiteral = QuotedString(quoteChar='"', escQuote='""')
-			reference = Literal('@') + externalIdentifier
+			reference = (Literal('@') + externalIdentifier) 
 
 			complexImmediate = Forward()
 			simpleImmediate = plainLiteral | quotedLiteral
-			value = reference | complexImmediate | simpleImmediate
+			value = (reference | complexImmediate | simpleImmediate)
 
 			attributeDef = (plainIdentifier
 				+ Literal(":")
@@ -90,7 +90,7 @@ class getGrammar(utils.CachedResource):
 				+ Literal(')'))
 			objectBody = (Literal('{')
 				+ Group(ZeroOrMore( attributeDef ))
-				+ Literal('}'))
+				+ Literal('}')) 
 			obj = typeAnnotation + objectBody
 
 			sequenceBody = (Literal('[')
@@ -99,6 +99,10 @@ class getGrammar(utils.CachedResource):
 			collection = Optional(typeAnnotation) + sequenceBody
 
 			complexImmediate << ( obj | collection )
+
+			for sym in [complexImmediate, collection, sequenceBody,
+					objectBody, typeAnnotation, attributeDef]:
+				sym.ignore(cStyleComment)
 
 		for n, func in globals().iteritems():
 			if n.startswith("_pa_"):
