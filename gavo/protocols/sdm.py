@@ -40,7 +40,8 @@ GETDATA_FORMATS = {
 	"text/plain": "tsv",
 	"text/csv": "csv",
 	"application/fits": None,
-	"application/x-votable+xml;content=spec2": None,}
+	"application/x-votable+xml;content=spec2": None,
+	"vodml": "vodml"}
 
 
 _SDM1_IRREGULARS = {

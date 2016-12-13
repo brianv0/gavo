@@ -659,3 +659,8 @@ common.registerDataWriter("votabletd1.2", functools.partial(
 	"application/x-votable+xml;serialization=TABLEDATA;version=1.2", 
 	"Tabledata VOTable version 1.2",
 	"text/xml")
+common.registerDataWriter("vodml", functools.partial(
+	format, tablecoding="td", version=(1,4)), 
+	"application/x-votable+xml;serialization=TABLEDATA;version=1.4", 
+	"Tabledata VOTable version 1.4",
+	"text/xml")

@@ -230,7 +230,8 @@ This is a temporary location for procDefs and friends complying to
 							"VOTable, experimental spectral DM 2 serialization",
 						"text/plain": "Tab separated values",
 						"text/csv": "Comma separated values",
-						"application/fits": "FITS binary table"}
+						"application/fits": "FITS binary table",
+						"vodml": "VOTable 1.4 beta"}
 
 				yield MS(InputKey, name="FORMAT", type="text",
 					ucd="meta.code.mime",

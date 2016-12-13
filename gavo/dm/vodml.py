@@ -25,7 +25,8 @@ KNOWN_MODELS = {
 		"http://www.ivoa.net/dm/DatasetMetadata-1.0.vo-dml.xml"),
 	"ivoa": ("IVOA.vo-dml.xml", "http://www.ivoa.net/dm/ivoa.vo-dml.xml"),
 	"vo-dml": ("VO-DML.vo-dml.xml", "http://www.ivoa.net/dm/VO-DML.vo-dml.xml"),
-	"dachstoy": ("dachstoy.vo-dml.xml","http://docs.g-vo.org/dachstoy"),
+	"dachstoy": ("dachstoy.vo-dml.xml", "http://docs.g-vo.org/dachstoy"),
+	"stc2": ("STC.vo-dml.xml", "http://www.ivoa.net/dm/STC.vo-dml.xml"),
 }
 
 
