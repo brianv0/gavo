@@ -181,7 +181,10 @@ class ArchiveService(rend.Page):
 		"""a helper for parseVanityMap.
 		"""
 		if '!redirect' in options:
-			cls.addRedirect(src, base.makeSitePath(dest))
+			if "://" in dest:
+				cls.addRedirect(src, dest)
+			else:
+				cls.addRedirect(src, base.makeSitePath(dest))
 		else:
 			cls.addMapping(src, dest.split("/"))
 
