@@ -410,10 +410,10 @@ class MetaTest(testhelpers.VerboseTest):
 			data.getPrimaryTable().addMeta("howtociteLink", 
 				"http://dc.g-vo.org/somethingelse")
 		self._assertVOTableContains(setupData, [
-			'<INFO name="howtocite" value="http://dc.g-vo.org/whatever">',
+			'<INFO name="citation" ucd="meta.bib" value="http://dc.g-vo.org/whatever">',
 			'For advice on how to cite the resource(s) that contributed'
 			' to this result, see http://dc.g-vo.org/whatever',
-			'<INFO name="howtocite" value="http://dc.g-vo.org/somethingelse">'])
+			'<INFO name="citation" ucd="meta.bib" value="http://dc.g-vo.org/somethingelse">'])
 
 	def testLegal(self):
 		def setupData(data):
@@ -431,7 +431,14 @@ class MetaTest(testhelpers.VerboseTest):
 		def setupData(data):
 			data.getPrimaryTable().addMeta("source", "1543droc.book.....C")
 		self._assertVOTableContains(setupData, [
-			'<INFO name="source" value="1543droc.book.....C"'])
+			'<INFO name="citation" ucd="meta.bib.bibcode"'
+				' value="1543droc.book.....C">'])
+
+	def testSourceNoBibcode(self):
+		def setupData(data):
+			data.getPrimaryTable().addMeta("source", "Demleitner 2017, in prep.")
+		self._assertVOTableContains(setupData, [
+			'<INFO name="citation" ucd="meta.bib" value="Demleitner 2017, in prep."'])
 
 
 class VOTableRenderTest(testhelpers.VerboseTest):

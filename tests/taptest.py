@@ -413,17 +413,22 @@ class VOTableMetaTest(testhelpers.VerboseTest):
 			"Everything in here is pure fantasy (distributed under the GNU GPL)")
 
 	def testSourcesMentioned(self):
-		self.assertEqual(self.tree.xpath("//INFO[@name='source']")[0].get("value"),
+		self.assertEqual(
+			self.tree.xpath("//INFO[@ucd='meta.bib.bibcode']")[0].get("value"),
 			"1635QB41.G135......")
 
 	def testSourcesUniqued(self):
-		self.assertEqual(len(self.tree.xpath("//INFO[@name='source']")), 1)
+		self.assertEqual(len(self.tree.xpath("//INFO[@ucd='meta.bib.bibcode']")), 1)
 
 	def testCitationInfo(self):
-		info = self.tree.xpath("//INFO[@name='howtocite']")[0]
+		info = self.tree.xpath("//INFO[@ucd='meta.bib']")[0]
 		self.assertEqual(info.get("value"), 
 			"http://localhost:8080/tableinfo/test.adql")
 		self.assertTrue("For advice " in info.text)
+
+	def testAllCitationInfo(self):
+		self.assertEqual(len(self.tree.xpath("//INFO[@name='citation']")), 2)
+
 
 
 class _TAPJoinResultTable(testhelpers.TestResource):
@@ -441,12 +446,12 @@ class JoinMetaTest(testhelpers.VerboseTest):
 
 	def testAllSourcesPresent(self):
 		self.assertEqual(set(e.get("value") 
-			for e in self.tree.xpath("//INFO[@name='source']")),
+			for e in self.tree.xpath("//INFO[@ucd='meta.bib.bibcode']")),
 			set(["1635QB41.G135......", "2015ivoa.spec.0617D"]))
 
 	def testAllCitationsPresent(self):
 		self.assertEqual(set(e.get("value") 
-			for e in self.tree.xpath("//INFO[@name='howtocite']")),
+			for e in self.tree.xpath("//INFO[@name='citation' and @ucd='meta.bib']")),
 			set(['http://localhost:8080/tableinfo/test.adql',
 				'http://localhost:8080/tableinfo/test.hcdtest']))
 

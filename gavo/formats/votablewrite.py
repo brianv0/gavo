@@ -208,8 +208,14 @@ def _iterResourceMeta(ctx, dataSet):
 	for table in dataSet.tables.values():
 		for m in table.iterMeta("source", propagate="True"):
 			src = m.getContent("text")
+
+			if utils.couldBeABibcode(src):
+				ucd = "meta.bib.bibcode"
+			else:
+				ucd = "meta.bib"
+				
 			if src not in sourcesSeen:
-				yield V.INFO(name="source", value=src)[
+				yield V.INFO(name="citation", value=src, ucd=ucd)[
 					"This resource contains data associated with the publication"
 					" %s."%src]
 			sourcesSeen.add(src)
@@ -217,7 +223,7 @@ def _iterResourceMeta(ctx, dataSet):
 		for m in table.iterMeta("howtociteLink"):
 			link = m.getContent("text")
 			if link not in citeLinksSeen:
-				yield V.INFO(name="howtocite", value=link)[
+				yield V.INFO(name="citation", value=link, ucd="meta.bib")[
 					"For advice on how to cite the resource(s)"
 					" that contributed to this result, see %s"%link]
 			citeLinksSeen.add(link)

@@ -574,6 +574,9 @@
 
 			Use the `//epntap#populate`_ apply in rowmakers
 			feeding tables mixing this in.
+
+			See https://voparis-confluence.obspm.fr/display/VES/EPN-TAP+V2.0+parameters
+			for more information on EPN-TAP.
 		]]></doc>
 
 		<mixinPar key="c1unit" description="Unit of the first spatial
