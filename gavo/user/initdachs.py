@@ -6,7 +6,7 @@ as possible.  Take care to give sensible error messages -- much can go wrong
 here, and it's nice if the user has a way to figure out what's wrong.
 """
 
-#c Copyright 2008-2016, the GAVO project
+#c Copyright 2008-2017, the GAVO project
 #c
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.

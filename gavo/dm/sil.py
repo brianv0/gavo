@@ -3,6 +3,12 @@ SIL, the Simple Instance Language, is an attempt to allow
 data model instances written in a simple, JSON-like language.
 """
 
+#c Copyright 2008-2017, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 import re
 
 from gavo import utils

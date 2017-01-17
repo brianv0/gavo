@@ -7,7 +7,7 @@ There's an sdm2 module for version 2 support.  Generic, version-independent
 code should go here.
 """
 
-#c Copyright 2008-2016, the GAVO project
+#c Copyright 2008-2017, the GAVO project
 #c
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.

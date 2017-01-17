@@ -5,7 +5,7 @@ This is glue code to the more generic votable library.  In general, you
 should access this module through formats.votable.
 """
 
-#c Copyright 2008-2016, the GAVO project
+#c Copyright 2008-2017, the GAVO project
 #c
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.

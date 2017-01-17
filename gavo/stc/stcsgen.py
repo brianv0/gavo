@@ -9,7 +9,7 @@ updated to the current node's dictionary, or a tuple of key and value,
 which is then added to the current dictionary.
 """
 
-#c Copyright 2008-2016, the GAVO project
+#c Copyright 2008-2017, the GAVO project
 #c
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.

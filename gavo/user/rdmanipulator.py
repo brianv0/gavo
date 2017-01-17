@@ -19,7 +19,7 @@ Note that this will accept non-well-formed documents; don't use this except
 for the limited purpose of editing supposedly well-formed documents.
 """
 
-#c Copyright 2008-2016, the GAVO project
+#c Copyright 2008-2017, the GAVO project
 #c
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.

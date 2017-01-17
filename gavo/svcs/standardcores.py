@@ -8,7 +8,7 @@ to a SvcResult in the service before being handed over to the renderer).
 These then have to be picked up by renderers and formatted for delivery.
 """
 
-#c Copyright 2008-2016, the GAVO project
+#c Copyright 2008-2017, the GAVO project
 #c
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.

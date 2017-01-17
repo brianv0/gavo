@@ -8,7 +8,7 @@ The top-level handlers are all called run_<verb> -- any such function
 is web-callable.
 """
 
-#c Copyright 2008-2016, the GAVO project
+#c Copyright 2008-2017, the GAVO project
 #c
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.

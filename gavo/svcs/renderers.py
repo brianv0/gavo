@@ -8,7 +8,7 @@ Renderers are actually defined in web.grend, but we need some way to
 get at them from svcs and above, so the registry is kept here.
 """
 
-#c Copyright 2008-2016, the GAVO project
+#c Copyright 2008-2017, the GAVO project
 #c
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.

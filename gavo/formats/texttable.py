@@ -6,7 +6,7 @@ ASCII as well, though that may be a bit tricky given that we do not
 really store sane formatting hints for most columns.
 """
 
-#c Copyright 2008-2016, the GAVO project
+#c Copyright 2008-2017, the GAVO project
 #c
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.

@@ -2,6 +2,12 @@
 Tests to do with new-style data modelling and VO-DML serialisation.
 """
 
+#c Copyright 2008-2017, the GAVO project
+#c
+#c This program is free software, covered by the GNU GPL.  See the
+#c COPYING file in the source distribution.
+
+
 from gavo.helpers import testhelpers
 
 from cStringIO import StringIO

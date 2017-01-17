@@ -18,7 +18,7 @@ To enter values in outPars, use getSQLKey.  Its docstring contains
 an example that shows how that would look like.
 """
 
-#c Copyright 2008-2016, the GAVO project
+#c Copyright 2008-2017, the GAVO project
 #c
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.

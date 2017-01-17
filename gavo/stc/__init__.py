@@ -17,7 +17,7 @@ e.g. into functions or a query language.  Don't do any transformations
 in serious loops.
 """
 
-#c Copyright 2008-2016, the GAVO project
+#c Copyright 2008-2017, the GAVO project
 #c
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.

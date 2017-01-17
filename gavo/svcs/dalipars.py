@@ -8,11 +8,10 @@ we hadn't gone for intervals, but... well, the standards process went the
 other way.
 """
 
-#c Copyright 2008-2016, the GAVO project
+#c Copyright 2008-2017, the GAVO project
 #c
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
-
 
 
 INTERVAL_TYPES = set(

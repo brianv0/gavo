@@ -6,7 +6,7 @@ work together, e.g., when building geometries or for ADQL geometry
 predicates.  This code lets you define matching policies.
 """
 
-#c Copyright 2008-2016, the GAVO project
+#c Copyright 2008-2017, the GAVO project
 #c
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.

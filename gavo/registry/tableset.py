@@ -7,7 +7,7 @@ want to use these names quoted.  Quoted identifiers match regular identifiers
 only if case-normalized (i.e., all-lower in DaCHS).
 """
 
-#c Copyright 2008-2016, the GAVO project
+#c Copyright 2008-2017, the GAVO project
 #c
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.

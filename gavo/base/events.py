@@ -11,7 +11,7 @@ base.observer.Observer) that subscribe to events and can display or
 log them in some form appropriate to the client.
 """
 
-#c Copyright 2008-2016, the GAVO project
+#c Copyright 2008-2017, the GAVO project
 #c
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.

@@ -6,7 +6,7 @@ provide the fitsLock context manager here that you should use to protect
 places where you use pyfits in a core (or a similar spot).
 """
 
-#c Copyright 2008-2016, the GAVO project
+#c Copyright 2008-2017, the GAVO project
 #c
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.

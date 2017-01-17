@@ -22,7 +22,7 @@ To make the definition of the _gener_ methods easer, there's
 the handles decorator that you can pass a list of such child names.
 """
 
-#c Copyright 2008-2016, the GAVO project
+#c Copyright 2008-2017, the GAVO project
 #c
 #c This program is free software, covered by the GNU GPL.  See the
 #c COPYING file in the source distribution.
