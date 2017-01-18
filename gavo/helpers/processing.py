@@ -149,8 +149,10 @@ class FileProcessor(object):
 				except base.SkipThis:
 					continue
 				except Exception, ex:
+					import ipdb;ipdb.set_trace()
 					ex.source = srcId
 					if self.opts.bailOnError:
+						sys.stderr.write("*** %s\n"%srcId)
 						traceback.print_exc()
 					outQueue.put(ex)
 			outQueue.put(self._doneSentinel)
@@ -205,6 +207,7 @@ class FileProcessor(object):
 					except Exception, ex:
 						ex.source = source
 						if self.opts.bailOnError:
+							sys.stderr.write("*** %s\n"%source)
 							traceback.print_exc()
 						yield ex
 			resIter = iterProcResults()
@@ -674,12 +677,18 @@ def procmain(processorClass, rdId, ddId):
 	from gavo import rscdesc  #noflake: for registration
 	rd = base.caches.getRD(rdId)
 	dd = rd.getById(ddId)
+
 	parser = optparse.OptionParser()
 	processorClass.addOptions(parser)
 	opts, args = parser.parse_args()
 	if args:
 		parser.print_help(file=sys.stderr)
 		sys.exit(1)
+	if opts.beVerbose:
+		from gavo.user import logui
+		logui.LoggingUI(base.ui)
+		base.DEBUG = True
+
 	proc = processorClass(opts, dd)
 	processed, ignored = proc.processAll()
 	print "%s files processed, %s files with errors"%(processed, ignored)

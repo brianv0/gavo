@@ -298,6 +298,8 @@ def _resolve(fName, solverParameters={}, sexControl=None, objectFilter=None,
 	It raises a NotSolved exception if no solution could be found; otherwise
 	you should find the solution in img.wcs.
 	"""
+	if "_preparationFunction" in solverParameters:
+		solverParameters["_preparationFunction"]()
 	try:
 		_solveField(fName, solverParameters, sexControl, objectFilter, verbose)
 	except Exception:
