@@ -1,515 +1,627 @@
-.\"
-.TH GAVO "1" "2012-08-22" "GNU" "User Commands"
+.\" Man page generated from reStructuredText.
+.
+.TH DACHS 1 "2017-01-18" "1.0" ""
 .SH NAME
-gavo \- data publishing infrastructure for the Virtual Observatory (VO)
+dachs \- data publishing infrastructure for the Virtual Observatory (VO)
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
 .SH SYNOPSIS
-.B gavo
-[\fIglobal\-option\fR] \fIfunction\fR [\fIfunction\-option\fR] [\fIfunction\-argument\fR]
+.INDENT 0.0
+.INDENT 3.5
+dachs [global\-options] <subcommand> [options] function\-argument ...
+.UNINDENT
+.UNINDENT
 .SH DESCRIPTION
-.B gavo
-provides support for data ingestion and publishing, for metadata handling,
-and for a variety of VO protocols and standards, e.g. the Table Access
-Protocol (TAP) or the Simple Cone Search (SCS).
+.sp
+dachs  provides  support for data ingestion and publishing, for metadata
+handling, and for a variety of VO protocols and standards, e.g. the
+Table Access Protocol (TAP) or the Simple Cone Search (SCS).
+.sp
+There are numerous sub\-commands covering the various tasks (importing,
+controlling the server, running tests, etc).
+.sp
+Subcommand names can be abbreviated to the shortest unique prefix.
+.sp
+A centeral concept of DaCHS is the Resource Descriptor (RD), and XML
+description of a data collection including metadata, ingestion rules,
+service definitions, and regression tests.  They are usually referenced
+through their RD ids, which are the relative paths from DaCHS\(aq inputs
+directory to the file containing the RD, with the conventional extension
+\fB\&.rd\fP stripped.  For instance, in a default install, the file
+\fB/var/gavo/inputs/myrsc/q.rd\fP would have \fBmyrsc/q\fP as RD id.
+.sp
+Most commands dealing with RD ids will also pick up RDs if referenced by
+path; in the example above, if you are in \fB/var/gavo/inputs/myrsc\fP,
+you could also reference the RD as either \fBq\fP or \fBq.rd\fP\&.
+.sp
+Several commands take references to RD elements (table definitions, exec
+items, direct grammar, etc).  These consist of an RD id as just
+discussed, a hash mark, and the XML id of the target element.  Tables
+have an id automatically, for other elements you may have to add an
+artificial id.
 .SH GLOBAL OPTIONS
+.sp
+Global options are given before the subcommand name.
+.INDENT 0.0
 .TP
-\fB\-\-debug\fR
+.B \-\-debug
 produce debug info as appropriate
 .TP
-\fB\-\-enable\-pdb\fR
+.B \-\-enable\-pdb
 run pdb on all errors
 .TP
-\fB\-h\fR, \fB\-\-help\fR
+.B \-h\fP,\fB  \-\-help
 show this help message and exit
 .TP
-\fB\-\-hints\fR
+.B \-\-hints
 if there are hints on an error, display them
 .TP
-\fB\-\-profile\-to\fR=PROFILEPATH\fR
+.BI \-\-profile\-to\fB= PROFILEPATH
 enable profiling and write a profile to PROFILEPATH
 .TP
-\fB\-\-suppress\-log\fR
-suppress logging of exceptions to the gavo-specific log files
-.SH FUNCTIONS
-.SS Helper Command
-.PP
-Function-specific help is provided by the command
-.RS
-.PP
-gavo \fIfunction\fR \-h
-.RE
-.PP
-.SS Function List and Options
-.HP
-\fBadmin\fR [\-h] {addtogroup | adduser | allcols | cacheprev | changeuser | 
-cleantap | declaredel | delfromgroup | deluser | indexStatements | listusers}
-.RS 7
-positional arguments:
-.RS 7
-\fBaddtogroup\fR
-.RS 7
-add a user to a group
-.RE
-.RE
+.B \-\-suppress\-log
+suppress logging of exceptions to the dachs\-specific log files
+.UNINDENT
+.SH THE ADMIN SUBCOMMAND
 .sp
-.RS 7
-\fBadduser\fR
-.RS 7
-add a user/password pair and a matching group to the Data Center (DC) server
-.RE
-.RE
+Synopsis:
+.INDENT 0.0
+.INDENT 3.5
 .sp
-.RS 7
-\fBallcols\fR
-.RS 7
-re-import column information from all resource descriptors (RD)
-(incl. TAP_SCHEMA; like \fBgavo imp \-m all\-rds\fR)
-.RE
-.RE
+.nf
+.ft C
+dachs admin  [\-h] subsubfunction [subfunction\-arguments ...]
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
 .sp
-.RS 7
-\fBcacheprev\fR
-.RS 7
-precompute previews for the product interface columns in a table
-.RE
-.RE
+This is a somewhat random collection of commands related to
+administering a data center.  In particular, this is where you create
+and edit accounts.
 .sp
-.RS 7
-\fBchangeuser\fR
-.RS 7
-change remarks and/or password for a DC user
-.RE
-.RE
+subsubcommands can be abbreviated as long as the abbreviation is
+unique.  For instance \fBgavo adm xsd\fP will do an XSD validation.
 .sp
-.RS 7
-\fBcleantap\fR
-.RS 7
-remove expired Universal Worker Service (UWS) jobs
-.RE
-.RE
+For more information on the subsubfunctions, pass a \fB\-h\fP flag.
+.SS Subsubcommands
+.INDENT 0.0
+.IP \(bu 2
+\fBaddtogroup user group\fP \-\- adds a user to a group
+.IP \(bu 2
+\fBadduser user password [remarks]\fP \-\- add  a  user/password pair to
+the DaCHS user table.  Note that as of DaCHS 1.0 the password is stored
+in clear text and also transmitted in clear text since DaCHS only
+supports HTTP basic authentication.  Do not use valuable passwords
+here
+.IP \(bu 2
+\fBdelfromgroup user group\fP \-\- remove a user from a group
+.IP \(bu 2
+\fBdeluser user\fP \-\- remove a DaCHS user from the user table.
+.IP \(bu 2
+\fBlistusers\fP \-\- dump the user table
+.IP \(bu 2
+\fBchangeuser user password [remarks]\fP \-\- change remarks and/or
+password for a DC user.  See adduser for details.
+.IP \(bu 2
+\fBcleantap\fP \-\- remove expired Universal Worker Service (UWS) jobs
+.IP \(bu 2
+\fBtapabort jobId helpMsg\fP \-\- manually abort a TAP job and return
+helpMsg to the requesting user as error message.
+.IP \(bu 2
+\fBupdateTAPSchema\fP \-\- Update the TAP_SCHEMA metadata for all RDs
+mentioned in TAP_SCHEMA.
+.IP \(bu 2
+\fBdeclaredel\fP \-\- declare  an identifier as deleted (for when you\(aqve
+removed the RD but the identifier still floats  on some registries.
+.IP \(bu 2
+\fBindexStatements tableRef\fP \-\- show the statements to create the
+indices on a table.  The tableRef has the format RD\-id#table\-id; it
+is \fInot\fP a database table reference.
+.IP \(bu 2
+\fBdumpDF path\fP \-\- Dumps the source of a file included with the DaCHS
+distribution.  The argument is a package resource path.
+(like /inputs/__system__/scs.rd); for system RDs, the special
+//rd\-id syntax is supported.
+.IP \(bu 2
+\fBexecute execId\fP \-\- Execute the contents of an RD execute element. You
+must give that element an explicit id in order to make this work; then
+execId is rd\-id#exec\-id
+.IP \(bu 2
+\fBxsdValidate path\fP \-\- Validate a file against built\-in VO schemas
+and with built\-in schema validator.
+.IP \(bu 2
+\fBsuggestucds tableId\fP \-\- Make suggestions for UCDs of the columns
+of the referenced table (rd\-id#table\-id format) not having one.
+This is based on their descriptions and uses a GAVO web service.
+.UNINDENT
+.SH THE CONFIG SUBCOMMAND
 .sp
-.RS 7
-\fBdeclaredel\fR
-.RS 7
-declare an identifier as deleted (for when you've removed the RD but the
-identifier still floats on some registries
-.RE
-.RE
+Synopsis:
+.INDENT 0.0
+.INDENT 3.5
 .sp
-.RS 7
-\fBdelfromgroup\fR
-.RS 7
-remove a user from a group
-.RE
-.RE
+.nf
+.ft C
+dachs config [section\-name] config\-key
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
 .sp
-.RS 7
-\fBdeluser\fR
-.RS 7
-remove a user from the DC server
-.RE
-.RE
+This outputs values of DaCHS\(aq configuration to stdout.  section\-name
+defaults to general.  This is most commonly used to make external
+components aware of DaCHS\(aq file locations, e.g., through
+\fBinputs_dir=$(dachs config inputsDir)\fP\&.
 .sp
-.RS 7
-\fBindexStatements\fR
-.RS 7
-show the statements to create the indices on a table
-.RE
-.RE
+See the operator\(aqs guide for a documentation on DaCHS\(aq configuration
+options.
+.SH THE DROP SUBCOMMAND
 .sp
-.RS 7
-\fBlistusers\fR
-.RS 7
-list users known to the DC
-.RE
-.RE
-.RE
-
-.HP
-\fBdrop\fR [\-h] [\-s] [\-\-all] rd\-id [dd\-id [dd\-id...]]
-.RS 7
-drop all tables made in a data element of the resource descriptor (RD)
+Synopsis:
+.INDENT 0.0
+.INDENT 3.5
 .sp
-positional arguments:
-.RS 7
-\fBrd\-id\fR
-.RS 7
+.nf
+.ft C
+drop [\-h] [\-s] [\-\-all] rd\-id [dd\-id ...]
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.sp
+This is the reverse of import: Tables created by a \fBdachs imp\fP with
+identical arguments are being torn down by \fBdachs drop\fP\&.  This will
+not work reliably if the RD has been modified between the imp and the
+drop, in particular if the RD has been deleted.  In such situations, you
+can use the \fB\-f\fP flag, which unconditionally tears down everything
+DaCHS has recorded as coming from the referenced RD.
+.SS Arguments
+.INDENT 0.0
+.TP
+.B rd\-id
 RD path or ID to drop
-.RE
-.RE
-.sp
-.RS 7
-\fBdd\-id\fR
-.RS
-optional data descriptor (DD) ID(s) if you do not want to drop the entire RD;
-note that no service publications will be undone if you give DD IDs
-.RE
-.RE
-.sp
-optional arguments:
-.RS 7
-\fB\-\-all\fR
-.RS 7
-drop all DDs in the RD, not only the auto ones (overrides manual selection)
-.RE
-.RE
-.sp
-.RS 7
-\fB\-s, \-\-system\fR
-.RS 7
+.TP
+.B dd\-id
+optional  data descriptor (DD) ID(s) if you do not
+want to drop the entire RD; note that  no  service
+publications will be undone if you give DD IDs
+.UNINDENT
+.SS Options
+.INDENT 0.0
+.TP
+.B \-\-all
+drop  all  DDs  in  the RD, not only the auto ones
+(overrides manual selection)
+.TP
+.B \-s\fP,\fB  \-\-system
 drop tables even if they are system tables
-.RE
-.RE
-.RE
-
-.HP
-\fBimport\fR [option] \fIrd\-name\fR [data\-id]
-instead of \fBgavo import\fR the shortcut \fBgavo imp\fR can be used
-.RS 7
-options:
-.RS 7
-\fB\-b <N>, \-\-batch\-size=<N>\fR
-.RS 7
-deliver <N> rows at a time to the database
-.RE
-.RE
+.UNINDENT
+.SH THE IMPORT SUBCOMMAND
 .sp
-.RS 7
-\fB\-c, \-\-continue\-bad\fR
-.RS 7
-go on if processing a source
-.RE
-.RE
+Synopsis:
+.INDENT 0.0
+.INDENT 3.5
 .sp
-.RS 7
-\fB\-d, \-\-dumpRows\fR
-.RS 7
-dump raw rows as they are emitted by the grammar
-.RE
-.RE
+.nf
+.ft C
+import [option] rd\-name [data\-id]
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
 .sp
-.RS 7
-\fB\-I, \-\-meta\-and\-index\fR
-.RS 7
-do not import, but update table meta (privileges, column descriptions,...)
-and recreate the indices
-.RE
-.RE
-.sp
-.RS 7
-\fB\-L, \-\-commit\-after\-meta\fR
-.RS 7
-commit the importing transaction after updating the meta tables;
-use this when loading large (hence \fB\-L\fR) data sets to avoid keeping a lock
-on the meta tables for the duration of the input, i.e., potentially days;
-the price is that users will see empty tables during the import
-.RE
-.RE
-.sp
-.RS 7
-\fB\-m, \-\-meta\-only\fR
-.RS 7
-just update table meta (privileges, column descriptions, ...)
-.RE
-.RE
-.sp
-.RS 7
-\fB\-M <MAX>, \-\-stop-\after=<MAX>\fR
-.RS 7
-stop after having parsed <MAX> rows
-.RE
-.RE
-.sp
-.RS 7
-\fB\-n, \-\-updateRows\fR
-.RS 7
-use UPDATE on primary key rather than INSERT with rows inserted to DBTables
-.RE
-.RE
-.sp
-.RS 7
-\fB\-r, \-\-reckless\fR
-.RS 7
-do not validate rows before ingestion
-.RE
-.RE
-.sp
-.RS 7
-\fB\-R, \-\-redoIndex\fR
-.RS 7
-drop indices before updating a table and recreate them when done
-.RE
-.RE
-.sp
-.RS 7
-\fB\-s, \-\-system\fR
-.RS 7
-(re-)create system tables
-.RE
-.RE
-.sp
-.RS 7
-\fB\-u, \-\-update\fR
-.RS 7
-update mode; don't drop tables before writing
-.RE
-.RE
-.sp
-.RS 7
-\fB\-U <UI>, \-\-ui=<UI>\fR
-.RS 7
-use <UI> to show what is going on; known user interface (UI) names include:
-plain, null, stingy, deluge
-.RE
-.RE
-.sp
-.RS 7
-\fB\-v, \-\-verbose\fR
-.RS 7
+This subcommand is used to ingest data described by an RD.  For special
+applications, ingestion can be restricted to specific data items within
+an RD.
+.SS Options
+.INDENT 0.0
+.TP
+.B \-h\fP,\fB  \-\-help
+show this help message and exit
+.TP
+.B \-n\fP,\fB  \-\-updateRows
+Deprecated.  Use updating data items instead.
+.TP
+.B \-d\fP,\fB  \-\-dumpRows
+Dump raw rows as they are emitted by the grammar.
+.TP
+.B \-D\fP,\fB  \-\-dumpIngestees
+Dump processed rows as emitted by the row makers.
+.TP
+.B \-R\fP,\fB  \-\-redoIndex
+Drop indices before updating a table and recreate them
+when done
+.TP
+.B \-m\fP,\fB  \-\-meta\-only
+just update table meta (privileges, column
+descriptions,...).
+.TP
+.B \-I\fP,\fB  \-\-meta\-and\-index
+do not import, but update table meta (privileges,
+column descriptions,...) and recreate the indices
+.TP
+.B \-u\fP,\fB  \-\-update
+update mode \-\- don\(aqt drop tables before writing.
+.TP
+.B \-s\fP,\fB  \-\-system
+(re\-)create system tables, too
+.TP
+.B \-v\fP,\fB  \-\-verbose
 talk a lot while working
-.RE
-.RE
-.RE
-
-.HP
-\fBinfo\fR [\-h] \fItable\-id\fR
-.RS 7
-positional argument:
-.RS 7
-\fBtable\-id\fR
-.RS 7
+.TP
+.B \-r\fP,\fB  \-\-reckless
+Do not validate rows before ingestion
+.TP
+.BI \-M \ MAX\fP,\fB \ \-\-stop\-after\fB= MAX
+Stop after having parsed MAX rows
+.TP
+.BI \-b \ N\fP,\fB \ \-\-batch\-size\fB= N
+deliver N rows at a time to the database.
+.TP
+.B \-c\fP,\fB  \-\-continue\-bad
+do not bail out after an error, just skip the current
+source and continue with the next one.
+.TP
+.B \-L\fP,\fB  \-\-commit\-after\-meta
+commit the importing transaction after updating the
+meta tables.  Use this when loading large (hence \-L)
+data sets to avoid keeping a lock on the meta tables
+for the duration of the input, i.e., potentially days.
+The price is that users will see empty tables during
+the import.
+.UNINDENT
+.SH THE INFO SUBCOMMAND
+.sp
+Synopsis:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+info [\-h] table\-id
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.sp
+This displays column statistics about the table referred to in the
+argument (which must be a fully qualified table name resolvable by the
+database system).
+.SS Argument
+.INDENT 0.0
+.TP
+.B table\-id
 table ID (of the form rdId#tableId)
-.RE
-.RE
-.RE
-
-.HP
-\fBinit\fR [\-h] [\-d DSN] [\-\-nodb]
-.RS 7
-create or update DaCHS' file system and database environment
+.UNINDENT
+.SH THE INIT SUBCOMMAND
 .sp
-optional arguments:
-.RS 7
-\fB\-d <DSN>, \-\-dsn <DSN>\fR
-.RS 7
-data source name (DSN) to use to connect to the future DaCHS database;
-the DSN must let DaCHS connect to the database as an administrator;
-dbname, host, and port get copied to the profile, if given; if you followed
-the installation instructions, you do not need this option
-.RE
-.RE
+Synopsis:
+.INDENT 0.0
+.INDENT 3.5
 .sp
-.RS 7
-\fB\-\-nodb\fR
-.RS
-inhibit initialization of the database (you may want to use this when
-refreshing the file system hierarchie)
-.RE
-.RE
-.RE
-
-.HP
-\fBmkboost\fR [option] \fIrd\-name\fR \fItable\-id\fR
-.RS 7
-options:
-.RS 7
-\fB\-b, \-\-binary\fR
-.RS 7
+.nf
+.ft C
+init [\-h] [\-d DSN] [\-\-nodb]
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.sp
+This initialises DaCHS\(aq file system and database environment.  Calling
+\fBdachs init\fP on an existing site should not damage anything.  It
+might, however, fix things if, for instance, permissions on some
+directories went funny.
+.SS Options
+.INDENT 0.0
+.TP
+.BI \-d \ <DSN>\fP,\fB \ \-\-dsn \ <DSN>
+data source name (DSN) to use to  connect  to  the
+future DaCHS database; the DSN must let DaCHS con‐
+nect to the database as an administrator;  dbname,
+host,  and  port  get  copied  to  the profile, if
+given; if you followed the  installation  instruc‐
+tions, you do not need this option
+.TP
+.B \-\-nodb
+inhibit  initialization  of  the database (you may
+want to use this when refreshing the  file  system
+hierarchy)
+.UNINDENT
+.SH THE MKBOOST SUBCOMMAND
+.sp
+Synopsis:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+mkboost [option] <id\-of\-directGrammar>
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.sp
+This writes a C source skeleton for using the direct grammar referenced
+to fill a database table.  See the \fIGuide to Write Booster Grammars\fP in
+the DaCHS documentation for how to use this command.
+.SS Options
+.INDENT 0.0
+.TP
+.B \-b\fP,\fB  \-\-binary
 generate a skeleton for a binary parser
-.RE
-.RE
+.TP
+.BI \-s \ <SPLITTER>\fP,\fB \ \-\-splitter\fB= <SPLITTER>
+generate   a  split  skeleton  with  split  string
+<SPLITTER>
+.UNINDENT
+.SH THE MKRD SUBCOMMAND
 .sp
-.RS 7
-\fB\-s <SPLITTER>, \-\-splitter=<SPLITTER>\fR
-.RS 7
-generate a split skeleton with split string <SPLITTER>
-.RE
-.RE
-.RE
-
-.HP
-\fBmkrd\fR [option] \fIsample\fR
-.RS 7
-options:
-.RS 7
-\fB\-f <SRCFORM>, \-\-format=<SRCFORM>\fR
-.RS 7
-source format: FITS or VOT; default: detected from file name
-.RE
-.RE
+Synopsis:
+.INDENT 0.0
+.INDENT 3.5
 .sp
-.RS 7
-\fB\-t <TABLENAME>, \-\-table\-name=<TABLENAME>\fR
-.RS 7
+.nf
+.ft C
+mkrd [option] sample
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.sp
+Rudimentary support for generating RDs from data.  This is probably not
+terribly useful in its current state.
+.SS Options
+.INDENT 0.0
+.TP
+.BI \-f \ <SRCFORM>\fP,\fB \ \-\-format\fB= <SRCFORM>
+source format: FITS or VOT; default: detected from
+file name
+.TP
+.BI \-t \ <TABLENAME>\fP,\fB \ \-\-table\-name\fB= <TABLENAME>
 name of the generated table
-.RE
-.RE
-.RE
-
-.HP
-\fBpublish\fR [option] \fIrd\-name\fR
-.RS 7
-instead of \fBgavo publish\fR the shortcut \fBgavo pub\fR can be used
+.UNINDENT
+.SH THE PUBLISH SUBCOMMAND
 .sp
-options:
-.RS 7
-\fB\-a, \-\-all\fR
-.RS 7
+Synopsis:
+.INDENT 0.0
+.INDENT 3.5
+publish [option] rd\-name
+.UNINDENT
+.UNINDENT
+.sp
+This marks data and/or services contained in an RD as published; this
+will make them displayed in DaCHS\(aq portal page or pushed to the VO
+registry through DaCHS\(aq OAI\-PMH endpoint.  See the \fIOperator\(aqs Guide\fP
+for details.
+.SS Options
+.INDENT 0.0
+.TP
+.B \-a\fP,\fB  \-\-all
 search everything below inputsDir for publications
-.RE
-.RE
+.TP
+.B \-k\fP,\fB  \-\-keep\-timestamps
+preserve the time stamp of the last record modifi‐
+cation;  this  may  sometimes  be  desirable  when
+updating  a  schema to avoid a reharvesting of all
+resource records
+.UNINDENT
+.SH THE PURGE SUBCOMMAND
 .sp
-.RS 7
-\fB\-k, \-\-keep\-timestamps\fR
-.RS 7
-preserve the time stamp of the last record modification;
-this may sometimes be desirable when updating a schema to avoid a reharvesting
-of all resource records
-.RE
-.RE
-.RE
-
-.HP
-\fBpurge\fR [\-h] tablename [tablename...]
-.RS 7
-positional argument:
-.RS 7
-\fBtablename\fR
-.RS 7
-name of the table to drop, including the schema name
-.RE
-.RE
-.RE
-
-.HP
-\fBserve\fR [\-h] {debug | reload | restart | start | stop}
-.RS 7
-positional arguments:
-.RS 7
-\fBdebug\fR
-.RS 7
-run a server and remain in the foreground, dumping all kinds of stuff to
-the terminal
-.RE
-.RE
+Synopsis:
+.INDENT 0.0
+.INDENT 3.5
 .sp
-.RS 7
-\fBreload\fR
-.RS 7
-reload server configuration (incomplete)
-.RE
-.RE
+.nf
+.ft C
+purge [\-h] tablename [tablename...]
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
 .sp
-.RS 7
-\fBrestart\fR
-.RS 7
-restart the server
-.RE
-.RE
+This will delete tables in the database and also remove their metadata
+from DaCHS\(aq internal tables (e.g., TAP_SCHEMA, table of published
+records).  Use this if \fBgavo drop\fP fails for to remove some table for
+one reason or another.
+.SS Argument
+.INDENT 0.0
+.TP
+.B tablename
+(SQL) name of the table to drop,  including  the  schema name
+.UNINDENT
+.SH THE SERVE SUBCOMMAND
 .sp
-.RS 7
-\fBstart\fR
-.RS 7
-start the server and put it in the background
-.RE
-.RE
+Synopsis:
+.INDENT 0.0
+.INDENT 3.5
 .sp
-.RS 7
-\fBstop\fR
-.RS 7
-stop a running server
-.RE
-.RE
-.RE
-
-.HP
-\fBshow\fR [\-h] \fIdds\fR
-.RS 7
-positional argument:
-.RS 7
-\fBdds\fR
-.RS 7
-show what data items are avalailable
-.RE
-.RE
-.RE
-
-.HP
-\fBstc\fR [option] \fIcommand\fR \fIcommand\-args\fR
-.RS 7
-option:
-.RS 7
-\fB\-e, \-\-dump\-exception\fR
-.RS 7
-dump exceptions
-.RE
-.RE
-.RE
-
-.HP
-\fBtaprun\fR \fIjob\-id\fR
-.RS 7
-runs the TAP job with <job\-id> from the UWS table
-.RE
-
-.HP
-\fBvalidate\fR [\-h] [\-x] [\-v] \fIrd\fR [rd...]
-.RS 7
-check RDs for well-formedness and some aspects of VO-friendliness
-(instead of \fBgavo validate\fR the shortcut \fBgavo val\fR can be used)
+.nf
+.ft C
+dachs serve [\-h] {debug | reload | restart | start | stop}
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
 .sp
-positional arguments:
-.RS 7
-\fBrd\fR
-.RS 7
-RD path or ID to drop
-.RE
-.RE
+This exposes various functionality for managing DaCHS\(aq server component.
+While these usually are being called through init scripts or systemd
+components, the \fBdebug\fP subfunction is very convenient during service
+development off the production environment.
+.SS Subsubcommands
+.INDENT 0.0
+.IP \(bu 2
+\fBdebug\fP \-\- run a server and remain in the foreground, dumping all
+kinds of stuff to the terminal
+.IP \(bu 2
+\fBreload\fP \-\- reload server configuration (incomplete)
+.IP \(bu 2
+\fBrestart\fP \-\- restart the server
+.IP \(bu 2
+\fBstart\fP \-\- start the server and put it in the background
+.IP \(bu 2
+\fBstop\fP \-\- stop a running server
+.UNINDENT
+.SH THE TEST SUBCOMMAND
 .sp
-.RS 7
-\fBdd\-id\fR
-.RS 7
-RD identifier or file system path; use magic value ALL to check all reachable RDs
-.RE
-.RE
+Synopsis:
+.INDENT 0.0
+.INDENT 3.5
 .sp
-optional arguments:
-.RS 7
-\fB\-v, \-\-verbose\fR
-.RS 7
-talk while working
-.RE
-.RE
+.nf
+.ft C
+dachs test [\-h] [\-v] [\-d] [\-t TAG] [\-R N] [\-T SECONDS] [\-D FILE]
+               [\-w SECONDS] [\-u SERVERURL] [\-n NTHREADS]
+               id
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
 .sp
-.RS 7
-\fB\-x, \-\-check\-xsd\fR
-.RS 7
-do schema validation of registry record (requires extra software, see docs)
-.RE
-.RE
-.RE
-
-.SH AUTHOR
-.SS Software Author
-.PP
-Markus Demleitner <gavo@ari.uni-heidelberg.de>
-.SS Manpage Author
-.PP
-Florian Rothmaier <frothmai@ari.uni-heidelberg.de>
-for the Debian GNU/Linux system (but may be used by others).
+This runs regression tests embedded in the whatever is reference by id
+(can be an RD, a regression suite, or a single regression test).  For
+details, see the chapter on \fIregression testing\fP in the \fIDaCHS Reference
+Manual\fP\&.
+.SS Argument
+.INDENT 0.0
+.TP
+.B id
+RD id or cross\-RD identifier for a testable thing.
+.UNINDENT
+.SS Options
+.INDENT 0.0
+.TP
+.B \-h\fP,\fB  \-\-help
+show this help message and exit
+.TP
+.B \-v\fP,\fB  \-\-verbose
+Talk while working
+.TP
+.B \-d\fP,\fB  \-\-dump\-negative
+Dump the content of failing tests to stdout
+.TP
+.BI \-t \ TAG\fP,\fB \ \-\-tag \ TAG
+Also run tests tagged with TAG.
+.TP
+.BI \-R \ N\fP,\fB \ \-\-n\-repeat \ N
+Run each test N times
+.TP
+.BI \-T \ SECONDS\fP,\fB \ \-\-timeout \ SECONDS
+Abort and fail requests after inactivity of SECONDS
+.TP
+.BI \-D \ FILE\fP,\fB \ \-\-dump\-to \ FILE
+Dump the content of last failing test to FILE
+.TP
+.BI \-w \ SECONDS\fP,\fB \ \-\-wait \ SECONDS
+Wait SECONDS before executing a request
+.TP
+.BI \-u \ SERVERURL\fP,\fB \ \-\-serverURL \ SERVERURL
+URL of the DaCHS root at the server to test
+.TP
+.BI \-n \ NTHREADS\fP,\fB \ \-\-number\-par \ NTHREADS
+Number of requests to be run in parallel
+.UNINDENT
+.SH THE VALIDATE SUBCOMMAND
+.sp
+Synopsis:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+dachs validate [\-h] [\-x] [\-v] rd [rd...]
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.sp
+This checks RDs for well\-formedness and some aspects  of  VO\-friendliness
+.SS Arguments
+.INDENT 0.0
+.TP
+.B rd
+RD path or ID to validate
+.UNINDENT
+.SS Options
+.INDENT 0.0
+.TP
+.B \-h\fP,\fB  \-\-help
+show this help message and exit
+.TP
+.B \-p\fP,\fB  \-\-pre\-publication
+Validate as if all services were IVOA published even
+if they are not (this may produce spurious errors if
+unpublished services are in the RD).
+.TP
+.B \-v\fP,\fB  \-\-verbose
+Talk while working
+.TP
+.B \-t\fP,\fB  \-\-run\-tests
+Run regression tests embedded in the checked RDs
+.TP
+.BI \-T \ SECONDS\fP,\fB \ \-\-timeout \ SECONDS
+When running tests, abort and fail requests after
+inactivity of SECONDS
+.TP
+.B \-c\fP,\fB  \-\-compare\-db
+Also make sure that tables that are on disk (somewhat)
+match the definition in the RD.
+.TP
+.B \-u\fP,\fB  \-\-accept\-free\-units
+Do not warn against units not listed in VOUnits.
+.UNINDENT
+.SH THE SHOW SUBCOMMAND
+.sp
+(not documented; will probably vanish or change)
+.SH THE STC SUBCOMMAND
+.sp
+(not documented; will probably change fundamentally as STC2 is adopted)
+.SH THE TAPRUN SUBCOMMAND
+.sp
+(used internally)
+.SH REPORTING BUGS
+.sp
+To report bugs and request support, please use our support mailing
+list \fI\%http://lists.g\-vo.org/cgi\-bin/mailman/listinfo/dachs\-support\fP\&.
+.SH SEE ALSO
+.sp
+Comprehensive, if always incomplete documentation on DaCHS is available
+in several documents available at \fI\%http://docs.g\-vo.org/DaCHS/\fP
+(upstream site with PDF downloads and the formatted reference
+documentation) and \fI\%http://dachs\-doc.readthedocs.io/en/latest/index.html\fP
+(with facilities for updating the documents).
 .SH COPYRIGHT
-This library is free software; you can redistribute it and/or modify
-it under the terms of the GNU Lesser General Public License as
-published by the Free Software Foundation; either version 2.1 of the
-License, or (at your option) any later version.
-.P
-This library is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-Lesser General Public License for more details.
-.P
-You should have received a copy of the GNU Lesser General Public
-License along with this library; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-.\"
-.\" EOF
-.\"
+.sp
+Copyright  ©  2017  The GAVO project.  License GPLv3+: GNU
+GPL version 3 or later <\fI\%http://gnu.org/licenses/gpl.html\fP>.
+This is free software: you are free  to  change  and  redistribute  it.
+There is NO WARRANTY, to the extent permitted by law.
+.SH AUTHOR
+Markus Demleitner <gavo@ari.uni-heidelberg.de>
+.\" Generated by docutils manpage writer.
+.
