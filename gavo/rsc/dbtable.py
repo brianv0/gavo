@@ -475,6 +475,10 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 		def getMatchCondition():
 			return " AND ".join("%s=new.%s"%(n,n) for n in self.tableDef.primary)
 
+		# uniqueness checking becomes really slow if primary key definition
+		# is delayed until index creation (as usual), so let's do it now.
+		self._definePrimaryKey()
+
 		if self.tableDef.dupePolicy=="drop":
 			self.query("CREATE OR REPLACE RULE updatePolicy AS"
 				" ON INSERT TO %s WHERE"
