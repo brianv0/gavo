@@ -34,6 +34,31 @@ class RetvalWatcher(base.ObserverBase):
 		self.retval = 101
 
 
+class TableCollector(base.ObserverBase):
+	"""collects the qualified names of tables changed.
+
+	This is used to run vacuum analyze on the respective tables before
+	the import exits; the the vacuumAll method of this class can do
+	that once all importing connections are closed (even if an Observer
+	shouldn't do a thing like that...)
+	"""
+	def __init__(self, eh):
+		base.ObserverBase.__init__(self, eh)
+		self.tablesChanged = []
+
+	@base.listensTo("DBTableModified")
+	def addChangedTable(self, fqName):
+		self.tablesChanged.append(fqName)
+
+	def vacuumAll(self):
+		from gavo import adql
+		tableNameSym = adql.getSymbols()["qualifier"]
+		for tableName in self.tablesChanged:
+			tableNameSym.parseString(tableName, parseAll=True)
+			with base.getAdminConn() as conn:
+				conn.execute("VACUUM ANALYZE %s"%tableName)
+
+
 def process(opts, args):
 	"""imports the data set described by args governed by opts.
 
@@ -47,6 +72,9 @@ def process(opts, args):
 	# process manages its dependencies itself
 	retvalWatcher = RetvalWatcher(api.ui)
 	opts.buildDependencies = False
+
+	# collect tables due for vacuuming
+	tableCollector = TableCollector(api.ui)
 
 	rdId, selectedIds = args[0], args[1:]
 	rd = api.getReferencedElement(rdId, forceType=api.RD)
@@ -82,6 +110,8 @@ def process(opts, args):
 	connection.commit()
 	rd.touchTimestamp()
 	base.tryRemoteReload("__system__/dc_tables")
+
+	tableCollector.vacuumAll()
 
 	return retvalWatcher.retval
 

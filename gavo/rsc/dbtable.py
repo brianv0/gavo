@@ -405,6 +405,9 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 			self.runScripts("preIndex")
 			self.makeIndices()
 			self.runScripts("postCreation")
+		else:
+			base.ui.notifyDBTableModified(self.tableName)
+
 		self.query("ANALYZE %s"%self.tableName)
 		if self.ownedConnection:
 			self.connection.commit()

@@ -261,3 +261,11 @@ class EventDispatcher(object):
 		No arguments are transmitted.
 		"""
 		return ()
+	
+	def notifyDBTableModified(self, fqName):
+		"""is called when an existing database table has been modified.
+
+		The argument is the fully qualified table name.
+		"""
+		return fqName
+		
